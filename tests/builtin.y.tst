@@ -82,8 +82,8 @@ while do
 done
 eval 'echo 5; returnfunc; echo $?'
 eval -i 'echo 6' 'returnfunc' 'echo $?'
-eval 'echo 7; return; echo not reached'
-eval -i 'echo 8' 'return; echo not reached' 'echo $?'
+eval 'echo 7; return; echo 7-2'
+eval -i 'echo 8' 'return; echo 8-2' 'echo $?'
 END
 
 

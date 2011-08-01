@@ -684,7 +684,8 @@ int handle_traps(void)
 
     int signum = 0;
     bool save_sigint_received = sigint_received;
-    struct parsestate_T *state = NULL;
+    struct parsestate_T *parsestate = NULL;
+    struct execstate_T *execstate = NULL;
     savelaststatus = laststatus;
 
     sigint_received = false;
@@ -702,8 +703,10 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (state == NULL)
-			state = save_parse_state();
+		    if (parsestate == NULL) {
+			parsestate = save_parse_state();
+			execstate = save_execstate();
+		    }
 		    signum = handled_signal = s->no;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -724,8 +727,10 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (state == NULL)
-			state = save_parse_state();
+		    if (parsestate == NULL) {
+			parsestate = save_parse_state();
+			execstate = save_execstate();
+		    }
 		    signum = handled_signal = sigrtmin + i;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -740,8 +745,10 @@ int handle_traps(void)
     sigint_received |= save_sigint_received;
     savelaststatus = -1;
     handled_signal = -1;
-    if (state != NULL)
-	restore_parse_state(state);
+    if (parsestate != NULL) {
+	restore_parse_state(parsestate);
+	restore_execstate(execstate);
+    }
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
 	print_job_status_all();
@@ -751,7 +758,8 @@ int handle_traps(void)
     return signum;
 }
 
-/* Executes the EXIT trap if any. */
+/* Executes the EXIT trap if any.
+ * This function calls `reset_execstate' without saving `execstate'. */
 void execute_exit_trap(void)
 {
     wchar_t *command = trap_command[sigindex(0)];
@@ -760,6 +768,7 @@ void execute_exit_trap(void)
 	exit_handled = true;
 	savelaststatus = laststatus;
 	command = xwcsdup(command);
+	reset_execstate();
 	exec_wcs(command, "EXIT trap", false);
 	free(command);
 	savelaststatus = -1;

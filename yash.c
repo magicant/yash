@@ -495,20 +495,18 @@ void exec_input(int fd, const char *name,
  * If no commands were executed, `laststatus' is set to zero. */
 void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 {
-    struct execstate_T *INIT(ei);
-    if (!finally_exit)
-	ei = save_execstate();
-
     bool executed = false;
+
+    if (pinfo->interactive)
+	disable_return();
 
     for (;;) {
 	if (pinfo->interactive) {
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
-	    reset_execstate(true);
 	    pinfo->lineno = 1;
 	} else {
-	    if (return_pending())
+	    if (need_break())
 		goto out;
 	}
 
@@ -552,9 +550,9 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	}
     }
 out:
+    cancel_return();
     if (finally_exit)
 	exit_shell();
-    restore_execstate(ei);
 }
 
 bool input_is_interactive_terminal(const parseinfo_T *pinfo)

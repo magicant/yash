@@ -116,12 +116,9 @@ typedef enum exception_T {
     E_NONE,
     E_CONTINUE,
     E_RETURN,
+    E_BREAK_ITERATION,
+    E_CONTINUE_ITERATION,
 } exception_T;
-typedef enum iterexception_T {
-    IE_NONE,
-    IE_CONTINUE,
-    IE_BREAK,
-} iterexception_T;
 
 /* state of currently executed loop */
 typedef struct execstate_T {
@@ -129,15 +126,8 @@ typedef struct execstate_T {
     unsigned breakloopnest; /* target of break/continue */
     exception_T exception;  /* exceptional jump to be done */
     bool noreturn;          /* true when the "return" built-in is not allowed */
+    bool iterating;         /* true when iterative execution is ongoing */
 } execstate_T;
-
-typedef struct iterinfo_T {
-    bool iterating;
-    iterexception_T exception;
-} iterinfo_T;
-
-static inline bool need_break(void)
-    __attribute__((pure));
 
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(const pipeline_T *p)
@@ -213,9 +203,6 @@ static bool supresserrexit = false;
 static execstate_T execstate;
 /* Note that `execstate' is not reset when a subshell forks. */
 
-/* state of currently executed iteration. */
-static iterinfo_T iterinfo;
-
 /* This flag is set when a special built-in is executed as such. */
 bool special_builtin_executed;
 
@@ -229,15 +216,15 @@ static const assign_T *last_assign;
 static xwcsbuf_T xtrace_buffer = { .contents = NULL };
 
 
-/* Resets `execstate' to the initial state.
- * If `noreturn' is true, the "return" built-in is disallow in the new state. */
-void reset_execstate(bool noreturn)
+/* Resets `execstate' to the initial state. */
+void reset_execstate(void)
 {
     execstate = (struct execstate_T) {
 	.loopnest = 0,
 	.breakloopnest = UINT_MAX,
 	.exception = E_NONE,
-	.noreturn = noreturn,
+	.noreturn = false,
+	.iterating = false,
     };
 }
 
@@ -247,7 +234,7 @@ struct execstate_T *save_execstate(void)
 {
     struct execstate_T *save = xmalloc(sizeof execstate);
     *save = execstate;
-    reset_execstate(false);
+    reset_execstate();
     return save;
 }
 
@@ -258,17 +245,25 @@ void restore_execstate(struct execstate_T *save)
     free(save);
 }
 
-/* Returns true iff `parse_and_exec' should quit execution. */
-inline bool return_pending(void)
+/* Disables the "return" built-in in the current `execstate'. */
+void disable_return(void)
 {
-    return execstate.exception != E_NONE || iterinfo.exception != IE_NONE;
+    execstate.noreturn = true;
+}
+
+/* If we're returning, clear the flag. */
+void cancel_return(void)
+{
+    if (execstate.exception == E_RETURN)
+	execstate.exception = E_NONE;
 }
 
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
 {
     return execstate.breakloopnest < execstate.loopnest
-	|| return_pending() || is_interrupted();
+	|| execstate.exception != E_NONE
+	|| is_interrupted();
 }
 
 
@@ -904,8 +899,8 @@ void connect_pipes(pipeinfo_T *pi)
  *   t_quitint: SIGQUIT & SIGINT are ignored if the parent's job control is off
  *   t_tstp: SIGTSTP is ignored if the parent is job-controlling
  *   t_leave: Don't clear traps and shell FDs. Restore the signal mask for
- *          SIGCHLD. This option must be used iff the shell is going to `exec'
- *          to an external program.
+ *          SIGCHLD. Don't reset `execstate'. This option must be used iff the
+ *          shell is going to `exec' to an external program.
  * Returns the return value of `fork'. */
 pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 {
@@ -954,6 +949,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 #if YASH_ENABLE_HISTORY
 	    close_history_file();
 #endif
+	    reset_execstate();
 	}
 	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
 	clear_shellfds(sigtype & t_leave);
@@ -1432,18 +1428,30 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
 int exec_iteration(void *const *commands, const char *codename)
 {
     int savelaststatus = laststatus, commandstatus = Exit_SUCCESS;
-    struct iterinfo_T saveiterinfo = iterinfo;
+    bool saveiterating = execstate.iterating;
+    execstate.iterating = true;
 
-    for (void *const *c = commands; *c; c++) {
-	iterinfo.iterating = true;
-	iterinfo.exception = IE_NONE;
-	exec_wcs(*c, codename, false);
+    for (void *const *command = commands; *command != NULL; command++) {
+	exec_wcs(*command, codename, false);
 	commandstatus = laststatus;
 	laststatus = savelaststatus;
-	if (iterinfo.exception == IE_BREAK || is_interrupted())
-	    break;
+	switch (execstate.exception) {
+	    case E_BREAK_ITERATION:
+		execstate.exception = E_NONE;
+		/* falls thru! */
+	    default:
+		goto done;
+	    case E_CONTINUE_ITERATION:
+		execstate.exception = E_NONE;
+		/* falls thru! */
+	    case E_NONE:
+		break;
+	}
+	if (execstate.breakloopnest < execstate.loopnest || is_interrupted())
+	    goto done;
     }
-    iterinfo = saveiterinfo;
+done:
+    execstate.iterating = saveiterating;
     return commandstatus;
 }
 
@@ -1512,7 +1520,8 @@ bool autoload_completion_function_file(
 	return false;
     }
 
-    struct parsestate_T *state = save_parse_state();
+    struct parsestate_T *parsestate = save_parse_state();
+    struct execstate_T *execstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     posixly_correct = false;
@@ -1526,7 +1535,8 @@ bool autoload_completion_function_file(
     close_current_environment();
     posixly_correct = saveposix;
     laststatus = savelaststatus;
-    restore_parse_state(state);
+    restore_execstate(execstate);
+    restore_parse_state(parsestate);
     remove_shellfd(fd);
     xclose(fd);
     free(path);
@@ -1711,17 +1721,16 @@ int break_builtin(int argc, void **argv)
 
     if (iter) {
 	/* break/continue iteration */
-	if (!iterinfo.iterating) {
+	if (!execstate.iterating) {
 	    xerror(0, Ngt("not in an iteration"));
 	    return Exit_ERROR;
 	}
 	if (wcscmp(ARGV(0), L"break") == 0) {
-	    iterinfo.exception = IE_BREAK;
+	    execstate.exception = E_BREAK_ITERATION;
 	} else {
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
-	    iterinfo.exception = IE_CONTINUE;
+	    execstate.exception = E_CONTINUE_ITERATION;
 	}
-	execstate.breakloopnest = 0;
 	return laststatus;
     } else {
 	unsigned count;
