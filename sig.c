@@ -238,8 +238,6 @@ static volatile sig_atomic_t any_signal_received = false;
 
 /* the signal for which trap is currently executed */
 static int handled_signal = -1;
-/* set to true when the EXIT trap is executed */
-static bool exit_handled = false;
 
 /* flags to indicate a signal is caught. */
 static volatile sig_atomic_t signal_received[MAXSIGIDX];
@@ -764,8 +762,11 @@ void execute_exit_trap(void)
 {
     wchar_t *command = trap_command[sigindex(0)];
     if (command != NULL) {
+#ifndef NDEBUG
+	static bool exit_handled = false;
 	assert(!exit_handled);
 	exit_handled = true;
+#endif
 	savelaststatus = laststatus;
 	command = xwcsdup(command);
 	reset_execstate();
