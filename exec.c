@@ -1520,8 +1520,8 @@ bool autoload_completion_function_file(
 	return false;
     }
 
-    struct parsestate_T *parsestate = save_parse_state();
-    struct execstate_T *execstate = save_execstate();
+    struct parsestate_T *saveparsestate = save_parse_state();
+    struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     posixly_correct = false;
@@ -1535,8 +1535,8 @@ bool autoload_completion_function_file(
     close_current_environment();
     posixly_correct = saveposix;
     laststatus = savelaststatus;
-    restore_execstate(execstate);
-    restore_parse_state(parsestate);
+    restore_execstate(saveexecstate);
+    restore_parse_state(saveparsestate);
     remove_shellfd(fd);
     xclose(fd);
     free(path);
@@ -1554,11 +1554,11 @@ bool call_completion_function(const wchar_t *funcname)
 	return false;
     }
 
+    struct parsestate_T *saveparsestate = save_parse_state();
+    struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
-    bool save_noreturn = execstate.noreturn;
     posixly_correct = false;
-    execstate.noreturn = false;
 
     le_compdebug("executing completion function \"%ls\"", funcname);
 
@@ -1579,9 +1579,10 @@ bool call_completion_function(const wchar_t *funcname)
     le_compdebug("finished executing completion function \"%ls\"", funcname);
     le_compdebug("  with the exit status of %d", laststatus);
 
-    execstate.noreturn = save_noreturn;
     posixly_correct = saveposix;
     laststatus = savelaststatus;
+    restore_execstate(saveexecstate);
+    restore_parse_state(saveparsestate);
 
     return true;
 }
