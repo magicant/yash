@@ -49,6 +49,7 @@ extern int handle_traps(void);
 extern void execute_exit_trap(void);
 extern void clear_traps(void);
 extern _Bool is_interrupted(void);
+extern void set_laststatus_if_interrupted(void);
 extern void set_interrupted(void);
 extern void reset_sigint(void);
 extern void reset_sigwinch(void);

@@ -502,6 +502,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 
     for (;;) {
 	if (pinfo->interactive) {
+	    set_laststatus_if_interrupted();
 	    forceexit = nextforceexit;
 	    nextforceexit = false;
 	    pinfo->lineno = 1;

@@ -944,6 +944,14 @@ _Bool is_interrupted(void)
     return is_interactive_now && sigint_received;
 }
 
+/* Sets `laststatus' to (SIGINT + TERMSIGOFFSET) if the shell has been
+ * interrupted. */
+void set_laststatus_if_interrupted(void)
+{
+    if (is_interrupted())
+	laststatus = SIGINT + TERMSIGOFFSET;
+}
+
 /* Sets the `sigint_received' flag. */
 void set_interrupted(void)
 {
