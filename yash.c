@@ -513,7 +513,7 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 	and_or_T *commands;
 	switch (read_and_parse(pinfo, &commands)) {
 	    case PR_OK:
-		if (commands) {
+		if (commands != NULL) {
 		    if (shopt_exec || is_interactive) {
 			exec_and_or_lists(commands,
 				finally_exit && !pinfo->interactive &&
