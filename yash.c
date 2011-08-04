@@ -534,8 +534,9 @@ void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
 		if (finally_exit) {
 		    wchar_t argv0[] = L"EOF";
 		    exit_builtin(1, (void *[]) { argv0, NULL });
-		} else
+		} else {
 		    goto out;
+		}
 		break;
 	    case PR_SYNTAX_ERROR:
 		if (!is_interactive_now)
