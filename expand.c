@@ -60,7 +60,8 @@ static bool expand_word(
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull(4)));
 static bool expand_word_inner(const wordunit_T *restrict w,
-	tildetype_T tilde, bool quoted, bool rec, struct expand_word_T *e)
+	tildetype_T tilde, bool quoted, bool rec,
+	struct expand_word_T *restrict e)
     __attribute__((nonnull(5)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
@@ -69,8 +70,8 @@ static wchar_t *expand_tilde(const wchar_t **ss,
 
 enum indextype_T { IDX_NONE, IDX_ALL, IDX_CONCAT, IDX_NUMBER, };
 
-static bool expand_param(
-	const paramexp_T *p, bool indq, struct expand_word_T *e)
+static bool expand_param(const paramexp_T *restrict p, bool indq,
+	struct expand_word_T *restrict e)
     __attribute__((nonnull));
 static wchar_t *expand_param_simple(const paramexp_T *p)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -82,10 +83,10 @@ static void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
 static void print_subst_as_error(const paramexp_T *p)
     __attribute__((nonnull));
-static void match_each(
-	void **slist, const wchar_t *pattern, paramexptype_T type)
+static void match_each(void **restrict slist, const wchar_t *restrict pattern,
+	paramexptype_T type)
     __attribute__((nonnull));
-static void subst_each(void **slist, const wchar_t *pattern,
+static void subst_each(void **restrict slist, const wchar_t *pattern,
 	const wchar_t *subst, paramexptype_T type)
     __attribute__((nonnull));
 static void subst_length_each(void **slist)
@@ -97,11 +98,11 @@ static void expand_brace_each(void **restrict values, void **restrict splits,
 static void expand_brace(wchar_t *restrict word, char *restrict split,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
-static bool has_leading_zero(const wchar_t *s, bool *sign)
-    __attribute__((nonnull));
 static bool tryexpand_brace_sequence(
-	wchar_t *word, char *split, wchar_t *startc,
+	wchar_t *word, char *restrict split, wchar_t *startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
+    __attribute__((nonnull));
+static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
     __attribute__((nonnull));
 
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
@@ -433,7 +434,8 @@ bool expand_word(
  * Single- or double-quoted characters are unquoted and backslashed.
  * The return value is true iff successful. */
 bool expand_word_inner(const wordunit_T *restrict w,
-	tildetype_T tilde, bool quoted, bool rec, struct expand_word_T *e)
+	tildetype_T tilde, bool quoted, bool rec,
+	struct expand_word_T *restrict e)
 {
     bool ok = true;
     bool indq = false;  /* in a double quote? */
@@ -607,7 +609,8 @@ finish:
 /* Performs parameter expansion.
  * The result is put in `e'.
  * Returns true iff successful. */
-bool expand_param(const paramexp_T *p, bool indq, struct expand_word_T *e)
+bool expand_param(const paramexp_T *restrict p, bool indq,
+	struct expand_word_T *restrict e)
 {
     /* parse indices first */
     ssize_t startindex, endindex;
@@ -1075,7 +1078,8 @@ void print_subst_as_error(const paramexp_T *p)
  * PT_MATCHLONGEST. If both of PT_MATCHHEAD and PT_MATCHTAIL are specified,
  * PT_MATCHLONGEST must be specified too.
  * Elements of `slist' may be modified and/or `realloc'ed in this function. */
-void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
+void match_each(void **restrict slist, const wchar_t *restrict pattern,
+	paramexptype_T type)
 {
     xfnmflags_T flags = 0;
     assert(type & (PT_MATCHHEAD | PT_MATCHTAIL | PT_MATCHLONGEST));
@@ -1109,8 +1113,8 @@ void match_each(void **slist, const wchar_t *pattern, paramexptype_T type)
  * `type' may contain PT_MATCHHEAD, PT_MATCHTAIL and PT_SUBSTALL.
  * PT_MATCHLONGEST is always assumed to be specified.
  * Elements of `slist' may be modified and/or `realloc'ed in this function. */
-void subst_each(void **slist, const wchar_t *pattern, const wchar_t *subst,
-	paramexptype_T type)
+void subst_each(void **restrict slist, const wchar_t *pattern,
+	const wchar_t *subst, paramexptype_T type)
 {
     xfnmflags_T flags = 0;
     if (type & PT_MATCHHEAD)
@@ -1259,7 +1263,7 @@ done:;
  * `startc' is a pointer to the character right after L'{' in `word'.
  */
 bool tryexpand_brace_sequence(
-	wchar_t *word, char *split, wchar_t *startc,
+	wchar_t *word, char *restrict split, wchar_t *startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
     long start, end, delta, value;
@@ -1352,7 +1356,7 @@ bool tryexpand_brace_sequence(
  * Leading spaces are ignored.
  * If the numeral has a plus sign L'+', true is assigned to `*sign'.
  * If not, false is assigned. */
-bool has_leading_zero(const wchar_t *s, bool *sign)
+bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 {
     while (iswspace(*s))
 	s++;
@@ -1517,17 +1521,13 @@ end:
 
 /* Removes IFS white spaces at the end of the string `s' by replacing them with
  * null characters. The default IFS is used if `ifs' is NULL. */
-void trim_trailing_spaces(wchar_t *s, const wchar_t *ifs)
+void trim_trailing_spaces(wchar_t *restrict s, const wchar_t *restrict ifs)
 {
-    wchar_t *const base = s;
-
     if (ifs == NULL)
 	ifs = DEFAULT_IFS;
-    s += wcslen(s);
-    while (base < s) {
-	s--;
-	if (wcschr(ifs, *s) != NULL && iswspace(*s))
-	    *s = L'\0';
+    for (size_t i = wcslen(s); i-- > 0; ) {
+	if (wcschr(ifs, s[i]) != NULL && iswspace(s[i]))
+	    s[i] = L'\0';
 	else
 	    break;
     }
