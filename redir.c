@@ -442,9 +442,9 @@ openwithflags:
 char *expand_redir_filename(const struct wordunit_T *filename)
 {
     if (is_interactive) {
-	return expand_single_with_glob(filename, tt_single);
+	return expand_single_with_glob(filename, TT_SINGLE);
     } else {
-	wchar_t *result = expand_single(filename, tt_single);
+	wchar_t *result = expand_single(filename, TT_SINGLE);
 	if (result == NULL)
 	    return NULL;
 	char *mbsresult = realloc_wcstombs(unescapefree(result));

@@ -311,7 +311,7 @@ cparse_simple_command:
 		return false;
 	}
 
-	wordunit_T *w = cparse_word(is_token_delimiter_char, tt_single,
+	wordunit_T *w = cparse_word(is_token_delimiter_char, TT_SINGLE,
 		pwords.length == 0 ? CTXT_COMMAND : CTXT_ARGUMENT);
 	if (w == NULL) {
 	    if (pi->ctxt->pwords == NULL) {
@@ -367,7 +367,7 @@ bool ctryparse_assignment(void)
 
     if (BUF[INDEX] != L'(') {
 	/* scalar variable */
-	wchar_t *value = cparse_and_expand_word(tt_multi, CTXT_ASSIGN);
+	wchar_t *value = cparse_and_expand_word(TT_MULTI, CTXT_ASSIGN);
 	if (value == NULL) {
 	    empty_pwords();
 	    return true;
@@ -393,7 +393,7 @@ bool ctryparse_assignment(void)
 	    }
 
 	    wordunit_T *w = cparse_word(
-		    is_token_delimiter_char, tt_single, CTXT_ASSIGN);
+		    is_token_delimiter_char, TT_SINGLE, CTXT_ASSIGN);
 	    if (w == NULL) {
 		if (pi->ctxt->pwords == NULL) {
 		    pi->ctxt->pwordc = pwords.length;
@@ -454,7 +454,7 @@ bool ctryparse_redirect(void)
     }
 
     skip_blanks();
-    value = cparse_and_expand_word(tt_single, type);
+    value = cparse_and_expand_word(TT_SINGLE, type);
     if (value == NULL) {
 	empty_pwords();
 	return true;
@@ -483,7 +483,7 @@ bool cparse_for_command(void)
 	skip_blanks();
 
     /* parse variable name */
-    wordunit_T *w = cparse_word(is_token_delimiter_char, tt_none, CTXT_VAR);
+    wordunit_T *w = cparse_word(is_token_delimiter_char, TT_NONE, CTXT_VAR);
     if (w == NULL) {
 	empty_pwords();
 	return true;
@@ -512,7 +512,7 @@ bool cparse_for_command(void)
 		return false;
 	    }
 
-	    w = cparse_word(is_token_delimiter_char, tt_single, CTXT_NORMAL);
+	    w = cparse_word(is_token_delimiter_char, TT_SINGLE, CTXT_NORMAL);
 	    if (w == NULL) {
 		if (pi->ctxt->pwords == NULL) {
 		    pi->ctxt->pwordc = 0;
@@ -536,7 +536,7 @@ bool cparse_for_command(void)
     }
 
     /* found no "in" or "do", so the next word should be one of them */
-    w = cparse_word(is_token_delimiter_char, tt_none,
+    w = cparse_word(is_token_delimiter_char, TT_NONE,
 	    in ? CTXT_FOR_DO : CTXT_FOR_IN);
     if (w == NULL) {
 	empty_pwords();
@@ -560,7 +560,7 @@ bool cparse_case_command(void)
 
     /* parse matched word */
     wordunit_T *w = cparse_word(
-	    is_token_delimiter_char, tt_single, CTXT_NORMAL);
+	    is_token_delimiter_char, TT_SINGLE, CTXT_NORMAL);
     if (w == NULL) {
 	empty_pwords();
 	return true;
@@ -575,7 +575,7 @@ bool cparse_case_command(void)
     }
 
     /* there is no "in", so the next word should be "in". */
-    w = cparse_word(is_token_delimiter_char, tt_none, CTXT_CASE_IN);
+    w = cparse_word(is_token_delimiter_char, TT_NONE, CTXT_CASE_IN);
     if (w == NULL) {
 	empty_pwords();
 	return true;
@@ -596,7 +596,7 @@ bool cparse_function_definition(void)
 
     /* parse the function name */
     wordunit_T *w =
-	cparse_word(is_token_delimiter_char, tt_none, CTXT_FUNCTION);
+	cparse_word(is_token_delimiter_char, TT_NONE, CTXT_FUNCTION);
     if (w == NULL) {
 	empty_pwords();
 	return true;
@@ -642,7 +642,7 @@ wordunit_T *cparse_word(
 	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
 {
 cparse_word:
-    if (tilde != tt_none)
+    if (tilde != TT_NONE)
 	if (ctryparse_tilde())
 	    return NULL;
 
@@ -712,7 +712,7 @@ cparse_word:
 	    indq = !indq;
 	    break;
 	case L':':
-	    if (!indq && tilde == tt_multi) {
+	    if (!indq && tilde == TT_MULTI) {
 		INDEX++;
 		wordfree(first);
 		goto cparse_word;
@@ -954,7 +954,7 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
     /* parse index */
     if (BUF[INDEX] == L'[') {
 	INDEX++;
-	wordunit_T *w = cparse_word(is_closing_bracket, tt_none, CTXT_ARITH);
+	wordunit_T *w = cparse_word(is_closing_bracket, TT_NONE, CTXT_ARITH);
 	if (w == NULL)
 	    goto return_null;
 	wordfree(w);
@@ -1026,13 +1026,13 @@ parse_match:
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
 	pe->pe_match = cparse_word(
-		is_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
+		is_closing_brace, TT_NONE, ctxttype | CTXT_VBRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	goto check_closing_paren;
     } else {
 	pe->pe_match = cparse_word(
-		is_slash_or_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
+		is_slash_or_closing_brace, TT_NONE, ctxttype | CTXT_VBRACED);
 	if (pe->pe_match == NULL)
 	    goto return_null;
 	if (BUF[INDEX] != L'/')
@@ -1042,7 +1042,7 @@ parse_match:
 parse_subst:
     INDEX++;
     pe->pe_subst = cparse_word(
-	    is_closing_brace, tt_none, ctxttype | CTXT_VBRACED);
+	    is_closing_brace, TT_NONE, ctxttype | CTXT_VBRACED);
     if (pe->pe_subst == NULL)
 	goto return_null;
 
@@ -1120,7 +1120,7 @@ wordunit_T *cparse_arith(void)
 	    }
 	} else {
 	    wordunit_T *w = cparse_word(
-		    is_arith_delimiter, tt_none, CTXT_ARITH);
+		    is_arith_delimiter, TT_NONE, CTXT_ARITH);
 	    if (w == NULL) {
 		empty_pwords();
 		return NULL;

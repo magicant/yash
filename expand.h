@@ -31,7 +31,7 @@
 #define CHARS_ESCAPABLE L"$`\"\\"
 
 /* type of tilde expansion */
-typedef enum { tt_none, tt_single, tt_multi, } tildetype_T;
+typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
 
 struct wordunit_T;
 struct plist_T;
