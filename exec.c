@@ -408,8 +408,9 @@ void exec_for(const command_T *c, bool finally_exit)
 	/* no "in" keyword in the for command: use the positional parameters */
 	struct get_variable_T v = get_variable(L"@");
 	assert(v.type == GV_ARRAY && v.values != NULL);
-	words = pldup(v.values, copyaswcs);
+	save_get_variable_values(&v);
 	count = (int) v.count;
+	words = v.values;
     }
 
 #define CHECK_LOOP                                      \
@@ -1467,27 +1468,23 @@ done:
 int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 {
     struct get_variable_T gv = get_variable(varname);
-    void **array;
 
     switch (gv.type) {
 	case GV_NOTFOUND:
 	    return -1;
 	case GV_SCALAR:
-	    array = gv.values;
-	    break;
 	case GV_ARRAY:
-	    /* copy the array values in case they are unset during execution */
-	    array = plndup(gv.values, gv.count, copyaswcs);
 	    break;
 	case GV_ARRAY_CONCAT:
 	    /* should execute the concatenated value, but is not supported now*/
 	    return -1;
-	default:
-	    assert(false);
     }
 
-    int result = exec_iteration(array, codename);
-    plfree(array, free);
+    /* copy the array values in case they are unset during execution */
+    save_get_variable_values(&gv);
+
+    int result = exec_iteration(gv.values, codename);
+    plfree(gv.values, free);
     return result;
 }
 

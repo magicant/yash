@@ -651,7 +651,6 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 
     /* get the value of parameter or nested expansion */
     struct get_variable_T v;
-    bool save;    /* need to copy the array? */
     bool unset;   /* parameter is not set? */
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
@@ -663,32 +662,23 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
 	v.count = plist.length;
 	v.values = pl_toary(&plist);
-	save = false;
+	v.freevalues = true;
 	unset = false;
 	for (size_t i = 0; v.values[i] != NULL; i++)
 	    v.values[i] = unescapefree(v.values[i]);
     } else {
 	v = get_variable(p->pe_name);
-	switch (v.type) {
-	    case GV_NOTFOUND:
-		/* if the variable is not set, return empty string */
-		v.type = GV_SCALAR;
-		v.count = 1;
-		v.values = xmallocn(2, sizeof *v.values);
-		v.values[0] = xwcsdup(L"");
-		v.values[1] = NULL;
-		unset = true;
-		save = false;
-		break;
-	    case GV_SCALAR:
-		save = false;
-		unset = false;
-		break;
-	    case GV_ARRAY:
-	    case GV_ARRAY_CONCAT:
-		save = true;
-		unset = false;
-		break;
+	if (v.type == GV_NOTFOUND) {
+	    /* if the variable is not set, return empty string */
+	    v.type = GV_SCALAR;
+	    v.count = 1;
+	    v.values = xmallocn(2, sizeof *v.values);
+	    v.values[0] = xwcsdup(L"");
+	    v.values[1] = NULL;
+	    v.freevalues = true;
+	    unset = true;
+	} else {
+	    unset = false;
 	}
     }
 
@@ -698,13 +688,9 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     void **values;  /* the result */
     bool concat;    /* concatenate array elements? */
     switch (v.type) {
-	case GV_NOTFOUND:
-	    assert(v.values == NULL);
-	    values = NULL, concat = false;
-	    break;
 	case GV_SCALAR:
 	    assert(v.values != NULL && v.count == 1);
-	    assert(!save);
+	    save_get_variable_values(&v);
 	    if (indextype != IDX_NUMBER) {
 		trim_wstring(v.values[0], startindex, endindex);
 	    } else {
@@ -747,14 +733,13 @@ treat_array:
 		    endindex = SIZE_MAX;
 #endif
 		assert(0 <= startindex && startindex <= endindex);
-		if (save)
-		    values = plndup(v.values + startindex,
+		values = v.freevalues
+		    ? trim_array(v.values, startindex, endindex)
+		    : plndup(v.values + startindex,
 			    endindex - startindex, copyaswcs);
-		else
-		    values = trim_array(v.values, startindex, endindex);
 		break;
 	    case IDX_NUMBER:
-		if (!save)
+		if (v.freevalues)
 		    plfree(v.values, free);
 		values = xmallocn(2, sizeof *values);
 		values[0] = malloc_wprintf(L"%zu", v.count);

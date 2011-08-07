@@ -810,23 +810,23 @@ const wchar_t *getvar(const wchar_t *name)
  *    GV_SCALAR:       a normal scalar variable
  *    GV_ARRAY:        an array of zero or more values
  *    GV_ARRAY_CONCAT: an array whose values should be concatenated by caller
- * `values' is the array containing the value(s) of the variable/array.
- * A scalar value (GV_SCALAR) is returned as a newly-malloced array containing
- * exactly one newly-malloced wide string. An array (GV_ARRAY*) is returned as
- * a NULL-terminated array of pointers to wide strings, which must not be
- * changed or freed by the caller. If no such variable is found (GV_NOTFOUND),
- * `values' is NULL.
+ * `values' is an array containing the value(s) of the variable/array.
+ * A scalar value (GV_SCALAR) is returned as a NULL-terminated array containing
+ * exactly one wide string. An array (GV_ARRAY*) is returned as a NULL-
+ * terminated array of pointers to wide strings. If no such variable is found
+ * (GV_NOTFOUND), `values' is NULL. The caller must free the `values' array and
+ * its element strings iff `freevalues' is true. If `freevalues' is false, the
+ * caller must not modify the array or its elements.
  * `count' is the number of elements in `values'. */
 struct get_variable_T get_variable(const wchar_t *name)
 {
-    struct get_variable_T result = {
-	.type = GV_NOTFOUND, .count = 0, .values = NULL, };
+    struct get_variable_T result;
     wchar_t *value;
     variable_T *var;
 
-    if (name[0] == L'\0')
-	return result;
-    if (name[1] == L'\0') {
+    if (name[0] == L'\0') {
+	goto not_found;
+    } else if (name[1] == L'\0') {
 	/* `name' is one-character long: check if it's a special parameter */
 	switch (name[0]) {
 	    case L'*':
@@ -839,6 +839,7 @@ positional_parameters:
 		assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 		result.count = var->v_valc;
 		result.values = var->v_vals;
+		result.freevalues = false;
 		return result;
 	    case L'#':
 		var = search_variable(L VAR_positional);
@@ -869,11 +870,11 @@ positional_parameters:
 	errno = 0;
 	uintmax_t v = wcstoumax(name, &nameend, 10);
 	if (errno != 0 || *nameend != L'\0')
-	    return result;  /* not a number or overflow */
+	    goto not_found;  /* not a number or overflow */
 	var = search_variable(L VAR_positional);
 	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
 	if (v == 0 || var->v_valc < v)
-	    return result;  /* index out of bounds */
+	    goto not_found;  /* index out of bounds */
 	value = xwcsdup(var->v_vals[v - 1]);
 	goto return_single;
     }
@@ -891,10 +892,11 @@ positional_parameters:
 		result.type = GV_ARRAY;
 		result.count = var->v_valc;
 		result.values = var->v_vals;
+		result.freevalues = false;
 		return result;
 	}
     }
-    return result;
+    goto not_found;
 
 return_single:  /* return a scalar as a one-element array */
     if (value != NULL) {
@@ -903,8 +905,22 @@ return_single:  /* return a scalar as a one-element array */
 	result.values = xmallocn(2, sizeof *result.values);
 	result.values[0] = value;
 	result.values[1] = NULL;
+	result.freevalues = true;
+	return result;
     }
-    return result;
+
+not_found:
+    return (struct get_variable_T) { .type = GV_NOTFOUND };
+}
+
+/* If `gv->freevalues' is false, substitutes `gv->values' with a newly-malloced
+ * copy of it and turns `gv->freevalues' to true. */
+void save_get_variable_values(struct get_variable_T *gv)
+{
+    if (!gv->freevalues) {
+	gv->values = plndup(gv->values, gv->count, copyaswcs);
+	gv->freevalues = true;
+    }
 }
 
 /* Makes a new array that contains all the variables in the current environment.

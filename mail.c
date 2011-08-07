@@ -141,13 +141,15 @@ void check_mail_and_print_message(void)
 	case GV_SCALAR:
 	    activate();
 	    handle_mailpath(mailpath.values[0]);
-	    plfree(mailpath.values, free);
-	    return;
+	    goto mailpath_handled;
 	case GV_ARRAY:
 	case GV_ARRAY_CONCAT:
 	    activate();
 	    for (size_t i = 0; i < mailpath.count; i++)
 		handle_mailpath_element(mailpath.values[i]);
+mailpath_handled:
+	    if (mailpath.freevalues)
+		plfree(mailpath.values, free);
 	    return;
     }
 

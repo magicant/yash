@@ -111,11 +111,14 @@ struct get_variable_T {
     enum { GV_NOTFOUND, GV_SCALAR, GV_ARRAY, GV_ARRAY_CONCAT, } type;
     size_t count;
     void **values;
+    _Bool freevalues;
 };
 extern const wchar_t *getvar(const wchar_t *name)
     __attribute__((pure,nonnull));
 extern struct get_variable_T get_variable(const wchar_t *name)
     __attribute__((nonnull,warn_unused_result));
+extern void save_get_variable_values(struct get_variable_T *gv)
+    __attribute__((nonnull));
 
 extern void open_new_environment(_Bool temp);
 extern void close_current_environment(void);
