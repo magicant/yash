@@ -89,6 +89,8 @@ static void match_each(void **restrict slist, const wchar_t *restrict pattern,
 static void subst_each(void **restrict slist, const wchar_t *pattern,
 	const wchar_t *subst, paramexptype_T type)
     __attribute__((nonnull));
+static void **concatenate_values(void **values)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
 
@@ -862,19 +864,16 @@ subst:
     }
 
     /* concatenate the elements of `values' */
-    if (concat || !indq) {
-	const wchar_t *ifs = getvar(L VAR_IFS);
-	wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
-	wchar_t *chain = joinwcsarray(values, padding);
-	plfree(values, free);
-	values = xmallocn(2, sizeof *values);
-	values[0] = chain;
-	values[1] = NULL;
-    }
+    if (concat)
+	values = concatenate_values(values);
 
     /* PT_NUMBER */
     if (p->pe_type & PT_NUMBER)
 	subst_length_each(values);
+
+    /* concatenate the elements of `values' */
+    if (!indq)
+	values = concatenate_values(values);
 
     /* backslash escape */
     for (size_t i = 0; values[i] != NULL; i++)
@@ -1117,6 +1116,30 @@ void subst_each(void **restrict slist, const wchar_t *pattern,
 	free(s);
     }
     xfnm_free(xfnm);
+}
+
+/* Concatenates the wide strings in the specified array.
+ * Array `*values' must be a NULL-terminated array of pointers to wide strings.
+ * The strings are concatenated into one, each separated by the first $IFS
+ * character.
+ * The array and its element strings are all freed in this function.
+ * The return value is a pointer to a newly malloced NULL-terminated array that
+ * contains exactly one element: a pointer to the newly malloced wide string
+ * that is the result of concatenation. */
+void **concatenate_values(void **values)
+{
+    /* If the array contains just one string, simply return it. */
+    if (values[0] != NULL && values[1] == NULL)
+	return values;
+
+    const wchar_t *ifs = getvar(L VAR_IFS);
+    wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
+    wchar_t *result = joinwcsarray(values, padding);
+    plfree(values, free);
+    values = xmallocn(2, sizeof *values);
+    values[0] = result;
+    values[1] = NULL;
+    return values;
 }
 
 /* Substitutes each string in the specified array with a string that contains

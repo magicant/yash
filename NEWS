@@ -20,6 +20,8 @@ Yash 2.28
      the last command had redirection.
   *  The "exec" built-in now correctly exports arrays that are just
      assigned.
+  *  ${#@} is now correctly expanded to an array of integers that
+     represent the lengths of array elements.
 
 ----------------------------------------------------------------------
 Yash 2.27
