@@ -115,7 +115,7 @@ static const struct xgetopt_T ulimit_options[] = {
 /* The "ulimit" built-in. */
 int ulimit_builtin(int argc, void **argv)
 {
-    enum { hard = 1 << 0, soft = 1 << 1, } type = hard | soft;
+    enum { HARD = 1 << 0, SOFT = 1 << 1, } type = HARD | SOFT;
     const struct resource *resource = &res_fsize;
     bool print_all = false;
 
@@ -123,8 +123,8 @@ int ulimit_builtin(int argc, void **argv)
     xoptind = 0;
     while ((opt = xgetopt(argv, ulimit_options, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'H':  type = hard;       break;
-	    case L'S':  type = soft;       break;
+	    case L'H':  type = HARD;       break;
+	    case L'S':  type = SOFT;       break;
 	    case L'a':  print_all = true;  break;
 #if YASH_ENABLE_HELP
 	    case L'-':
@@ -142,7 +142,7 @@ int ulimit_builtin(int argc, void **argv)
 
     struct rlimit rlimit;
 
-    assert(type & (hard | soft));
+    assert(type & (HARD | SOFT));
     if (print_all) {
 	for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
 	    resource = opt->ptr;
@@ -156,7 +156,7 @@ int ulimit_builtin(int argc, void **argv)
 		continue;
 	    }
 
-	    rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
+	    rlim_t value = (type & SOFT) ? rlimit.rlim_cur : rlimit.rlim_max;
 	    xprintf(gt("-%lc: %-30s "),
 		    (wint_t) opt->shortopt, gt(resource->description));
 	    if (value == RLIM_INFINITY)
@@ -178,7 +178,7 @@ int ulimit_builtin(int argc, void **argv)
     }
     if (xoptind == argc) {
 	/* print value */
-	rlim_t value = (type & soft) ? rlimit.rlim_cur : rlimit.rlim_max;
+	rlim_t value = (type & SOFT) ? rlimit.rlim_cur : rlimit.rlim_max;
 	if (value == RLIM_INFINITY)
 	    xprintf("%s\n", gt("unlimited"));
 	else
@@ -207,9 +207,9 @@ int ulimit_builtin(int argc, void **argv)
 	} else {
 	    goto err_format;
 	}
-	if (type & hard)
+	if (type & HARD)
 	    rlimit.rlim_max = value;
-	if (type & soft)
+	if (type & SOFT)
 	    rlimit.rlim_cur = value;
 	
 	/* check if soft limit exceeds hard limit */
