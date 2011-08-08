@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* test.c: test builtin */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull));
 
 
-/* The "test" ("[") builtin */
+/* The "test" ("[") built-in. */
 int test_builtin(int argc, void **argv)
 {
     if (wcscmp(ARGV(0), L"[") == 0) {
@@ -94,11 +94,11 @@ int test_builtin(int argc, void **argv)
 	case 3:  result = test_triple(argv);     break;
 	case 4:
 	    if (wcscmp(argv[0], L"!") == 0) {
-		result = !test_triple(argv + 1);
+		result = !test_triple(&argv[1]);
 		break;
 	    }
 	    if (wcscmp(argv[0], L"(") == 0 && wcscmp(argv[3], L")") == 0) {
-		result = test_double(argv + 1);
+		result = test_double(&argv[1]);
 		break;
 	    }
 	    /* falls thru! */
@@ -131,7 +131,7 @@ bool test_double(void *args[static 2])
     const wchar_t *op = args[0], *arg = args[1];
 
     if (wcscmp(op, L"!") == 0)
-	return !test_single(args + 1);
+	return !test_single(&args[1]);
     if (!is_unary_primary(op)) {
 	xerror(0, Ngt("`%ls' is not a unary operator"), op);
 	return 0;
@@ -148,8 +148,8 @@ bool test_double(void *args[static 2])
     }
 
     char *mbsarg = malloc_wcstombs(arg);
-    if (!mbsarg) {
-	xerror(0, Ngt("unexpected error"));
+    if (mbsarg == NULL) {
+	xerror(EILSEQ, Ngt("unexpected error"));
 	return 0;
     }
 
@@ -170,15 +170,18 @@ bool test_file(wchar_t type, const char *file) {
     }
 
     struct stat st;
-    if (type == L'h' || type == L'L')
-	return (lstat(file, &st) == 0) && S_ISLNK(st.st_mode);
+    switch (type) {
+	case L'h':
+	case L'L':
+	    return (lstat(file, &st) == 0) && S_ISLNK(st.st_mode);
 #if !HAVE_S_ISVTX
-    if (type == L'k')
-	return false;
+	case L'k':
+	    return false;
 #endif
+    }
+
     if (stat(file, &st) < 0)
 	return false;
-
     switch (type) {
 	case L'b':
 	    return S_ISBLK(st.st_mode);
@@ -262,10 +265,10 @@ bool test_triple(void *args[static 3])
     assert(op[0] == L'-');
     switch (op[1]) {
     case L'a':
-	if (op[2] == L'\0') return test_single(args) && test_single(args + 2);
+	if (op[2] == L'\0') return test_single(args) && test_single(&args[2]);
 	break;
     case L'o':
-	if (op[2] == L'\0') return test_single(args) || test_single(args + 2);
+	if (op[2] == L'\0') return test_single(args) || test_single(&args[2]);
 	if (op[2] == L't')
 	    if (op[3] == L'\0') return compare_files(left, right) == FC_OLDER;
 	break;
@@ -345,9 +348,9 @@ bool test_triple(void *args[static 3])
 
 not_binary:
     if (wcscmp(left, L"!") == 0)
-	return !test_double(args + 1);
+	return !test_double(&args[1]);
     if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
-	return test_single(args + 1);
+	return test_single(&args[1]);
 
     xerror(0, Ngt("`%ls' is not a binary operator"), op);
     return 0;
@@ -418,16 +421,16 @@ bool test_long_term(struct test_state *state)
 	    && is_binary_primary(state->args[state->index + 1])
 	    && (state->index + 3 >= state->argc
 		|| is_term_delimiter(state->args[state->index + 3]))) {
-	result = test_triple(state->args + state->index);
+	result = test_triple(&state->args[state->index]);
 	state->index += 3;
     } else if (state->index + 2 <= state->argc
 	    && is_unary_primary(state->args[state->index])
 	    && (state->index + 2 >= state->argc
 		|| is_term_delimiter(state->args[state->index + 2]))) {
-	result = test_double(state->args + state->index);
+	result = test_double(&state->args[state->index]);
 	state->index += 2;
     } else {
-	result = test_single(state->args + state->index);
+	result = test_single(&state->args[state->index]);
 	state->index += 1;
     }
     return result ^ negate;
@@ -540,13 +543,13 @@ int compare_integers(const wchar_t *left, const wchar_t *right)
 
     errno = 0;
     il = wcstoimax(left, &end, 10);
-    if (errno || !left[0] || *end) {
+    if (errno != 0 || left[0] == L'\0' || *end != L'\0') {
 	xerror(errno, Ngt("`%ls' is not a valid integer"), left);
 	return 0;
     }
     errno = 0;
     ir = wcstoimax(right, &end, 10);
-    if (errno || !right[0] || *end) {
+    if (errno != 0 || right[0] == L'\0' || *end != L'\0') {
 	xerror(errno, Ngt("`%ls' is not a valid integer"), right);
 	return 0;
     }
@@ -611,16 +614,16 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     bool sl_ok, sr_ok;
 
     mbsfile = malloc_wcstombs(left);
-    if (!mbsfile) {
-	xerror(0, Ngt("unexpected error"));
+    if (mbsfile == NULL) {
+	xerror(EILSEQ, Ngt("unexpected error"));
 	return FC_UNKNOWN;
     }
     sl_ok = stat(mbsfile, &sl) >= 0;
     free(mbsfile);
 
     mbsfile = malloc_wcstombs(right);
-    if (!mbsfile) {
-	xerror(0, Ngt("unexpected error"));
+    if (mbsfile == NULL) {
+	xerror(EILSEQ, Ngt("unexpected error"));
 	return FC_UNKNOWN;
     }
     sr_ok = stat(mbsfile, &sr) >= 0;
