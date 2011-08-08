@@ -100,7 +100,7 @@ static void expand_brace_each(void **restrict values, void **restrict splits,
 static void expand_brace(wchar_t *restrict word, char *restrict split,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
-static bool tryexpand_brace_sequence(
+static bool try_expand_brace_sequence(
 	wchar_t *word, char *restrict split, wchar_t *startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
     __attribute__((nonnull));
@@ -1190,7 +1190,7 @@ start:
 	pl_add(valuelist, word);
 	pl_add(splitlist, split);
 	return;
-    } else if (tryexpand_brace_sequence(word, split, c, valuelist, splitlist)) {
+    } else if (try_expand_brace_sequence(word, split, c, valuelist, splitlist)){
 	return;
     }
 
@@ -1270,7 +1270,7 @@ done:;
  * are added to `valuelist' and `splitlist'.
  * `startc' is a pointer to the character right after L'{' in `word'.
  */
-bool tryexpand_brace_sequence(
+bool try_expand_brace_sequence(
 	wchar_t *word, char *restrict split, wchar_t *startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist)
 {
@@ -1353,6 +1353,13 @@ bool tryexpand_brace_sequence(
 	/* expand the remaining portion recursively */
 	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
 
+	if (delta >= 0) {
+	    if (LONG_MAX - delta < value)
+		break;
+	} else {
+	    if (LONG_MIN - delta > value)
+		break;
+	}
 	value += delta;
     } while (delta >= 0 ? value <= end : value >= end);
     free(word);
