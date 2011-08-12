@@ -354,8 +354,9 @@ return 1 2
 echo return too many operands $?
 )
 
-$INVOKE $TESTEE -i +m --norcfile <<\END
+$INVOKE $TESTEE -i +m --norcfile 3>&2 2>/dev/null <<\END
 PS1=
+exec 2>&3
 return
 echo return reached
 END
