@@ -27,7 +27,7 @@ temptxt="./.temp.txt"
 dirs=". builtins lineedit po tests"
 
 target="yash"
-version="2.27"
+version="2.28"
 copyright="Copyright (C) 2007-2011 magicant"
 
 # object files to be linked as `yash'
