@@ -151,13 +151,13 @@ int main(int argc, char **argv)
 
     int optresult = parse_shell_options(argc, wargv, &options);
     if (optresult != Exit_SUCCESS)
-	return optresult;
+	exit(optresult);
     if (options.version)
 	print_version();
     if (options.help)
 	print_help();
     if (options.version || options.help)
-	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
+	exit(yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE);
 
     init_variables();
 
@@ -169,14 +169,14 @@ int main(int argc, char **argv)
 
     if (shopt_cmdline && shopt_stdin) {
 	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
-	return Exit_ERROR;
+	exit(Exit_ERROR);
     }
     if (shopt_cmdline) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {
 	    xerror(0, Ngt("the -c option is specified "
 			"but no command is given"));
-	    return Exit_ERROR;
+	    exit(Exit_ERROR);
 	}
 	if (xoptind < argc) {
 	    inputname = argv[xoptind];
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 	    if (input.fd < 0) {
 		int errno_ = errno;
 		xerror(errno_, Ngt("cannot open file `%s'"), inputname);
-		return (errno_ == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
+		exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
 	    }
 	}
     }
