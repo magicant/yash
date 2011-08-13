@@ -131,10 +131,12 @@ uninstall-data:
 		rm -f $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
 
-DISTFILES = $(DOMAIN).pot stamp-po $(POFILES) $(MOFILES) Makefile.in \
+DISTTARGETFILES = $(DOMAIN).pot $(POFILES) $(MOFILES) Makefile.in \
 	quot.sed boldquot.sed en@quot.ih en@quot.hd \
 	en@boldquot.ih en@boldquot.hd insert-hd.sin
-distfiles: $(DISTFILES)
+DISTFILES = $(DISTTARGETFILES) stamp-po
+distfiles: $(DISTTARGETFILES)
+	touch stamp-po
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
 	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
