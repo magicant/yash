@@ -2056,6 +2056,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     char *mbssaveargv0 = malloc_wcstombs(saveargv0);
     if (mbssaveargv0 == NULL) {
 	xerror(EILSEQ, Ngt("unexpected error"));
+	err = Exit_NOEXEC;
 	goto error1;
     }
 
@@ -2064,6 +2065,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	mbsargv0 = malloc_wcstombs(as);
 	if (mbsargv0 == NULL) {
 	    xerror(EILSEQ, Ngt("unexpected error"));
+	    err = Exit_NOEXEC;
 	    goto error2;
 	}
 	argv[0] = (void *) as;
