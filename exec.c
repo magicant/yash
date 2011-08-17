@@ -168,7 +168,7 @@ static void exec_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
     __attribute__((nonnull));
 static void exec_external_program(
-	const char *path, int argc, char *argv0, void **argv)
+	const char *path, int argc, char *argv0, void **argv, char **envs)
     __attribute__((nonnull));
 static void print_xtrace(void *const *argv);
 static void exec_fall_back_on_sh(
@@ -1155,7 +1155,7 @@ void exec_simple_command(
 	break;
     case CT_EXTERNALPROGRAM:
 	assert(finally_exit);
-	exec_external_program(ci->ci_path, argc, argv0, argv);
+	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
 	break;
     case CT_SPECIALBUILTIN:
     case CT_SEMISPECIALBUILTIN:
@@ -1183,7 +1183,8 @@ void exec_simple_command(
  *  argv0: multibyte version of `argv[0]'
  *  argv:  pointer to an array of pointers to wide strings that are passed to
  *         the program */
-void exec_external_program(const char *path, int argc, char *argv0, void **argv)
+void exec_external_program(
+	const char *path, int argc, char *argv0, void **argv, char **envs)
 {
     char *mbsargv[argc + 1];
     mbsargv[0] = argv0;
@@ -1196,7 +1197,7 @@ void exec_external_program(const char *path, int argc, char *argv0, void **argv)
 
     restore_signals(true);
 
-    xexecve(path, mbsargv, environ);
+    xexecve(path, mbsargv, envs);
     int saveerrno = errno;
     if (saveerrno != ENOEXEC) {
 	if (saveerrno == EACCES && is_directory(path))
@@ -1207,7 +1208,7 @@ void exec_external_program(const char *path, int argc, char *argv0, void **argv)
 		    : Ngt("cannot execute command `%s' (%s)"),
 		argv0, path);
     } else if (saveerrno != ENOENT) {
-	exec_fall_back_on_sh(argc, mbsargv, environ, path);
+	exec_fall_back_on_sh(argc, mbsargv, envs, path);
     }
     laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
 
@@ -2050,27 +2051,35 @@ int exec_builtin(int argc, void **argv)
 int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 {
     int err;
-    char *freelater = NULL;
-    char *args[argc + 1];
-    for (int i = 0; i < argc; i++) {
-	args[i] = malloc_wcstombs(ARGV(i));
-	if (args[i] == NULL) {
-	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
-			"multibyte characters: replaced with empty string"));
-	    args[i] = xstrdup("");
-	}
+
+    const wchar_t *saveargv0 = ARGV(0);
+    char *mbssaveargv0 = malloc_wcstombs(saveargv0);
+    if (mbssaveargv0 == NULL) {
+	xerror(EILSEQ, Ngt("unexpected error"));
+	goto error1;
     }
-    args[argc] = NULL;
+
+    char *mbsargv0;
+    if (as != NULL) {
+	mbsargv0 = malloc_wcstombs(as);
+	if (mbsargv0 == NULL) {
+	    xerror(EILSEQ, Ngt("unexpected error"));
+	    goto error2;
+	}
+	argv[0] = (void *) as;
+    } else {
+	mbsargv0 = mbssaveargv0;
+    }
 
     const char *commandpath;
-    if (wcschr(ARGV(0), L'/') != NULL) {
-	commandpath = args[0];
+    if (wcschr(saveargv0, L'/') != NULL) {
+	commandpath = mbssaveargv0;
     } else {
-	commandpath = get_command_path(args[0], false);
+	commandpath = get_command_path(mbssaveargv0, false);
 	if (commandpath == NULL) {
-	    xerror(0, Ngt("no such command `%s'"), args[0]);
+	    xerror(0, Ngt("no such command `%s'"), mbssaveargv0);
 	    err = Exit_NOTFOUND;
-	    goto err;
+	    goto error3;
 	}
     }
 
@@ -2093,41 +2102,19 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 	envs = environ;
     }
 
-    if (as != NULL) {
-	freelater = args[0];
-	args[0] = malloc_wcstombs(as);
-	if (args[0] == NULL) {
-	    xerror(EILSEQ, Ngt("cannot convert wide characters into "
-			"multibyte characters: replaced with empty string"));
-	    args[0] = xstrdup("");
-	}
-    }
-
-    restore_signals(true);
-    xexecve(commandpath, args, envs);
-    if (errno != ENOEXEC) {
-	if (errno == EACCES && is_directory(commandpath))
-	    errno = EISDIR;
-	if (strcmp(args[0], commandpath) == 0)
-	    xerror(errno, Ngt("cannot execute command `%s'"), args[0]);
-	else
-	    xerror(errno, Ngt("cannot execute command `%s' (%s)"),
-		    args[0], commandpath);
-    } else {
-	exec_fall_back_on_sh(argc, args, envs, commandpath);
-    }
-    if (posixly_correct || !is_interactive_now)
-	exit(Exit_NOEXEC);
-    set_signals();
+    exec_external_program(commandpath, argc, mbsargv0, argv, envs);
     err = Exit_NOEXEC;
 
     if (clear)
 	plfree((void **) envs, free);
-
-err:
-    for (int i = 0; i < argc; i++)
-	free(args[i]);
-    free(freelater);
+error3:
+    if (as != NULL) {
+	free(mbsargv0);
+	argv[0] = (void *) saveargv0;
+    }
+error2:
+    free(mbssaveargv0);
+error1:
     if (posixly_correct || !is_interactive_now)
 	exit(err);
     return err;
