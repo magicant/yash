@@ -2094,8 +2094,10 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
 		assign != NULL;
 		assign = assign->next) {
 	    char *value = get_exported_value(assign->a_name);
-	    if (value != NULL)
+	    if (value != NULL) {
 		pl_add(&list, malloc_printf("%ls=%s", assign->a_name, value));
+		free(value);
+	    }
 	}
 	envs = (char **) pl_toary(&list);
     } else {
