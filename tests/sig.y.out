@@ -46,6 +46,18 @@ trap -- 'echo trapped' USR1
 trap -- '' USR2
 trap 3 0
 trap 4 0
+EXIT 1
+EXIT 2
+EXIT 3
+EXIT 4
+EXIT 5
+EXIT 6
+EXIT 7
+EXIT 8
+EXIT 9
+EXIT 10
+EXIT 11
+EXIT 12
 ===== signals =====
 INT ignored
 TERM ignored

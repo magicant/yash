@@ -944,7 +944,9 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_tstp)
 	    if (save_doing_job_control_now)
 		ignore_sigtstp();
-	if (!(sigtype & t_leave)) {
+	if (sigtype & t_leave) {
+	    clear_exit_trap();
+	} else {
 	    clear_traps();
 	    neglect_all_jobs();
 #if YASH_ENABLE_HISTORY

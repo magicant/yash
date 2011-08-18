@@ -898,6 +898,9 @@ bool is_ignored(int signum)
 {
     assert(!is_interactive_now);
 
+    if (signum == 0)
+	return false;
+
     if (doing_job_control_now && signum == SIGTSTP)
 	return sigismember(&ignored_signals, signum);
 
@@ -905,6 +908,12 @@ bool is_ignored(int signum)
     sigemptyset(&action.sa_mask);
     return sigaction(signum, NULL, &action) >= 0
 	&& action.sa_handler == SIG_IGN;
+}
+
+/* Clears the EXIT trap. */
+void clear_exit_trap(void)
+{
+    set_trap(0, NULL);
 }
 
 /* Clears all traps except that are set to SIG_IGN. */
