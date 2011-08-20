@@ -96,6 +96,21 @@ echo trap 3 $?
 trap -  USR1 USR2 INT
 echo trap 4 $?
 
+{
+    $INVOKE $TESTEE -c  'trap "echo EXIT  1" EXIT;  ./_no_such_command_ '
+    $INVOKE $TESTEE -c  'trap "echo EXIT  2" EXIT; (./_no_such_command_)'
+    $INVOKE $TESTEE -ce 'trap "echo EXIT  3" EXIT;  ./_no_such_command_ '
+    $INVOKE $TESTEE -ce 'trap "echo EXIT  4" EXIT; (./_no_such_command_)'
+    $INVOKE $TESTEE -c  'trap "echo EXIT  5" EXIT;  ./_no_such_command_ ; :'
+    $INVOKE $TESTEE -c  'trap "echo EXIT  6" EXIT; (./_no_such_command_); :'
+    $INVOKE $TESTEE -ce 'trap "echo EXIT  7" EXIT;  ./_no_such_command_ ; :'
+    $INVOKE $TESTEE -ce 'trap "echo EXIT  8" EXIT; (./_no_such_command_); :'
+    $INVOKE $TESTEE -c  'trap "echo EXIT  9" EXIT;  ./_no_such_command_ ; (:)'
+    $INVOKE $TESTEE -c  'trap "echo EXIT 10" EXIT; (./_no_such_command_); (:)'
+    $INVOKE $TESTEE -ce 'trap "echo EXIT 11" EXIT;  ./_no_such_command_ ; (:)'
+    $INVOKE $TESTEE -ce 'trap "echo EXIT 12" EXIT; (./_no_such_command_); (:)'
+} 2>/dev/null
+
 echo ===== signals =====
 
 export SIG
