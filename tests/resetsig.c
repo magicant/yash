@@ -1,5 +1,5 @@
 /* resetsig.c: invokes command with all signal handlers reset */
-/* (C) 2009 magicant */
+/* (C) 2009-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,21 +23,23 @@
 
 int main(int argc, char **argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "resetsig: too few arguments\n");
-		return 2;
-	}
+    if (argc < 2) {
+	fprintf(stderr, "resetsig: too few arguments\n");
+	return 2;
+    }
 
-	struct sigaction action;
-	action.sa_handler = SIG_DFL;
-	action.sa_flags = 0;
-	sigemptyset(&action.sa_mask);
-	sigprocmask(SIG_SETMASK, &action.sa_mask, NULL);
-	for (const signal_T *s = signals; s->no; s++)
-		if (s->no != SIGKILL && s->no != SIGSTOP)
-			sigaction(s->no, &action, NULL);
+    struct sigaction action;
+    action.sa_handler = SIG_DFL;
+    action.sa_flags = 0;
+    sigemptyset(&action.sa_mask);
+    sigprocmask(SIG_SETMASK, &action.sa_mask, NULL);
+    for (const signal_T *s = signals; s->no != 0; s++)
+	if (s->no != SIGKILL && s->no != SIGSTOP)
+	    sigaction(s->no, &action, NULL);
 
-    execvp(argv[1], argv + 1);
+    execvp(argv[1], &argv[1]);
     perror("invoke: exec failed");
     return 126;
 }
+
+/* vim: set ts=8 sts=4 sw=4 noet tw=80: */

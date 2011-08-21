@@ -1,5 +1,5 @@
 /* invoke.c: invokes command with given arguments */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     char *givenname = argv[1];
     char *invokedcommand = argv[2];
     argv[2] = givenname;
-    execvp(invokedcommand, argv + 2);
+    execvp(invokedcommand, &argv[2]);
     perror("invoke: exec failed");
     return 126;
 }
