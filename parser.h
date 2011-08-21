@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,10 @@
 typedef struct and_or_T {
     struct and_or_T   *next;
     struct pipeline_T *ao_pipelines;  /* pipelines in this and/or list */
-    _Bool              ao_async;      /* an asynchronous list? */
+    _Bool              ao_async;
 } and_or_T;
+/* ao_async: indicates this and/or list is postfixed by "&", which means the
+ * list is executed asynchronously. */
 
 /* pipeline */
 typedef struct pipeline_T {
@@ -47,8 +49,8 @@ typedef struct pipeline_T {
 } pipeline_T;
 /* pl_neg:  indicates this pipeline is prefix by "!", in which case the exit
  *          status of the pipeline is inverted.
- * pl_cond: true for "&&", false for "||". Ignored for the first pipeline in an
- *          and/or list. */
+ * pl_cond: true if prefixed by "&&", false by "||". Ignored for the first
+ *          pipeline in an and/or list. */
 
 /* type of command_T */
 typedef enum {
@@ -73,47 +75,47 @@ typedef struct command_T {
 	struct {
 	    struct assign_T *assigns;  /* assignments */
 	    void           **words;    /* command name and arguments */
-	} simplecontent;
+	} simplecommand;
 	struct and_or_T     *subcmds;  /* contents of command group */
 	struct ifcommand_T  *ifcmds;   /* contents of if command */
 	struct {
 	    wchar_t         *forname;  /* loop variable of for loop */
 	    void           **forwords; /* words assigned to loop variable */
 	    struct and_or_T *forcmds;  /* commands executed in for loop */
-	} forcontent;
+	} forloop;
 	struct {
 	    _Bool            whltype;  /* 1 for while loop, 0 for until */
 	    struct and_or_T *whlcond;  /* loop condition of while/until loop */
 	    struct and_or_T *whlcmds;  /* commands executed in loop */
-	} whilecontent;
+	} whileloop;
 	struct {
 	    struct wordunit_T *casword;   /* word compared to case patterns */
 	    struct caseitem_T *casitems;  /* pairs of patterns and commands */
-	} casecontent;
+	} casecommand;
 	struct {
 	    struct wordunit_T *funcname;  /* name of function */
 	    struct command_T  *funcbody;  /* body of function */
 	} funcdef;
     } c_content;
 } command_T;
-#define c_assigns  c_content.simplecontent.assigns
-#define c_words    c_content.simplecontent.words
+#define c_assigns  c_content.simplecommand.assigns
+#define c_words    c_content.simplecommand.words
 #define c_subcmds  c_content.subcmds
 #define c_ifcmds   c_content.ifcmds
-#define c_forname  c_content.forcontent.forname
-#define c_forwords c_content.forcontent.forwords
-#define c_forcmds  c_content.forcontent.forcmds
-#define c_whltype  c_content.whilecontent.whltype
-#define c_whlcond  c_content.whilecontent.whlcond
-#define c_whlcmds  c_content.whilecontent.whlcmds
-#define c_casword  c_content.casecontent.casword
-#define c_casitems c_content.casecontent.casitems
+#define c_forname  c_content.forloop.forname
+#define c_forwords c_content.forloop.forwords
+#define c_forcmds  c_content.forloop.forcmds
+#define c_whltype  c_content.whileloop.whltype
+#define c_whlcond  c_content.whileloop.whlcond
+#define c_whlcmds  c_content.whileloop.whlcmds
+#define c_casword  c_content.casecommand.casword
+#define c_casitems c_content.casecommand.casitems
 #define c_funcname c_content.funcdef.funcname
 #define c_funcbody c_content.funcdef.funcbody
 /* `c_words' and `c_forwords' are NULL-terminated arrays of pointers to
- * `wordunit_T', cast to `void *'.
+ * `wordunit_T' that are cast to `void *'.
  * If `c_forwords' is NULL, the for loop doesn't have the "in" clause.
- * If `c_forwords[0]' is NULL, the "in" clause is empty. */
+ * If `c_forwords[0]' is NULL, the "in" clause exists and is empty. */
 
 /* condition and commands of an if command */
 typedef struct ifcommand_T {
@@ -129,15 +131,15 @@ typedef struct caseitem_T {
     void             **ci_patterns;  /* patterns to do matching */
     struct and_or_T   *ci_commands;  /* commands executed if match succeeds */
 } caseitem_T;
-/* `ci_patterns' is a NULL-terminated array of pointers to `wordunit_T',
+/* `ci_patterns' is a NULL-terminated array of pointers to `wordunit_T' that are
  * cast to `void *'. */
 
 /* embedded command */
 typedef struct embedcmd_T {
     _Bool is_preparsed;
     union {
-	wchar_t  *unparsed;
-	and_or_T *preparsed;
+	wchar_t         *unparsed;
+	struct and_or_T *preparsed;
     } value;
 } embedcmd_T;
 
@@ -156,7 +158,7 @@ typedef struct wordunit_T {
     union {
 	wchar_t           *string;  /* string (including quotes) */
 	struct paramexp_T *param;   /* parameter expansion */
-	embedcmd_T         cmdsub;  /* command substitution */
+	struct embedcmd_T  cmdsub;  /* command substitution */
 	struct wordunit_T *arith;   /* expression for arithmetic expansion */
     } wu_value;
 } wordunit_T;
@@ -179,8 +181,8 @@ typedef enum {
     PT_MASK         = (1 << 3) - 1,
     PT_NUMBER       = 1 << 3,  /* ${#name}  (only valid for PT_NONE) */
     PT_COLON        = 1 << 4,  /* ${name:-subst}, ${name:+subst}, etc. */
-    PT_MATCHHEAD    = 1 << 5,  /* only matches at the head */
-    PT_MATCHTAIL    = 1 << 6,  /* only matches at the tail */
+    PT_MATCHHEAD    = 1 << 5,  /* only matches at the beginning of a string */
+    PT_MATCHTAIL    = 1 << 6,  /* only matches at the end of a string */
     PT_MATCHLONGEST = 1 << 7,  /* match as long as possible */
     PT_SUBSTALL     = 1 << 8,  /* substitute all the match */
     PT_NEST         = 1 << 9,  /* have nested expn. like ${${VAR#foo}%bar} */
@@ -275,7 +277,7 @@ typedef struct redir_T {
 	    wchar_t *hereend;  /* token indicating end of here-document */
 	    struct wordunit_T *herecontent;  /* contents of here-document */
 	} heredoc;
-	embedcmd_T command;
+	struct embedcmd_T command;
     } rd_value;
 } redir_T;
 #define rd_filename    rd_value.filename

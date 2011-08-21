@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ static void embedcmdfree(embedcmd_T c);
 
 void andorsfree(and_or_T *a)
 {
-    while (a) {
+    while (a != NULL) {
 	pipesfree(a->ao_pipelines);
 
 	and_or_T *next = a->next;
@@ -69,7 +69,7 @@ void andorsfree(and_or_T *a)
 
 void pipesfree(pipeline_T *p)
 {
-    while (p) {
+    while (p != NULL) {
 	comsfree(p->pl_commands);
 
 	pipeline_T *next = p->next;
@@ -80,7 +80,11 @@ void pipesfree(pipeline_T *p)
 
 void comsfree(command_T *c)
 {
-    while (c && --(c->refcount) == 0) {
+    while (c != NULL) {
+	c->refcount--;
+	if (c->refcount > 0)
+	    break;
+
 	redirsfree(c->c_redirs);
 	switch (c->c_type) {
 	    case CT_SIMPLE:
@@ -121,7 +125,7 @@ void comsfree(command_T *c)
 
 void ifcmdsfree(ifcommand_T *i)
 {
-    while (i) {
+    while (i != NULL) {
 	andorsfree(i->ic_condition);
 	andorsfree(i->ic_commands);
 
@@ -133,7 +137,7 @@ void ifcmdsfree(ifcommand_T *i)
 
 void caseitemsfree(caseitem_T *i)
 {
-    while (i) {
+    while (i != NULL) {
 	plfree(i->ci_patterns, wordfree_vp);
 	andorsfree(i->ci_commands);
 
@@ -145,7 +149,7 @@ void caseitemsfree(caseitem_T *i)
 
 void wordfree(wordunit_T *w)
 {
-    while (w) {
+    while (w != NULL) {
 	switch (w->wu_type) {
 	    case WT_STRING:
 		free(w->wu_string);
@@ -174,7 +178,7 @@ void wordfree_vp(void *w)
 
 void paramfree(paramexp_T *p)
 {
-    if (p) {
+    if (p != NULL) {
 	if (p->pe_type & PT_NEST)
 	    wordfree(p->pe_nest);
 	else
@@ -189,11 +193,15 @@ void paramfree(paramexp_T *p)
 
 void assignsfree(assign_T *a)
 {
-    while (a) {
+    while (a != NULL) {
 	free(a->a_name);
 	switch (a->a_type) {
-	    case A_SCALAR:  wordfree(a->a_scalar);            break;
-	    case A_ARRAY:   plfree(a->a_array, wordfree_vp);  break;
+	    case A_SCALAR:
+		wordfree(a->a_scalar);
+		break;
+	    case A_ARRAY:
+		plfree(a->a_array, wordfree_vp);
+		break;
 	}
 
 	assign_T *next = a->next;
@@ -204,7 +212,7 @@ void assignsfree(assign_T *a)
 
 void redirsfree(redir_T *r)
 {
-    while (r) {
+    while (r != NULL) {
 	switch (r->rd_type) {
 	    case RT_INPUT:  case RT_OUTPUT:  case RT_CLOBBER:  case RT_APPEND:
 	    case RT_INOUT:  case RT_DUPIN:   case RT_DUPOUT:   case RT_PIPE:
@@ -246,21 +254,21 @@ static wchar_t *skip_name(const wchar_t *s)
 bool is_portable_name_char(wchar_t c)
 {
     switch (c) {
-    case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
-    case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
-    case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
-    case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
-    case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
-    case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
-    case L'y':  case L'z':
-    case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
-    case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
-    case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
-    case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
-    case L'Y':  case L'Z':  case L'_':
-       return true;
-    default:
-       return false;
+	case L'0':  case L'1':  case L'2':  case L'3':  case L'4':
+	case L'5':  case L'6':  case L'7':  case L'8':  case L'9':
+	case L'a':  case L'b':  case L'c':  case L'd':  case L'e':  case L'f':
+	case L'g':  case L'h':  case L'i':  case L'j':  case L'k':  case L'l':
+	case L'm':  case L'n':  case L'o':  case L'p':  case L'q':  case L'r':
+	case L's':  case L't':  case L'u':  case L'v':  case L'w':  case L'x':
+	case L'y':  case L'z':
+	case L'A':  case L'B':  case L'C':  case L'D':  case L'E':  case L'F':
+	case L'G':  case L'H':  case L'I':  case L'J':  case L'K':  case L'L':
+	case L'M':  case L'N':  case L'O':  case L'P':  case L'Q':  case L'R':
+	case L'S':  case L'T':  case L'U':  case L'V':  case L'W':  case L'X':
+	case L'Y':  case L'Z':  case L'_':
+	    return true;
+	default:
+	    return false;
     }
 }
 
@@ -273,7 +281,7 @@ bool is_name_char(wchar_t c)
 
 /* Skips an identifier at the head of the specified string and returns a
  * pointer to the character right after the identifier in the string.
- * Simply returns `s' if there is no identifier. */
+ * If there is no identifier, the argument `s' is simply returned. */
 wchar_t *skip_name(const wchar_t *s)
 {
     if (!iswdigit(*s))
@@ -282,7 +290,7 @@ wchar_t *skip_name(const wchar_t *s)
     return (wchar_t *) s;
 }
 
-/* Checks if the specified string constitutes a valid identifier. */
+/* Returns true iff the specified string constitutes a valid identifier. */
 bool is_name(const wchar_t *s)
 {
     return s[0] != L'\0' && skip_name(s)[0] == L'\0';
@@ -336,7 +344,7 @@ bool is_keyword(const wchar_t *s)
 
 /********** Parser **********/
 
-/* Object used to save the state of parsing on the way. */
+/* Holds data that are used in parsing. */
 struct parsestate_T {
     parseinfo_T *cinfo;
     bool cerror;
@@ -349,12 +357,12 @@ struct parsestate_T {
 #endif
 };
 
-typedef enum { noalias, globalonly, anyalias, } aliastype_T;
+typedef enum { AT_NONE, AT_GLOBAL, AT_ALL, } aliastype_T;
 
 static void serror(const char *restrict format, ...)
     __attribute__((nonnull(1),format(printf,1,2)));
 static inputresult_T read_more_input(void);
-static inline void line_continuation(size_t index);
+static void line_continuation(size_t index);
 static void ensure_buffer(size_t n);
 static size_t count_name_length(bool isnamechar(wchar_t c));
 static void skip_blanks_and_comment(void);
@@ -398,7 +406,7 @@ static void **parse_words_to_paren(void)
     __attribute__((malloc,warn_unused_result));
 static redir_T *tryparse_redirect(void)
     __attribute__((malloc,warn_unused_result));
-static inline wordunit_T *parse_word(aliastype_T type)
+static wordunit_T *parse_word(aliastype_T type)
     __attribute__((malloc,warn_unused_result));
 static wordunit_T *parse_word_to(bool testfunc(wchar_t c))
     __attribute__((malloc,warn_unused_result,nonnull));
@@ -1203,7 +1211,7 @@ void **parse_words_and_redirects(redir_T **redirlastp, bool first)
 	if ((redir = tryparse_redirect())) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
-	} else if ((word = parse_word(noalias))) {
+	} else if ((word = parse_word(AT_NONE))) {
 	    pl_add(&wordlist, word);
 	    skip_blanks_and_comment();
 	    first = false;
@@ -1253,7 +1261,7 @@ assign_T *tryparse_assignment(void)
     ensure_buffer(1);
     if (posixly_correct || cbuf.contents[cindex] != L'(') {
 	result->a_type = A_SCALAR;
-	result->a_scalar = parse_word(noalias);
+	result->a_scalar = parse_word(AT_NONE);
     } else {
 	cindex++;
 	skip_to_next_token();
@@ -1277,7 +1285,7 @@ void **parse_words_to_paren(void)
 
     pl_init(&list);
     while (cbuf.contents[cindex] != L')') {
-	wordunit_T *word = parse_word(globalonly);
+	wordunit_T *word = parse_word(AT_GLOBAL);
 	if (word)
 	    pl_add(&list, word);
 	else
@@ -1369,7 +1377,7 @@ reparse:
     }
     skip_blanks_and_comment();
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
-	result->rd_filename = parse_word(globalonly);
+	result->rd_filename = parse_word(AT_GLOBAL);
 	if (!result->rd_filename) {
 	    serror(Ngt("the redirection target is missing"));
 	    free(result);
@@ -1407,12 +1415,12 @@ wordunit_T *parse_word(aliastype_T type)
 #if YASH_ENABLE_ALIAS
     if (enable_alias) {
 	switch (type) {
-	case noalias:
+	case AT_NONE:
 	    break;
-	case globalonly:
-	case anyalias:
+	case AT_GLOBAL:
+	case AT_ALL:
 	    if (count_name_length(is_alias_name_char) > 0) {
-		substaliasflags_T flags = type == globalonly ? 0 : AF_NONGLOBAL;
+		substaliasflags_T flags = type == AT_GLOBAL ? 0 : AF_NONGLOBAL;
 		substitute_alias(&cbuf, cindex, &caliases, flags);
 	    }
 	    skip_blanks_and_comment();
@@ -1978,7 +1986,7 @@ fail:
 wchar_t *parse_word_as_wcs(void)
 {
     size_t startindex = cindex;
-    wordfree(parse_word(globalonly));
+    wordfree(parse_word(AT_GLOBAL));
     assert(startindex <= cindex);
     return xwcsndup(cbuf.contents + startindex, cindex - startindex);
 }
@@ -2236,7 +2244,7 @@ command_T *parse_case(void)
     result->c_type = CT_CASE;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
-    result->c_casword = parse_word(globalonly);
+    result->c_casword = parse_word(AT_GLOBAL);
     if (!result->c_casword)
 	serror(Ngt("a word is required after `%ls'"), L"case");
     skip_to_next_token();
@@ -2316,7 +2324,7 @@ void **parse_case_patterns(void)
 	    }
 	    break;
 	}
-	pl_add(&wordlist, parse_word(globalonly));
+	pl_add(&wordlist, parse_word(AT_GLOBAL));
 	skip_blanks_and_comment();
 	ensure_buffer(1);
 	if (cbuf.contents[cindex] == L'|') {
@@ -2349,7 +2357,7 @@ command_T *parse_function(void)
     result->c_type = CT_FUNCDEF;
     result->c_lineno = cinfo->lineno;
     result->c_redirs = NULL;
-    result->c_funcname = parse_word(globalonly);
+    result->c_funcname = parse_word(AT_GLOBAL);
     if (result->c_funcname == NULL)
 	serror(Ngt("a word is required after `%ls'"), L"function");
     skip_blanks_and_comment();
