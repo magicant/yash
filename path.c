@@ -1043,7 +1043,7 @@ static bool starts_with_root_parent(const wchar_t *path)
     __attribute__((nonnull,pure));
 static void print_command_paths(bool all);
 static void print_home_directories(void);
-static bool print_umask_octal(mode_t mode);
+static inline bool print_umask_octal(mode_t mode);
 static bool print_umask_symbolic(mode_t mode);
 static int set_umask(const wchar_t *newmask)
     __attribute__((nonnull));
@@ -1529,8 +1529,7 @@ void print_command_paths(bool all)
 
     while ((kv = ht_next(&cmdhash, &index)).key != NULL) {
 	if (all || get_builtin(kv.key) == NULL) {
-	    if (printf("%s\n", (char *) kv.value) < 0) {
-		xerror(errno, Ngt("cannot print to the standard output"));
+	    if (!xprintf("%s\n", (char *) kv.value)) {
 		break;
 	    }
 	}
@@ -1547,8 +1546,7 @@ void print_home_directories(void)
 
     while ((kv = ht_next(&homedirhash, &index)).key != NULL) {
 	const wchar_t *key = kv.key, *value = kv.value;
-	if (printf("~%ls=%ls\n", key, value) < 0) {
-	    xerror(errno, Ngt("cannot print to the standard output"));
+	if (!xprintf("~%ls=%ls\n", key, value)) {
 	    break;
 	}
     }
@@ -1615,10 +1613,13 @@ int umask_builtin(int argc, void **argv)
     if (xoptind == argc) {
 	mode_t mode = umask(0);
 	umask(mode);
+
+	bool success;
 	if (symbolic)
-	    return print_umask_symbolic(mode);
+	    success = print_umask_symbolic(mode);
 	else
-	    return print_umask_octal(mode);
+	    success = print_umask_octal(mode);
+	return success ? Exit_SUCCESS : Exit_FAILURE;
     } else if (xoptind + 1 == argc) {
 	return set_umask(ARGV(xoptind));
     }
@@ -1631,43 +1632,36 @@ print_usage:
 
 bool print_umask_octal(mode_t mode)
 {
-    if (printf("0%.3jo\n", (uintmax_t) mode) >= 0) {
-	return Exit_SUCCESS;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return Exit_FAILURE;
-    }
+    return xprintf("0%.3jo\n", (uintmax_t) mode);
 }
 
 bool print_umask_symbolic(mode_t mode)
 {
-    clearerr(stdout);
+    xstrbuf_T outputtext;
 
-    putchar('u');
-    putchar('=');
-    if (!(mode & S_IRUSR)) putchar('r');
-    if (!(mode & S_IWUSR)) putchar('w');
-    if (!(mode & S_IXUSR)) putchar('x');
-    putchar(',');
-    putchar('g');
-    putchar('=');
-    if (!(mode & S_IRGRP)) putchar('r');
-    if (!(mode & S_IWGRP)) putchar('w');
-    if (!(mode & S_IXGRP)) putchar('x');
-    putchar(',');
-    putchar('o');
-    putchar('=');
-    if (!(mode & S_IROTH)) putchar('r');
-    if (!(mode & S_IWOTH)) putchar('w');
-    if (!(mode & S_IXOTH)) putchar('x');
-    putchar('\n');
+    sb_init(&outputtext);
+    sb_ccat(&outputtext, 'u');
+    sb_ccat(&outputtext, '=');
+    if (!(mode & S_IRUSR)) sb_ccat(&outputtext, 'r');
+    if (!(mode & S_IWUSR)) sb_ccat(&outputtext, 'w');
+    if (!(mode & S_IXUSR)) sb_ccat(&outputtext, 'x');
+    sb_ccat(&outputtext, ',');
+    sb_ccat(&outputtext, 'g');
+    sb_ccat(&outputtext, '=');
+    if (!(mode & S_IRGRP)) sb_ccat(&outputtext, 'r');
+    if (!(mode & S_IWGRP)) sb_ccat(&outputtext, 'w');
+    if (!(mode & S_IXGRP)) sb_ccat(&outputtext, 'x');
+    sb_ccat(&outputtext, ',');
+    sb_ccat(&outputtext, 'o');
+    sb_ccat(&outputtext, '=');
+    if (!(mode & S_IROTH)) sb_ccat(&outputtext, 'r');
+    if (!(mode & S_IWOTH)) sb_ccat(&outputtext, 'w');
+    if (!(mode & S_IXOTH)) sb_ccat(&outputtext, 'x');
+    sb_ccat(&outputtext, '\n');
 
-    if (!ferror(stdout)) {
-	return Exit_SUCCESS;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return Exit_FAILURE;
-    }
+    bool result = xprintf("%s", outputtext.contents);
+    sb_destroy(&outputtext);
+    return result;
 }
 
 int set_umask(const wchar_t *maskstr)

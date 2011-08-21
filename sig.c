@@ -1205,9 +1205,7 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
 	return true;
 
     wchar_t *q = quote_sq(command);
-    bool ok = printf("trap -- %ls %ls\n", q, signame) >= 0;
-    if (!ok)
-	xerror(errno, Ngt("cannot print to the standard output"));
+    bool ok = xprintf("trap -- %ls %ls\n", q, signame);
     free(q);
     return ok;
 }
@@ -1393,24 +1391,16 @@ print_usage:
  * Returns false iff an IO error occurred. */
 bool print_signal(int signum, const wchar_t *name, bool verbose)
 {
-    int r;
-
     if (!verbose) {
-	r = printf("%ls\n", name);
+	return xprintf("%ls\n", name);
     } else {
 #if HAVE_STRSIGNAL
 	const char *sigdesc = strsignal(signum);
-	if (sigdesc)
-	    r = printf("%d\t%-10ls %s\n", signum, name, sigdesc);
+	if (sigdesc != NULL)
+	    return xprintf("%d\t%-10ls %s\n", signum, name, sigdesc);
 	else
 #endif
-	    r = printf("%d\t%-10ls\n", signum, name);
-    }
-    if (r >= 0) {
-	return true;
-    } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return false;
+	    return xprintf("%d\t%-10ls\n", signum, name);
     }
 }
 
