@@ -376,7 +376,7 @@ static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_closing_brace(wchar_t c)
     __attribute__((const));
-static bool is_token_at(const wchar_t *t, size_t index)
+static bool has_token(const wchar_t *t)
     __attribute__((pure,nonnull));
 static const wchar_t *check_opening_token(void);
 static const wchar_t *check_closing_token(void);
@@ -802,13 +802,12 @@ bool is_closing_brace(wchar_t c)
     return c == L'}' || c == L'\0';
 }
 
-/* Checks if token `t' exists at the specified index in `cbuf'.
- * `index' must not be greater than `cbuf.length'.
+/* Checks if token `t' exists at the current index in `cbuf'.
  * `t' must not be a proper substring of another operator token.
  * `ensure_buffer(wcslen(t))' must be done beforehand. */
-bool is_token_at(const wchar_t *t, size_t index)
+bool has_token(const wchar_t *t)
 {
-    const wchar_t *c = matchwcsprefix(cbuf.contents + index, t);
+    const wchar_t *c = matchwcsprefix(cbuf.contents + cindex, t);
     return c != NULL && is_token_delimiter_char(*c);
 }
 
@@ -819,13 +818,13 @@ const wchar_t *check_opening_token(void)
 {
     ensure_buffer(9);
     if (cbuf.contents[cindex] == L'(') return L"(";
-    if (is_token_at(L"{",     cindex)) return L"{";
-    if (is_token_at(L"if",    cindex)) return L"if";
-    if (is_token_at(L"for",   cindex)) return L"for";
-    if (is_token_at(L"while", cindex)) return L"while";
-    if (is_token_at(L"until", cindex)) return L"until";
-    if (is_token_at(L"case",  cindex)) return L"case";
-    if (is_token_at(L"function", cindex)) return L"function";
+    if (has_token(L"{"))        return L"{";
+    if (has_token(L"if"))       return L"if";
+    if (has_token(L"for"))      return L"for";
+    if (has_token(L"while"))    return L"while";
+    if (has_token(L"until"))    return L"until";
+    if (has_token(L"case"))     return L"case";
+    if (has_token(L"function")) return L"function";
     return NULL;
 }
 
@@ -839,14 +838,14 @@ const wchar_t *check_closing_token(void)
     if (cbuf.contents[cindex] == L')') return L")";
     if (cbuf.contents[cindex] == L';' && cbuf.contents[cindex + 1] == L';')
 				      return L";;";
-    if (is_token_at(L"}",    cindex))  return L"}";
-    if (is_token_at(L"then", cindex))  return L"then";
-    if (is_token_at(L"else", cindex))  return L"else";
-    if (is_token_at(L"elif", cindex))  return L"elif";
-    if (is_token_at(L"fi",   cindex))  return L"fi";
-    if (is_token_at(L"do",   cindex))  return L"do";
-    if (is_token_at(L"done", cindex))  return L"done";
-    if (is_token_at(L"esac", cindex))  return L"esac";
+    if (has_token(L"}"))    return L"}";
+    if (has_token(L"then")) return L"then";
+    if (has_token(L"else")) return L"else";
+    if (has_token(L"elif")) return L"elif";
+    if (has_token(L"fi"))   return L"fi";
+    if (has_token(L"do"))   return L"do";
+    if (has_token(L"done")) return L"done";
+    if (has_token(L"esac")) return L"esac";
     return NULL;
 }
 
@@ -1017,7 +1016,7 @@ pipeline_T *parse_pipeline(void)
     command_T *c;
 
     ensure_buffer(2);
-    if (is_token_at(L"!", cindex)) {
+    if (has_token(L"!")) {
 	neg = true;
 	cindex++;
 #if YASH_ENABLE_ALIAS
@@ -1097,10 +1096,10 @@ command_T *parse_command(void)
     if (t) {
 	serror(get_errmsg_unexpected_token(t), t);
 	return NULL;
-    } else if (is_token_at(L"!", cindex)) {
+    } else if (has_token(L"!")) {
 	serror(get_errmsg_unexpected_token(L"!"), L"!");
 	return NULL;
-    } else if (is_token_at(L"in", cindex)) {
+    } else if (has_token(L"in")) {
 	serror(get_errmsg_unexpected_token(L"in"), L"in");
 	return NULL;
     } else if (cbuf.contents[cindex] == L'(') {
@@ -2046,7 +2045,7 @@ command_T *parse_group(commandtype_T type)
     switch (type) {
 	case CT_GROUP:
 	    start = L"{", end = L"}";
-	    assert(is_token_at(start, cindex));
+	    assert(has_token(start));
 	    break;
 	case CT_SUBSHELL:
 	    start = L"(", end = L")";
@@ -2076,7 +2075,7 @@ command_T *parse_group(commandtype_T type)
 /* Parses a if command */
 command_T *parse_if(void)
 {
-    assert(is_token_at(L"if", cindex));
+    assert(has_token(L"if"));
     cindex += 2;
 
     ifcommand_T *first = NULL, **lastp = &first;
@@ -2099,7 +2098,7 @@ command_T *parse_if(void)
 		serror(Ngt("commands are missing between `%ls' and `%ls'"),
 			(first->next == NULL) ? L"if" : L"elif", L"then");
 	    ensure_buffer(5);
-	    if (is_token_at(L"then", cindex))
+	    if (has_token(L"then"))
 		cindex += 4;
 	    else
 		print_errmsg_token_missing(L"then");
@@ -2112,19 +2111,19 @@ command_T *parse_if(void)
 		    els ? L"else" : L"then");
 	ensure_buffer(5);
 	if (!els) {
-	    if (is_token_at(L"else", cindex)) {
+	    if (has_token(L"else")) {
 		cindex += 4;
 		els = true;
-	    } else if (is_token_at(L"elif", cindex)) {
+	    } else if (has_token(L"elif")) {
 		cindex += 4;
-	    } else if (is_token_at(L"fi", cindex)) {
+	    } else if (has_token(L"fi")) {
 		cindex += 2;
 		break;
 	    } else {
 		print_errmsg_token_missing(L"fi");
 	    }
 	} else {
-	    if (is_token_at(L"fi", cindex))
+	    if (has_token(L"fi"))
 		cindex += 2;
 	    else
 		print_errmsg_token_missing(L"fi");
@@ -2138,7 +2137,7 @@ command_T *parse_if(void)
 /* Parses a for command. */
 command_T *parse_for(void)
 {
-    assert(is_token_at(L"for", cindex));
+    assert(has_token(L"for"));
     cindex += 3;
     skip_blanks_and_comment();
 
@@ -2158,7 +2157,7 @@ command_T *parse_for(void)
 
     skip_to_next_token();
     ensure_buffer(3);
-    if (is_token_at(L"in", cindex)) {
+    if (has_token(L"in")) {
 	redir_T *redirs = NULL;
 	cindex += 2;
 	skip_blanks_and_comment();
@@ -2180,7 +2179,7 @@ command_T *parse_for(void)
     }
     skip_to_next_token();
     ensure_buffer(3);
-    if (is_token_at(L"do", cindex))
+    if (has_token(L"do"))
 	cindex += 2;
     else
 	serror(Ngt("`%ls' is missing"), L"do");
@@ -2190,7 +2189,7 @@ command_T *parse_for(void)
 	serror(Ngt("commands are missing between `%ls' and `%ls'"),
 		L"do", L"done");
     ensure_buffer(5);
-    if (is_token_at(L"done", cindex))
+    if (has_token(L"done"))
 	cindex += 4;
     else
 	print_errmsg_token_missing(L"done");
@@ -2200,7 +2199,7 @@ command_T *parse_for(void)
 /* Parses a while/until command. */
 command_T *parse_while(bool whltype)
 {
-    assert(is_token_at(whltype ? L"while" : L"until", cindex));
+    assert(has_token(whltype ? L"while" : L"until"));
     cindex += 5;
 
     command_T *result = xmalloc(sizeof *result);
@@ -2215,7 +2214,7 @@ command_T *parse_while(bool whltype)
 	serror(Ngt("commands are missing after `%ls'"),
 		whltype ? L"while" : L"until");
     ensure_buffer(3);
-    if (is_token_at(L"do", cindex))
+    if (has_token(L"do"))
 	cindex += 2;
     else
 	print_errmsg_token_missing(L"do");
@@ -2224,7 +2223,7 @@ command_T *parse_while(bool whltype)
 	serror(Ngt("commands are missing between `%ls' and `%ls'"),
 		L"do", L"done");
     ensure_buffer(5);
-    if (is_token_at(L"done", cindex))
+    if (has_token(L"done"))
 	cindex += 4;
     else
 	print_errmsg_token_missing(L"done");
@@ -2234,7 +2233,7 @@ command_T *parse_while(bool whltype)
 /* Parses a case command. */
 command_T *parse_case(void)
 {
-    assert(is_token_at(L"case", cindex));
+    assert(has_token(L"case"));
     cindex += 4;
     skip_blanks_and_comment();
 
@@ -2249,7 +2248,7 @@ command_T *parse_case(void)
 	serror(Ngt("a word is required after `%ls'"), L"case");
     skip_to_next_token();
     ensure_buffer(3);
-    if (is_token_at(L"in", cindex)) {
+    if (has_token(L"in")) {
 	cindex += 2;
 	result->c_casitems = parse_case_list();
     } else {
@@ -2258,7 +2257,7 @@ command_T *parse_case(void)
 	result->c_casitems = NULL;
     }
     ensure_buffer(5);
-    if (is_token_at(L"esac", cindex))
+    if (has_token(L"esac"))
 	cindex += 4;
     else
 	print_errmsg_token_missing(L"esac");
@@ -2274,7 +2273,7 @@ caseitem_T *parse_case_list(void)
     do {
 	skip_to_next_token();
 	ensure_buffer(5);
-	if (is_token_at(L"esac", cindex))
+	if (has_token(L"esac"))
 	    break;
 
 	caseitem_T *ci = xmalloc(sizeof *ci);
@@ -2307,7 +2306,7 @@ void **parse_case_patterns(void)
 	skip_blanks_and_comment();
 	if (posixly_correct) {
 	    ensure_buffer(5);
-	    if (is_token_at(L"esac", cindex))
+	    if (has_token(L"esac"))
 		serror(Ngt(
 		    "an unquoted `esac' cannot be the first case pattern"));
 	}
@@ -2347,7 +2346,7 @@ command_T *parse_function(void)
     if (posixly_correct)
 	serror(Ngt("`%ls' cannot be used as a command name"), L"function");
 
-    assert(is_token_at(L"function", cindex));
+    assert(has_token(L"function"));
     cindex += 8;
     skip_blanks_and_comment();
 
