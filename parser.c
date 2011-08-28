@@ -484,7 +484,7 @@ static void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 static bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, size_t eoclen, bool skiptab)
     __attribute__((nonnull));
-static wordunit_T *parse_string_to(
+static wordunit_T *parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline)
     __attribute__((nonnull,malloc,warn_unused_result));
 static const char *get_errmsg_unexpected_token(const wchar_t *t)
@@ -2549,7 +2549,7 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 
     while (!is_end_of_heredoc_contents(ps, eoc, eoclen, skiptab) &&
 	    ps->src.contents[ps->index] != L'\0') {
-	wordunit_T *wu = parse_string_to(ps, true, true);
+	wordunit_T *wu = parse_string_without_quotes(ps, true, true);
 	if (wu != NULL) {
 	    *lastp = wu;
 	    while (wu->next != NULL)
@@ -2597,7 +2597,7 @@ bool is_end_of_heredoc_contents(
  * Command substitutions enclosed by backquotes are recognized iff `backquote'
  * is true. If `stoponnewline' is true, stops parsing right after the next
  * newline is parsed. Otherwise, parsing continues up to the end-of-file. */
-wordunit_T *parse_string_to(
+wordunit_T *parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline)
 {
     wordunit_T *first = NULL, **lastp = &first;
@@ -2683,7 +2683,7 @@ bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
     read_more_input(&ps);
     pl_init(&ps.pending_heredocs);
 
-    *result = parse_string_to(&ps, false, false);
+    *result = parse_string_without_quotes(&ps, false, false);
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
