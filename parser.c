@@ -400,7 +400,7 @@ static const wchar_t *check_opening_token(parsestate_T *ps)
     __attribute__((nonnull));
 static const wchar_t *check_closing_token(parsestate_T *ps)
     __attribute__((nonnull));
-static and_or_T *parse_command_list(parsestate_T *ps)
+static and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     __attribute__((nonnull,malloc,warn_unused_result));
 static and_or_T *parse_compound_list(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -532,8 +532,8 @@ parseresult_T read_and_parse(
     };
     wb_init(&ps.src);
 
-    if (info->interactive) {
-	struct input_interactive_info_T *intrinfo = info->inputinfo;
+    if (ps.info->interactive) {
+	struct input_interactive_info_T *intrinfo = ps.info->inputinfo;
 	intrinfo->prompttype = 1;
     }
 
@@ -554,7 +554,7 @@ parseresult_T read_and_parse(
     }
     pl_init(&ps.pending_heredocs);
 
-    and_or_T *r = parse_command_list(&ps);
+    and_or_T *r = parse_command_list(&ps, true);
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
@@ -694,7 +694,7 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
  * The position is advanced to the next non-blank character.
  * Line continuations are actually removed rather than skipped. */
 /* Note that a newline is not a blank character. After a comment was skipped,
- * the position will be the newline character (or EOF) that follows. */
+ * the position will be at the newline character (or EOF) that follows. */
 void skip_blanks_and_comment(parsestate_T *ps)
 {
     if (ps->src.contents[ps->index] == L'\0')
@@ -741,7 +741,7 @@ bool skip_to_next_token(parsestate_T *ps)
     return newline;
 }
 
-/* Parses the NEWLINE token at the current position and proceeds to the next
+/* Parses the newline token at the current position and proceeds to the next
  * line. The contents of pending here-documents is read if any. */
 void next_line(parsestate_T *ps)
 {
@@ -849,28 +849,42 @@ const wchar_t *check_closing_token(parsestate_T *ps)
     return NULL;
 }
 
-/* Parses up to the end of the current line.
+/* Parses commands.
+ * If `toeol' is true, commands are parsed up to the end of the current line;
+ * otherwise, up to the next closing token.
  * You don't have to call `skip_blanks_and_comment' beforehand. */
-and_or_T *parse_command_list(parsestate_T *ps)
+and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 {
     and_or_T *first = NULL, **lastp = &first;
+    bool saveerror = ps->error;
     bool need_separator = false;
     /* For a command to be parsed after another, it must be separated by L"&",
      * L";", or newlines. */
 
+    if (!toeol && !ps->info->interactive)
+	ps->error = false;
     while (!ps->error) {
-	skip_blanks_and_comment(ps);
-	if (ps->src.contents[ps->index] == L'\0') {
-	    break;
-	} else if (ps->src.contents[ps->index] == L'\n') {
-	    next_line(ps);
-	    break;
-	} else if (ps->src.contents[ps->index] == L')') {
-	    serror(ps, get_errmsg_unexpected_token(L")"), L")");
-	    break;
-	} else if (need_separator) {
-	    serror(ps, Ngt("`;' or `&' is missing"));
-	    break;
+	if (toeol) {
+	    skip_blanks_and_comment(ps);
+	    if (ps->src.contents[ps->index] == L'\0') {
+		break;
+	    } else if (ps->src.contents[ps->index] == L'\n') {
+		next_line(ps);
+		break;
+	    } else if (ps->src.contents[ps->index] == L')') {
+		serror(ps, get_errmsg_unexpected_token(L")"), L")");
+		break;
+	    } else if (need_separator) {
+		serror(ps, Ngt("`;' or `&' is missing"));
+		break;
+	    }
+	} else {
+	    if (skip_to_next_token(ps))
+		need_separator = false;
+	    if (need_separator
+		    || ps->src.contents[ps->index] == L'\0'
+		    || check_closing_token(ps))
+		break;
 	}
 
 	and_or_T *ao = parse_and_or_list(ps);
@@ -894,6 +908,8 @@ and_or_T *parse_command_list(parsestate_T *ps)
 	    need_separator = false;
 	}
     }
+    if (!toeol)
+	ps->error |= saveerror;
 #if YASH_ENABLE_ALIAS
     ps->reparse_alias = false;
 #endif
@@ -904,48 +920,7 @@ and_or_T *parse_command_list(parsestate_T *ps)
  * You don't have to call `skip_blanks_and_comment' beforehand. */
 and_or_T *parse_compound_list(parsestate_T *ps)
 {
-    and_or_T *first = NULL, **lastp = &first;
-    bool saveerror = ps->error;
-    bool need_separator = false;
-    /* For a command to be parsed after another, it must be separated by L"&",
-     * L";", or newlines. */
-
-    if (!ps->info->interactive)
-	ps->error = false;
-    while (!ps->error) {
-	if (skip_to_next_token(ps))
-	    need_separator = false;
-	if (need_separator
-		|| ps->src.contents[ps->index] == L'\0'
-		|| check_closing_token(ps))
-	    break;
-
-	and_or_T *ao = parse_and_or_list(ps);
-	if (ao != NULL) {
-	    *lastp = ao;
-	    lastp = &ao->next;
-	}
-#if YASH_ENABLE_ALIAS
-	if (ps->reparse_alias) {
-	    assert(ao == NULL);
-	    continue;
-	}
-#endif
-
-	need_separator = true;
-	ensure_buffer(ps, 2);
-	if (ps->src.contents[ps->index] == L'&'
-		|| (ps->src.contents[ps->index] == L';'
-		    && ps->src.contents[ps->index + 1] != L';')) {
-	    ps->index++;
-	    need_separator = false;
-	}
-    }
-    ps->error |= saveerror;
-#if YASH_ENABLE_ALIAS
-    ps->reparse_alias = false;
-#endif
-    return first;
+    return parse_command_list(ps, false);
 }
 
 /* Parses one and/or list.
@@ -2200,10 +2175,12 @@ command_T *parse_for(parsestate_T *ps)
     result->c_redirs = NULL;
 
     wchar_t *name = parse_word_as_wcs(ps);
-    if (name[0] == L'\0')
-	serror(ps, Ngt("an identifier is required after `for'"));
-    else if (skip_name(name)[0] != L'\0')
-	serror(ps, Ngt("`%ls' is not a valid identifier"), name);
+    if (!is_name(name)) {
+	if (name[0] == L'\0')
+	    serror(ps, Ngt("an identifier is required after `for'"));
+	else
+	    serror(ps, Ngt("`%ls' is not a valid identifier"), name);
+    }
     result->c_forname = name;
 
     skip_to_next_token(ps);
