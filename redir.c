@@ -324,7 +324,10 @@ bool open_redirections(const redir_T *r, savefd_T **save)
     *save = NULL;
 
     while (r != NULL) {
-	if (r->rd_fd < 0 || is_shellfd(r->rd_fd)) {
+	if (r->rd_fd < 0) {
+	    xerror(0, Ngt("redirection: invalid file descriptor"));
+	    return false;
+	} else if (is_shellfd(r->rd_fd)) {
 	    xerror(0, Ngt("redirection: file descriptor %d is unavailable"),
 		    r->rd_fd);
 	    return false;

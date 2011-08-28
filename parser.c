@@ -1317,12 +1317,13 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 
     ensure_buffer(ps, 2);
     if (iswdigit(ps->cbuf.contents[ps->cindex])) {
+	unsigned long lfd;
 	wchar_t *endptr;
 
 reparse:
 	errno = 0;
-	long lfd = wcstol(&ps->cbuf.contents[ps->cindex], &endptr, 10);
-	if (errno != 0 || lfd < 0 || lfd > INT_MAX)
+	lfd = wcstoul(&ps->cbuf.contents[ps->cindex], &endptr, 10);
+	if (errno != 0 || lfd > INT_MAX)
 	    fd = -1;  /* invalid fd */
 	else
 	    fd = (int) lfd;
