@@ -296,7 +296,7 @@ typedef struct redir_T {
 /********** Interface to Parsing Routines **********/
 
 /* Holds parameters that affect the behavior of parsing. */
-typedef struct parseinfo_T {
+typedef struct parseparam_T {
     _Bool print_errmsg;   /* print error messages? */
     _Bool enable_verbose; /* echo input if `shopt_verbose' is true? */
 #if YASH_ENABLE_ALIAS
@@ -308,7 +308,7 @@ typedef struct parseinfo_T {
     void *inputinfo;      /* pointer passed to the input function */
     _Bool interactive;    /* input is interactive? */
     inputresult_T lastinputresult;  /* last return value of input function */
-} parseinfo_T;
+} parseparam_T;
 /* If `interactive' is true, `input' is `input_interactive' and `inputinfo' is a
  * pointer to a `struct input_interactive_info_T' object.
  * Note that input may not be from a terminal even if `interactive' is true. */
@@ -319,11 +319,11 @@ typedef enum parseresult_T {
 
 
 extern parseresult_T read_and_parse(
-	parseinfo_T *restrict info, and_or_T **restrict result)
+	parseparam_T *restrict info, and_or_T **restrict result)
     __attribute__((nonnull));
 
 extern _Bool parse_string(
-	parseinfo_T *restrict info, wordunit_T **restrict result)
+	parseparam_T *restrict info, wordunit_T **restrict result)
     __attribute__((nonnull));
 
 

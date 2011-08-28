@@ -62,9 +62,9 @@ static void execute_rcfile(const wchar_t *rcfile);
 static void print_help(void);
 static void print_version(void);
 
-static void parse_and_exec(struct parseinfo_T *pinfo, bool finally_exit)
+static void parse_and_exec(struct parseparam_T *pinfo, bool finally_exit)
     __attribute__((nonnull(1)));
-static bool input_is_interactive_terminal(const parseinfo_T *pinfo)
+static bool input_is_interactive_terminal(const parseparam_T *pinfo)
     __attribute__((nonnull));
 
 /* The process ID of the shell.
@@ -426,7 +426,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     struct input_wcs_info_T iinfo = {
 	.src = code,
     };
-    struct parseinfo_T pinfo = {
+    struct parseparam_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = false,
 #if YASH_ENABLE_ALIAS
@@ -451,7 +451,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 void exec_input(int fd, const char *name,
 	bool interactive, bool enable_alias, bool finally_exit)
 {
-    struct parseinfo_T pinfo = {
+    struct parseparam_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
 #if YASH_ENABLE_ALIAS
@@ -493,7 +493,7 @@ void exec_input(int fd, const char *name,
 
 /* Parses the input using the specified `parseinfo_T' and executes commands.
  * If no commands were executed, `laststatus' is set to zero. */
-void parse_and_exec(parseinfo_T *pinfo, bool finally_exit)
+void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
 {
     bool executed = false;
 
@@ -557,7 +557,7 @@ out:
 	exit_shell();
 }
 
-bool input_is_interactive_terminal(const parseinfo_T *pinfo)
+bool input_is_interactive_terminal(const parseparam_T *pinfo)
 {
     if (!pinfo->interactive)
 	return false;

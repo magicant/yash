@@ -1764,7 +1764,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
     struct input_wcs_info_T winfo = {
 	.src = s,
     };
-    parseinfo_T info = {
+    parseparam_T info = {
 	.print_errmsg = true,
 	.enable_verbose = false,
 #if YASH_ENABLE_ALIAS

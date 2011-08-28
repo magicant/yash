@@ -346,7 +346,7 @@ bool is_keyword(const wchar_t *s)
 
 /* Holds data that are used in parsing. */
 typedef struct parsestate_T {
-    parseinfo_T *cinfo;
+    parseparam_T *cinfo;
     bool cerror;
     struct xwcsbuf_T cbuf;
     size_t cindex;
@@ -517,7 +517,7 @@ static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
  * has been printed in this function.
  * Note that `*result' is assigned if and only if the return value is PR_OK. */
 parseresult_T read_and_parse(
-	parseinfo_T *restrict info, and_or_T **restrict result)
+	parseparam_T *restrict info, and_or_T **restrict result)
 {
     parsestate_T ps = {
 	.cinfo = info,
@@ -2663,7 +2663,7 @@ done:
  * Iff successful, the result is assigned to `*result' and true is returned.
  * If the input is empty, NULL is assigned.
  * On error, the value of `*result' is undefined. */
-bool parse_string(parseinfo_T *restrict info, wordunit_T **restrict result)
+bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
 {
     parsestate_T ps = {
 	.cinfo = info,
