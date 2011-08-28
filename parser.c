@@ -346,26 +346,26 @@ bool is_keyword(const wchar_t *s)
 
 /* Holds data that are used in parsing. */
 typedef struct parsestate_T {
-    parseparam_T *cinfo;
-    bool cerror;
-    struct xwcsbuf_T cbuf;
-    size_t cindex;
+    parseparam_T *info;
+    bool error;
+    struct xwcsbuf_T src;
+    size_t index;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
     bool enable_alias, reparse_alias;
-    struct aliaslist_T *caliases;
+    struct aliaslist_T *aliases;
 #endif
 } parsestate_T;
-/* cinfo: contains parameter that affect the behavior of parsing.
- * cerror: set to true when an parsing error occurs.
- * cbuf: a buffer that contains the source code to parse.
- * cindex: the index to the string in `cbuf'.
+/* info: contains parameter that affect the behavior of parsing.
+ * error: set to true when an parsing error occurs.
+ * src: a buffer that contains the source code to parse.
+ * index: the index to the string in `src'.
  *         indicates the character position that is being parsed.
  * pending_heredocs: a list of here-documents whose contents have not been read.
  * enable_alias: indicates if alias substitution should be performed.
  * reparse_alias: indicates that the current word must be re-parsed because
  *         alias substitution has been performed at the current position.
- * caliases: a list of alias substitutions that were performed at the current
+ * aliases: a list of alias substitutions that were performed at the current
  *         position. */
 
 typedef enum { AT_NONE, AT_GLOBAL, AT_ALL, } aliastype_T;
@@ -496,10 +496,11 @@ static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
 
 
 /* The functions below may return non-NULL even on error.
- * The error condition must be tested by the `cerror' flag.
- * It is set to true when `serror' is called. */
-/* Every function named `parse_*' advances the current position (`cindex') to
- * the index of the first character that has not yet been parsed. */
+ * The error condition must be tested by the `error' flag of the parsestate_T
+ * structure. It is set to true when `serror' is called. */
+/* Every function named `parse_*' advances the current position (the `index'
+ * value of the parsestate_T structure) to the index of the first character
+ * that has not yet been parsed. */
 
 
 /* The main entry point to the parser.
@@ -520,55 +521,55 @@ parseresult_T read_and_parse(
 	parseparam_T *restrict info, and_or_T **restrict result)
 {
     parsestate_T ps = {
-	.cinfo = info,
-	.cerror = false,
-	.cindex = 0,
+	.info = info,
+	.error = false,
+	.index = 0,
 #if YASH_ENABLE_ALIAS
 	.enable_alias = info->enable_alias,
 	.reparse_alias = false,
-	.caliases = NULL,
+	.aliases = NULL,
 #endif
     };
-    wb_init(&ps.cbuf);
+    wb_init(&ps.src);
 
     if (info->interactive) {
 	struct input_interactive_info_T *intrinfo = info->inputinfo;
 	intrinfo->prompttype = 1;
     }
 
-    ps.cinfo->lastinputresult = INPUT_OK;
+    ps.info->lastinputresult = INPUT_OK;
     switch (read_more_input(&ps)) {
 	case INPUT_OK:
 	    break;
 	case INPUT_EOF:
-	    wb_destroy(&ps.cbuf);
+	    wb_destroy(&ps.src);
 	    return PR_EOF;
 	case INPUT_INTERRUPTED:
-	    wb_destroy(&ps.cbuf);
+	    wb_destroy(&ps.src);
 	    *result = NULL;
 	    return PR_OK;
 	case INPUT_ERROR:
-	    wb_destroy(&ps.cbuf);
+	    wb_destroy(&ps.src);
 	    return PR_INPUT_ERROR;
     }
     pl_init(&ps.pending_heredocs);
 
     and_or_T *r = parse_command_list(&ps);
 
-    wb_destroy(&ps.cbuf);
+    wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
 #if YASH_ENABLE_ALIAS
-    destroy_aliaslist(ps.caliases);
+    destroy_aliaslist(ps.aliases);
 #endif
 
-    switch (ps.cinfo->lastinputresult) {
+    switch (ps.info->lastinputresult) {
 	case INPUT_OK:
 	case INPUT_EOF:
-	    if (ps.cerror) {
+	    if (ps.error) {
 		andorsfree(r);
 		return PR_SYNTAX_ERROR;
 	    } else {
-		assert(ps.cindex == ps.cbuf.length);
+		assert(ps.index == ps.src.length);
 		*result = r;
 		return PR_OK;
 	    }
@@ -587,15 +588,15 @@ parseresult_T read_and_parse(
  * `format' is passed to `gettext' in this function.
  * `format' need not to have a trailing newline since a newline is automatically
  * appended in this function.
- * The flag `ps->cerror' is set to true in this function. */
+ * The `ps->error' flag is set to true in this function. */
 void serror(parsestate_T *restrict ps, const char *restrict format, ...)
 {
     va_list ap;
 
-    if (ps->cinfo->print_errmsg &&
-	    ps->cinfo->lastinputresult != INPUT_INTERRUPTED) {
-	if (ps->cinfo->filename != NULL)
-	    fprintf(stderr, "%s:%lu: ", ps->cinfo->filename, ps->cinfo->lineno);
+    if (ps->info->print_errmsg &&
+	    ps->info->lastinputresult != INPUT_INTERRUPTED) {
+	if (ps->info->filename != NULL)
+	    fprintf(stderr, "%s:%lu: ", ps->info->filename, ps->info->lineno);
 	fprintf(stderr, gt("syntax error: "));
 	va_start(ap, format);
 	vfprintf(stderr, gt(format), ap);
@@ -603,65 +604,65 @@ void serror(parsestate_T *restrict ps, const char *restrict format, ...)
 	fputc('\n', stderr);
 	fflush(stderr);
     }
-    ps->cerror = true;
+    ps->error = true;
 }
 
 /* Reads the next line of input and returns the result type, which is assigned
- * to `ps->cinfo->lastinputresult'.
- * If `ps->cinfo->lastinputresult' is not INPUT_OK, it is simply returned
+ * to `ps->info->lastinputresult'.
+ * If `ps->info->lastinputresult' is not INPUT_OK, it is simply returned
  * without reading any input.
- * If input is from an interactive terminal and `ps->cerror' is true, no input
+ * If input is from an interactive terminal and `ps->error' is true, no input
  * is read and INPUT_INTERRUPTED is returned. */
 inputresult_T read_more_input(parsestate_T *ps)
 {
-    if (ps->cerror && ps->cinfo->interactive)
+    if (ps->error && ps->info->interactive)
 	return INPUT_INTERRUPTED;
-    if (ps->cinfo->lastinputresult == INPUT_OK) {
-	size_t savelength = ps->cbuf.length;
-	ps->cinfo->lastinputresult =
-	    ps->cinfo->input(&ps->cbuf, ps->cinfo->inputinfo);
+    if (ps->info->lastinputresult == INPUT_OK) {
+	size_t savelength = ps->src.length;
+	ps->info->lastinputresult =
+	    ps->info->input(&ps->src, ps->info->inputinfo);
 
-	if (ps->cinfo->enable_verbose && shopt_verbose)
+	if (ps->info->enable_verbose && shopt_verbose)
 #if YASH_ENABLE_LINEEDIT
 	    if (!(le_state & LE_STATE_ACTIVE))
 #endif
-		fprintf(stderr, "%ls", &ps->cbuf.contents[savelength]);
+		fprintf(stderr, "%ls", &ps->src.contents[savelength]);
     }
-    return ps->cinfo->lastinputresult;
+    return ps->info->lastinputresult;
 }
 
-/* Removes a line continuation at the specified index in `ps->cbuf', increments
+/* Removes a line continuation at the specified index in `ps->src', increments
  * line number, and reads the next line. */
 void line_continuation(parsestate_T *ps, size_t index)
 {
-    assert(ps->cbuf.contents[index] == L'\\' &&
-	    ps->cbuf.contents[index + 1] == L'\n');
-    wb_remove(&ps->cbuf, index, 2);
-    ps->cinfo->lineno++;
+    assert(ps->src.contents[index] == L'\\' &&
+	    ps->src.contents[index + 1] == L'\n');
+    wb_remove(&ps->src, index, 2);
+    ps->info->lineno++;
     read_more_input(ps);
 }
 
 /* If a line continuation is found within `n' characters from the current
- * position `ps->cindex', removes the backslash-newline pair and reads the next
+ * position `ps->index', removes the backslash-newline pair and reads the next
  * line.
  * If a backslash that is not a line continuation is found within `n' characters
  * from the current position, this function does nothing. */
 /* For quickness, `n' should be as small as possible. */
 void ensure_buffer(parsestate_T *ps, size_t n)
 {
-    size_t index = ps->cindex;
-    if (ps->cbuf.contents[index] == L'\0')
+    size_t index = ps->index;
+    if (ps->src.contents[index] == L'\0')
 	read_more_input(ps);
-    while (index - ps->cindex < n) {
-	switch (ps->cbuf.contents[index]) {
+    while (index - ps->index < n) {
+	switch (ps->src.contents[index]) {
 	case L'\0':  case L'\'':
 	    return;
 	case L'\\':
-	    if (ps->cbuf.contents[index + 1] != L'\n')
+	    if (ps->src.contents[index + 1] != L'\n')
 		return;
-	    assert(ps->cbuf.contents[index + 2] == L'\0');
+	    assert(ps->src.contents[index + 2] == L'\0');
 	    line_continuation(ps, index);
-	    if (ps->cinfo->lastinputresult != INPUT_OK)
+	    if (ps->info->lastinputresult != INPUT_OK)
 		return;
 	    break;
 	default:
@@ -677,16 +678,16 @@ void ensure_buffer(parsestate_T *ps, size_t n)
  * variable/alias name under the current position is fully available. */
 size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 {
-    size_t saveindex = ps->cindex;
-    while (ensure_buffer(ps, 1), isnamechar(ps->cbuf.contents[ps->cindex]))
-	ps->cindex++;
+    size_t saveindex = ps->index;
+    while (ensure_buffer(ps, 1), isnamechar(ps->src.contents[ps->index]))
+	ps->index++;
 
-    size_t result = ps->cindex - saveindex;
-    ps->cindex = saveindex;
+    size_t result = ps->index - saveindex;
+    ps->index = saveindex;
     return result;
 }
 
-/* Advances the current position `ps->cindex', skipping blank characters,
+/* Advances the current position `ps->index', skipping blank characters,
  * comments, and line continuations.
  * This function calls `read_more_input' if the current position is at the end
  * of line or when a line continuation is encountered.
@@ -696,32 +697,32 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
  * the position will be the newline character (or EOF) that follows. */
 void skip_blanks_and_comment(parsestate_T *ps)
 {
-    if (ps->cbuf.contents[ps->cindex] == L'\0')
+    if (ps->src.contents[ps->index] == L'\0')
 	if (read_more_input(ps) != INPUT_OK)
 	    return;
 
 start:
     /* skip blanks */
-    while (iswblank(ps->cbuf.contents[ps->cindex]))
-	ps->cindex++;
+    while (iswblank(ps->src.contents[ps->index]))
+	ps->index++;
 
     /* skip a comment */
-    if (ps->cbuf.contents[ps->cindex] == L'#') {
+    if (ps->src.contents[ps->index] == L'#') {
 	do {
-	    ps->cindex++;
-	} while (ps->cbuf.contents[ps->cindex] != L'\n' &&
-		ps->cbuf.contents[ps->cindex] != L'\0');
+	    ps->index++;
+	} while (ps->src.contents[ps->index] != L'\n' &&
+		ps->src.contents[ps->index] != L'\0');
     }
 
     /* remove line continuation */
-    if (ps->cbuf.contents[ps->cindex] == L'\\' &&
-	    ps->cbuf.contents[ps->cindex + 1] == L'\n') {
-	line_continuation(ps, ps->cindex);
+    if (ps->src.contents[ps->index] == L'\\' &&
+	    ps->src.contents[ps->index + 1] == L'\n') {
+	line_continuation(ps, ps->index);
 	goto start;
     }
 }
 
-/* Advances the current position `ps->cindex', skipping blank characters,
+/* Advances the current position `ps->index', skipping blank characters,
  * comments and newlines, up to the next token.
  * This function calls `read_more_input' if the next token cannot be found in
  * the current line.
@@ -731,8 +732,8 @@ bool skip_to_next_token(parsestate_T *ps)
     bool newline = false;
 
     skip_blanks_and_comment(ps);
-    while (ps->cinfo->lastinputresult == INPUT_OK
-	    && ps->cbuf.contents[ps->cindex] == L'\n') {
+    while (ps->info->lastinputresult == INPUT_OK
+	    && ps->src.contents[ps->index] == L'\n') {
 	newline = true;
 	next_line(ps);
 	skip_blanks_and_comment(ps);
@@ -744,10 +745,10 @@ bool skip_to_next_token(parsestate_T *ps)
  * line. The contents of pending here-documents is read if any. */
 void next_line(parsestate_T *ps)
 {
-    assert(ps->cbuf.contents[ps->cindex] == L'\n');
-    ps->cindex++;
-    ps->cinfo->lineno++;
-    assert(ps->cbuf.contents[ps->cindex] == L'\0');
+    assert(ps->src.contents[ps->index] == L'\n');
+    ps->index++;
+    ps->info->lineno++;
+    assert(ps->src.contents[ps->index] == L'\0');
 
     for (size_t i = 0; i < ps->pending_heredocs.length; i++)
 	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
@@ -793,7 +794,7 @@ bool is_closing_brace(wchar_t c)
     return c == L'}' || c == L'\0';
 }
 
-/* Checks if token `t' exists at the current position in `ps->cbuf'.
+/* Checks if token `t' exists at the current position in `ps->src'.
  * `t' must not be a proper substring of another operator token. (For example,
  * `t' cannot be L"&" because it is a proper substring of another operator token
  * L"&&". However, L"do" is OK for `t' even though it is a substring of the
@@ -802,7 +803,7 @@ bool is_closing_brace(wchar_t c)
  * `ensure_buffer(wcslen(t))' before calling this function. */
 bool has_token(const parsestate_T *ps, const wchar_t *t)
 {
-    const wchar_t *c = matchwcsprefix(&ps->cbuf.contents[ps->cindex], t);
+    const wchar_t *c = matchwcsprefix(&ps->src.contents[ps->index], t);
     return c != NULL && is_token_delimiter_char(*c);
 }
 
@@ -813,7 +814,7 @@ bool has_token(const parsestate_T *ps, const wchar_t *t)
 const wchar_t *check_opening_token(parsestate_T *ps)
 {
     ensure_buffer(ps, 9);
-    if (ps->cbuf.contents[ps->cindex] == L'(') return L"(";
+    if (ps->src.contents[ps->index] == L'(') return L"(";
     if (has_token(ps, L"{"))        return L"{";
     if (has_token(ps, L"if"))       return L"if";
     if (has_token(ps, L"for"))      return L"for";
@@ -832,10 +833,10 @@ const wchar_t *check_opening_token(parsestate_T *ps)
 const wchar_t *check_closing_token(parsestate_T *ps)
 {
     ensure_buffer(ps, 5);
-    if (ps->cbuf.contents[ps->cindex] == L')')
+    if (ps->src.contents[ps->index] == L')')
 	return L")";
-    if (ps->cbuf.contents[ps->cindex] == L';' &&
-	    ps->cbuf.contents[ps->cindex + 1] == L';')
+    if (ps->src.contents[ps->index] == L';' &&
+	    ps->src.contents[ps->index + 1] == L';')
 	return L";;";
     if (has_token(ps, L"}"))    return L"}";
     if (has_token(ps, L"then")) return L"then";
@@ -857,14 +858,14 @@ and_or_T *parse_command_list(parsestate_T *ps)
     /* For a command to be parsed after another, it must be separated by L"&",
      * L";", or newlines. */
 
-    while (!ps->cerror) {
+    while (!ps->error) {
 	skip_blanks_and_comment(ps);
-	if (ps->cbuf.contents[ps->cindex] == L'\0') {
+	if (ps->src.contents[ps->index] == L'\0') {
 	    break;
-	} else if (ps->cbuf.contents[ps->cindex] == L'\n') {
+	} else if (ps->src.contents[ps->index] == L'\n') {
 	    next_line(ps);
 	    break;
-	} else if (ps->cbuf.contents[ps->cindex] == L')') {
+	} else if (ps->src.contents[ps->index] == L')') {
 	    serror(ps, get_errmsg_unexpected_token(L")"), L")");
 	    break;
 	} else if (need_separator) {
@@ -886,10 +887,10 @@ and_or_T *parse_command_list(parsestate_T *ps)
 
 	need_separator = true;
 	ensure_buffer(ps, 2);
-	if (ps->cbuf.contents[ps->cindex] == L'&'
-		|| (ps->cbuf.contents[ps->cindex] == L';'
-		    && ps->cbuf.contents[ps->cindex + 1] != L';')) {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L'&'
+		|| (ps->src.contents[ps->index] == L';'
+		    && ps->src.contents[ps->index + 1] != L';')) {
+	    ps->index++;
 	    need_separator = false;
 	}
     }
@@ -904,18 +905,18 @@ and_or_T *parse_command_list(parsestate_T *ps)
 and_or_T *parse_compound_list(parsestate_T *ps)
 {
     and_or_T *first = NULL, **lastp = &first;
-    bool savecerror = ps->cerror;
+    bool saveerror = ps->error;
     bool need_separator = false;
     /* For a command to be parsed after another, it must be separated by L"&",
      * L";", or newlines. */
 
-    if (!ps->cinfo->interactive)
-	ps->cerror = false;
-    while (!ps->cerror) {
+    if (!ps->info->interactive)
+	ps->error = false;
+    while (!ps->error) {
 	if (skip_to_next_token(ps))
 	    need_separator = false;
 	if (need_separator
-		|| ps->cbuf.contents[ps->cindex] == L'\0'
+		|| ps->src.contents[ps->index] == L'\0'
 		|| check_closing_token(ps))
 	    break;
 
@@ -933,14 +934,14 @@ and_or_T *parse_compound_list(parsestate_T *ps)
 
 	need_separator = true;
 	ensure_buffer(ps, 2);
-	if (ps->cbuf.contents[ps->cindex] == L'&'
-		|| (ps->cbuf.contents[ps->cindex] == L';'
-		    && ps->cbuf.contents[ps->cindex + 1] != L';')) {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L'&'
+		|| (ps->src.contents[ps->index] == L';'
+		    && ps->src.contents[ps->index + 1] != L';')) {
+	    ps->index++;
 	    need_separator = false;
 	}
     }
-    ps->cerror |= savecerror;
+    ps->error |= saveerror;
 #if YASH_ENABLE_ALIAS
     ps->reparse_alias = false;
 #endif
@@ -948,7 +949,7 @@ and_or_T *parse_compound_list(parsestate_T *ps)
 }
 
 /* Parses one and/or list.
- * The result reflects the trailing "&" or ";", but `ps->cindex' points to the
+ * The result reflects the trailing "&" or ";", but `ps->index' points to the
  * delimiter "&" or ";" when the function returns.
  * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
  * and NULL is returned. */
@@ -965,7 +966,7 @@ and_or_T *parse_and_or_list(parsestate_T *ps)
     and_or_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->ao_pipelines = p;
-    result->ao_async = (ps->cbuf.contents[ps->cindex] == L'&');
+    result->ao_async = (ps->src.contents[ps->index] == L'&');
     return result;
 }
 
@@ -995,16 +996,16 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 #endif
 
 	ensure_buffer(ps, 2);
-	if (ps->cbuf.contents[ps->cindex] == L'&'
-		&& ps->cbuf.contents[ps->cindex + 1] == L'&') {
+	if (ps->src.contents[ps->index] == L'&'
+		&& ps->src.contents[ps->index + 1] == L'&') {
 	    cond = true;
-	} else if (ps->cbuf.contents[ps->cindex] == L'|'
-		&& ps->cbuf.contents[ps->cindex + 1] == L'|') {
+	} else if (ps->src.contents[ps->index] == L'|'
+		&& ps->src.contents[ps->index + 1] == L'|') {
 	    cond = false;
 	} else {
 	    break;
 	}
-	ps->cindex += 2;
+	ps->index += 2;
 #if YASH_ENABLE_ALIAS
 next:
 #endif
@@ -1024,7 +1025,7 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
     ensure_buffer(ps, 2);
     if (has_token(ps, L"!")) {
 	neg = true;
-	ps->cindex++;
+	ps->index++;
 #if YASH_ENABLE_ALIAS
 	do {
 #endif
@@ -1078,9 +1079,9 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 #endif
 
 	ensure_buffer(ps, 2);
-	if (ps->cbuf.contents[ps->cindex] == L'|' &&
-		ps->cbuf.contents[ps->cindex + 1] != L'|') {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L'|' &&
+		ps->src.contents[ps->index + 1] != L'|') {
+	    ps->index++;
 	} else {
 	    break;
 	}
@@ -1112,15 +1113,15 @@ command_T *parse_command(parsestate_T *ps)
     } else if (has_token(ps, L"in")) {
 	serror(ps, get_errmsg_unexpected_token(L"in"), L"in");
 	return NULL;
-    } else if (ps->cbuf.contents[ps->cindex] == L'(') {
+    } else if (ps->src.contents[ps->index] == L'(') {
 	return parse_compound_command(ps, L"(");
-    } else if (is_command_delimiter_char(ps->cbuf.contents[ps->cindex])) {
-	if (ps->cbuf.contents[ps->cindex] == L'\0' ||
-		ps->cbuf.contents[ps->cindex] == L'\n')
+    } else if (is_command_delimiter_char(ps->src.contents[ps->index])) {
+	if (ps->src.contents[ps->index] == L'\0' ||
+		ps->src.contents[ps->index] == L'\n')
 	    serror(ps, Ngt("a command is missing at the end of input"));
 	else
 	    serror(ps, Ngt("a command is missing before `%lc'"),
-		    (wint_t) ps->cbuf.contents[ps->cindex]);
+		    (wint_t) ps->src.contents[ps->index]);
 	return NULL;
     }
 
@@ -1131,7 +1132,7 @@ command_T *parse_command(parsestate_T *ps)
 #if YASH_ENABLE_ALIAS
     if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
-	if (substitute_alias(&ps->cbuf, ps->cindex, &ps->caliases, flags)) {
+	if (substitute_alias(&ps->src, ps->index, &ps->aliases, flags)) {
 	    ps->reparse_alias = true;
 	    return NULL;
 	}
@@ -1148,13 +1149,13 @@ command_T *parse_command(parsestate_T *ps)
 
     result->next = NULL;
     result->refcount = 1;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_type = CT_SIMPLE;
     redirlastp = parse_assignments_and_redirects(ps, result);
     result->c_words = parse_words_and_redirects(ps, redirlastp, true);
 
     ensure_buffer(ps, 1);
-    if (ps->cbuf.contents[ps->cindex] == L'(')
+    if (ps->src.contents[ps->index] == L'(')
 	serror(ps, Ngt("invalid use of `%lc'"), (wint_t) L'(');
     return result;
 }
@@ -1176,7 +1177,7 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
     c->c_assigns = NULL;
     c->c_redirs = NULL;
     while (ensure_buffer(ps, 1),
-	    !is_command_delimiter_char(ps->cbuf.contents[ps->cindex])) {
+	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1189,7 +1190,7 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 #if YASH_ENABLE_ALIAS
 	if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
 	    substitute_alias(
-		    &ps->cbuf, ps->cindex, &ps->caliases, AF_NONGLOBAL);
+		    &ps->src, ps->index, &ps->aliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment(ps);
 	}
 #endif
@@ -1212,12 +1213,12 @@ void **parse_words_and_redirects(
 
     pl_init(&wordlist);
     while (ensure_buffer(ps, 1),
-	    !is_command_delimiter_char(ps->cbuf.contents[ps->cindex])) {
+	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
 #if YASH_ENABLE_ALIAS
 	if (!first) {
 	    if (ps->enable_alias &&
 		    count_name_length(ps, is_alias_name_char) > 0) {
-		substitute_alias(&ps->cbuf, ps->cindex, &ps->caliases, 0);
+		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
 		skip_blanks_and_comment(ps);
 	    }
 	}
@@ -1245,7 +1246,7 @@ void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
 #if YASH_ENABLE_ALIAS
 	if (!posixly_correct && ps->enable_alias)
 	    if (count_name_length(ps, is_alias_name_char) > 0)
-		substitute_alias(&ps->cbuf, ps->cindex, &ps->caliases, 0);
+		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
 #endif
 
 	redir_T *redir = tryparse_redirect(ps);
@@ -1260,29 +1261,29 @@ void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
  * Otherwise, returns NULL without moving the position. */
 assign_T *tryparse_assignment(parsestate_T *ps)
 {
-    if (iswdigit(ps->cbuf.contents[ps->cindex]))
+    if (iswdigit(ps->src.contents[ps->index]))
 	return NULL;
 
     size_t namelen = count_name_length(ps, is_name_char);
-    if (namelen == 0 || ps->cbuf.contents[ps->cindex + namelen] != L'=')
+    if (namelen == 0 || ps->src.contents[ps->index + namelen] != L'=')
 	return NULL;
 
     assign_T *result = xmalloc(sizeof *result);
     result->next = NULL;
-    result->a_name = xwcsndup(&ps->cbuf.contents[ps->cindex], namelen);
-    ps->cindex += namelen + 1;
+    result->a_name = xwcsndup(&ps->src.contents[ps->index], namelen);
+    ps->index += namelen + 1;
 
     ensure_buffer(ps, 1);
-    if (posixly_correct || ps->cbuf.contents[ps->cindex] != L'(') {
+    if (posixly_correct || ps->src.contents[ps->index] != L'(') {
 	result->a_type = A_SCALAR;
 	result->a_scalar = parse_word(ps, AT_NONE);
     } else {
-	ps->cindex++;
+	ps->index++;
 	skip_to_next_token(ps);
 	result->a_type = A_ARRAY;
 	result->a_array = parse_words_to_paren(ps);
-	if (ps->cbuf.contents[ps->cindex] == L')')
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L')')
+	    ps->index++;
 	else
 	    serror(ps, Ngt("`%ls' is missing"), L")");
     }
@@ -1298,7 +1299,7 @@ void **parse_words_to_paren(parsestate_T *ps)
     plist_T list;
 
     pl_init(&list);
-    while (ps->cbuf.contents[ps->cindex] != L')') {
+    while (ps->src.contents[ps->index] != L')') {
 	wordunit_T *word = parse_word(ps, AT_GLOBAL);
 	if (word != NULL)
 	    pl_add(&list, word);
@@ -1316,27 +1317,27 @@ redir_T *tryparse_redirect(parsestate_T *ps)
     int fd;
 
     ensure_buffer(ps, 2);
-    if (iswdigit(ps->cbuf.contents[ps->cindex])) {
+    if (iswdigit(ps->src.contents[ps->index])) {
 	unsigned long lfd;
 	wchar_t *endptr;
 
 reparse:
 	errno = 0;
-	lfd = wcstoul(&ps->cbuf.contents[ps->cindex], &endptr, 10);
+	lfd = wcstoul(&ps->src.contents[ps->index], &endptr, 10);
 	if (errno != 0 || lfd > INT_MAX)
 	    fd = -1;  /* invalid fd */
 	else
 	    fd = (int) lfd;
 	if (endptr[0] == L'\\' && endptr[1] == L'\n') {
-	    line_continuation(ps, endptr - ps->cbuf.contents);
+	    line_continuation(ps, endptr - ps->src.contents);
 	    goto reparse;
 	} else if (endptr[0] != L'<' && endptr[0] != L'>') {
 	    return NULL;
 	}
-	ps->cindex = endptr - ps->cbuf.contents;
-    } else if (ps->cbuf.contents[ps->cindex] == L'<') {
+	ps->index = endptr - ps->src.contents;
+    } else if (ps->src.contents[ps->index] == L'<') {
 	fd = STDIN_FILENO;
-    } else if (ps->cbuf.contents[ps->cindex] == L'>') {
+    } else if (ps->src.contents[ps->index] == L'>') {
 	fd = STDOUT_FILENO;
     } else {
 	return NULL;
@@ -1346,20 +1347,20 @@ reparse:
     result->next = NULL;
     result->rd_fd = fd;
     ensure_buffer(ps, 3);
-    switch (ps->cbuf.contents[ps->cindex]) {
+    switch (ps->src.contents[ps->index]) {
     case L'<':
-	switch (ps->cbuf.contents[ps->cindex + 1]) {
+	switch (ps->src.contents[ps->index + 1]) {
 	case L'<':
-	    if (ps->cbuf.contents[ps->cindex + 2] == L'-') {
+	    if (ps->src.contents[ps->index + 2] == L'-') {
 		result->rd_type = RT_HERERT;
-		ps->cindex += 3;
+		ps->index += 3;
 	    } else if (!posixly_correct &&
-		    ps->cbuf.contents[ps->cindex + 2] == L'<') {
+		    ps->src.contents[ps->index + 2] == L'<') {
 		result->rd_type = RT_HERESTR;
-		ps->cindex += 3;
+		ps->index += 3;
 	    } else {
 		result->rd_type = RT_HERE;
-		ps->cindex += 2;
+		ps->index += 2;
 	    }
 	    break;
 	case L'(':
@@ -1368,37 +1369,37 @@ reparse:
 		goto parse_command;
 	    } else {
 		result->rd_type = RT_INPUT;
-		ps->cindex += 1;
+		ps->index += 1;
 	    }
 	    break;
-	case L'>':  result->rd_type = RT_INOUT;  ps->cindex += 2;  break;
-	case L'&':  result->rd_type = RT_DUPIN;  ps->cindex += 2;  break;
-	default:    result->rd_type = RT_INPUT;  ps->cindex += 1;  break;
+	case L'>':  result->rd_type = RT_INOUT;  ps->index += 2;  break;
+	case L'&':  result->rd_type = RT_DUPIN;  ps->index += 2;  break;
+	default:    result->rd_type = RT_INPUT;  ps->index += 1;  break;
 	}
 	break;
     case L'>':
-	switch (ps->cbuf.contents[ps->cindex + 1]) {
+	switch (ps->src.contents[ps->index + 1]) {
 	case L'(':
 	    if (!posixly_correct) {
 		result->rd_type = RT_PROCOUT;
 		goto parse_command;
 	    } else {
 		result->rd_type = RT_OUTPUT;
-		ps->cindex += 1;
+		ps->index += 1;
 	    }
 	    break;
 	case L'>':
-	    if (!posixly_correct && ps->cbuf.contents[ps->cindex + 2] == L'|') {
+	    if (!posixly_correct && ps->src.contents[ps->index + 2] == L'|') {
 		result->rd_type = RT_PIPE;
-		ps->cindex += 3;
+		ps->index += 3;
 	    } else {
 		result->rd_type = RT_APPEND;
-		ps->cindex += 2;
+		ps->index += 2;
 	    }
 	    break;
-	case L'|':  result->rd_type = RT_CLOBBER; ps->cindex += 2;  break;
-	case L'&':  result->rd_type = RT_DUPOUT;  ps->cindex += 2;  break;
-	default:    result->rd_type = RT_OUTPUT;  ps->cindex += 1;  break;
+	case L'|':  result->rd_type = RT_CLOBBER; ps->index += 2;  break;
+	case L'&':  result->rd_type = RT_DUPOUT;  ps->index += 2;  break;
+	default:    result->rd_type = RT_OUTPUT;  ps->index += 1;  break;
 	}
 	break;
     default:
@@ -1428,11 +1429,11 @@ reparse:
     return result;
 
 parse_command:
-    ps->cindex += 1;
+    ps->index += 1;
     result->rd_command = extract_command_in_paren(ps);
     ensure_buffer(ps, 1);
-    if (ps->cbuf.contents[ps->cindex] == L')')
-	ps->cindex++;
+    if (ps->src.contents[ps->index] == L')')
+	ps->index++;
     skip_blanks_and_comment(ps);
     return result;
 }
@@ -1451,7 +1452,7 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 	    if (count_name_length(ps, is_alias_name_char) > 0) {
 		substaliasflags_T flags =
 		    (type == AT_GLOBAL) ? 0 : AF_NONGLOBAL;
-		substitute_alias(&ps->cbuf, ps->cindex, &ps->caliases, flags);
+		substitute_alias(&ps->src, ps->index, &ps->aliases, flags);
 	    }
 	    skip_blanks_and_comment(ps);
 	    break;
@@ -1475,59 +1476,59 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first, *wu;
     bool indq = false;  /* in double quotes? */
-    size_t startindex = ps->cindex;
+    size_t startindex = ps->index;
 
-/* appends the substring from `startindex' to `cindex' as a new word unit
+/* appends the substring from `startindex' to `index' as a new word unit
  * to `*lastp' */
 #define MAKE_WORDUNIT_STRING                                                  \
     do {                                                                      \
-        if (startindex != ps->cindex) {                                       \
+        if (startindex != ps->index) {                                       \
             wordunit_T *w = xmalloc(sizeof *w);                               \
             w->next = NULL;                                                   \
             w->wu_type = WT_STRING;                                           \
             w->wu_string = xwcsndup(                                          \
-                    ps->cbuf.contents + startindex, ps->cindex - startindex); \
+                    ps->src.contents + startindex, ps->index - startindex); \
             *lastp = w;                                                       \
             lastp = &w->next;                                                 \
         }                                                                     \
     } while (0)
 
-    while (indq ? ps->cbuf.contents[ps->cindex] != L'\0'
-		: !testfunc(ps->cbuf.contents[ps->cindex])) {
+    while (indq ? ps->src.contents[ps->index] != L'\0'
+		: !testfunc(ps->src.contents[ps->index])) {
 
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'\\':
-	    if (ps->cbuf.contents[ps->cindex + 1] == L'\n') {
-		line_continuation(ps, ps->cindex);
+	    if (ps->src.contents[ps->index + 1] == L'\n') {
+		line_continuation(ps, ps->index);
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex + 1] != L'\0') {
-		ps->cindex += 2;
+	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+		ps->index += 2;
 		continue;
 	    }
 	    break;
 	case L'\n':
-	    ps->cinfo->lineno++;
+	    ps->info->lineno++;
 	    read_more_input(ps);
 	    break;
 	case L'$':
 	case L'`':
 	    MAKE_WORDUNIT_STRING;
 	    wu = parse_special_word_unit(ps);
-	    startindex = ps->cindex;
+	    startindex = ps->index;
 	    if (wu) {
 		*lastp = wu;
 		lastp = &wu->next;
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex] == L'\0') {
+	    } else if (ps->src.contents[ps->index] == L'\0') {
 		continue;
 	    }
 	    break;
 	case L'\'':
 	    if (!indq) {
-		ps->cindex++;
+		ps->index++;
 		skip_to_next_single_quote(ps);
-		if (ps->cbuf.contents[ps->cindex] == L'\'')
-		    ps->cindex++;
+		if (ps->src.contents[ps->index] == L'\'')
+		    ps->index++;
 		continue;
 	    }
 	    break;
@@ -1537,7 +1538,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 	default:
 	    break;
 	}
-	ps->cindex++;
+	ps->index++;
     }
     MAKE_WORDUNIT_STRING;
 
@@ -1554,7 +1555,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 void skip_to_next_single_quote(parsestate_T *ps)
 {
     for (;;) {
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'\'':
 	    return;
 	case L'\0':
@@ -1564,12 +1565,12 @@ void skip_to_next_single_quote(parsestate_T *ps)
 	    }
 	    continue;
 	case L'\n':
-	    ps->cinfo->lineno++;
+	    ps->info->lineno++;
 	    /* falls thru! */
 	default:
 	    break;
 	}
-	ps->cindex++;
+	ps->index++;
     }
 }
 
@@ -1582,14 +1583,14 @@ void skip_to_next_single_quote(parsestate_T *ps)
  * position is advanced by at least one character. */
 wordunit_T *parse_special_word_unit(parsestate_T *ps)
 {
-    switch (ps->cbuf.contents[ps->cindex++]) {
+    switch (ps->src.contents[ps->index++]) {
     case L'$':
 	ensure_buffer(ps, 2);
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'{':
 	    return parse_paramexp_in_brace(ps);
 	case L'(':
-	    if (ps->cbuf.contents[ps->cindex + 1] == L'(') {
+	    if (ps->src.contents[ps->index + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith(ps);
 		if (wu != NULL)
 		    return wu;
@@ -1615,15 +1616,15 @@ wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     size_t namelen;  /* parameter name length */
 
     ensure_buffer(ps, 1);
-    switch (ps->cbuf.contents[ps->cindex]) {
+    switch (ps->src.contents[ps->index]) {
 	case L'@':  case L'*':  case L'#':  case L'?':
 	case L'-':  case L'$':  case L'!':
 	    namelen = 1;
 	    goto success;
     }
-    if (!is_portable_name_char(ps->cbuf.contents[ps->cindex]))
+    if (!is_portable_name_char(ps->src.contents[ps->index]))
 	goto error;
-    if (iswdigit(ps->cbuf.contents[ps->cindex]))
+    if (iswdigit(ps->src.contents[ps->index]))
 	namelen = 1;
     else
 	namelen = count_name_length(ps, is_portable_name_char);
@@ -1631,19 +1632,19 @@ wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
 success:
     pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
-    pe->pe_name = xwcsndup(&ps->cbuf.contents[ps->cindex], namelen);
+    pe->pe_name = xwcsndup(&ps->src.contents[ps->index], namelen);
     pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_PARAM;
     result->wu_param = pe;
-    ps->cindex += namelen;
+    ps->index += namelen;
     return result;
 
 error:
-    ps->cindex--;
-    assert(ps->cbuf.contents[ps->cindex] == L'$');
+    ps->index--;
+    assert(ps->src.contents[ps->index] == L'$');
     return NULL;
 }
 
@@ -1657,94 +1658,94 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     pe->pe_name = NULL;
     pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
 
-    assert(ps->cbuf.contents[ps->cindex] == L'{');
-    ps->cindex++;
+    assert(ps->src.contents[ps->index] == L'{');
+    ps->index++;
 
     /* parse PT_NUMBER */
     ensure_buffer(ps, 3);
-    if (ps->cbuf.contents[ps->cindex] == L'#') {
-	switch (ps->cbuf.contents[ps->cindex + 1]) {
+    if (ps->src.contents[ps->index] == L'#') {
+	switch (ps->src.contents[ps->index + 1]) {
 	    case L'\0': case L'}':
 	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
 		break;
 	    case L'-':  case L'?':  case L'#':
-		if (ps->cbuf.contents[ps->cindex + 2] != L'}')
+		if (ps->src.contents[ps->index + 2] != L'}')
 		    break;
 		/* falls thru! */
 	    default:
 		pe->pe_type |= PT_NUMBER;
-		ps->cindex++;
+		ps->index++;
 		break;
 	}
     }
 
     /* parse nested expansion */
     // ensure_buffer(2);  // we've already called `ensure_buffer'
-    if (!posixly_correct && ps->cbuf.contents[ps->cindex] == L'{') {
+    if (!posixly_correct && ps->src.contents[ps->index] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brace(ps);
     } else if (!posixly_correct
-	    && (ps->cbuf.contents[ps->cindex] == L'`'
-		|| (ps->cbuf.contents[ps->cindex] == L'$'
-		    && (ps->cbuf.contents[ps->cindex + 1] == L'{'
-			|| ps->cbuf.contents[ps->cindex + 1] == L'(')))) {
-	size_t neststartindex = ps->cindex;
+	    && (ps->src.contents[ps->index] == L'`'
+		|| (ps->src.contents[ps->index] == L'$'
+		    && (ps->src.contents[ps->index + 1] == L'{'
+			|| ps->src.contents[ps->index + 1] == L'(')))) {
+	size_t neststartindex = ps->index;
 	pe->pe_nest = parse_special_word_unit(ps);
-	if (ps->cindex != neststartindex)
+	if (ps->index != neststartindex)
 	    pe->pe_type |= PT_NEST;
 	else
 	    goto parse_name;
     } else {
 parse_name:;
 	/* no nesting: parse parameter name normally */
-	size_t namestartindex = ps->cindex;
-	switch (ps->cbuf.contents[ps->cindex]) {
+	size_t namestartindex = ps->index;
+	switch (ps->src.contents[ps->index]) {
 	    case L'@':  case L'*':  case L'#':  case L'?':
 	    case L'-':  case L'$':  case L'!':
-		ps->cindex++;
+		ps->index++;
 		break;
 	    default:
 		while (ensure_buffer(ps, 1),
-			is_name_char(ps->cbuf.contents[ps->cindex]))
-		    ps->cindex++;
+			is_name_char(ps->src.contents[ps->index]))
+		    ps->index++;
 		break;
 	}
-	size_t namelen = ps->cindex - namestartindex;
+	size_t namelen = ps->index - namestartindex;
 	if (namelen == 0) {
 	    serror(ps, Ngt("the parameter name is missing or invalid"));
 	    goto end;
 	}
-	pe->pe_name = xwcsndup(&ps->cbuf.contents[namestartindex], namelen);
+	pe->pe_name = xwcsndup(&ps->src.contents[namestartindex], namelen);
     }
 
     /* parse indices */
     ensure_buffer(ps, 3);
-    if (!posixly_correct && ps->cbuf.contents[ps->cindex] == L'[') {
-	ps->cindex++;
+    if (!posixly_correct && ps->src.contents[ps->index] == L'[') {
+	ps->index++;
 	pe->pe_start = parse_word_to(ps, is_comma_or_closing_bracket);
 	if (pe->pe_start == NULL)
 	    serror(ps, Ngt("the index is missing"));
-	if (ps->cbuf.contents[ps->cindex] == L',') {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L',') {
+	    ps->index++;
 	    pe->pe_end = parse_word_to(ps, is_comma_or_closing_bracket);
 	    if (pe->pe_end == NULL)
 		serror(ps, Ngt("the index is missing"));
 	}
-	if (ps->cbuf.contents[ps->cindex] == L']')
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L']')
+	    ps->index++;
 	else
 	    serror(ps, Ngt("`%ls' is missing"), L"]");
 	ensure_buffer(ps, 3);
     }
 
     /* parse PT_COLON */
-    if (ps->cbuf.contents[ps->cindex] == L':') {
+    if (ps->src.contents[ps->index] == L':') {
 	pe->pe_type |= PT_COLON;
-	ps->cindex++;
+	ps->index++;
     }
 
     /* parse '-', '+', '#', etc. */
-    switch (ps->cbuf.contents[ps->cindex]) {
+    switch (ps->src.contents[ps->index]) {
     case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
     case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
     case L'=':   pe->pe_type |= PT_ASSIGN;                   goto parse_subst;
@@ -1762,7 +1763,7 @@ parse_name:;
 	goto check_closing_brace;
     default:
 	serror(ps, Ngt("invalid character `%lc' in parameter expansion"),
-		(wint_t) ps->cbuf.contents[ps->cindex]);
+		(wint_t) ps->src.contents[ps->index]);
 	goto end;
     }
 
@@ -1773,26 +1774,26 @@ parse_match:
 	else
 	    serror(ps, Ngt("invalid use of `%lc' in parameter expansion"),
 		    (wint_t) L':');
-	ps->cindex += 1;
-    } else if (ps->cbuf.contents[ps->cindex] ==
-	    ps->cbuf.contents[ps->cindex + 1]) {
+	ps->index += 1;
+    } else if (ps->src.contents[ps->index] ==
+	    ps->src.contents[ps->index + 1]) {
 	if ((pe->pe_type & PT_MASK) == PT_MATCH)
 	    pe->pe_type |= PT_MATCHLONGEST;
 	else
 	    pe->pe_type |= PT_SUBSTALL;
-	ps->cindex += 2;
-    } else if (ps->cbuf.contents[ps->cindex] == L'/') {
-	if (ps->cbuf.contents[ps->cindex + 1] == L'#') {
+	ps->index += 2;
+    } else if (ps->src.contents[ps->index] == L'/') {
+	if (ps->src.contents[ps->index + 1] == L'#') {
 	    pe->pe_type |= PT_MATCHHEAD;
-	    ps->cindex += 2;
-	} else if (ps->cbuf.contents[ps->cindex + 1] == L'%') {
+	    ps->index += 2;
+	} else if (ps->src.contents[ps->index + 1] == L'%') {
 	    pe->pe_type |= PT_MATCHTAIL;
-	    ps->cindex += 2;
+	    ps->index += 2;
 	} else {
-	    ps->cindex += 1;
+	    ps->index += 1;
 	}
     } else {
-	ps->cindex += 1;
+	ps->index += 1;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
 	pe->pe_match = parse_word_to(ps, is_closing_brace);
@@ -1800,18 +1801,18 @@ parse_match:
     } else {
 	pe->pe_match = parse_word_to(ps, is_slash_or_closing_brace);
 	ensure_buffer(ps, 1);
-	if (ps->cbuf.contents[ps->cindex] != L'/')
+	if (ps->src.contents[ps->index] != L'/')
 	    goto check_closing_brace;
     }
 
 parse_subst:
-    ps->cindex++;
+    ps->index++;
     pe->pe_subst = parse_word_to(ps, is_closing_brace);
 
 check_closing_brace:
     ensure_buffer(ps, 1);
-    if (ps->cbuf.contents[ps->cindex] == L'}')
-	ps->cindex++;
+    if (ps->src.contents[ps->index] == L'}')
+	ps->index++;
     else
 	serror(ps, Ngt("`%ls' is missing"), L"}");
     if ((pe->pe_type & PT_NUMBER) && (pe->pe_type & PT_MASK) != PT_NONE)
@@ -1838,8 +1839,8 @@ wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
     result->wu_cmdsub = extract_command_in_paren(ps);
 
     ensure_buffer(ps, 1);
-    if (ps->cbuf.contents[ps->cindex] == L')')
-	ps->cindex++;
+    if (ps->src.contents[ps->index] == L')')
+	ps->index++;
     else
 	serror(ps, Ngt("`%ls' is missing"), L")");
     return result;
@@ -1854,19 +1855,19 @@ embedcmd_T extract_command_in_paren(parsestate_T *ps)
     plist_T save_pending_heredocs;
     embedcmd_T result;
 
-    assert(ps->cbuf.contents[ps->cindex] == L'(');
+    assert(ps->src.contents[ps->index] == L'(');
 
     save_pending_heredocs = ps->pending_heredocs;
     pl_init(&ps->pending_heredocs);
 
 #if YASH_ENABLE_ALIAS
-    if (posixly_correct && ps->cinfo->enable_alias) {
+    if (posixly_correct && ps->info->enable_alias) {
 	result.is_preparsed = false;
 	result.value.unparsed = extract_command_in_paren_unparsed(ps);
     } else
 #endif
     {
-	ps->cindex++;
+	ps->index++;
 	result.is_preparsed = true;
 	result.value.preparsed = parse_compound_list(ps);
     }
@@ -1887,12 +1888,12 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
     bool save_enable_alias = ps->enable_alias;
     ps->enable_alias = false;
 
-    size_t startindex = ++ps->cindex;
+    size_t startindex = ++ps->index;
     andorsfree(parse_compound_list(ps));
-    assert(startindex <= ps->cindex);
+    assert(startindex <= ps->index);
 
     wchar_t *result = xwcsndup(
-	    &ps->cbuf.contents[startindex], ps->cindex - startindex);
+	    &ps->src.contents[startindex], ps->index - startindex);
 
     ps->enable_alias = save_enable_alias;
     return result;
@@ -1911,13 +1912,13 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
     result->wu_type = WT_CMDSUB;
     result->wu_cmdsub.is_preparsed = false;
 
-    assert(ps->cbuf.contents[ps->cindex - 1] == L'`');
+    assert(ps->src.contents[ps->index - 1] == L'`');
     wb_init(&buf);
     for (;;) {
 	ensure_buffer(ps, 1);
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'`':
-	    ps->cindex++;
+	    ps->index++;
 	    goto end;
 	case L'\0':
 	    if (read_more_input(ps) != 0) {
@@ -1927,8 +1928,8 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
 	    }
 	    break;
 	case L'\\':
-	    ps->cindex++;
-	    switch (ps->cbuf.contents[ps->cindex]) {
+	    ps->index++;
+	    switch (ps->src.contents[ps->index]) {
 		case L'$':  case L'`':  case L'\\':
 		    goto default_;
 		default:
@@ -1936,11 +1937,11 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
 		    continue;
 	    }
 	case L'\n':
-	    ps->cinfo->lineno++;
+	    ps->info->lineno++;
 	    /* falls thru! */
 	default:  default_:
-	    wb_wccat(&buf, ps->cbuf.contents[ps->cindex]);
-	    ps->cindex++;
+	    wb_wccat(&buf, ps->src.contents[ps->index]);
+	    ps->index++;
 	    break;
 	}
     }
@@ -1956,26 +1957,26 @@ end:
  * expansion, the return value is NULL and the position is not moved. */
 wordunit_T *tryparse_arith(parsestate_T *ps)
 {
-    size_t savecindex = ps->cindex;
-    assert(ps->cbuf.contents[ps->cindex] == L'(' &&
-	    ps->cbuf.contents[ps->cindex + 1] == L'(');
-    ps->cindex += 2;
+    size_t saveindex = ps->index;
+    assert(ps->src.contents[ps->index] == L'(' &&
+	    ps->src.contents[ps->index + 1] == L'(');
+    ps->index += 2;
 
     wordunit_T *first = NULL, **lastp = &first;
-    size_t startindex = ps->cindex;
+    size_t startindex = ps->index;
     int nestparen = 0;
 
     for (;;) {
 	ensure_buffer(ps, 1);
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    goto fail;
 	case L'\\':
-	    if (ps->cbuf.contents[ps->cindex + 1] == L'\n') {
-		line_continuation(ps, ps->cindex);
+	    if (ps->src.contents[ps->index + 1] == L'\n') {
+		line_continuation(ps, ps->index);
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex + 1] != L'\0') {
-		ps->cindex += 2;
+	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+		ps->index += 2;
 		continue;
 	    }
 	    break;
@@ -1983,12 +1984,12 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	case L'`':
 	    MAKE_WORDUNIT_STRING;
 	    wordunit_T *wu = parse_special_word_unit(ps);
-	    startindex = ps->cindex;
+	    startindex = ps->index;
 	    if (wu != NULL) {
 		*lastp = wu;
 		lastp = &wu->next;
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex] == L'\0') {
+	    } else if (ps->src.contents[ps->index] == L'\0') {
 		continue;
 	    }
 	    break;
@@ -1999,7 +2000,7 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	    nestparen--;
 	    if (nestparen < 0) {
 		ensure_buffer(ps, 2);
-		if (ps->cbuf.contents[ps->cindex + 1] == L')')
+		if (ps->src.contents[ps->index + 1] == L')')
 		    goto end;
 		else
 		    goto fail;
@@ -2008,11 +2009,11 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	default:
 	    break;
 	}
-	ps->cindex++;
+	ps->index++;
     }
 end:
     MAKE_WORDUNIT_STRING;
-    ps->cindex += 2;
+    ps->index += 2;
 
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2022,7 +2023,7 @@ end:
 
 fail:
     wordfree(first);
-    ps->cindex = savecindex;
+    ps->index = saveindex;
     return NULL;
 }
 
@@ -2031,10 +2032,10 @@ fail:
  * This function never returns NULL, but may return an empty string. */
 wchar_t *parse_word_as_wcs(parsestate_T *ps)
 {
-    size_t startindex = ps->cindex;
+    size_t startindex = ps->index;
     wordfree(parse_word(ps, AT_GLOBAL));
-    assert(startindex <= ps->cindex);
-    return xwcsndup(&ps->cbuf.contents[startindex], ps->cindex - startindex);
+    assert(startindex <= ps->index);
+    return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
 }
 
 /* Parses a compound command.
@@ -2096,25 +2097,25 @@ command_T *parse_group(parsestate_T *ps, commandtype_T type)
 	    break;
 	case CT_SUBSHELL:
 	    start = L"(", end = L")";
-	    assert(ps->cbuf.contents[ps->cindex] == start[0]);
+	    assert(ps->src.contents[ps->index] == start[0]);
 	    break;
 	default:
 	    assert(false);
     }
-    ps->cindex++;
+    ps->index++;
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = type;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_subcmds = parse_compound_list(ps);
     if (posixly_correct && result->c_subcmds == NULL)
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 		start, end);
-    if (ps->cbuf.contents[ps->cindex] == end[0])
-	ps->cindex++;
+    if (ps->src.contents[ps->index] == end[0])
+	ps->index++;
     else
 	print_errmsg_token_missing(ps, end);
     return result;
@@ -2124,19 +2125,19 @@ command_T *parse_group(parsestate_T *ps, commandtype_T type)
 command_T *parse_if(parsestate_T *ps)
 {
     assert(has_token(ps, L"if"));
-    ps->cindex += 2;
+    ps->index += 2;
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = CT_IF;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_ifcmds = NULL;
 
     ifcommand_T **lastp = &result->c_ifcmds;
     bool els = false;
-    while (!ps->cerror) {
+    while (!ps->error) {
 	ifcommand_T *ic = xmalloc(sizeof *ic);
 	*lastp = ic;
 	lastp = &ic->next;
@@ -2149,7 +2150,7 @@ command_T *parse_if(parsestate_T *ps)
 			L"then");
 	    ensure_buffer(ps, 5);
 	    if (has_token(ps, L"then"))
-		ps->cindex += 4;
+		ps->index += 4;
 	    else
 		print_errmsg_token_missing(ps, L"then");
 	} else {
@@ -2162,19 +2163,19 @@ command_T *parse_if(parsestate_T *ps)
 	ensure_buffer(ps, 5);
 	if (!els) {
 	    if (has_token(ps, L"else")) {
-		ps->cindex += 4;
+		ps->index += 4;
 		els = true;
 	    } else if (has_token(ps, L"elif")) {
-		ps->cindex += 4;
+		ps->index += 4;
 	    } else if (has_token(ps, L"fi")) {
-		ps->cindex += 2;
+		ps->index += 2;
 		break;
 	    } else {
 		print_errmsg_token_missing(ps, L"fi");
 	    }
 	} else {
 	    if (has_token(ps, L"fi"))
-		ps->cindex += 2;
+		ps->index += 2;
 	    else
 		print_errmsg_token_missing(ps, L"fi");
 	    break;
@@ -2187,14 +2188,14 @@ command_T *parse_if(parsestate_T *ps)
 command_T *parse_for(parsestate_T *ps)
 {
     assert(has_token(ps, L"for"));
-    ps->cindex += 3;
+    ps->index += 3;
     skip_blanks_and_comment(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = CT_FOR;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
 
     wchar_t *name = parse_word_as_wcs(ps);
@@ -2208,19 +2209,19 @@ command_T *parse_for(parsestate_T *ps)
     ensure_buffer(ps, 3);
     if (has_token(ps, L"in")) {
 	redir_T *redirs = NULL;
-	ps->cindex += 2;
+	ps->index += 2;
 	skip_blanks_and_comment(ps);
 	result->c_forwords = parse_words_and_redirects(ps, &redirs, false);
 	if (redirs != NULL) {
 	    serror(ps, Ngt("redirections are not allowed after `in'"));
 	    redirsfree(redirs);
 	}
-	if (ps->cbuf.contents[ps->cindex] == L';')
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L';')
+	    ps->index++;
     } else {
 	result->c_forwords = NULL;
-	if (ps->cbuf.contents[ps->cindex] == L';') {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L';') {
+	    ps->index++;
 	    if (posixly_correct)
 		serror(ps, Ngt("`;' is not allowed "
 			    "just after the identifier in a for loop"));
@@ -2229,7 +2230,7 @@ command_T *parse_for(parsestate_T *ps)
     skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"do"))
-	ps->cindex += 2;
+	ps->index += 2;
     else
 	serror(ps, Ngt("`%ls' is missing"), L"do");
 	// print_errmsg_token_missing(ps, L"do");
@@ -2239,7 +2240,7 @@ command_T *parse_for(parsestate_T *ps)
 		L"do", L"done");
     ensure_buffer(ps, 5);
     if (has_token(ps, L"done"))
-	ps->cindex += 4;
+	ps->index += 4;
     else
 	print_errmsg_token_missing(ps, L"done");
     return result;
@@ -2251,13 +2252,13 @@ command_T *parse_for(parsestate_T *ps)
 command_T *parse_while(parsestate_T *ps, bool whltype)
 {
     assert(has_token(ps, whltype ? L"while" : L"until"));
-    ps->cindex += 5;
+    ps->index += 5;
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = CT_WHILE;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_whltype = whltype;
     result->c_whlcond = parse_compound_list(ps);
@@ -2266,7 +2267,7 @@ command_T *parse_while(parsestate_T *ps, bool whltype)
 		whltype ? L"while" : L"until");
     ensure_buffer(ps, 3);
     if (has_token(ps, L"do"))
-	ps->cindex += 2;
+	ps->index += 2;
     else
 	print_errmsg_token_missing(ps, L"do");
     result->c_whlcmds = parse_compound_list(ps);
@@ -2275,7 +2276,7 @@ command_T *parse_while(parsestate_T *ps, bool whltype)
 		L"do", L"done");
     ensure_buffer(ps, 5);
     if (has_token(ps, L"done"))
-	ps->cindex += 4;
+	ps->index += 4;
     else
 	print_errmsg_token_missing(ps, L"done");
     return result;
@@ -2285,14 +2286,14 @@ command_T *parse_while(parsestate_T *ps, bool whltype)
 command_T *parse_case(parsestate_T *ps)
 {
     assert(has_token(ps, L"case"));
-    ps->cindex += 4;
+    ps->index += 4;
     skip_blanks_and_comment(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = CT_CASE;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_casword = parse_word(ps, AT_GLOBAL);
     if (result->c_casword == NULL)
@@ -2300,7 +2301,7 @@ command_T *parse_case(parsestate_T *ps)
     skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"in")) {
-	ps->cindex += 2;
+	ps->index += 2;
 	result->c_casitems = parse_case_list(ps);
     } else {
 	serror(ps, Ngt("`%ls' is missing"), L"in");
@@ -2309,7 +2310,7 @@ command_T *parse_case(parsestate_T *ps)
     }
     ensure_buffer(ps, 5);
     if (has_token(ps, L"esac"))
-	ps->cindex += 4;
+	ps->index += 4;
     else
 	print_errmsg_token_missing(ps, L"esac");
     return result;
@@ -2335,13 +2336,13 @@ caseitem_T *parse_case_list(parsestate_T *ps)
 	ci->ci_commands = parse_compound_list(ps);
 	/* `ci_commands' may be NULL unlike for and while commands */
 	ensure_buffer(ps, 2);
-	if (ps->cbuf.contents[ps->cindex] == L';' &&
-		ps->cbuf.contents[ps->cindex + 1] == L';') {
-	    ps->cindex += 2;
+	if (ps->src.contents[ps->index] == L';' &&
+		ps->src.contents[ps->index + 1] == L';') {
+	    ps->index += 2;
 	} else {
 	    break;
 	}
-    } while (!ps->cerror);
+    } while (!ps->error);
     return first;
 }
 
@@ -2355,8 +2356,8 @@ void **parse_case_patterns(parsestate_T *ps)
     plist_T wordlist;
     pl_init(&wordlist);
 
-    if (ps->cbuf.contents[ps->cindex] == L'(') {  /* ignore the first '(' */
-	ps->cindex++;
+    if (ps->src.contents[ps->index] == L'(') {  /* ignore the first '(' */
+	ps->index++;
 	skip_blanks_and_comment(ps);
 	if (posixly_correct) {
 	    ensure_buffer(ps, 5);
@@ -2366,31 +2367,31 @@ void **parse_case_patterns(parsestate_T *ps)
 	}
     }
     do {
-	if (is_token_delimiter_char(ps->cbuf.contents[ps->cindex])) {
-	    if (ps->cbuf.contents[ps->cindex] != L'\0') {
-		if (ps->cbuf.contents[ps->cindex] == L'\n')
+	if (is_token_delimiter_char(ps->src.contents[ps->index])) {
+	    if (ps->src.contents[ps->index] != L'\0') {
+		if (ps->src.contents[ps->index] == L'\n')
 		    serror(ps, Ngt("a word is required after `%ls'"), L"(");
 		else
 		    serror(ps, Ngt("encountered an invalid character `%lc' "
 				"in the case pattern"),
-			    (wint_t) ps->cbuf.contents[ps->cindex]);
+			    (wint_t) ps->src.contents[ps->index]);
 	    }
 	    break;
 	}
 	pl_add(&wordlist, parse_word(ps, AT_GLOBAL));
 	skip_blanks_and_comment(ps);
 	ensure_buffer(ps, 1);
-	if (ps->cbuf.contents[ps->cindex] == L'|') {
-	    ps->cindex++;
-	} else if (ps->cbuf.contents[ps->cindex] == L')') {
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L'|') {
+	    ps->index++;
+	} else if (ps->src.contents[ps->index] == L')') {
+	    ps->index++;
 	    break;
 	} else {
 	    serror(ps, Ngt("`%ls' is missing"), L")");
 	    break;
 	}
 	skip_blanks_and_comment(ps);
-    } while (!ps->cerror);
+    } while (!ps->error);
     return pl_toary(&wordlist);
 }
 
@@ -2401,14 +2402,14 @@ command_T *parse_function(parsestate_T *ps)
 	serror(ps, Ngt("`%ls' cannot be used as a command name"), L"function");
 
     assert(has_token(ps, L"function"));
-    ps->cindex += 8;
+    ps->index += 8;
     skip_blanks_and_comment(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_type = CT_FUNCDEF;
-    result->c_lineno = ps->cinfo->lineno;
+    result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_funcname = parse_word(ps, AT_GLOBAL);
     if (result->c_funcname == NULL)
@@ -2416,14 +2417,14 @@ command_T *parse_function(parsestate_T *ps)
     skip_blanks_and_comment(ps);
 
     /* parse parentheses */
-    size_t savecindex = ps->cindex;
-    if (ps->cbuf.contents[ps->cindex] == L'(') {
-	ps->cindex++;
+    size_t saveindex = ps->index;
+    if (ps->src.contents[ps->index] == L'(') {
+	ps->index++;
 	skip_blanks_and_comment(ps);
-	if (ps->cbuf.contents[ps->cindex] == L')')
-	    ps->cindex++;
+	if (ps->src.contents[ps->index] == L')')
+	    ps->index++;
 	else
-	    ps->cindex = savecindex;
+	    ps->index = saveindex;
     }
     skip_to_next_token(ps);
 
@@ -2444,28 +2445,28 @@ command_T *parse_function(parsestate_T *ps)
  * number. */
 command_T *tryparse_function(parsestate_T *ps)
 {
-    size_t saveindex = ps->cindex;
-    unsigned long lineno = ps->cinfo->lineno;
+    size_t saveindex = ps->index;
+    unsigned long lineno = ps->info->lineno;
 
-    if (iswdigit(ps->cbuf.contents[ps->cindex]))
+    if (iswdigit(ps->src.contents[ps->index]))
 	goto fail;
 
     size_t namelen = count_name_length(ps, is_name_char);
-    ps->cindex += namelen;
-    if (namelen == 0 || !is_token_delimiter_char(ps->cbuf.contents[ps->cindex]))
+    ps->index += namelen;
+    if (namelen == 0 || !is_token_delimiter_char(ps->src.contents[ps->index]))
 	goto fail;
     skip_blanks_and_comment(ps);
 
     /* parse parentheses */
-    if (ps->cbuf.contents[ps->cindex] != L'(')
+    if (ps->src.contents[ps->index] != L'(')
 	goto fail;
-    ps->cindex++;
+    ps->index++;
     skip_blanks_and_comment(ps);
-    if (ps->cbuf.contents[ps->cindex] != L')') {
+    if (ps->src.contents[ps->index] != L')') {
 	serror(ps, Ngt("`(' must be followed by `)' in a function definition"));
 	return NULL;
     }
-    ps->cindex++;
+    ps->index++;
     skip_to_next_token(ps);
 
     /* parse function body */
@@ -2485,12 +2486,12 @@ command_T *tryparse_function(parsestate_T *ps)
     result->c_funcname->next = NULL;
     result->c_funcname->wu_type = WT_STRING;
     result->c_funcname->wu_string =
-	xwcsndup(&ps->cbuf.contents[saveindex], namelen);
+	xwcsndup(&ps->src.contents[saveindex], namelen);
     result->c_funcbody = body;
     return result;
 
 fail:
-    ps->cindex = saveindex;
+    ps->index = saveindex;
     return NULL;
 }
 
@@ -2519,11 +2520,11 @@ void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 
     wb_init(&buf);
     while (!is_end_of_heredoc_contents(ps, eoc, eoclen, skiptab) &&
-	    ps->cbuf.contents[ps->cindex] != L'\0') {
-	wb_cat(&buf, &ps->cbuf.contents[ps->cindex]);
-	ps->cindex = ps->cbuf.length;
-	if (ps->cbuf.contents[ps->cindex - 1] == L'\n')
-	    ps->cinfo->lineno++;
+	    ps->src.contents[ps->index] != L'\0') {
+	wb_cat(&buf, &ps->src.contents[ps->index]);
+	ps->index = ps->src.length;
+	if (ps->src.contents[ps->index - 1] == L'\n')
+	    ps->info->lineno++;
     }
     free(eoc);
     
@@ -2546,7 +2547,7 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
     bool skiptab = (r->rd_type == RT_HERERT);
 
     while (!is_end_of_heredoc_contents(ps, eoc, eoclen, skiptab) &&
-	    ps->cbuf.contents[ps->cindex] != L'\0') {
+	    ps->src.contents[ps->index] != L'\0') {
 	wordunit_T *wu = parse_string_to(ps, true, true);
 	if (wu != NULL) {
 	    *lastp = wu;
@@ -2566,23 +2567,23 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, size_t eoclen, bool skiptab)
 {
-    if (ps->cinfo->lastinputresult != INPUT_OK)
+    if (ps->info->lastinputresult != INPUT_OK)
 	return true;
 
     assert(wcslen(eoc) == eoclen);
-    assert(ps->cbuf.length > 0 && ps->cbuf.contents[ps->cindex - 1] == L'\n');
+    assert(ps->src.length > 0 && ps->src.contents[ps->index - 1] == L'\n');
     read_more_input(ps);
     if (skiptab)
-	while (ps->cbuf.contents[ps->cindex] == L'\t')
-	    ps->cindex++;
+	while (ps->src.contents[ps->index] == L'\t')
+	    ps->index++;
 
-    const wchar_t *m = matchwcsprefix(&ps->cbuf.contents[ps->cindex], eoc);
+    const wchar_t *m = matchwcsprefix(&ps->src.contents[ps->index], eoc);
     if (m != NULL && m[0] == L'\n') {
-	ps->cindex += eoclen + 1;
-	ps->cinfo->lineno++;
+	ps->index += eoclen + 1;
+	ps->info->lineno++;
 	return true;
     } else if (m != NULL && m[0] == L'\0') {
-	ps->cindex += eoclen;
+	ps->index += eoclen;
 	return true;
     } else {
 	return false;
@@ -2599,10 +2600,10 @@ wordunit_T *parse_string_to(
 	parsestate_T *ps, bool backquote, bool stoponnewline)
 {
     wordunit_T *first = NULL, **lastp = &first;
-    size_t startindex = ps->cindex;
+    size_t startindex = ps->index;
 
     for (;;) {
-	switch (ps->cbuf.contents[ps->cindex]) {
+	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    switch (read_more_input(ps)) {
 		case INPUT_OK:
@@ -2614,18 +2615,18 @@ wordunit_T *parse_string_to(
 	    }
 	    break;
 	case L'\\':
-	    if (ps->cbuf.contents[ps->cindex + 1] == L'\n') {
-		line_continuation(ps, ps->cindex);
+	    if (ps->src.contents[ps->index + 1] == L'\n') {
+		line_continuation(ps, ps->index);
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex + 1] != L'\0') {
-		ps->cindex += 2;
+	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+		ps->index += 2;
 		continue;
 	    }
 	    break;
 	case L'\n':
-	    ps->cinfo->lineno++;
+	    ps->info->lineno++;
 	    if (stoponnewline) {
-		ps->cindex++;
+		ps->index++;
 		goto done;
 	    }
 	    break;
@@ -2636,19 +2637,19 @@ wordunit_T *parse_string_to(
 	case L'$':
 	    MAKE_WORDUNIT_STRING;
 	    wordunit_T *wu = parse_special_word_unit(ps);
-	    startindex = ps->cindex;
+	    startindex = ps->index;
 	    if (wu != NULL) {
 		*lastp = wu;
 		lastp = &wu->next;
 		continue;
-	    } else if (ps->cbuf.contents[ps->cindex] == L'\0') {
+	    } else if (ps->src.contents[ps->index] == L'\0') {
 		continue;
 	    }
 	    break;
 	default:
 	    break;
 	}
-	ps->cindex++;
+	ps->index++;
     }
 done:
     MAKE_WORDUNIT_STRING;
@@ -2666,30 +2667,30 @@ done:
 bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
 {
     parsestate_T ps = {
-	.cinfo = info,
-	.cerror = false,
-	.cindex = 0,
+	.info = info,
+	.error = false,
+	.index = 0,
 #if YASH_ENABLE_ALIAS
 	.enable_alias = false,
 	.reparse_alias = false,
-	.caliases = NULL,
+	.aliases = NULL,
 #endif
     };
-    wb_init(&ps.cbuf);
+    wb_init(&ps.src);
 
-    ps.cinfo->lastinputresult = INPUT_OK;
+    ps.info->lastinputresult = INPUT_OK;
     read_more_input(&ps);
     pl_init(&ps.pending_heredocs);
 
     *result = parse_string_to(&ps, false, false);
 
-    wb_destroy(&ps.cbuf);
+    wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
 #if YASH_ENABLE_ALIAS
-    assert(ps.caliases == NULL);
-    //destroy_aliaslist(ps.caliases);
+    assert(ps.aliases == NULL);
+    //destroy_aliaslist(ps.aliases);
 #endif
-    if (ps.cinfo->lastinputresult != INPUT_EOF || ps.cerror) {
+    if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
 	wordfree(*result);
 	return false;
     } else {
