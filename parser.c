@@ -1211,6 +1211,7 @@ void **parse_words_and_redirects(
     redir_T *redir;
     wordunit_T *word;
 
+    assert(*redirlastp == NULL);
     pl_init(&wordlist);
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
@@ -1474,23 +1475,23 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
  * NULL is returned. */
 wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 {
-    wordunit_T *first = NULL, **lastp = &first, *wu;
+    wordunit_T *first = NULL, **lastp = &first;
     bool indq = false;  /* in double quotes? */
     size_t startindex = ps->index;
 
 /* appends the substring from `startindex' to `index' as a new word unit
  * to `*lastp' */
-#define MAKE_WORDUNIT_STRING                                                  \
-    do {                                                                      \
-        if (startindex != ps->index) {                                       \
-            wordunit_T *w = xmalloc(sizeof *w);                               \
-            w->next = NULL;                                                   \
-            w->wu_type = WT_STRING;                                           \
-            w->wu_string = xwcsndup(                                          \
-                    ps->src.contents + startindex, ps->index - startindex); \
-            *lastp = w;                                                       \
-            lastp = &w->next;                                                 \
-        }                                                                     \
+#define MAKE_WORDUNIT_STRING                                             \
+    do {                                                                 \
+	size_t len = ps->index - startindex;                             \
+        if (len > 0) {                                                   \
+            wordunit_T *w = xmalloc(sizeof *w);                          \
+            w->next = NULL;                                              \
+            w->wu_type = WT_STRING;                                      \
+            w->wu_string = xwcsndup(&ps->src.contents[startindex], len); \
+            *lastp = w;                                                  \
+            lastp = &w->next;                                            \
+        }                                                                \
     } while (0)
 
     while (indq ? ps->src.contents[ps->index] != L'\0'
@@ -1513,9 +1514,9 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 	case L'$':
 	case L'`':
 	    MAKE_WORDUNIT_STRING;
-	    wu = parse_special_word_unit(ps);
+	    wordunit_T *wu = parse_special_word_unit(ps);
 	    startindex = ps->index;
-	    if (wu) {
+	    if (wu != NULL) {
 		*lastp = wu;
 		lastp = &wu->next;
 		continue;
