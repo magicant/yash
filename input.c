@@ -193,7 +193,6 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     }
 #endif
 
-    struct parsestate_T *state = save_parse_state();
     struct promptset_T prompt;
 
     if (info->prompttype == 1)
@@ -204,7 +203,6 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     prompt = get_prompt(info->prompttype);
     if (do_job_control)
 	print_job_status_all();
-    restore_parse_state(state);
     /* Note: no commands must be executed between `print_job_status_all' here
      * and `le_readline', or the "notifyle" option won't work. More precisely,
      * `handle_sigchld' must not be called from any other function until it is

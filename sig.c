@@ -701,10 +701,8 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (parsestate == NULL) {
-			parsestate = save_parse_state();
+		    if (parsestate == NULL)
 			execstate = save_execstate();
-		    }
 		    signum = handled_signal = s->no;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -725,10 +723,8 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (parsestate == NULL) {
-			parsestate = save_parse_state();
+		    if (parsestate == NULL)
 			execstate = save_execstate();
-		    }
 		    signum = handled_signal = sigrtmin + i;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -743,10 +739,8 @@ int handle_traps(void)
     sigint_received |= save_sigint_received;
     savelaststatus = -1;
     handled_signal = -1;
-    if (parsestate != NULL) {
-	restore_parse_state(parsestate);
+    if (parsestate != NULL)
 	restore_execstate(execstate);
-    }
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
 	print_job_status_all();

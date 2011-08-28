@@ -123,7 +123,7 @@ typedef struct ifcommand_T {
     struct and_or_T    *ic_condition;  /* condition */
     struct and_or_T    *ic_commands;   /* commands */
 } ifcommand_T;
-/* For a "else" clause, `next' and `ic_condition' are NULL. */
+/* For an "else" clause, `next' and `ic_condition' are NULL. */
 
 /* patterns and commands of a case command */
 typedef struct caseitem_T {
@@ -289,15 +289,13 @@ typedef struct redir_T {
  * For RT_HERERT, all the lines in `rd_herecontent' have the leading tabs
  * already removed. If `rd_hereend' is quoted, `rd_herecontent' is a single
  * word unit of type WT_STRING, since no parameter expansions are performed.
- * Anyway `rd_herecontent' is expanded calling `expand_string' with `esc'
+ * Anyway `rd_herecontent' is expanded by calling `expand_string' with `esc'
  * argument being true. */
 
 
 /********** Interface to Parsing Routines **********/
 
-struct parsestate_T;
-
-/* object containing the info for parsing */
+/* Holds parameters that affect the behavior of parsing. */
 typedef struct parseinfo_T {
     _Bool print_errmsg;   /* print error messages? */
     _Bool enable_verbose; /* echo input if `shopt_verbose' is true? */
@@ -318,11 +316,6 @@ typedef struct parseinfo_T {
 typedef enum parseresult_T {
     PR_OK, PR_EOF, PR_SYNTAX_ERROR, PR_INPUT_ERROR,
 } parseresult_T;
-
-extern struct parsestate_T *save_parse_state(void)
-    __attribute__((malloc,warn_unused_result));
-extern void restore_parse_state(struct parsestate_T *state)
-    __attribute__((nonnull));
 
 
 extern parseresult_T read_and_parse(

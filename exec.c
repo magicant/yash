@@ -1520,7 +1520,6 @@ bool autoload_completion_function_file(
 	return false;
     }
 
-    struct parsestate_T *saveparsestate = save_parse_state();
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
@@ -1536,7 +1535,6 @@ bool autoload_completion_function_file(
     posixly_correct = saveposix;
     laststatus = savelaststatus;
     restore_execstate(saveexecstate);
-    restore_parse_state(saveparsestate);
     remove_shellfd(fd);
     xclose(fd);
     free(path);
@@ -1554,7 +1552,6 @@ bool call_completion_function(const wchar_t *funcname)
 	return false;
     }
 
-    struct parsestate_T *saveparsestate = save_parse_state();
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
@@ -1582,7 +1579,6 @@ bool call_completion_function(const wchar_t *funcname)
     posixly_correct = saveposix;
     laststatus = savelaststatus;
     restore_execstate(saveexecstate);
-    restore_parse_state(saveparsestate);
 
     return true;
 }
