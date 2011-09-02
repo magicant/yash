@@ -1000,7 +1000,7 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
     ensure_buffer(ps, 2);
     if (has_token(ps, L"!")) {
 	neg = true;
-	ps->index++;
+	ps->index += 1;
 #if YASH_ENABLE_ALIAS
 	do {
 #endif
@@ -1178,7 +1178,8 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
  * The parsing result of assignments is returned as an array of pointers to
  * word units that are cast to (void *).
  * `*redirlastp' must have been initialized to NULL beforehand.
- * If `first' is true, alias substitution is not performed on the first word. */
+ * All words are subject to global alias substitution. If `first' is true,
+ * however, alias substitution is not performed on the first word. */
 void **parse_words_and_redirects(
 	parsestate_T *ps, redir_T **redirlastp, bool first)
 {
@@ -1191,9 +1192,8 @@ void **parse_words_and_redirects(
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
 #if YASH_ENABLE_ALIAS
-	if (!first) {
-	    if (ps->enable_alias &&
-		    count_name_length(ps, is_alias_name_char) > 0) {
+	if (!first && ps->enable_alias) {
+	    if (count_name_length(ps, is_alias_name_char) > 0) {
 		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
 		skip_blanks_and_comment(ps);
 	    }
@@ -2112,13 +2112,13 @@ command_T *parse_if(parsestate_T *ps)
     result->c_ifcmds = NULL;
 
     ifcommand_T **lastp = &result->c_ifcmds;
-    bool els = false;
+    bool after_else = false;
     while (!ps->error) {
 	ifcommand_T *ic = xmalloc(sizeof *ic);
 	*lastp = ic;
 	lastp = &ic->next;
 	ic->next = NULL;
-	if (!els) {
+	if (!after_else) {
 	    ic->ic_condition = parse_compound_list(ps);
 	    if (posixly_correct && ic->ic_condition == NULL)
 		serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
@@ -2135,12 +2135,12 @@ command_T *parse_if(parsestate_T *ps)
 	ic->ic_commands = parse_compound_list(ps);
 	if (posixly_correct && ic->ic_commands == NULL)
 	    serror(ps, Ngt("commands are missing after `%ls'"),
-		    els ? L"else" : L"then");
+		    after_else ? L"else" : L"then");
 	ensure_buffer(ps, 5);
-	if (!els) {
+	if (!after_else) {
 	    if (has_token(ps, L"else")) {
 		ps->index += 4;
-		els = true;
+		after_else = true;
 	    } else if (has_token(ps, L"elif")) {
 		ps->index += 4;
 	    } else if (has_token(ps, L"fi")) {
@@ -2419,7 +2419,7 @@ command_T *parse_function(parsestate_T *ps)
 }
 
 /* Parses a function definition if any.
- * This function may process line continuations, which increases the line
+ * This function may process line continuations, which increase the line
  * number. */
 command_T *tryparse_function(parsestate_T *ps)
 {
@@ -2477,7 +2477,8 @@ fail:
 void read_heredoc_contents(parsestate_T *ps, redir_T *r)
 {
     if (wcschr(r->rd_hereend, L'\n')) {
-	serror(ps, Ngt("the end-of-here-document indicator contains a newline"));
+	serror(ps,
+		Ngt("the end-of-here-document indicator contains a newline"));
 	return;
     }
 
@@ -2866,14 +2867,14 @@ wchar_t *command_to_wcs(const command_T *command, bool multiline)
 void print_and_or_lists(struct print *restrict pr, const and_or_T *restrict ao,
 	unsigned indent, bool omitsemicolon)
 {
-    while (ao) {
+    while (ao != NULL) {
 	print_pipelines(pr, ao->ao_pipelines, indent);
 	trim_end_of_buffer(&pr->buffer);
 	if (ao->ao_async)
 	    wb_wccat(&pr->buffer, L'&');
-	else if (!pr->multiline && (ao->next || !omitsemicolon))
+	else if (!pr->multiline && (ao->next != NULL || !omitsemicolon))
 	    wb_wccat(&pr->buffer, L';');
-	if (ao->next || !omitsemicolon)
+	if (ao->next != NULL || !omitsemicolon)
 	    print_space_or_newline(pr);
 
 	ao = ao->next;
@@ -2883,7 +2884,7 @@ void print_and_or_lists(struct print *restrict pr, const and_or_T *restrict ao,
 void print_pipelines(struct print *restrict pr, const pipeline_T *restrict pl,
 	unsigned indent)
 {
-    if (!pl)
+    if (pl == NULL)
 	return;
     for (;;) {
 	print_indent(pr, indent);
@@ -2892,7 +2893,7 @@ void print_pipelines(struct print *restrict pr, const pipeline_T *restrict pl,
 	print_commands(pr, pl->pl_commands, indent);
 
 	pl = pl->next;
-	if (!pl)
+	if (pl == NULL)
 	    break;
 
 	wb_cat(&pr->buffer, pl->pl_cond ? L"&&" : L"||");
@@ -2903,13 +2904,13 @@ void print_pipelines(struct print *restrict pr, const pipeline_T *restrict pl,
 void print_commands(
 	struct print *restrict pr, const command_T *restrict c, unsigned indent)
 {
-    if (!c)
+    if (c == NULL)
 	return;
     for (;;) {
 	print_one_command(pr, c, indent);
 
 	c = c->next;
-	if (!c)
+	if (c == NULL)
 	    break;
 
 	wb_cat(&pr->buffer, L"| ");
@@ -2943,7 +2944,7 @@ void print_one_command(
 	    break;
 	case CT_FUNCDEF:
 	    print_function_definition(pr, c, indent);
-	    assert(!c->c_redirs);
+	    assert(c->c_redirs == NULL);
 	    return;  // break;
     }
     print_redirections(pr, c->c_redirs, indent);
@@ -2955,7 +2956,7 @@ void print_simple_command(
     assert(c->c_type == CT_SIMPLE);
 
     print_assignments(pr, c->c_assigns, indent);
-    for (void **w = c->c_words; *w; w++) {
+    for (void **w = c->c_words; *w != NULL; w++) {
 	print_word(pr, *w, indent);
 	wb_wccat(&pr->buffer, L' ');
     }
@@ -3001,9 +3002,9 @@ void print_if(
 	print_and_or_lists(pr, ic->ic_commands, indent + 1, false);
 
 	ic = ic->next;
-	if (!ic) {
+	if (ic == NULL) {
 	    break;
-	} else if (!ic->ic_condition && !ic->next) {
+	} else if (!ic->ic_condition && ic->next == NULL) {
 	    print_indent(pr, indent);
 	    wb_cat(&pr->buffer, L"else");
 	    print_space_or_newline(pr);
@@ -3025,9 +3026,9 @@ void print_for(
 
     wb_cat(&pr->buffer, L"for ");
     wb_cat(&pr->buffer, c->c_forname);
-    if (c->c_forwords) {
+    if (c->c_forwords != NULL) {
 	wb_cat(&pr->buffer, L" in");
-	for (void **w = c->c_forwords; *w; w++) {
+	for (void **w = c->c_forwords; *w != NULL; w++) {
 	    wb_wccat(&pr->buffer, L' ');
 	    print_word(pr, *w, indent);
 	}
@@ -3084,22 +3085,20 @@ void print_case(
 void print_caseitems(struct print *restrict pr, const caseitem_T *restrict ci,
 	unsigned indent)
 {
-    while (ci) {
-	void **w = ci->ci_patterns;
-
+    while (ci != NULL) {
 	print_indent(pr, indent);
 	wb_wccat(&pr->buffer, L'(');
-	for (;;) {
+	for (void **w = ci->ci_patterns; ; ) {
 	    print_word(pr, *w, indent);
 	    w++;
-	    if (!*w)
+	    if (*w == NULL)
 		break;
 	    wb_cat(&pr->buffer, L" | ");
 	}
 	wb_wccat(&pr->buffer, L')');
 	print_space_or_newline(pr);
 
-	if (ci->ci_commands) {
+	if (ci->ci_commands != NULL) {
 	    print_and_or_lists(pr, ci->ci_commands, indent + 1, true);
 	    print_space_or_newline(pr);
 	}
@@ -3126,14 +3125,14 @@ void print_function_definition(
     print_space_or_newline(pr);
 
     print_indent(pr, indent);
-    assert(!c->c_funcbody->next);
+    assert(c->c_funcbody->next == NULL);
     print_one_command(pr, c->c_funcbody, indent);
 }
 
 void print_assignments(
 	struct print *restrict pr, const assign_T *restrict a, unsigned indent)
 {
-    while (a) {
+    while (a != NULL) {
 	wb_cat(&pr->buffer, a->a_name);
 	wb_wccat(&pr->buffer, L'=');
 	switch (a->a_type) {
@@ -3142,7 +3141,7 @@ void print_assignments(
 		break;
 	    case A_ARRAY:
 		wb_wccat(&pr->buffer, L'(');
-		for (void **w = a->a_array; *w; w++) {
+		for (void **w = a->a_array; *w != NULL; w++) {
 		    print_word(pr, *w, indent);
 		    wb_wccat(&pr->buffer, L' ');
 		}
@@ -3159,7 +3158,7 @@ void print_assignments(
 void print_redirections(
 	struct print *restrict pr, const redir_T *restrict rd, unsigned indent)
 {
-    while (rd) {
+    while (rd != NULL) {
 	const wchar_t *s;
 	enum { file, here, proc, } type;
 
@@ -3202,7 +3201,7 @@ void print_redirections(
 void print_word(struct print *restrict pr, const wordunit_T *restrict wu,
 	unsigned indent)
 {
-    while (wu) {
+    while (wu != NULL) {
 	switch (wu->wu_type) {
 	    case WT_STRING:
 		wb_cat(&pr->buffer, wu->wu_string);
@@ -3236,10 +3235,10 @@ void print_parameter(struct print *restrict pr, const paramexp_T *restrict pe,
 	print_word(pr, pe->pe_nest, indent);
     else
 	wb_cat(&pr->buffer, pe->pe_name);
-    if (pe->pe_start) {
+    if (pe->pe_start != NULL) {
 	wb_wccat(&pr->buffer, L'[');
 	print_word(pr, pe->pe_start, indent);
-	if (pe->pe_end) {
+	if (pe->pe_end != NULL) {
 	    wb_wccat(&pr->buffer, L',');
 	    print_word(pr, pe->pe_end, indent);
 	}
