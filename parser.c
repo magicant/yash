@@ -482,7 +482,7 @@ static void read_heredoc_contents_without_expansion(
 static void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
     __attribute__((nonnull));
 static bool is_end_of_heredoc_contents(
-	parsestate_T *ps, const wchar_t *eoc, size_t eoclen, bool skiptab)
+	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
     __attribute__((nonnull));
 static wordunit_T *parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline)
@@ -2492,12 +2492,11 @@ void read_heredoc_contents(parsestate_T *ps, redir_T *r)
 void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 {
     wchar_t *eoc = unquote(r->rd_hereend);  // end-of-contents marker
-    size_t eoclen = wcslen(eoc);
     bool skiptab = (r->rd_type == RT_HERERT);
     xwcsbuf_T buf;
 
     wb_init(&buf);
-    while (!is_end_of_heredoc_contents(ps, eoc, eoclen, skiptab) &&
+    while (!is_end_of_heredoc_contents(ps, eoc, skiptab) &&
 	    ps->src.contents[ps->index] != L'\0') {
 	wb_cat(&buf, &ps->src.contents[ps->index]);
 	ps->index = ps->src.length;
@@ -2521,10 +2520,9 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 {
     wordunit_T **lastp = &r->rd_herecontent;
     const wchar_t *eoc = r->rd_hereend;
-    size_t eoclen = wcslen(eoc);
     bool skiptab = (r->rd_type == RT_HERERT);
 
-    while (!is_end_of_heredoc_contents(ps, eoc, eoclen, skiptab) &&
+    while (!is_end_of_heredoc_contents(ps, eoc, skiptab) &&
 	    ps->src.contents[ps->index] != L'\0') {
 	wordunit_T *wu = parse_string_without_quotes(ps, true, true);
 	if (wu != NULL) {
@@ -2537,18 +2535,16 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 }
 
 /* Checks if the whole current line is end-of-heredoc `eoc'.
- * `eoclen' must be `wcslen(eoc)'.
  * If `skiptab' is true, leading tabs in the line are skipped.
  * If an end-of-heredoc is found, returns true and advances the current position
  * to the next line. Otherwise, returns false with the position unchanged
  * (except that leading tabs are skipped). */
 bool is_end_of_heredoc_contents(
-	parsestate_T *ps, const wchar_t *eoc, size_t eoclen, bool skiptab)
+	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
 {
     if (ps->info->lastinputresult != INPUT_OK)
 	return true;
 
-    assert(wcslen(eoc) == eoclen);
     assert(ps->src.length > 0 && ps->src.contents[ps->index - 1] == L'\n');
     read_more_input(ps);
     if (skiptab)
@@ -2556,16 +2552,19 @@ bool is_end_of_heredoc_contents(
 	    ps->index++;
 
     const wchar_t *m = matchwcsprefix(&ps->src.contents[ps->index], eoc);
-    if (m != NULL && m[0] == L'\n') {
-	ps->index += eoclen + 1;
-	ps->info->lineno++;
-	return true;
-    } else if (m != NULL && m[0] == L'\0') {
-	ps->index += eoclen;
-	return true;
-    } else {
-	return false;
+    if (m != NULL) {
+	size_t matchendindex = m - ps->src.contents;
+	switch (ps->src.contents[matchendindex]) {
+	    case L'\0':
+		ps->index = matchendindex;
+		return true;
+	    case L'\n':
+		ps->index = matchendindex + 1;
+		ps->info->lineno++;
+		return true;
+	}
     }
+    return false;
 }
 
 /* Parses a string.
