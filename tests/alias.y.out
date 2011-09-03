@@ -20,6 +20,10 @@ alias -g N='>/dev/null'
 ok
 0
 
+line continuation 1
+line continuation 2
+line continuation 3 alias
+line continuation 6 foo alias bar
 posix unparsed ok
 dummy 0
 pipe

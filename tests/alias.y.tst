@@ -75,6 +75,23 @@ echo $?
 func
 
 unalias -a
+alias test=echo
+alias -g global=alias null='/dev/null' nullout='> null'
+te\
+st line continuation 1
+dummy=dummy te\
+st line continuation 2
+test line continuation 3 glo\
+bal
+{ test not printed 4; } nullou\
+t
+{ test not printed 5; } > nul\
+l
+array=(foo glo\
+bal bar)
+test line continuation 6 $array
+
+unalias -a
 $INVOKE $TESTEE --posix <<\END
 alias test=:
 func() { echo "$(test posix unparsed ok)"; }
