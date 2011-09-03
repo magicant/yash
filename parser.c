@@ -850,7 +850,7 @@ const wchar_t *check_closing_token(parsestate_T *ps)
 }
 
 /* Parses commands.
- * If `toeol' is true, commands are parsed up to the end of the current line;
+ * If `toeol' is true, commands are parsed up to the end of the current input;
  * otherwise, up to the next closing token.
  * You don't have to call `skip_blanks_and_comment' beforehand. */
 and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
@@ -866,10 +866,12 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     while (!ps->error) {
 	if (toeol) {
 	    skip_blanks_and_comment(ps);
-	    if (ps->src.contents[ps->index] == L'\0') {
-		break;
-	    } else if (ps->src.contents[ps->index] == L'\n') {
+	    if (ps->src.contents[ps->index] == L'\n') {
 		next_line(ps);
+		if (ps->src.contents[ps->index] != L'\0')
+		    continue;
+	    }
+	    if (ps->src.contents[ps->index] == L'\0') {
 		break;
 	    } else if (ps->src.contents[ps->index] == L')') {
 		serror(ps, get_errmsg_unexpected_token(L")"), L")");
