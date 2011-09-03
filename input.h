@@ -65,7 +65,8 @@ extern inputresult_T read_input(
  * newline at the end of input.
  * The result is indicated by a value of the `inputresult_T' type. If the return
  * value is other than INPUT_OK, the buffer is unchanged.
- * The input function may be called even after it returned a non-zero. */
+ * The input function may be called even after it returned a value other than
+ * INPUT_OK. */
 typedef inputresult_T inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
 /* input functions to be used as `inputfunc_T' */
