@@ -352,7 +352,7 @@ typedef struct parsestate_T {
     size_t index;
     struct plist_T pending_heredocs;
 #if YASH_ENABLE_ALIAS
-    bool enable_alias, reparse_alias;
+    bool enable_alias, reparse;
     struct aliaslist_T *aliases;
 #endif
 } parsestate_T;
@@ -363,7 +363,7 @@ typedef struct parsestate_T {
  *         indicates the character position that is being parsed.
  * pending_heredocs: a list of here-documents whose contents have not been read.
  * enable_alias: indicates if alias substitution should be performed.
- * reparse_alias: indicates that the current word must be re-parsed because
+ * reparse: indicates that the current word must be re-parsed because
  *         alias substitution has been performed at the current position.
  * aliases: a list of alias substitutions that were performed at the current
  *         position. */
@@ -526,7 +526,7 @@ parseresult_T read_and_parse(
 	.index = 0,
 #if YASH_ENABLE_ALIAS
 	.enable_alias = info->enable_alias,
-	.reparse_alias = false,
+	.reparse = false,
 	.aliases = NULL,
 #endif
     };
@@ -893,7 +893,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    lastp = &ao->next;
 	}
 #if YASH_ENABLE_ALIAS
-	if (ps->reparse_alias) {
+	if (ps->reparse) {
 	    assert(ao == NULL);
 	    continue;
 	}
@@ -911,7 +911,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     if (!toeol)
 	ps->error |= saveerror;
 #if YASH_ENABLE_ALIAS
-    ps->reparse_alias = false;
+    ps->reparse = false;
 #endif
     return first;
 }
@@ -926,13 +926,13 @@ and_or_T *parse_compound_list(parsestate_T *ps)
 /* Parses one and/or list.
  * The result reflects the trailing "&" or ";", but `ps->index' points to the
  * delimiter "&" or ";" when the function returns.
- * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
- * and NULL is returned. */
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
 and_or_T *parse_and_or_list(parsestate_T *ps)
 {
     pipeline_T *p = parse_pipelines_in_and_or(ps);
 #if YASH_ENABLE_ALIAS
-    if (ps->reparse_alias) {
+    if (ps->reparse) {
 	assert(p == NULL);
 	return NULL;
     }
@@ -946,8 +946,8 @@ and_or_T *parse_and_or_list(parsestate_T *ps)
 }
 
 /* Parses all pipelines in one and/or list.
- * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
- * and NULL is returned. */
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
 pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 {
     pipeline_T *first = NULL, **lastp = &first;
@@ -961,7 +961,7 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 	    lastp = &p->next;
 	}
 #if YASH_ENABLE_ALIAS
-	if (ps->reparse_alias) {
+	if (ps->reparse) {
 	    assert(p == NULL);
 	    if (first != NULL)
 		goto next;
@@ -990,8 +990,8 @@ next:
 }
 
 /* Parses one pipeline.
- * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
- * and NULL is returned. */
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
 pipeline_T *parse_pipeline(parsestate_T *ps)
 {
     bool neg;
@@ -1007,15 +1007,15 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
 	    skip_blanks_and_comment(ps);
 	    c = parse_commands_in_pipeline(ps);
 #if YASH_ENABLE_ALIAS
-	    if (ps->reparse_alias)
+	    if (ps->reparse)
 		assert(c == NULL);
-	} while (ps->reparse_alias);
+	} while (ps->reparse);
 #endif
     } else {
 	neg = false;
 	c = parse_commands_in_pipeline(ps);
 #if YASH_ENABLE_ALIAS
-	if (ps->reparse_alias) {
+	if (ps->reparse) {
 	    assert(c == NULL);
 	    return NULL;
 	}
@@ -1031,8 +1031,8 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
 }
 
 /* Parses the body of the pipeline.
- * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
- * and NULL is returned. */
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
 command_T *parse_commands_in_pipeline(parsestate_T *ps)
 {
     command_T *first = NULL, **lastp = &first;
@@ -1044,7 +1044,7 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 	    lastp = &c->next;
 	}
 #if YASH_ENABLE_ALIAS
-	if (ps->reparse_alias) {
+	if (ps->reparse) {
 	    assert(c == NULL);
 	    if (first != NULL)
 		goto next;
@@ -1069,12 +1069,12 @@ next:
 }
 
 /* Parses one command.
- * If the first word was alias-substituted, the `ps->reparse_alias' flag is set
- * and NULL is returned. */
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
 command_T *parse_command(parsestate_T *ps)
 {
 #if YASH_ENABLE_ALIAS
-    ps->reparse_alias = false;
+    ps->reparse = false;
 #endif
 
     /* Note: `check_closing_token' calls `ensure_buffer(ps, 5)'. */
@@ -1108,7 +1108,7 @@ command_T *parse_command(parsestate_T *ps)
     if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
 	if (substitute_alias(&ps->src, ps->index, &ps->aliases, flags)) {
-	    ps->reparse_alias = true;
+	    ps->reparse = true;
 	    return NULL;
 	}
     }
@@ -1119,9 +1119,8 @@ command_T *parse_command(parsestate_T *ps)
 	return result;
 
     /* parse as a simple command */
-    result = xmalloc(sizeof *result);
     redir_T **redirlastp;
-
+    result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_lineno = ps->info->lineno;
@@ -2651,7 +2650,7 @@ bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
 	.index = 0,
 #if YASH_ENABLE_ALIAS
 	.enable_alias = false,
-	.reparse_alias = false,
+	.reparse = false,
 	.aliases = NULL,
 #endif
     };
