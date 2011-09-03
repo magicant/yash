@@ -770,17 +770,17 @@ bool is_command_delimiter_char(wchar_t c)
 
 bool is_comma_or_closing_bracket(wchar_t c)
 {
-    return c == L']' || c == L',' || c == L'\0';
+    return c == L']' || c == L',';
 }
 
 bool is_slash_or_closing_brace(wchar_t c)
 {
-    return c == L'/' || c == L'}' || c == L'\0';
+    return c == L'/' || c == L'}';
 }
 
 bool is_closing_brace(wchar_t c)
 {
-    return c == L'}' || c == L'\0';
+    return c == L'}';
 }
 
 /* Checks if token `t' exists at the current position in `ps->src'.
@@ -1433,7 +1433,6 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 
 /* Parses a word at the current position.
  * `testfunc' is a function that determines if a character is a word delimiter.
- * It must return true for L'\0'.
  * The parsing proceeds up to an unescaped character for which `testfunc'
  * returns false.
  * It is not an error if there is no characters to be a word, in which case
@@ -1459,22 +1458,21 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
         }                                                                \
     } while (0)
 
-    while (indq ? ps->src.contents[ps->index] != L'\0'
-		: !testfunc(ps->src.contents[ps->index])) {
+    while (ensure_buffer(ps, 1),
+	    indq || !testfunc(ps->src.contents[ps->index])) {
 
 	switch (ps->src.contents[ps->index]) {
+	case L'\0':
+	    goto done;  // reached EOF
 	case L'\\':
-	    if (ps->src.contents[ps->index + 1] == L'\n') {
-		line_continuation(ps, ps->index);
-		continue;
-	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+	    if (ps->src.contents[ps->index + 1] != L'\0') {
+		assert(ps->src.contents[ps->index + 1] != L'\n');
 		ps->index += 2;
 		continue;
 	    }
 	    break;
 	case L'\n':
 	    ps->info->lineno++;
-	    read_more_input(ps);
 	    break;
 	case L'$':
 	case L'`':
@@ -1506,6 +1504,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 	}
 	ps->index++;
     }
+done:
     MAKE_WORDUNIT_STRING;
 
     if (indq)
@@ -1883,16 +1882,13 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
     for (;;) {
 	ensure_buffer(ps, 1);
 	switch (ps->src.contents[ps->index]) {
+	case L'\0':
+	    serror(ps,
+		    Ngt("the backquoted command substitution is not closed"));
+	    goto end;
 	case L'`':
 	    ps->index++;
 	    goto end;
-	case L'\0':
-	    if (read_more_input(ps) != 0) {
-		serror(ps,
-		    Ngt("the backquoted command substitution is not closed"));
-		goto end;
-	    }
-	    break;
 	case L'\\':
 	    ps->index++;
 	    switch (ps->src.contents[ps->index]) {
@@ -1938,10 +1934,8 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	case L'\0':
 	    goto fail;
 	case L'\\':
-	    if (ps->src.contents[ps->index + 1] == L'\n') {
-		line_continuation(ps, ps->index);
-		continue;
-	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+	    if (ps->src.contents[ps->index + 1] != L'\0') {
+		assert(ps->src.contents[ps->index + 1] != L'\n');
 		ps->index += 2;
 		continue;
 	    }
@@ -2563,7 +2557,7 @@ bool is_end_of_heredoc_contents(
  * recognized, but single and double quotes are not treated as quotes.
  * Command substitutions enclosed by backquotes are recognized iff `backquote'
  * is true. If `stoponnewline' is true, stops parsing right after the next
- * newline is parsed. Otherwise, parsing continues up to the end-of-file. */
+ * newline is parsed. Otherwise, parsing continues up to the end of file. */
 wordunit_T *parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline)
 {
@@ -2571,17 +2565,13 @@ wordunit_T *parse_string_without_quotes(
     size_t startindex = ps->index;
 
     for (;;) {
+	ensure_buffer(ps, 1);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
-	    if (read_more_input(ps) == INPUT_OK)
-		continue;
-	    else
-		goto done;  /* ignore errors */
+	    goto done;
 	case L'\\':
-	    if (ps->src.contents[ps->index + 1] == L'\n') {
-		line_continuation(ps, ps->index);
-		continue;
-	    } else if (ps->src.contents[ps->index + 1] != L'\0') {
+	    if (ps->src.contents[ps->index + 1] != L'\0') {
+		assert(ps->src.contents[ps->index + 1] != L'\n');
 		ps->index += 2;
 		continue;
 	    }

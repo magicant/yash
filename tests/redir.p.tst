@@ -89,6 +89,18 @@ Test of here-document.
 		"'"''\\-\'\"
 		E ND
 
+cat <<END
+Test of here-document.
+123\
+456
+END
+
+cat <<\END
+Test of here-document.
+123\
+456
+END
+
 cat <<END; cat <<EOF
 1
 END

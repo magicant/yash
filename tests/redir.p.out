@@ -32,6 +32,11 @@ Test of here-document.
 Test of here-document.
 <"${TERM+}">
 "'"''\\-\'\"
+Test of here-document.
+123456
+Test of here-document.
+123\
+456
 1
 2
 ===== 3 =====
