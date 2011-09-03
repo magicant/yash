@@ -530,7 +530,6 @@ parseresult_T read_and_parse(
 	.aliases = NULL,
 #endif
     };
-    wb_init(&ps.src);
 
     if (ps.info->interactive) {
 	struct input_interactive_info_T *intrinfo = ps.info->inputinfo;
@@ -538,20 +537,7 @@ parseresult_T read_and_parse(
     }
 
     ps.info->lastinputresult = INPUT_OK;
-    switch (read_more_input(&ps)) {
-	case INPUT_OK:
-	    break;
-	case INPUT_EOF:
-	    wb_destroy(&ps.src);
-	    return PR_EOF;
-	case INPUT_INTERRUPTED:
-	    wb_destroy(&ps.src);
-	    *result = NULL;
-	    return PR_OK;
-	case INPUT_ERROR:
-	    wb_destroy(&ps.src);
-	    return PR_INPUT_ERROR;
-    }
+    wb_init(&ps.src);
     pl_init(&ps.pending_heredocs);
 
     and_or_T *r = parse_command_list(&ps, true);
@@ -568,6 +554,9 @@ parseresult_T read_and_parse(
 	    if (ps.error) {
 		andorsfree(r);
 		return PR_SYNTAX_ERROR;
+	    } else if (ps.src.length == 0) {
+		andorsfree(r);
+		return PR_EOF;
 	    } else {
 		assert(ps.index == ps.src.length);
 		*result = r;
