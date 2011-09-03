@@ -721,8 +721,8 @@ bool skip_to_next_token(parsestate_T *ps)
     bool newline = false;
 
     skip_blanks_and_comment(ps);
-    while (ps->info->lastinputresult == INPUT_OK
-	    && ps->src.contents[ps->index] == L'\n') {
+    while (ps->info->lastinputresult == INPUT_OK &&
+	    ps->src.contents[ps->index] == L'\n') {
 	newline = true;
 	next_line(ps);
 	skip_blanks_and_comment(ps);
@@ -2466,7 +2466,7 @@ fail:
 /* Reads the contents of a here-document. */
 void read_heredoc_contents(parsestate_T *ps, redir_T *r)
 {
-    if (wcschr(r->rd_hereend, L'\n')) {
+    if (wcschr(r->rd_hereend, L'\n') != NULL) {
 	serror(ps,
 		Ngt("the end-of-here-document indicator contains a newline"));
 	return;
@@ -2573,15 +2573,10 @@ wordunit_T *parse_string_without_quotes(
     for (;;) {
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
-	    switch (read_more_input(ps)) {
-		case INPUT_OK:
-		    continue;
-		case INPUT_EOF:
-		case INPUT_INTERRUPTED:
-		case INPUT_ERROR:
-		    goto done;  /* ignore errors. */
-	    }
-	    break;
+	    if (read_more_input(ps) == INPUT_OK)
+		continue;
+	    else
+		goto done;  /* ignore errors */
 	case L'\\':
 	    if (ps->src.contents[ps->index + 1] == L'\n') {
 		line_continuation(ps, ps->index);
