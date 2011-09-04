@@ -518,8 +518,7 @@ static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
  * If PR_SYNTAX_ERROR or PR_INPUT_ERROR is returned, at least one error message
  * has been printed in this function.
  * Note that `*resultp' is assigned if and only if the return value is PR_OK. */
-parseresult_T read_and_parse(
-	parseparam_T *restrict info, and_or_T **restrict resultp)
+parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 {
     parsestate_T ps = {
 	.info = info,
@@ -2629,7 +2628,7 @@ done:
  * Iff successful, the result is assigned to `*resultp' and true is returned.
  * If the input is empty, NULL is assigned.
  * On error, the value of `*resultp' is undefined. */
-bool parse_string(parseparam_T *restrict info, wordunit_T **restrict resultp)
+bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 {
     parsestate_T ps = {
 	.info = info,

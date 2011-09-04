@@ -319,11 +319,10 @@ typedef enum parseresult_T {
 
 
 extern parseresult_T read_and_parse(
-	parseparam_T *restrict info, and_or_T **restrict resultp)
+	parseparam_T *info, and_or_T **restrict resultp)
     __attribute__((nonnull));
 
-extern _Bool parse_string(
-	parseparam_T *restrict info, wordunit_T **restrict resultp)
+extern _Bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
     __attribute__((nonnull));
 
 
