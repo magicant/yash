@@ -24,6 +24,10 @@ line continuation 1
 line continuation 2
 line continuation 3 alias
 line continuation 6 foo alias bar
+c
+line continuation...
+in alias
+multi-line alias with here-document
 posix unparsed ok
 dummy 0
 pipe

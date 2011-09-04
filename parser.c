@@ -628,7 +628,8 @@ void line_continuation(parsestate_T *ps, size_t index)
 	    ps->src.contents[index + 1] == L'\n');
     wb_remove(&ps->src, index, 2);
     ps->info->lineno++;
-    read_more_input(ps);
+    if (ps->src.contents[index] == L'\0')
+	read_more_input(ps);
 }
 
 /* If a line continuation is found within `n' characters from the current
@@ -678,9 +679,9 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 
 /* Advances the current position `ps->index', skipping blank characters,
  * comments, and line continuations.
- * This function calls `read_more_input' if the current position is at the end
- * of line or when a line continuation is encountered.
- * The position is advanced to the next non-blank character.
+ * This function calls `read_more_input' if the current line has not been read
+ * or when a line continuation is encountered.
+ * The current position is advanced to the next non-blank character.
  * Line continuations are actually removed rather than skipped. */
 /* Note that a newline is not a blank character. After a comment was skipped,
  * the position will be at the newline character (or EOF) that follows. */
@@ -731,13 +732,12 @@ bool skip_to_next_token(parsestate_T *ps)
 }
 
 /* Parses the newline token at the current position and proceeds to the next
- * line. The contents of pending here-documents is read if any. */
+ * line. The contents of pending here-documents are read if any. */
 void next_line(parsestate_T *ps)
 {
     assert(ps->src.contents[ps->index] == L'\n');
     ps->index++;
     ps->info->lineno++;
-    assert(ps->src.contents[ps->index] == L'\0');
 
     for (size_t i = 0; i < ps->pending_heredocs.length; i++)
 	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
@@ -1532,7 +1532,7 @@ void skip_to_next_single_quote(parsestate_T *ps)
 	    continue;
 	case L'\n':
 	    ps->info->lineno++;
-	    /* falls thru! */
+	    break;
 	default:
 	    break;
 	}
@@ -2468,7 +2468,7 @@ void read_heredoc_contents(parsestate_T *ps, redir_T *r)
     }
 
     assert(r->rd_type == RT_HERE || r->rd_type == RT_HERERT);
-    if (wcspbrk(r->rd_hereend, QUOTES))
+    if (wcspbrk(r->rd_hereend, QUOTES) != NULL)
 	read_heredoc_contents_without_expansion(ps, r);
     else
 	read_heredoc_contents_with_expansion(ps, r);
@@ -2482,12 +2482,21 @@ void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
     xwcsbuf_T buf;
 
     wb_init(&buf);
-    while (!is_end_of_heredoc_contents(ps, eoc, skiptab) &&
-	    ps->src.contents[ps->index] != L'\0') {
-	wb_cat(&buf, &ps->src.contents[ps->index]);
-	ps->index = ps->src.length;
-	if (ps->src.contents[ps->index - 1] == L'\n')
+    while (!is_end_of_heredoc_contents(ps, eoc, skiptab)) {
+	const wchar_t *eol = wcschr(&ps->src.contents[ps->index], L'\n');
+	size_t linelen;
+	if (eol != NULL) {
+	    linelen = eol - &ps->src.contents[ps->index] + 1;
+	} else {
+	    /* encountered EOF before reading an end-of-contents marker! */
+	    linelen = ps->src.length - ps->index;
+	}
+	wb_ncat_force(&buf, &ps->src.contents[ps->index], linelen);
+	ps->index += linelen;
+	if (eol != NULL)
 	    ps->info->lineno++;
+	else
+	    break;
     }
     free(eoc);
     
@@ -2508,8 +2517,7 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
     const wchar_t *eoc = r->rd_hereend;
     bool skiptab = (r->rd_type == RT_HERERT);
 
-    while (!is_end_of_heredoc_contents(ps, eoc, skiptab) &&
-	    ps->src.contents[ps->index] != L'\0') {
+    while (!is_end_of_heredoc_contents(ps, eoc, skiptab)) {
 	wordunit_T *wu = parse_string_without_quotes(ps, true, true);
 	if (wu != NULL) {
 	    *lastp = wu;
@@ -2517,10 +2525,15 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 		wu = wu->next;
 	    lastp = &wu->next;
 	}
+	if (ps->src.contents[ps->index - 1] != L'\n') {
+	    /* encountered EOF before reading an end-of-contents marker! */
+	    break;
+	}
     }
 }
 
 /* Checks if the whole current line is end-of-heredoc `eoc'.
+ * Reads the current line if not yet read.
  * If `skiptab' is true, leading tabs in the line are skipped.
  * If an end-of-heredoc is found, returns true and advances the current position
  * to the next line. Otherwise, returns false with the position unchanged
@@ -2528,11 +2541,11 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
 {
-    if (ps->info->lastinputresult != INPUT_OK)
-	return true;
-
     assert(ps->src.length > 0 && ps->src.contents[ps->index - 1] == L'\n');
-    read_more_input(ps);
+
+    if (ps->src.contents[ps->index] == L'\0')
+	if (read_more_input(ps) != INPUT_OK)
+	    return true;
     if (skiptab)
 	while (ps->src.contents[ps->index] == L'\t')
 	    ps->index++;

@@ -92,6 +92,19 @@ bal bar)
 test line continuation 6 $array
 
 unalias -a
+alias c='cat <<END' lc='echo line \
+    continuation...
+echo' r='c
+multi-line alias \'
+c
+c
+END
+lc in alias
+r
+with here-document
+END
+
+unalias -a
 $INVOKE $TESTEE --posix <<\END
 alias test=:
 func() { echo "$(test posix unparsed ok)"; }

@@ -484,12 +484,7 @@ int alias_builtin(int argc, void **argv)
 
 	    if (nameend != arg && *nameend == L'=') {
 		/* define alias */
-		if (!wcschr(nameend + 1, L'\n'))
-		    define_alias(arg, nameend, global);
-		else
-		    xerror(0,
-			Ngt("`%ls': an alias value cannot contain newlines"),
-			arg);
+		define_alias(arg, nameend, global);
 	    } else if (nameend != arg && *nameend == L'\0') {
 		/* print alias */
 		const alias_T *alias = ht_get(&aliases, arg).value;

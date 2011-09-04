@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.29
+
+  + An alias value now can contain newlines.
+
+----------------------------------------------------------------------
 Yash 2.28
 
   =  In an interactive shell, mail check is now done before job status
