@@ -1,3 +1,14 @@
+===== unclosed here-documents =====
+1
+2
+3
+a4
+b
+5
+c
+6
+c
+ok
 ===== pipe redirection =====
 4-3
 4-6

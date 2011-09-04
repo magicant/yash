@@ -3,6 +3,25 @@
 
 temp="${TESTTMP}/redir.y.tmp"
 
+echo ===== unclosed here-documents =====
+
+$INVOKE $TESTEE -c 'echo 1; cat <<END'
+$INVOKE $TESTEE -c 'echo 2; cat <<END
+'
+$INVOKE $TESTEE -c 'echo 3; cat <<END
+a'
+$INVOKE $TESTEE -c 'echo 4; cat <<END
+b
+'
+$INVOKE $TESTEE -c 'echo 5; cat <<END
+c
+END'
+$INVOKE $TESTEE -c 'echo 6; cat <<END
+c
+END
+echo ok'
+
+
 echo ===== pipe redirection =====
 
 exec 3>&- 4>&- 5>&- 6>&-
