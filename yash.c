@@ -472,9 +472,6 @@ void exec_input(int fd, const char *name,
     if (interactive) {
 	intrinfo.fileinfo = inputinfo;
 	intrinfo.prompttype = 1;
-#if YASH_ENABLE_LINEEDIT
-	intrinfo.linebuffer = NULL;
-#endif
 	pinfo.input = input_interactive;
 	pinfo.inputinfo = &intrinfo;
     } else {

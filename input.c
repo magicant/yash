@@ -51,10 +51,6 @@
 #endif
 
 
-#if YASH_ENABLE_LINEEDIT
-static wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
-    __attribute__((nonnull,malloc,warn_unused_result));
-#endif
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t get_euid_marker(void)
@@ -182,17 +178,6 @@ end:
 inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_interactive_info_T *info = inputinfo;
-
-#if YASH_ENABLE_LINEEDIT
-    /* An input function must not return more than one line at a time.
-     * If line editing returns more than one line, this function returns only
-     * the first line, saving the rest in this buffer. */
-    if (info->linebuffer != NULL) {
-	info->linebuffer = forward_line(info->linebuffer, buf);
-	return INPUT_OK;
-    }
-#endif
-
     struct promptset_T prompt;
 
     if (info->prompttype == 1)
@@ -224,7 +209,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_HISTORY
 		add_history(line);
 #endif
-		info->linebuffer = forward_line(line, buf);
+		wb_catfree(buf, line);
 	    }
 	    return result;
 	}
@@ -251,30 +236,6 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #endif
     return result;
 }
-
-#if YASH_ENABLE_LINEEDIT
-
-/* Processes the line buffer.
- * If `linebuffer' contains one line, appends it to `buf' and returns NULL.
- * If `linebuffer' contains more than one line, only the first line is appended
- * and the rest is returned.
- * `linebuffer' is freed in this function anyway and the result is a newly
- * malloced buffer. */
-wchar_t *forward_line(wchar_t *linebuffer, xwcsbuf_T *buf)
-{
-    wchar_t *nl = wcschr(linebuffer, L'\n');
-    assert(nl != NULL);
-    nl++;
-    if (*nl == L'\0') {
-	wb_catfree(buf, linebuffer);
-	return NULL;
-    } else {
-	wb_ncat_force(buf, linebuffer, nl - linebuffer);
-	return wmemmove(linebuffer, nl, wcslen(nl) + 1);
-    }
-}
-
-#endif /* YASH_ENABLE_LINEEDIT */
 
 /* Returns the prompt string, possibly containing backslash escapes.
  * `type' must be 1, 2 or 4.

@@ -60,16 +60,17 @@ extern inputresult_T read_input(
     __attribute__((nonnull));
 
 /* The type of input functions.
- * Input is done line-wise: one line is read at a time.
- * The input string is terminated by newline L'\n' except when there is no
- * newline at the end of input.
+ * An input function reads input and appends it to buffer `buf'.
+ * Input is done line-wise: the buffer contents are always terminated by a
+ * newline character (L'\n') except when the end of file is reached and the last
+ * line does not have a newline.
  * The result is indicated by a value of the `inputresult_T' type. If the return
  * value is other than INPUT_OK, the buffer is unchanged.
  * The input function may be called even after it returned a value other than
  * INPUT_OK. */
 typedef inputresult_T inputfunc_T(struct xwcsbuf_T *buf, void *inputinfo);
 
-/* input functions to be used as `inputfunc_T' */
+/* input functions */
 extern inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     __attribute__((nonnull));
 extern inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
@@ -95,9 +96,6 @@ struct input_file_info_T {
 struct input_interactive_info_T {
     struct input_file_info_T *fileinfo;
     int prompttype;
-#if YASH_ENABLE_LINEEDIT
-    wchar_t *linebuffer;
-#endif
 };
 
 
