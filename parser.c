@@ -508,18 +508,18 @@ static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
  * This function reads at least one line of input and parses it.
  * All the members of `info' except `lastinputresult' must have been initialized
  * beforehand.
- * The resulting parse tree is assigned to `*result' if successful. If there is
+ * The resulting parse tree is assigned to `*resultp' if successful. If there is
  * no command in the next line or the shell was interrupted while reading input,
- * `*result' is assigned NULL.
+ * `*resultp' is assigned NULL.
  * Returns PR_OK           if successful,
  *         PR_SYNTAX_ERROR if a syntax error occurred,
  *         PR_INPUT_ERROR  if an input error occurred, or
  *         PR_EOF          if the input reached the end of file (EOF).
  * If PR_SYNTAX_ERROR or PR_INPUT_ERROR is returned, at least one error message
  * has been printed in this function.
- * Note that `*result' is assigned if and only if the return value is PR_OK. */
+ * Note that `*resultp' is assigned if and only if the return value is PR_OK. */
 parseresult_T read_and_parse(
-	parseparam_T *restrict info, and_or_T **restrict result)
+	parseparam_T *restrict info, and_or_T **restrict resultp)
 {
     parsestate_T ps = {
 	.info = info,
@@ -560,12 +560,12 @@ parseresult_T read_and_parse(
 		return PR_EOF;
 	    } else {
 		assert(ps.index == ps.src.length);
-		*result = r;
+		*resultp = r;
 		return PR_OK;
 	    }
 	case INPUT_INTERRUPTED:
 	    andorsfree(r);
-	    *result = NULL;
+	    *resultp = NULL;
 	    return PR_OK;
 	case INPUT_ERROR:
 	    andorsfree(r);
@@ -2626,10 +2626,10 @@ done:
  * All the members of `info' except `lastinputresult' must have been initialized
  * beforehand.
  * This function reads and parses the input to the end of file.
- * Iff successful, the result is assigned to `*result' and true is returned.
+ * Iff successful, the result is assigned to `*resultp' and true is returned.
  * If the input is empty, NULL is assigned.
- * On error, the value of `*result' is undefined. */
-bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
+ * On error, the value of `*resultp' is undefined. */
+bool parse_string(parseparam_T *restrict info, wordunit_T **restrict resultp)
 {
     parsestate_T ps = {
 	.info = info,
@@ -2647,8 +2647,8 @@ bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
     read_more_input(&ps);
     pl_init(&ps.pending_heredocs);
 
-    result = parse_string_without_quotes(&ps, false, false, result);
-    *result = NULL;
+    resultp = parse_string_without_quotes(&ps, false, false, resultp);
+    *resultp = NULL;
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
@@ -2657,7 +2657,7 @@ bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
     //destroy_aliaslist(ps.aliases);
 #endif
     if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
-	wordfree(*result);
+	wordfree(*resultp);
 	return false;
     } else {
 	return true;
