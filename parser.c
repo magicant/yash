@@ -857,6 +857,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    skip_blanks_and_comment(ps);
 	    if (ps->src.contents[ps->index] == L'\n') {
 		next_line(ps);
+		need_separator = false;
 		if (ps->src.contents[ps->index] != L'\0')
 		    continue;
 	    }
