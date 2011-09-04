@@ -484,9 +484,10 @@ static void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 static bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
     __attribute__((nonnull));
-static wordunit_T *parse_string_without_quotes(
-	parsestate_T *ps, bool backquote, bool stoponnewline)
-    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T **parse_string_without_quotes(
+	parsestate_T *ps, bool backquote, bool stoponnewline,
+	wordunit_T **lastp)
+    __attribute__((nonnull));
 static const char *get_errmsg_unexpected_token(const wchar_t *t)
     __attribute__((nonnull));
 static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
@@ -2518,13 +2519,7 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
     bool skiptab = (r->rd_type == RT_HERERT);
 
     while (!is_end_of_heredoc_contents(ps, eoc, skiptab)) {
-	wordunit_T *wu = parse_string_without_quotes(ps, true, true);
-	if (wu != NULL) {
-	    *lastp = wu;
-	    while (wu->next != NULL)
-		wu = wu->next;
-	    lastp = &wu->next;
-	}
+	lastp = parse_string_without_quotes(ps, true, true, lastp);
 	if (ps->src.contents[ps->index - 1] != L'\n') {
 	    /* encountered EOF before reading an end-of-contents marker! */
 	    break;
@@ -2571,11 +2566,14 @@ bool is_end_of_heredoc_contents(
  * recognized, but single and double quotes are not treated as quotes.
  * Command substitutions enclosed by backquotes are recognized iff `backquote'
  * is true. If `stoponnewline' is true, stops parsing right after the next
- * newline is parsed. Otherwise, parsing continues up to the end of file. */
-wordunit_T *parse_string_without_quotes(
-	parsestate_T *ps, bool backquote, bool stoponnewline)
+ * newline is parsed. Otherwise, parsing continues up to the end of file.
+ * The results are assigned ot `*lastp'.
+ * The return value is a pointer to the `next' member of the last resultant word
+ * unit (or `lastp' if no word unit resulted). */
+wordunit_T **parse_string_without_quotes(
+	parsestate_T *ps, bool backquote, bool stoponnewline,
+	wordunit_T **lastp)
 {
-    wordunit_T *first = NULL, **lastp = &first;
     size_t startindex = ps->index;
 
     for (;;) {
@@ -2620,7 +2618,7 @@ wordunit_T *parse_string_without_quotes(
     }
 done:
     MAKE_WORDUNIT_STRING;
-    return first;
+    return lastp;
 }
 
 /* Parses a string recognizing parameter expansions, command substitutions of
@@ -2649,7 +2647,8 @@ bool parse_string(parseparam_T *restrict info, wordunit_T **restrict result)
     read_more_input(&ps);
     pl_init(&ps.pending_heredocs);
 
-    *result = parse_string_without_quotes(&ps, false, false);
+    result = parse_string_without_quotes(&ps, false, false, result);
+    *result = NULL;
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
