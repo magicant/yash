@@ -52,14 +52,13 @@ static inline trieget_T make_trieget(const wchar_t *keyseq)
 static void append_to_second_buffer(wchar_t wc);
 
 
-/* The state of lineedit. */
+/* The state of line-editing. */
 enum le_state_T le_state;
 /* The state of editing. */
 enum le_editstate_T le_editstate;
 
 
 /* Do line-editing using the specified prompts.
- * This function must be called after and only after `le_setup' succeeded.
  * The prompts may contain backslash escapes specified in "input.c".
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. It is assigned to `*resultp' iff the return value is
@@ -187,7 +186,7 @@ void read_next(void)
 
     bool timeout = false;
     char c = pop_prebuffer();
-    if (c)
+    if (c != '\0')
 	goto direct_first_buffer;
 
     le_display_update(true);
@@ -366,7 +365,7 @@ void le_append_to_prebuffer(char *s)
  * otherwise, returns '\0'. */
 char pop_prebuffer(void)
 {
-    if (reader_prebuffer.contents) {
+    if (reader_prebuffer.contents != NULL) {
 	char result = reader_prebuffer.contents[0];
 	sb_remove(&reader_prebuffer, 0, 1);
 	if (reader_prebuffer.length == 0) {
