@@ -354,7 +354,7 @@ int get_read_timeout(void)
 }
 
 /* Appends `s' to the prebuffer. String `s' is freed in this function. */
-void append_to_prebuffer(char *s)
+void le_append_to_prebuffer(char *s)
 {
     if (reader_prebuffer.contents == NULL)
 	sb_initwith(&reader_prebuffer, s);

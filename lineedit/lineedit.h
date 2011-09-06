@@ -44,16 +44,15 @@ enum le_editstate_T {
 extern enum le_state_T le_state;
 extern enum le_editstate_T le_editstate;
 
-extern inputresult_T le_readline(
-	struct promptset_T prompt, wchar_t **resultp)
-    __attribute__((nonnull(2),warn_unused_result));
+extern inputresult_T le_readline(struct promptset_T prompt, wchar_t **resultp)
+    __attribute__((nonnull,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);
 extern void le_display_size_changed(void);
 
 extern _Bool le_next_verbatim;
 
-extern void append_to_prebuffer(char *s)
+extern void le_append_to_prebuffer(char *s)
     __attribute__((nonnull));
 
 

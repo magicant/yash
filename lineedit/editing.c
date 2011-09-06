@@ -2566,7 +2566,7 @@ void vi_exec_alias(wchar_t c)
     if (aliasvalue) {
 	char *mbaliasvalue = malloc_wcstombs(aliasvalue);
 	if (mbaliasvalue) {
-	    append_to_prebuffer(mbaliasvalue);
+	    le_append_to_prebuffer(mbaliasvalue);
 	    return;
 	}
     }

@@ -320,10 +320,10 @@ typedef enum parseresult_T {
 
 extern parseresult_T read_and_parse(
 	parseparam_T *info, and_or_T **restrict resultp)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
 
 extern _Bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
 
 
 /********** Auxiliary Functions **********/
