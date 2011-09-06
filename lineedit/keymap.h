@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.h: mappings from keys to functions */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ typedef struct le_mode_T {
     struct trienode_T /* trie_T */ *keymap;
 } le_mode_T;
 
-/* mode indeces */
+/* mode indices */
 typedef enum le_mode_id_T {
     LE_MODE_VI_INSERT,
     LE_MODE_VI_COMMAND,

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.h: simple parser for command line completion */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 
 struct le_context_T;
-extern le_context_T *le_get_context(void)
+extern struct le_context_T *le_get_context(void)
     __attribute__((malloc,warn_unused_result));
 
 
