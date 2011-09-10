@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* terminfo.c: interface to terminfo and termios */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -366,7 +366,6 @@ void set_up_keycodes(void)
 {
     trie_destroy(le_keycodes);
 
-    trie_T *t = trie_create();
     static const struct charmap {
 	char c;  const wchar_t *keyseq;
     } charmap[] = {
@@ -537,6 +536,7 @@ void set_up_keycodes(void)
 	{ TI_kUND,  Key_s_undo, },
     };
 
+    trie_T *t = trie_create();
     t = trie_set_null(t, (trievalue_T) { .keyseq = Key_c_at });
     for (size_t i = 0; i < sizeof charmap / sizeof *charmap; i++) {
 	if (xiscntrl(charmap[i].c))
@@ -625,7 +625,7 @@ _Bool move_cursor_mul(char *capmul, long count, int affcnt)
     char *v = tigetstr(capmul);
     if (is_strcap_valid(v)) {
 	v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-	if (v) {
+	if (v != NULL) {
 	    tputs(v, affcnt, lebuf_putchar);
 	    return 1;
 	}
@@ -738,7 +738,7 @@ void print_color_code(long color, char *seta, char *set)
     }
     if (is_strcap_valid(v)) {
 	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-	if (v)
+	if (v != NULL)
 	    tputs(v, 1, lebuf_putchar);
     }
 }

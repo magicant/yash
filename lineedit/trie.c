@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* trie.c: trie library for lineedit */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,6 @@ typedef struct trienode_T {
 
 
 #define RAISE_COUNT(count) ((count) | 3)
-#define NODE_SIZE(count)   (sizeof(trienode_T) + (count) * sizeof(trieentry_T))
 
 static inline bool isempty(const trienode_T *node)
     __attribute__((nonnull,pure));
@@ -72,7 +71,8 @@ static int foreachw(const trienode_T *t,
 /* Creates a new empty trie. */
 trienode_T *trie_create(void)
 {
-    trienode_T *result = xmalloc(NODE_SIZE(RAISE_COUNT(0)));
+    trienode_T *result = xmallocs(
+	    sizeof *result, RAISE_COUNT(0), sizeof *result->entries);
     result->valuevalid = false;
     result->count = 0;
     return result;
@@ -85,7 +85,7 @@ bool isempty(const trienode_T *node)
     return node->count == 0 && !node->valuevalid;
 }
 
-/* Reallocates the node to ensure the enough node size for the specified entry
+/* Reallocates the node to ensure the node size enough for the specified entry
  * count. */
 trienode_T *ensure_size(trienode_T *node, size_t count)
 {
@@ -93,13 +93,13 @@ trienode_T *ensure_size(trienode_T *node, size_t count)
     if (RAISE_COUNT(node->count) >= count)
 	return node;
     else
-	return xrealloc(node, NODE_SIZE(count));
+	return xreallocs(node, sizeof *node, count, sizeof *node->entries);
 }
 
 /* Search the node for the entry of the specified byte character key.
  * If the entry is found, the index to it is returned.
- * If not found, the negation of the index that the not-found entry would have
- * minus one is returned. */
+ * If not found, `-index-1' is returned where `index' is the index that would be
+ * returned if the entry was in the trie. */
 ssize_t search(const trienode_T *node, char key)
 {
     return binarysearch(node->entries, node->count, key);
@@ -125,8 +125,8 @@ ssize_t binarysearch(const trieentry_T *e, size_t count, char key)
 
 /* Search the node for the entry of the specified wide character key.
  * If the entry is found, the index to it is returned.
- * If not found, the negation of the index that the not-found entry would have
- * minus one is returned. */
+ * If not found, `-index-1' is returned where `index' is the index that would be
+ * returned if the entry was in the trie. */
 ssize_t searchw(const trienode_T *node, wchar_t key)
 {
     return binarysearchw(node->entries, node->count, key);
@@ -156,8 +156,8 @@ trienode_T *insert_entry(trienode_T *node, size_t index, triekey_T key)
     assert(index <= node->count);
     node = ensure_size(node, node->count + 1);
     if (index < node->count)
-	memmove(node->entries + index + 1, node->entries + index,
-		sizeof(trieentry_T) * (node->count - index));
+	memmove(&node->entries[index + 1], &node->entries[index],
+		sizeof *node->entries * (node->count - index));
     node->entries[index].key = key;
     node->entries[index].child = trie_create();
     node->count++;
@@ -180,7 +180,7 @@ trienode_T *trie_set(trienode_T *node, const char *keystr, trievalue_T v)
 		    (triekey_T) { .as_char = keystr[0] });
 	}
 	node->entries[index].child =
-	    trie_set(node->entries[index].child, keystr + 1, v);
+	    trie_set(node->entries[index].child, &keystr[1], v);
     }
     return node;
 }
@@ -217,7 +217,7 @@ trienode_T *trie_setw(trienode_T *node, const wchar_t *keywcs, trievalue_T v)
 		    (triekey_T) { .as_wchar = keywcs[0] });
 	}
 	node->entries[index].child =
-	    trie_setw(node->entries[index].child, keywcs + 1, v);
+	    trie_setw(node->entries[index].child, &keywcs[1], v);
     }
     return node;
 }
@@ -231,7 +231,7 @@ trienode_T *shrink(trienode_T *node)
     node->count--;
     newcount = RAISE_COUNT(node->count);
     if (oldcount != newcount)
-	node = xrealloc(node, NODE_SIZE(newcount));
+	node = xreallocs(node, sizeof *node, newcount, sizeof *node->entries);
     return node;
 }
 
@@ -245,11 +245,11 @@ trienode_T *trie_remove(trienode_T *node, const char *keystr)
 
 	if (index >= 0) {
 	    node->entries[index].child =
-		trie_remove(node->entries[index].child, keystr + 1);
+		trie_remove(node->entries[index].child, &keystr[1]);
 	    if (isempty(node->entries[index].child)) {
 		free(node->entries[index].child);
-		memmove(node->entries + index, node->entries + index + 1,
-			sizeof(trieentry_T) * (node->count - index - 1));
+		memmove(&node->entries[index], &node->entries[index + 1],
+			sizeof *node->entries * (node->count - index - 1));
 		node = shrink(node);
 	    }
 	}
@@ -267,11 +267,11 @@ trienode_T *trie_removew(trienode_T *node, const wchar_t *keywcs)
 
 	if (index >= 0) {
 	    node->entries[index].child =
-		trie_removew(node->entries[index].child, keywcs + 1);
+		trie_removew(node->entries[index].child, &keywcs[1]);
 	    if (isempty(node->entries[index].child)) {
 		free(node->entries[index].child);
-		memmove(node->entries + index, node->entries + index + 1,
-			sizeof(trieentry_T) * (node->count - index - 1));
+		memmove(&node->entries[index], &node->entries[index + 1],
+			sizeof *node->entries * (node->count - index - 1));
 		node = shrink(node);
 	    }
 	}
@@ -303,7 +303,7 @@ trieget_T trie_get(const trienode_T *t, const char *keystr, size_t keylen)
 	return result;
     }
 
-    result = trie_get(t->entries[index].child, keystr + 1, keylen - 1);
+    result = trie_get(t->entries[index].child, &keystr[1], keylen - 1);
     if (result.type & TG_EXACTMATCH) {
 	result.matchlength++;
     } else if (t->valuevalid) {
@@ -336,7 +336,7 @@ trieget_T trie_getw(const trienode_T *t, const wchar_t *keywcs)
 	return result;
     }
 
-    result = trie_getw(t->entries[index].child, keywcs + 1);
+    result = trie_getw(t->entries[index].child, &keywcs[1]);
     if (result.type & TG_EXACTMATCH) {
 	result.matchlength++;
     } else if (t->valuevalid) {
@@ -396,7 +396,7 @@ int foreachw(const trienode_T *t,
  * All the stored data are lost. */
 void trie_destroy(trienode_T *node)
 {
-    if (node) {
+    if (node != NULL) {
 	for (size_t i = 0; i < node->count; i++)
 	    trie_destroy(node->entries[i].child);
 	free(node);
