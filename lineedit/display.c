@@ -360,8 +360,8 @@ static void free_candcol(void *candcol)
     __attribute__((nonnull));
 static void print_candidates_all(void);
 static void update_highlighted_candidate(void);
-static void print_candidate(
-	const le_candidate_T *cand, const candcol_T *col, bool highlight)
+static void print_candidate(const le_candidate_T *cand, const candcol_T *col,
+	bool highlight, bool printdesc)
     __attribute__((nonnull));
 static void print_candidate_count(size_t pageindex);
 static void print_candidate_count_0(void);
@@ -1173,7 +1173,7 @@ void print_candidates_all(void)
 
 	    size_t candindex = col->candindex + rowi;
 	    print_candidate(le_candidates.contents[candindex], col,
-		    le_selected_candidate_index == candindex);
+		    le_selected_candidate_index == candindex, true);
 
 	    scrcol += col->width;
 	}
@@ -1246,7 +1246,8 @@ void update_highlighted_candidate(void)
 	rowindex = candhighlight - col->candindex;
 	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
 			   .column = column });
-	print_candidate(le_candidates.contents[candhighlight], col, false);
+	print_candidate(
+		le_candidates.contents[candhighlight], col, false, false);
     }
 
     /* highlight the current selected candidate */
@@ -1261,7 +1262,8 @@ void update_highlighted_candidate(void)
 	rowindex = candhighlight - col->candindex;
 	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
 			   .column = column });
-	print_candidate(le_candidates.contents[candhighlight], col, true);
+	print_candidate(
+		le_candidates.contents[candhighlight], col, true, false);
     }
 
     /* print status line */
@@ -1276,9 +1278,10 @@ void update_highlighted_candidate(void)
 
 /* Prints the specified candidate at the current cursor position.
  * The candidate is highlighted iff `highlight' is true.
+ * Iff `printdesc' is true, the candidate's description is printed.
  * The cursor is left just after the printed candidate. */
-void print_candidate(
-	const le_candidate_T *cand, const candcol_T *col, bool highlight)
+void print_candidate(const le_candidate_T *cand, const candcol_T *col,
+	bool highlight, bool printdesc)
 {
     int line = lebuf.pos.line;
 
@@ -1305,7 +1308,7 @@ void print_candidate(
     }
 
     /* print description */
-    if (cand->desc != NULL) {
+    if (printdesc && cand->desc != NULL) {
 	lebuf_putchar1_trunc(' ');
 	lebuf_putchar1_trunc('(');
 	if (lebuf.pos.column + cand->rawdesc.width < lebuf.maxcolumn) {
