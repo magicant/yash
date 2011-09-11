@@ -372,6 +372,8 @@ static int col_of_cand_cmp(const void *candindexp, const void *colp)
 static size_t page_of_col(size_t colindex);
 static int page_of_col_cmp(const void *colindexp, const void *pagep)
     __attribute__((nonnull));
+static size_t select_list_item(size_t index, int offset, size_t listsize)
+    __attribute__((const));
 
 
 /* True when the prompt is displayed on the screen. */
@@ -1426,18 +1428,8 @@ size_t le_display_select_column(int offset)
     size_t colindex = le_selected_candidate_index < le_candidates.length
 	? col_of_cand(le_selected_candidate_index)
 	: 0;
-    if (offset >= 0) {
-	offset %= candcols.length;
-	colindex += offset;
-	colindex %= candcols.length;
-    } else {
-	offset = -offset % candcols.length;
-	if ((size_t) offset <= colindex)
-	    colindex -= offset;
-	else
-	    colindex += candcols.length - offset;
-    }
-    assert(colindex < candcols.length);
+
+    colindex = select_list_item(colindex, offset, candcols.length);
 
     const candcol_T *col = candcols.contents[colindex];
     return col->candindex;
@@ -1454,22 +1446,30 @@ size_t le_display_select_page(int offset)
     size_t pageindex = le_selected_candidate_index < le_candidates.length
 	? page_of_col(col_of_cand(le_selected_candidate_index))
 	: 0;
-    if (offset >= 0) {
-	offset %= candpages.length;
-	pageindex += offset;
-	pageindex %= candpages.length;
-    } else {
-	offset = -offset % candpages.length;
-	if ((size_t) offset <= pageindex)
-	    pageindex -= offset;
-	else
-	    pageindex += candpages.length - offset;
-    }
-    assert(pageindex < candpages.length);
+
+    pageindex = select_list_item(pageindex, offset, candpages.length);
 
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *col = candcols.contents[page->colindex];
     return col->candindex;
+}
+
+/* Computes `(index + offset) mod listsize'. */
+size_t select_list_item(size_t index, int offset, size_t listsize)
+{
+    if (offset >= 0) {
+	offset %= listsize;
+	index += offset;
+	index %= listsize;
+    } else {
+	offset = -offset % listsize;
+	if ((size_t) offset <= index)
+	    index -= offset;
+	else
+	    index += listsize - offset;
+    }
+    assert(index < listsize);
+    return index;
 }
 
 
