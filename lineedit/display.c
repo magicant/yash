@@ -341,6 +341,7 @@ static void maybe_print_promptsp(void);
 static void update_editline(void);
 static void check_cand_overwritten(void);
 static void update_styler(void);
+static void reset_style_before_moving(void);
 static void update_right_prompt(void);
 static void print_search(void);
 static void go_to(le_pos_T p);
@@ -524,8 +525,7 @@ void clear_to_end_of_screen(void)
 {
     assert(lebuf.pos.column == 0);
 
-    if (!le_ti_msgr)
-	lebuf_print_sgr0(), styler_active = false;
+    reset_style_before_moving();
 
     if (lebuf_print_ed()) /* if the terminal has "ed" capability, just use it */
 	return;
@@ -554,8 +554,7 @@ void clear_editline(void)
 
     le_pos_T save_pos = lebuf.pos;
 
-    if (!le_ti_msgr)
-	lebuf_print_sgr0(), styler_active = false;
+    reset_style_before_moving();
     for (;;) {
 	lebuf_print_el();
 	if (lebuf.pos.line >= last_edit_line)
@@ -740,6 +739,18 @@ void update_styler(void)
     }
 }
 
+/* If the "msgr" capability is unavailable, prints the "sgr0" capability. */
+/* Cursor-moving capabilities cannot be used in the standout mode unless the
+ * "msgr" capability is available. We need to reset text style using the "sgr0"
+ * capability before moving cursor. */
+void reset_style_before_moving(void)
+{
+    if (!le_ti_msgr) {
+	lebuf_print_sgr0();
+	styler_active = false;
+    }
+}
+
 /* Prints the right prompt if there is enough room in the edit line or if the
  * "le-alwaysrp" option is set.
  * The edit line must have been printed when this function is called. */
@@ -786,8 +797,7 @@ void print_search(void)
 
     if (le_search_result != Histlist)
 	lebuf_wprintf(true, L"%s", ashistentry(le_search_result)->value);
-    if (!le_ti_msgr)
-	lebuf_print_sgr0(), styler_active = false;
+    reset_style_before_moving();
     lebuf_print_nel();
     clear_to_end_of_screen(), candbaseline = -1;
 
@@ -832,8 +842,7 @@ void go_to(le_pos_T p)
     if (p.line == lebuf.pos.line) {
 	if (lebuf.pos.column == p.column)
 	    return;
-	if (!le_ti_msgr)
-	    lebuf_print_sgr0(), styler_active = false;
+	reset_style_before_moving();
 	if (lebuf.pos.column < p.column)
 	    lebuf_print_cuf(p.column - lebuf.pos.column);
 	else
@@ -841,8 +850,7 @@ void go_to(le_pos_T p)
 	return;
     }
 
-    if (!le_ti_msgr)
-	lebuf_print_sgr0(), styler_active = false;
+    reset_style_before_moving();
     lebuf_print_cr();
     if (lebuf.pos.line < p.line)
 	lebuf_print_cud(p.line - lebuf.pos.line);
