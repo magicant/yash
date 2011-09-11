@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* display.c: display control */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,8 +43,8 @@
 #include "terminfo.h"
 
 
-/* Characters displayed on the screen by lineedit are divided into three parts:
- * the prompt, the edit line and the candidate area.
+/* Characters displayed on the screen by line-editing are divided into three
+ * parts: the prompt, the edit line and the candidate area.
  * The prompt is immediately followed by the edit line (on the same line) but
  * the candidate area are always on separate lines.
  * The three parts are printed in this order, from upper to lower.
@@ -53,8 +53,9 @@
  *
  * We have to track the cursor position each time we print a character on the
  * screen, so that we can correctly reposition the cursor later. To do this, we
- * use a buffer accompanied by a position data (`lebuf'). The `lebuf_putwchar'
- * function appends a wide character and updates the position data accordingly.
+ * use a buffer (`lebuf') accompanied by a position data. The `lebuf_putwchar'
+ * function appends a wide character to the buffer and updates the position data
+ * accordingly.
  *
  * In most terminals, when as many characters are printed as the number of
  * the columns, the cursor temporarily sticks to the end of the line. The cursor
@@ -95,6 +96,7 @@ void lebuf_init(le_pos_T p)
 }
 
 /* Initializes the print buffer with the specified position data.
+ * The number of columns in a line is specified by `maxcolumn'.
  * If `maxcolumn' is negative, it is considered as infinite. */
 void lebuf_init_with_max(le_pos_T p, int maxcolumn)
 {
@@ -105,7 +107,7 @@ void lebuf_init_with_max(le_pos_T p, int maxcolumn)
 
 /* Appends the specified byte to the print buffer without updating the position
  * data. Returns the appended character `c'. */
-/* The signature of this function is intentionally aligned to that of the
+/* The signature of this function is so defined as to match that of the
  * `putchar' function. */
 int lebuf_putchar(int c)
 {
@@ -115,7 +117,7 @@ int lebuf_putchar(int c)
 
 /* Updates the position data of the print buffer as if a character with the
  * specified width has been printed.
- * The specified width must be no less than zero. */
+ * The specified width must not be less than zero. */
 void lebuf_update_position(int width)
 {
     assert(width >= 0);
@@ -183,10 +185,8 @@ void lebuf_putwchar(wchar_t c, bool convert_cntrl)
 /* Appends the specified string to the print buffer. */
 void lebuf_putws(const wchar_t *s, bool convert_cntrl)
 {
-    while (*s != L'\0') {
-	lebuf_putwchar(*s, convert_cntrl);
-	s++;
-    }
+    for (size_t i = 0; s[i] != L'\0'; i++)
+	lebuf_putwchar(s[i], convert_cntrl);
 }
 
 /* Appends the formatted string to the print buffer. */
@@ -221,10 +221,15 @@ void lebuf_print_prompt(const wchar_t *s)
 	    case L'e':   lebuf_putwchar(L'\033', false);  break;
 	    case L'n':   lebuf_putwchar(L'\n',   false);  break;
 	    case L'r':   lebuf_putwchar(L'\r',   false);  break;
-	    case L'$':   lebuf_putwchar(geteuid() ? L'$' : L'#', false);  break;
-	    case L'j':   lebuf_wprintf(false, L"%zu", job_count());       break;
-	    case L'!':   lebuf_wprintf(false, L"%u",  next_history_number());
-			                                                  break;
+	    case L'$':
+		lebuf_putwchar(geteuid() != 0 ? L'$' : L'#', false);
+		break;
+	    case L'j':
+		lebuf_wprintf(false, L"%zu", job_count());
+		break;
+	    case L'!':
+		lebuf_wprintf(false, L"%u", next_history_number());
+		break;
 	    case L'[':   save_pos = lebuf.pos;    break;
 	    case L']':   lebuf.pos = save_pos;    break;
 	    case L'f':   s = print_color_seq(s);  continue;
@@ -285,9 +290,9 @@ done:
 #undef SETBG
 }
 
-/* Like `lebuf_putwchar', but prints only if there is enough column(s) to the
+/* Like `lebuf_putwchar', but prints only if there are enough column to the
  * right of the current position.
- * Returns false iff there is not enough column(s).
+ * Returns false iff there is not enough column.
  * Returns true for a non-printable character. */
 bool lebuf_putwchar_trunc(wchar_t c)
 {
@@ -329,7 +334,7 @@ bool lebuf_putchar1_trunc(int c)
 typedef struct candpage_T candpage_T;
 typedef struct candcol_T candcol_T;
 
-static void clean_up(void);
+static void finish(void);
 static void clear_to_end_of_screen(void);
 static void clear_editline(void);
 static void maybe_print_promptsp(void);
@@ -373,8 +378,8 @@ static int page_of_col_cmp(const void *colindexp, const void *pagep)
  * true. */
 static bool display_active = false;
 /* The current cursor position. */
-static le_pos_T currentp;
-/* The maximum line count. */
+static le_pos_T current_position;
+/* The maximum number of lines that have been displayed. */
 static int line_max;
 
 /* The set of strings printed as the prompt, right prompt, after prompt.
@@ -383,7 +388,7 @@ static struct promptset_T prompt;
 
 /* The position of the first character of the edit line, just after the prompt.
  */
-static le_pos_T editbasep;
+static le_pos_T editbasepos;
 /* The content of the edit line that is currently displayed on the screen. */
 static wchar_t *current_editline = NULL;
 /* An array of cursor positions of each character in the edit line.
@@ -420,10 +425,10 @@ struct candpage_T {
 /* The type of completion candidate columns. */
 struct candcol_T {
     size_t candindex;  /* index of the first candidate in this column */
-    size_t candcount;  /* number of the candidate in this column */
-    int valuewidth,    /* max width of the candidate values */
-	descwidth,     /* max width of the candidate description */
-	width;         /* total width of the whole column. */
+    size_t candcount;  /* number of the candidates in this column */
+    int valuewidth;    /* max width of the candidate values */
+    int descwidth;     /* max width of the candidate descriptions */
+    int width;         /* total width of the whole column. */
 };
 
 /* A list of completion candidate pages.
@@ -448,8 +453,7 @@ static int candbaseline;
 static bool candoverwritten;
 
 
-/* Initializes the display module.
- * Must be called after `le_editing_init'. */
+/* Initializes the display module. */
 void le_display_init(struct promptset_T prompt_)
 {
     prompt = prompt_;
@@ -466,7 +470,7 @@ void le_display_finalize(void)
 
     lebuf_print_sgr0();
     go_to_after_editline();
-    clean_up();
+    finish();
 }
 
 /* Clears prompt, edit line and candidate area on the screen.
@@ -474,17 +478,21 @@ void le_display_finalize(void)
 void le_display_clear(bool clear)
 {
     if (display_active) {
-	lebuf_init(currentp);
+	lebuf_init(current_position);
 	lebuf_print_sgr0();
 	if (clear)
 	    lebuf_print_clear();
 	else
 	    go_to((le_pos_T) { 0, 0 });
-	clean_up();
+	finish();
     }
 }
 
-void clean_up(void)
+/* Deactivates the display.
+ * Can be called only when `display_active' is true.
+ * This function clears the completion candidates, flushes the `lebuf' buffer,
+ * and frees data that are no longer in use. */
+void finish(void)
 {
     assert(display_active);
 
@@ -504,7 +512,7 @@ void clean_up(void)
  * the buffer. */
 void le_display_flush(void)
 {
-    currentp = lebuf.pos;
+    current_position = lebuf.pos;
     fwrite(lebuf.buf.contents, 1, lebuf.buf.length, stderr);
     fflush(stderr);
     sb_destroy(&lebuf.buf);
@@ -515,6 +523,7 @@ void le_display_flush(void)
 void clear_to_end_of_screen(void)
 {
     assert(lebuf.pos.column == 0);
+
     if (!le_ti_msgr)
 	lebuf_print_sgr0(), styler_active = false;
 
@@ -531,7 +540,7 @@ void clear_to_end_of_screen(void)
     go_to((le_pos_T) { saveline, 0 });
 }
 
-/* Clears (part of) the edit line on the screen: from the current cursor
+/* Clears (part of) the edit line on the screen from the current cursor
  * position to the end of the edit line.
  * The prompt and the candidate area are not cleared.
  * When this function is called, the cursor must be positioned within the edit
@@ -539,9 +548,9 @@ void clear_to_end_of_screen(void)
  */
 void clear_editline(void)
 {
-    assert(lebuf.pos.line > editbasep.line
-	    || (lebuf.pos.line == editbasep.line
-		&& lebuf.pos.column >= editbasep.column));
+    assert(lebuf.pos.line > editbasepos.line ||
+	    (lebuf.pos.line == editbasepos.line &&
+	     lebuf.pos.column >= editbasepos.column));
 
     le_pos_T save_pos = lebuf.pos;
 
@@ -561,10 +570,13 @@ void clear_editline(void)
 /* (Re)prints the display appropriately and, if `cursor' is true, moves the
  * cursor to the proper position.
  * The print buffer must not have been initialized.
- * The output is sent to the print buffer. */
+ * The output is sent to the print buffer. The buffer needs to be flushed for
+ * its contents to be actually displayed. */
 void le_display_update(bool cursor)
 {
-    if (!display_active) {
+    if (display_active) {
+	lebuf_init(current_position);
+    } else {
 	display_active = true;
 	last_edit_line = line_max = 0;
 	candhighlight = NOHIGHLIGHT, candbaseline = -1, candoverwritten = false;
@@ -574,7 +586,7 @@ void le_display_update(bool cursor)
 	lebuf_print_sgr0();
 	lebuf_print_prompt(prompt.right);
 	if (lebuf.pos.line != 0) {  /* right prompt must be one line */
-	    sb_truncate(&lebuf.buf, 0);
+	    sb_clear(&lebuf.buf);
 	    /* lebuf.pos.line = */ lebuf.pos.column = 0;
 	}
 	rprompt.value = lebuf.buf.contents;
@@ -588,7 +600,7 @@ void le_display_update(bool cursor)
 	lebuf_print_prompt(prompt.styler);
 	if (lebuf.pos.line != 0 || lebuf.pos.column != 0) {
 	    /* styler prompt must have no width */
-	    sb_truncate(&lebuf.buf, 0);
+	    sb_clear(&lebuf.buf);
 	    /* lebuf.pos.line = lebuf.pos.column = 0; */
 	}
 	sprompt.value = lebuf.buf.contents;
@@ -600,9 +612,7 @@ void le_display_update(bool cursor)
 	maybe_print_promptsp();
 	lebuf_print_prompt(prompt.main);
 	fillip_cursor();
-	editbasep = lebuf.pos;
-    } else {
-	lebuf_init(currentp);
+	editbasepos = lebuf.pos;
     }
 
     if (le_search_buffer.contents == NULL) {
@@ -637,8 +647,7 @@ void maybe_print_promptsp(void)
 	lebuf_print_smso();
 	lebuf_putchar('$');
 	lebuf_print_sgr0();
-	int count = le_columns - (le_ti_xenl ? 1 : 2);
-	while (--count >= 0)
+	for (int count = le_columns - (le_ti_xenl ? 1 : 2); --count >= 0; )
 	    lebuf_putchar(' ');
 	lebuf_print_cr();
 	lebuf_print_ed();
@@ -671,28 +680,26 @@ void update_editline(void)
 	    clear_editline();
     } else {
 	/* print the whole edit line */
-	go_to(editbasep);
+	go_to(editbasepos);
 	clear_editline();
     }
 
     update_styler();
 
-    current_editline = xrealloc(current_editline,
-	    sizeof *current_editline * (le_main_buffer.length + 1));
-    cursor_positions = xrealloc(cursor_positions,
-	    sizeof *cursor_positions * (le_main_buffer.length + 1));
-    while (index < le_main_buffer.length) {
+    current_editline = xreallocn(current_editline,
+	    le_main_buffer.length + 1, sizeof *current_editline);
+    cursor_positions = xreallocn(cursor_positions,
+	    le_main_buffer.length + 1, sizeof *cursor_positions);
+    for (;;) {
 	wchar_t c = le_main_buffer.contents[index];
 	current_editline[index] = c;
 	cursor_positions[index]
 	    = lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
+	if (index == le_main_buffer.length)
+	    break;
 	lebuf_putwchar(c, true);
 	index++;
     }
-    assert(index == le_main_buffer.length);
-    current_editline[index] = L'\0';
-    cursor_positions[index]
-	= lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
 
     fillip_cursor();
 
@@ -713,7 +720,7 @@ void update_editline(void)
     check_cand_overwritten();
 }
 
-/* Set the `candoverwritten' flag and clear to the end of line if the current
+/* Sets the `candoverwritten' flag and clears to the end of line if the current
  * position is in the candidate area. */
 void check_cand_overwritten(void)
 {
@@ -772,7 +779,7 @@ void print_search(void)
     free(current_editline), current_editline = NULL;
     free(cursor_positions), cursor_positions = NULL;
 
-    go_to(editbasep);
+    go_to(editbasepos);
     clear_editline();
 
     update_styler();
@@ -786,8 +793,8 @@ void print_search(void)
 
     update_styler();
 
-    const char *text;
     switch (le_search_type) {
+	const char *text;
 	case SEARCH_PREFIX:
 	    assert(false);
 	case SEARCH_VI:
@@ -883,7 +890,7 @@ void fillip_cursor(void)
 
 
 /* Sets the `raw' and `width' members of candidates in `le_candidates'.
- * This function uses the print buffer in it to calculate the widths. */
+ * This function uses the print buffer to calculate the widths. */
 void le_display_make_rawvalues(void)
 {
     assert(le_candidates.contents != NULL);
@@ -960,8 +967,8 @@ void update_candidates(void)
  * making pages and columns of candidates.
  * The edit line (and the right prompt if any) must have been printed before
  * calling this function.
- * The results are assigned to `candpages' and `candcols', which must be
- * uninitialized when this function is called.
+ * The results are assigned to `candpages' and `candcols', which must not be
+ * initialized when this function is called.
  * If there are too few lines or columns available to show the candidates on
  * the screen or if there are no candidates, this function does nothing. */
 void make_pages_and_columns(void)
@@ -974,7 +981,7 @@ void make_pages_and_columns(void)
 
     int maxrowi = le_lines - last_edit_line - 1;
     if (maxrowi < 2 || le_columns < 4)
-	return;  /* we have to have at least 2 lines & 4 columns */
+	return;  /* we need at least 2 lines & 4 columns */
 
     pl_init(&candpages);
     pl_init(&candcols);
@@ -1077,8 +1084,8 @@ void divide_candidates_pages(size_t cand_per_col)
 	page->colindex = colindex;
 	col = candcols.contents[colindex];
 	pagewidth = col->width;
-	while ((col = candcols.contents[++colindex]) != NULL
-		&& pagewidth + col->width < le_columns)
+	while ((col = candcols.contents[++colindex]) != NULL &&
+		pagewidth + col->width < le_columns)
 	    pagewidth += col->width;
 	page->colcount = colindex - page->colindex;
 	/* Each page contains at least one column: The page width may not
@@ -1120,7 +1127,7 @@ void free_candcol(void *candcol)
 }
 
 /* Prints the whole candidate area.
- * The edit line (and the right prompt if any) must have been printed and
+ * The edit line (and the right prompt, if any) must have been printed and
  * `make_pages_and_columns' must have been called before calling this function.
  * The cursor may be anywhere when this function is called.
  * The cursor is left at an unspecified position when this function returns.
@@ -1153,8 +1160,7 @@ void print_candidates_all(void)
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *firstcol = candcols.contents[page->colindex];
 
-    size_t rowi = 0, rowcount = firstcol->candcount;
-    for (;;) {
+    for (size_t rowi = 0, rowcount = firstcol->candcount; ; ) {
 	int scrcol = 0;
 
 	for (size_t coli = 0; coli < page->colcount; coli++) {
@@ -1187,7 +1193,7 @@ void print_candidates_all(void)
 }
 
 /* Reprints the highlighted candidate.
- * The previously highlighted candidate is reprinted in the normal manner and
+ * The previously highlighted candidate is reprinted in the normal style and
  * the currently selected candidate is highlighted.
  * Before calling this function, the candidate area must have been printed by
  * `print_candidates_all'.
