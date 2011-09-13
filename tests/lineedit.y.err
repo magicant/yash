@@ -4,6 +4,9 @@ Usage:  bindkey -aev [keyseq [command]]
 bindkey: no option is specified
 Usage:  bindkey -aev [keyseq [command]]
         bindkey -l
+bindkey: too many operands are specified
+Usage:  bindkey -aev [keyseq [command]]
+        bindkey -l
 bindkey: no such editing command `no-such-command'
 bindkey: cannot bind an empty key sequence
 bindkey: key sequence `~~~' is not bound

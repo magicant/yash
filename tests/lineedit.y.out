@@ -16,6 +16,7 @@ no bindings 0
 ===== error =====
 bindkey no-such-option 2
 bindkey operand missing 2
+bindkey too many operands 2
 bindkey invalid operand 1 1
 bindkey invalid operand 2 1
 bindkey unbound sequence 1

@@ -356,7 +356,7 @@ void generate_bindkey_candidates(const le_compopt_T *compopt)
 }
 
 
-/********** Builtin **********/
+/********** Built-in **********/
 
 static int print_all_commands(void);
 static int set_key_binding(
@@ -407,11 +407,8 @@ int bindkey_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr,
-			gt("Usage:  bindkey -aev [keyseq [command]]\n"
-			   "        bindkey -l\n"));
-		return Exit_ERROR;
+	    default:
+		goto print_usage;
 	}
     }
 
@@ -439,19 +436,22 @@ int bindkey_builtin(int argc, void **argv)
     } else if (xoptind + 2 == argc) {
 	return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
     } else {
+	xerror(0, Ngt("too many operands are specified"));
 	goto print_usage;
     }
+
+print_usage:
+    fprintf(stderr, gt("Usage:  bindkey -aev [keyseq [command]]\n"
+		       "        bindkey -l\n"));
+    return Exit_ERROR;
 }
 
 /* Prints all available commands to the standard output. */
 int print_all_commands(void)
 {
-    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++) {
-	if (puts(commands[i].name) == EOF) {
-	    xerror(errno, Ngt("cannot print to the standard output"));
+    for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
+	if (!xprintf("%s\n", commands[i].name))
 	    return Exit_FAILURE;
-	}
-    }
     return Exit_SUCCESS;
 }
 
@@ -502,7 +502,7 @@ le_command_func_T *get_command_from_name(const char *name)
 	    sizeof *commands,
 	    command_name_compare);
 
-    return cnp ? cnp->command : 0;
+    return (cnp != NULL) ? cnp->command : 0;
 }
 
 int command_name_compare(const void *p1, const void *p2)
@@ -534,7 +534,6 @@ int print_binding_main(
     char modechar;
     wchar_t *keyseqquote;
     const char *commandname;
-    int r;
 
     switch (le_mode_to_id(mode)) {
 	case LE_MODE_VI_INSERT:     modechar = 'v';  break;
@@ -551,11 +550,9 @@ int print_binding_main(
 	format = "bindkey -%c %ls %s\n";
     keyseqquote = quote_sq(keyseq);
     commandname = get_command_name(cmd);
-    r = printf(format, modechar, keyseqquote, commandname);
-    if (r < 0)
-	xerror(errno, Ngt("cannot print to the standard output"));
+    xprintf(format, modechar, keyseqquote, commandname);
     free(keyseqquote);
-    return r >= 0 ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 /* Returns the name of the specified command. */
