@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,8 @@ static cparseinfo_T *pi;
 
 
 static void empty_pwords(void);
+static void set_pwords(plist_T *pwords)
+    __attribute__((nonnull));
 static bool cparse_commands(void);
 static void skip_blanks(void);
 static void skip_blanks_and_newlines(void);
@@ -169,6 +171,17 @@ void empty_pwords(void)
 	pi->ctxt->pwordc = 0;
 	pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	pi->ctxt->pwords[0] = NULL;
+    }
+}
+
+/* Sets `pi->ctxt->pwords' to the contents of `pwords'. */
+void set_pwords(plist_T *pwords)
+{
+    if (pi->ctxt->pwords == NULL) {
+	pi->ctxt->pwordc = pwords->length;
+	pi->ctxt->pwords = pl_toary(pwords);
+    } else {
+	plfree(pl_toary(pwords), free);
     }
 }
 
@@ -314,12 +327,7 @@ cparse_simple_command:
 	wordunit_T *w = cparse_word(is_token_delimiter_char, TT_SINGLE,
 		pwords.length == 0 ? CTXT_COMMAND : CTXT_ARGUMENT);
 	if (w == NULL) {
-	    if (pi->ctxt->pwords == NULL) {
-		pi->ctxt->pwordc = pwords.length;
-		pi->ctxt->pwords = pl_toary(&pwords);
-	    } else {
-		plfree(pl_toary(&pwords), free);
-	    }
+	    set_pwords(&pwords);
 	    return true;
 	} else {
 	    expand_multiple(w, &pwords);
@@ -395,12 +403,7 @@ bool ctryparse_assignment(void)
 	    wordunit_T *w = cparse_word(
 		    is_token_delimiter_char, TT_SINGLE, CTXT_ASSIGN);
 	    if (w == NULL) {
-		if (pi->ctxt->pwords == NULL) {
-		    pi->ctxt->pwordc = pwords.length;
-		    pi->ctxt->pwords = pl_toary(&pwords);
-		} else {
-		    plfree(pl_toary(&pwords), free);
-		}
+		set_pwords(&pwords);
 		return true;
 	    } else {
 		expand_multiple(w, &pwords);
@@ -514,12 +517,7 @@ bool cparse_for_command(void)
 
 	    w = cparse_word(is_token_delimiter_char, TT_SINGLE, CTXT_NORMAL);
 	    if (w == NULL) {
-		if (pi->ctxt->pwords == NULL) {
-		    pi->ctxt->pwordc = 0;
-		    pi->ctxt->pwords = pl_toary(&pwords);
-		} else {
-		    plfree(pl_toary(&pwords), free);
-		}
+		set_pwords(&pwords);
 		return true;
 	    } else {
 		expand_multiple(w, &pwords);
