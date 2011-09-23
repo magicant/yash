@@ -39,7 +39,7 @@
 #include "lineedit.h"
 
 
-/* This structure contains data used during parsing */
+/* This structure contains data used in parsing */
 typedef struct cparseinfo_T {
     xwcsbuf_T buf;
     size_t bufindex;
@@ -57,9 +57,9 @@ typedef struct cparseinfo_T {
 /* This structure contains data used during parsing */
 static cparseinfo_T *pi;
 
-#define BUF       (pi->buf.contents)
-#define LEN       (pi->buf.length)
-#define INDEX     (pi->bufindex)
+#define BUF   (pi->buf.contents)
+#define LEN   (pi->buf.length)
+#define INDEX (pi->bufindex)
 
 
 static void empty_pwords(void);
@@ -74,7 +74,7 @@ static bool csubstitute_alias(substaliasflags_T flags);
 # define csubstitute_alias(flags) false
 #endif
 static bool cparse_command(void);
-static bool token_at_current(const wchar_t *token)
+static bool has_token(const wchar_t *token)
     __attribute__((nonnull,pure));
 static bool cparse_simple_command(void);
 static bool cparse_redirections(void);
@@ -112,7 +112,7 @@ static bool is_arith_delimiter(wchar_t c)
     __attribute__((pure));
 static bool remove_braceexpand(wchar_t *s)
     __attribute__((nonnull));
-static bool remove_braceexpand_inner(wchar_t **s)
+static bool remove_braceexpand_inner(xwcsbuf_T *buf, size_t *index)
     __attribute__((nonnull));
 
 
@@ -154,10 +154,12 @@ le_context_T *le_get_context(void)
     if (is_pathname_matching_pattern(ctxt->pattern)) {
 	ctxt->substsrc = true;
     } else {
-	xwcsbuf_T buf;
 	ctxt->substsrc = false;
-	ctxt->pattern =
-	    wb_towcs(wb_wccat(wb_initwith(&buf, ctxt->pattern), L'*'));
+
+	xwcsbuf_T buf;
+	wb_initwith(&buf, ctxt->pattern);
+	wb_wccat(&buf, L'*');
+	ctxt->pattern = wb_towcs(&buf);
     }
     ctxt->origindex = le_main_index;
 
@@ -186,7 +188,7 @@ void set_pwords(plist_T *pwords)
 }
 
 /* Following parser functions return true iff parsing is finished and the result
- * is saved in `pi->ctxt'.
+ * is saved in the context structure `pi->ctxt'.
  * The result is saved in the following variables of the context structure:
  *     quote, type, pwordc, pwords, pattern, srcindex. */
 
@@ -227,13 +229,15 @@ void skip_blanks_and_newlines(void)
 
 /* Performs alias substitution at the current position.
  * See the description of `substitute_alias' for the usage of `flags'.
- * Returns true iff any alias is substituted. */
+ * Returns true iff any alias is substituted.
+ * If the word at the current INDEX is at the end of BUF, the word is not
+ * substituted because it is the word being completed. */
 bool csubstitute_alias(substaliasflags_T flags)
 {
     size_t len = 0;
     while (is_alias_name_char(BUF[INDEX + len]))
 	len++;
-    if (len == 0 || BUF[INDEX + len] == L'\0')
+    if (len == 0 || INDEX + len == LEN)
 	return false;
     return substitute_alias(&pi->buf, INDEX, &pi->aliaslist, flags);
 }
@@ -250,33 +254,33 @@ bool cparse_command(void)
 	assert(BUF[INDEX] == L')');
 	INDEX++;
 	return cparse_redirections();
-    } else if (token_at_current(L"{") || token_at_current(L"!")) {
+    } else if (has_token(L"{") || has_token(L"!")) {
 	INDEX++;
 	return false;
-    } else if (token_at_current(L"if") || token_at_current(L"do")) {
+    } else if (has_token(L"if") || has_token(L"do")) {
 	INDEX += 2;
 	return false;
-    } else if (token_at_current(L"then") || token_at_current(L"else")
-	    || token_at_current(L"elif")) {
+    } else if (has_token(L"then") || has_token(L"else")
+	    || has_token(L"elif")) {
 	INDEX += 4;
 	return false;
-    } else if (token_at_current(L"while") || token_at_current(L"until")) {
+    } else if (has_token(L"while") || has_token(L"until")) {
 	INDEX += 5;
 	return false;
-    } else if (token_at_current(L"}")) {
+    } else if (has_token(L"}")) {
 	INDEX++;
 	return cparse_redirections();
-    } else if (token_at_current(L"fi")) {
+    } else if (has_token(L"fi")) {
 	INDEX += 2;
 	return cparse_redirections();
-    } else if (token_at_current(L"done") || token_at_current(L"esac")) {
+    } else if (has_token(L"done") || has_token(L"esac")) {
 	INDEX += 4;
 	return cparse_redirections();
-    } else if (token_at_current(L"for")) {
+    } else if (has_token(L"for")) {
 	return cparse_for_command();
-    } else if (token_at_current(L"case")) {
+    } else if (has_token(L"case")) {
 	return cparse_case_command();
-    } else if (!posixly_correct && token_at_current(L"function")) {
+    } else if (!posixly_correct && has_token(L"function")) {
 	return cparse_function_definition();
     } else {
 	return cparse_simple_command();
@@ -285,7 +289,7 @@ bool cparse_command(void)
 
 /* Returns true iff the specified word is at the current position (and it is not
  * at the end of the buffer). */
-bool token_at_current(const wchar_t *token)
+bool has_token(const wchar_t *token)
 {
     const wchar_t *c = matchwcsprefix(BUF + INDEX, token);
     return c != NULL && *c != L'\0' && is_token_delimiter_char(*c);
@@ -319,7 +323,7 @@ cparse_simple_command:
     for (;;) {
 	switch (BUF[INDEX]) {
 	    case L'\n':  case L';':  case L'&':  case L'|':
-	    case L'(':  case L')':
+	    case L'(':   case L')':
 		plfree(pl_toary(&pwords), free);
 		return false;
 	}
@@ -479,7 +483,7 @@ parse_inner:
  * There must be the "for" keyword at the current position. */
 bool cparse_for_command(void)
 {
-    assert(wcsncmp(BUF + INDEX, L"for", 3) == 0);
+    assert(wcsncmp(&BUF[INDEX], L"for", 3) == 0);
     INDEX += 3;
     skip_blanks();
     if (csubstitute_alias(0))
@@ -495,7 +499,7 @@ bool cparse_for_command(void)
     skip_blanks_and_newlines();
 
     /* parse "in" ... */
-    bool in = token_at_current(L"in");
+    bool in = has_token(L"in");
     if (in) {
 	plist_T pwords;
 	pl_init(&pwords);
@@ -528,7 +532,7 @@ bool cparse_for_command(void)
     }
 
     /* parse "do" ... */
-    if (token_at_current(L"do")) {
+    if (has_token(L"do")) {
 	INDEX += 2;
 	return false;
     }
@@ -550,15 +554,15 @@ bool cparse_for_command(void)
  * There must be the "case" keyword at the current position. */
 bool cparse_case_command(void)
 {
-    assert(wcsncmp(BUF + INDEX, L"case", 4) == 0);
+    assert(wcsncmp(&BUF[INDEX], L"case", 4) == 0);
     INDEX += 4;
     skip_blanks();
     if (csubstitute_alias(0))
 	skip_blanks();
 
     /* parse matched word */
-    wordunit_T *w = cparse_word(
-	    is_token_delimiter_char, TT_SINGLE, CTXT_NORMAL);
+    wordunit_T *w =
+	cparse_word(is_token_delimiter_char, TT_SINGLE, CTXT_NORMAL);
     if (w == NULL) {
 	empty_pwords();
 	return true;
@@ -567,7 +571,7 @@ bool cparse_case_command(void)
     skip_blanks_and_newlines();
 
     /* parse "in" */
-    if (token_at_current(L"in")) {
+    if (has_token(L"in")) {
 	INDEX += 2;
 	return false;
     }
@@ -588,7 +592,7 @@ bool cparse_case_command(void)
  * There must be the "function" keyword at the current position. */
 bool cparse_function_definition(void)
 {
-    assert(wcsncmp(BUF + INDEX, L"function", 8) == 0);
+    assert(wcsncmp(&BUF[INDEX], L"function", 8) == 0);
     INDEX += 8;
     skip_blanks();
 
@@ -629,7 +633,6 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
 /* Parses the word at the current position.
  * `skip_blanks' should be called before this function is called.
  * `testfunc' is a function that determines if a character is a word delimiter.
- * It must return true for L'\0'.
  * The `ctxttype' parameter is the context type of the word parsed.
  * If the word was completely parsed, the word is returned.
  * If the parser reached the end of the input string, the return value is NULL
@@ -654,14 +657,16 @@ cparse_word:
 	wordunit_T *w = xmalloc(sizeof *w);                            \
 	w->next = NULL;                                                \
 	w->wu_type = WT_STRING;                                        \
-	w->wu_string = xwcsndup(BUF + startindex, INDEX - startindex); \
+	w->wu_string = xwcsndup(&BUF[startindex], INDEX - startindex); \
 	*lastp = w, lastp = &w->next;                                  \
     } while (0)
 
-    while (indq ? (BUF[INDEX] != L'\0') : !testfunc(BUF[INDEX])) {
+    while (indq || !testfunc(BUF[INDEX])) {
 	wordunit_T *wu;
 
 	switch (BUF[INDEX]) {
+	case L'\0':
+	    goto done;
 	case L'\\':
 	    if (BUF[INDEX + 1] != L'\0') {
 		INDEX += 2;
@@ -699,11 +704,10 @@ cparse_word:
 	    continue;
 	case L'\'':
 	    if (!indq) {
-		do {
-		    INDEX++;
-		    if (BUF[INDEX] == L'\0')
-			goto end_single_quote;
-		} while (BUF[INDEX] != L'\'');
+		const wchar_t *end = wcschr(&BUF[INDEX + 1], L'\'');
+		if (end == NULL)
+		    goto end_single_quote;
+		INDEX = end - BUF;
 	    }
 	    break;
 	case L'"':
@@ -719,6 +723,7 @@ cparse_word:
 	}
 	INDEX++;
     }
+done:
     MAKE_WORDUNIT_STRING;
 
     if (BUF[INDEX] != L'\0') {
@@ -726,29 +731,19 @@ cparse_word:
 	return first;
     } else {
 	pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
-	pi->ctxt->type = ctxttype;
-	pi->ctxt->pwordc = 0;
-	pi->ctxt->pwords = NULL;
-	pi->ctxt->pattern = expand_single(first, tilde);
-	pi->ctxt->srcindex = srcindex;
-	wordfree(first);
-	return NULL;
+	goto finish;
     }
 
     /* if the word ends without a closing quote, add one */
 end_single_quote:;
-    xwcsbuf_T buf;
-    wb_init(&buf);
-    wb_cat(&buf, BUF + startindex);
-    wb_wccat(&buf, L'\'');
-
     wordunit_T *w = xmalloc(sizeof *w);
     w->next = NULL;
     w->wu_type = WT_STRING;
-    w->wu_string = wb_towcs(&buf);
+    w->wu_string = malloc_wprintf(L"%ls'", &BUF[startindex]);
     *lastp = w, lastp = &w->next;
 
     pi->ctxt->quote = QUOTE_SINGLE;
+finish:
     pi->ctxt->type = ctxttype;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
@@ -786,7 +781,7 @@ bool ctryparse_tilde(void)
     pi->ctxt->type = CTXT_TILDE;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
-    pi->ctxt->pattern = xwcsdup(BUF + INDEX + 1);
+    pi->ctxt->pattern = xwcsdup(&BUF[INDEX + 1]);
     pi->ctxt->srcindex = le_main_index - (LEN - (INDEX + 1));
     return true;
 }
@@ -847,7 +842,7 @@ wordunit_T *cparse_paramexp_raw(le_contexttype_T ctxttype)
 		    pi->ctxt->pwordc = 0;
 		    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
 		    pi->ctxt->pwords[0] = NULL;
-		    pi->ctxt->pattern = xwcsndup(BUF + INDEX + 1, namelen);
+		    pi->ctxt->pattern = xwcsndup(&BUF[INDEX + 1], namelen);
 		    pi->ctxt->srcindex = le_main_index - namelen;
 		    return NULL;
 		}
@@ -864,7 +859,7 @@ wordunit_T *cparse_paramexp_raw(le_contexttype_T ctxttype)
 	wu->wu_type = WT_PARAM;
 	wu->wu_param = xmalloc(sizeof *wu->wu_param);
 	wu->wu_param->pe_type = PT_MINUS;
-	wu->wu_param->pe_name = xwcsndup(BUF + INDEX + 1, namelen);
+	wu->wu_param->pe_name = xwcsndup(&BUF[INDEX + 1], namelen);
 	wu->wu_param->pe_start = wu->wu_param->pe_end =
 	wu->wu_param->pe_match = wu->wu_param->pe_subst = NULL;
     }
@@ -941,11 +936,11 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 	    pi->ctxt->pwordc = 0;
 	    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
-	    pi->ctxt->pattern = xwcsndup(BUF + INDEX, namelen);
+	    pi->ctxt->pattern = xwcsndup(&BUF[INDEX], namelen);
 	    pi->ctxt->srcindex = le_main_index - namelen;
 	    goto return_null;
 	}
-	pe->pe_name = xwcsndup(BUF + INDEX, namelen);
+	pe->pe_name = xwcsndup(&BUF[INDEX], namelen);
 	INDEX += namelen;
     }
 
@@ -970,8 +965,6 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 
     /* parse '-', '+', '#', etc. */
     switch (BUF[INDEX]) {
-	default:
-	    goto syntax_error;
 	case L'+':
 	    pe->pe_type |= PT_PLUS;
 	    goto parse_subst;
@@ -990,6 +983,8 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 	case L'}':
 	    pe->pe_type |= PT_NONE;
 	    goto check_closing_paren;
+	default:
+	    goto syntax_error;
     }
 
 parse_match:
@@ -1049,9 +1044,11 @@ check_closing_paren:
 	INDEX++;
 
     switch (pe->pe_type & PT_MASK) {
-	case PT_MINUS:  case PT_PLUS:
+	case PT_MINUS:
+	case PT_PLUS:
 	    break;
-	case PT_ASSIGN:  case PT_ERROR:
+	case PT_ASSIGN:
+	case PT_ERROR:
 	    assert(false);
 	default:
 	    if (pe->pe_type & PT_NEST)
@@ -1085,7 +1082,7 @@ syntax_error:
     result->next = NULL;
     result->wu_type = WT_STRING;
     result->wu_string = escapefree(
-	    xwcsndup(BUF + origindex, INDEX - origindex), NULL);
+	    xwcsndup(&BUF[origindex], INDEX - origindex), NULL);
     return result;
 
 return_null:
@@ -1103,7 +1100,7 @@ wordunit_T *cparse_arith(void)
     assert(BUF[INDEX    ] == L'$');
     assert(BUF[INDEX + 1] == L'(');
 
-    int nestparen = 0;
+    unsigned nestparen = 0;
     INDEX += 2;
     for (;;) {
 	if (BUF[INDEX] != L'\0' && is_arith_delimiter(BUF[INDEX])) {
@@ -1112,13 +1109,14 @@ wordunit_T *cparse_arith(void)
 		    nestparen++;
 		    break;
 		case L')':
-		    nestparen--;
-		    if (nestparen < 0)
+		    if (nestparen == 0)
 			goto return_content;
+		    nestparen--;
+		    break;
 	    }
 	} else {
-	    wordunit_T *w = cparse_word(
-		    is_arith_delimiter, TT_NONE, CTXT_ARITH);
+	    wordunit_T *w =
+		cparse_word(is_arith_delimiter, TT_NONE, CTXT_ARITH);
 	    if (w == NULL) {
 		empty_pwords();
 		return NULL;
@@ -1131,7 +1129,7 @@ return_content:;
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_STRING;
-    result->wu_string = xwcsndup(BUF + startindex, INDEX - startindex);
+    result->wu_string = xwcsndup(&BUF[startindex], INDEX - startindex);
     return result;
 }
 
@@ -1155,7 +1153,7 @@ wordunit_T *cparse_cmdsubst_in_paren(void)
 	wordunit_T *result = xmalloc(sizeof *result);
 	result->next = NULL;
 	result->wu_type = WT_STRING;
-	result->wu_string = xwcsndup(BUF + startindex, INDEX - startindex);
+	result->wu_string = xwcsndup(&BUF[startindex], INDEX - startindex);
 	return result;
     }
 }
@@ -1194,8 +1192,8 @@ return_content:
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_STRING;
-    result->wu_string = escapefree(
-	    xwcsndup(BUF + startindex, endindex - startindex), NULL);
+    result->wu_string =
+	escapefree(xwcsndup(&BUF[startindex], endindex - startindex), NULL);
     return result;
 }
 
@@ -1232,61 +1230,71 @@ bool is_arith_delimiter(wchar_t c)
  * Returns true iff expansion is unclosed. */
 bool remove_braceexpand(wchar_t *s)
 {
-    for (;;) switch (*s) {
-	case L'\0':
-	    return false;
-	case L'{':
-	    if (remove_braceexpand_inner(&s))
-		return true;
-	    break;
-	case L'\\':
-	    s++;
-	    if (*s != L'\0')
-		s++;
-	    break;
-	default:
-	    s++;
-	    break;
+    bool unclosed = false;
+    xwcsbuf_T buf;
+
+    wb_init(&buf);
+    wb_cat(&buf, s);
+
+    for (size_t i = 0; i < buf.length; ) {
+	switch (buf.contents[i]) {
+	    case L'{':
+		unclosed = remove_braceexpand_inner(&buf, &i);
+		break;
+	    case L'\\':
+		i += 2;
+		break;
+	    default:
+		i++;
+		break;
+	}
     }
+
+    assert(buf.length <= wcslen(s));
+    wmemcpy(s, buf.contents, buf.length + 1);
+    wb_destroy(&buf);
+
+    return unclosed;
 }
 
-bool remove_braceexpand_inner(wchar_t **const s)
+bool remove_braceexpand_inner(xwcsbuf_T *buf, size_t *index)
 {
     bool foundcomma = false;
-    wchar_t *lbrace = *s;
-    assert(*lbrace == L'{');
+    size_t i = *index;
+    size_t leftbraceindex = i;
+    assert(buf->contents[leftbraceindex] == L'{');
 
-    (*s)++;
-    for (;;) switch (**s) {
-	case L'\0':
-	    if (!foundcomma) {  /* remove left brace */
-		wmemmove(lbrace, lbrace + 1, wcslen(lbrace + 1) + 1);
-		(*s)--;
-	    }
-	    assert(**s == L'\0');
-	    return true;
+    i++;
+    while (i < buf->length) {
+	switch (buf->contents[i]) {
 	case L'{':
-	    remove_braceexpand_inner(s);
+	    remove_braceexpand_inner(buf, &i);
 	    break;
 	case L',':
 	    foundcomma = true;
-	    *s = wmemmove(lbrace, *s + 1, wcslen(*s + 1) + 1);
+	    wb_remove(buf, leftbraceindex, i - leftbraceindex + 1);
+	    i = leftbraceindex;
 	    break;
 	case L'}':
 	    if (foundcomma)  /* remove right brace */
-		wmemmove(*s, *s + 1, wcslen(*s + 1) + 1);
+		wb_remove(buf, i, 1);
 	    else
-		(*s)++;
+		i++;
+	    *index = i;
 	    return false;
 	case L'\\':
-	    (*s)++;
-	    if (**s != L'\0')
-		(*s)++;
+	    i += 2;
 	    break;
 	default:
-	    (*s)++;
+	    i++;
 	    break;
+	}
     }
+
+    if (!foundcomma)  /* remove left brace */
+	wb_remove(buf, leftbraceindex, 1);
+    *index = buf->length;
+    return true;
 }
 
 
