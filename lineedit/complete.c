@@ -105,6 +105,9 @@ extern void endhostent(void);
 #endif
 
 
+static void select_candidate(void selector(int offset), int offset)
+    __attribute__((nonnull));
+static void select_candidate_by_offset(int offset);
 static void free_candidate(void *c)
     __attribute__((nonnull));
 static void free_context(le_context_T *ctxt);
@@ -281,10 +284,13 @@ void lecr_longest_common_prefix(void)
     le_complete_cleanup();
 }
 
-/* Increases `le_selected_candidate_index' by `offset', selecting the `offset'th
- * next candidate. If there are no candidates, simply calls `le_complete' to
- * produce candidates. */
-void le_complete_select_candidate(int offset)
+/* Updates `le_selected_candidate_index' by calling `selector' with the argument
+ * `offset'. The `selector' function must update `le_selected_candidate_index'
+ * according to the given `offset'.
+ * The main buffer contents is also updated so that it contains the value of the
+ * new selected candidate.
+ * If there are no candidates, `le_complete' is called to produce candidates. */
+void select_candidate(void selector(int offset), int offset)
 {
     if (le_candidates.contents == NULL) {
 	le_complete(lecr_normal);
@@ -293,6 +299,20 @@ void le_complete_select_candidate(int offset)
 	return;
     }
 
+    selector(offset);
+    update_main_buffer(false, false);
+}
+
+/* Increases `le_selected_candidate_index' by `offset', selecting the `offset'th
+ * next candidate. If there are no candidates, simply calls `le_complete' to
+ * produce candidates. */
+void le_complete_select_candidate(int offset)
+{
+    select_candidate(select_candidate_by_offset, offset);
+}
+
+void select_candidate_by_offset(int offset)
+{
     assert(le_selected_candidate_index <= le_candidates.length);
     if (offset >= 0) {
 	offset %= le_candidates.length + 1;
@@ -306,8 +326,6 @@ void le_complete_select_candidate(int offset)
 	    le_selected_candidate_index += le_candidates.length - offset + 1;
     }
     assert(le_selected_candidate_index <= le_candidates.length);
-
-    update_main_buffer(false, false);
 }
 
 /* Selects the first candidate of the `offset'th next column.
@@ -315,15 +333,7 @@ void le_complete_select_candidate(int offset)
  */
 void le_complete_select_column(int offset)
 {
-    if (le_candidates.contents == NULL) {
-	le_complete(lecr_normal);
-	return;
-    } else if (le_candidates.length == 0) {
-	return;
-    }
-
-    le_selected_candidate_index = le_display_select_column(offset);
-    update_main_buffer(false, false);
+    select_candidate(le_display_select_column, offset);
 }
 
 /* Selects the first candidate of the `offset'th next page.
@@ -331,15 +341,7 @@ void le_complete_select_column(int offset)
  */
 void le_complete_select_page(int offset)
 {
-    if (le_candidates.contents == NULL) {
-	le_complete(lecr_normal);
-	return;
-    } else if (le_candidates.length == 0) {
-	return;
-    }
-
-    le_selected_candidate_index = le_display_select_page(offset);
-    update_main_buffer(false, false);
+    select_candidate(le_display_select_page, offset);
 }
 
 /* If `index' is not positive, performs completion and list candidates.

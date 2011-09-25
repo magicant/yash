@@ -1417,13 +1417,14 @@ int page_of_col_cmp(const void *colindexp, const void *pagep)
 	return 1;
 }
 
-/* Returns the index of the first candidate of the `offset'th next column,
- * counted from the column containing the currently selected candidate.
- * If `candcols' is empty, simply returns `le_selected_candidate_index'. */
-size_t le_display_select_column(int offset)
+/* Sets `le_selected_candidate_index' to the index of the first candidate of
+ * the `offset'th next column, counted from the column containing the currently
+ * selected candidate.
+ * If `candcols' is empty, `le_selected_candidate_index' is left unchanged. */
+void le_display_select_column(int offset)
 {
     if (candcols.contents == NULL)
-	return le_selected_candidate_index;
+	return;
 
     size_t colindex = le_selected_candidate_index < le_candidates.length
 	? col_of_cand(le_selected_candidate_index)
@@ -1432,16 +1433,17 @@ size_t le_display_select_column(int offset)
     colindex = select_list_item(colindex, offset, candcols.length);
 
     const candcol_T *col = candcols.contents[colindex];
-    return col->candindex;
+    le_selected_candidate_index = col->candindex;
 }
 
-/* Returns the index of the first candidate of the `offset'th next page, counted
- * from the page containing the currently selected candidate.
- * If `candpages' is empty, simply returns `le_selected_candidate_index'. */
-size_t le_display_select_page(int offset)
+/* Sets `le_selected_candidate_index' to the index of the first candidate of
+ * the `offset'th next page, counted from the page containing the currently
+ * selected candidate.
+ * If `candpages' is empty, `le_selected_candidate_index' is left unchanged. */
+void le_display_select_page(int offset)
 {
     if (candpages.contents == NULL)
-	return le_selected_candidate_index;
+	return;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
 	? page_of_col(col_of_cand(le_selected_candidate_index))
@@ -1451,7 +1453,7 @@ size_t le_display_select_page(int offset)
 
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *col = candcols.contents[page->colindex];
-    return col->candindex;
+    le_selected_candidate_index = col->candindex;
 }
 
 /* Computes `(index + offset) mod listsize'. */
