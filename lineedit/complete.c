@@ -153,6 +153,7 @@ static void word_completion(size_t count, ...)
 static size_t get_common_prefix_length(void)
     __attribute__((pure));
 static void update_main_buffer(bool subst, bool finish);
+static void insert_to_main_buffer(wchar_t c);
 static bool need_subst(void);
 static void substitute_source_word_all(void);
 static void quote(xwcsbuf_T *restrict buf,
@@ -344,7 +345,7 @@ void le_complete_select_page(int offset)
     select_candidate(le_display_select_page, offset);
 }
 
-/* If `index' is not positive, performs completion and list candidates.
+/* If `index' is not positive, performs completion and lists candidates.
  * Otherwise, substitutes the source word with the `index'th candidate and
  * cleans up.
  * Returns true iff the source word was successfully substituted. */
@@ -373,7 +374,7 @@ bool le_complete_fix_candidate(int index)
     if (!subst) {
 	const le_candidate_T *cand =
 	    le_candidates.contents[le_selected_candidate_index];
-	subst = !matchwcsprefix(cand->origvalue, ctxt->src);
+	subst = (matchwcsprefix(cand->origvalue, ctxt->src) == NULL);
     }
     update_main_buffer(subst, true);
     le_complete_cleanup();
@@ -415,7 +416,7 @@ void free_context(le_context_T *ctxt)
     }
 }
 
-/* Sorts the candidates in the candidate list and remove duplicates. */
+/* Sorts the candidates in the candidate list and removes duplicates. */
 void sort_candidates(void)
 {
     qsort(le_candidates.contents,
@@ -523,6 +524,9 @@ void print_context_info(const le_context_T *ctxt)
  * enabled. */
 void print_compopt_info(const le_compopt_T *compopt)
 {
+    if (!le_state_is_compdebug)
+	return;
+
     const char *INIT(s);
     le_compdebug("target word without prefix: \"%ls\"", compopt->src);
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
@@ -766,8 +770,8 @@ void generate_candidates(const le_compopt_T *compopt)
  * The ignored prefix in `ctxt->origsrc' is prepended to the candidate value.
  * A description for the candidate can be given as `desc', which may be NULL
  * when no description is provided.
- * Arguments `value' and `desc' must be a freeable string, which is used as the
- * candidate value/description.
+ * Arguments `value' and `desc' must be freeable strings, which are used as the
+ * candidate value and description, respectively.
  * This function must NOT be used for a CT_FILE candidate.
  * If `value' is NULL, this function does nothing (except freeing `desc'). */
 void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc,
@@ -822,24 +826,24 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     }
 
     cand->origvalue = wb_towcs(&buf);
-    cand->value = cand->origvalue + prefixlength;
+    cand->value = &cand->origvalue[prefixlength];
     cand->terminate = compopt->terminate && allowterminate;
 
     if (le_state_is_compdebug) {
 	const char *typestr = NULL;
 	switch (cand->type) {
-	    case CT_WORD:      typestr = "word";                       break;
-	    case CT_FILE:      typestr = "file";                       break;
-	    case CT_COMMAND:   typestr = "command";                    break;
-	    case CT_ALIAS:     typestr = "alias";                      break;
-	    case CT_OPTION:    typestr = "option";                     break;
-	    case CT_VAR:       typestr = "variable";                   break;
-	    case CT_JOB:       typestr = "job";                        break;
-	    case CT_SIG:       typestr = "signal";                     break;
-	    case CT_LOGNAME:   typestr = "user name";                  break;
-	    case CT_GRP:       typestr = "group name";                 break;
-	    case CT_HOSTNAME:  typestr = "host name";                  break;
-	    case CT_BINDKEY:   typestr = "lineedit command";           break;
+	    case CT_WORD:      typestr = "word";              break;
+	    case CT_FILE:      typestr = "file";              break;
+	    case CT_COMMAND:   typestr = "command";           break;
+	    case CT_ALIAS:     typestr = "alias";             break;
+	    case CT_OPTION:    typestr = "option";            break;
+	    case CT_VAR:       typestr = "variable";          break;
+	    case CT_JOB:       typestr = "job";               break;
+	    case CT_SIG:       typestr = "signal";            break;
+	    case CT_LOGNAME:   typestr = "user name";         break;
+	    case CT_GRP:       typestr = "group name";        break;
+	    case CT_HOSTNAME:  typestr = "host name";         break;
+	    case CT_BINDKEY:   typestr = "lineedit command";  break;
 	}
 	le_compdebug("new %s candidate \"%ls\"", typestr, cand->origvalue);
 	if (cand->desc != NULL)
@@ -1153,8 +1157,8 @@ void generate_candidates_from_words(
     if (!le_compile_cpatterns(compopt))
 	return;
 
-    for (; *words != NULL; words++) {
-	wchar_t *word = *words;
+    const wchar_t *word;
+    for (size_t i = 0; (word = words[i]) != NULL; i++) {
 	if (le_wmatch_comppatterns(compopt, word))
 	    le_new_candidate(type, xwcsdup(word),
 		    (description == NULL) ? NULL : xwcsdup(description),
@@ -1222,8 +1226,7 @@ size_t get_common_prefix_length(void)
 
     if (le_state_is_compdebug) {
 	wchar_t value[common_prefix_length + 1];
-	cand = le_candidates.contents[0];
-	wcsncpy(value, cand->origvalue, common_prefix_length);
+	wmemcpy(value, cand->origvalue, common_prefix_length);
 	value[common_prefix_length] = L'\0';
 	le_compdebug("candidate common prefix: \"%ls\"", value);
     }
@@ -1296,51 +1299,53 @@ void update_main_buffer(bool subst, bool finish)
 	case QUOTE_NORMAL:
 	    break;
 	case QUOTE_SINGLE:
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"'", 1);
-	    le_main_index += 1;
+	    insert_to_main_buffer(L'\'');
 	    break;
 	case QUOTE_DOUBLE:
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-	    le_main_index += 1;
+	    insert_to_main_buffer(L'"');
 	    break;
     }
 
-    if (finish) {
-	if (ctxt->type & CTXT_VBRACED) {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"}", 1);
-	    le_main_index += 1;
-	} else if (ctxt->type & CTXT_EBRACED) {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L",", 1);
-	    le_main_index += 1;
-	}
-	if (ctxt->type & CTXT_QUOTED) {
-	    wb_ninsert_force(&le_main_buffer, le_main_index, L"\"", 1);
-	    le_main_index += 1;
-	}
-	switch (ctxt->type & CTXT_MASK) {
-	    case CTXT_NORMAL:
-	    case CTXT_COMMAND:
-	    case CTXT_ARGUMENT:
-	    case CTXT_VAR:
-	    case CTXT_ARITH:
-	    case CTXT_ASSIGN:
-	    case CTXT_REDIR:
-	    case CTXT_REDIR_FD:
-	    case CTXT_FOR_IN:
-	    case CTXT_FOR_DO:
-	    case CTXT_CASE_IN:
-	    case CTXT_FUNCTION:
-		if (ctxt->type & (CTXT_EBRACED | CTXT_VBRACED))
-		    break;
-		wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
-		le_main_index += 1;
-		break;
-	    case CTXT_TILDE:
-		wb_ninsert_force(&le_main_buffer, le_main_index, L"/", 1);
-		le_main_index += 1;
-		break;
-	}
+    if (!finish)
+	return;
+
+    if (ctxt->type & CTXT_VBRACED) {
+	insert_to_main_buffer(L'}');
+	return;
+    } else if (ctxt->type & CTXT_EBRACED) {
+	insert_to_main_buffer(L',');
+	return;
     }
+    if (ctxt->type & CTXT_QUOTED) {
+	insert_to_main_buffer(L'"');
+    }
+    switch (ctxt->type & CTXT_MASK) {
+	case CTXT_NORMAL:
+	case CTXT_COMMAND:
+	case CTXT_ARGUMENT:
+	case CTXT_VAR:
+	case CTXT_ARITH:
+	case CTXT_ASSIGN:
+	case CTXT_REDIR:
+	case CTXT_REDIR_FD:
+	case CTXT_FOR_IN:
+	case CTXT_FOR_DO:
+	case CTXT_CASE_IN:
+	case CTXT_FUNCTION:
+	    insert_to_main_buffer(L' ');
+	    break;
+	case CTXT_TILDE:
+	    insert_to_main_buffer(L'/');
+	    break;
+    }
+}
+
+/* Inserts the specified character to the main buffer (`le_main_buffer') at the
+ * current index (`le_main_index'). The index is increased by 1. */
+void insert_to_main_buffer(wchar_t c)
+{
+    wb_ninsert_force(&le_main_buffer, le_main_index, &c, 1);
+    le_main_index += 1;
 }
 
 /* Determines whether the source word should be substituted even if
@@ -1351,7 +1356,7 @@ bool need_subst(void)
 {
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T *cand = le_candidates.contents[i];
-	if (!matchwcsprefix(cand->origvalue, ctxt->src))
+	if (matchwcsprefix(cand->origvalue, ctxt->src) == NULL)
 	    return true;
     }
     return false;
@@ -1373,17 +1378,16 @@ void substitute_source_word_all(void)
     for (size_t i = 0; i < le_candidates.length; i++) {
 	const le_candidate_T* cand = le_candidates.contents[i];
 
-	quote(wb_clear(&buf), cand->origvalue, QUOTE_NORMAL);
+	quote(&buf, cand->origvalue, QUOTE_NORMAL);
 	wb_wccat(&buf, L' ');
-	wb_ninsert_force(&le_main_buffer, le_main_index,
-		buf.contents, buf.length);
-	le_main_index += buf.length;
     }
+    wb_ninsert_force(&le_main_buffer, le_main_index, buf.contents, buf.length);
+    le_main_index += buf.length;
     wb_destroy(&buf);
 }
 
 /* Quotes characters in the specified string that are not treated literally
- * according to `quotetype'.
+ * in quotation mode `quotetype'.
  * The result is appended to the specified buffer, which must have been
  * initialized by the caller. */
 void quote(xwcsbuf_T *restrict buf,
@@ -1397,32 +1401,29 @@ void quote(xwcsbuf_T *restrict buf,
 	    wb_cat(buf, s);
 	    return;
 	case QUOTE_NORMAL:
-	    while (*s != L'\0') {
-		if (*s == L'\n') {
+	    for (size_t i = 0; s[i] != L'\0'; i++) {
+		if (s[i] == L'\n') {
 		    wb_ncat_force(buf, L"'\n'", 3);
 		} else {
-		    if (wcschr(quotechars, *s) || iswspace(*s))
+		    if (wcschr(quotechars, s[i]) != NULL || iswspace(s[i]))
 			wb_wccat(buf, L'\\');
-		    wb_wccat(buf, *s);
+		    wb_wccat(buf, s[i]);
 		}
-		s++;
 	    }
 	    return;
 	case QUOTE_SINGLE:
-	    while (*s != L'\0') {
-		if (*s != L'\'')
-		    wb_wccat(buf, *s);
+	    for (size_t i = 0; s[i] != L'\0'; i++) {
+		if (s[i] != L'\'')
+		    wb_wccat(buf, s[i]);
 		else
 		    wb_ncat_force(buf, L"'\\''", 4);
-		s++;
 	    }
 	    return;
 	case QUOTE_DOUBLE:
-	    while (*s != L'\0') {
-		if (wcschr(CHARS_ESCAPABLE, *s))
+	    for (size_t i = 0; s[i] != L'\0'; i++) {
+		if (wcschr(CHARS_ESCAPABLE, s[i]) != NULL)
 		    wb_wccat(buf, L'\\');
-		wb_wccat(buf, *s);
-		s++;
+		wb_wccat(buf, s[i]);
 	    }
 	    return;
     }
@@ -1597,7 +1598,7 @@ dupopterror:
 	goto finish;
     }
 
-    void *const *words = argv + xoptind;
+    void *const *words = &argv[xoptind];
 
     /* treat `prefix' */
     const wchar_t *src = ctxt->src, *pattern = ctxt->pattern;
