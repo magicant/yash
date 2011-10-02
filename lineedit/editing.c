@@ -57,7 +57,7 @@
 
 
 /* The type of pairs of a command and an argument. */
-struct command {
+struct le_command_T {
     le_command_func_T *func;
     wchar_t arg;
 };
@@ -93,10 +93,10 @@ static struct {
 } last_search;
 
 /* The last executed command and the currently executing command. */
-static struct command last_command, current_command;
+static struct le_command_T last_command, current_command;
 
 /* The type of motion expecting commands. */
-enum motion_expect_command {
+enum motion_expect_command_T {
     MEC_NONE       = 0,       /* just move the cursor */
     MEC_UPPERCASE  = 1 << 0,  /* convert the text to upper case */
     MEC_LOWERCASE  = 1 << 1,  /* convert the text to lower case */
@@ -117,9 +117,9 @@ enum motion_expect_command {
 };
 
 /* The keymap state. */
-static struct state {
+static struct state_T {
     struct {
-	/* When count is not specified, `sign' and `abs' is 0.
+	/* When count is not specified, `sign' and `abs' are 0.
 	 * Otherwise, `sign' is 1 or -1.
 	 * When the negative sign is specified but digits are not, `abs' is 0.*/
 	int sign;
@@ -127,20 +127,20 @@ static struct state {
 	int multiplier;
 #define COUNT_ABS_MAX 999999999
     } count;
-    enum motion_expect_command pending_command_motion;
+    enum motion_expect_command_T pending_command_motion;
     le_command_func_T *pending_command_char;
 } state;
 
 /* The last executed editing command and the then state.
  * Valid iff `.command.func' is non-null. */
 static struct {
-    struct command command;
-    struct state state;
+    struct le_command_T command;
+    struct state_T state;
 } last_edit_command;
 
 /* The last executed find/till command. */
 /* `last_find_command' is valid iff `.func' is non-null. */
-static struct command last_find_command;
+static struct le_command_T last_find_command;
 
 /* The editing mode before the mode is changed to LE_MODE_CHAR_EXPECT/SEARCH.
  * When the char-expecting/search command finishes, the mode is restored to
@@ -191,10 +191,10 @@ static void save_current_find_command(void);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t index, bool inclusive);
-static void set_motion_expect_command(enum motion_expect_command cmd);
+static void set_motion_expect_command(enum motion_expect_command_T cmd);
 static void exec_motion_expect_command(
-	enum motion_expect_command cmd, le_command_func_T motion);
-static void exec_motion_expect_command_line(enum motion_expect_command cmd);
+	enum motion_expect_command_T cmd, le_command_func_T motion);
+static void exec_motion_expect_command_line(enum motion_expect_command_T cmd);
 static void exec_motion_expect_command_all(void);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -492,7 +492,7 @@ void exec_motion_command(size_t index, bool inclusive)
     if (inclusive && end_index < le_main_buffer.length)
 	end_index++;
 
-    enum motion_expect_command mec = state.pending_command_motion;
+    enum motion_expect_command_T mec = state.pending_command_motion;
     if (mec == MEC_NONE) {
 	le_main_index = index;
     } else {
@@ -536,7 +536,7 @@ void exec_motion_command(size_t index, bool inclusive)
 /* Sets the specified motion expecting command as pending.
  * If the command is already pending, the command is executed on the whole
  * line. */
-void set_motion_expect_command(enum motion_expect_command cmd)
+void set_motion_expect_command(enum motion_expect_command_T cmd)
 {
     if (state.pending_command_motion == MEC_NONE) {
 	state.count.multiplier = get_count(1);
@@ -554,7 +554,7 @@ void set_motion_expect_command(enum motion_expect_command cmd)
 /* Executes the specified motion expecting command with the specified motion
  * command. */
 void exec_motion_expect_command(
-	enum motion_expect_command cmd, le_command_func_T motion)
+	enum motion_expect_command_T cmd, le_command_func_T motion)
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
@@ -564,7 +564,7 @@ void exec_motion_expect_command(
 
 /* Executes the specified motion expecting command from the beginning to the end
  * of the line. */
-void exec_motion_expect_command_line(enum motion_expect_command cmd)
+void exec_motion_expect_command_line(enum motion_expect_command_T cmd)
 {
     if (current_command.func != cmd_redo)
 	ALERT_AND_RETURN_IF_PENDING;
@@ -577,7 +577,7 @@ void exec_motion_expect_command_line(enum motion_expect_command cmd)
 void exec_motion_expect_command_all(void)
 {
     size_t save_index = le_main_index;
-    enum motion_expect_command save_pending = state.pending_command_motion;
+    enum motion_expect_command_T save_pending = state.pending_command_motion;
 
     le_main_index = 0;
     cmd_end_of_line(L'\0');
@@ -1717,7 +1717,7 @@ void cmd_refind_char_rev(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_delete_char(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_forward_char);
@@ -1728,7 +1728,7 @@ void cmd_delete_char(wchar_t c __attribute__((unused)))
  * If the cursor is at the end of the line, the terminal is alerted. */
 void cmd_delete_bigword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_forward_bigword);
@@ -1739,7 +1739,7 @@ void cmd_delete_bigword(wchar_t c __attribute__((unused)))
  * If the cursor is at the end of the line, the terminal is alerted. */
 void cmd_delete_semiword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_forward_semiword);
@@ -1750,7 +1750,7 @@ void cmd_delete_semiword(wchar_t c __attribute__((unused)))
  * If the cursor is at the end of the line, the terminal is alerted. */
 void cmd_delete_viword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_forward_viword);
@@ -1761,7 +1761,7 @@ void cmd_delete_viword(wchar_t c __attribute__((unused)))
  * If the cursor is at the end of the line, the terminal is alerted. */
 void cmd_delete_emacsword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_forward_emacsword);
@@ -1771,7 +1771,7 @@ void cmd_delete_emacsword(wchar_t c __attribute__((unused)))
  * If the count is set, `count' characters are killed. */
 void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_char);
@@ -1782,7 +1782,7 @@ void cmd_backward_delete_char(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_bigword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_bigword);
@@ -1793,7 +1793,7 @@ void cmd_backward_delete_bigword(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_semiword);
@@ -1804,7 +1804,7 @@ void cmd_backward_delete_semiword(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_viword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_viword);
@@ -1815,7 +1815,7 @@ void cmd_backward_delete_viword(wchar_t c __attribute__((unused)))
  * If the cursor is at the beginning of the line, the terminal is alerted. */
 void cmd_backward_delete_emacsword(wchar_t c __attribute__((unused)))
 {
-    enum motion_expect_command cmd;
+    enum motion_expect_command_T cmd;
 
     cmd = (state.count.sign == 0) ? MEC_DELETE : MEC_KILL;
     exec_motion_expect_command(cmd, cmd_backward_emacsword);
