@@ -120,8 +120,6 @@ static void print_compopt_info(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 static void execute_completion_function(void);
-static bool autoload_completion_function(void);
-static bool call_standard_completion_function(void);
 static void complete_command_default(void);
 
 static void simple_completion(le_candgentype_T type);
@@ -548,8 +546,9 @@ void print_compopt_info(const le_compopt_T *compopt)
 /* name of the file that is autoloaded in the first completion */
 #define INIT_COMPFILE "completion/INIT"
 
-/* default completion function name */
-#define DEFAULT_COMPFUNC "completion//default"
+/* completion function names */
+#define COMMAND_COMPFUNC  "completion//command"
+#define ARGUMENT_COMPFUNC "completion//argument"
 
 /* Loads and executes completion function to generate candidates. */
 void execute_completion_function(void)
@@ -567,16 +566,12 @@ void execute_completion_function(void)
 	    simple_completion(CGT_FILE);
 	    break;
 	case CTXT_COMMAND:
-	    if (!call_completion_function(L"" DEFAULT_COMPFUNC))
+	    if (!call_completion_function(L"" COMMAND_COMPFUNC))
 		complete_command_default();
 	    break;
 	case CTXT_ARGUMENT:
-	    if (!call_standard_completion_function()) {
-		if (autoload_completion_function())
-		    call_standard_completion_function();
-		else if (!call_completion_function(L"" DEFAULT_COMPFUNC))
-		    simple_completion(CGT_FILE);
-	    }
+	    if (!call_completion_function(L"" ARGUMENT_COMPFUNC))
+		simple_completion(CGT_FILE);
 	    break;
 	case CTXT_TILDE:
 	    simple_completion(CGT_LOGNAME);
@@ -603,70 +598,6 @@ void execute_completion_function(void)
 	    break;
     }
 
-}
-
-/* Define the completion function by autoloading "completion/<ctxt->pwords[0]>".
- * Returns true if a file is autoloaded. */
-bool autoload_completion_function(void)
-{
-    const wchar_t *cmdname = ctxt->pwords[0];
-    if (cmdname == NULL)
-	/* We're completing the command name so there's nothing to autoload */
-	return false;
-
-    xwcsbuf_T filename;
-    wb_init(&filename);
-    wb_cat(&filename, L"completion/");
-    wb_cat(&filename, cmdname);
-
-    bool ok = autoload_completion_function_file(filename.contents, cmdname);
-    if (!ok) {
-	/* try the filename without the directory components */
-	const wchar_t *newcmdname = wcsrchr(cmdname, L'/');
-	if (newcmdname != NULL && *++newcmdname != L'\0') {
-	    wb_clear(&filename);
-	    wb_cat(&filename, L"completion/");
-	    wb_cat(&filename, newcmdname);
-	    ok = autoload_completion_function_file(filename.contents, cmdname);
-	}
-    }
-
-    wb_destroy(&filename);
-
-    return ok;
-}
-
-/* Calls standard completion function to generate candidates.
- * If a function whose name is "completion/<ctxt->pwords[0]>" has been defined,
- * that function is called with no arguments.
- * Returns false if the function has not been defined. */
-bool call_standard_completion_function(void)
-{
-    const wchar_t *cmdname = ctxt->pwords[0];
-    if (cmdname == NULL)
-	/* We're completing the command name so there's no standard function */
-	return false;
-
-    xwcsbuf_T funcname;
-    wb_init(&funcname);
-    wb_cat(&funcname, L"completion/");
-    wb_cat(&funcname, cmdname);
-
-    bool ok = call_completion_function(funcname.contents);
-    if (!ok) {
-	/* try the function name without the directory components */
-	cmdname = wcsrchr(cmdname, L'/');
-	if (cmdname != NULL && *++cmdname != L'\0') {
-	    wb_clear(&funcname);
-	    wb_cat(&funcname, L"completion/");
-	    wb_cat(&funcname, cmdname);
-	    ok = call_completion_function(funcname.contents);
-	}
-    }
-
-    wb_destroy(&funcname);
-
-    return ok;
 }
 
 /* Sets special local variables $WORDS and $TARGETWORD in the current variable
@@ -705,13 +636,13 @@ void complete_command_default(void)
 
     compopt.suffix = NULL;
     compopt.terminate = true;
-    if (wcschr(ctxt->src, L'/')) {
+    if (wcschr(ctxt->src, L'/') != NULL) {
 	// pattern1.next = NULL;
 	compopt.type = CGT_EXECUTABLE;
     } else {
 	pattern1.next = &pattern2;
 	compopt.type = CGT_COMMAND;
-	if (ctxt->quote == QUOTE_NORMAL && !wcschr(ctxt->pattern, L'\\'))
+	if (ctxt->quote == QUOTE_NORMAL && wcschr(ctxt->pattern, L'\\') != NULL)
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
     print_compopt_info(&compopt);

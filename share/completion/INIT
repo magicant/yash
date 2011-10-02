@@ -1,8 +1,16 @@
-# (C) 2010 magicant
+# (C) 2010-2011 magicant
 
 # This file is autoloaded when completion is first performed by the shell.
 # This file contains utility functions that are commonly used by many
 # completion functions.
+
+
+# This is the function that is called when completing a command argument.
+if ! command -vf completion//argument >/dev/null 2>&1; then
+	function completion//argument {
+		command -f completion//reexecute
+	}
+fi
 
 
 # This function parses array $WORDS and variable $TARGETWORD according to array
@@ -521,8 +529,9 @@ function completion//reexecute {
 
 	# if there's no words, complete the command name
 	if [ ${WORDS[#]} -le 0 ]; then
-		if command -vf completion//default >/dev/null 2>&1; then
-			command -f completion//default
+		if command -vf completion//command >/dev/null 2>&1; then
+			unset opt OPTIND extonly
+			command -f completion//command
 		else
 			complete -T -S / -d
 			case $TARGETWORD in
@@ -542,28 +551,30 @@ function completion//reexecute {
 	fi
 
 	if [ $OPTIND -le $# ]; then
-		typeset cmd="${@[OPTIND]}"
+		set -- "${@[OPTIND]}"
 	else
-		typeset cmd="${WORDS[1]}"
+		set -- "${WORDS[1]}"
 	fi
 
+	unset opt OPTIND extonly
+
 	# load the function if not yet loaded, and call the function
-	if command -vf "completion/$cmd" >/dev/null 2>&1; then
-		command -f "completion/$cmd"
-	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
-		command -f "completion/${cmd##*/}"
-	elif . -AL "completion/$cmd" 2>/dev/null
-			command -vf "completion/$cmd" >/dev/null 2>&1; then
-		command -f "completion/$cmd"
-	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
-		command -f "completion/${cmd##*/}"
-	elif . -AL "completion/${cmd##*/}" 2>/dev/null
-			command -vf "completion/$cmd" >/dev/null 2>&1; then
-		command -f "completion/$cmd"
-	elif command -vf "completion/${cmd##*/}" >/dev/null 2>&1; then
-		command -f "completion/${cmd##*/}"
-	elif command -vf completion//default >/dev/null 2>&1; then
-		command -f completion//default
+	if command -vf "completion/$1" >/dev/null 2>&1; then
+		command -f "completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		command -f "completion/${1##*/}"
+	elif . -AL "completion/$1" 2>/dev/null
+			command -vf "completion/$1" >/dev/null 2>&1; then
+		command -f "completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		command -f "completion/${1##*/}"
+	elif . -AL "completion/${1##*/}" 2>/dev/null
+			command -vf "completion/$1" >/dev/null 2>&1; then
+		command -f "completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		command -f "completion/${1##*/}"
+	elif command -vf completion//argument >/dev/null 2>&1; then
+		command -f completion//argument
 	else
 		complete -f
 	fi
@@ -572,10 +583,12 @@ function completion//reexecute {
 
 
 # The completion function for the "." built-in
-function completion/. {
+if ! command -vf completion/. >/dev/null 2>&1; then
+	function completion/. {
 	# load the "_dot" file and call the "completion/." function in it
-	. -AL completion/_dot && command -f completion/. "$@"
-}
+		. -AL completion/_dot && command -f completion/. "$@"
+	}
+fi
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
