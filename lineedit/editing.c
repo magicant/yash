@@ -97,27 +97,28 @@ static struct le_command_T last_command, current_command;
 
 /* The type of motion expecting commands. */
 enum motion_expect_command_T {
-    MEC_NONE       = 0,       /* just move the cursor */
     MEC_UPPERCASE  = 1 << 0,  /* convert the text to upper case */
     MEC_LOWERCASE  = 1 << 1,  /* convert the text to lower case */
-    MEC_SWITCHCASE = 1 << 2,  /* switch case of the text */
-    MEC_COPY       = 1 << 3,  /* copy the text to the kill ring */
-    MEC_TOSTART    = 1 << 4,  /* move cursor to the beginning of the region. */
-    MEC_TOEND      = 1 << 5,  /* move cursor to the end of the region. */
-    MEC_DELETE     = 1 << 6,  /* delete the text */
-    MEC_INSERT     = 1 << 7,  /* go to insert mode */
-    MEC_KILL       = MEC_COPY   | MEC_DELETE,
-    MEC_CHANGE     = MEC_DELETE | MEC_INSERT,
-    MEC_COPYCHANGE = MEC_KILL   | MEC_INSERT,
-    /* MEC_UPPERCASE, MEC_LOWERCASE and MEC_SWITCHCASE are mutually exclusive.
-     * If neither MEC_TOSTART nor MEC_TOEND is specified, the cursor is not
-     * moved unless MEC_DELETE is specified. If both MEC_TOSTART and MEC_TOEND
-     * are specified, the cursor is moved to the end point of the motion (just
-     * like MEC_NONE). */
+    MEC_SWITCHCASE = MEC_UPPERCASE | MEC_LOWERCASE,  /* switch case of text */
+    MEC_CASEMASK   = MEC_SWITCHCASE,
+
+    MEC_TOSTART    = 1 << 2,  /* move cursor to the beginning of the region */
+    MEC_TOEND      = 1 << 3,  /* move cursor to the end of the region */
+    MEC_MOVE       = MEC_TOSTART | MEC_TOEND,  /* move cursor to motion end */
+    MEC_CURSORMASK = MEC_MOVE,
+    /* If none of MEC_TOSTART, MEC_TOEND, and MEC_MOVE is specified, the cursor
+     * is not moved unless MEC_DELETE is specified. */
+
+    MEC_COPY       = 1 << 4,  /* copy the text to the kill ring */
+    MEC_DELETE     = 1 << 5,  /* delete the text */
+    MEC_INSERT     = 1 << 6,  /* go to insert mode */
+    MEC_KILL       = MEC_COPY    | MEC_DELETE,
+    MEC_CHANGE     = MEC_DELETE  | MEC_INSERT,
+    MEC_COPYCHANGE = MEC_KILL    | MEC_INSERT,
 };
 
-/* The keymap state. */
-static struct state_T {
+/* The state in which a command is executed. */
+struct state_T {
     struct {
 	/* When count is not specified, `sign' and `abs' are 0.
 	 * Otherwise, `sign' is 1 or -1.
@@ -125,11 +126,14 @@ static struct state_T {
 	int sign;
 	unsigned abs;
 	int multiplier;
-#define COUNT_ABS_MAX 999999999
     } count;
     enum motion_expect_command_T pending_command_motion;
     le_command_func_T *pending_command_char;
-} state;
+};
+#define COUNT_ABS_MAX 999999999
+
+/* The current state. */
+static struct state_T state;
 
 /* The last executed editing command and the then state.
  * Valid iff `.command.func' is non-null. */
@@ -148,7 +152,7 @@ static struct le_command_T last_find_command;
 static le_mode_id_T savemode;
 
 /* If true, characters are overwritten rather than inserted. */
-static bool overwrite = false;
+static bool overwrite;
 
 /* History of the edit line between editing commands. */
 static plist_T undo_history;
@@ -294,7 +298,7 @@ static inline bool beginning_search_check_go_to_history(const wchar_t *prefix)
     __attribute__((nonnull,pure));
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
-    do if (state.pending_command_motion != MEC_NONE)    \
+    do if (state.pending_command_motion != MEC_MOVE)    \
 	{ cmd_alert(L'\0'); return; }                   \
     while (0)
 
@@ -370,7 +374,7 @@ void reset_state(void)
     state.count.sign = 0;
     state.count.abs = 0;
     state.count.multiplier = 1;
-    state.pending_command_motion = MEC_NONE;
+    state.pending_command_motion = MEC_MOVE;
     state.pending_command_char = 0;
 }
 
@@ -426,8 +430,8 @@ void save_undo_history(void)
 	free(undo_history.contents[i]);
     pl_remove(&undo_history, undo_index, SIZE_MAX);
 
-    struct undo_history *e = xmalloc(sizeof *e +
-	    (le_main_buffer.length + 1) * sizeof *e->contents);
+    struct undo_history *e =
+	xmallocs(sizeof *e, le_main_buffer.length + 1, sizeof *e->contents);
     e->index = le_main_index;
     wcscpy(e->contents, le_main_buffer.contents);
     pl_add(&undo_history, e);
@@ -440,12 +444,16 @@ void save_undo_history(void)
 void maybe_save_undo_history(void)
 {
     assert(undo_index <= undo_history.length);
+
     size_t save_undo_save_index = undo_save_index;
     undo_save_index = le_main_index;
+
     if (undo_history_entry == main_history_entry) {
 	if (undo_index < undo_history.length) {
 	    struct undo_history *h = undo_history.contents[undo_index];
 	    if (wcscmp(le_main_buffer.contents, h->contents) == 0) {
+		/* The contents of the main buffer is the same as saved in the
+		 * history. Just save the index. */
 		h->index = le_main_index;
 		return;
 	    }
@@ -461,8 +469,8 @@ void maybe_save_undo_history(void)
 	 * contents. */
 	struct undo_history *h;
 	pl_clear(&undo_history, free);
-	h = xmalloc(sizeof *h +
-		(wcslen(main_history_value) + 1) * sizeof *h->contents);
+	h = xmallocs(sizeof *h,
+		wcslen(main_history_value) + 1, sizeof *h->contents);
 	assert(save_undo_save_index <= wcslen(main_history_value));
 	h->index = save_undo_save_index;
 	wcscpy(h->contents, main_history_value);
@@ -493,42 +501,42 @@ void exec_motion_command(size_t index, bool inclusive)
 	end_index++;
 
     enum motion_expect_command_T mec = state.pending_command_motion;
-    if (mec == MEC_NONE) {
-	le_main_index = index;
-    } else {
-	if (mec & MEC_UPPERCASE) {
-	    to_upper_case(le_main_buffer.contents + start_index,
+    switch (mec & MEC_CASEMASK) {
+	case MEC_UPPERCASE:
+	    to_upper_case(&le_main_buffer.contents[start_index],
 		    end_index - start_index);
-	} else if (mec & MEC_LOWERCASE) {
-	    to_lower_case(le_main_buffer.contents + start_index,
+	    break;
+	case MEC_LOWERCASE:
+	    to_lower_case(&le_main_buffer.contents[start_index],
 		    end_index - start_index);
-	} else if (mec & MEC_SWITCHCASE) {
-	    switch_case(le_main_buffer.contents + start_index,
+	    break;
+	case MEC_SWITCHCASE:
+	    switch_case(&le_main_buffer.contents[start_index],
 		    end_index - start_index);
+	    break;
+    }
+    if (mec & MEC_COPY) {
+	add_to_kill_ring(&le_main_buffer.contents[start_index],
+		end_index - start_index);
+    }
+    switch (mec & MEC_CURSORMASK) {
+	case MEC_TOSTART:  le_main_index = start_index;  break;
+	case MEC_TOEND:    le_main_index = end_index;    break;
+	case MEC_MOVE:     le_main_index = index;        break;
+    }
+    if (mec & MEC_DELETE) {
+	if (overwrite && index < le_main_index) {
+	    le_main_index = index;
+	} else {
+	    save_current_edit_command();
+	    wb_remove(&le_main_buffer,
+		    start_index, end_index - start_index);
+	    le_main_index = start_index;
 	}
-	if (mec & MEC_COPY) {
-	    add_to_kill_ring(le_main_buffer.contents + start_index,
-		    end_index - start_index);
-	}
-	switch (mec & (MEC_TOSTART | MEC_TOEND)) {
-	    case MEC_TOSTART:             le_main_index = start_index;  break;
-	    case MEC_TOEND:               le_main_index = end_index;    break;
-	    case MEC_TOSTART | MEC_TOEND: le_main_index = index;        break;
-	}
-	if (mec & MEC_DELETE) {
-	    if (overwrite && index < le_main_index) {
-		le_main_index = index;
-	    } else {
-		save_current_edit_command();
-		wb_remove(&le_main_buffer,
-			start_index, end_index - start_index);
-		le_main_index = start_index;
-	    }
-	}
-	if (mec & MEC_INSERT) {
-	    le_set_mode(LE_MODE_VI_INSERT);
-	    overwrite = false;
-	}
+    }
+    if (mec & MEC_INSERT) {
+	le_set_mode(LE_MODE_VI_INSERT);
+	overwrite = false;
     }
     reset_state();
 }
@@ -538,7 +546,7 @@ void exec_motion_command(size_t index, bool inclusive)
  * line. */
 void set_motion_expect_command(enum motion_expect_command_T cmd)
 {
-    if (state.pending_command_motion == MEC_NONE) {
+    if (state.pending_command_motion == MEC_MOVE) {
 	state.count.multiplier = get_count(1);
 	state.count.sign = 0;
 	state.count.abs = 0;
@@ -581,7 +589,7 @@ void exec_motion_expect_command_all(void)
 
     le_main_index = 0;
     cmd_end_of_line(L'\0');
-    if (!(save_pending & (MEC_DELETE | MEC_TOSTART | MEC_TOEND)))
+    if (!(save_pending & (MEC_DELETE | MEC_MOVE)))
 	le_main_index = save_index;
 }
 
@@ -596,7 +604,7 @@ void add_to_kill_ring(const wchar_t *s, size_t n)
     }
 }
 
-/* Sets the editing mode to "char expects" and the pending command to `cmd'.
+/* Sets the editing mode to "char expect" and the pending command to `cmd'.
  * The current editing mode is saved in `savemode'. */
 void set_char_expect_command(le_command_func_T cmd)
 {
@@ -910,7 +918,7 @@ bool alert_if_first(void)
 bool alert_if_last(void)
 {
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND) {
-	if (state.pending_command_motion != MEC_NONE)
+	if (state.pending_command_motion != MEC_MOVE)
 	    return false;
 	if (le_main_buffer.length > 0
 		&& le_main_index < le_main_buffer.length - 1)
@@ -2759,7 +2767,7 @@ void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
 void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
 {
     //ALERT_AND_RETURN_IF_PENDING;
-    if (state.pending_command_motion != MEC_NONE || le_main_index == 0)
+    if (state.pending_command_motion != MEC_MOVE || le_main_index == 0)
 	goto error;
     maybe_save_undo_history();
     if (state.count.sign == 0
@@ -2814,7 +2822,7 @@ error:
  * cursor. */
 void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
 {
-    if (state.pending_command_motion != MEC_NONE || le_main_index == 0)
+    if (state.pending_command_motion != MEC_MOVE || le_main_index == 0)
 	goto error;
     maybe_save_undo_history();
 
