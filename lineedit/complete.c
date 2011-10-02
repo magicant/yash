@@ -642,7 +642,7 @@ void complete_command_default(void)
     } else {
 	pattern1.next = &pattern2;
 	compopt.type = CGT_COMMAND;
-	if (ctxt->quote == QUOTE_NORMAL && wcschr(ctxt->pattern, L'\\') != NULL)
+	if (ctxt->quote == QUOTE_NORMAL && wcschr(ctxt->pattern, L'\\') == NULL)
 	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
     print_compopt_info(&compopt);
