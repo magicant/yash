@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.h: main editing module */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2011 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@
 extern xwcsbuf_T le_main_buffer;
 extern size_t le_main_index;
 
-enum le_search_direction { FORWARD, BACKWARD, };
+enum le_search_direction_T { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
  * BACKWARD: find the newest candidate from the ones older than the current */
-enum le_search_type { SEARCH_PREFIX, SEARCH_VI, SEARCH_EMACS, };
+enum le_search_type_T { SEARCH_PREFIX, SEARCH_VI, SEARCH_EMACS, };
 
-extern enum le_search_direction le_search_direction;
-extern enum le_search_type le_search_type;
+extern enum le_search_direction_T le_search_direction;
+extern enum le_search_type_T le_search_type;
 extern xwcsbuf_T le_search_buffer;
 extern const struct histlink_T *le_search_result;
 

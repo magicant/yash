@@ -76,9 +76,9 @@ static const histlink_T *main_history_entry;
 static wchar_t *main_history_value;
 
 /* The direction of currently performed command history search. */
-enum le_search_direction le_search_direction;
+enum le_search_direction_T le_search_direction;
 /* The type of currently performed command history search. */
-enum le_search_type le_search_type;
+enum le_search_type_T le_search_type;
 /* Supplementary buffer used in command history search.
  * When search is not being performed, `le_search_buffer.contents' is NULL. */
 xwcsbuf_T le_search_buffer;
@@ -87,8 +87,8 @@ xwcsbuf_T le_search_buffer;
 const histlink_T *le_search_result;
 /* The search string and the direction of the last search. */
 static struct {
-    enum le_search_direction direction;
-    enum le_search_type type;
+    enum le_search_direction_T direction;
+    enum le_search_type_T type;
     wchar_t *value;
 } last_search;
 
@@ -200,7 +200,7 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
 static void set_char_expect_command(le_command_func_T cmd)
     __attribute__((nonnull));
-static void set_search_mode(le_mode_id_T mode, enum le_search_direction dir);
+static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir);
 static void to_upper_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
 static void to_lower_case(wchar_t *s, size_t n)
@@ -276,20 +276,20 @@ static void replace_horizontal_space(bool deleteafter, const wchar_t *s)
     __attribute__((nonnull));
 
 static void go_to_history_absolute(
-	const histlink_T *l, enum le_search_type curpos)
+	const histlink_T *l, enum le_search_type_T curpos)
     __attribute__((nonnull));
-static void go_to_history_relative(int offset, enum le_search_type curpos);
-static void go_to_history(const histlink_T *l, enum le_search_type curpos)
+static void go_to_history_relative(int offset, enum le_search_type_T curpos);
+static void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
     __attribute__((nonnull));
 
 static bool need_update_last_search_value(void)
     __attribute__((pure));
 static void update_search(void);
 static void perform_search(const wchar_t *pattern,
-	enum le_search_direction dir, enum le_search_type type)
+	enum le_search_direction_T dir, enum le_search_type_T type)
     __attribute__((nonnull));
-static void search_again(enum le_search_direction dir);
-static void beginning_search(enum le_search_direction dir);
+static void search_again(enum le_search_direction_T dir);
+static void beginning_search(enum le_search_direction_T dir);
 static inline bool beginning_search_check_go_to_history(const wchar_t *prefix)
     __attribute__((nonnull,pure));
 
@@ -609,7 +609,7 @@ void set_char_expect_command(le_command_func_T cmd)
  * the specified direction `dir'. `mode' must be either LE_MODE_VI_SEARCH or
  * LE_MODE_EMACS_SEARCH.
  * The current editing mode is saved in `savemode'. */
-void set_search_mode(le_mode_id_T mode, enum le_search_direction dir)
+void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir)
 {
     le_complete_cleanup();
 
@@ -3074,7 +3074,7 @@ void cmd_return_history_eol(wchar_t c __attribute__((unused)))
  * If the count is specified, goes to the history entry whose number is count.
  * If the specified entry is not found, the terminal is alerted.
  * See `go_to_history' for the meaning of `curpos'. */
-void go_to_history_absolute(const histlink_T *l, enum le_search_type curpos)
+void go_to_history_absolute(const histlink_T *l, enum le_search_type_T curpos)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -3148,7 +3148,7 @@ void cmd_prev_history_eol(wchar_t c __attribute__((unused)))
 
 /* Goes to the `offset'th next history entry.
  * See `go_to_history' for the meaning of `curpos'. */
-void go_to_history_relative(int offset, enum le_search_type curpos)
+void go_to_history_relative(int offset, enum le_search_type_T curpos)
 {
     const histlink_T *l = main_history_entry;
     if (offset > 0) {
@@ -3178,7 +3178,7 @@ alert:
  *  SEARCH_PREFIX: the current position (unless it exceeds the buffer length)
  *  SEARCH_VI:     the beginning of the buffer
  *  SEARCH_EMACS:  the end of the buffer */
-void go_to_history(const histlink_T *l, enum le_search_type curpos)
+void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
 {
     maybe_save_undo_history();
 
@@ -3382,7 +3382,7 @@ done:
 /* Performs history search with the given parameters and updates the result
  * candidate. */
 void perform_search(const wchar_t *pattern,
-	enum le_search_direction dir, enum le_search_type type)
+	enum le_search_direction_T dir, enum le_search_type_T type)
 {
     const histlink_T *l = main_history_entry;
     xfnmatch_T *xfnm;
@@ -3469,7 +3469,7 @@ void cmd_search_again_backward(wchar_t c __attribute__((unused)))
 /* Performs command search for the last search pattern in the specified
  * direction. If the count is set, re-search `count' times. If the count is
  * negative, search in the opposite direction. */
-void search_again(enum le_search_direction dir)
+void search_again(enum le_search_direction_T dir)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
@@ -3518,7 +3518,7 @@ void cmd_beginning_search_backward(wchar_t c __attribute__((unused)))
 /* Searches the history in the specified direction for an entry that has a
  * common prefix with the current buffer contents. The "prefix" is the first
  * `le_main_index' characters of the buffer. */
-void beginning_search(enum le_search_direction dir)
+void beginning_search(enum le_search_direction_T dir)
 {
     ALERT_AND_RETURN_IF_PENDING;
 
