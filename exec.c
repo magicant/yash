@@ -1322,8 +1322,12 @@ void exec_function_body(
 
     open_new_environment(false);
     set_positional_parameters(args);
+#if YASH_ENABLE_LINEEDIT
     if (complete)
 	set_completion_variables();
+#else
+    (void) complete;
+#endif
     exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
     if (execstate.exception == E_RETURN)
 	execstate.exception = E_NONE;
