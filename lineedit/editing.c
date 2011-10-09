@@ -743,7 +743,8 @@ void cmd_bol_or_digit(wchar_t c)
 }
 
 /* Accepts the current line.
- * `le_editstate' is set to LE_EDITSTATE_DONE to induce lineedit to terminate.
+ * `le_editstate' is set to LE_EDITSTATE_DONE to induce line-editing to
+ * terminate.
  * If history search is currently active, the search result is accepted. If the
  * search was failing, the line is not accepted. */
 void cmd_accept_line(wchar_t c __attribute__((unused)))
@@ -761,7 +762,7 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
 }
 
 /* Aborts the current line.
- * `le_editstate' is set to LE_EDITSTATE_INTERRUPTED to induce lineedit to
+ * `le_editstate' is set to LE_EDITSTATE_INTERRUPTED to induce line-editing to
  * terminate. */
 void cmd_abort_line(wchar_t c __attribute__((unused)))
 {
@@ -771,7 +772,7 @@ void cmd_abort_line(wchar_t c __attribute__((unused)))
 }
 
 /* Sets `le_editstate' to LE_EDITSTATE_ERROR.
- * Lineedit will return EOF. */
+ * The `le_readline' function will return INPUT_EOF. */
 void cmd_eof(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -1355,19 +1356,20 @@ size_t next_viword_index(const wchar_t *s, size_t i)
 	while (s[i] == L'_' || iswalnum(s[i]));
 	if (!iswblank(s[i]))
 	    return i;
-    } else if (!iswblank(s[i])) {
-	for (;;) {
+    } else {
+	while (!iswblank(s[i])) {
 	    if (s[i] == L'\0')
 		return i;
 	    i++;
 	    if (s[i] == L'_' || iswalnum(s[i]))
 		return i;
-	    if (iswblank(s[i]))
-		break;
 	}
     }
-    /* find the first non-blank character */
-    while (iswblank(s[++i]));
+
+    do
+	i++;
+    while (iswblank(s[i]));
+
     return i;
 }
 
@@ -2540,14 +2542,14 @@ struct xwcsrange get_prev_bigword(const wchar_t *beginning, const wchar_t *s)
 	    return result;
 	}
     } while (iswblank(*--s));
-    result.end = s + 1;
+    result.end = &s[1];
     do {
 	if (beginning == s) {
 	    result.start = s;
 	    return result;
 	}
     } while (!iswblank(*--s));
-    result.start = s + 1;
+    result.start = &s[1];
     return result;
     /* result.start == result.end if no bigword found */
 }
@@ -2571,9 +2573,9 @@ void vi_exec_alias(wchar_t c)
 #if YASH_ENABLE_ALIAS
     wchar_t aliasname[3] = { L'_', c, L'\0', };
     const wchar_t *aliasvalue = get_alias_value(aliasname);
-    if (aliasvalue) {
+    if (aliasvalue != NULL) {
 	char *mbaliasvalue = malloc_wcstombs(aliasvalue);
-	if (mbaliasvalue) {
+	if (mbaliasvalue != NULL) {
 	    le_append_to_prebuffer(mbaliasvalue);
 	    return;
 	}
@@ -2859,9 +2861,9 @@ void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
     if (w1end >= w2start)
 	goto error;
     wb_init(&buf);
-    wb_ncat_force(&buf, le_main_buffer.contents + w2start, w2end - w2start);
-    wb_ncat_force(&buf, le_main_buffer.contents + w1end, w2start - w1end);
-    wb_ncat_force(&buf, le_main_buffer.contents + w1start, w1end - w1start);
+    wb_ncat_force(&buf, &le_main_buffer.contents[w2start], w2end - w2start);
+    wb_ncat_force(&buf, &le_main_buffer.contents[w1end], w2start - w1end);
+    wb_ncat_force(&buf, &le_main_buffer.contents[w1start], w1end - w1start);
     assert(buf.length == w2end - w1start);
     wb_replace_force(&le_main_buffer, w1start, buf.length,
 	    buf.contents, buf.length);
@@ -2904,7 +2906,7 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
     int count = get_count(1);
 
     if (count > 0) {
-	wchar_t *s = le_main_buffer.contents + le_main_index;
+	wchar_t *s = &le_main_buffer.contents[le_main_index];
 	do {
 	    while (*s != L'\0' && !iswalnum(*s))
 		s++;
@@ -3303,7 +3305,7 @@ void cmd_srch_continue_backward(wchar_t c __attribute__((unused)))
     update_search();
 }
 
-/* Finishes the history search with the current result candidate.
+/* Finishes the history search and accepts the current result candidate.
  * If no search is being performed, does nothing. */
 void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 {
@@ -3561,7 +3563,7 @@ bool beginning_search_check_go_to_history(const wchar_t *prefix)
     if (le_search_result == undo_history_entry
 	    && undo_index < undo_history.length) {
 	const struct undo_history *h = undo_history.contents[undo_index];
-	return matchwcsprefix(h->contents, prefix);
+	return matchwcsprefix(h->contents, prefix) != NULL;
     } else {
 	return false;
     }
