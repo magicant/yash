@@ -355,6 +355,14 @@ then echo 1
 else echo 2
 fi
 
+func4 () (
+    echo func4
+    exit
+    echo not-reached
+)
+func4 >/dev/null
+func4
+
 funcredir () {
     echo redirected
     echo re-redirected >&3

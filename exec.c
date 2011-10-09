@@ -175,7 +175,7 @@ static void exec_fall_back_on_sh(
 	int argc, char *const *argv, char *const *env, const char *path)
     __attribute__((nonnull(2,3,4)));
 static void exec_function_body(
-	command_T *body, void *const *args, bool finally_exit)
+	command_T *body, void *const *args, bool finally_exit, bool complete)
     __attribute__((nonnull));
 static inline int xexecve(
 	const char *path, char *const *argv, char *const *envp)
@@ -567,6 +567,10 @@ void exec_commands(command_T *c, exec_T type)
     pipeinfo_T pinfo = PIPEINFO_INIT;
     commandtype_T lasttype;
 
+    /* increment the reference count of `c' to prevent `c' from being freed
+     * during execution. */
+    c = comsdup(c);
+
     /* count the number of the commands */
     count = 0;
     for (cc = c; cc != NULL; cc = cc->next)
@@ -636,6 +640,8 @@ void exec_commands(command_T *c, exec_T type)
 	    remove_job(ACTIVE_JOBNO);
 	}
     }
+
+    comsfree(c);
 
     handle_signals();
 
@@ -1111,10 +1117,6 @@ bool command_not_found_handler(void *const *argv)
  */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
-    /* increment the reference count of `c' to prevent `c' from being freed
-     * during execution. */
-    c = comsdup(c);
-
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
@@ -1138,8 +1140,6 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	exec_funcdef(c, finally_exit);
 	break;
     }
-
-    comsfree(c);
 }
 
 /* Executes the simple command. */
@@ -1172,7 +1172,7 @@ void exec_simple_command(
 	current_builtin_name = savecbn;
 	break;
     case CT_FUNCTION:
-	exec_function_body(ci->ci_function, &argv[1], finally_exit);
+	exec_function_body(ci->ci_function, &argv[1], finally_exit, false);
 	break;
     }
     if (finally_exit)
@@ -1311,24 +1311,23 @@ void exec_fall_back_on_sh(
 
 /* Executes the specified command as a function.
  * `args' are the arguments to the function, which are wide strings cast to
- * (void *). */
-void exec_function_body(command_T *body, void *const *args, bool finally_exit)
+ * (void *).
+ * If `complete' is true, `set_completion_variables' will be called after a new
+ * variable environment was opened before the function body is executed. */
+void exec_function_body(
+	command_T *body, void *const *args, bool finally_exit, bool complete)
 {
-    bool save_noreturn;
-    savefd_T *savefd;
-
-    save_noreturn = execstate.noreturn;
+    bool save_noreturn = execstate.noreturn;
     execstate.noreturn = false;
 
-    if (open_redirections(body->c_redirs, &savefd)) {
-	open_new_environment(false);
-	set_positional_parameters(args);
-	exec_nonsimple_command(body, finally_exit);
-	if (execstate.exception == E_RETURN)
-	    execstate.exception = E_NONE;
-	close_current_environment();
-    }
-    undo_redirections(savefd);
+    open_new_environment(false);
+    set_positional_parameters(args);
+    if (complete)
+	set_completion_variables();
+    exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
+    if (execstate.exception == E_RETURN)
+	execstate.exception = E_NONE;
+    close_current_environment();
 
     execstate.noreturn = save_noreturn;
 }
@@ -1559,19 +1558,7 @@ bool call_completion_function(const wchar_t *funcname)
 
     le_compdebug("executing completion function \"%ls\"", funcname);
 
-    /* don't use `exec_function_body': We have to prepare some special local
-     * variables. */
-    savefd_T *savefd;
-    open_new_environment(false);
-    set_positional_parameters((void *[]) { NULL });
-    set_completion_variables();
-    if (open_redirections(func->c_redirs, &savefd)) {
-	exec_nonsimple_command(func, false);
-	if (execstate.exception == E_RETURN)
-	    execstate.exception = E_NONE;
-    }
-    undo_redirections(savefd);
-    close_current_environment();
+    exec_function_body(func, (void *[]) { NULL }, false, true);
 
     le_compdebug("finished executing completion function \"%ls\"", funcname);
     le_compdebug("  with the exit status of %d", laststatus);
