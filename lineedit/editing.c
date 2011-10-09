@@ -2088,6 +2088,8 @@ void cancel_undo(int offset)
 {
     maybe_save_undo_history();
 
+    if (undo_history_entry != main_history_entry)
+	goto error;
     if (offset < 0) {
 	if (undo_index == 0)
 	    goto error;
