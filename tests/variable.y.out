@@ -72,6 +72,8 @@ global
 ary=('test' 'of' 'array')
 export ary
 ary=test:of:array
+ary=()
+typeset -x ary
 ===== unset readonly =====
 unset unset unset unset
 readonly

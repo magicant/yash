@@ -1759,17 +1759,19 @@ void print_array(
 
     if (!xprintf("%ls=(", name))
 	return;
-    for (void **values = var->v_vals; ; ) {
-	wchar_t *qvalue = quote_sq(*values);
-	bool ok = xprintf("%ls", qvalue);
-	free(qvalue);
-	if (!ok)
-	    return;
-	values++;
-	if (*values == NULL)
-	    break;
-	if (!xprintf(" "))
-	    return;
+    if (var->v_valc > 0) {
+	for (size_t i = 0; ; ) {
+	    wchar_t *qvalue = quote_sq(var->v_vals[i]);
+	    bool ok = xprintf("%ls", qvalue);
+	    free(qvalue);
+	    if (!ok)
+		return;
+	    i++;
+	    if (i >= var->v_valc)
+		break;
+	    if (!xprintf(" "))
+		return;
+	}
     }
     if (!xprintf(")\n"))
 	return;

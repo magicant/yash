@@ -167,6 +167,11 @@ export ary
 export -p ary
 env | grep "^ary="
 
+(
+ary=()
+typeset -p ary
+)
+
 echo ===== unset readonly =====
 
 unset foo bar baz qux

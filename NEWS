@@ -10,7 +10,11 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.29
 
-  + An alias value now can contain newlines.
+  +  An alias value now can contain newlines.
+  *  Fixed invalid memory access on printing an empty array using the
+     "typeset" built-in.
+  *  The function body is now correctly executed in a subshell when
+     the body is defined using the (...) compound command.
 
 ----------------------------------------------------------------------
 Yash 2.28
