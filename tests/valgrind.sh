@@ -25,7 +25,7 @@ do_test() {
 while getopts s:v opt; do
 	case $opt in
 		s)
-			VALGRIND="$VALGRIND --suppressions='$OPTARG'"
+			VALGRIND="$VALGRIND --suppressions=$OPTARG"
 			;;
 		v)
 			VALGRIND="$VALGRIND -v --track-origins=yes"
