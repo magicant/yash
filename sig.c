@@ -682,7 +682,6 @@ int handle_traps(void)
 
     int signum = 0;
     bool save_sigint_received = sigint_received;
-    struct parsestate_T *parsestate = NULL;
     struct execstate_T *execstate = NULL;
     savelaststatus = laststatus;
 
@@ -701,7 +700,7 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (parsestate == NULL)
+		    if (execstate == NULL)
 			execstate = save_execstate();
 		    signum = handled_signal = s->no;
 		    command = xwcsdup(command);
@@ -723,7 +722,7 @@ int handle_traps(void)
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
-		    if (parsestate == NULL)
+		    if (execstate == NULL)
 			execstate = save_execstate();
 		    signum = handled_signal = sigrtmin + i;
 		    command = xwcsdup(command);
@@ -739,7 +738,7 @@ int handle_traps(void)
     sigint_received |= save_sigint_received;
     savelaststatus = -1;
     handled_signal = -1;
-    if (parsestate != NULL)
+    if (execstate != NULL)
 	restore_execstate(execstate);
 #if YASH_ENABLE_LINEEDIT
     if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
