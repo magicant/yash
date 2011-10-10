@@ -1189,6 +1189,8 @@ void **parse_words_and_redirects(
 		skip_blanks_and_comment(ps);
 	    }
 	}
+#else
+	(void) first;
 #endif
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
