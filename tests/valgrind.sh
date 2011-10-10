@@ -1,7 +1,7 @@
 # valgrind.sh: runs tests with valgrind
 # (C) 2011 magicant
 
-cd -- "$(dirname -- "$0")/tests" || exit
+cd -- "$(dirname -- "$0")" || exit
 
 : ${MAKE:='make'}
 : ${VALGRIND:='valgrind --leak-check=full --log-file=vallog.%p'}
@@ -22,8 +22,11 @@ do_test() {
 	rm vallog.*
 }
 
-while getopts v opt; do
+while getopts s:v opt; do
 	case $opt in
+		s)
+			VALGRIND="$VALGRIND --suppressions='$OPTARG'"
+			;;
 		v)
 			VALGRIND="$VALGRIND -v --track-origins=yes"
 			;;

@@ -11,6 +11,7 @@ do_test () {
 }
 
 set -o errexit
+cd -- "$(dirname -- "$0")/.."
 
 echo "$0: using '${MAKE:=make}' as make"
 
