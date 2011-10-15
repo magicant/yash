@@ -564,6 +564,7 @@ function completion//reexecute {
 	if $fallback && command -vf completion//argument >/dev/null 2>&1; then
 		unset opt OPTIND extonly fallback
 		command -f completion//argument
+		return
 	fi
 
 	unset opt OPTIND extonly fallback
