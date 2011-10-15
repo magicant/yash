@@ -8,7 +8,7 @@
 # This is the function that is called when completing a command argument.
 if ! command -vf completion//argument >/dev/null 2>&1; then
 	function completion//argument {
-		command -f completion//reexecute
+		command -f completion//reexecute -f
 	}
 fi
 
@@ -514,23 +514,27 @@ function completion//getoperands {
 # This function re-executes the completion function using the current $WORDS.
 # If the -e option is specified, only external commands are completed as the
 # command name.
+# If the -f option is specified, the following fall-back functions are not used:
+#   * completion//command
+#   * completion//argument
 # If an operand is given to this function, it is used as the command name
-# instead of ${WORDS[1]}.
+# instead of ${WORDS[1]} and the -f option is assumed.
 # This function does not change $WORDS (but the completion function may do).
 function completion//reexecute {
 
 	# parse options
-	typeset opt= OPTIND=1 extonly=false
-	while getopts :e opt; do
+	typeset opt= OPTIND=1 extonly=false fallback=true
+	while getopts :ef opt; do
 		case $opt in
 			(e) extonly=true;;
+			(f) fallback=false;;
 		esac
 	done
 
 	# if there's no words, complete the command name
 	if [ ${WORDS[#]} -le 0 ]; then
-		if command -vf completion//command >/dev/null 2>&1; then
-			unset opt OPTIND extonly
+		if $fallback && command -vf completion//command >/dev/null 2>&1; then
+			unset opt OPTIND extonly fallback
 			command -f completion//command
 		else
 			complete -T -S / -d
@@ -552,11 +556,18 @@ function completion//reexecute {
 
 	if [ $OPTIND -le $# ]; then
 		set -- "${@[OPTIND]}"
+		fallback=false
 	else
 		set -- "${WORDS[1]}"
 	fi
 
-	unset opt OPTIND extonly
+	if $fallback && command -vf completion//argument >/dev/null 2>&1; then
+		unset opt OPTIND extonly fallback
+		command -f completion//argument
+		return
+	fi
+
+	unset opt OPTIND extonly fallback
 
 	# load the function if not yet loaded, and call the function
 	if command -vf "completion/$1" >/dev/null 2>&1; then
@@ -573,8 +584,6 @@ function completion//reexecute {
 		command -f "completion/$1"
 	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
 		command -f "completion/${1##*/}"
-	elif command -vf completion//argument >/dev/null 2>&1; then
-		command -f completion//argument
 	else
 		complete -f
 	fi
