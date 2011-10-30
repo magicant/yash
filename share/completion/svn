@@ -1,0 +1,774 @@
+# (C) 2011 magicant
+
+# Completion script for the "svn" command.
+# Supports Subversion 1.6.
+
+function completion/svn {
+
+	typeset OPTIONS COMMONOPTIONS ADDOPTIONS ARGOPT PREFIX
+	COMMONOPTIONS=( #>#
+	"--config-dir:; specify a directory containing configuration files"
+	"--config-option:; specify a configuration option"
+	"h ? --help; print help"
+	"--no-auth-cache; don't cache user name and password"
+	"--non-interactive; disable interactive prompt"
+	"--password:; specify a password for authentication"
+	"--trust-server-cert; accept suspicious SSL server certificate"
+	"--username:; specify a user name for authentication"
+	) #<#
+	ADDOPTIONS=( #>#
+	"--accept:; specify an action for conflict resolution"
+	"--auto-props; enable automatic property setting"
+	"c: --change:; specify a change (revision)"
+	"--changelist: --cl:; specify a changelist to operate on"
+	"--depth:; specify directory depth to operate on"
+	"--diff-cmd:; specify an external program to be used as \"diff\""
+	"--diff3-cmd:; specify an external program to be used as \"diff3\""
+	"--dry-run; don't make any actual changes"
+	"--editor-cmd:; specify an external program to be used as an editor"
+	"--encoding:; specify the encoding of the log message"
+	"x: --extensions:; specify arguments that is passed to the external diff command"
+	"F: --file:; use the specified file's contents instead of invoking an editor"
+	"--force; force operation to run"
+	"--force-log; accept a suspicious parameter value for log messages"
+	"--ignore-ancestry; ignore ancestry when calculating differences"
+	"--ignore-externals; ignore externals and its working copies"
+	"--incremental; print output in a format suitable for concatenation"
+	"--keep-changelists; don't delete changelists after committing"
+	"--keep-local; keep the local working copy"
+	"l: --limit:; specify the number of log messages to be shown"
+	"m: --message:; specify a log message"
+	"--native-eol:; specify an end-of-line marker for native EOL settings"
+	"--new:; specify the newer one of the compared files"
+	"--no-auto-props; disable automatic property setting"
+	"--no-diff-deleted; don't print diff for deleted files"
+	"--no-ignore; don't ignore files"
+	"--no-unlock; don't unlock files after committing"
+	#deprecated "N --non-recursive"
+	"--notice-ancestry; take ancestry into account when making a diff"
+	"--old:; specify the older one of the compared files"
+	"--parents; create nonexistent parent directories"
+	"q --quiet; print essential information only"
+	"--record-only; update mergeinfo without actually merging files"
+	"R --recursive; operate on subdirectories recursively"
+	"--reintegrate; merge a branch into the trunk"
+	"--relocate; change the location of the repository"
+	"--remove; remove files from a changelist"
+	"r: --revision:; specify a revision or a revision range"
+	"--revprop; operate on a revision property rather than a file property"
+	"--set-depth:; specify a new sticky depth of working directories"
+	"--show-revs:; specify the type of mergeinfo to print"
+	"--show-updates; show which files will be updated by \"svn update\""
+	"--stop-on-copy; operate on revisions after the file was copied last"
+	"--strict; output the raw value without pretty-formatting"
+	"--summarize; print a summary of changes only"
+	"--targets:; specify a file containing target paths"
+	"g --use-merge-history; use mergeinfo to show history before merges"
+	"v --verbose; print additional info"
+	"--version"
+	"--with-all-revprops; include all revision properties"
+	"--with-no-revprops; include no revision properties"
+	"--with-revprop:; specify a revision property to set or print"
+	"--xml; print in the XML format"
+	) #<#
+	OPTIONS=("$COMMONOPTIONS" "$ADDOPTIONS")
+
+	command -f completion//parseoptions -es
+
+	# find subcommand name
+	typeset SUBCMD= separatorindex=2
+	while [ $separatorindex -lt ${WORDS[#]} ]; do
+		case ${WORDS[separatorindex]} in (--)
+			SUBCMD=${WORDS[separatorindex+1]}
+			break
+		esac
+		separatorindex=$((separatorindex+1))
+	done
+
+	# normalize subcommand name
+	case $SUBCMD in
+		(praise|annotate|ann)
+			SUBCMD=blame;;
+		(cl)
+			SUBCMD=changelist;;
+		(co)
+			SUBCMD=checkout;;
+		(ci)
+			SUBCMD=commit;;
+		(cp)
+			SUBCMD=copy;;
+		(del|remove|rm)
+			SUBCMD=delete;;
+		(di)
+			SUBCMD=diff;;
+		(h|\?)
+			SUBCMD=help;;
+		(ls)
+			SUBCMD=list;;
+		(mv|rename|ren)
+			SUBCMD=move;;
+		(pdel|pd)
+			SUBCMD=propdel;;
+		(pedit|pe)
+			SUBCMD=propedit;;
+		(pget|pg)
+			SUBCMD=propget;;
+		(plist|pl)
+			SUBCMD=proplist;;
+		(pset|ps)
+			SUBCMD=propset;;
+		(stat|st)
+			SUBCMD=status;;
+		(sw)
+			SUBCMD=switch;;
+		(up)
+			SUBCMD=update;;
+	esac
+
+	case $ARGOPT in
+	(-)
+		OPTIONS=("$COMMONOPTIONS")
+		if command -vf "completion/svn::$SUBCMD:opt" >/dev/null 2>&1; then
+			command -f "completion/svn::$SUBCMD:opt"
+		fi
+		command -f completion//completeoptions
+		;;
+	(--accept) #>>#
+		complete -P "$PREFIX" -D "discard all local and remote changes" base
+		complete -P "$PREFIX" -D "discard all remote changes" mine-full
+		complete -P "$PREFIX" -D "resolve conflicts by discarding remote changes" mine-conflict
+		complete -P "$PREFIX" -D "discard all local changes" theirs-full
+		complete -P "$PREFIX" -D "resolve conflicts by discarding local changes" theirs-conflict
+		complete -P "$PREFIX" -D "mark the current working copy as resolved" working
+		case $SUBCMD in
+			(resolve)
+				;;
+			(*)
+				complete -P "$PREFIX" -D "launch an editor to merge by hand" edit
+				complete -P "$PREFIX" -D "launch a predefined external program" launch
+				complete -P "$PREFIX" -D "leave the conflict unresolved" postpone
+				;;
+		esac
+		;; #<<#
+#	(c|--change)
+#		;;
+	(--config-dir)
+		complete -P "$PREFIX" -S / -T -d
+		;;
+	(--config-option)
+		#TODO
+		;;
+	(--depth|--set-depth) #>>#
+		complete -P "$PREFIX" -D "only the target itself" empty
+		complete -P "$PREFIX" -D "the target and non-directory immediate children" files
+		complete -P "$PREFIX" -D "the target and immediate children" immediates
+		complete -P "$PREFIX" -D "the target and all of its descendants" infinity
+		#<<#
+		case $ARGOPT in (--set-depth) #>>#
+			complete -P "$PREFIX" -D "exclude the target from the parent" exclude
+		esac #<<#
+		;;
+	(--encoding)
+		#TODO
+		;;
+	(x|--extensions)
+		WORDS=(diff)
+		command -f completion//reexecute
+		;;
+	(F|--file)
+		complete -P "$PREFIX" -f
+		;;
+#	(l|--limit)
+#		;;
+#	(m|--message)
+#		;;
+#	(--password)
+#		;;
+	(--native-eol) #>>#
+		complete -P "$PREFIX" LF CR CRLF
+		;; #<<#
+	(--new|--old)
+		command -f completion/svn::completelocal -cm
+		command -f completion/svn::completeurl
+		;;
+	(r|--revision)
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		PREFIX="${TARGETWORD%"${word#*:}"}"
+		#>>#
+		complete -P "$PREFIX" -D "the latest revision in the repository" HEAD
+		complete -P "$PREFIX" -D "the revision you checked out" BASE
+		complete -P "$PREFIX" -D "the latest revision in which a change was made" COMMITTED
+		complete -P "$PREFIX" -D "the revision immediately before COMMITTED" PREV
+		;; #<<#
+	(--show-revs) #>>#
+		complete -P "$PREFIX" -D "info about merges already performed" merged
+		complete -P "$PREFIX" -D "info about possible merges that can be performed" eligible
+		;; #<<#
+	(--target)
+		complete -P "$PREFIX" -f
+		;;
+	(--username)
+		complete -P "$PREFIX" -u
+		;;
+	(--with-revprop)
+		#TODO
+		;;
+	(--*-cmd)
+		complete -P "$PREFIX" --external-command
+		;;
+	('')
+		if [ $separatorindex -eq ${WORDS[#]} ] ||
+				command -f completion/svn::containshelp; then
+			command -f completion/svn::completesubcmd
+		else
+			if command -vf "completion/svn::$SUBCMD:arg" >/dev/null 2>&1; then
+				command -f "completion/svn::$SUBCMD:arg"
+			fi
+		fi
+		;;
+	esac
+
+}
+
+function completion/svn::containshelp {
+	typeset opt
+	for opt in "${WORDS[2,separatorindex-1]}"; do
+		case $opt in (--help|-[h\?])
+			return 0
+		esac
+	done
+	return 1
+}
+
+function completion/svn::setoptions {
+	typeset opt i=1
+	for opt in "$ADDOPTIONS"; do
+		if [ $# -le 0 ]; then
+			break
+		fi
+		case " ${{opt%%;*}//:} " in (*" --$1 "*)
+			OPTIONS=("$OPTIONS" "$opt")
+			shift
+		esac
+	done
+}
+
+function completion/svn::completesubcmd {
+	complete -P "$PREFIX" -D "add files for versioning" add
+	complete -P "$PREFIX" -D "show files with author and revision info" blame praise annotate
+	complete -P "$PREFIX" -D "print the contents of files" cat
+	complete -P "$PREFIX" -D "put files into a changelist" changelist cl
+	complete -P "$PREFIX" -D "check out a working copy from a repository" checkout co
+	complete -P "$PREFIX" -D "resolve file locks and unfinished operations" cleanup
+	complete -P "$PREFIX" -D "make a new revision in the repository" commit ci
+	complete -P "$PREFIX" -D "copy a file" copy cp
+	complete -P "$PREFIX" -D "delete files" delete remove rm
+	complete -P "$PREFIX" -D "print differences between two files or revisions" diff
+	complete -P "$PREFIX" -D "make a copy of the versioned directory tree" export
+	complete -P "$PREFIX" -D "print usage of subcommands" help
+	complete -P "$PREFIX" -D "commit new files into the repository" import
+	complete -P "$PREFIX" -D "print info about versioned files" info
+	complete -P "$PREFIX" -D "print a list of versioned files" list ls
+	complete -P "$PREFIX" -D "lock files in the repository" lock
+	complete -P "$PREFIX" -D "print commit log messages" log
+	complete -P "$PREFIX" -D "apply changes between two files or revisions" merge
+	complete -P "$PREFIX" -D "print info about merge" mergeinfo
+	complete -P "$PREFIX" -D "make directories" mkdir
+	complete -P "$PREFIX" -D "move files" move mv
+	complete -P "$PREFIX" -D "delete a property of files" propdel pdel
+	complete -P "$PREFIX" -D "edit a property of files" propedit pedit
+	complete -P "$PREFIX" -D "print a property of files" propget pget
+	complete -P "$PREFIX" -D "print properties of files" proplist plist
+	complete -P "$PREFIX" -D "set a property of files" propset pset
+	complete -P "$PREFIX" -D "resolve conflicts" resolve
+	# deprecated: complete -P "$PREFIX" -D "" resolved
+	complete -P "$PREFIX" -D "undo local edits" revert
+	complete -P "$PREFIX" -D "print the status of working copy" status
+	complete -P "$PREFIX" -D "update working copy to a different URL" switch
+	complete -P "$PREFIX" -D "unlock files in the repository" unlock
+	complete -P "$PREFIX" -D "update the working copy" update
+}
+
+function completion/svn::completeurl {
+	typeset OPTIND=1 opt dironly=false
+	while getopts d opt; do
+		case $opt in
+			(d) dironly=true;;
+		esac
+	done
+
+	typeset target="${TARGETWORD#"$PREFIX"}"
+	case $target in
+		(?*://* | ^/*) ;;
+		(*)            return ;;
+	esac
+	typeset targetdir="$(dirname -- "$target"X)"
+
+	typeset file prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
+	while read -r file; do
+		case $file in
+			(*/)
+				complete -P "$prefix" -T -- "$file"
+				;;
+			(*) 
+				if ! $dironly; then
+					complete -P "$prefix" -- "$file"
+				fi
+				;;
+		esac
+	done <(svn --non-interactive ls -- "${targetdir}/" 2>/dev/null)
+}
+
+function completion/svn::completelocal {
+	typeset OPTIND=1 opt clean= modified= unversioned=
+	while getopts cmu opt; do
+		case $opt in
+			(c) clean=true;;
+			(m) modified=true;;
+			(u) unversioned=true;;
+		esac
+	done
+
+	complete -P "$PREFIX" -S / -T -d
+
+	case "$clean-$modified-$unversioned" in
+		(true-true-true)
+			complete -P "$PREFIX" -f
+			return
+			;;
+		(--)
+			return
+			;;
+	esac
+
+	typeset target="${TARGETWORD#"$PREFIX"}"
+	typeset targetdir="$(dirname -- "$target"X)"
+
+	if ! [ -d "$targetdir/.svn" ]; then
+		if [ "$unversioned" ]; then
+			complete -P "$PREFIX" -f
+		fi
+		return
+	fi
+
+	typeset path prefix opt
+	while read -r path; do
+		if [ "$path" -ef "$targetdir" ]; then
+			continue
+		fi
+		case $target in
+			(*/*) prefix="$PREFIX${target%/*}/" ;;
+			(*)   prefix="$PREFIX" ;;
+		esac
+		complete -P "$prefix" -- "${path##*/}"
+	done 2>/dev/null <(
+		if [ "$unversioned" ]; then
+			svn st --depth=files --no-ignore -- "$targetdir" |
+			grep '^[?I]' |
+			cut -c 9-
+		fi
+		if [ "$clean$modified" ]; then
+			case $clean-$modified in
+				(true-true) regex='^[^?I]';;
+				(true-    ) regex='^  ';;
+				(    -true) regex='^[^ ?I]|^.[^ ]';;
+			esac
+			svn st -v --depth=files -- "$targetdir" |
+			grep -E "$regex" |
+			cut -c 10- |
+			while read -r _ _ _ file; do
+				printf '%s\n' "$file"
+			done
+		fi
+	)
+	# XXX should honor the dotglob option
+}
+
+function completion/svn::completepropname { #>>#
+	complete -P "$PREFIX" -D "make the file executable" svn:executable
+	complete -P "$PREFIX" -D "specify the file's MIME type" svn:mime-type
+	complete -P "$PREFIX" -D "specify unversioned filenames not listed in status" svn:ignore
+	complete -P "$PREFIX" -D "specify keywords substituted in file" svn:keywords
+	complete -P "$PREFIX" -D "specify how end-of-line markers are manipulated" svn:eol-style
+	complete -P "$PREFIX" -D "specify external paths and repositories" svn:externals
+	complete -P "$PREFIX" -D "indicate that the file is not a regular file" svn:special
+	complete -P "$PREFIX" -D "disable editing without lock" svn:needs-lock
+	complete -P "$PREFIX" -D "info about merge" svn:mergeinfo
+} #<<#
+
+function completion/svn:::opt {
+	command -f completion/svn::setoptions version
+}
+
+function completion/svn::add:opt {
+	command -f completion/svn::setoptions \
+		auto-props depth force no-auto-props no-ignore parents quiet \
+		targets
+}
+
+function completion/svn::add:arg {
+	command -f completion/svn::completelocal -u
+}
+
+function completion/svn::blame:opt {
+	command -f completion/svn::setoptions \
+		extensions force incremental revision use-merge-history \
+		verbose xml
+}
+
+function completion/svn::blame:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::cat:opt {
+	command -f completion/svn::setoptions revision
+}
+
+function completion/svn::cat:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::changelist:opt {
+	command -f completion/svn::setoptions \
+		changelist depth quiet recursive remove targets
+}
+
+function completion/svn::changelist:arg {
+	command -f completion/svn::completelocal -cm
+}
+
+function completion/svn::checkout:opt {
+	command -f completion/svn::setoptions \
+		depth force ignore-externals quiet revision
+}
+
+function completion/svn::checkout:arg {
+	command -f completion/svn::completeurl
+	if [ $(($separatorindex+1)) -lt ${WORDS[#]} ]; then
+		complete -P "$PREFIX" -f
+	fi
+}
+
+function completion/svn::cleanup:opt {
+	command -f completion/svn::setoptions diff3-cmd
+}
+
+function completion/svn::cleanup:arg {
+	complete -P "$PREFIX" -S / -T -d
+}
+
+function completion/svn::commit:opt {
+	command -f completion/svn::setoptions \
+		changelist depth editor-cmd encoding file force-log \
+		kee-changelists message no-unlock quiet targets with-revprop
+}
+
+function completion/svn::commit:arg {
+	command -f completion/svn::completelocal -m
+}
+
+function completion/svn::copy:opt {
+	command -f completion/svn::setoptions \
+		editor-cmd encoding file force-log ignore-externals message \
+		parents quiet revision with-revprop
+}
+
+function completion/svn::copy:arg {
+	command -f completion/svn::completelocal -cmu
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::delete:opt {
+	command -f completion/svn::setoptions \
+		editor-cmd encoding file force force-log keep-local \
+		message quiet targets with-revprop
+}
+
+function completion/svn::delete:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::diff:opt {
+	command -f completion/svn::setoptions \
+		change changelist depth diff-cmd extensions force new \
+		no-diff-deleted notice-ancestry old revision summarize xml
+}
+
+function completion/svn::diff:arg {
+	# XXX should be relative to the argument of --old=...
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::export:opt {
+	command -f completion/svn::setoptions \
+		depth force ignore-externals native-eol quiet revision
+}
+
+function completion/svn::export:arg {
+	case $((${WORDS[#]} - $separatorindex)) in
+		(1)
+			command -f completion/svn::completelocal -cm
+			command -f completion/svn::completeurl
+			;;
+		(2)
+			complete -P "$PREFIX" -f
+			;;
+	esac
+}
+
+function completion/svn::help:opt {
+}
+
+function completion/svn::help:arg {
+	command -f completion/svn::completesubcmd
+}
+
+function completion/svn::import:opt {
+	command -f completion/svn::setoptions \
+		auto-props depth editor-cmd encoding file force force-log \
+		message no-auto-props no-ignore quiet with-revprop
+}
+
+function completion/svn::import:arg {
+	case $((${WORDS[#]} - $separatorindex)) in
+		(1)
+			command -f completion/svn::completelocal -u
+			;;
+		(2)
+			command -f completion/svn::completeurl
+			;;
+	esac
+}
+
+function completion/svn::info:opt {
+	command -f completion/svn::setoptions \
+		changelist depth incremental recursive revision targets xml
+}
+
+function completion/svn::info:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::list:opt {
+	command -f completion/svn::setoptions \
+		depth incremental recursive revision verbose xml
+}
+
+function completion/svn::list:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::lock:opt {
+	command -f completion/svn::setoptions \
+		encoding file force force-log message targets
+}
+
+function completion/svn::lock:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::log:opt {
+	command -f completion/svn::setoptions \
+		change incremental limit quiet revision stop-on-copy targets \
+		use-merge-history verbose with-all-revprops with-no-revprops \
+		with-revprop xml
+}
+
+function completion/svn::log:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::merge:opt {
+	command -f completion/svn::setoptions \
+		accept change depth diff3-cmd dry-run extensions force \
+		ignore-ancestry quiet record-only reintegrate revision
+}
+
+function completion/svn::merge:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::mergeinfo:opt {
+	command -f completion/svn::setoptions revision show-revs
+}
+
+function completion/svn::mergeinfo:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::mkdir:opt {
+	command -f completion/svn::setoptions editor-cmd encoding file \
+		force-log message parents quiet with-revprop
+}
+
+function completion/svn::mkdir:arg {
+	complete -P "$PREFIX" -S / -T -d
+	command -f completion/svn::completeurl -d
+}
+
+function completion/svn::move:opt {
+	command -f completion/svn::setoptions editor-cmd encoding file force \
+		force-log message parents quiet revision with-revprop
+}
+
+function completion/svn::move:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::propdel:opt {
+	command -f completion/svn::setoptions \
+		changelist depth quiet recursive revision revprop
+}
+
+function completion/svn::propdel:arg {
+	if [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		command -f completion/svn::completepropname
+	else
+		command -f completion/svn::completelocal -cm
+		command -f completion/svn::completeurl
+	fi
+}
+
+function completion/svn::propedit:opt {
+	command -f completion/svn::setoptions editor-cmd encoding file force \
+		force-log message revision revprop with-revprop
+}
+
+function completion/svn::propedit:arg {
+	if [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		command -f completion/svn::completepropname
+	else
+		command -f completion/svn::completelocal -cm
+		command -f completion/svn::completeurl
+	fi
+}
+
+function completion/svn::propget:opt {
+	command -f completion/svn::setoptions \
+		changelist depth recursive revision revprop strict verbose xml
+}
+
+function completion/svn::propget:arg {
+	if [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		command -f completion/svn::completepropname
+	else
+		command -f completion/svn::completelocal -cm
+		command -f completion/svn::completeurl
+	fi
+}
+
+function completion/svn::proplist:opt {
+	command -f completion/svn::setoptions \
+		changelist depth quiet recursive revision revprop verbose xml
+}
+
+function completion/svn::proplist:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::propset:opt {
+	command -f completion/svn::setoptions changelist depth encoding file \
+		force quiet recursive revision revprop targets
+}
+
+function completion/svn::propset:arg {
+	typeset i=2 hasfile=false
+	while [ $i -lt $separatorindex ]; do
+		case ${WORDS[i]} in
+			(--file=*|-F*) hasfile=true;;
+		esac
+		i=$((i+1))
+	done
+	if [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		command -f completion/svn::completepropname
+	elif ! $hasfile && [ $(($separatorindex+2)) -eq ${WORDS[#]} ]; then 
+		# there is no completion for a property value
+	else
+		command -f completion/svn::completelocal -cm
+		command -f completion/svn::completeurl
+	fi
+}
+
+function completion/svn::resolve:opt {
+	command -f completion/svn::setoptions \
+		accept depth quiet recursive targets
+}
+
+function completion/svn::resolve:arg {
+	command -f completion/svn::completelocal -cm
+}
+
+function completion/svn::resolved:opt {
+	command -f completion/svn::setoptions \
+		depth quiet recursive targets
+}
+
+function completion/svn::resolved:arg {
+	command -f completion/svn::completelocal -cm
+}
+
+function completion/svn::revert:opt {
+	command -f completion/svn::setoptions \
+		changelist depth quiet recursive targets
+}
+
+function completion/svn::revert:arg {
+	command -f completion/svn::completelocal -m
+}
+
+function completion/svn::status:opt {
+	command -f completion/svn::setoptions \
+		changelist depth ignore-externals incremental no-ignore quiet \
+		show-updates verbose xml
+}
+
+function completion/svn::status:arg {
+	command -f completion/svn::completelocal -cm
+}
+
+function completion/svn::switch:opt {
+	command -f completion/svn::setoptions \
+		accept depth diff3-cmd force ignore-externals quiet relocate \
+		revision set-depth
+}
+
+function completion/svn::switch:arg {
+	if [ $(($separatorindex+1)) -lt ${WORDS[#]} ]; then
+		complete -P "$PREFIX" -S / -T -d
+	fi
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::unlock:opt {
+	command -f completion/svn::setoptions force targets
+}
+
+function completion/svn::unlock:arg {
+	command -f completion/svn::completelocal -cm
+	command -f completion/svn::completeurl
+}
+
+function completion/svn::update:opt {
+	command -f completion/svn::setoptions \
+		accept changelist depth diff3-cmd editor-cmd force \
+		ignore-externals quiet revision set-depth
+}
+
+function completion/svn::update:arg {
+	command -f completion/svn::completelocal -cm
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
