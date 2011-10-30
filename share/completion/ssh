@@ -143,7 +143,8 @@ function completion/ssh {
 			complete -P "$PREFIX" -f
 			;;
 		(scp|sftp)
-			complete -P "$PREFIX" --external-command
+			WORDS=()
+			command -f completion//reexecute -e
 			;;
 		esac
 		;;

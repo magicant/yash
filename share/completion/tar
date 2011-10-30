@@ -328,7 +328,8 @@ function completion/tar {
 			complete -P "$PREFIX" -D "POSIX.1-2001" posix
 			;; #<<#
 		(I|--use-compress-program)
-			command -f completion/tar::completecommand
+			WORDS=()
+			command -f completion//reexecute -e
 			;;
 #		(K|--starting-file)
 #			;;
@@ -364,8 +365,8 @@ function completion/tar {
 		(--checkpoint-action)
 			case ${TARGETWORD#"$PREFIX"} in
 			(exec=*)
-				PREFIX=${PREFIX}exec=
-				command -f completion/tar::completecommand
+				PREFIX=${PREFIX}exec= WORDS=()
+				command -f completion//reexecute -e
 				;;
 			(*) #>>#
 				complete -P "$PREFIX" -D "ring a bell on the terminal" bell
@@ -422,7 +423,8 @@ function completion/tar {
 		(--quote-chars|--no-quote-chars)
 			;;
 		(--rmt-command|--rsh-command)
-			command -f completion/tar::completecommand
+			WORDS=()
+			command -f completion//reexecute -e
 			;;
 		(--sparse-vertion) #>>#
 			# TODO: description
@@ -433,7 +435,8 @@ function completion/tar {
 		(--strip-components)
 			;;
 		(--to-command)
-			command -f completion/tar::completecommand
+			WORDS=()
+			command -f completion//reexecute -e
 			;;
 		(--totals)
 			case ${TARGETWORD#"$PREFIX"} in (SIG*)
@@ -479,18 +482,6 @@ function completion/tar {
 		esac
 	fi
 
-}
-
-function completion/tar::completecommand {
-	case ${TARGETWORD#"$PREFIX"} in
-		(*/*)
-			complete -P "$PREFIX" -S / -T -d
-			complete -P "$PREFIX" --executable-file
-			;;
-		(*)
-			complete -P "$PREFIX" --external-command
-			;;
-	esac
 }
 
 

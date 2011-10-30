@@ -214,7 +214,8 @@ function completion/svn {
 		#TODO
 		;;
 	(--*-cmd)
-		complete -P "$PREFIX" --external-command
+		WORDS=()
+		command -f completion//reexecute -e
 		;;
 	('')
 		if [ $separatorindex -eq ${WORDS[#]} ] ||

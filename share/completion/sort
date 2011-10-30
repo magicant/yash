@@ -111,7 +111,8 @@ function completion/sort {
 		complete -P "$PREFIX" -D "report disorders" diagnose-first
 		;; #<<#
 	(--compress-program)
-		complete -P "$PREFIX" --external-command
+		WORDS=()
+		command -f completion//reexecute -e
 		;;
 	(k|--key)
 		typeset word="${TARGETWORD#"$PREFIX"}"

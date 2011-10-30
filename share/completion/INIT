@@ -537,16 +537,16 @@ function completion//reexecute {
 			unset opt OPTIND extonly fallback
 			command -f completion//command
 		else
-			complete -T -S / -d
-			case $TARGETWORD in
+			complete -P "${PREFIX-}" -T -S / -d
+			case ${TARGETWORD#"${PREFIX-}"} in
 			(*/*)
-				complete --executable-file
+				complete -P "${PREFIX-}" --executable-file
 				;;
 			(*)
 				if $extonly; then
-					complete --external-command
+					complete -P "${PREFIX-}" --external-command
 				else
-					complete -R '*/*' -ck --normal-alias
+					complete -P "${PREFIX-}" -R '*/*' -ck --normal-alias
 				fi
 				;;
 			esac
@@ -585,7 +585,7 @@ function completion//reexecute {
 	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
 		command -f "completion/${1##*/}"
 	else
-		complete -f
+		complete -P "${PREFIX-}" -f
 	fi
 
 }
