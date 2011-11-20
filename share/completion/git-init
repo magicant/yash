@@ -1,0 +1,39 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-init" command.
+# Supports Git 1.7.7.
+
+function completion/git-init {
+	WORDS=(git init "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::init:arg {
+
+	OPTIONS=( #>#
+	"--bare; create a bare repository"
+	"q --quiet; print error and warning messages only"
+	"--separate-git-dir:; specify the repository directory"
+	"--shared::; share the repository with other users"
+	"--template:; specify a directory that contains templates"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--shared) #>>#
+			complete -P "$PREFIX" -D "set permissions according to the current umask" umask false
+			complete -P "$PREFIX" -D "make the repository group-writable" group true
+			complete -P "$PREFIX" -D "make the repository world-writable" all world everybody
+			;; #<<#
+		(''|--separate-git-dir|--template)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

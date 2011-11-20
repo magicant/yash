@@ -1,0 +1,157 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-rev-list" command.
+# Supports Git 1.7.7.
+
+function completion/git-rev-list {
+	WORDS=(git rev-list "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::rev-list:arg {
+
+	OPTIONS=( #>#
+	"--bisect; print a midpoint commit in current bisect"
+	"--bisect-all"
+	"--bisect-vars"
+	"--count; print the number of selected commits only"
+	"--header; print commits in the raw format"
+	"--timestamp; print the raw timestamp values"
+	) #<#
+	command -f completion/git::rev-list:getopt
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::rev-list:compopt
+			;;
+	esac
+
+}
+
+function completion/git::rev-list:getopt {
+	command -f completion/git::getorderopts
+	OPTIONS=("$OPTIONS" #>#
+	"--abbrev-commit; abbreviate commit IDs"
+	"--ancestry-path"
+	"--all; print all commits reachable from any refs"
+	"--all-match; show commits that match all the other filter options only"
+	"--after: --since:; show commits after the specified date only"
+	"--author:; show commits by the specified author only"
+	"--before: --until:; show commits before the specified date only"
+	"--branches::; print all (or specified) branches"
+	"--cherry; like --right-only --cherry-mark --no-merges"
+	"--cherry-mark; like --cherry-pick, but mark commits"
+	"--cherry-pick; omit commits duplicated by cherry-picking"
+	"--children; print children's commit IDs as well"
+	"--committer:; show commits by the specified committer only"
+	"--date:; specify a date format"
+	"--dense"
+	"--do-walk; traverse commit ancestors"
+	"--encoding::; specify an output encoding"
+	"E --extended-regexp; use extended regular expression"
+	"--first-parent; follow first parent of each commit only"
+	"F --fixed-strings; perform simple string matching rather than regular expression"
+	"--format:; specify an output format"
+	"--full-history"
+	"--glob:; show refs that match the specified pattern"
+	"--graph; print commit ancestry tree graph"
+	"--grep:; show commits whose log message matches the specified pattern only"
+	"--ignore-missing; ignore nonexistent refs"
+	"--left-only; show commits on the left-hand-side branch only"
+	"--left-right; show reachability of commits from branches"
+	# not meant for interactive use: "--max-age:"
+	"n: --max-count:; specify the max number of commits shown"
+	"--max-parents:; show commits with at most the specified number of parents only"
+	"--merge; show refs that touch conflicting files"
+	"--merges; like --min-parents=2 (show merge commits only)"
+	# not meant for interactive use: "--min-age:"
+	"--min-parents:; show commits with at least the specified number of parents only"
+	"--no-abbrev-commit; print full commit IDs"
+	"--no-max-parents; like --max-parents=-1"
+	"--no-merges; like --max-parents=1 (don't show merge commits)"
+	"--no-min-parents; like --min-parents=0"
+	"--no-notes --no-standard-notes; don't print notes"
+	"--no-walk; don't traverse commit ancestors"
+	"--notes:: --standard-notes --show-notes::; print notes"
+	"--objects; print object IDs referenced by selected commits"
+	"--objects-edge; like --objects, but print excluded commits too"
+	"--oneline; like --format=oneline --abbrev-commit"
+	"--parents; print parents' commit IDs as well"
+	"--pretty::; print in a human-friendly format"
+	"--quiet; print nothing"
+	"i --regexp-ignore-case; case-insensitive regular expression matching"
+	"--relative-date; like --date=relative"
+	"--remotes::; print all (or specified) remote refs"
+	"--remove-empty; stop when a given path disappears from the tree"
+	"--reverse; print in reverse order"
+	"--right-only; show commits on the right-hand-side branch only"
+	"--simplify-by-decoration"
+	"--simplify-merges"
+	"--sparse"
+	"--stdin; read arguments from the standard input"
+	"--tags::; print all (or specified) tags"
+	"--unpacked; print object IDs that are not in packs"
+	"g --walk-reflogs; show reflogs instead of ancestry chain"
+	) #<#
+	# TODO: some descriptions are missing!
+	# "--not" is not included in this list because it is actually
+	# an operand rather than an option.
+}
+
+function completion/git::rev-list:compopt
+	case $ARGOPT in
+		(n|--max-*|--min-*)
+			# complete nothing
+			;;
+		(--date|--format|--pretty)
+			command -f "completion/git::$ARGOPT:arg"
+			;;
+		(--after|--before|--since|--until)
+			# TODO complete date
+			;;
+		(--author)
+			typeset author
+			while read -r author; do
+				complete -P "$PREFIX" -- "$author"
+			done 2>/dev/null \
+				<(git log --all --format=format:%an | uniq)
+			;;
+		(--branches)
+			command -f completion/git::completeref --branches
+			;;
+		(--committer)
+			typeset committer
+			while read -r committer; do
+				complete -P "$PREFIX" -- "$committer"
+			done 2>/dev/null \
+				<(git log --all --format=format:%cn | uniq)
+			;;
+		(--encoding)
+			# TODO
+			;;
+		(--glob)
+			command -f completion/git::completeref
+			;;
+		(--notes|--standard-notes|--show-notes)
+			command -f completion/git::completeref abbrprefixes=refs/notes/ --glob=refs/notes
+			;;
+		(--remotes)
+			command -f completion/git::completeref --remotes
+			;;
+		(--tags)
+			command -f completion/git::completeref --tags
+			;;
+		(*)
+			return 1
+			;;
+	esac
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

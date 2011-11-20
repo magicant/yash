@@ -1,0 +1,136 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-diff" command.
+# Supports Git 1.7.7.
+
+function completion/git-diff {
+	WORDS=(git diff "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::diff:arg {
+
+	OPTIONS=( #>#
+	"--abbrev::; abbreviate commit IDs"
+	"--binary; print diffs for binary files"
+	"B:: --break-rewrites::; treat a way different file as a new file"
+	"--cached --staged; compare the index with a commit"
+	"--check; check for whitespace errors"
+	"--color::; show symbols in color"
+	"--color-words::; like --word-diff=color --word-diff-regex=..."
+	"--diff-filter:; specify categories of changes to show"
+	"--dirstat::; print a dirstat with the specified style"
+	"--dst-prefix:; specify a prefix for destination filenames in diffs"
+	"--exit-code; return the exit status of 1 when there is any diffs"
+	"--ext-diff; use an external diff program"
+	"--full-index; print full commit IDs in the patch format"
+	"C:: --find-copies::; detect copies of files with the specified threshold"
+	"--find-copies-harder; find files copied from unmodified existing files"
+	"M:: --find-renames::; detect renames of files with the specified threshold"
+	"G:; specify a regular expression to look for in diffs"
+	"w --ignore-all-space; ignore whitespaces in comparison"
+	"--ignore-space-at-eol; ignore changes in whitespace at end of lines"
+	"b --ignore-space-change; ignore changes in amount of whitespaces only"
+	"--ignore-submodules::; ignore changes to submodules"
+	"--inter-hunk-context:; specify the number of lines to show between hunks"
+	"D --irreversible-delete; don't print diffs for deleted files"
+	"l:; specify a threshold at which rename/copy detection is given up"
+	"--name-only; just print the names of differing files"
+	"--name-status; just print the names and statuses of differing files"
+	"--no-color; like --color=never"
+	"--no-ext-diff; use the internal diff program"
+	"--no-index; compare a file with another file outside the repository"
+	"--no-prefix; don't prefix filenames in diffs"
+	"--no-renames; disable rename detection"
+	"--no-textconv; don't use an external text filter to compare binary files"
+	"--numstat; print a diffstat in the machine-friendly format"
+	"O:; specify a file containing the order in which diffs are printed"
+	"p --patch; print a patch"
+	"--patch-with-raw; like --patch --raw"
+	"--patch-with-stat; like --patch --stat"
+	"--patience; generate a diff using the patience diff algorithm"
+	"--pickaxe-all; show the whole changeset when -S/-G is specified"
+	"--pickaxe-regex; treat the specified string as a regular expression (with -S)"
+	"R; print reverse diffs"
+	"--quiet; don't print anything"
+	"--raw; print in the raw format"
+	"--relative::; only show diffs in the specified directory"
+	"S:; specify a string to look for in diffs"
+	"--shortstat; print a diffstat summary"
+	"--src-prefix:; specify a prefix for source filenames in diffs"
+	"--stat::; print a diffstat with the specified column widths"
+	"--stat-count:; specify the max number of files shown in the diffstat"
+	"--stat-name-width:; specify the width of filenames in the diffstat"
+	"--stat-width:; specify the width of the diffstat"
+	"--submodule::; print diffs in submodules"
+	"--summary; print summary"
+	"a --text; assume all files are text"
+	"--textconv; use an external text filter to compare binary files"
+	"U:: --unified::; output in unified context format with the specified number of context lines"
+	"u; like -U3"
+	"--word-diff::; print word-based diffs"
+	"--word-diff-regex:; specify a regular expression that defines a word"
+	"z; print a null byte after each filename"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		([BClMU]|--abbrev|--break-rewrites|--find-*|--inter-hunk-context|--stat|--stat-*|--unified)
+#			;;
+		(--color|--ignore-submodules)
+			command -f completion/git::$ARGOPT:arg
+			;;
+#		(--color-words|--word-diff-regex)
+#			;;
+		(--diff-filter) #>>#
+			complete -P "$TARGETWORD" -D "added" A
+			complete -P "$TARGETWORD" -D "pair broken" B
+			complete -P "$TARGETWORD" -D "copied" C
+			complete -P "$TARGETWORD" -D "deleted" D
+			complete -P "$TARGETWORD" -D "modified" M
+			complete -P "$TARGETWORD" -D "renamed" R
+			complete -P "$TARGETWORD" -D "type modified" T
+			complete -P "$TARGETWORD" -D "unmerged" U
+			complete -P "$TARGETWORD" -D "unknown" X
+			complete -P "$TARGETWORD" -D "all, if any of other flag matches" '*'
+			;; #<<#
+		(--dirstat)
+			typeset word="${TARGETWORD#"$PREFIX"}"
+			word=${word##*,}
+			PREFIX=${TARGETWORD%"$word"} #>>#
+			complete -P "$PREFIX" -S , -T -D "count lines that are added or removed, but not moved" changes
+			complete -P "$PREFIX" -S , -T -D "include changes in subdirectories when operating on the parent" cumulative
+			complete -P "$PREFIX" -S , -T -D "count files that are changed" files
+			complete -P "$PREFIX" -S , -T -D "count lines that appear as added or removed in diffs" lines
+			complete -P "$PREFIX" -S , -T -D "exclude changes in subdirectories when operating on the parent" noncumulative
+			;; #<<#
+#		([GS])
+#			;;
+		(--relative)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+		(--submodule) #>>#
+			complete -P "$PREFIX" -D "print logs for commits in submodules" log
+			complete -P "$PREFIX" -D "just print pairs of commit IDs" short
+			;; #<<#
+		(--word-diff) #>>#
+			complete -P "$PREFIX" -D "use colors" color
+			complete -P "$PREFIX" -D "use delimiters" plain
+			complete -P "$PREFIX" -D "print in the machine-friendly format" porcelain
+			complete -P "$PREFIX" -D "disable word-based diffs" none
+			;; #<<#
+		(O|--*-prefix)
+			complete -P "$PREFIX" -f
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

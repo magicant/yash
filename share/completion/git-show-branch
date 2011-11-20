@@ -1,0 +1,51 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-show-branch" command.
+# Supports Git 1.7.7.
+
+function completion/git-show-branch {
+	WORDS=(git show-branch "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::show-branch:arg {
+
+	OPTIONS=( #>#
+	"a --all; show local and remotes-tracking branches"
+	"--color::; show symbols in color"
+	"--current; show the current branch"
+	"--independent; show branch heads not contained by any others"
+	"--list; like --more=-1 (show branch heads only)"
+	"--merge-base; show possible merge bases"
+	"--more:; specify the number of ancestors shown beyond the common ancestor"
+	"--no-color; like --color=never"
+	"--no-name; don't show commit names"
+	"g:: --reflog::; show ref-log instead of branches"
+	"r --remotes; show remote-tracking branches"
+	"--sha1-name; show SHA1 prefixes instead of symbolic commit names"
+	"--sparse; don't omit merges that aren't common ancestors of branches shown"
+	"--topics; show branches not contained in the first one only"
+	) #<#
+	command -f completion/git::getorderopts
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--color)
+			command -f completion/git::--color:arg
+			;;
+#		(--more)
+#			;;
+#		(g|--reflog)
+#			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

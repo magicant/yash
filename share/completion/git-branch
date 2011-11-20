@@ -1,0 +1,53 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-branch" command.
+# Supports Git 1.7.7.
+
+function completion/git-branch {
+	WORDS=(git branch "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::branch:arg {
+
+	OPTIONS=( #>#
+	"a; print local and remote-tracking branches"
+	"--abbrev:; specify the number of commit ID digits to print"
+	"--color::; show symbols in color"
+	"--contains; show branches that contain the specified commit only"
+	"D; delete a branch that has not been merged"
+	"d; delete a branch"
+	"f --force; overwrite an existing branch"
+	"l; enable reflog for the new branch"
+	"--merged; show branches that are contained in the specified commit only"
+	"--no-abbrev; print full commit IDs"
+	"--no-color; like --color=never"
+	"--no-merged; show branches that aren't contained in the specified commit only"
+	"--no-track; create a non-tracking branch"
+	"M; rename a branch, overwriting an existing branch"
+	"m; rename a branch"
+	"r; print or delete remote-tracking branches"
+	"--set-upstream; like --track, but don't move HEAD"
+	"t --track; create a remote-tracking branch"
+	"v --verbose; print commit ID and summary for each branch"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--abbrev)
+			;;
+		(--color)
+			command -f completion/git::--color:arg
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

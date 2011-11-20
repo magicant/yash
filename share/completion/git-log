@@ -1,0 +1,48 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-log" command.
+# Supports Git 1.7.7.
+
+function completion/git-log {
+	WORDS=(git log "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::log:arg {
+
+	OPTIONS=( #>#
+	"--bisect; show commits between good and bad only"
+	"--decorate::; show ref names of commits"
+	"--follow; show history beyond filename renaming"
+	"--full-diff; show diffs for all files affected in each commit"
+	"--log-size; print its size before printing log messages"
+	"--no-decorate; like --decorate=no"
+	"--source; show from which ref each commit was reached"
+	) #<#
+	if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-rev-list; then
+		command -f completion/git::rev-list:getopt
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--decorate) #>>#
+			complete -P "$PREFIX" -D "show full ref names" full
+			complete -P "$PREFIX" -D "show ref names without prefixes" short
+			complete -P "$PREFIX" -D "don't show ref names" no
+			;; #<<#
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::rev-list:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

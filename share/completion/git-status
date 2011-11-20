@@ -1,0 +1,44 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-status" command.
+# Supports Git 1.7.7.
+
+function completion/git-status {
+	WORDS=(git status "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::status:arg {
+
+	OPTIONS=( #>#
+	"b --branch: print the current branch"
+	"--ignored; print ignored files as well"
+	"--ignore-submodules::; ignore changes to submodules"
+	"--porcelain; print in the machine-friendly format"
+	"s --short; print in the short format"
+	"u:: --untracked-files::; print untracked files"
+	"z; print a null byte after each filename"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--ignore-submodules)
+			command -f completion/git::--ignore-submodules:arg
+			;;
+		(u|--untracked--files) #>>#
+			complete -P "$PREFIX" -D "print all individual files in untracked directories" all
+			complete -P "$PREFIX" -D "print untracked files and directories" normal
+			complete -P "$PREFIX" -D "don't print untracked files" no
+			;; #<<#
+		('')
+			complete -P "$PREFIX" -f
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
