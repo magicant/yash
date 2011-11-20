@@ -1,0 +1,85 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-add" command.
+# Supports Git 1.7.7.
+
+function completion/git-add {
+	WORDS=(git add "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::add:arg {
+
+	OPTIONS=( #>#
+	"A --all; add all files including untracked files"
+	"n --dry-run; don't actually add files"
+	"e --edit; edit patch hunks before adding"
+	"f --force; add ignored files"
+	"--ignore-errors; continue adding other files on an error"
+	"--ignore-missing; ignore missing files (with -n)"
+	"N --intent-to-add; add filepaths but not their contents"
+	"i --interactive; enter the interactive mode"
+	"p --patch; interactively choose patch hunks to add"
+	"--refresh; refresh stat info in the index without adding"
+	"u --update; add tracked files only; don't add new files"
+	"v --verbose; print affected filenames"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::add:opr
+			;;
+	esac
+
+}
+
+# only complete files that can be added
+function completion/git::add:opr {
+
+	typeset dir="$(dirname -- "${TARGETWORD}X")"
+	typeset pathprefix="$({
+		cd -- "$dir" && git rev-parse --show-prefix
+	} 2>/dev/null)"
+
+	typeset force= i=2
+	while [ $i -le ${WORDS[#]} ]; do
+		case ${WORDS[i]} in
+			(--)
+				break;;
+			(--force)
+				force=true; break;;
+			(--*)
+				;;
+			(-*f*)
+				force=true; break;;
+		esac
+		i=$((i+1))
+	done
+
+	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
+
+	typeset file
+	while read -r file; do
+		file=${file#"$pathprefix"}
+		case $file in
+			(*/*)
+				complete -P "$prefix" -S / -T -- "${file%%/*}"
+				;;
+			(*)
+				complete -P "$prefix" -- "$file"
+				;;
+		esac
+	done 2>/dev/null <(
+		git status --porcelain ${force:+--ignored} -- "$dir/" |
+		grep '^.[^ ]' |
+		cut -c 4-
+	)
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
