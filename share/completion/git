@@ -109,6 +109,8 @@ function completion/git {
 				if { command -vf "completion/git::$gitcmd:arg" ||
 						. -AL "completion/git-$gitcmd"; } >/dev/null 2>&1; then
 					command -f "completion/git::$gitcmd:arg" 
+				else
+					complete -P "$PREFIX" -f
 				fi
 			else
 				# complete command name
@@ -336,6 +338,13 @@ function completion/git::getorderopts {
 	) #<#
 }
 
+function completion/git::--author:arg {
+	typeset author
+	while read -r author; do
+		complete -P "$PREFIX" -- "$author"
+	done 2>/dev/null <(git log --all --format=format:%an | uniq)
+}
+
 function completion/git::--color:arg { #>>#
 	complete -P "$PREFIX" -D "always print in color" always
 	complete -P "$PREFIX" -D "print in color if output is terminal" auto
@@ -429,6 +438,12 @@ function completion/git::--ignore-submodules:arg { #>>#
 function completion/git::--pretty:arg {
 	command -f completion/git::--format:arg "$@"
 }
+
+function completion/git::--untracked-files:arg { #>>#
+	complete -P "$PREFIX" -D "print all individual files in untracked directories" all
+	complete -P "$PREFIX" -D "print untracked files and directories" normal
+	complete -P "$PREFIX" -D "don't print untracked files" no
+} #<<#
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,80 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-commit" command.
+# Supports Git 1.7.7.
+
+function completion/git-commit {
+	WORDS=(git commit "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::commit:arg {
+
+	OPTIONS=( #>#
+	"a --all; include modified or deleted files that have not been added"
+	"--allow-empty; allow a commit that makes no change"
+	"--allow-empty-message"
+	"--amend; redo the last commit on the current branch"
+	"--author:; specify the author"
+	"--cleanup:; specify the way the message is cleaned up"
+	"--date:; specify the date"
+	"--dry-run; don't actually commit, but show what would happen"
+	"e --edit; reedit the message"
+	"F: --file:; specify a file containing the message"
+	"--fixup:; prepare the message to fix up the specified commit in later autosquash"
+	"i --include; include operand files in the commit"
+	"m: --message:; specify the message"
+	"--no-status; don't include file statuses in the message template"
+	"n --no-verify; bypass the pre-commit and commit-msg hooks"
+	"o --only; commit operand files only"
+	"p --patch; interactive choose patch hunks to commit"
+	"--porcelain; dry-run with the machine-friendly format"
+	"q --quiet; suppress the commit summary message"
+	"--reset-author; ignore the date and author of the original commit"
+	"C: --reuse-message:; specify an existing commit from which the message is reused"
+	"c: --reedit-message:; like -C, but reedit the message"
+	"--short; dry-run with a short output format"
+	"s --signoff; add a \"signed-off-by\" line to the message"
+	"--squash:; prepare the message to squash the specified commit in later autosquash"
+	"--status; include file statuses in the message template"
+	"t: --template:; specify a file containing a template message to edit"
+	"u:: --untracked-files::; print untracked files"
+	"v --verbose; include diffs in the message template"
+	"z; print a null byte after each filename"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--author)
+			command -f completion/git::--author:arg
+			;;
+		(--cleanup) #>>#
+			complete -P "$PREFIX" -D "like \"strip\" when editing and \"whitespace\" otherwise" default
+			complete -P "$PREFIX" -D "delete empty lines and comments" strip
+			complete -P "$PREFIX" -D "don't clean up the message at all" verbatim
+			complete -P "$PREFIX" -D "delete empty lines" whitespace
+			;; #<<#
+#		(--date)
+			# TODO complete date
+#			;;
+		([Ft]|--file|--template)
+			complete -P "$PREFIX" -f
+			;;
+		([Cc]|--fixup|--reuse-message|--reedit-message|--squash)
+			command -f completion/git::completeref
+			;;
+		(u|--untracked-files)
+			command -f completion/git::--untracked-files:arg
+			;;
+		('')
+			command -f completion/git::add:opr
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

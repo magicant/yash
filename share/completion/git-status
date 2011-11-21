@@ -28,11 +28,9 @@ function completion/git::status:arg {
 		(--ignore-submodules)
 			command -f completion/git::--ignore-submodules:arg
 			;;
-		(u|--untracked--files) #>>#
-			complete -P "$PREFIX" -D "print all individual files in untracked directories" all
-			complete -P "$PREFIX" -D "print untracked files and directories" normal
-			complete -P "$PREFIX" -D "don't print untracked files" no
-			;; #<<#
+		(u|--untracked-files)
+			command -f completion/git::--untracked-files:arg
+			;;
 		('')
 			complete -P "$PREFIX" -f
 			;;

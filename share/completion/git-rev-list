@@ -117,11 +117,7 @@ function completion/git::rev-list:compopt
 			# TODO complete date
 			;;
 		(--author)
-			typeset author
-			while read -r author; do
-				complete -P "$PREFIX" -- "$author"
-			done 2>/dev/null \
-				<(git log --all --format=format:%an | uniq)
+			command -f completion/git::--author:arg
 			;;
 		(--branches)
 			command -f completion/git::completeref --branches
