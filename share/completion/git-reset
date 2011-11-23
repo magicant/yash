@@ -1,0 +1,36 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-reset" command.
+# Supports Git 1.7.7.
+
+function completion/git-reset {
+	WORDS=(git reset "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::reset:arg {
+
+	OPTIONS=( #>#
+	"--hard; reset the index and working tree"
+	"--keep; like --hard, but keep working tree changes"
+	"--merge; reset out of a conflicted merge"
+	"--mixed; reset the index but keep the working tree"
+	"p --patch; interactively choose patch hunks to reset"
+	"q --quiet; print error and warning messages only"
+	"--soft; keep the index and working tree intact"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

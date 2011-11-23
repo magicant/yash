@@ -1,0 +1,68 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-rebase" command.
+# Supports Git 1.7.7.
+
+function completion/git-rebase {
+	WORDS=(git rebase "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::rebase:arg {
+
+	OPTIONS=( #>#
+	"--abort; abort the current rebasing and reset to the original"
+	"--autosquash; find commits to be squashed (with -i)"
+	"C:; specify the number of context lines in each hunk that must match"
+	"--committer-date-is-author-date; use author date for committer date"
+	"--continue; continue the current rebasing"
+	"f --force-rebase; rebase even if the branch is up-to-date"
+	"--ignore-date; use committer date for author date"
+	"--ignore-whitespace; ignore whitespaces in context when applying patches"
+	"i --interactive; interactively reedit commits that are rebased"
+	"m --merge; use merging strategies to rebase"
+	"--no-autosquash; cancel the --autosquash option"
+	"--no-ff; don't fast-forward even if possible"
+	"--no-stat; don't print a diffstat"
+	"--no-verify; don't run the pre-rebase hook"
+	"p --preserve-merges; don't ignore merge commits"
+	"q --quiet; don't print anything"
+	"--root; rebase all ancestor commits"
+	"--skip; skip the current patch and continue rebasing"
+	"--stat; print a diffstat from the last rebase"
+	"s: --strategy:; specify the merge strategy"
+	"X: --strategy-option:; specify a strategy-specific option"
+	"v --verbose" # TODO description
+	"--verify; run the pre-rebase hook"
+	"--whitespace:; specify what to do with whitespace errors"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		(C)
+#			;;
+		(--whitespace) #>>#
+			complete -P "$PREFIX" -D "treat as errors and print some of them" error
+			complete -P "$PREFIX" -D "treat as errors and print all of them" error-all
+			complete -P "$PREFIX" -D "print warnings and fix errors" fix strip
+			complete -P "$PREFIX" -D "don't print warnings about whitespace errors" nowarn
+			complete -P "$PREFIX" -D "print warnings but apply the patch as is" warn
+			;; #<<#
+		('')
+			command -f completion/git::completerefpath
+			;;
+		(*)
+			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-merge; then
+				command -f completion/git::merge:compopt
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

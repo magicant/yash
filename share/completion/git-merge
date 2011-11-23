@@ -1,0 +1,106 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-merge" command.
+# Supports Git 1.7.7.
+
+function completion/git-merge {
+	WORDS=(git merge "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::merge:arg {
+
+	OPTIONS=( #>#
+	"--abort; reset to the state before starting merge"
+	"m:; specify the message"
+	"--no-rerere-autoupdate; disable the rerere mechanism"
+	"--rerere-autoupdate; enable the rerere mechanism"
+	) #<#
+	command -f completion/git::merge:getopt
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+		(*)
+			command -f completion/git::merge:compopt
+			;;
+	esac
+
+}
+
+function completion/git::merge:getopt {
+	OPTIONS=("$OPTIONS" #>#
+	"--commit; commit the merge result automatically"
+	"--ff; fast-forward if possible"
+	"--ff-only; allow fast-forward only"
+	"--log::; specify the number of commits in the merged branch of which the messages are reused"
+	"--no-commit; don't commit the merge result automatically"
+	"--no-ff; don't fast-forward even if possible"
+	"--no-log; don't reuse messages from the commits on the merged branch"
+	"--no-progress; don't print progress info"
+	"--no-squash; cancel the --squash option"
+	"n --no-stat --no-summary; don't print a diffstat"
+	"--progress; print progress info"
+	"q --quiet; don't print anything"
+	"--squash; like --no-commit, but don't set MERGE_HEAD"
+	"--stat --summary; print a diffstat"
+	"s: --strategy:; specify the merge strategy"
+	"X: --strategy-option:; specify a strategy-specific option"
+	"v --verbose" # TODO description
+	) #<#
+}
+
+function completion/git::merge:compopt
+	case $ARGOPT in
+		(m|--log)
+			;;
+		(s|--strategy) #>>#
+			complete -P "$PREFIX" -D "standard algorithm for merging more than 2 heads" octopus
+			complete -P "$PREFIX" -D "simple algorithm that makes no change" ours
+			complete -P "$PREFIX" -D "recursive 3-way merge" recursive
+			complete -P "$PREFIX" -D "safe and fast 3-way merge" resolve
+			complete -P "$PREFIX" -D "recursive 3-way merge with subtree matching" subtree
+			;; #<<#
+		(X|--strategy-option)
+			typeset i=2 strategy=recursive
+			while [ $i -le ${WORDS[#]} ]; do
+				case ${WORDS[i]} in
+					(-s*)
+						strategy=${WORDS[i]#-s}
+						;;
+					(--strategy=*)
+						strategy=${WORDS[i]#--strategy=}
+						;;
+					(--)
+						break
+						;;
+				esac
+				i=$((i+1))
+			done
+			case $strategy in
+				(recursive) #>>#
+					complete -P "$PREFIX" -D "resolve conflicts by discarding remote changes" ours
+					complete -P "$PREFIX" -D "resolve conflicts by discarding local changes" theirs
+					complete -P "$PREFIX" -D "use the patience diff algorithm" patience
+					complete -P "$PREFIX" -D "discard conflicting changes of the number of spaces" ignore-space-change
+					complete -P "$PREFIX" -D "discard conflicting changes of spaces" ignore-all-space
+					complete -P "$PREFIX" -D "discard conflicting changes of spaces at end of line" ignore-space-at-eol
+					complete -P "$PREFIX" -D "run hooks to obtain trees to merge" renormalize
+					complete -P "$PREFIX" -D "don't run hooks to obtain trees to merge" no-renormalize
+					complete -P "$PREFIX" -D "specify the threshold for detecting renames" -T rename-threshold=
+					complete -P "$PREFIX" -D "match directory trees before merging" subtree
+					;; #<<#
+			esac
+			;;
+		(*)
+			return 1
+			;;
+	esac
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
