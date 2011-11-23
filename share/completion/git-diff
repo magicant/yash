@@ -11,10 +11,30 @@ function completion/git-diff {
 function completion/git::diff:arg {
 
 	OPTIONS=( #>#
+	"--cached --staged; compare the index with a commit"
+	) #<#
+	command -f completion/git::diff:getopt
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::diff:compopt
+			;;
+	esac
+
+}
+
+function completion/git::diff:getopt {
+	OPTIONS=("$OPTIONS" #>#
 	"--abbrev::; abbreviate commit IDs"
 	"--binary; print diffs for binary files"
 	"B:: --break-rewrites::; treat a way different file as a new file"
-	"--cached --staged; compare the index with a commit"
 	"--check; check for whitespace errors"
 	"--color::; show symbols in color"
 	"--color-words::; like --word-diff=color --word-diff-regex=..."
@@ -23,10 +43,10 @@ function completion/git::diff:arg {
 	"--dst-prefix:; specify a prefix for destination filenames in diffs"
 	"--exit-code; return the exit status of 1 when there is any diffs"
 	"--ext-diff; use an external diff program"
-	"--full-index; print full commit IDs in the patch format"
 	"C:: --find-copies::; detect copies of files with the specified threshold"
 	"--find-copies-harder; find files copied from unmodified existing files"
 	"M:: --find-renames::; detect renames of files with the specified threshold"
+	"--full-index; print full commit IDs in the patch format"
 	"G:; specify a regular expression to look for in diffs"
 	"w --ignore-all-space; ignore whitespaces in comparison"
 	"--ignore-space-at-eol; ignore changes in whitespace at end of lines"
@@ -51,8 +71,8 @@ function completion/git::diff:arg {
 	"--patience; generate a diff using the patience diff algorithm"
 	"--pickaxe-all; show the whole changeset when -S/-G is specified"
 	"--pickaxe-regex; treat the specified string as a regular expression (with -S)"
-	"R; print reverse diffs"
 	"--quiet; don't print anything"
+	"R; print reverse diffs"
 	"--raw; print in the raw format"
 	"--relative::; only show diffs in the specified directory"
 	"S:; specify a string to look for in diffs"
@@ -72,19 +92,17 @@ function completion/git::diff:arg {
 	"--word-diff-regex:; specify a regular expression that defines a word"
 	"z; print a null byte after each filename"
 	) #<#
+}
 
-	command -f completion//parseoptions -n
+function completion/git::diff:compopt
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
+		([BClMU]|--abbrev|--break-rewrites|--find-*|--inter-hunk-context|--stat|--stat-*|--unified)
 			;;
-#		([BClMU]|--abbrev|--break-rewrites|--find-*|--inter-hunk-context|--stat|--stat-*|--unified)
-#			;;
 		(--color|--ignore-submodules)
 			command -f completion/git::$ARGOPT:arg
 			;;
-#		(--color-words|--word-diff-regex)
-#			;;
+		(--color-words|--word-diff-regex)
+			;;
 		(--diff-filter) #>>#
 			complete -P "$TARGETWORD" -D "added" A
 			complete -P "$TARGETWORD" -D "pair broken" B
@@ -107,8 +125,8 @@ function completion/git::diff:arg {
 			complete -P "$PREFIX" -S , -T -D "count lines that appear as added or removed in diffs" lines
 			complete -P "$PREFIX" -S , -T -D "exclude changes in subdirectories when operating on the parent" noncumulative
 			;; #<<#
-#		([GS])
-#			;;
+		([GS])
+			;;
 		(--relative)
 			complete -P "$PREFIX" -S / -T -d
 			;;
@@ -122,15 +140,13 @@ function completion/git::diff:arg {
 			complete -P "$PREFIX" -D "print in the machine-friendly format" porcelain
 			complete -P "$PREFIX" -D "disable word-based diffs" none
 			;; #<<#
-		(O|--*-prefix)
+		(O|--dst-prefix|--src-prefix)
 			complete -P "$PREFIX" -f
 			;;
-		('')
-			command -f completion/git::completerefpath range=true
+		(*)
+			return 1
 			;;
 	esac
-
-}
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:

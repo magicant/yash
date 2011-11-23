@@ -23,6 +23,10 @@ function completion/git::log:arg {
 			. -AL completion/git-rev-list; then
 		command -f completion/git::rev-list:getopt
 	fi
+	if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff; then
+		command -f completion/git::diff:getopt
+	fi
 
 	command -f completion//parseoptions -n
 	case $ARGOPT in
@@ -38,7 +42,8 @@ function completion/git::log:arg {
 			command -f completion/git::completerefpath range=true
 			;;
 		(*)
-			command -f completion/git::rev-list:compopt
+			command -f completion/git::rev-list:compopt ||
+			command -f completion/git::diff:compopt
 			;;
 	esac
 
