@@ -284,12 +284,22 @@ function completion/git::completeref {
 		esac
 	done
 
+	typeset targetword="${TARGETWORD#"$PREFIX"}"
 	if [ $# -eq 0 ]; then
 		complete -P "$PREFIX" -A '*HEAD' -- $( (ls -- "$(git rev-parse --git-dir)") 2>/dev/null)
 		set -- --all
+
+		# complete commit ID
+		if grep -Eq '^[[:xdigit:]]{2,7}$' <<<"$targetword" 2>/dev/null; then
+			typeset id message
+			while read -r id message; do
+				complete -P "$PREFIX" -D "$message" -- "$id"
+			done 2>/dev/null <(git rev-list --all --oneline)
+		fi
 	fi
 
-	typeset fullref ref abbr targetword="${TARGETWORD#"$PREFIX"}"
+	# complete symbolic ref
+	typeset fullref ref abbr
 	typeset word="${targetword##*/}"
 	typeset prefix="${targetword%"$word"}"
 	while read -r fullref; do
