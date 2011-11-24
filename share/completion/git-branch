@@ -43,7 +43,37 @@ function completion/git::branch:arg {
 			command -f completion/git::--color:arg
 			;;
 		('')
-			command -f completion/git::completeref
+			typeset i=2 all=false delete=false
+			while [ $i -le ${WORDS[#]} ]; do
+				case ${WORDS[i]} in
+				(--)
+					i=$((i+1))
+					break
+					;;
+				(--merged|--no-merged|--contains)
+					all=true
+					break
+					;;
+				(--*)
+					i=$((i+1))
+					;;
+				(-*[Dd]*)
+					delete=true
+					break
+					;;
+				(-?*)
+					i=$((i+1))
+					;;
+				(*)
+					break
+					;;
+				esac
+			done
+			if ! $all && $delete || [ $i -gt ${WORDS[#]} ]; then
+				command -f completion/git::completeref --branches
+			else
+				command -f completion/git::completeref
+			fi
 			;;
 	esac
 
