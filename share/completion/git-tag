@@ -1,0 +1,69 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-tag" command.
+# Supports Git 1.7.7.
+
+function completion/git-tag {
+	WORDS=(git tag "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::tag:arg {
+
+	OPTIONS=( #>#
+	"a; make an unsigned annotated tag"
+	"--contains:; list tags that are ancestors of the specified commit"
+	"d; delete tags"
+	"F:; specify a file containing the message"
+	"f --force; overwrite an existing tag"
+	"l; list tag names that match an operand"
+	"m:; specify the message"
+	"n::; specify the number of lines of annotation to print"
+	"s; make a GPG-signed tag with the default email address's key"
+	"u:; specify a key to make a GPG-signed tag with"
+	"v; verify tags"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--contains)
+			command -f completion/git::completeref
+			;;
+		('')
+			typeset i=2 nomake=false
+			while [ $i -le ${WORDS[#]} ]; do
+				case ${WORDS[i]} in
+				(--)
+					i=$((i+1))
+					break
+					;;
+				(--*)
+					i=$((i+1))
+					;;
+				(-*[dlv]*)
+					nomake=true
+					break
+					;;
+				(-?*)
+					i=$((i+1))
+					;;
+				(*)
+					break
+					;;
+				esac
+			done
+			if $nomake || [ $i -gt ${WORDS[#]} ]; then
+				command -f completion/git::completeref --tags
+			else
+				command -f completion/git::completeref
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
