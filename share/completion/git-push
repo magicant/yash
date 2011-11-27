@@ -1,0 +1,58 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-push" command.
+# Supports Git 1.7.7.
+
+function completion/git-push {
+	WORDS=(git push "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::push:arg {
+
+	OPTIONS=( #>#
+	"--all; push all local branches"
+	"--delete; delete remote refs specified as operands"
+	"n --dry-run; don't actually push anything"
+	"f --force; allow non-fast-forward update"
+	"--mirror; push all local refs"
+	"--no-thin; cancel the --thin option"
+	"--porcelain; print in the machine-friendly format"
+	"--progress; report progress"
+	"q --quiet; don't report progress"
+	"--repo:; specify the default repository to push to"
+	"--receive-pack: --exec:; specify a path for git-receive-pack on the remote host"
+	"u --set-upstream; make pushed branches remote-tracking"
+	"--tags; push all local tags"
+	"--thin; send a thin pack to reduce traffic"
+	"v --verbose" # TODO description
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--receive-pack|--exec)
+			command -f completion/git::--receive-pack:arg
+			;;
+		(--repo|'')
+			if [ $i -gt ${WORDS[#]} ]; then
+				#TODO complete remote URI
+				command -f completion/git::completeremote
+			elif [ "${WORDS[-1]}" = tag ]; then
+				command -f completion/git::completeref --tags
+			else
+				typeset word="${TARGETWORD#"$PREFIX"}"
+				word=${word#+}
+				word=${word#*:}
+				PREFIX=${TARGETWORD%"$word"}
+				command -f completion/git::completeref
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

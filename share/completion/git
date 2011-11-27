@@ -461,11 +461,27 @@ function completion/git::--pretty:arg {
 	command -f completion/git::--format:arg "$@"
 }
 
+function completion/git::--receive-pack:arg {
+	complete -P "$PREFIX" -S / -T -d
+	# XXX should complete available remote commands
+}
+
+function completion/git::--recurse-submodules:arg { #>>#
+	complete -P "$PREFIX" no
+	complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
+	complete -P "$PREFIX" yes
+} #<<#
+
 function completion/git::--untracked-files:arg { #>>#
 	complete -P "$PREFIX" -D "print all individual files in untracked directories" all
 	complete -P "$PREFIX" -D "print untracked files and directories" normal
 	complete -P "$PREFIX" -D "don't print untracked files" no
 } #<<#
+
+function completion/git::--upload-pack:arg {
+	complete -P "$PREFIX" -S / -T -d
+	# XXX should complete available remote commands
+}
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,60 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-pull" command.
+# Supports Git 1.7.7.
+
+function completion/git-pull {
+	WORDS=(git pull "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::pull:arg {
+
+	OPTIONS=( #>#
+	"--no-rebase; cancel the --rebase option"
+	"q --quiet; don't report progress"
+	"--rebase; rebase the current branch instead of merging"
+	"v --verbose" # TODO description
+	) #<#
+	if command -vf completion/git::fetch:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-fetch; then
+		command -f completion/git::fetch:getopt
+	fi
+	if command -vf completion/git::merge:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-merge; then
+		command -f completion/git::merge:getopt
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--recurse-submodules|--upload-pack)
+			command -f completion/git::$ARGOPT:arg
+			;;
+#		(--depth)
+#			;;
+		('')
+			if [ $i -gt ${WORDS[#]} ]; then
+				#TODO complete remote URI
+				command -f completion/git::completeremote
+			elif [ "${WORDS[-1]}" = tag ]; then
+				command -f completion/git::completeref --tags
+			else
+				typeset word="${TARGETWORD#"$PREFIX"}"
+				word=${word#+}
+				word=${word#*:}
+				PREFIX=${TARGETWORD%"$word"}
+				command -f completion/git::completeref
+			fi
+			;;
+		(*)
+			command -f completion/git::merge:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

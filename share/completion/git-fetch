@@ -11,44 +11,29 @@ function completion/git-fetch {
 function completion/git::fetch:arg {
 
 	OPTIONS=( #>#
-	"--all; fetch all remotes"
-	"a --append; append to (not overwrite) existing FETCH_HEAD"
-	"--depth:; specify the max number of history to fetch"
 	"--dry-run; don't actually fetch anything"
-	"f --force; allow non-fast-forward update of branches"
-	"k --keep; keep downloaded pack"
 	"--multiple; allow specifying multiple remotes"
-	"--no-recurse-submodules; don't fetch submodules"
-	"n --no-tags; don't fetch tags automatically"
-	"--progress; report progress"
 	"p --prune; delete remote-tracking branches that no longer exist on the remote"
 	"q --quiet; don't report progress"
-	"--recurse-submodules::; specify whether to fetch submodules"
 	"--submodule-prefix" # not for command line use
 	"--recurse-submodules-default::" # not for command line use
 	"t --tags; fetch all tags from the remote"
-	"u --update-head-ok" # not for command line use
-	"--upload-pack:; specify a path for git-upload-pack on the remote host"
 	"v --verbose" # TODO description
 	) #<#
+	command -f completion/git::fetch:getopt
 
 	command -f completion//parseoptions -n
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
 			;;
-#		(--depth)
-#			;;
-		(--recurse-submodules) #>>#
-			complete -P "$PREFIX" no
-			complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
-			complete -P "$PREFIX" yes
-			;; #<<#
+		(--recurse-submodules|--upload-pack)
+			command -f completion/git::$ARGOPT:arg
+			;;
 		(--recurse-submodules-default)
 			;;
-		(--upload-pack)
-			complete -P "$PREFIX" -S / -T -d
-			;;
+#		(--depth)
+#			;;
 		('')
 			typeset i=2 multiple=false
 			while [ $i -le ${WORDS[#]} ]; do
@@ -72,6 +57,8 @@ function completion/git::fetch:arg {
 			if $multiple || [ $i -gt ${WORDS[#]} ]; then
 				#TODO complete remote URI
 				command -f completion/git::completeremote
+			elif [ "${WORDS[-1]}" = tag ]; then
+				command -f completion/git::completeref --tags
 			else
 				typeset word="${TARGETWORD#"$PREFIX"}"
 				word=${word#+}
@@ -82,6 +69,26 @@ function completion/git::fetch:arg {
 			;;
 	esac
 
+}
+
+function completion/git::fetch:getopt {
+	typeset fetch=
+	case ${gitcmd-} in
+		fetch) fetch=true;;
+	esac
+	OPTIONS=("$OPTIONS" #>#
+	"--all; fetch all remotes"
+	"a --append; append to (not overwrite) existing FETCH_HEAD"
+	"--depth:; specify the max number of history to fetch"
+	"f --force; allow non-fast-forward update"
+	"k --keep; keep downloaded pack"
+	"--no-recurse-submodules; don't fetch submodules"
+	"${fetch+n} --no-tags; don't fetch tags automatically"
+	"--progress; report progress"
+	"--recurse-submodules::; specify whether to fetch submodules"
+	"u --update-head-ok" # not for command line use
+	"--upload-pack:; specify a path for git-upload-pack on the remote host"
+	) #<#
 }
 
 
