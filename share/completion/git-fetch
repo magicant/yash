@@ -1,0 +1,88 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-fetch" command.
+# Supports Git 1.7.7.
+
+function completion/git-fetch {
+	WORDS=(git fetch "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::fetch:arg {
+
+	OPTIONS=( #>#
+	"--all; fetch all remotes"
+	"a --append; append to (not overwrite) existing FETCH_HEAD"
+	"--depth:; specify the max number of history to fetch"
+	"--dry-run; don't actually fetch anything"
+	"f --force; allow non-fast-forward update of branches"
+	"k --keep; keep downloaded pack"
+	"--multiple; allow specifying multiple remotes"
+	"--no-recurse-submodules; don't fetch submodules"
+	"n --no-tags; don't fetch tags automatically"
+	"--progress; report progress"
+	"p --prune; delete remote-tracking branches that no longer exist on the remote"
+	"q --quiet; don't report progress"
+	"--recurse-submodules::; specify whether to fetch submodules"
+	"--submodule-prefix" # not for command line use
+	"--recurse-submodules-default::" # not for command line use
+	"t --tags; fetch all tags from the remote"
+	"u --update-head-ok" # not for command line use
+	"--upload-pack:; specify a path for git-upload-pack on the remote host"
+	"v --verbose" # TODO description
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		(--depth)
+#			;;
+		(--recurse-submodules) #>>#
+			complete -P "$PREFIX" no
+			complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
+			complete -P "$PREFIX" yes
+			;; #<<#
+		(--recurse-submodules-default)
+			;;
+		(--upload-pack)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+		('')
+			typeset i=2 multiple=false
+			while [ $i -le ${WORDS[#]} ]; do
+				case ${WORDS[i]} in
+				(--)
+					i=$((i+1))
+					break
+					;;
+				(--multiple)
+					multiple=true
+					break
+					;;
+				(-?*)
+					i=$((i+1))
+					;;
+				(*)
+					break
+					;;
+				esac
+			done
+			if $multiple || [ $i -gt ${WORDS[#]} ]; then
+				#TODO complete remote URI
+				command -f completion/git::completeremote
+			else
+				typeset word="${TARGETWORD#"$PREFIX"}"
+				word=${word#+}
+				word=${word#*:}
+				PREFIX=${TARGETWORD%"$word"}
+				command -f completion/git::completeref
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

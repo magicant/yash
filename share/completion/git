@@ -341,6 +341,18 @@ function completion/git::completerefpath {
 
 }
 
+function completion/git::completeremote {
+	typeset remote
+	while read -r remote; do
+		complete -P "$PREFIX" -- "$remote" # XXX description
+	done 2>/dev/null <(
+		gitdir=$(git rev-parse --git-dir) || exit
+		git remote
+		(cd -- "$gitdir/remotes" && ls -A)
+		(cd -- "$gitdir/branches" && ls -A)
+	)
+}
+
 function completion/git::getorderopts {
 	OPTIONS=("$OPTIONS" #>#
 	"--date-order; sort commits by date while keeping children before parent"

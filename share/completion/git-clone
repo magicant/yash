@@ -1,0 +1,58 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-clone" command.
+# Supports Git 1.7.7.
+
+function completion/git-clone {
+	WORDS=(git clone "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::clone:arg {
+
+	OPTIONS=( #>#
+	"--bare; clone as a bare repository"
+	"b: --branch:; specify a branch to be the new repository's HEAD"
+	"c: --config:; specify a config variable for the new repository"
+	"--depth:; specify the max number of history to clone"
+	"l --local; optimize local clone"
+	"--mirror; clone as a mirror repository"
+	"n --no-checkout; don't check out HEAD automatically"
+	"--no-hardlinks; don't use hard links to spare disk space for local clone"
+	"o: --origin:; specify a name for the source repository to set as a remote repository"
+	"--progress; report progress"
+	"q --quiet; don't report progress"
+	"--recursive --recurse-submodules; initialize submodules recursively"
+	"--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+	"--separate-git-dir:; specify a directory where the new repository is located"
+	"s --shared; share objects in repositories (possibly dangerous operation)"
+	"--template:; specify a directory that contains templates"
+	"u: --upload-pack:; specify a path for git-upload-pack on the remote host"
+	"v --verbose" # TODO description
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		(b|--branch)
+#			;;
+		(c|--config)
+			# TODO config
+			;;
+#		(--depth)
+#			;;
+#		(o|--origin)
+#			;;
+		(u|--reference|--template|--separate-git-dir|--upload-pack)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+		('')
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
