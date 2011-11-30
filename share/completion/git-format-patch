@@ -1,0 +1,82 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-format-patch" command.
+# Supports Git 1.7.7.
+
+function completion/git-format-patch {
+	WORDS=(git format-patch "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::format-patch:arg {
+
+	OPTIONS=( #>#
+	"--add-header:; specify an additional header string"
+	"--attach::; make patch contents an mail attachment"
+	"--cc:; specify an additional receiver"
+	"--cover-letter; create a file containing overall diffstat"
+	"--ignore-if-in-upstream"
+	"--inline::; like --attach, but use \"Content-Disposition: inline\""
+	"--in-reply-to:"
+	"k --keep-subject; don't add/remove \"[PATCH]\""
+	"--no-attach; cancel the --attach option"
+	"--no-binary; don't include diffs for binary files"
+	"p --no-stat; create plain patches without diffstats"
+	"N --no-numbered; name output in \"[PATCH]\" format"
+	"--no-signature; don't append a signature to results"
+	"--no-thread; don't thread mails"
+	"n --numbered; name output in \"[PATCH n/m]\" format"
+	"--numbered-files; use simple integers for output filenames"
+	"o: --output-directory:; specify the directory to place the results in"
+	"--quiet; don't print created patch filenames"
+	"--root; treat the operand as a revision range"
+	"--signature:; specify a signature appended to each message"
+	"s --signoff; include a signed-off-by line"
+	"--start-number:; specify a number to start numbering patches from"
+	"--stdout; output results to the standard output rather than files"
+	"--subject-prefix:; specify a string prefix to the subject"
+	"--suffix:; specify a suffix appended to result filenames"
+	"--thread::; specify mail threading behavior"
+	"--to:; specify an additional receiver"
+	) #<#
+	if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff; then
+		command -f completion/git::diff:getopt
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--add-header)
+			;;
+		(--attach|--inline)
+			;;
+		(--in-reply-to)
+			;;
+		(o|--output-directory)
+			complete -P "$PREFIX" -S / -T -d
+			;;
+		(--signature)
+			;;
+		(--start-number)
+			;;
+		(--subject-prefix)
+			;;
+		(--suffix)
+			;;
+		(--to|--cc)
+			;;
+		('')
+			command -f completion/git::completeref range=true
+			;;
+		(*)
+			command -f completion/git::diff:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

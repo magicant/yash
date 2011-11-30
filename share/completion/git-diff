@@ -31,6 +31,10 @@ function completion/git::diff:arg {
 }
 
 function completion/git::diff:getopt {
+	typeset diff=
+	case $gitcmd in
+		(diff|log) diff=true;;
+	esac
 	OPTIONS=("$OPTIONS" #>#
 	"--abbrev::; abbreviate commit IDs"
 	"--binary; print diffs for binary files"
@@ -65,7 +69,7 @@ function completion/git::diff:getopt {
 	"--no-textconv; don't use an external text filter to compare binary files"
 	"--numstat; print a diffstat in the machine-friendly format"
 	"O:; specify a file containing the order in which diffs are printed"
-	"p --patch; print a patch"
+	"${diff:+p} --patch; print a patch"
 	"--patch-with-raw; like --patch --raw"
 	"--patch-with-stat; like --patch --stat"
 	"--patience; generate a diff using the patience diff algorithm"
