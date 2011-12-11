@@ -31,7 +31,7 @@ function completion/git::clone:arg {
 	"v --verbose" # TODO description
 	) #<#
 
-	command -f completion//parseoptions -n
+	command -f completion//parseoptions
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
@@ -49,6 +49,12 @@ function completion/git::clone:arg {
 			complete -P "$PREFIX" -S / -T -d
 			;;
 		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				#TODO complete remote URI
+			else
+				complete -P "$PREFIX" -S / -T -d
+			fi
 			;;
 	esac
 

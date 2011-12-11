@@ -1,0 +1,42 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-revert" command.
+# Supports Git 1.7.7.
+
+function completion/git-revert {
+	WORDS=(git revert "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::revert:arg {
+
+	OPTIONS=( #>#
+	"e --edit; (re)edit the message"
+	"m: --mainline:; specify the mainline parent by number"
+	"n --no-commit; don't commit the reversion result automatically"
+	"--no-edit; don't reedit the message"
+	"s --signoff; add a \"signed-off-by\" line to the message"
+	"s: --strategy:; specify the merge strategy"
+	"X: --strategy-option:; specify a strategy-specific option"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref range=true
+			;;
+		(*)
+			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-merge; then
+				command -f completion/git::merge:compopt
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
