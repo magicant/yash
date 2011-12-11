@@ -25,7 +25,7 @@ function completion/git::pull:arg {
 		command -f completion/git::merge:getopt
 	fi
 
-	command -f completion//parseoptions -n
+	command -f completion//parseoptions
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
@@ -36,7 +36,8 @@ function completion/git::pull:arg {
 #		(--depth)
 #			;;
 		('')
-			if [ $i -gt ${WORDS[#]} ]; then
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
 				#TODO complete remote URI
 				command -f completion/git::completeremote
 			elif [ "${WORDS[-1]}" = tag ]; then

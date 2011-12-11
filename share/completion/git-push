@@ -28,7 +28,7 @@ function completion/git::push:arg {
 	"v --verbose" # TODO description
 	) #<#
 
-	command -f completion//parseoptions -n
+	command -f completion//parseoptions
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
@@ -37,7 +37,8 @@ function completion/git::push:arg {
 			command -f completion/git::--receive-pack:arg
 			;;
 		(--repo|'')
-			if [ $i -gt ${WORDS[#]} ]; then
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
 				#TODO complete remote URI
 				command -f completion/git::completeremote
 			elif [ "${WORDS[-1]}" = tag ]; then
