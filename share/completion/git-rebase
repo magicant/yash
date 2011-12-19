@@ -13,12 +13,10 @@ function completion/git::rebase:arg {
 	OPTIONS=( #>#
 	"--abort; abort the current rebasing and reset to the original"
 	"--autosquash; find commits to be squashed (with -i)"
-	"C:; specify the number of context lines in each hunk that must match"
 	"--committer-date-is-author-date; use author date for committer date"
 	"--continue; continue the current rebasing"
 	"f --force-rebase; rebase even if the branch is up-to-date"
 	"--ignore-date; use committer date for author date"
-	"--ignore-whitespace; ignore whitespaces in context when applying patches"
 	"i --interactive; interactively reedit commits that are rebased"
 	"m --merge; use merging strategies to rebase"
 	"--no-autosquash; cancel the --autosquash option"
@@ -34,8 +32,11 @@ function completion/git::rebase:arg {
 	"X: --strategy-option:; specify a strategy-specific option"
 	"v --verbose" # TODO description
 	"--verify; run the pre-rebase hook"
-	"--whitespace:; specify what to do with whitespace errors"
 	) #<#
+	if command -vf completion/git::apply:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-apply; then
+		command -f completion/git::apply:getopt rebase
+	fi
 
 	command -f completion//parseoptions -n
 	case $ARGOPT in
@@ -44,13 +45,9 @@ function completion/git::rebase:arg {
 			;;
 #		(C)
 #			;;
-		(--whitespace) #>>#
-			complete -P "$PREFIX" -D "treat as errors and print some of them" error
-			complete -P "$PREFIX" -D "treat as errors and print all of them" error-all
-			complete -P "$PREFIX" -D "print warnings and fix errors" fix strip
-			complete -P "$PREFIX" -D "don't print warnings about whitespace errors" nowarn
-			complete -P "$PREFIX" -D "print warnings but apply the patch as is" warn
-			;; #<<#
+		(--whitespace)
+			command -f completion/git::--whitespace:arg
+			;;
 		('')
 			command -f completion/git::completerefpath
 			;;

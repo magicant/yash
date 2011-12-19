@@ -1,0 +1,78 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-apply" command.
+# Supports Git 1.7.7.
+
+function completion/git-apply {
+	WORDS=(git apply "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::apply:arg {
+
+	OPTIONS=( #>#
+	"--allow-binary-replacement --binary"
+	"--apply; force to apply patches"
+	"--build-fake-ancestor:" # TODO
+	"--cached; apply patches to the index without modifying the working tree"
+	"--check; check if patches can be applied without errors instead of applying patches"
+	"--exclude:; skip files whose names match the specified pattern"
+	"--inaccurate-eof; work around diff errors about missing newlines at end of file"
+	"--include:; apply to only files whose names match the specified pattern"
+	"--index; apply patches to the index as well as the working tree"
+	"--no-add; apply deletions but not additions"
+	"--recount; ignore line counts in hunk headers"
+	"R --reverse; patch in reverse"
+	"--stat; print diffstat instead of applying patches"
+	"--numstat; print a diffstat in the machine-friendly format instead of applying patches"
+	"--summary; print summary instead of applying patches"
+	"--unidiff-zero; accept unified diffs without context lines"
+	"v --verbose; report progress in detail"
+	"z; print a null byte after each filename"
+	) #<#
+	command -f completion/git::apply:getopt apply
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		([Cp])
+#			;;
+		(--whitespace)
+			command -f completion/git::--whitespace:arg
+			;;
+		(''|--exclude|--include)
+			complete -P "$PREFIX" -f
+			;;
+	esac
+
+}
+
+function completion/git::apply:getopt {
+	typeset apply=
+	case $1 in (am|apply)
+		apply=true
+		OPTIONS=("$OPTIONS" #>#
+		"--directory:; specify a directory to work in"
+		"p:; specify the number of pathname components to strip from file names"
+		"--reject; apply as much as possible and leave rejected hunks in *.rej file"
+		) #<#
+	esac
+	OPTIONS=("$OPTIONS" #>#
+	"C:; specify the number of context lines in each hunk that must match"
+	"--ignore-whitespace ${apply:+--ignore-space-change}; ignore whitespaces in context when applying patches"
+	"--whitespace:; specify what to do with whitespace errors"
+	) #<#
+}
+
+function completion/git::--whitespace:arg { #>>#
+	complete -P "$PREFIX" -D "treat as errors and print some of them" error
+	complete -P "$PREFIX" -D "treat as errors and print all of them" error-all
+	complete -P "$PREFIX" -D "print warnings and fix errors" fix strip
+	complete -P "$PREFIX" -D "don't print warnings about whitespace errors" nowarn
+	complete -P "$PREFIX" -D "print warnings but apply the patch as is" warn
+} #<#
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

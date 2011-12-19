@@ -1,0 +1,55 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-am" command.
+# Supports Git 1.7.7.
+
+function completion/git-am {
+	WORDS=(git am "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::am:arg {
+
+	OPTIONS=( #>#
+	"3 --3way; try 3-way merge on conflict"
+	"--abort; abort patching and restore the original branch"
+	"--committer-date-is-author-date; use author date for committer date"
+	"r --continue --resolved; commit the current index and continue patching"
+	"--ignore-date; use committer date for author date"
+	"i --interactive"
+	"k --keep; use the mail subject intact as the commit message"
+	"--keep-cr; don't remove carriage returns at the end of lines"
+	"--no-keep-cr; remove carriage returns at the end of lines"
+	"--no-scissors; cancels the --scissors OPTIONS"
+	"--no-utf8; don't convert character encoding"
+	"q --quiet; print error messages only"
+	"--resolvemsg:"  # not for command line use
+	"c --scissors; remove lines before a scissors line"
+	"s --signoff; add a \"signed-off-by\" line to the message"
+	"--skip; skip the current patch (when restarting an aborted patch)"
+	"u --utf8; re-encode the log message into UTF-8"
+	) #<#
+	if command -vf completion/git::apply:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-apply; then
+		command -f completion/git::apply:getopt am
+	fi
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		([Cp])
+#			;;
+		(--whitespace)
+			command -f completion/git::--whitespace:arg
+			;;
+		('')
+			complete -P "$PREFIX" -f
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
