@@ -1,0 +1,37 @@
+# (C) 2011 magicant
+
+# Completion script for the "gitx" command.
+# Supports GitX 0.7.
+
+function completion/gitx {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"c --commit; start in the commit mode"
+	"h --help; print help"
+	) #<#
+	if command -vf completion/git >/dev/null 2>&1 ||
+			. -AL completion/git; then
+		if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
+				. -AL completion/git-rev-list; then
+			command -f completion/git::rev-list:getopt
+		fi
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::rev-list:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

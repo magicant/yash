@@ -1,0 +1,47 @@
+# (C) 2011 magicant
+
+# Completion script for the "gitg" command.
+# Supports gitg 0.2.5.
+
+function completion/gitg {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--class:; specify a program class used by the window manager"
+	"c --commit; start in the commit mode"
+	"--display:; specify the X display to use"
+	"--g-fatal-warnings; make all GTK+ warnings fatal"
+	"--gtk-module:; specify an additional GTK+ module to load"
+	"h ? --help; print help"
+	"--help-all; print help for all options"
+	"--help-gtk; print help for GTK+ options"
+	"--name:; specify a program name used by the window manager"
+	"-s --select; select commit after loading the repository"
+	"V --version; print version info"
+	) #<#
+	if command -vf completion/git >/dev/null 2>&1 ||
+			. -AL completion/git; then
+		if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
+				. -AL completion/git-rev-list; then
+			command -f completion/git::rev-list:getopt
+		fi
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			# TODO support repository operands
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::rev-list:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
