@@ -49,7 +49,7 @@ function completion/git::rebase:arg {
 			command -f completion/git::--whitespace:arg
 			;;
 		('')
-			command -f completion/git::completerefpath
+			command -f completion/git::completeref
 			;;
 		(*)
 			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||

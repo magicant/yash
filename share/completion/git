@@ -275,7 +275,7 @@ function completion/git::completeref {
 		(range=*)
 			typeset word="${TARGETWORD#"$PREFIX"}"
 			word=${word##*..}
-			PREFIX=${TARGETWORD%"$word"}
+			typeset PREFIX=${TARGETWORD%"$word"}
 			shift
 			;;
 		(*)
@@ -323,12 +323,19 @@ function completion/git::completeref {
 
 function completion/git::completerefpath {
 
-	typeset i=2 hyphenhyphen=false
+	typeset i=2 hyphenhyphen=false treeish=HEAD
 	while [ $i -le ${WORDS[#]} ]; do
-		if [ "${WORDS[i]}" = -- ]; then
-			hyphenhyphen=true
-			break
-		fi
+		case "${WORDS[i]}" in
+			(--)
+				hyphenhyphen=true
+				break
+				;;
+			(-*)
+				;;
+			(*)
+				treeish=${WORDS[i]}
+				;;
+		esac
 		i=$((i+1))
 	done
 
@@ -336,8 +343,62 @@ function completion/git::completerefpath {
 		command -f completion/git::completeref "$@"
 	fi
 
-	# XXX we better complete on the basis of tree contents
-	complete -P "$PREFIX" -f
+	if ! git show "$treeish^{tree}" >/dev/null 2>&1; then
+		treeish=HEAD
+	fi
+	command -f completion/git::completepath -r "$treeish"
+
+}
+
+function completion/git::completepath {
+
+	if ! git rev-parse --git-dir >/dev/null 2>&1; then
+		return 1
+	fi
+
+	typeset opt OPTIND=1 type=auto
+	while getopts ar opt; do
+		case $opt in
+			(a) type=abs ;;
+			(r) type=rel ;;
+		esac
+	done
+	shift $((OPTIND-1))
+
+	typeset tree="${1-HEAD}" targetpath="${TARGETWORD#"$PREFIX"}" lspath prefixpath
+	if [ "$type" = auto ]; then
+		case $targetpath in
+			(./*|../*) type=rel ;;
+			(*)        type=abs ;;
+		esac
+	fi
+	case $type in
+		(abs)
+			lspath=${targetpath}
+			;;
+		(rel)
+			lspath=$(git rev-parse --show-prefix)${targetpath}
+			;;
+	esac
+	case $lspath in
+		(*/*) lspath=${lspath%/*}/ ;;
+		(*)   lspath= ;;
+	esac
+	case $targetpath in
+		(*/*) prefixpath=${targetpath%/*}/ ;;
+		(*)   prefixpath= ;;
+	esac
+
+	typeset PREFIX="$PREFIX$prefixpath"
+	typeset mode type id path
+	while read -r mode type id path; do
+		case $type in
+			(tree) opt='-S / -T' ;;
+			(*)    opt= ;;
+		esac
+		complete -P "$PREFIX" $opt -- "${path##*/}"
+	done 2>/dev/null \
+		<(git ls-tree --full-tree "$tree" -- "$lspath")
 
 }
 
@@ -389,7 +450,7 @@ function completion/git::--format:arg {
 	case $word in
 	(format:*%*)
 		word=%${word##*%}
-		PREFIX=${TARGETWORD%"$word"} #>>#
+		typeset PREFIX=${TARGETWORD%"$word"} #>>#
 		complete -T -P "$PREFIX" -D "full commit ID" '%H'
 		complete -T -P "$PREFIX" -D "abbreviated commit ID" '%h'
 		complete -T -P "$PREFIX" -D "full tree ID" '%T'
