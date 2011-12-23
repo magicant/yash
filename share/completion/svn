@@ -152,6 +152,9 @@ function completion/svn {
 		;; #<<#
 #	(c|--change)
 #		;;
+	(--changelist|--cl)
+		command -f completion/svn::completechangelist
+		;;
 	(--config-dir)
 		complete -P "$PREFIX" -S / -T -d
 		;;
@@ -397,6 +400,15 @@ function completion/svn::completepropname { #>>#
 	complete -P "$PREFIX" -D "info about merge" svn:mergeinfo
 } #<<#
 
+function completion/svn::completechangelist {
+	typeset changelist
+	while read -r changelist; do
+		changelist=${changelist%\':}
+		changelist=${changelist##*\'}
+		complete -P "$PREFIX" "$changelist"
+	done 2>/dev/null <(svn status | grep "^--- .*'.*':\$")
+}
+
 function completion/svn:::opt {
 	command -f completion/svn::setoptions version
 }
@@ -437,7 +449,18 @@ function completion/svn::changelist:opt {
 }
 
 function completion/svn::changelist:arg {
-	command -f completion/svn::completelocal -cm
+	typeset i=2 remove=false
+	while [ $i -lt $separatorindex ]; do
+		case ${WORDS[i]} in
+			(--remove) remove=true;;
+		esac
+		i=$((i+1))
+	done
+	if ! $remove && [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		command -f completion/svn::completechangelist
+	else
+		command -f completion/svn::completelocal -cm
+	fi
 }
 
 function completion/svn::checkout:opt {
