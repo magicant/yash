@@ -321,35 +321,6 @@ function completion/git::completeref {
 
 }
 
-function completion/git::completerefpath {
-
-	typeset i=2 hyphenhyphen=false treeish=HEAD
-	while [ $i -le ${WORDS[#]} ]; do
-		case "${WORDS[i]}" in
-			(--)
-				hyphenhyphen=true
-				break
-				;;
-			(-*)
-				;;
-			(*)
-				treeish=${WORDS[i]}
-				;;
-		esac
-		i=$((i+1))
-	done
-
-	if ! $hyphenhyphen; then
-		command -f completion/git::completeref "$@"
-	fi
-
-	if ! git show "$treeish^{tree}" >/dev/null 2>&1; then
-		treeish=HEAD
-	fi
-	command -f completion/git::completepath -r "$treeish"
-
-}
-
 function completion/git::completepath {
 
 	if ! git rev-parse --git-dir >/dev/null 2>&1; then
@@ -399,6 +370,35 @@ function completion/git::completepath {
 		complete -P "$PREFIX" $opt -- "${path##*/}"
 	done 2>/dev/null \
 		<(git ls-tree --full-tree "$tree" -- "$lspath")
+
+}
+
+function completion/git::completerefpath {
+
+	typeset i=2 hyphenhyphen=false treeish=HEAD
+	while [ $i -le ${WORDS[#]} ]; do
+		case "${WORDS[i]}" in
+			(--)
+				hyphenhyphen=true
+				break
+				;;
+			(-*)
+				;;
+			(*)
+				treeish=${WORDS[i]}
+				;;
+		esac
+		i=$((i+1))
+	done
+
+	if ! $hyphenhyphen; then
+		command -f completion/git::completeref "$@"
+	fi
+
+	if ! git show "$treeish^{tree}" >/dev/null 2>&1; then
+		treeish=HEAD
+	fi
+	command -f completion/git::completepath -r "$treeish"
 
 }
 
