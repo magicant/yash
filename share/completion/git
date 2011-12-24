@@ -402,6 +402,25 @@ function completion/git::completerefpath {
 
 }
 
+function completion/git::completeobject {
+
+	typeset targetword="${TARGETWORD#"$PREFIX"}"
+	typeset t=$(sed 's;[@^]{[^}]*};;g' <<<"$targetword")
+	case $t in
+		(*:*)
+			typeset path=${t#*:}
+			typeset treeish=${targetword%":$path"}
+			typeset PREFIX="$PREFIX$treeish:"
+			command -f completion/git::completepath "${treeish:-HEAD}"
+			# XXX empty treeish should fall back to the current index rather than HEAD
+			;;
+		(*)
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
 function completion/git::completeremote {
 	typeset remote
 	while read -r remote; do
