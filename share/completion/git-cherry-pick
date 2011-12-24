@@ -1,0 +1,46 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-cherry-pick" command.
+# Supports Git 1.7.7.
+
+function completion/git-cherry-pick {
+	WORDS=(git cherry-pick "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::cherry-pick:arg {
+
+	OPTIONS=( #>#
+	"e --edit; reedit the message"
+	"--ff; fast-forward if possible"
+	"m: --mainline:; apply diffs from the nth parent"
+	"n --no-commit; don't commit the result automatically"
+	"r; don't include the original commit ID in the message"
+	"s --signoff; add a \"signed-off-by\" line to the message"
+	"--strategy:; specify the merge strategy"
+	"X: --strategy-option:; specify a strategy-specific option"
+	"x; include the original commit ID in the message"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		(m|--mainline)
+#			;;
+		(X|--strategy*)
+			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-merge; then
+				command -f completion/git::merge:compopt
+			fi
+			;;
+		('')
+			command -f completion/git::completeref range=true
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

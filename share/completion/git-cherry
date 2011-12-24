@@ -1,0 +1,30 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-cherry" command.
+# Supports Git 1.7.7.
+
+function completion/git-cherry {
+	WORDS=(git cherry "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::cherry:arg {
+
+	OPTIONS=( #>#
+	"v; print commit subjects"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
