@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.30
+
+  *  Fixed pathname completion for redirections.
+
+----------------------------------------------------------------------
 Yash 2.29
 
   +  An alias value now can contain newlines.

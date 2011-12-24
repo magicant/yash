@@ -448,7 +448,7 @@ bool ctryparse_redirect(void)
 	}
 	break;
     case L'>':
-	switch (BUF[INDEX + 1]) {
+	switch (BUF[index + 1]) {
 	case L'>':
 	case L'|':  INDEX = index + 2;  type = CTXT_REDIR;  break;
 	case L'(':  INDEX = index + 2;  goto parse_inner;
