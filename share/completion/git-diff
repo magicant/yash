@@ -33,7 +33,7 @@ function completion/git::diff:arg {
 function completion/git::diff:getopt {
 	typeset diff=
 	case $gitcmd in
-		(diff|log) diff=true;;
+		(diff|log|stash) diff=true;;
 	esac
 	OPTIONS=("$OPTIONS" #>#
 	"--abbrev::; abbreviate commit IDs"

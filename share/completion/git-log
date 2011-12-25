@@ -10,7 +10,26 @@ function completion/git-log {
 
 function completion/git::log:arg {
 
-	OPTIONS=( #>#
+	OPTIONS=()
+	command -f completion/git::log:getopt
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::log:compopt
+			;;
+	esac
+
+}
+
+function completion/git::log:getopt {
+	OPTIONS=("$OPTIONS" #>#
 	"--bisect; show commits between good and bad only"
 	"--decorate::; show ref names of commits"
 	"--follow; show history beyond filename renaming"
@@ -27,26 +46,20 @@ function completion/git::log:arg {
 			. -AL completion/git-diff; then
 		command -f completion/git::diff:getopt
 	fi
+}
 
-	command -f completion//parseoptions -n
+function completion/git::log:compopt {
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
 		(--decorate) #>>#
 			complete -P "$PREFIX" -D "show full ref names" full
 			complete -P "$PREFIX" -D "show ref names without prefixes" short
 			complete -P "$PREFIX" -D "don't show ref names" no
 			;; #<<#
-		('')
-			command -f completion/git::completerefpath range=true
-			;;
 		(*)
 			command -f completion/git::rev-list:compopt ||
 			command -f completion/git::diff:compopt
 			;;
 	esac
-
 }
 
 
