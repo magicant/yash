@@ -1,0 +1,79 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-blame" command.
+# Supports Git 1.7.7.
+
+function completion/git-blame {
+	WORDS=(git blame "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::blame:arg {
+
+	OPTIONS=()
+	command -f completion/git::blame:getopt
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::blame:compopt
+			;;
+	esac
+
+}
+
+function completion/git::blame:getopt {
+	OPTIONS=("$OPTIONS" #>#
+	"--abbrev::; specify the number of commit ID digits to print"
+	"b; show blank SHA-1 for boundary commits"
+	"C::; detect moves and copies within a commit"
+	"c; print in the \"git annotate\" format"
+	"--contents:; specify a file to annotate"
+	"--date:; specify a date format"
+	"--encoding:; specify the encoding for commit metadata"
+	"h; print help"
+	"--incremental; print in a machine-friendly format"
+	"L:; specify a line range to annotate"
+	"l; show full commit IDs"
+	"M::; detect moves and copies within a file"
+	"p --porcelain; print in a machine-friendly format"
+	"--line-porcelain; like --porcelain, but print commit info for all lines"
+	"--reverse; search history forward instead of backward"
+	"--root; don't treat root commits as boundary commits"
+	"S:; specify a file containing revisions to search"
+	"s; don't print author names and timestamps"
+	"--score-debug; include debugging info"
+	"e --show-email; print author emails instead of author names"
+	"f --show-name; always print the filename"
+	"n --show-number; print line numbers"
+	"--show-stats; show additional stats at the end of output"
+	"t; show times in the raw value format"
+	"w; ignore whitespaces in comparison"
+	) #<#
+}
+
+function completion/git::blame:compopt {
+	case $ARGOPT in
+#		([CLM]|--abbrev)
+#			;;
+		(S|--contents)
+			complete -P "$PREFIX" -f
+			;;
+		(--*)
+			command -vf "completion/git::$ARGOPT:arg" >/dev/null 2>&1 &&
+			command -f "completion/git::$ARGOPT:arg"
+			;;
+		(*)
+			return 1
+			;;
+	esac
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -1,0 +1,39 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-annotate" command.
+# Supports Git 1.7.7.
+
+function completion/git-annotate {
+	WORDS=(git annotate "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::annotate:arg {
+
+	OPTIONS=()
+	if command -vf completion/git::blame:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-blame; then
+		command -f completion/git::blame:getopt
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			if [ ${WORDS[#]} -le 1 ]; then
+				command -f completion/git::completepath
+			else
+				command -f completion/git::completeref
+			fi
+			;;
+		(*)
+			command -f completion/git::blame:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
