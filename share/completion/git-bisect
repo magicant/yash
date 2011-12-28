@@ -1,0 +1,79 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-bisect" command.
+# Supports Git 1.7.7.
+
+function completion/git-bisect {
+	WORDS=(git bisect "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::bisect:arg {
+
+	if [ ${WORDS[#]} -le 1 ]; then #>>#
+		complete -P "$PREFIX" -D "mark a commit as bad" bad
+		complete -P "$PREFIX" -D "mark a commit as good" good
+		complete -P "$PREFIX" -D "print help" help
+		complete -P "$PREFIX" -D "show the bisection log" log
+		complete -P "$PREFIX" -D "replay a bisection log" replay
+		complete -P "$PREFIX" -D "end bisection" reset
+		complete -P "$PREFIX" -D "start automated bisection" run
+		complete -P "$PREFIX" -D "mark a commit as untestable" skip
+		complete -P "$PREFIX" -D "start bisection" start
+		complete -P "$PREFIX" -D "show remaining suspects with GUI" visualize
+		#<<#
+		case ${TARGETWORD#"$PREFIX"} in (vie*)
+			complete -P "$PREFIX" -D "show remaining suspects with GUI" view
+		esac
+	else
+		WORDS=("${WORDS[2,-1]}")
+		if command -vf "completion/git::bisect:${WORDS[1]}:arg" >/dev/null 2>&1; then
+			command -f "completion/git::bisect:${WORDS[1]}:arg"
+		fi
+	fi
+
+}
+
+function completion/git::bisect:bad:arg {
+	command -f completion/git::completeref
+}
+
+function completion/git::bisect:good:arg {
+	command -f completion/git::completeref
+}
+
+#function completion/git::bisect:help:arg {
+#}
+
+#function completion/git::bisect:log:arg {
+#}
+
+function completion/git::bisect:replay:arg {
+	complete -P "$PREFIX" -f
+}
+
+function completion/git::bisect:reset:arg {
+	command -f completion/git::completeref
+}
+
+function completion/git::bisect:run:arg {
+	WORDS=("${WORDS[2,-1]}")
+	command -f completion//reexecute -e
+}
+
+function completion/git::bisect:skip:arg {
+	command -f completion/git::completeref range=true
+}
+
+function completion/git::bisect:start:arg {
+	command -f completion/git::completerefpath
+}
+
+#function completion/git::bisect:view:arg {
+#}
+
+#function completion/git::bisect:visualize:arg {
+#}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

@@ -20,8 +20,7 @@ function completion/git::stash:arg {
 		complete -P "$PREFIX" -D "restore stash contents and remove it from the stash list" pop
 		complete -P "$PREFIX" -D "save local changes in a new stash and reset to HEAD" save
 		complete -P "$PREFIX" -D "show stash contents" show
-		return #<<#
-	else
+	else #<<#
 		WORDS=("${WORDS[2,-1]}")
 		if command -vf "completion/git::stash:${WORDS[1]}:arg" >/dev/null 2>&1; then
 			command -f "completion/git::stash:${WORDS[1]}:arg"
