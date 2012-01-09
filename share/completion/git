@@ -264,24 +264,26 @@ function completion/git::completealias {
 
 function completion/git::completeref {
 
-	typeset abbrprefixes range
+	typeset abbrprefixes completefull=true range
 	abbrprefixes=(refs/ refs/tags/ refs/heads/ refs/remotes/)
 	while [ $# -gt 0 ]; do
 		case $1 in
 		(abbrprefixes=*)
 			abbrprefixes=(${1#abbrprefixes=})
-			shift
+			;;
+		(dontcompletefull=*)
+			completefull=
 			;;
 		(range=*)
 			typeset word="${TARGETWORD#"$PREFIX"}"
 			word=${word##*..}
 			typeset PREFIX=${TARGETWORD%"$word"}
-			shift
 			;;
 		(*)
 			break
 			;;
 		esac
+		shift
 	done
 
 	typeset targetword="${TARGETWORD#"$PREFIX"}"
@@ -303,7 +305,7 @@ function completion/git::completeref {
 	typeset word="${targetword##*/}"
 	typeset prefix="${targetword%"$word"}"
 	while read -r fullref; do
-		for abbr in "" "$abbrprefixes"; do
+		for abbr in ${completefull:+""} "$abbrprefixes"; do
 			ref=${fullref#"$abbr"}
 			case $ref in ("$targetword"*)
 				ref="${ref#"$prefix"}"

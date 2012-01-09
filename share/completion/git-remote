@@ -1,0 +1,202 @@
+# (C) 2011 magicant
+
+# Completion script for the "git-remote" command.
+# Supports Git 1.7.7.
+
+function completion/git-remote {
+	WORDS=(git remote "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::remote:arg {
+
+	case ${WORDS[2]} in (-v|--verbose)
+		WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
+	esac
+
+	if [ ${WORDS[#]} -le 1 ]; then #>>#
+		case ${TARGETWORD#"$PREFIX"} in
+			(-v)  # avoid completing "-v" to "-vv"
+				complete -P "$PREFIX" -- -v
+				;;
+			(-*)
+				OPTIONS=( #>#
+				"v --verbose; list remotes with URLs"
+				) #<#
+				command -f completion//parseoptions
+				command -f completion//completeoptions
+				;;
+			(*)
+				complete -P "$PREFIX" -D "add a remote" add
+				complete -P "$PREFIX" -D "rename a remote" rename
+				complete -P "$PREFIX" -D "remove a remote" rm
+				complete -P "$PREFIX" -D "set the default branch of a remote" set-head
+				complete -P "$PREFIX" -D "set remote-tracking branches" set-branches
+				complete -P "$PREFIX" -D "set the URL of a remote" set-url
+				complete -P "$PREFIX" -D "show a remote" show
+				complete -P "$PREFIX" -D "delete remote-tracking branches that no longer exist on a remote" prune
+				complete -P "$PREFIX" -D "fetch remotes" update
+				;;
+		esac
+	else #<<#
+		WORDS=("${WORDS[2,-1]}")
+		if command -vf "completion/git::remote:${WORDS[1]}:arg" >/dev/null 2>&1; then
+			command -f "completion/git::remote:${WORDS[1]}:arg"
+		fi
+	fi
+
+}
+
+function completion/git::remote:add:arg {
+
+	OPTIONS=( #>#
+	"f; fetch the remote after adding"
+	"m:; specify a remote branch to be refs/remotes/*/HEAD"
+	"--mirror:; specify a mirroring method"
+	"--no-tags; don't fetch all remote tags after adding"
+	"t:; specify a branch to track"
+	"--tags; fetch all remote tags after adding"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		([mt])
+			command -f completion/git::completeref --branches
+			;;
+		(--mirror) #>>#
+			complete -P "$PREFIX" -D "mirror the remote into the local" fetch
+			complete -P "$PREFIX" -D "set the remote.*.mirror option" push
+			;; #<<#
+		('')
+			command -f completion/git::completeremote
+			;;
+	esac
+
+}
+
+function completion/git::remote:rename:arg {
+	command -f completion/git::completeremote
+}
+
+function completion/git::remote:rm:arg {
+	command -f completion/git::completeremote
+}
+
+function completion/git::remote:set-head:arg
+	case ${WORDS[#]} in
+		(1)
+			command -f completion/git::completeremote
+			;;
+		(2)
+			case ${TARGETWORD#"$PREFIX"} in
+				(-*)
+					case ${WORDS[1]} in
+						(set-head)
+							complete -P "$PREFIX" -D "query the remote default branch" -- -a
+							complete -P "$PREFIX" -D "remove the remote default branch" -- -d
+							;;
+						(set-branches)
+							complete -P "$PREFIX" -D "add to existing remote-tracking branches" -- --add
+							;;
+					esac
+					;;
+				(*)
+					command -f completion/git::completeref \
+						abbrprefixes="refs/remotes/${WORDS[2]}/" dontcompletefull=true \
+						--remotes="${WORDS[2]}"
+					;;
+			esac
+			;;
+	esac
+
+function completion/git::remote:set-branches:arg {
+	command -f completion/git::remote:set-head:arg "$@"
+}
+
+function completion/git::remote:set-url:arg {
+
+	OPTIONS=( #>#
+	"--add; add a URL instead of changing URLs"
+	"--delete; remove URLs instead of changing URLs"
+	"--push; set push URLs instead of fetch URLs"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeremote
+			;;
+	esac
+
+}
+
+function completion/git::remote:show:arg {
+
+	OPTIONS=( #>#
+	"n; don't query the remote for the latest info"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeremote
+			;;
+	esac
+
+}
+
+function completion/git::remote:prune:arg {
+
+	OPTIONS=( #>#
+	"n --dry-run; don't actually prune, but show what would happen"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeremote
+			;;
+	esac
+
+}
+
+function completion/git::remote:update:arg {
+
+	OPTIONS=( #>#
+	"p --prune; delete remote-tracking branches that no longer exist on the remote"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeremote
+			command -f completion/git::completeremotegroup
+			;;
+	esac
+
+}
+
+function completion/git::completeremotegroup {
+	typeset name value
+	while read -r name value; do
+		complete -P "$PREFIX" -D "= $value" -- "${name#remotes.}"
+	done 2>/dev/null <(git config --get-regexp 'remotes\..*')
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
