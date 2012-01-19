@@ -11,7 +11,7 @@ function completion/git-status {
 function completion/git::status:arg {
 
 	OPTIONS=( #>#
-	"b --branch: print the current branch"
+	"b --branch; print the current branch"
 	"--ignored; print ignored files as well"
 	"--ignore-submodules::; ignore changes to submodules"
 	"--porcelain; print in the machine-friendly format"
