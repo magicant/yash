@@ -96,7 +96,9 @@ function completion/git {
 						return
 						;;
 					(?*)
-						gitcmd=$alias
+						WORDS=("${WORDS[1,OPTIND-1]}" \
+							$alias "${WORDS[OPTIND+1,-1]}")
+						gitcmd=${alias%%[[:space:]]*}
 						;;
 					esac
 				fi

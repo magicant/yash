@@ -8,8 +8,7 @@ function completion/git-stash {
 	command -f completion//reexecute
 }
 
-function completion/git::stash:arg {
-
+function completion/git::stash:arg
 	if [ ${WORDS[#]} -le 1 ]; then #>>#
 		complete -P "$PREFIX" -D "restore stash contents" apply
 		complete -P "$PREFIX" -D "restore stash contents in a new branch" branch
@@ -26,8 +25,6 @@ function completion/git::stash:arg {
 			command -f "completion/git::stash:${WORDS[1]}:arg"
 		fi
 	fi
-
-}
 
 function completion/git::stash:apply:arg {
 	command -f completion/git::stash:pop:arg
