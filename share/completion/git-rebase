@@ -23,6 +23,7 @@ function completion/git::rebase:arg {
 	"--no-ff; don't fast-forward even if possible"
 	"--no-stat; don't print a diffstat"
 	"--no-verify; don't run the pre-rebase hook"
+	"--onto; specify a branch to rebase onto"
 	"p --preserve-merges; don't ignore merge commits"
 	"q --quiet; don't print anything"
 	"--root; rebase all ancestor commits"
