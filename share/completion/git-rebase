@@ -10,7 +10,26 @@ function completion/git-rebase {
 
 function completion/git::rebase:arg {
 
-	OPTIONS=( #>#
+	OPTIONS=()
+	command -f completion/git::rebase:getopt
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+		(*)
+			command -f completion/git::rebase:compopt
+			;;
+	esac
+
+}
+
+function completion/git::rebase:getopt {
+	OPTIONS=("$OPTIONS" #>#
 	"--abort; abort the current rebasing and reset to the original"
 	"--autosquash; find commits to be squashed (with -i)"
 	"--committer-date-is-author-date; use author date for committer date"
@@ -38,19 +57,14 @@ function completion/git::rebase:arg {
 			. -AL completion/git-apply; then
 		command -f completion/git::apply:getopt rebase
 	fi
+}
 
-	command -f completion//parseoptions -n
+function completion/git::rebase:compopt
 	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
 #		(C)
 #			;;
 		(--whitespace)
 			command -f completion/git::--whitespace:arg
-			;;
-		('')
-			command -f completion/git::completeref
 			;;
 		(*)
 			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
@@ -59,8 +73,6 @@ function completion/git::rebase:arg {
 			fi
 			;;
 	esac
-
-}
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:

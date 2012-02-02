@@ -23,17 +23,30 @@ function completion/git::init:arg {
 		(-)
 			command -f completion//completeoptions
 			;;
+		('')
+			complete -P "$PREFIX" -S / -T -d
+			;;
+		(*)
+			command -f completion/git::init:compopt
+			;;
+	esac
+
+}
+
+function completion/git::init:compopt
+	case $ARGOPT in
 		(--shared) #>>#
 			complete -P "$PREFIX" -D "set permissions according to the current umask" umask false
 			complete -P "$PREFIX" -D "make the repository group-writable" group true
 			complete -P "$PREFIX" -D "make the repository world-writable" all world everybody
 			;; #<<#
-		(''|--separate-git-dir|--template)
+		(--separate-git-dir|--template)
 			complete -P "$PREFIX" -S / -T -d
 			;;
+		(*)
+			return 1
+			;;
 	esac
-
-}
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
