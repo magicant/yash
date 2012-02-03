@@ -1387,6 +1387,32 @@ then
     defconfigh "WIO_BROKEN"
 fi
 
+# check if fgetws is working
+checking 'if fgetws is fully working'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <stdio.h>
+#include <wchar.h>
+int main(void)
+{
+    wchar_t buf[100];
+    FILE *f = fopen("${tempsrc}", "w+");
+    if (f == NULL)                  return 1;
+    if (fwprintf(f, L"123\n") != 4) return 2;
+    if (fseek(f, 0, SEEK_SET) != 0) return 3;
+    if (fgetws(buf, 2, f) == NULL)  return 4;
+    if (wcscmp(buf, L"1") != 0)     return 5;
+    if (fclose(f) != 0)             return 6;
+    return 0;
+}
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"no" ]
+then
+    defconfigh "FGETWS_BROKEN"
+fi
+
 echo >&5
 
 # enable/disable aliases

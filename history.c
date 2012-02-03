@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -575,6 +575,9 @@ bool lock_histfile(short type)
  * If there is no more line in the file, false is returned. */
 bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
 {
+#if FGETWS_BROKEN
+    wb_ensuremax(buf, LINE_MAX);
+#endif
     while (fgetws(&buf->contents[buf->length],
 		buf->maxlength - buf->length + 1, f)) {
 	size_t len = wcslen(&buf->contents[buf->length]);
