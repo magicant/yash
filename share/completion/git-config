@@ -425,6 +425,23 @@ function completion//git::completeoptionname {
 			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
 				fetchRecurseSubmodules ignore path update url
 			;; #<<#
+		(svn-remote.*.*)
+			word=${word#svn-remote.*.}
+			PREFIX=${TARGETWORD%"$word"} #>>#
+			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+				automkdirs branches commiturl fetch \
+				ignore-paths noMetadata pushurl rewriteRoot \
+				rewriteUUID tags url useSvmProps useSvnsyncprops
+			;; #<<#
+		(svn.*)
+			PREFIX=${PREFIX}svn. #>>#
+			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+				automkdirs authorsfile brokenSymlinkWorkaround \
+				commiturl edit findcopiesharder followparent l \
+				noMetadata pathnameencoding pushmergeinfo \
+				repack repackflags rmdir useSvmProps \
+				useSvnsyncprops
+			;; #<<#
 		(tar.*)
 			PREFIX=${PREFIX}tar. #>>#
 			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
@@ -460,7 +477,8 @@ function completion//git::completeoptionname {
 				mailmap man merge mergetool notes pack pager \
 				pretty pull push rebase receive remote remotes \
 				repack rerere sendemail showbranch status \
-				submodule tar transfer url user web
+				submodule svn svn-remote tar transfer url user \
+				web
 			;; #<<#
 	esac
 
