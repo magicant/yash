@@ -57,6 +57,9 @@ function completion/git::fetch:arg {
 			if $multiple || [ $i -gt ${WORDS[#]} ]; then
 				#TODO complete remote URI
 				command -f completion/git::completeremote
+				{ command -vf completion/git::completeremotegroup >/dev/null 2>&1 ||
+					. -AL completion/git-remote; } &&
+					command -f completion/git::completeremotegroup
 			elif [ "${WORDS[-1]}" = tag ]; then
 				command -f completion/git::completeref --tags
 			else
