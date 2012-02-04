@@ -1,5 +1,5 @@
 # Makefile.in for PO files of yash
-# (C) 2007-2011 magicant
+# (C) 2007-2012 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ $(DOMAIN).pot:
 # This target rebuilds $(DOMAIN).pot; it is an expensive operation.
 $(DOMAIN).pot-update:
 	(cd $(topdir) && find . -name '*.[ch]') | \
-	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - --no-wrap \
+	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - -F --no-wrap \
 		--package-name=$(DOMAIN) --package-version=$(VERSION) \
 		--msgid-bugs-address=http://sourceforge.jp/projects/yash/forums/ \
 		--copyright-holder='$(COPYRIGHT_HOLDER)' $(XGETTEXTFLAGS)
@@ -83,7 +83,7 @@ $(DOMAIN).pot-update:
 # This target rebuilds a PO file if $(DOMAIN).pot has changed.
 # Note that a PO file is not touched if it doesn't need to be changed.
 $(POFILES_MAN): $(DOMAIN).pot
-	$(MSGMERGE) -U $(MSGMERGEFLAGS) $@ $(DOMAIN).pot
+	$(MSGMERGE) -FU $(MSGMERGEFLAGS) $@ $(DOMAIN).pot
 
 # This target creates PO files that are automatically created from the
 # $(DOMAIN).pot file.
