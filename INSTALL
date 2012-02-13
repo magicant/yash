@@ -179,7 +179,7 @@ options used during the build:
     names by spaces. (All space-separated names must be given at once
     in one variable value. The whole variable value should be properly
     quoted when invoking the `configure' script.)
-  INSTALL_PROGRAM=...
+  INSTALL=...
     This specifies the installer command used in installation.
 
 ----------------------------------------------------------------------

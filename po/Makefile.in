@@ -34,7 +34,10 @@ MSGMERGE = @MSGMERGE@
 MSGMERGEFLAGS = @MSGMERGEFLAGS@
 MSGCONV = @MSGCONV@
 MSGFILTER = @MSGFILTER@
+INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_DIR = @INSTALL_DIR@
 POFILES_MAN = ja.po
 POFILES_QUOT = en@quot.po en@boldquot.po
 POFILES = $(POFILES_MAN) $(POFILES_QUOT)
@@ -113,15 +116,15 @@ install: install-data
 install-data: installdirs-data stamp-po
 	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(localedir)/$$lang/LC_MESSAGES; \
-		echo $(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
-		$(INSTALL_PROGRAM) -c -m 644 $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo; \
+		echo $(INSTALL_DATA) $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo || true; \
+		$(INSTALL_DATA) $$lang.mo $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	done
 installdirs: installdirs-data
 installdirs-data:
 	@for lang in $(CATALOGS:.mo=); do \
 		dir=$(localedir)/$$lang/LC_MESSAGES; \
-		echo $(INSTALL_PROGRAM) -d $(DESTDIR)$$dir || true; \
-		$(INSTALL_PROGRAM) -d $(DESTDIR)$$dir; \
+		echo $(INSTALL_DIR) $(DESTDIR)$$dir || true; \
+		$(INSTALL_DIR) $(DESTDIR)$$dir; \
 	done
 uninstall: uninstall-data
 uninstall-data:

@@ -62,6 +62,9 @@ bindir='$(exec_prefix)/bin'
 datarootdir='$(prefix)/share'
 datadir='$(datarootdir)'
 localedir='$(datarootdir)/locale'
+install_program='$(INSTALL) -c'
+install_data='$(INSTALL) -c -m 644'
+install_dir='$(INSTALL) -d'
 unset checkresult
 unset MAKEFLAGS
 umask u=rwx
@@ -192,7 +195,8 @@ Influential environment variables:
   CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER, LINGUAS,
   XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE, MSGMERGEFLAGS,
   MSGINIT, MSGCONV, MSGFILTER,
-  INSTALL_PROGRAM, CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
+  INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
+  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
     exit
 fi
@@ -479,7 +483,7 @@ then
 fi
 
 # check if the install command is available
-if [ x"${INSTALL_PROGRAM+set}" != x"set" ]
+if [ x"${INSTALL+set}" != x"set" ]
 then
     checking 'for the install command'
     >|"${tempsrc}"
@@ -487,9 +491,9 @@ then
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	install_program='install'
+	install='install'
     else
-	install_program='$(topdir)/install-sh'
+	install='$(topdir)/install-sh'
     fi
 fi
 
@@ -1612,7 +1616,10 @@ BUILTIN_OBJS="${builtin_objs}"
 TARGET="${target}"
 VERSION="${version}"
 COPYRIGHT="${copyright}"
+INSTALL="${INSTALL-${install}}"
 INSTALL_PROGRAM="${INSTALL_PROGRAM-${install_program}}"
+INSTALL_DATA="${INSTALL_DATA-${install_data}}"
+INSTALL_DIR="${INSTALL_DIR-${install_dir}}"
 case "${prefix}" in
     / ) prefix=  ;;
     //) prefix=/ ;;
@@ -1670,7 +1677,10 @@ s!@BUILTIN_OBJS@!${BUILTIN_OBJS}!g
 s!@TARGET@!${TARGET}!g
 s!@VERSION@!${VERSION}!g
 s!@COPYRIGHT@!${COPYRIGHT}!g
+s!@INSTALL@!${INSTALL}!g
 s!@INSTALL_PROGRAM@!${INSTALL_PROGRAM}!g
+s!@INSTALL_DATA@!${INSTALL_DATA}!g
+s!@INSTALL_DIR@!${INSTALL_DIR}!g
 s!@prefix@!${prefix}!g
 s!@exec_prefix@!${exec_prefix}!g
 s!@bindir@!${bindir}!g

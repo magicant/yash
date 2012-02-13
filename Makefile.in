@@ -29,7 +29,10 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
+INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_DIR = @INSTALL_DIR@
 ARCHIVER = @ARCHIVER@
 DIRS = @DIRS@
 SOURCES = alias.c arith.c builtin.c exec.c expand.c hashtable.c history.c input.c job.c mail.c makesignum.c option.c parser.c path.c plist.c redir.c sig.c strbuf.c util.c variable.c xfnmatch.c yash.c
@@ -98,13 +101,13 @@ INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
 install-binary: $(TARGET) installdirs-binary
-	$(INSTALL_PROGRAM) -c $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
+	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
 install-binary-strip: installdirs-binary
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
 install-data: installdirs-data-main
 	@for file in share/completion/*; do \
-		echo $(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(yashdatadir)/completion || true; \
-		$(INSTALL_PROGRAM) -c -m 644 $$file $(DESTDIR)$(yashdatadir)/completion; \
+		echo $(INSTALL_DATA) $$file $(DESTDIR)$(yashdatadir)/completion || true; \
+		$(INSTALL_DATA) $$file $(DESTDIR)$(yashdatadir)/completion; \
 	done
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 installdirs: installdirs-binary installdirs-data
@@ -113,7 +116,7 @@ installdirs-data: installdirs-data-main
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 installdirs-data-main: $(INSTALLDATADIRS)
 $(INSTALLDIRS):
-	$(INSTALL_PROGRAM) -d $@
+	$(INSTALL_DIR) $@
 uninstall: uninstall-binary uninstall-data
 uninstall-binary:
 	rm $(DESTDIR)$(bindir)/$(TARGET)
