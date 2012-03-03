@@ -119,11 +119,11 @@ $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
 uninstall: uninstall-binary uninstall-data
 uninstall-binary:
-	rm $(DESTDIR)$(bindir)/$(TARGET)
+	rm -f $(DESTDIR)$(bindir)/$(TARGET)
 uninstall-data:
 	@(cd share && for file in completion/*; do \
-		echo rm $(DESTDIR)$(yashdatadir)/$$file || true; \
-		rm $(DESTDIR)$(yashdatadir)/$$file; \
+		echo rm -f $(DESTDIR)$(yashdatadir)/$$file || true; \
+		rm -f $(DESTDIR)$(yashdatadir)/$$file; \
 	done)
 	-rmdir $(DESTDIR)$(yashdatadir)/completion
 	-rmdir $(DESTDIR)$(yashdatadir)
