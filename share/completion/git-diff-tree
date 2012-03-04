@@ -1,0 +1,63 @@
+# (C) 2012 magicant
+
+# Completion script for the "git-diff-tree" command.
+# Supports Git 1.7.7.
+
+function completion/git-diff-tree {
+	WORDS=(git diff-tree "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::diff-tree:arg {
+
+	OPTIONS=()
+	command -f completion/git::diff-tree:getopt
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -le 1 ]; then
+				command -f completion/git::completerefpath
+			else
+				complete -P "$PREFIX" -f
+			fi
+			;;
+		(*)
+			command -f completion/git:diff-tree:compopt
+			;;
+	esac
+
+}
+
+function completion/git::diff-tree:getopt {
+	OPTIONS=("$OPTIONS" ###
+	"--always; show commit even if the diff is empty"
+	"c; use the alternate format when printing a merge"
+	"m; don't suppress showing diffs of merge commits"
+	"--no-commit-id; don't print the commit ID"
+	"r; compare directory trees recursively"
+	"--root; compare against the null tree"
+	"s; suppress normal diff output"
+	"--stdin; read arguments from the standard input"
+	"t; show tree entry itself as well as subtrees"
+	"v; show commit messages as well"
+	) #<#
+	command -f completion/git::getprettyopts
+	{ command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff; } &&
+		command -f completion/git::diff:getopt
+}
+
+function completion/git:diff-tree:compopt {
+	command -f completion/git::completeprettyopts ||
+	{ command -vf completion/git::diff:compopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff; } &&
+		command -f completion/git::diff:compopt
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

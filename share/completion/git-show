@@ -10,17 +10,23 @@ function completion/git-show {
 
 function completion/git::show:arg {
 
-	OPTIONS=( #>#
-	) #<#
-	# TODO get git-diff-tree options
+	OPTIONS=()
+	{ command -vf completion/git::diff-tree:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff-tree; } &&
+		command -f completion/git::diff-tree:getopt
 
-	command -f completion//parseoptions -n
+	command -f completion//parseoptions
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
 			;;
 		('')
 			command -f completion/git::completeobject
+			;;
+		(*)
+			{ command -vf completion/git::diff-tree:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-diff-tree; } &&
+				command -f completion/git::diff-tree:compopt
 			;;
 	esac
 

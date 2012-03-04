@@ -37,8 +37,8 @@ function completion/git::rev-list:arg {
 
 function completion/git::rev-list:getopt {
 	command -f completion/git::getorderopts
+	command -f completion/git::getprettyopts
 	OPTIONS=("$OPTIONS" #>#
-	"--abbrev-commit; abbreviate commit IDs"
 	"--ancestry-path"
 	"--all; print all commits reachable from any refs"
 	"--all-match; show commits that match all the other filter options only"
@@ -54,11 +54,9 @@ function completion/git::rev-list:getopt {
 	"--date:; specify a date format"
 	"--dense"
 	"--do-walk; traverse commit ancestors"
-	"--encoding::; specify an output encoding"
 	"E --extended-regexp; use extended regular expression"
 	"--first-parent; follow first parent of each commit only"
 	"F --fixed-strings; perform simple string matching rather than regular expression"
-	"--format:; specify an output format"
 	"--full-history"
 	"--glob:; show refs that match the specified pattern"
 	"--graph; print commit ancestry tree graph"
@@ -73,18 +71,13 @@ function completion/git::rev-list:getopt {
 	"--merges; like --min-parents=2 (show merge commits only)"
 	# not meant for interactive use: "--min-age:"
 	"--min-parents:; show commits with at least the specified number of parents only"
-	"--no-abbrev-commit; print full commit IDs"
 	"--no-max-parents; like --max-parents=-1"
 	"--no-merges; like --max-parents=1 (don't show merge commits)"
 	"--no-min-parents; like --min-parents=0"
-	"--no-notes --no-standard-notes; don't print notes"
 	"--no-walk; don't traverse commit ancestors"
-	"--notes:: --standard-notes --show-notes::; print notes"
 	"--objects; print object IDs referenced by selected commits"
 	"--objects-edge; like --objects, but print excluded commits too"
-	"--oneline; like --format=oneline --abbrev-commit"
 	"--parents; print parents' commit IDs as well"
-	"--pretty::; print in a human-friendly format"
 	"--quiet; print nothing"
 	"i --regexp-ignore-case; case-insensitive regular expression matching"
 	"--relative-date; like --date=relative"
@@ -110,14 +103,11 @@ function completion/git::rev-list:compopt
 		(n|--max-*|--min-*)
 			# complete nothing
 			;;
-		(--date|--format|--pretty)
+		(--author|--date)
 			command -f "completion/git::$ARGOPT:arg"
 			;;
 		(--after|--before|--since|--until)
 			# TODO complete date
-			;;
-		(--author)
-			command -f completion/git::--author:arg
 			;;
 		(--branches)
 			command -f completion/git::completeref --branches
@@ -129,14 +119,8 @@ function completion/git::rev-list:compopt
 			done 2>/dev/null \
 				<(git log --all --format=format:%cn | uniq)
 			;;
-		(--encoding)
-			# TODO
-			;;
 		(--glob)
 			command -f completion/git::completeref
-			;;
-		(--notes|--standard-notes|--show-notes)
-			command -f completion/git::completeref abbrprefixes=refs/notes/ --glob=refs/notes
 			;;
 		(--remotes)
 			command -f completion/git::completeref --remotes
@@ -145,7 +129,7 @@ function completion/git::rev-list:compopt
 			command -f completion/git::completeref --tags
 			;;
 		(*)
-			return 1
+			command -f completion/git::completeprettyopts
 			;;
 	esac
 

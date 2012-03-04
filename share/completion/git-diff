@@ -44,6 +44,7 @@ function completion/git::diff:getopt {
 	"--color-words::; like --word-diff=color --word-diff-regex=..."
 	"--diff-filter:; specify categories of changes to show"
 	"--dirstat::; print a dirstat with the specified style"
+	"--dirstat-by-file::; print the number of changed files"
 	"--dst-prefix:; specify a prefix for destination filenames in diffs"
 	"--exit-code; return the exit status of 1 when there is any diffs"
 	"--ext-diff; use an external diff program"
@@ -119,7 +120,7 @@ function completion/git::diff:compopt
 			complete -P "$TARGETWORD" -D "unknown" X
 			complete -P "$TARGETWORD" -D "all, if any of other flag matches" '*'
 			;; #<<#
-		(--dirstat)
+		(--dirstat|--dirstat-by-file)
 			typeset word="${TARGETWORD#"$PREFIX"}"
 			word=${word##*,}
 			PREFIX=${TARGETWORD%"$word"} #>>#

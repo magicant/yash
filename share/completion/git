@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2012 magicant
 
 # Completion script for the "git" command.
 # Supports Git 1.7.7.
@@ -453,6 +453,36 @@ function completion/git::getorderopts {
 	"--date-order; sort commits by date while keeping children before parent"
 	"--topo-order; show in topological order"
 	) #<#
+}
+
+function completion/git::getprettyopts {
+	OPTIONS=("$OPTIONS" #>#
+	"--abbrev-commit; abbreviate commit IDs"
+	"--encoding::; specify an output encoding"
+	"--format:; specify an output format"
+	"--no-abbrev-commit; print full commit IDs"
+	"--no-notes --no-standard-notes; don't print notes"
+	"--notes:: --standard-notes --show-notes::; print notes"
+	"--oneline; like --format=oneline --abbrev-commit"
+	"--pretty::; print in a human-friendly format"
+	) #<#
+}
+
+function completion/git::completeprettyopts {
+	case $ARGOPT in
+		(--encoding)
+			#TODO
+			;;
+		(--format|--pretty)
+			command -f completion/git::--format:arg
+			;;
+		(--notes|--standard-notes|--show-notes)
+			command -f completion/git::completeref abbrprefixes=refs/notes/ --glob=refs/notes
+			;;
+		(*)
+			return 1
+			;;
+	esac
 }
 
 function completion/git::--author:arg {
