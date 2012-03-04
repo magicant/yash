@@ -27,6 +27,7 @@ topdir = .
 
 CC = @CC@
 CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 INSTALL = @INSTALL@
@@ -64,7 +65,7 @@ all: $(TARGET)
 
 .c.o:
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
@@ -73,7 +74,7 @@ $(BUILTINS_ARCHIVE): _PHONY
 $(LINEEDIT_ARCHIVE): _PHONY
 	@+(cd lineedit && $(MAKE))
 makesignum:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 sig.o: signum.h
 signum.h: makesignum
 	./makesignum > $@

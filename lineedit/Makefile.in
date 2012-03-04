@@ -22,6 +22,7 @@ topdir = ..
 
 CC = @CC@
 CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 AR = @AR@
@@ -37,7 +38,7 @@ all: $(TARGET)
 
 .c.o:
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)

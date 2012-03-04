@@ -192,9 +192,9 @@ Optional packages:
   --with-term-lib=LIBS    search space-separated LIBS for terminal handling
 
 Influential environment variables:
-  CC, CFLAGS, CADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS, ARCHIVER, LINGUAS,
-  XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE, MSGMERGEFLAGS,
-  MSGINIT, MSGCONV, MSGFILTER,
+  CC, CFLAGS, CADDS, CPPFLAGS, CPPADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS,
+  ARCHIVER, LINGUAS, XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE,
+  MSGMERGEFLAGS, MSGINIT, MSGCONV, MSGFILTER,
   INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
   CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
@@ -259,12 +259,14 @@ checkby () {
 }
 trymake () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
+	${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
 	${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
 	"$@" ${LDLIBS-${ldlibs}}
 }
 trycompile () {
-    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} -c \
-	-o "${tempo}" "${tempsrc}" "$@"
+    checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
+	${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
+	-c -o "${tempo}" "${tempsrc}" "$@"
 }
 trylink () {
     checkby ${CC-${cc}} ${LDFLAGS-${ldflags}} ${LDADDS-${null}} \
@@ -294,6 +296,7 @@ fail () {
 
 cc="${CC-c99}"
 cflags="${CFLAGS--O1 -g}"
+cppflags="${CPPFLAGS-${null}}"
 ldflags="${LDFLAGS-${null}}"
 ldlibs="${LDLIBS-${null}}"
 ar="${AR-ar}"
@@ -1593,6 +1596,7 @@ MAKE_INCLUDE="${MAKE_INCLUDE-${make_include}}"
 MAKE_SHELL="${MAKE_SHELL-${make_shell}}"
 CC="${CC-${cc}}"
 CFLAGS="${CFLAGS-${cflags}}${CADDS:+ ${CADDS}}"
+CPPFLAGS="${CPPFLAGS-${cppflags}}${CPPADDS:+ ${CPPADDS}}"
 LDFLAGS="${LDFLAGS-${ldflags}}${LDADDS:+ ${LDADDS}}"
 LDLIBS="${LDLIBS-${ldlibs}}"
 AR="${AR-${ar}}"
@@ -1650,6 +1654,7 @@ s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
 s!@MAKE_SHELL@!${MAKE_SHELL}!g
 s!@CC@!${CC}!g
 s!@CFLAGS@!${CFLAGS}!g
+s!@CPPFLAGS@!${CPPFLAGS}!g
 s!@LDFLAGS@!${LDFLAGS}!g
 s!@LDLIBS@!${LDLIBS}!g
 s!@AR@!${AR}!g

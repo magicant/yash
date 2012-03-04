@@ -22,6 +22,7 @@ topdir = ..
 
 CC = @CC@
 CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = checkfg.c invoke.c resetsig.c
@@ -38,7 +39,7 @@ test-yash:
 	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
 checkfg invoke resetsig:
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 testee:
 	@+if [ x'$(TESTEE)' = x'$(topdir)/$(TARGET)' ]; then \
 		(cd $(topdir) && $(MAKE) $(TARGET)); \
@@ -46,7 +47,7 @@ testee:
 
 .c.o:
 	@rm -f $@
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh
 distfiles: makedeps $(DISTFILES)
