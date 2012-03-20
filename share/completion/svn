@@ -348,7 +348,7 @@ function completion/svn::completelocal {
 	typeset target="${TARGETWORD#"$PREFIX"}"
 	typeset targetdir="$(dirname -- "$target"X)"
 
-	if ! [ -d "$targetdir/.svn" ]; then
+	if ! command -f completion/svn::isworkingdir "$targetdir"; then
 		if [ "$unversioned" ]; then
 			complete -P "$PREFIX" -f
 		fi
@@ -408,6 +408,16 @@ function completion/svn::completechangelist {
 		complete -P "$PREFIX" "$changelist"
 	done 2>/dev/null <(svn status | grep "^--- .*'.*':\$")
 }
+
+function completion/svn::isworkingdir (
+	cd -P "$1" 2>/dev/null &&
+	until [ -d .svn ]; do
+		if [ . -ef .. ] || [ . -ef / ]; then
+			return 1
+		fi
+		cd -P ..
+	done
+)
 
 function completion/svn:::opt {
 	command -f completion/svn::setoptions version
