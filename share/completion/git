@@ -260,7 +260,15 @@ function completion/git::completecmd { #>>#
 	complete -P "$PREFIX" -D "check the GPG signature of tags" verify-tag
 	complete -P "$PREFIX" -D "show logs and differences between commits" whatchanged
 	complete -P "$PREFIX" -D "create a tree object from the index" write-tree
-} #<<#
+	#<<#
+	typeset cmd
+	while read -r cmd; do
+		cmd=${cmd##*/}
+		case $cmd in (git-*)
+			complete -P "$PREFIX" -- "${cmd#git-}"
+		esac
+	done 2>/dev/null <(command -f completion//allcommands)
+}
 
 function completion/git::completealias {
 	typeset name value

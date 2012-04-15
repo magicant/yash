@@ -591,6 +591,50 @@ function completion//reexecute {
 }
 
 
+# Prints all commands in $PATH
+function completion//allcommands {
+	# check if $PATH is an array
+	case $(typeset -p PATH 2>/dev/null) in
+	(PATH=\(*)
+		;;
+	('')
+		typeset PATH
+		PATH=()
+		;;
+	(*)
+		# re-define $PATH as local array
+		typeset IFS=: savepath="$PATH"
+		typeset PATH
+		PATH=($savepath)
+		IFS=
+		;;
+	esac
+
+	typeset dir file oldopt="$(set +o)"
+	set -o glob -o dotglob -o nullglob -o caseglob -o markdirs
+	for dir in "$PATH"; do
+		case $dir in
+			(*/)
+				;;
+			(*)
+				dir=$dir/ ;;
+		esac
+		for file in "$dir"*; do
+			case $file in
+				(*/.|*/..|*/)
+					;;
+				(*)
+					if [ -x "$file" ]; then
+						printf '%s\n' "$file"
+					fi
+					;;
+			esac
+		done
+	done
+	eval "$oldopt"
+}
+
+
 # The completion function for the "." built-in
 if ! command -vf completion/. >/dev/null 2>&1; then
 	function completion/. {
