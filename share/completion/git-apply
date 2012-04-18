@@ -37,13 +37,11 @@ function completion/git::apply:arg {
 		(-)
 			command -f completion//completeoptions
 			;;
-#		([Cp])
-#			;;
-		(--whitespace)
-			command -f completion/git::--whitespace:arg
-			;;
 		(''|--exclude|--include)
 			complete -P "$PREFIX" -f
+			;;
+		(*)
+			command -f completion/git::apply:compopt
 			;;
 	esac
 
@@ -65,6 +63,19 @@ function completion/git::apply:getopt {
 	"--whitespace:; specify what to do with whitespace errors"
 	) #<#
 }
+
+function completion/git::apply:compopt
+	case $ARGOPT in
+#		([Cp])
+#			;;
+		(--directory)
+			complete -P "$PREFIX" -S / -T -d
+			command -f completion/git::completepath
+			;;
+		(--whitespace)
+			command -f completion/git::--whitespace:arg
+			;;
+	esac
 
 function completion/git::--whitespace:arg { #>>#
 	complete -P "$PREFIX" -D "treat as errors and print some of them" error

@@ -61,12 +61,11 @@ function completion/git::rebase:getopt {
 
 function completion/git::rebase:compopt
 	case $ARGOPT in
-#		(C)
-#			;;
-		(--whitespace)
-			command -f completion/git::--whitespace:arg
-			;;
 		(*)
+			if command -vf completion/git::apply:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-apply; then
+				command -f completion/git::apply:compopt
+			fi
 			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
 					. -AL completion/git-merge; then
 				command -f completion/git::merge:compopt

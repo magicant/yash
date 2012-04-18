@@ -39,13 +39,14 @@ function completion/git::am:arg {
 		(-)
 			command -f completion//completeoptions
 			;;
-#		([Cp])
-#			;;
-		(--whitespace)
-			command -f completion/git::--whitespace:arg
-			;;
 		('')
 			complete -P "$PREFIX" -f
+			;;
+		(*)
+			if command -vf completion/git::apply:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-apply; then
+				command -f completion/git::apply:compopt
+			fi
 			;;
 	esac
 
