@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2012 magicant
 
 # Completion script for the "tar" command.
 # Supports SUSv2, GNU tar 1.25, BSD tar 2.8, OpenBSD 4.8, NetBSD 5.1,
@@ -266,7 +266,8 @@ function completion/tar {
 	command -f completion//parseoptions -es
 
 	# add other options
-	typeset word
+	typeset word file= compressopts in=true
+	compressopts=()
 	for word in "$WORDS"; do
 		case $word in
 			(-[cru]|--append|--create|--update)
@@ -275,16 +276,38 @@ function completion/tar {
 				"${long:+o${gnu:+ --old-archive}${netbsd:+ --old-archive --portability}}${openbsd:+o}${hpux:+o}; use V7-compatible archive format"
 				) #<#
 				;;
+			(--delete)
+				in=false
+				;;
 			(-t|--list)
+				in=false
 				OPTIONS=("$OPTIONS" #>#
 				"${bsd:+O --to-stdout}; print file list to the standard error"
 				) #<#
 				;;
 			(-x|--extract|--get)
+				in=false
 				OPTIONS=("$OPTIONS" #>#
 				"${long:+O ${gnubsd:+--to-stdout}}; extract files to the standard output"
 				"o ${gnubsd:+--no-same-owner}; don't restore owners of extracted files"
 				) #<#
+				;;
+			(-f*)
+				file=${word#-f}
+				;;
+			(--file=*)
+				file=${word#--file=}
+				;;
+			(-[aJjyZz]|--auto-compress|--bunzip2|--bzip2|--compress|--gunzip|--gzip|--lzip|--lzma|--lzop|--no-auto-compress|--uncompress|--ungzip|--use-compress-program=*|--xz)
+				compressopts=("$compressopts" "$word")
+				;;
+			(-I*)
+				if [ "$gnu" ]; then
+					compressopts=("$compressopts" "$word")
+				fi
+				;;
+			(--)
+				break
 				;;
 		esac
 	done
@@ -331,7 +354,7 @@ function completion/tar {
 			WORDS=()
 			command -f completion//reexecute -e
 			;;
-#		(K|--starting-file)
+#		(K|--starting-file)  # same as ('')
 #			;;
 #		(L|--tape-length)
 #			;;
@@ -476,6 +499,18 @@ function completion/tar {
 			complete -P "$PREFIX" unknown-keyword
 			complete -P "$PREFIX" xdev
 			;; #<<#
+		(''|K|--starting-file)
+			if $in; then
+				complete -P "$PREFIX" -f
+			else
+				if [ "$file" ]; then
+					typeset afile
+					while read -r afile; do
+						complete -P "$PREFIX" -- "$afile"
+					done 2>/dev/null <("${SAVEWORDS[1]}" -t -f "$file" "$compressopts" </dev/null)
+				fi
+			fi
+			;;
 		(*)
 			complete -P "$PREFIX" -f
 			;;
