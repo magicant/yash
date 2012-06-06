@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2012 magicant
 
 # Completion script for the "chmod" command.
 # Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
@@ -17,7 +17,7 @@ function completion/chmod {
 
 	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
 	POSIXOPTIONS=( #>#
-	"R ${long:+--recursive}; recursively change the owner of files in a directory"
+	"R ${long:+--recursive}; recursively change the permission of files in a directory"
 	) #<#
 
 	ADDOPTIONS=()
