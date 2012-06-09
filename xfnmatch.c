@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xfnmatch.c: regex matching wrapper as a replacement for fnmatch */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,16 @@
 
 #include "common.h"
 #include <assert.h>
-#include <regex.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <regex.h>
 #include "strbuf.h"
 #include "util.h"
 #include "xfnmatch.h"
+/* On old Mac OS X, <regex.h> requires `size_t' be already defined, hence it is
+ * included after <stdlib.h>. */
 
 
 struct xfnmatch_T {

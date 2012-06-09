@@ -972,6 +972,20 @@ then
     defconfigh "HAVE_S_ISVTX"
 fi
 
+# check if unsetenv returns int
+checking 'the return type of unsetenv'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <stdlib.h>
+int main(void) { return 0 != unsetenv("x"); }
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "UNSETENV_RETURNS_INT"
+fi
+
 # check if the "st_atim"/"st_atimespec"/"st_atimensec"/"__st_atimensec" member
 # of the "stat" structure is available
 if ${enable_test}
@@ -1482,6 +1496,7 @@ then
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
 #include <sys/resource.h>
 int main(void) {
 struct rlimit l = { .rlim_cur = RLIM_INFINITY, .rlim_max = RLIM_INFINITY };
@@ -1508,6 +1523,7 @@ END
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
 #include <sys/resource.h>
 int main(void) {
 struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
@@ -1523,14 +1539,19 @@ END
     done
 
     # check for RLIMIT_***
-    for i in LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING
+    for i in AS LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING
     do
 	checking "for RLIMIT_${i}"
 	cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
 #include <sys/resource.h>
+#if HAVE_RLIMIT_AS
 int main(void) { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
+#else
+int main(void) { return 0; getrlimit(RLIMIT_${i}, 0); }
+#endif
 END
 	trymake && tryexec
 	checked

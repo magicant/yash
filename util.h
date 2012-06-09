@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,8 @@ extern size_t addmul(size_t mainsize, size_t count, size_t elemsize)
     __attribute__((pure));
 extern void alloc_failed(void)
     __attribute__((noreturn));
+static inline int xunsetenv(const char *name)
+    __attribute__((nonnull));
 
 /* Attempts `calloc' and aborts the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
@@ -99,6 +101,19 @@ void *xreallocn(void *ptr, size_t count, size_t elemsize)
 void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
 {
     return xrealloc(ptr, addmul(mainsize, count, elemsize));
+}
+
+/* Removes the environment variable of the specified name.
+ * This function wraps the `unsetenv' function, which has an incompatible
+ * prototype on some old environments. */
+int xunsetenv(const char *name)
+{
+#if UNSETENV_RETURNS_INT
+    return unsetenv(name);
+#else
+    unsetenv(name);
+    return 0;
+#endif
 }
 
 

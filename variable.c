@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -412,7 +412,7 @@ void update_environment(const wchar_t *name)
 
     char *value = get_exported_value(name);
     if (value == NULL) {
-	if (unsetenv(mname) < 0)
+	if (xunsetenv(mname) < 0)
 	    xerror(errno, Ngt("failed to unset environment variable $%s"),
 		    mname);
     } else {

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* ulimit.c: ulimit builtin */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -35,6 +36,8 @@
 #include "ulimit.h"
 /* Including <stdint.h> is required before including <sys/resource.h> on
  * FreeBSD, but <stdint.h> is automatically included in <inttypes.h>. */
+/* On old Mac OS X, <sys/resource.h> depends on but does not include
+ * <sys/time.h>. We have to include it manually. */
 
 #if !HAVE_RLIM_SAVED_MAX
 # define RLIM_SAVED_MAX RLIM_INFINITY
@@ -100,8 +103,10 @@ static const struct xgetopt_T ulimit_options[] = {
     { L'u', L"nproc", OPTARG_NONE, true,
 	&RES(RLIMIT_NPROC, 1, Ngt("user processes")), },
 #endif
+#if HAVE_RLIMIT_AS
     { L'v', L"as", OPTARG_NONE, true,
 	&RES(RLIMIT_AS, 1024, Ngt("memory (kbytes)")), },
+#endif
 #if HAVE_RLIMIT_LOCKS
     { L'x', L"locks", OPTARG_NONE, true,
 	&RES(RLIMIT_LOCKS, 1, Ngt("file locks")), },
