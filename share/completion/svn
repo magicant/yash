@@ -420,7 +420,7 @@ function completion/svn::completechangelist {
 }
 
 function completion/svn::isworkingdir (
-	cd -P "$1" 2>/dev/null &&
+	cd -P -- "$1" 2>/dev/null &&
 	until [ -d .svn ]; do
 		if [ . -ef .. ] || [ . -ef / ]; then
 			return 1
