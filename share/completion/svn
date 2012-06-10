@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2012 magicant
 
 # Completion script for the "svn" command.
-# Supports Subversion 1.6.
+# Supports Subversion 1.7.
 
 function completion/svn {
 
@@ -18,10 +18,12 @@ function completion/svn {
 	) #<#
 	ADDOPTIONS=( #>#
 	"--accept:; specify an action for conflict resolution"
+	"--allow-mixed-revisions" # not documented as not recommended
 	"--auto-props; enable automatic property setting"
 	"c: --change:; specify a change (revision)"
 	"--changelist: --cl:; specify a changelist to operate on"
 	"--depth:; specify directory depth to operate on"
+	"--diff; show diff"
 	"--diff-cmd:; specify an external program to be used as \"diff\""
 	"--diff3-cmd:; specify an external program to be used as \"diff3\""
 	"--dry-run; don't make any actual changes"
@@ -31,8 +33,10 @@ function completion/svn {
 	"F: --file:; use the specified file's contents instead of invoking an editor"
 	"--force; force operation to run"
 	"--force-log; accept a suspicious parameter value for log messages"
+	"--git; print in Git-like format"
 	"--ignore-ancestry; ignore ancestry when calculating differences"
 	"--ignore-externals; ignore externals and its working copies"
+	"--ignore-whitespace; tolerate whitespace mismatches"
 	"--incremental; print output in a format suitable for concatenation"
 	"--keep-changelists; don't delete changelists after committing"
 	"--keep-local; keep the local working copy"
@@ -54,13 +58,16 @@ function completion/svn {
 	"--reintegrate; merge a branch into the trunk"
 	"--relocate; change the location of the repository"
 	"--remove; remove files from a changelist"
+	"--reverse-diff; patch in reverse"
 	"r: --revision:; specify a revision or a revision range"
 	"--revprop; operate on a revision property rather than a file property"
 	"--set-depth:; specify a new sticky depth of working directories"
+	"--show-copies-as-adds; treat copied files as newly added"
 	"--show-revs:; specify the type of mergeinfo to print"
 	"--show-updates; show which files will be updated by \"svn update\""
 	"--stop-on-copy; operate on revisions after the file was copied last"
 	"--strict; output the raw value without pretty-formatting"
+	"--strip:; specify the number of pathname components to strip from file names"
 	"--summarize; print a summary of changes only"
 	"--targets:; specify a file containing target paths"
 	"g --use-merge-history; use mergeinfo to show history before merges"
@@ -279,11 +286,13 @@ function completion/svn::completesubcmd {
 	complete -P "$PREFIX" -D "print info about merge" mergeinfo
 	complete -P "$PREFIX" -D "make directories" mkdir
 	complete -P "$PREFIX" -D "move files" move mv
+	complete -P "$PREFIX" -D "apply a patch" patch
 	complete -P "$PREFIX" -D "delete a property of files" propdel pdel
 	complete -P "$PREFIX" -D "edit a property of files" propedit pedit
 	complete -P "$PREFIX" -D "print a property of files" propget pget
 	complete -P "$PREFIX" -D "print properties of files" proplist plist
 	complete -P "$PREFIX" -D "set a property of files" propset pset
+	complete -P "$PREFIX" -D "change the repository root URL" relocate
 	complete -P "$PREFIX" -D "resolve conflicts" resolve
 	# deprecated: complete -P "$PREFIX" -D "" resolved
 	complete -P "$PREFIX" -D "undo local edits" revert
@@ -291,6 +300,7 @@ function completion/svn::completesubcmd {
 	complete -P "$PREFIX" -D "update working copy to a different URL" switch
 	complete -P "$PREFIX" -D "unlock files in the repository" unlock
 	complete -P "$PREFIX" -D "update the working copy" update
+	complete -P "$PREFIX" -D "upgrade the working copy format" upgrade
 }
 
 function completion/svn::completeurl {
@@ -527,8 +537,9 @@ function completion/svn::delete:arg {
 
 function completion/svn::diff:opt {
 	command -f completion/svn::setoptions \
-		change changelist depth diff-cmd extensions force new \
-		no-diff-deleted notice-ancestry old revision summarize xml
+		change changelist depth diff-cmd extensions force git new \
+		no-diff-deleted notice-ancestry old revision \
+		show-copies-as-adds summarize xml
 }
 
 function completion/svn::diff:arg {
@@ -622,8 +633,9 @@ function completion/svn::log:arg {
 
 function completion/svn::merge:opt {
 	command -f completion/svn::setoptions \
-		accept change depth diff3-cmd dry-run extensions force \
-		ignore-ancestry quiet record-only reintegrate revision
+		accept allow-mixed-revisions change depth diff3-cmd dry-run \
+		extensions force ignore-ancestry quiet record-only reintegrate \
+		revision
 }
 
 function completion/svn::merge:arg {
@@ -658,6 +670,19 @@ function completion/svn::move:opt {
 function completion/svn::move:arg {
 	command -f completion/svn::completelocal -cm
 	command -f completion/svn::completeurl
+}
+
+function completion/svn::patch:opt {
+	command -f completion/svn::setoptions \
+		dry-run ignore-whitespace quiet reverse-diff strip
+}
+
+function completion/svn::patch:arg {
+	if [ $(($separatorindex+1)) -eq ${WORDS[#]} ]; then
+		complete -P "$PREFIX" -f
+	else
+		complete -P "$PREFIX" -S / -T -d
+	fi
 }
 
 function completion/svn::propdel:opt {
@@ -735,6 +760,14 @@ function completion/svn::propset:arg {
 	fi
 }
 
+function completion/svn::relocate:opt {
+	command -f completion/svn::setoptions ignore-externals
+}
+
+function completion/svn::relocate:arg {
+	command -f completion/svn::switch:arg "$@"
+}
+
 function completion/svn::resolve:opt {
 	command -f completion/svn::setoptions \
 		accept depth quiet recursive targets
@@ -774,8 +807,8 @@ function completion/svn::status:arg {
 
 function completion/svn::switch:opt {
 	command -f completion/svn::setoptions \
-		accept depth diff3-cmd force ignore-externals quiet relocate \
-		revision set-depth
+		accept depth diff3-cmd force ignore-externals ignore-ancestry \
+		quiet relocate revision set-depth
 }
 
 function completion/svn::switch:arg {
@@ -797,11 +830,19 @@ function completion/svn::unlock:arg {
 function completion/svn::update:opt {
 	command -f completion/svn::setoptions \
 		accept changelist depth diff3-cmd editor-cmd force \
-		ignore-externals quiet revision set-depth
+		ignore-externals parents quiet revision set-depth
 }
 
 function completion/svn::update:arg {
 	command -f completion/svn::completelocal -cm
+}
+
+function completion/svn::upgrade:opt {
+	command -f completion/svn::setoptions quiet
+}
+
+function completion/svn::upgrade:arg {
+	complete -P "$PREFIX" -S / -T -d
 }
 
 
