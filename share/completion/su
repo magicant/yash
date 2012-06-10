@@ -99,7 +99,7 @@ function completion/su {
 		;;
 	(*)
 		command -f completion//getoperands
-		if [ "${WORDS[1]-}" = - ]; then
+		if [ "${WORDS[1]:-}" = - ]; then
 			WORDS=("${WORDS[2,-1]}")
 		fi
 		if [ "${WORDS[#]}" -le 0 ]; then
