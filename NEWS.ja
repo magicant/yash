@@ -8,9 +8,18 @@ Yash 更新履歴
    x: 新たに加わってしまったバグ
 
 ----------------------------------------------------------------------
+Yash 2.31
+
+  +  "svn" バージョン 1.7 の補完に対応
+  *  "git", "tar", "su" の補完の修正
+
+----------------------------------------------------------------------
 Yash 2.30
 
   *  リダイレクトのファイル名補完を修正
+  +  下記コマンドの補完スクリプトを追加:
+     svn, git, gitg, gitk, and gitx.
+  *  補完スクリプトの細かい修正
 
 ----------------------------------------------------------------------
 Yash 2.29
@@ -38,11 +47,18 @@ Yash 2.28
      にした
   *  ${#@} が配列の要素の長さの配列に正しく展開されていなかった
   *  整数列へのブレース展開で無限ループすることがあった
+  *  "ssh" コマンドの補完で設定ファイルの読み込みを修正
+  *  "ln", "mv" コマンドの補完で -T オプションに対応
+  *  "trap" 組込みの補完で EXIT の補完に対応
 
 ----------------------------------------------------------------------
 Yash 2.27
 
   *  細かいバグ修正
+  +  下記コマンドの補完スクリプトを追加:
+     awk, chsh, gawk, nawk, pgawk, scp, sftp, ssh-add, ssh-agent,
+     ssh-keygen, su, sudo, sudoedit, and useradd.
+  *  "set" 組込みと "tar" コマンドの補完スクリプトを修正
 
 ----------------------------------------------------------------------
 Yash 2.26
@@ -66,6 +82,11 @@ Yash 2.26
   *  '=' を含む関数名を typeset および unset 組込みに指定できるように
      した。(-f オプション指定時)
   *  SIGINT で中断された反復実行の終了ステータスを修正
+  +  下記コマンドの補完スクリプトを追加:
+     bsdtar, eview, evim, gex, gnutar, gtar, return, rgview, rgvim,
+     rview, rvim, slogin, ssh, tar, and which.
+  *  下記コマンドの補完スクリプトの修正:
+     bash, chmod, dash, less, mksh, set, sh, and umask.
 
 ----------------------------------------------------------------------
 Yash 2.25
@@ -73,6 +94,17 @@ Yash 2.25
   =  補完候補リストにおいてオプションは大文字小文字区別無くまとめる
      ようにした
   =  補完関数を実行中は $IFS 変数の値をデフォルトに戻すように
+  +  下記コマンドの補完スクリプトを追加:
+     bash, csplit, dash, diff, ed, egrep, env, ex, expand, fgrep,
+     file, find, fold, getconf, grep, gview, gvim, gvimdiff, head,
+     iconv, id, join, ksh, less, ln, locale, man, mesg, mkdir, mkfifo,
+     mksh, more, mv, newgrp, nice, nl, nohup, od, paste, patch,
+     pathchk, pr, ps, renice, rm, rmdir, sed, sh, sort, split, stty,
+     tail, tee, time, touch, tr, uname, uniq, vi, view, vim, vimdiff,
+     wc, who, xargs, and yash.
+  *  下記コマンドの補完スクリプトの修正:
+     cat, cd, chgrp, chmod, chown, cmp, comm, cp, crontab, cut, date,
+     df, du, exec, ls, and set.
 
 ----------------------------------------------------------------------
 Yash 2.24
@@ -83,6 +115,16 @@ Yash 2.24
   =  FreeBSD で全ての種類のシグナルが扱えるように configure を修正
   =  新しい補完メカニズム ("complete" 組込みの動作を変更。補完設定の
      $YASH_LOADPATH からの自動読み込み)
+  +  下記コマンドの補完スクリプトを追加:
+     basename, bg, cat, chgrp, chmod, chown, cmp, comm, command, cp,
+     crontab, cut, date, df, du, export, popd, pushd, readonly, type,
+     ".", and "[".
+  =  下記コマンドの補完スクリプトを書き直し:
+     alias, array, bindkey, break, cd, complete, continue, dirs,
+     disown, echo, eval, exec, exit, fc, fg, getopts, hash, help,
+     history, jobs, kill, ls, printf, pwd, read, set, suspend, test,
+     trap, typeset, ulimit, umask, unalias, unset, and wait.
+  -  "return" 組込みの補完スクリプトを削除
   =  補完候補リストで短いオプションが長いオプションの前に来るように
      並び順を変更
   *  存在しないファイルへのシンボリックリンクを正しく補完できるように
@@ -99,6 +141,7 @@ Yash 2.23
      最中にジョブの状態を出力しようとして不正メモリアクセスしていた
   *  "-o verbose" オプションが有効な時でも、補完設定の自動読み込み時は
      読み込んだ内容を出力しないようにした
+  *  "kill" 組込みの補完スクリプトを修正
 
 ----------------------------------------------------------------------
 Yash 2.22
@@ -108,6 +151,11 @@ Yash 2.22
   *  サブシェルが生成された直後にシグナルを受信したとき誤ってそれを
      無視していたのを修正
   *  その他のバグ修正
+  +  下記コマンドの補完スクリプトを追加:
+     alias, array, bindkey, break, cd, complete, continue, dirs,
+     disown, echo, eval, exec, exit, fc, fg, getopts, hash, help,
+     history, jobs, kill, ls, printf, pwd, read, return, set, suspend,
+     test, trap, typeset, ulimit, umask, unalias, unset, wait.
 
 ----------------------------------------------------------------------
 Yash 2.21

@@ -8,9 +8,18 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.31
+
+  +  Completion for "svn" version 1.7.
+  *  Fixes in "git", "tar" and "su" completion scripts.
+
+----------------------------------------------------------------------
 Yash 2.30
 
   *  Fixed pathname completion for redirections.
+  +  New completion scripts for:
+     svn, git, gitg, gitk, and gitx.
+  *  Minor fixes in completion scripts.
 
 ----------------------------------------------------------------------
 Yash 2.29
@@ -41,11 +50,20 @@ Yash 2.28
   *  ${#@} is now correctly expanded to an array of integers that
      represent the lengths of array elements.
   *  Fixed infinite loop in sequential brace expansion.
+  *  Fixed configuration file parsing in completion of the "ssh"
+     command.
+  *  The "-T" option of the "ln" and "mv" commands now can be
+     completed.
+  *  The EXIT trap now can be completed.
 
 ----------------------------------------------------------------------
 Yash 2.27
 
   *  Minor bug fixes.
+  +  New completion scripts for:
+     awk, chsh, gawk, nawk, pgawk, scp, sftp, ssh-add, ssh-agent,
+     ssh-keygen, su, sudo, sudoedit, and useradd.
+  *  Fix in completion scripts for the "set" and "tar" commands.
 
 ----------------------------------------------------------------------
 Yash 2.26
@@ -71,6 +89,11 @@ Yash 2.26
      option).
   *  Fixed the exit status of iterative execution that was interrupted
      by SIGINT.
+  +  New completion scripts for:
+     bsdtar, eview, evim, gex, gnutar, gtar, return, rgview, rgvim,
+     rview, rvim, slogin, ssh, tar, and which.
+  *  Many fixes in completion scripts for:
+     bash, chmod, dash, less, mksh, set, sh, and umask.
 
 ----------------------------------------------------------------------
 Yash 2.25
@@ -79,6 +102,17 @@ Yash 2.25
      insensitively.
   =  While executing a completion function, the $IFS is reset to the
      default value.
+  +  New completion scripts for:
+     bash, csplit, dash, diff, ed, egrep, env, ex, expand, fgrep,
+     file, find, fold, getconf, grep, gview, gvim, gvimdiff, head,
+     iconv, id, join, ksh, less, ln, locale, man, mesg, mkdir, mkfifo,
+     mksh, more, mv, newgrp, nice, nl, nohup, od, paste, patch,
+     pathchk, pr, ps, renice, rm, rmdir, sed, sh, sort, split, stty,
+     tail, tee, time, touch, tr, uname, uniq, vi, view, vim, vimdiff,
+     wc, who, xargs, and yash.
+  *  Many fixes in completion scripts for:
+     cat, cd, chgrp, chmod, chown, cmp, comm, cp, crontab, cut, date,
+     df, du, exec, ls, and set.
 
 ----------------------------------------------------------------------
 Yash 2.24
@@ -91,6 +125,16 @@ Yash 2.24
   =  [line-editing] New command completion mechanism. The "complete"
      built-in now has new syntax and semantics. Completion settings
      are now autoloaded from $YASH_LOADPATH.
+  +  New completion scripts for:
+     basename, bg, cat, chgrp, chmod, chown, cmp, comm, command, cp,
+     crontab, cut, date, df, du, export, popd, pushd, readonly, type,
+     ".", and "[".
+  =  Revised completion scripts for:
+     alias, array, bindkey, break, cd, complete, continue, dirs,
+     disown, echo, eval, exec, exit, fc, fg, getopts, hash, help,
+     history, jobs, kill, ls, printf, pwd, read, set, suspend, test,
+     trap, typeset, ulimit, umask, unalias, unset, and wait.
+  -  Removed completion script for the "return" built-in.
   =  Short options now come before long options in a completion
      candidate list.
   *  Symbolic links to non-existent files can now be completed.
@@ -108,12 +152,18 @@ Yash 2.23
      status while executing a candidate generator function.
   *  The "-o verbose" option is now disabled during completion to
      suppress the auto-loaded script being printed.
+  *  Fixed completion script for the "kill" built-in.
 
 ----------------------------------------------------------------------
 Yash 2.22
 
   +  New "test" built-in operators: -G, -O, -N
   +  Completion settings are now autoloaded from $YASH_COMPPATH.
+  +  New completion scripts for:
+     alias, array, bindkey, break, cd, complete, continue, dirs,
+     disown, echo, eval, exec, exit, fc, fg, getopts, hash, help,
+     history, jobs, kill, ls, printf, pwd, read, return, set, suspend,
+     test, trap, typeset, ulimit, umask, unalias, unset, and wait.
   *  Fix a bug that was causing a signal received by a just-created
      subshell to be wrongly ignored.
   *  Other bug fixes
