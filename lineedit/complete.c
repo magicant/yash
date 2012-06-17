@@ -574,7 +574,7 @@ void execute_completion_function(void)
 		simple_completion(CGT_FILE);
 	    break;
 	case CTXT_TILDE:
-	    simple_completion(CGT_LOGNAME);
+	    simple_completion(CGT_LOGNAME | CGT_DIRSTACK);
 	    break;
 	case CTXT_VAR:
 	    simple_completion(CGT_VARIABLE);
@@ -692,6 +692,7 @@ void generate_candidates(const le_compopt_T *compopt)
     generate_group_candidates(compopt);
     generate_host_candidates(compopt);
     generate_bindkey_candidates(compopt);
+    generate_dirstack_candidates(compopt);
 
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next)
 	xfnm_free(p->cpattern);
@@ -1376,6 +1377,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 	{ L'c', L"command",              OPTARG_NONE,     true,  NULL, },
 	{ L'D', L"description",          OPTARG_REQUIRED, true,  NULL, },
 	{ L'd', L"directory",            OPTARG_NONE,     true,  NULL, },
+	{ L'-', L"dirstack-index",       OPTARG_NONE,     true,  NULL, },
 	{ L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
 	{ L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
 	{ L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
@@ -1463,6 +1465,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		switch (opt->longopt[0]) {
 		    case L'a':  cgtype |= CGT_ARRAY;  break;
 		    case L'b':  cgtype |= CGT_BINDKEY;  break;
+		    case L'd':  cgtype |= CGT_DIRSTACK;  break;
 		    case L'e':
 			assert(opt->longopt[1] == L'x');
 			switch (opt->longopt[2]) {
@@ -1607,6 +1610,8 @@ const char *complete_help[] = { Ngt(
 " -c --command               commands and functions\n"
 ), Ngt(
 " -d --directory             directories\n"
+), Ngt(
+"    --dirstack-index        directory stack indices\n"
 ), Ngt(
 "    --executable-file       executable regular files\n"
 ), Ngt(

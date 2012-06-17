@@ -10,6 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.31
 
+  +  Completion of directory stack indices in extended tilde
+     expansion.
+  +  New option for the "complete" built-in: --dirstack-index
   +  Completion for "svn" version 1.7.
   *  Fixes in "git", "tar" and "su" completion scripts.
 

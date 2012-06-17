@@ -57,10 +57,7 @@ function completion/cd {
 
 	if $dirstack; then
 		case ${WORDS[1]} in (dirs|pushd|popd)
-			if command -vf completion//completedirstack >/dev/null 2>&1 ||
-				. -AL completion/_dirstack; then
-				command -f completion//completedirstack
-			fi
+			complete -P "$PREFIX" --dirstack-index
 		esac
 	fi
 

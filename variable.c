@@ -1471,6 +1471,70 @@ out_of_range:
 
 #endif /* YASH_ENABLE_DIRSTACK */
 
+#if YASH_ENABLE_LINEEDIT
+
+/* Generates candidates to complete a directory stack index. */
+/* The prototype of this function is declared in "lineedit/complete.h". */
+void generate_dirstack_candidates(const le_compopt_T *compopt)
+{
+    if (!(compopt->type & CGT_DIRSTACK))
+	return;
+
+    le_compdebug("adding directory stack index candidates");
+
+#if YASH_ENABLE_DIRSTACK
+    if (!le_compile_cpatterns(compopt))
+	return;
+
+    variable_T *dirstack = search_variable(L VAR_DIRSTACK);
+    size_t totalcount = 1;
+    wchar_t *index;
+    if (dirstack != NULL && (dirstack->v_type & VF_MASK) == VF_ARRAY) {
+	size_t count = dirstack->v_valc;
+	for (size_t i = 0; i < count; i++) {
+	    switch (compopt->src[0]) {
+		case L'+':
+		    index = malloc_wprintf(L"+%zu", count - i);
+		    break;
+		case L'-':
+		    index = malloc_wprintf(L"-%zu", i);
+		    break;
+		default:
+		    return;
+	    }
+	    if (le_wmatch_comppatterns(compopt, index))
+		le_new_candidate(
+			CT_WORD, index, xwcsdup(dirstack->v_vals[i]), compopt);
+	    else
+		free(index);
+	}
+	totalcount += count;
+    }
+
+    switch (compopt->src[0]) {
+	case L'+':
+	    index = malloc_wprintf(L"+%zu", 0);
+	    break;
+	case L'-':
+	    index = malloc_wprintf(L"-%zu", totalcount - 1);
+	    break;
+	default:
+	    return;
+    }
+    if (le_wmatch_comppatterns(compopt, index)) {
+	const wchar_t *pwd = getvar(L VAR_PWD);
+	wchar_t *duppwd = (pwd != NULL) ? xwcsdup(pwd) : NULL;
+	le_new_candidate(CT_WORD, index, duppwd, compopt);
+    } else {
+	free(index);
+    }
+#else /* YASH_ENABLE_DIRSTACK */
+    le_compdebug("  directory stack is disabled");
+#endif
+}
+
+#endif /* YASH_ENABLE_LINEEDIT */
+
 
 /********** Built-ins **********/
 

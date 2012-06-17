@@ -153,6 +153,7 @@ typedef enum le_candgentype_T {
     CGT_GROUP      = 1 << 18, // group name
     CGT_HOSTNAME   = 1 << 19, // host name
     CGT_BINDKEY    = 1 << 20, // line-editing command name
+    CGT_DIRSTACK   = 1 << 21, // directory stack entry
 } le_candgentype_T;
 typedef struct le_comppattern_T {
     struct le_comppattern_T *next;
@@ -234,6 +235,8 @@ extern void generate_signal_candidates(const le_compopt_T *compopt)
 extern void generate_variable_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 extern void generate_function_candidates(const le_compopt_T *compopt)
+    __attribute__((nonnull));
+extern void generate_dirstack_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 
 /* This function is defined in "keymap.c". */
