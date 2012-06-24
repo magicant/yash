@@ -344,6 +344,29 @@ function completion/git::completeref {
 
 }
 
+# $1 = remote name
+function completion/git::completeremoteref {
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	case $word in
+		(refs/heads/*)
+			word=${word#refs/heads/}
+			PREFIX=${TARGETWORD%"$word"}
+			;;
+		(*)
+			# We don't have info about remote non-branch refs,
+			# so complete local refs for tags. "--branches" is
+			# specified so that "refs/heads/" can be a candidate.
+			command -f completion/git::completeref \
+				abbrprefixes= --symbolic-full-name \
+				--branches --tags
+			;;
+	esac
+	# complete remote tracking branches
+	command -f completion/git::completeref \
+		dontcompletefull=true abbrprefixes="refs/remotes/$1/" \
+		--remotes="$1"
+}
+
 function completion/git::completepath {
 
 	if ! git rev-parse --git-dir >/dev/null 2>&1; then

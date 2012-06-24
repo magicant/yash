@@ -46,9 +46,17 @@ function completion/git::push:arg {
 			else
 				typeset word="${TARGETWORD#"$PREFIX"}"
 				word=${word#+}
-				word=${word#*:}
-				PREFIX=${TARGETWORD%"$word"}
-				command -f completion/git::completeref
+				case $word in
+				(*:*) # complete remote refs
+					word=${word#*:}
+					PREFIX=${TARGETWORD%"$word"}
+					command -f completion/git::completeremoteref "${WORDS[1]}"
+					;;
+				(*) # complete local refs
+					PREFIX=${TARGETWORD%"$word"}
+					command -f completion/git::completeref
+					;;
+				esac
 			fi
 			;;
 	esac

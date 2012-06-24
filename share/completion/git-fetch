@@ -65,9 +65,17 @@ function completion/git::fetch:arg {
 			else
 				typeset word="${TARGETWORD#"$PREFIX"}"
 				word=${word#+}
-				word=${word#*:}
-				PREFIX=${TARGETWORD%"$word"}
-				command -f completion/git::completeref
+				case $word in
+				(*:*) # complete local refs
+					word=${word#*:}
+					PREFIX=${TARGETWORD%"$word"}
+					command -f completion/git::completeref
+					;;
+				(*) # complete remote refs
+					PREFIX=${TARGETWORD%"$word"}
+					command -f completion/git::completeremoteref "${WORDS[i]}"
+					;;
+				esac
 			fi
 			;;
 	esac
