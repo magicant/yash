@@ -27,7 +27,7 @@ function completion/git::diff-tree:arg {
 			fi
 			;;
 		(*)
-			command -f completion/git:diff-tree:compopt
+			command -f completion/git::diff-tree:compopt
 			;;
 	esac
 
@@ -52,7 +52,7 @@ function completion/git::diff-tree:getopt {
 		command -f completion/git::diff:getopt
 }
 
-function completion/git:diff-tree:compopt {
+function completion/git::diff-tree:compopt {
 	command -f completion/git::completeprettyopts ||
 	{ command -vf completion/git::diff:compopt >/dev/null 2>&1 ||
 			. -AL completion/git-diff; } &&
