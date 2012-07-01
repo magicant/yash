@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2010 magicant
+# (C) 2007-2012 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 
 @MAKE_SHELL@
 topdir = ..
+subdir = lineedit
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -83,6 +84,9 @@ distclean: clean
 	-rm -rf Makefile tags TAGS cscope.out
 maintainer-clean: distclean
 	-rm -rf $(SOURCES:.c=.d)
+
+Makefile: Makefile.in $(topdir)/config.status
+	cd $(topdir) && $(MAKE) config.status && $(SHELL) config.status $(subdir)/$@
 
 .PHONY: all distfiles copy-distfiles makedeps cscope mostlyclean clean distclean maintainer-clean
 _PHONY:

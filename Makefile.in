@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2011 magicant
+# (C) 2007-2012 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ signum.h: makesignum
 	./makesignum > $@
 variable.o yash.o: configm.h
 configm.h: Makefile
-	-@echo creating $@...
+	-@printf 'creating %s...' '$@'
 	@{ printf '/* $@: created by Makefile */\n'; \
 		printf '#ifndef YASH_CONFIGM_H\n'; \
 		printf '#define YASH_CONFIGM_H\n'; \
@@ -92,6 +92,7 @@ configm.h: Makefile
 		printf '#define DEFAULT_LOADPATH "$(default_loadpath)"\n'; \
 		printf '#endif\n'; \
 		} >$@
+	-@echo done
 
 test tests check: _PHONY
 	@+(cd tests && $(MAKE))
@@ -227,9 +228,9 @@ maintainer-clean:
 	-rm -rf $(SOURCES:.c=.d)
 
 config.h: config.status
-	$(SHELL) config.status
+	$(SHELL) config.status $@
 Makefile: Makefile.in config.status
-	$(SHELL) config.status
+	$(SHELL) config.status $@
 config.status: configure
 	$(SHELL) config.status --recheck
 

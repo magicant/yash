@@ -1,5 +1,5 @@
 # Makefile.in for test of yash
-# (C) 2007-2011 magicant
+# (C) 2007-2012 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 
 @MAKE_SHELL@
 topdir = ..
+subdir = tests
 
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -64,6 +65,9 @@ distclean: clean
 	rm -fr Makefile
 maintainer-clean: distclean
 	rm -fr $(SOURCES:.c=.d)
+
+Makefile: Makefile.in $(topdir)/config.status
+	cd $(topdir) && $(MAKE) config.status && $(SHELL) config.status $(subdir)/$@
 
 .PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
 _PHONY:
