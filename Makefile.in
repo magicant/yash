@@ -61,7 +61,7 @@ localedir = @localedir@
 default_loadpath = @default_loadpath@
 enable_nls = @enable_nls@
 
-all: $(TARGET)
+all: $(TARGET) tester mofiles
 
 .c.o:
 	@rm -f $@
@@ -96,6 +96,10 @@ configm.h: Makefile
 
 test tests check: _PHONY
 	@+(cd tests && $(MAKE))
+tester: _PHONY
+	@+(cd tests && $(MAKE) $@)
+mofiles: _PHONY
+	@+(cd po && $(MAKE))
 
 INSTALLBINDIRS = $(DESTDIR)$(bindir)
 INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion
@@ -234,7 +238,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data installdirs-data-main uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check tester mofiles install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data installdirs-data-main uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

@@ -29,17 +29,19 @@ LDLIBS = @LDLIBS@
 SOURCES = checkfg.c invoke.c resetsig.c
 TEST_SOURCES = *.tst *.out *.err *.oux *.erx *.t
 TARGET = @TARGET@
+TESTERS = checkfg invoke resetsig
 TESTEE = $(topdir)/$(TARGET)
-BYPRODUCTS = checkfg.o checkfg invoke.o invoke resetsig.o resetsig test.log *.dSYM
+BYPRODUCTS = $(SOURCES:.c=.o) $(TESTERS) test.log *.dSYM
 
-test test-all: checkfg invoke resetsig testee
+test test-all: tester testee
 	@./resetsig $(SHELL) ./run-test.sh
 test-posix:
 	@$(MAKE) TEST_ITEMS='*.p.tst' test
 test-yash:
 	@$(MAKE) TEST_ITEMS='*.y.tst' test
 
-checkfg invoke resetsig:
+tester: $(TESTERS)
+$(TESTERS):
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 testee:
 	@+if [ x'$(TESTEE)' = x'$(topdir)/$(TARGET)' ]; then \
@@ -69,7 +71,7 @@ maintainer-clean: distclean
 Makefile: Makefile.in $(topdir)/config.status
 	cd $(topdir) && $(MAKE) config.status && $(SHELL) config.status $(subdir)/$@
 
-.PHONY: test test-all test-posix test-yash testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash tester testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ checkfg.d
