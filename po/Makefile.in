@@ -154,6 +154,7 @@ maintainer-clean: distclean
 	rm -fr $(DOMAIN).pot stamp-po $(POFILES_QUOT) $(POFILES_QUOT:.po=.ih) $(MOFILES)
 
 Makefile: Makefile.in $(topdir)/config.status
-	cd $(topdir) && $(MAKE) config.status && $(SHELL) config.status $(subdir)/$@
+	@+(cd $(topdir) && $(MAKE) config.status)
+	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
 
 .PHONY: $(DOMAIN).pot-update update-po install install-data installdirs installdirs-data uninstall uninstall-data distfiles copy-distfiles mostlyclean clean distclean maintainer-clean

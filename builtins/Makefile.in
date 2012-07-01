@@ -81,7 +81,8 @@ maintainer-clean: distclean
 	-rm -rf $(SOURCES:.c=.d)
 
 Makefile: Makefile.in $(topdir)/config.status
-	cd $(topdir) && $(MAKE) config.status && $(SHELL) config.status $(subdir)/$@
+	@+(cd $(topdir) && $(MAKE) config.status)
+	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
 
 .PHONY: all distfiles copy-distfiles makedeps cscope mostlyclean clean distclean maintainer-clean
 _PHONY:
