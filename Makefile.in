@@ -224,11 +224,11 @@ _distclean: _clean
 maintainer-clean:
 	-@echo 'This command is intended for maintainers to use;'
 	-@echo 'it deletes files that may need special tools to rebuild.'
-	-@+$(MAKE) _distclean
 	-@+(cd builtins && $(MAKE) maintainer-clean)
 	-@+(cd lineedit && $(MAKE) maintainer-clean)
 	-@+(cd po       && $(MAKE) maintainer-clean)
 	-@+(cd tests    && $(MAKE) maintainer-clean)
+	-@+$(MAKE) _distclean
 	-rm -rf $(SOURCES:.c=.d)
 
 config.h: config.status
