@@ -205,13 +205,14 @@ mostlyclean: _mostlyclean
 	-@+(cd builtins && $(MAKE) mostlyclean)
 	-@+(cd lineedit && $(MAKE) mostlyclean)
 	-@+(cd po       && $(MAKE) mostlyclean)
+	-@+(cd tests    && $(MAKE) mostlyclean)
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
-	-@+(cd tests && $(MAKE) clean)
 clean: _clean
 	-@+(cd builtins && $(MAKE) clean)
 	-@+(cd lineedit && $(MAKE) clean)
 	-@+(cd po       && $(MAKE) clean)
+	-@+(cd tests    && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean

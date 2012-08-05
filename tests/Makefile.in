@@ -61,8 +61,9 @@ makedeps: _PHONY
 	@(cd $(topdir) && $(MAKE) $(TARGET))
 	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
 
-clean:
+mostlyclean:
 	rm -fr $(BYPRODUCTS)
+clean: mostlyclean
 distclean: clean
 	rm -fr Makefile
 maintainer-clean: distclean
@@ -72,7 +73,7 @@ Makefile: Makefile.in $(topdir)/config.status
 	@+(cd $(topdir) && $(MAKE) config.status)
 	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
 
-.PHONY: test test-all test-posix test-yash tester testee distfiles copy-distfiles makedeps clean distclean maintainer-clean
+.PHONY: test test-all test-posix test-yash tester testee distfiles copy-distfiles makedeps mostlyclean clean distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ checkfg.d
