@@ -1,4 +1,4 @@
-# (C) 2010-2011 magicant
+# (C) 2010-2012 magicant
 
 # This file is autoloaded when completion is first performed by the shell.
 # This file contains utility functions that are commonly used by many
@@ -591,8 +591,11 @@ function completion//reexecute {
 }
 
 
-# Prints all commands in $PATH
+# Prints all commands in $PATH.
+# Given an argument, it is treated as a pattern that filters results.
 function completion//allcommands {
+	typeset IFS
+
 	# check if $PATH is an array
 	case $(typeset -p PATH 2>/dev/null) in
 	(PATH=\(*)
@@ -606,11 +609,18 @@ function completion//allcommands {
 		typeset IFS=: savepath="$PATH"
 		typeset PATH
 		PATH=($savepath)
-		IFS=
 		;;
 	esac
+	IFS=' '
 
-	typeset dir file oldopt="$(set +o)"
+	# use "find" if it supports "-min/maxdepth"
+	if find -L . -mindepth 0 -maxdepth 0 -prune >&2; then
+		find -L "$PATH" -mindepth 1 -maxdepth 1 \
+			${1+-name "$1"} -type f -perm -u+x
+		return
+	fi 2>/dev/null
+
+	typeset dir file pat="${1-*}" oldopt="$(set +o)"
 	set -o glob -o dotglob -o nullglob -o caseglob -o markdirs
 	for dir in "$PATH"; do
 		case $dir in
@@ -623,7 +633,7 @@ function completion//allcommands {
 			case $file in
 				(*/.|*/..|*/)
 					;;
-				(*)
+				(*/$pat)
 					if [ -x "$file" ]; then
 						printf '%s\n' "$file"
 					fi

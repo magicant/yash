@@ -264,10 +264,8 @@ function completion/git::completecmd { #>>#
 	typeset cmd
 	while read -r cmd; do
 		cmd=${cmd##*/}
-		case $cmd in (git-*)
-			complete -P "$PREFIX" -- "${cmd#git-}"
-		esac
-	done 2>/dev/null <(command -f completion//allcommands)
+		complete -P "$PREFIX" -- "${cmd#git-}"
+	done 2>/dev/null <(command -f completion//allcommands 'git-*')
 }
 
 function completion/git::completealias {
