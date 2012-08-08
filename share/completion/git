@@ -314,7 +314,8 @@ function completion/git::completeref {
 			while read -r id message; do
 				complete -P "$PREFIX" -D "$message" \
 					${usesuffix:+-S "$suffix" -T} -- "$id"
-			done 2>/dev/null <(git rev-list --all --oneline)
+			done 2>/dev/null <(git rev-list --all --oneline |
+				grep "^$targetword")
 		fi
 	fi
 
