@@ -219,7 +219,7 @@ exec 5>"${configlog}"
     for i in "$0" "$@"
     do
 	printf ' %s' "$(printf '%s\n' "$i" |
-	    sed -e '/[^[:alnum:]./=-]/ {
+	    sed -e '\|[^[:alnum:]./=-]| {
 	    s/'"'"'/'"'\\''"'/g
 	    s/\(.*\)/'"'"'\1'"'"'/
 	    }')"
