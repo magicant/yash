@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2012 magicant
 
 # Completion script for the "git-commit" command.
 # Supports Git 1.7.7.
@@ -24,6 +24,7 @@ function completion/git::commit:arg {
 	"--fixup:; prepare the message to fix up the specified commit in later autosquash"
 	"i --include; include operand files in the commit"
 	"m: --message:; specify the message"
+	"--no-edit; don't reedit the message"
 	"--no-status; don't include file statuses in the message template"
 	"n --no-verify; bypass the pre-commit and commit-msg hooks"
 	"o --only; commit operand files only"
