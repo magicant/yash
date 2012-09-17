@@ -85,32 +85,41 @@ function completion/git::remote:rm:arg {
 	command -f completion/git::completeremote
 }
 
-function completion/git::remote:set-head:arg
-	case ${WORDS[#]} in
-		(1)
-			command -f completion/git::completeremote
+function completion/git::remote:set-head:arg {
+
+	case ${WORDS[1]} in
+		(set-head)
+			OPTIONS=(
+			"a --auto; query the remote default branch"
+			"d --delete; remove the remote default branch"
+			)
 			;;
-		(2)
-			case ${TARGETWORD#"$PREFIX"} in
-				(-*)
-					case ${WORDS[1]} in
-						(set-head)
-							complete -P "$PREFIX" -D "query the remote default branch" -- -a
-							complete -P "$PREFIX" -D "remove the remote default branch" -- -d
-							;;
-						(set-branches)
-							complete -P "$PREFIX" -D "add to existing remote-tracking branches" -- --add
-							;;
-					esac
-					;;
-				(*)
-					command -f completion/git::completeref \
-						abbrprefixes="refs/remotes/${WORDS[2]}/" dontcompletefull=true \
-						--remotes="${WORDS[2]}"
-					;;
-			esac
+		(set-branches)
+			OPTIONS=(
+			"a --add; add branch; don't remove existing settings"
+			)
 			;;
 	esac
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				command -f completion/git::completeremote
+			else
+				command -f completion/git::completeref \
+					abbrprefixes="refs/remotes/${WORDS[1]}/" \
+					dontcompletefull=true \
+					--remotes="${WORDS[1]}"
+			fi
+			;;
+	esac
+
+}
 
 function completion/git::remote:set-branches:arg {
 	command -f completion/git::remote:set-head:arg "$@"
