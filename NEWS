@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.32
+
+  +  Man page and HTML manual in English and Japanese.
+  =  The "help" built-in now prints part of the man page.
+
+----------------------------------------------------------------------
 Yash 2.31
 
   +  Completion of directory stack indices in extended tilde
