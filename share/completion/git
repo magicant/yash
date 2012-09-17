@@ -292,6 +292,9 @@ function completion/git::completeref {
 			;;
 		(range=*)
 			typeset word="${TARGETWORD#"$PREFIX"}"
+			case $word in (-*)
+				complete -P "$PREFIX" -D "exclude following commits" -- --not
+			esac
 			word=${word##*..}
 			typeset PREFIX=${TARGETWORD%"$word"}
 			;;
