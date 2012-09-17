@@ -1,0 +1,46 @@
+= Continue 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Continue 組込みコマンド
+
+dfn:[Continue 組込みコマンド]は実行中のループの次の繰り返しに処理を移します。
+
+[[syntax]]
+== 構文
+
+- +continue [{{深さ}}]+
+- +continue -i+
+
+[[description]]
+== 説明
+
++-i+ (+--iteration+) オプションを付けずに実行すると、continue コマンドは現在実行中の link:syntax.html#for[for ループ]または link:syntax.html#while-until[while ループ]または link:syntax.html#while-until[until ループ]の繰り返しを中断し、直ちに次の繰り返しを開始します (while/until ループについては、ループの実行条件の判定からやり直します)。多重ループの中で実行した場合、内側から数えて{{深さ}}番目のループに対してこの動作を行います。{{深さ}}が指定されていないときは、最も内側のループに対してこの動作を行います ({{深さ}} = 1)。指定された{{深さ}}が実際に実行している多重ループの深さより大きい場合は最も外側のループに対してこの動作を行います。
+
++-i+ (+--iteration+) オプションを付けて実行すると、continue コマンドは現在実行中のlink:_eval.html#iter[反復実行]の現在のコマンドの実行を中断し、直ちに次のコマンドの実行を開始します。
+
+[[options]]
+== オプション
+
++-i+::
++--iteration+::
+ループではなく反復実行に対して作用します。
+
+[[operands]]
+== オペランド
+
+{{深さ}}::
+内側から何番目のループに作用するのかを指定する 1 以上の自然数です。
+
+[[exitstatus]]
+== 終了ステータス
+
++-i+ (+--iteration+) オプションが指定されていないとき、continue コマンドの処理が成功すると終了ステータスは 0 です。+-i+ (+--iteration+) オプションが指定されているとき、continue コマンドの処理が成功すると continue コマンドの直前に実行されたコマンドの終了ステータスが continue コマンドの終了ステータスになります。
+
+[[notes]]
+== 補足
+
+Continue コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
+
+// vim: set filetype=asciidoc expandtab:

@@ -1,0 +1,49 @@
+= Bg built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Bg built-in
+
+The dfn:[bg built-in] resumes a job in the background.
+
+[[syntax]]
+== Syntax
+
+- +bg [{{job}}...]+
+
+[[description]]
+== Description
+
+The bg built-in sends the SIGCONT signal to the specified job.
+As a result, the job is resumed in the background (if it has been suspended).
+
+The name of the job is printed when the job is resumed.
+
+The built-in can be used only when link:job.html[job control] is enabled.
+
+[[operands]]
+== Operands
+
+{{job}}::
+The link:job.html#jobid[job ID] of the job to be resumed.
++
+More than one job can be specified at a time.
+The current job is resumed if none is specified.
++
+The percent sign (+%+) at the beginning of a job ID can be omitted if the
+shell is not in the link:posix.html[POSIXly-correct mode].
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the bg built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The bg built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard provides that the built-in shall have no effect when the
+job is already running.
+The bg built-in of yash, however, always sends the SIGCONT signal to the job.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

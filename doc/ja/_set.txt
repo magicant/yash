@@ -1,0 +1,165 @@
+= Set 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Set 組込みコマンド
+
+dfn:[Set 組込みコマンド]はシェルのオプションの設定とlink:params.html#positional[位置パラメータ]の変更を行います。
+
+[[syntax]]
+== 構文
+
+- +set [{{オプション}}...] [{{オペランド}}...]+
+- +set -o+
+- +set +o+
+
+Set コマンドでは、link:posix.html[POSIX 準拠モード]であるかどうかにかかわらずオプションはオペランドより先に全て指定しなければなりません。最初のオペランドより後にあるコマンドライン引数は全てオペランドとして解釈します。
+
+[[description]]
+== 説明
+
+コマンドライン引数を一切与えずに set コマンドを実行すると、現在シェルに設定されている全てのlink:params.html#variables[変数]の一覧をアルファベット順で (コマンドとして解釈可能な形式で) 標準出力に出力します。
+
++-o+ を唯一のコマンドライン引数として与えた場合は現在のシェルのオプション設定を一覧にして標準出力に出力します。++o+ を唯一のコマンドライン引数として与えた場合も同様ですが、この場合はコマンドとして解釈可能な形式で出力します。
+
+これ以外の場合は、set コマンドは以下のようにシェルのオプションの設定とlink:params.html#positional[位置パラメータ]の変更のどちらかまたは両方の動作を行います。
+
+[[options]]
+== オプション
+
+オプションが一つ以上与えられている場合、set コマンドはそれらの有効・無効を切り替えます。通常の形式でオプションを与えると、そのオプションは有効になります。オプションの先頭のハイフン (+-+) の代わりにプラス (+&#x2B;+) を付けて指定すると、そのオプションは無効になります。例えば +-m+ や +-o monitor+ や +--monitor+ はシェルのジョブ制御を有効にし、逆に +&#x2B;m+ や +&#x2B;o monitor+ や +&#x2B;&#x2B;monitor+ はジョブ制御を無効にします。
+
+link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数字以外の文字は無視され、大文字と小文字の区別はありません。例えば +--Le-Comp-Debug+ は +--lecompdebug+ に同じです。また長いオプションの名前の先頭に +no+ を付けることで、オプションの有効・無効を逆転することができます。例えば +--noallexport+ は +&#x2B;&#x2B;allexport+ に同じく、また +&#x2B;&#x2B;nonotify+ は +--notify+ に同じです。
+
+オプションは以下に挙げる形式で指定することができます:
+
+- 長いオプション (例: +--allexport+)
+- 引数としてオプション名を指定した +-o+ オプション (例: +-o allexport+)
+- 一文字のオプション (例: +-a+)
+
+ただし全てのオプションが一文字のオプションで指定できるわけではありません。
+
+利用可能なオプションは以下のとおりです:
+
+[[so-allexport]]all-export (+-a+)::
+このオプションが有効な時、link:params.html#variables[変数]に代入をするとその変数は自動的にエクスポート対象になります。
+
+[[so-braceexpand]]brace-expand::
+このオプションはlink:expand.html#brace[ブレース展開]を有効にします。
+
+[[so-caseglob]]case-glob::
+このオプションが有効な時、link:expand.html#glob[パス名展開]におけるパターンマッチングは大文字と小文字を区別して行います。このオプションはシェルの起動時に最初から有効になっています。
+
+[[so-clobber]]clobber (`+C`)::
+このオプションを無効にすると、 +>+ 演算子によるlink:redir.html[リダイレクト]で既存のファイルを上書きすることはできなくなります。このオプションはシェルの起動時に最初から有効になっています。
+
+[[so-curasync]]cur-async::
+[[so-curbg]]cur-bg::
+[[so-curstop]]cur-stop::
+これらのオプションは現在のジョブの選択の仕方に影響します。(link:job.html#jobid[ジョブ ID] 参照)。これらのオプションはシェルの起動時に最初から有効になっています。
+
+[[so-dotglob]]dot-glob::
+このオプションが有効な時、link:expand.html#glob[パス名展開]においてファイル名の先頭のピリオドを特別に扱いません。
+
+[[so-emacs]]emacs::
+このオプションは emacs 風link:lineedit.html[行編集]を有効にします。
+
+[[so-errexit]]err-exit (+-e+)::
+このオプションが有効な時、実行したlink:syntax.html#simple[単純コマンド] (またはlink:syntax.html#pipelines[パイプライン]) の終了ステータスが 0 でなければ、シェルは直ちに終了します。ただし、そのコマンドが link:syntax.html#while-until[while/until 文]のループ条件の判定に使われる場合や link:syntax.html#if[if 文]の分岐の判定に使われる場合やパイプラインの先頭に +!+ が付いている場合を除きます。
+
+[[so-exec]]exec (`+n`)::
+このオプションが無効な時、シェルはコマンドの解釈だけを行い、実際にはコマンドを実行しません。このオプションはシェルスクリプトの文法チェックをするのに便利です。このオプションはシェルの起動時に最初から有効になっています。link:interact.html[対話モード]では、このオプションに関わらずコマンドは常に実行されます。
+
+[[so-extendedglob]]extended-glob::
+このオプションはlink:expand.html#glob[パス名展開]における拡張機能を有効にします。
+
+[[so-glob]]glob (`+f`)::
+このオプションが有効なときはシェルはlink:expand.html#glob[パス名展開]を行います。このオプションはシェルの起動時に最初から有効になっています。
+
+[[so-hashondef]]hash-on-def (+-h+)::
+このオプションが有効なときlink:exec.html#function[関数]を定義すると、直ちにその関数内で使われる各コマンドの link:exec.html#search[PATH 検索]を行いコマンドのパス名を記憶します。
+
+[[so-histspace]]hist-space::
+このオプションが有効な時は空白で始まる行はlink:interact.html#history[コマンド履歴]に自動的に追加しません。
+
+[[so-ignoreeof]]ignore-eof::
+このオプションが有効な時、link:interact.html[対話モード]のシェルに EOF (入力の終わり) が入力されてもシェルはそれを無視してコマンドの読み込みを続けます。これにより、誤って Ctrl-D を押してしまってもシェルは終了しなくなります。
+
+[[so-lealwaysrp]]le-always-rp::
+[[so-lecompdebug]]le-comp-debug::
+[[so-leconvmeta]]le-conv-meta::
+[[so-lenoconvmeta]]le-no-conv-meta::
+[[so-lepromptsp]]le-prompt-sp::
+[[so-levisiblebell]]le-visible-bell::
+これらのオプションはlink:lineedit.html[行編集]の動作に影響します。link:lineedit.html#options[行編集のオプション]を参照してください。
+
+[[so-markdirs]]mark-dirs::
+このオプションが有効な時、link:expand.html#glob[パス名展開]の展開結果においてディレクトリを表すものの末尾にスラッシュを付けます。
+
+[[so-monitor]]monitor (+-m+)::
+このオプションはlink:job.html[ジョブ制御]を有効にします。シェルをlink:interact.html[対話モード]で起動したときこのオプションは自動的に有効になります。
+
+[[so-notify]]notify (+-b+)::
+このオプションが有効な時は、バックグラウンドのlink:job.html[ジョブ]の実行状態が変化するとシェルは直ちにそれを標準エラーに報告します。このオプションは notifyle オプションより優先します。
+
+[[so-notifyle]]notify-le::
+このオプションは notify オプションとほぼ同じですが、link:lineedit.html[行編集]を行っている最中のみジョブの状態変化を報告します。
+
+[[so-nullglob]]null-glob::
+このオプションが有効な時、link:expand.html#glob[パス名展開]でマッチするパス名がないとき元のパターンは残りません。
+
+[[so-posixlycorrect]]posixly-correct::
+このオプションは link:posix.html[POSIX 準拠モード]を有効にします。
+
+[[so-unset]]unset (`+u`)::
+このオプションが有効な時、link:expand.html#params[パラメータ展開]で存在しない変数を展開するとエラーにはならず空文字列に展開されます。このオプションはシェルの起動時に最初から有効になっています。
+
+[[so-verbose]]verbose (+-v+)::
+このオプションが有効な時、シェルは読み込んだコマンドをそのまま標準エラーに出力します。
+
+[[so-vi]]vi::
+このオプションは vi 風link:lineedit.html[行編集]を有効にします。link:interact.html[対話モード]が有効で標準入力と標準エラーがともに端末ならばこのオプションはシェルの起動時に自動的に有効になります。
+
+[[so-xtrace]]x-trace (+-x+)::
+このオプションが有効な時、コマンドを実行する前にlink:expand.html[展開]の結果を標準エラーに出力します。この出力は、各行頭に link:params.html#sv-ps4[+PS4+ 変数]の値をlink:expand.html[展開]した結果を付けて示されます。
+
+[[operands]]
+== オペランド
+
+Set コマンドにオペランドが与えられている場合またはオプションとオペランドを区切るハイフン二つ (+--+, link:builtin.html#argsyntax[コマンドの引数の構文]参照) がコマンドライン引数に入っている場合は、現在のlink:params.html#positional[位置パラメータ]は削除され、与えられたオペランドがそれぞれ新しく位置パラメータになります。ハイフン二つが与えられていてかつオペランドがない場合は位置パラメータはなくなります。
+
+[[exitstatus]]
+== 終了ステータス
+
+オプションの指定が間違っている場合を除き、set コマンドの終了ステータスは 0 です。
+
+[[notes]]
+== 補足
+
+Set コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+POSIX 規格に定義されているオプションは限られています。規格の定義では、
+
+- +--allexport+ などの長いオプションは使えません。
+- オプション名に +no+ を付けてオプションを無効にすることはできません。
+- オプション名に大文字や英字でない記号は使えません。
+
+規格に定義されているオプションは以下のとおりです:
+
+- +-a+, +-o allexport+
+- +-e+, +-o errexit+
+- +-m+, +-o monitor+
+- +-C+, +-o noclobber+
+- +-n+, +-o noexec+
+- +-f+, +-o noglob+
+- +-b+, +-o notify+
+- +-u+, +-o nounset+
+- +-v+, +-o verbose+
+- +-x+, +-o xtrace+
+- +-h+
+- +-o ignoreeof+
+- +-o nolog+
+- +-o vi+
+
+POSIX ではこのほかに、link:syntax.html#funcdef[関数定義]をlink:interact.html#history[コマンド履歴]に登録しないようにする +-o nolog+ オプションを規定していますが、yash はこれをサポートしていません。
+
+// vim: set filetype=asciidoc expandtab:

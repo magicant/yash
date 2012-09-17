@@ -1,0 +1,21 @@
+= YASH(1)
+裕貴 渡邊 <magicant@users.sourceforge.jp>
+v{yashversion},
+:encoding: UTF-8
+:lang: ja
+
+== 名前
+
+yash - POSIX 準拠コマンドラインシェル
+
+== 構文
+
++yash [オプション...] [--] [オペランド...]+
+
+:leveloffset: 1
+
+// (Replaced with generated contents list) //
+
+:leveloffset: 0
+
+// vim: set filetype=asciidoc expandtab:

@@ -1,0 +1,47 @@
+= Suspend built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Suspend built-in
+
+The dfn:[suspend built-in] suspends the shell.
+
+[[syntax]]
+== Syntax
+
+- +suspend [-f]+
+
+[[description]]
+== Description
+
+The suspend built-in sends a SIGSTOP signal to all processes in the process
+group to which the shell process belongs.
+The signal suspends the processes (including the shell).
+The suspended processes resume when they receive a SIGCONT signal.
+
+If the shell is link:interact.html[interactive] and its process group ID is
+equal to the process ID of the session leader, the shell prints a warning
+message and refuses to send a signal unless the +-f+ (+--force+) option is
+specified.
+(In such a case, there is no other job-controlling shell that can send a
+SIGCONT signal to resume the suspended shell, so the shell could never be
+resumed.)
+
+[[options]]
+== Options
+
++-f+::
++--force+::
+Suppress warnings that would prevent the shell from sending a signal.
+
+[[exitstatus]]
+== Exit status
+
+The exit status is zero if the signal was successfully sent and non-zero
+otherwise.
+
+[[notes]]
+== Notes
+
+The suspend built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

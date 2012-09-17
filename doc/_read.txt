@@ -1,0 +1,71 @@
+= Read built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Read built-in
+
+The dfn:[read built-in] reads a line from the standard input.
+
+[[syntax]]
+== Syntax
+
+- +read [-Ar] {{variable}}...+
+
+[[description]]
+== Description
+
+The read built-in reads a line of string from the standard input and assigns
+it to the specified link:params.html#variables[variables].
+If the shell is link:interact.html[interactive] and
+link:lineedit.html[line-editing] is enabled, you can use line-editing when
+inputting a line.
+
+If the +-r+ (+--raw-mode+) option is specified, all characters in the line are
+treated literally.
+
+If the +-r+ (+--raw-mode+) option is not specified, backslashes in the line
+are treated as link:syntax.html#quotes[quotations].
+If a backslash is at the end of the line, it is treated as a line
+continuation.
+When the built-in reads the next line, the link:params.html#sv-ps2[+PS2+
+variable] is used as a prompt if the standard input is a terminal.
+
+The input line is subject to link:expand.html#split[field splitting].
+The resulting words are assigned to {{variable}}s in order.
+If there are more words than {{variable}}s, the last variable is assigned all
+the remaining words (as if the words were not split).
+If the words are fewer than {{variable}}s, the remaining variables are
+assigned empty strings.
+
+[[options]]
+== Options
+
++-A+::
++--array+::
+Make the last {{variable}} an link:params.html#arrays[array].
+Instead of assigning a concatenation of the remaining words to a normal
+variable, the words are assigned to an array.
+
++-r+::
++--raw-mode+::
+Don't treat backslashes as quotations.
+
+[[operands]]
+== Operands
+
+{{variable}}s::
+Names of variables to which input words are assigned.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the read built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The read built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard defines the +-r+  option only:
+other options cannot be used in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

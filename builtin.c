@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,102 +93,112 @@ void init_builtin(void)
 #endif
 
     /* defined in "builtin.c" */
-    DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help);
-    DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help);
-    DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help);
+    DEFBUILTIN(":", true_builtin, BI_SPECIAL, Ngt("^COLON BUILT-IN$"));
+    DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, Ngt("^TRUE BUILT-IN$"));
+    DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, Ngt("^FALSE BUILT-IN$"));
 #if YASH_ENABLE_HELP
-    DEFBUILTIN("help", help_builtin, BI_REGULAR, help_help);
+    DEFBUILTIN("help", help_builtin, BI_REGULAR, Ngt("^HELP BUILT-IN$"));
 #endif
 
     /* defined in "option.c" */
-    DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help);
+    DEFBUILTIN("set", set_builtin, BI_SPECIAL, Ngt("^SET BUILT-IN$"));
 
     /* defined in "path.c" */
-    DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help);
-    DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help);
-    DEFBUILTIN("hash", hash_builtin, BI_REGULAR, hash_help);
-    DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help);
+    DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, Ngt("^CD BUILT-IN$"));
+    DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, Ngt("^PWD BUILT-IN$"));
+    DEFBUILTIN("hash", hash_builtin, BI_REGULAR, Ngt("^HASH BUILT-IN$"));
+    DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, Ngt("^UMASK BUILT-IN$"));
 
     /* defined in "alias.c" */
 #if YASH_ENABLE_ALIAS
-    DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help);
-    DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help);
+    DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, Ngt("^ALIAS BUILT-IN$"));
+    DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL,
+	    Ngt("^UNALIAS BUILT-IN$"));
 #endif
 
     /* defined in "variable.c" */
-    DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help);
-    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help);
-    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help);
+    DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR,
+	    Ngt("^TYPESET BUILT-IN$"));
+    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, Ngt("^EXPORT BUILT-IN$"));
+    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL,
+	    Ngt("^READONLY BUILT-IN$"));
 #if YASH_ENABLE_ARRAY
-    DEFBUILTIN("array", array_builtin, BI_REGULAR, array_help);
+    DEFBUILTIN("array", array_builtin, BI_REGULAR, Ngt("^ARRAY BUILT-IN$"));
 #endif
-    DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help);
-    DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help);
-    DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL, getopts_help);
-    DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help);
+    DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, Ngt("^UNSET BUILT-IN$"));
+    DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, Ngt("^SHIFT BUILT-IN$"));
+    DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL,
+	    Ngt("^GETOPTS BUILT-IN$"));
+    DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, Ngt("^READ BUILT-IN$"));
 #if YASH_ENABLE_DIRSTACK
-    DEFBUILTIN("pushd", pushd_builtin, BI_REGULAR, pushd_help);
-    DEFBUILTIN("popd", popd_builtin, BI_REGULAR, popd_help);
-    DEFBUILTIN("dirs", dirs_builtin, BI_REGULAR, dirs_help);
+    DEFBUILTIN("pushd", pushd_builtin, BI_REGULAR, Ngt("^PUSHD BUILT-IN$"));
+    DEFBUILTIN("popd", popd_builtin, BI_REGULAR, Ngt("^POPD BUILT-IN$"));
+    DEFBUILTIN("dirs", dirs_builtin, BI_REGULAR, Ngt("^DIRS BUILT-IN$"));
 #endif
 
     /* defined in "sig.c" */
-    DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help);
-    DEFBUILTIN("kill", kill_builtin, BI_SEMISPECIAL, kill_help);
+    DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, Ngt("^TRAP BUILT-IN$"));
+    DEFBUILTIN("kill", kill_builtin, BI_SEMISPECIAL, Ngt("^KILL BUILT-IN$"));
 
     /* defined in "job.c" */
-    DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help);
-    DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, fg_help);
-    DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help);
-    DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help);
-    DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help);
+    DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, Ngt("^JOBS BUILT-IN$"));
+    DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, Ngt("^FG BUILT-IN$"));
+    DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, Ngt("^BG BUILT-IN$"));
+    DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, Ngt("^WAIT BUILT-IN$"));
+    DEFBUILTIN("disown", disown_builtin, BI_REGULAR, Ngt("^DISOWN BUILT-IN$"));
 
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
-    DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help);
-    DEFBUILTIN("history", history_builtin, BI_REGULAR, history_help);
+    DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, Ngt("^FC BUILT-IN$"));
+    DEFBUILTIN("history", history_builtin, BI_REGULAR,
+	    Ngt("^HISTORY BUILT-IN$"));
 #endif
 
     /* defined in "exec.c" */
-    DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help);
-    DEFBUILTIN("break", break_builtin, BI_SPECIAL, break_help);
-    DEFBUILTIN("continue", break_builtin, BI_SPECIAL, continue_help);
-    DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help);
-    DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help);
-    DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help);
-    DEFBUILTIN("command", command_builtin, BI_SEMISPECIAL, command_help);
-    DEFBUILTIN("type", command_builtin, BI_REGULAR, type_help);
-    DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help);
+    DEFBUILTIN("return", return_builtin, BI_SPECIAL, Ngt("^RETURN BUILT-IN$"));
+    DEFBUILTIN("break", break_builtin, BI_SPECIAL, Ngt("^BREAK BUILT-IN$"));
+    DEFBUILTIN("continue", break_builtin, BI_SPECIAL,
+	    Ngt("^CONTINUE BUILT-IN$"));
+    DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, Ngt("^EVAL BUILT-IN$"));
+    DEFBUILTIN(".", dot_builtin, BI_SPECIAL, Ngt("^DOT BUILT-IN$"));
+    DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, Ngt("^EXEC BUILT-IN$"));
+    DEFBUILTIN("command", command_builtin, BI_SEMISPECIAL,
+	    Ngt("^COMMAND BUILT-IN$"));
+    DEFBUILTIN("type", command_builtin, BI_REGULAR, Ngt("^TYPE BUILT-IN$"));
+    DEFBUILTIN("times", times_builtin, BI_SPECIAL, Ngt("^TIMES BUILT-IN$"));
 
     /* defined in "yash.c" */
-    DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help);
-    DEFBUILTIN("suspend", suspend_builtin, BI_REGULAR, suspend_help);
+    DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, Ngt("^EXIT BUILT-IN$"));
+    DEFBUILTIN("suspend", suspend_builtin, BI_REGULAR,
+	    Ngt("^SUSPEND BUILT-IN$"));
 
     /* defined in "builtins/ulimit.c" */
 #if YASH_ENABLE_ULIMIT
-    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help);
+    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, Ngt("^ULIMIT BUILT-IN$"));
 #endif
 
     /* defined in "builtins/printf.c" */
 #if YASH_ENABLE_PRINTF
-    DEFBUILTIN("echo", echo_builtin, BI_REGULAR, echo_help);
-    DEFBUILTIN("printf", printf_builtin, BI_REGULAR, printf_help);
+    DEFBUILTIN("echo", echo_builtin, BI_REGULAR, Ngt("^ECHO BUILT-IN$"));
+    DEFBUILTIN("printf", printf_builtin, BI_REGULAR, Ngt("^PRINTF BUILT-IN$"));
 #endif
 
     /* defined in "builtins/test.c" */
 #if YASH_ENABLE_TEST
-    DEFBUILTIN("test", test_builtin, BI_REGULAR, test_help);
-    DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help);
+    DEFBUILTIN("test", test_builtin, BI_REGULAR, Ngt("^TEST BUILT-IN$"));
+    DEFBUILTIN("[", test_builtin, BI_REGULAR, Ngt("^TEST BUILT-IN$"));
 #endif
 
     /* defined in "lineedit/complete.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("complete", complete_builtin, BI_REGULAR, complete_help);
+    DEFBUILTIN("complete", complete_builtin, BI_REGULAR,
+	    Ngt("^COMPLETE BUILT-IN$"));
 #endif
 
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR, bindkey_help);
+    DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR,
+	    Ngt("^BINDKEY BUILT-IN$"));
 #endif
 
 #undef DEFBUILTIN
@@ -215,10 +225,15 @@ int print_builtin_help(const wchar_t *name)
 	return Exit_FAILURE;
     }
 
-    for (const char **help = bi->help; *help != NULL; help++)
-	if (!xprintf("%s", gt(*help)))
-	    return Exit_FAILURE;
-    return Exit_SUCCESS;
+    const char *manpage_header_regex = gt(bi->manpage_header_regex);
+    wchar_t *command = malloc_wprintf(
+	    /* XXX quite heuristic... */
+	    L"man yash | col -bx | sed -n '/%s/,/^[^[:blank:]]/p' | head -n -1",
+	    manpage_header_regex);
+    exec_wcs(command, "help", false);
+    free(command);
+
+    return laststatus;
 }
 
 #endif /* YASH_ENABLE_HELP */
@@ -277,41 +292,6 @@ int false_builtin(
 
 #if YASH_ENABLE_HELP
 
-const char *colon_help[] = { Ngt(
-"colon - null utility\n"
-), Ngt(
-"\t: [arg...]\n"
-), Ngt(
-"The colon built-in does nothing. Any arguments are ignored.\n"
-), Ngt(
-"Note that arguments are expanded and redirections are performed as usual.\n"
-"The colon and true built-ins have the same effect, but colon is a special\n"
-"built-in while true is a semi-special.\n"
-), NULL };
-
-const char *true_help[] = { Ngt(
-"true - return true value\n"
-), Ngt(
-"\ttrue\n"
-), Ngt(
-"The true built-in does nothing successfully.\n"
-"Any arguments are ignored and the exit status is always zero.\n"
-), Ngt(
-"Note that arguments are expanded and redirections are performed as usual.\n"
-"The colon and true built-ins have the same effect, but colon is a special\n"
-"built-in while true is a semi-special.\n"
-), NULL };
-
-const char *false_help[] = { Ngt(
-"false - return false value\n"
-), Ngt(
-"\tfalse\n"
-), Ngt(
-"The false built-in does nothing unsuccessfully.\n"
-"Any arguments are ignored and the exit status is always non-zero.\n"
-), NULL };
-
-
 /* The "help" built-in. */
 int help_builtin(int argc, void **argv)
 {
@@ -335,14 +315,6 @@ print_help:
 	print_builtin_help(ARGV(xoptind++));
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
-
-const char *help_help[] = { Ngt(
-"help - print usage of built-ins\n"
-), Ngt(
-"\thelp command...\n"
-), Ngt(
-"The help built-in prints a description of the specified built-in <command>s.\n"
-), NULL };
 
 #endif /* YASH_ENABLE_HELP */
 

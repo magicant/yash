@@ -1,0 +1,609 @@
+= Word expansions
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Word expansions
+:description: This page describes word expansions supported by yash.
+
+dfn:[Word expansion] is substitution of part of a word with another particular
+string.
+There are seven types of word expansions:
+
+. <<tilde,Tilde expansion>>
+. <<params,Parameter expansion>>
+. <<cmdsub,Command substitution>>
+. <<arith,Arithmetic expansion>>
+. <<brace,Brace expansion>>
+. <<split,Field splitting>>
+. <<glob,Pathname expansion>> (globbing)
+
+These types of expansions are performed in the order specified above.
+
+Tilde expansion, parameter expansion, command substitution, and arithmetic
+expansion are called the dfn:[four expansions].
+
+[[tilde]]
+== Tilde expansion
+
+In dfn:[tilde expansion], part of words that start with a tilde (+~+) are
+substituted with particular pathnames.
+The part of words that are substituted is from the beginning of each word,
+which is a tilde, up to (but not including) the first slash (+/+) in the word.
+If the word does not contain a slash, the whole word is substituted.
+If any character in the substituted part is link:syntax.html#quotes[quoted],
+tilde expansion is not performed on the word.
+
+The results of expansion are determined by the format of the substituted part:
+
++~+::
+A single tilde is substituted with the value of the
+link:params.html#sv-home[+HOME+ variable].
+
++~{{username}}+::
+A tilde followed by a user name is substituted with the pathname of the user's
+home directory.
+
++~&#x2B;+::
++~&#x2B;+ is substituted with the value of the
+link:params.html#sv-pwd[+PWD+ variable].
+
++~-+::
++~-+ is substituted with the value of the
+link:params.html#sv-oldpwd[+OLDPWD+ variable].
+
++~&#x2B;{{n}}+::
++~-{{n}}+::
+where {{n}} is a non-negative integer.
+This type of tilde expansion yields the pathname of a directory of which
++~&#x2B;{{n}}+ or +~-{{n}}+ is the index in the directory stack.
+
+When tilde expansion is performed on the value of a variable assignment that
+occurs during execution of a link:syntax.html#simple[simple command],
+the value is considered as a colon-separated list of words and those words are
+each subject to tilde expansion.
+For example, the variable assignment
+
+----
+VAR=~/a:~/b:~/c
+----
+
+is equivalent to
+
+----
+VAR=/home/foo/a:/home/foo/b:/home/foo/c
+----
+
+if the value of +HOME+ variable is +/home/foo+.
+
+The POSIX standard does not prescribe how the shell should behave when it
+encounters an error during tilde expansion (e.g., when the +HOME+ variable is
+not defined).
+Yash silently ignores any errors during tilde expansion;
+the part of the word that would be substituted is left intact.
+
+In the link:posix.html[POSIXly-correct mode], tilde expansion supports the
+formats of +~+ and +~{{username}}+ only.
+
+[[params]]
+== Parameter expansion
+
+dfn:[Parameter expansion] expands to the value of a parameter.
+
+The syntax of typical, simple parameter expansion is +$&#x7B;{{parameter}}}+,
+which expands to the value of the parameter whose name is {{parameter}}.
+You can omit the braces (e.g., +${{parameter}}+) if
+
+- {{parameter}} is a link:params.html#special[special parameter],
+- {{parameter}} is a link:params.html#positional[positional parameter] whose
+  index is a one-digit integer, or
+- {{parameter}} is a variable and the parameter expansion is not followed by a
+  character that can be used as part of a variable name.
++
+====
+For example, +$&#x7B;path}-name+ is equivalent to +$path-name+,
+but +$&#x7B;path}name+ and +$pathname+ are different.
+====
+
+If {{parameter}} is none of a special parameter, positional parameter, and
+variable, it is a syntax error. (Some shells other than yash may treat such a
+case as an expansion error.)
+
+If the link:_set.html#so-unset[unset option] is disabled and the {{parameter}}
+is an undefined variable, it is an expansion error.
+If the unset option is enabled, an undefined variable expands to the empty
+string.
+
+More complex syntax of parameter expansion allows modifying the value of
+a parameter.
+
+Parameter expansion::
++$&#x7B; {{prefix}} {{parameter}} {{index}} {{modifier}} }+
+
+The spaces in the syntax definition above is for readability only and must be
+omitted.
+You can omit {{prefix}}, {{index}}, and/or {{modifier}}.
+
+[[param-prefix]]
+=== Prefix
+
+The {{prefix}}, if any, must be a hash sign (+#+).
+If a parameter expansion has the prefix, the result of expansion is the number
+of characters in the value this expansion would be expanded to without the
+prefix.
+
+[[param-name]]
+=== Parameter name
+
+The parameter name ({{parameter}}) must be either
+
+- a name of a special parameter, positional parameter, or variable; or
+- another parameter expansion, <<cmdsub,command substitution>>, or
+  <<arith,arithmetic expansion>>.
+
+The parameter expansion is expanded to the value of the {{parameter}}.
+If {{parameter}} is an link:params.html#arrays[array] variable,
+the values of the array are <<split,field-split>> like the
+link:params.html#sp-at[+@+ special parameter]
+unless the index +[*]+ is specified.
+
+If {{parameter}} is another expansion, it is called a dfn:[nested expansion].
+Nested expansion cannot be used in the link:posix.html[POSIXly-correct mode].
+The braces (+{ }+) of a nested parameter expansion cannot be omitted.
+
+[[param-index]]
+=== Index
+
+An {{index}} allows extracting part of the parameter value (or some of array
+values).
+
+Index::
++[{{word1}}]+
++
++[{{word1}},{{word2}}]+
+
+where {{word1}} and {{word2}} are parsed in the same manner as normal tokens
+except that they are always delimited by +,+ or +]+ and can contain whitespace
+characters.
+
+If there is an {{index}} in a parameter expansion,
+it is interpreted as follows:
+
+. Words {{word1}} and {{word2}} are subjected to parameter expansion,
+  <<cmdsub,command substitution>>, and <<arith,arithmetic expansion>>.
+. If there is no {{word2}} and if {{word1}} expands to one of +*+, +@+, and
+  +#+, then that is the interpretation of {{index}} and the next step is not
+  taken.
+. The results of the previous steps (the expanded {{word1}} and {{word2}}) are
+  interpreted and evaluated as an arithmetic expression in the same manner as
+  in arithmetic expansion.
+  The resulting integers are the interpretation of {{index}}.
+  If the results are not integers, it is an expansion error.
+  If there is no {{word2}}, it is assumed that {{word2}} is equal to
+  {{word1}}.
+
+If {{parameter}} is an link:params.html#arrays[array] variable,
+the {{index}} specifies the part of the array.
+If {{parameter}} is either the link:params.html#sp-asterisk[+*+] or
+link:params.html#sp-at[+@+] special parameter, the {{index}} specifies
+the index range of positional parameters.
+In other cases, the {{index}} specifies the index range of a substring of the
+parameter value that is being expanded.
+In all cases, the specified range of the array values, positional
+parameters, or parameter value remains in the results of the expansion and
+other values are dropped.
+
+If the interpretation of {{index}} is one or two integers,
+the following rules apply:
+
+- If the interpreted index value is negative, it _wraps around_.
+  For example, the index value of -1 corresponds to the last value/character.
+- It is not an error when the index value is out of range.
+  Existing values/characters within the range are just selected.
+- If the interpretation of either {{word1}} or {{word2}} is 0, the range is
+  assumed empty and the expansion results in nothing.
+
+If the interpretation of {{index}} is one of +*+, +@+, and +#+,
+it is treated as follows:
+
++*+::
+If {{parameter}} is an array, all values of the array are concatenated into a
+single string. If {{parameter}} is the +&#x2A;+ or +@+ special parameter, all
+positional parameters are concatenated into a string. See the description of
+the link:params.html#sp-asterisk[+&#x2A;+ special parameter] for how the
+values/positional parameters are separated in the result string.
+In other cases, the interpretation of {{index}} is treated as if the
+interpretation is the two integers 1 and -1.
+
++@+::
+The interpretation of {{index}} is treated as if the interpretation is the two
+integers 1 and -1.
+
++#+::
+The interpretation of the +#+ {{index}} is special in that it does not simply
+specify a range.
+Instead, the expanded values are substituted with the count.
++
+If {{parameter}} is an array, the result of this parameter expansion will be
+the number of values in the array being expanded.
+If {{parameter}} is the +*+ or +@+ special parameter, the result will be the
+number of current positional parameters.
+Otherwise, the result will be the number of characters in the value that is
+being expanded.
+
+If a parameter expansion does not contain an {{index}},
+it is assumed to be +[@]+.
+In the link:posix.html[POSIXly-correct mode], {{index}} cannot be specified.
+
+.Expansion of a normal variable
+====
+The following commands will print the string +ABC+:
+
+----
+var='123ABC789'
+echo "${var[4,6]}"
+----
+====
+
+.Expansion of positional parameters
+====
+The following commands will print the string +2 3 4+:
+
+----
+set 1 2 3 4 5
+echo "${*[2,-2]}"
+----
+====
+
+.Expansion of an array
+====
+The following commands will print the string +2 3 4+:
+
+----
+array=(1 2 3 4 5)
+echo "${array[2,-2]}"
+----
+====
+
+[[param-mod]]
+=== Modifier
+
+You can modify the value to be expanded by using dfn:[modifiers]:
+
++-{{word}}+::
+If the parameter name ({{parameter}}) is an undefined variable,
+the parameter expansion is expanded to {{word}}.
+It is not treated as an error if the link:_set.html#so-unset[unset option] is
+disabled.
+
++&#x2B;{{word}}+::
+If the parameter name ({{parameter}}) is an existing variable,
+the parameter expansion is expanded to {{word}}.
+It is not treated as an error if the link:_set.html#so-unset[unset option] is
+disabled.
+
++={{word}}+::
+If the parameter name ({{parameter}}) is an undefined variable,
+{{word}} is assigned to the variable and
+the parameter expansion is expanded to {{word}}.
+It is not treated as an error if the link:_set.html#so-unset[unset option] is
+disabled.
+
++?{{word}}+::
+If the parameter name ({{parameter}}) is an undefined variable,
+{{word}} is printed as an error message to the standard error.
+If {{word}} is empty, the default error message is printed instead.
+
++:-{{word}}+::
++:&#x2B;{{word}}+::
++:={{word}}+::
++:?{{word}}+::
+These are similar to the four types of modifiers above.
+The only difference is that, if {{parameter}} exists and has an empty value,
+it is also treated as an undefined variable.
+
++#{{word}}+::
+The shell performs link:pattern.html[pattern matching] against the value that
+is being expanded, using {{word}} as a pattern.
+If {{word}} matches the beginning of the value, the matching part is removed
+from the value and the other part remains as expansion results.
+The shortest matching is used if more than one matching is possible.
+
++##{{word}}+::
+This is similar to +#{{word}}+ above.
+The only difference is that
+the longest matching is used if more than one matching is possible.
+
++%{{word}}+::
+This is similar to +#{{word}}+ above.
+The only difference is that
+matching is tried at the end of the value rather than at the beginning:
+if {{word}} matches the end of the value, the matching part is removed
+from the value and the other part remains as expansion results.
+
++%%{{word}}+::
+This is similar to +%{{word}}+ above.
+The only difference is that
+the longest matching is used if more than one matching is possible.
+
++/{{word1}}/{{word2}}+::
+The shell performs link:pattern.html[pattern matching] against the value that
+is being expanded, using {{word1}} as a pattern.
+If {{word1}} matches any part of the value, the matching part is replaced with
+{{word2}} and the whole value after the replacement remains as expansion
+results.
+If {{word1}} matches more than one part of the value, only the first part is
+replaced.
+The shortest matching is replaced if more than one matching is possible for
+the same starting point in the value.
++
+This modifier cannot be used in the link:posix.html[POSIXly-correct mode].
+
++/#{{word1}}/{{word2}}+::
+This is similar to +/{{word1}}/{{word2}}+ above.
+The only difference is that {{word1}} matches only at the beginning of the
+value being expanded.
+
++/%{{word1}}/{{word2}}+::
+This is similar to +/{{word1}}/{{word2}}+ above.
+The only difference is that {{word1}} matches only at the end of the value
+being expanded.
+
++//{{word1}}/{{word2}}+::
+This is similar to +/{{word1}}/{{word2}}+ above.
+The only difference is that all matched parts are replaced if {{word1}}
+matches more than one part of the value.
+
++:/{{word1}}/{{word2}}+::
+This is similar to +/{{word1}}/{{word2}}+ above.
+The only difference is that the value is replaced only when {{word1}} matches
+the whole value.
+
+In all types of modifiers above, words are subjected to the four expansions
+when (and only when) they are used.
+
+If {{parameter}} is an array variable or the link:params.html#sp-at[+@+]
+or link:params.html#sp-asterisk[+*+] special parameter, modifiers affect each
+values of the array or the positional parameters.
+
+[[cmdsub]]
+== Command substitution
+
+dfn:[Command substitution] expands to output of commands specified.
+
+Command substitution::
++$({{commands}})+
++
++&#x60;{{commands}}&#x60;+
+
+When command substitution is evaluated, {{commands}} are executed by a
+link:exec.html#subshell[subshell] with output pipelined to the shell.
+When the {{commands}} finished, command substitution is substituted with the
+output of the {{commands}}.
+Any trailing newline characters in the output are ignored.
+
+When command substitution of the form +$({{commands}})+ is parsed,
+the {{commands}} are parsed carefully so that complex commands such as nested
+command substitution are parsed correctly.
+If {{commands}} start with +(+, you should put a space before {{commands}} so
+that the whole command substitution is not confused with <<arith,arithmetic
+expansion>>.
+If the shell is in the link:posix.html[POSIXly-correctly mode],
+the {{commands}} are parsed each time the command substitution is expanded;
+otherwise, {{commands}} are parsed only when the command substitution is
+parsed.
+
+If command substitution is of the form +&#x60;{{commands}}&#x60;+,
+the {{commands}} are not parsed when the command substitution is parsed.
+The end of {{commands}} is detected by the first backquote character (+`+)
+after the beginning of {{commands}} that is not
+link:syntax.html#quotes[quoted] by a backslash.
+Backquotes that is part of {{commands}} (typically used for nested command
+substitution) must be quoted by backslashes.
+The {{commands}} are parsed each time the command substitution is expanded.
+
+[[arith]]
+== Arithmetic expansion
+
+dfn:[Arithmetic expansion] evaluated an arithmetic expression and expands to
+the value of the expression.
+
+Arithmetic expansion::
++$&#x28;&#x28;{{expression}}&#x29;&#x29;+
+
+When arithmetic expansion is expanded, the {{expression}} is subject to
+<<params,parameter expansion>>, <<cmdsub,command substitution>>, and (nested)
+arithmetic expansion.
+The {{expression}} is parsed in (almost) same manner as an expression of the C
+programming language.
+
+Yash allows an expression to be either an integer (of the long type in C) or
+a floating-point number (of the double type in C).
+An operation on integers yields an integer and an operation involving a
+floating-point number yields a floating-point number.
+In the link:posix.html[POSIXly-correct mode], you can use integers only.
+
+The following operators are available (in the order of precedence):
+
+. +( )+
+. `++` +--+ (postfix operators)
+. `++` +--+ `+` +-+ +~+ +!+ (prefix operators)
+. +*+ +/+ +%+
+. `+` +-+ (binary operators)
+. +<<+ +>>+
+. +<+ +&lt;=+ +>+ +>=+
+. +==+ +!=+
+. +&+
+. +^+
+. +|+
+. +&&+
+. +||+
+. +? :+
+. +=+ +*=+ +/=+ +%=+ `+=` +-=+ +&lt;&lt;=+ +>>=+ +&=+ +^=+ +|=+
+
+An atomic expression can be one of an integer literal, an floating-point
+number literal, and a variable.
+Literals are parsed in the same manner as in C.
+An octal integer literal starts with +0+, and hexadecimal with +0x+.
+A floating-point number literal may have an exponent (i.e. `1.23e+6`).
+A variable with a non-numeric value will result in an error.
+
+[[brace]]
+== Brace expansion
+
+dfn:[Brace expansion] expands to several split words with preceding and
+succeeding portions duplicated to each split words.
+Brace expansion is expanded only when the
+link:_set.html#so-braceexpand[brace-expand option] is enabled.
+
+Comma-separated brace expansion::
++&#x7B;{{word1}},{{word2}},...,{{wordn}}&#x7D;+
+Range brace expansion::
++&#x7B;{{start}}..{{end}}&#x7D;+
++
++&#x7B;{{start}}..{{end}}..{{delta}}&#x7D;+
+
+Comma-separated brace expansion is expanded to each comma-separated word.
+For example, +a{1,2,3}b+ is expanded to the three words +a1b+, +a2b+, and
++a3b+.
+
+Range brace expansion is expanded to integers in the range defined by
+{{start}} and {{end}}.
+The difference between each integer can be defined by {{delta}}.
+If {{start}} is larger than {{end}}, the results will be in descending order.
+When +..{{delta}}+ is omitted, it defaults to 1 or -1.
+For example, +a{1..3}b+ is expanded to the three words +a1b+, +a2b+, and
++a3b+; and +a{1..7..2}b+ to the four words +a1b+, +a3b+, +a5b+, and +a7b+.
+
+Multiple brace expansions can be used in one word.
+Brace expansions can also be nested.
+You can link:syntax.html#quotes[quote] braces and/or commas to prevent them
+from being treated as brace expansion.
+
+Any errors in brace expansion are silently ignored.
+
+[[split]]
+== Field splitting
+
+In dfn:[field splitting], words are split at predefined separators.
+
+Field splitting can occur only within parts of words that resulted from
+<<params,parameter expansion>>, <<cmdsub,command substitution>>, and
+<<arith,arithmetic expansion>> that are not between
+link:syntax.html#quotes[double-quotation marks].
+Expansion results of the link:params.html#sp-at[+@+ special parameter] are
+exceptionally split even between double-quotation marks.
+
+Separators used in field splitting are defined by the value of the
+link:params.html#sv-ifs[+IFS+ variable]. If the variable does not exist, the
+value is assumed to be the three characters of space, tab, and newline.
+
+Characters included in the value of the +IFS+ variable are called dfn:[IFS
+characters].
+IFS characters that are any of space, tab, and newline are called dfn:[IFS
+whitespace] and other IFS characters are called dfn:[IFS non-whitespace].
+
+Field splitting is performed as follows:
+
+. The shell searches words for split points. A split point is one or more
+  adjacent IFS characters within the word portions that are subject to field
+  splitting. The following steps are taken for each split point found.
+. If the split point includes one or more IFS non-whitespaces, any IFS
+  whitespaces in the split point are ignored and the word is split at each IFS
+  non-whitespace in the split point.
+. If the split point includes no IFS non-whitespaces, the word is split at the
+  split point unless it is at the beginning or end of the word.
+. The split points are removed from the results.
+
+[NOTE]
+Words are not split at all when the value of the +IFS+ variable is empty.
+
+[[glob]]
+== Pathname expansion
+
+dfn:[Pathname expansion] performs pattern matching and expands to pathnames
+matched by the pattern.
+
+A word subjected to pathname expansion is treated as a
+link:pattern.html[pattern].
+If one or more pathnames are found that are matched by the pattern, the
+pathnames become the results of the pathname expansion.
+
+Pathname expansion is not performed when the link:_set.html#so-glob[glob
+option] is disabled.
+
+The shell searches readable directories for matching pathnames.
+Unreadable directories are silently ignored.
+
+The following options affect the behavior of pathname expansion:
+
+[[opt-nullglob]]null-glob::
+This option affects the result of pathname expansion when no matching
+pathnames are found.
+If enabled, the result is no word.
+If disabled, the result is the original pattern word.
+
+[[opt-caseglob]]case-glob::
+This option specifies case-sensitivity in matching.
+If enabled, pattern matching is done case-sensitively.
+
+[[opt-dotglob]]dot-glob::
+This option affects matching of filenames that start with a period (+.+).
+If disabled, a period at the beginning of a filename does not match wildcard
+patterns (+?+ and +*+) or bracket expressions.
+If enabled, there is no such special treatment of periods.
+
+[[opt-markdirs]]mark-dirs::
+If enabled, each resulting pathname that is a directory name is suffixed by a
+slash (+/+).
+
+[[opt-extendedglob]]extended-glob::
+ifdef::basebackend-html[]
+This option enables the <<extendedglob,extension>>.
+endif::basebackend-html[]
+ifdef::basebackend-docbook[]
+This option enables the extension. (See below)
+endif::basebackend-docbook[]
+
+Any errors in pathname expansion are silently ignored.
+If the word is an invalid pattern, it just becomes the result.
+The results depend on the null-glob option when no matching pathnames are
+found.
+
+Pattern matching is done for each filename (or pathname component) of
+pathnames.
+The shell skips matching for literal patterns that contain no wildcards or
+bracket expressions.
+As a result, the patterns +/&#x2A;/foo+ and +/&#x2A;/fo[o]+ may yield
+different expansion results when the <<opt-caseglob,case-glob>> option is
+disabled; for example, the pattern +/&#x2A;/fo[o]+ matches the pathname
++/bar/FOO+ but the pattern +/&#x2A;/foo+ does not because matching is skipped
+for +foo+.
+
+[[extendedglob]]
+=== Extension in pathname expansion
+
+The following patterns can be used when the <<opt-extendedglob,extended-glob>>
+options is enabled.
+
++**+::
+The directory is searched recursively and the pattern matches any number of
+directory filenames (each separated by a slash).
+Any directory whose name begins with a period is excluded from search.
+For example, the pattern +dir/**/file+ can match the pathnames
++dir/file+, +dir/foo/file+, +dir/a/b/c/file+, etc.
++
+This pattern is not effective when appearing at the end of the whole pattern
+(i.e. +foo/bar/**+).
+
++.**+::
+This pattern is like +**+, but all directories are searched including ones
+with a name starting with a period.
+
++&#x2A;&#x2A;&#x2A;+::
+This pattern is like +**+, but if a symbolic link to a directory is found
+during recursive search, the directory is searched recursively as well.
+
++.&#x2A;&#x2A;&#x2A;+::
+This pattern is like +&#x2A;&#x2A;&#x2A;+, but all directories are searched
+including ones with a name starting with a period.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

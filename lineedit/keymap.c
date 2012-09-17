@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -563,35 +563,6 @@ const char *get_command_name(le_command_func_T *command)
 	    return commands[i].name;
     return NULL;
 }
-
-#if YASH_ENABLE_HELP
-const char *bindkey_help[] = { Ngt(
-"bindkey - set or print key bindings for line-editing\n"
-), Ngt(
-"\tbindkey -aev [keyseq [command]]\n"
-"\tbindkey -l\n"
-), Ngt(
-"The first form prints all key binding currently defined (without <keyseq>\n"
-"or <command>), prints the binding for <keyseq> (with <keyseq> without\n"
-"<command>), or binds <keyseq> to <command> (with <keyseq> and <command>).\n"
-"If <command> is a hyphen (`-'), <keyseq> is unbound.\n"
-), Ngt(
-"The second form, with the -l (--list) option, prints all available commands.\n"
-), (
-"\n"
-), Ngt(
-"One of the following options must be given in the first form:\n"
-), Ngt(
-" -v --vi-insert\n"
-"\tSpecifies the `vi insert' mode.\n"
-), Ngt(
-" -a --vi-command\n"
-"\tSpecifies the `vi command' mode.\n"
-), Ngt(
-" -e --emacs\n"
-"\tSpecifies the `emacs' mode.\n"
-), NULL };
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

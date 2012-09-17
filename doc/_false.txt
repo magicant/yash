@@ -1,0 +1,29 @@
+= False built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - False built-in
+
+The dfn:[false built-in] does nothing unsuccessfully.
+
+[[syntax]]
+== Syntax
+
+- +false+
+
+[[description]]
+== Description
+
+The false built-in does nothing.
+Any command line arguments are ignored.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the false built-in is non-zero.
+
+[[notes]]
+== Notes
+
+The false built-in is a link:builtin.html#types[semi-special built-in].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

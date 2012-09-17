@@ -1,0 +1,44 @@
+= Unalias built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Unalias built-in
+
+The dfn:[unalias built-in] undefines link:syntax.html#aliases[aliases].
+
+[[syntax]]
+== Syntax
+
+- +unalias {{name}}...+
+- +unalias -a+
+
+[[description]]
+== Description
+
+The unalias built-in removes the definition of the
+link:syntax.html#aliases[aliases] specified by operands.
+
+[[options]]
+== Options
+
++-a+::
++--all+::
+Undefine all aliases.
+
+[[operands]]
+== Operands
+
+{{name}}::
+The name of an alias to be undefined.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the unalias built-in is zero unless there is any error.
+It is an error to specify the name of a non-existing alias as {{name}}.
+
+[[notes]]
+== Notes
+
+The unalias built-in is a link:builtin.html#types[semi-special built-in].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

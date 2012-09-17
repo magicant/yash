@@ -1,0 +1,38 @@
+= Shift 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Shift 組込みコマンド
+
+dfn:[Shift 組込みコマンド]はlink:params.html#positional[位置パラメータ]のいくつかを削除します。
+
+[[syntax]]
+== 構文
+
+- +shift [{{個数}}]+
+
+[[description]]
+== 説明
+
+Shift コマンドはlink:params.html#positional[位置パラメータ]のうち最初のいくつかを削除します。削除するパラメータの数はオペランドで指定します。
+
+[[operands]]
+== オペランド
+
+{{個数}}::
+削除する位置パラメータの個数を指示する 0 以上の自然数です。
++
+実際の位置パラメータの個数より大きい数を指定するとエラーになります。省略すると 1 を指定したものとみなします。
+
+[[exitstatus]]
+== 終了ステータス
+
+エラーがない限り shift コマンドの終了ステータスは 0 です。
+
+[[notes]]
+== 補足
+
+Shift コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+位置パラメータの個数はlink:params.html#special[特殊パラメータ +#+] によって知ることができます。
+
+// vim: set filetype=asciidoc expandtab:

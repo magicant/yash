@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.h: basic functions of the shell and miscellanies */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,6 @@ extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int suspend_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *exit_help[], *suspend_help[];
 
 
 /* Exits the shell with the last exit status.

@@ -1,0 +1,28 @@
+= False 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - False 組込みコマンド
+
+dfn:[False 組込みコマンド]は何も行わずに非 0 の終了ステータスで終了します。
+
+[[syntax]]
+== 構文
+
+- +false+
+
+[[description]]
+== 説明
+
+False コマンドは何も行いません。コマンドライン引数は一切無視します。
+
+[[exitstatus]]
+== 終了ステータス
+
+False コマンドの終了ステータスは非 0 です。
+
+[[notes]]
+== 補足
+
+False コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+
+// vim: set filetype=asciidoc expandtab:

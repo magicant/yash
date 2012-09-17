@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1068,38 +1068,6 @@ bool jobs_builtin_print_job(size_t jobnumber,
     }
 }
 
-#if YASH_ENABLE_HELP
-const char *jobs_help[] = { Ngt(
-"jobs - print info about jobs\n"
-), Ngt(
-"\tjobs [-lnprs] [job...]\n"
-), Ngt(
-"The jobs built-in prints the status of jobs in the current shell execution\n"
-"environment.\n"
-"If <job>s are specified, the specified jobs are printed.\n"
-"If none is specified, all jobs are printed.\n"
-), Ngt(
-"Available options are:\n"
-), Ngt(
-" -l --verbose\n"
-"\tprint info for each process in the job, including the process ID\n"
-), Ngt(
-" -n --new\n"
-"\tonly print jobs whose status have changed\n"
-), Ngt(
-" -p --pgid-only\n"
-"\tprint process group IDs only\n"
-), Ngt(
-" -r --running-only\n"
-"\tprint running jobs only\n"
-), Ngt(
-" -s --stopped-only\n"
-"\tprint stopped jobs only\n"
-), Ngt(
-"In the POSIXly correct mode, only the -l and -p options are available.\n"
-), NULL };
-#endif
-
 /* The "fg"/"bg" built-in */
 int fg_builtin(int argc, void **argv)
 {
@@ -1243,32 +1211,6 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
      * for the continued programs. */
 }
 
-#if YASH_ENABLE_HELP
-
-const char *fg_help[] = { Ngt(
-"fg - run jobs in the foreground\n"
-), Ngt(
-"\tfg [job...]\n"
-), Ngt(
-"The fg built-in continues execution of the specified jobs in the foreground.\n"
-"If you specify more than one job, the jobs are continued in turn.\n"
-"But in the POSIXly correct mode, you can specify at most one job.\n"
-), Ngt(
-"If no job is specified, the current job is continued.\n"
-), NULL };
-
-const char *bg_help[] = { Ngt(
-"bg - run jobs in the background\n"
-), Ngt(
-"\tbg [job...]\n"
-), Ngt(
-"The bg built-in continues execution of the specified jobs in the background.\n"
-), Ngt(
-"If no job is specified, the current job is continued.\n"
-), NULL };
-
-#endif /* YASH_ENABLE_HELP */
-
 /* The "wait" built-in */
 int wait_builtin(int argc, void **argv)
 {
@@ -1372,20 +1314,6 @@ bool wait_builtin_has_job(bool jobcontrol)
     return false;
 }
 
-#if YASH_ENABLE_HELP
-const char *wait_help[] = { Ngt(
-"wait - wait for jobs to terminate\n"
-), Ngt(
-"\twait [job or pid...]\n"
-), Ngt(
-"The wait built-in waits for the specified jobs, or all jobs if none\n"
-"specified, to terminate.\n"
-), Ngt(
-"Jobs can be specified in the usual job specification form such as `%2' or by\n"
-"the process ID of a process belonging to the job.\n"
-), NULL };
-#endif
-
 /* The "disown" built-in, which accepts the following option:
  *  -a: disown all jobs */
 int disown_builtin(int argc, void **argv)
@@ -1440,23 +1368,6 @@ int disown_builtin(int argc, void **argv)
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
-
-#if YASH_ENABLE_HELP
-const char *disown_help[] = { Ngt(
-"disown - disown jobs\n"
-), Ngt(
-"\tdisown [job...]\n"
-"\tdisown -a\n"
-), Ngt(
-"The disown built-in removes the specified jobs from the job list.\n"
-"The status of the disowned jobs is no longer reported and the jobs can no\n"
-"longer be put back into the foreground.\n"
-), Ngt(
-"If the -a (--all) option is specified, all existing jobs are disowned.\n"
-"Otherwise, the specified jobs are disowned. If none is specified, the\n"
-"current job is disowned.\n"
-), NULL };
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

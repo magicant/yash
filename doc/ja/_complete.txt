@@ -1,0 +1,162 @@
+= Complete 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Complete 組込みコマンド
+
+dfn:[Complete 組込みコマンド]はlink:lineedit.html#completion[コマンドライン補完]において補完候補を生成します。この組込みコマンドは補完関数の実行中にだけ使えます。
+
+[[syntax]]
+== 構文
+
+- +complete [-A {{パターン}}] [-R {{パターン}}] [-T] [-P {{接頭辞}}] [-S {{接尾辞}}] [-abcdfghjkuv] [[-O] [-D {{説明}}] {{単語}}...]+
+
+[[description]]
+== 説明
+
+補完関数の中でこの組込みコマンドを実行すると、complete コマンドは指定した引数に従って補完候補を生成します。どのオプション・オペランドで候補を生成するにせよ、実際に生成される候補は現在補完しようとしている (コマンドライン上に途中まで入力された) 単語に一致するものに限られます。
+
+[[options]]
+== オプション
+
++-A {{パターン}}+::
++--accept={{パターン}}+::
+このオプションを指定すると、指定した{{link:pattern.html[パターン]}}にマッチする候補だけを生成します。このオプションは複数回指定できます (指定した全ての{{パターン}}にマッチする候補だけを生成します)。
+
++-D {{説明}}+::
++--description={{説明}}+::
+このオプションを指定すると、このオプションで指定した{{説明}}が補完の際に候補の説明として表示されます。
+
++-O+::
++--option+::
+生成する候補をコマンドのオプションとみなすようにします。候補を画面上に一覧表示する際に自動的に先頭にハイフンを付加します。
+
++-P {{接頭辞}}+::
++--prefix={{接頭辞}}+::
+このオプションで指定する{{接頭辞}}は現在補完しようとしている単語の接頭辞になっていなければなりません。このオプションを指定すると、候補生成の際にこのオプションで指定した{{接頭辞}}を無視してマッチングを行います。例えば補完しようとしている単語が +file:///home/user/docume+ であり、この URL をファイル名として補完したいとしましょう。この場合は、+complete -P file:// -f+ とすると URL から +file://+ を除いた残りの +/home/user/docume+ の部分に対してファイル名としての補完候補が生成されます。
+
++-R {{パターン}}+::
++--reject={{パターン}}+::
+このオプションを指定すると、指定した{{link:pattern.html[パターン]}}にマッチする候補を生成しません。このオプションは複数回指定できます (指定した{{パターン}}の少なくとも一つにマッチする候補を全て除外します)。
+
++-S {{接尾辞}}+::
++--suffix={{接尾辞}}+::
+生成した各候補の末尾に{{接尾辞}}を付加します。
+
++-T+::
++--no-termination+::
+通常は、補完が終わった後に次の単語をすぐ入力できるように、補完した単語の直後に空白を自動的に挿入しますが、このオプションを指定したときは空白を挿入しません。
+
+=== 補完方式設定のためのオプション
+
++-a+::
++--alias+::
+link:syntax.html#aliases[エイリアス] (+--normal-alias --global-alias+ に同じ)
+
++--array-variable+::
+link:params.html#arrays[配列]
+
++--bindkey+::
+link:_bindkey.html[Bindkey コマンド]で利用可能な{zwsp}link:lineedit.html#commands[行編集コマンド]
+
++-b+::
++--builtin-command+::
+link:builtin.html[組込みコマンド] (+--special-builtin --semi-special-builtin --regular-builtin+ に同じ)
+
++-c+::
++--command+::
+コマンド (+--builtin-command --external-command --function+ に同じ)
+
++-d+::
++--directory+::
+ディレクトリ
+
++--dirstack-index+::
+ディレクトリスタックのインデックス
+
++--executable-file+::
+実行可能ファイル
+
++--external-command+::
+外部コマンド
+
++-f+::
++--file+::
+ファイル (ディレクトリ含む)
+
++--finished-job+::
+終了したジョブのlink:job.html#jobid[ジョブ ID]
+
++--function+::
+link:exec.html#function[関数]
+
++--global-alias+::
+グローバルlink:syntax.html#aliases[エイリアス]
+
++-g+::
++--group+::
+(ファイルのパーミッションなどにおける) グループ
+
++-h+::
++--hostname+::
+ホスト名
+
++-j+::
++--job+::
+link:job.html#jobid[ジョブ ID]
+
++-k+::
++--keyword+::
+シェルのlink:syntax.html#tokens[予約語]
+
++--normal-alias+::
+通常の (グローバルでない) link:syntax.html#aliases[エイリアス]
+
++--regular-builtin+::
+通常のlink:builtin.html[組込みコマンド]
+
++--running-job+::
+実行中のジョブのlink:job.html#jobid[ジョブ ID]
+
++--scalar-variable+::
+(配列を除いた通常の) link:params.html#variables[変数]
+
++--semi-special-builtin+::
+準特殊link:builtin.html[組込みコマンド]
+
++--signal+::
+シグナル
+
++--special-builtin+::
+特殊link:builtin.html[組込みコマンド]
+
++--stopped-job+::
+停止中のジョブのlink:job.html#jobid[ジョブ ID]
+
++-u+::
++--username+::
+ユーザのログイン名
+
++-v+::
++--variable+::
+link:params.html#variables[変数]
+
++-d+ (+--directory+) オプションを指定せずに +-f+ (+--file+) オプションを指定した場合、+-S …+ (+--suffix=…+) オプションの指定の有無にかかわらず、ディレクトリ名を表す補完候補には接尾辞としてスラッシュが付き、候補の直後には空白が入りません (+-S / -T+ を指定したときと同じ動作)。
+
+link:job.html#jobid[ジョブ ID] の補完は先頭の +%+ を除いた部分に対して行われるので、補完しようとしている単語が既に +%+ を含んでいる場合は +%+ を接頭辞として指定してください。
+
+[[operands]]
+== オペランド
+
+Complete コマンドのオペランドは、各オペランドがそれぞれ補完候補として扱われます。指定したオペランドのうち、現在補完しようとしている単語に合うものが補完候補となります。
+
+[[exitstatus]]
+== 終了ステータス
+
+候補が少なくとも一つ生成できた場合は、終了ステータスは 0 です。新たな候補が一つも生成できなかったときは、終了ステータスは 1 です。その他のエラーの場合は 2 以上の終了ステータスになります。
+
+[[notes]]
+== 補足
+
+POSIX には complete コマンドに関する規定はありません。
+
+// vim: set filetype=asciidoc expandtab:

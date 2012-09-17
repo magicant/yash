@@ -1,0 +1,108 @@
+= Umask built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Umask built-in
+
+The dfn:[umask built-in] sets or prints the file mode creation mask.
+
+[[syntax]]
+== Syntax
+
+- +umask {{mask}}+
+- +umask [-S]+
+
+[[description]]
+== Description
+
+If executed without the {{mask}} operand, the built-in prints the current file
+mode creation mask of the shell to the standard output in a form that can
+later be used as {{mask}} to restore the current mask.
+
+Otherwise, the built-in sets the file mode creation mask to {{mask}}.
+
+[[options]]
+== Options
+
++-S+::
++--symbolic+::
+Print in the symbolic form instead of the octal integer form.
+
+[[operands]]
+== Operands
+
+{{mask}}::
+The new file mode creation mask either in the symbolic or octal integer form.
+
+=== Octal integer form
+
+In the octal integer form, the mask is specified as a non-negative octal
+integer that is the sum of the following permissions:
+
+0400:: read by owner
+0200:: write by owner
+0100:: execute/search by owner
+0040:: read by group
+0020:: write by group
+0010:: execute/search by group
+0004:: read by others
+0002:: write by others
+0001:: execute/search by others
+
+=== Symbolic form
+
+In the symbolic form, the mask is specified as a symbolic expression that
+denotes permissions that are *not* included in the mask.
+
+The entire expression is one or more {{clause}}s separated by comma.
+A {{clause}} is a sequence of {{who}}s followed by one or more {{action}}s.
+
+A {{who}} is one of:
+
++u+:: owner
++g+:: group
++o+:: others
++a+:: all of owner, group, and others
+
+An empty sequence of {{who}}s is equivalent to who +a+.
+
+An {{action}} is an {{operator}} followed by {{permission}}.
+An {{operator}} is one of:
+
++=+:: set {{who}}'s permission to {{permission}}
++&#43;+:: add {{permission}} to {{who}}'s permission
++-+:: remove {{permission}} from {{who}}'s permission
+
+and {{permission}} is one of:
+
++r+:: read
++w+:: write
++x+:: execute/search
++X+:: execute/search (only if some user already has execute/search permission)
++s+:: set-user-ID and set-group-ID
++u+:: user's current permissions
++g+:: group's current permissions
++o+:: others' current permissions
+
+but more than one of +r+, +w+, +x+, +X+, and +s+ can be specified after a
+single {{operand}}.
+
+For example, the command +umask u=rwx,go+r-w+
+
+- unmasks the user's read, write, and execute/search permissions;
+- unmasks the group's and others' read permission; and
+- masks the group's and others' write permission.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the umask built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The umask built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard does not require the default output format (used when the
++-S+ option is not specified) to be the octal integer form.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

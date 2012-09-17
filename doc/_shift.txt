@@ -1,0 +1,42 @@
+= Shift built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Shift built-in
+
+The dfn:[shift built-in] removes some positional parameters.
+
+[[syntax]]
+== Syntax
+
+- +shift [{{count}}]+
+
+[[description]]
+== Description
+
+The shift built-in removes the first {{count}}
+link:params.html#positional[positional parameters].
+
+[[operands]]
+== Operands
+
+{{count}}::
+The number of positional parameters to be removed.
++
+It is an error if the actual number of positional parameters is less than
+{{count}}.
+If omitted, the default value is one.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the shift built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The shift built-in is a link:builtin.html#types[special built-in].
+
+The number of positional parameters can be obtained with the
+link:params.html#sp-hash[+#+ special parameter].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

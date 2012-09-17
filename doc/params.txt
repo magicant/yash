@@ -1,0 +1,420 @@
+= Parameters and variables
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Parameters and variables
+:description: This page describes parameters and variables supported by yash.
+
+dfn:[Parameters] are string values that are expanded in
+link:expand.html[parameter expansion]. There are three types of parameters:
+<<positional,positional parameters>>, <<special,special parameters>> and
+<<variables,variables>>.
+
+[[positional]]
+== Positional parameters
+
+dfn:[Positional parameters] are parameters that are identified by natural
+numbers. If there are three positional parameters, for example, they are
+identified as +1+, +2+, and +3+. You can obtain the number of positional
+parameters by <<sp-hash,the +#+ special parameter>>. The +*+ and +@+
+special parameters are expanded to all positional parameters.
+
+Positional parameters are initialized from the shell's command line arguments
+when the shell is started (see link:invoke.html#arguments[Command line
+arguments]). In the initialization, the order of the operands are preserved as
+the order of the positional parameters.
+
+When the shell executes a link:exec.html#function[function] call, positional
+parameters are changed to the arguments to the function call so that you can
+access the arguments while the function is being executed. Positional
+parameters are restored to the original values when the execution of the
+function is finished.
+
+Positional parameters can be manipulated by built-in commands like
+link:_set.html[set] and link:_shift.html[shift].
+
+Note that +0+ is not a positional parameter but a special parameter.
+
+[[special]]
+== Special parameters
+
+dfn:[Special parameters] are parameters each identified by a single symbol.
+They cannot be directly assigned to by the user.
+
+Yash provides the following special parameters:
+
+[[sp-zero]]+0+::
+The name of the shell executable file or the script file that was specified in
+the invocation of the shell.
+
+[[sp-hash]]+#+::
+The number of current positional parameters.
+The value is a non-negative integer.
+
+[[sp-dollar]]+$+::
+The process ID of the shell. The value is a positive integer and is never
+changed even in subshells.
+
+[[sp-hyphen]]+-+::
+Currently enabled shell options. The value is a concatenation of alphabet
+characters that are the names of currently enabled single-character options
+that can be specified in shell invocation. The value reflects changes of
+enabled options when you enable or disable options using the
+link:_set.html[set built-in].
+
+[[sp-question]]+?+::
+The exit status of the last executed link:syntax.html#pipelines[pipeline].
+The value is a non-negative integer.
+
+[[sp-exclamation]]+!+::
+The process ID of the last executed link:syntax.html#async[asynchronous list].
+
+[[sp-asterisk]]+*+::
+This special parameter represents the whole <<positional,positional
+parameters>>. When there is no positional parameters, the value of this special
+parameter is the empty string. When there is more than one positional
+parameter, the value is a concatenation of all the positional parameters, each
+of which is separated as follows:
++
+- If the <<sv-ifs,+IFS+>> variable exists and its value is not empty,
+  positional parameters are each separated by the first character of the
+  value of the +IFS+ variable. 
+- If the +IFS+ variable exists and has an empty value, positional parameters
+  are just concatenated without any separator.
+- If the +IFS+ variable does not exist, positional parameters are each
+  separated by a space character.
+
+[[sp-at]]+@+::
+This special parameter represents the whole <<positional,positional
+parameters>> like the +*+ special parameter above. The difference between the
+two is the results of expansion that occurs between a pair of
+link:syntax.html#quotes[double-quotation marks]. If the +@+ special parameter
+is expanded inside double-quotations, positional parameters are
+link:expand.html#split[field-split] rather than concatenated (in spite of the
+quotation). If there are no positional parameters, the expansion yields no
+word rather than an empty word.
++
+--
+- When there are no positional parameters, the command words +echo 1 "$@" 2+
+  is expanded to the three words +echo+, +1+, and +2+.
+- When positional
+  parameters are the three words +1+, +2  2+, and +3+, the command words
+  +echo "$@"+ is expanded to the four words +echo+, +1+, +2  2+, and +3+,
+  and the words +echo "a$@b"+ to the four words +echo+, +a1+, +2  2+, and
+  +3b+.
+--
+
+[[variables]]
+== Variables
+
+dfn:[Variables] are parameters the user can assign values to.
+Each variable has a name that identifies it and a value that defines the
+results of expansion.
+
+A variable name is composed of one or more alphanumeric characters and
+underscores (+_+). A name cannot start with a digit.
+Other characters may be used in a name depending on internationalization
+support of your environment.
+
+Variables that are exported to external commands are called dfn:[environment
+variables].
+They are passed to all external commands the shell invokes.
+Variables passed to the shell in invocation will be automatically exported.
+
+You can assign to variables by a link:syntax.html#simple[simple command] as
+well as the link:_typeset.html[typeset built-in].
+You can remove variables by using the link:_unset.html[unset built-in].
+
+[[shellvars]]
+=== Variables used by the shell
+
+The following variables are used by the shell for special purposes.
+
+[[sv-cdpath]]+CDPATH+::
+This variable is used by the cd built-in to find a destination directory.
+
+[[sv-columns]]+COLUMNS+::
+This variable specifies the width (the number of character columns) of the
+terminal screen. The value affects the display of
+link:lineedit.html[line-editing].
+
+[[sv-command_not_found_handler]]+COMMAND_NOT_FOUND_HANDLER+::
+When the shell cannot find a command to be executed,
+the value of this variable is interpreted and executed instead.
+You can override the shell's error handling behavior with this variable.
+See link:exec.html#simple[Execution of simple commands] for detail.
++
+This feature is disabled in the link:posix.html[POSIXly-correct mode].
+
+[[sv-dirstack]]+DIRSTACK+::
+This array variable is used by the shell to store the directory stack
+contents.
+If you modify the value of this variable, the directory stack may be
+corrupted.
+
+[[sv-echo_style]]+ECHO_STYLE+::
+This variable specifies the behavior of the link:_echo.html[echo built-in].
+
+[[sv-env]]+ENV+::
+When an link:interact.html[interactive] shell is started in the
+link:posix.html[POSIXly-correct mode],
+the value of this variable is used to find the initialization file.
+See link:invoke.html#init[Initialization of yash].
+
+[[sv-fcedit]]+FCEDIT+::
+This variable specifies an editor program used to edit command lines during
+execution of the link:_fc.html[fc built-in].
+
+[[sv-handled]]+HANDLED+::
+This variable can be set in the
+<<sv-command_not_found_handler,command-not-found handler>> to tell the shell
+not to produce a further error message.
+See link:exec.html#simple[Execution of simple commands] for detail.
+
+[[sv-histfile]]+HISTFILE+::
+This variable specifies the pathname of the file to save the
+link:interact.html#history[command history] in.
+
+[[sv-histrmdup]]+HISTRMDUP+::
+This variable specifies the number of link:interact.html#history[command
+history] items to be checked for duplication.
+When the shell is adding a new history item to the command history, if some of
+the most recent {{n}} items have the same contents as the new one, then the
+duplicate existing items are removed from the history before the new one is
+added, where {{n}} is the value of this variable.
++
+If the value of this variable is +1+, for example, the most recent item is
+removed when a new item that have the same contents is added.
++
+Items older than the {{n}}th recent item are not removed.
+No items are removed if the value of this variable is +0+.
+All items are subject to removal if the variable value is greater than or
+equal to the value of the <<sv-histsize,+HISTSIZE+ variable>>.
+
+[[sv-histsize]]+HISTSIZE+::
+This variable specifies the maximum number of items in the
+link:interact.html#history[command history].
+
+[[sv-home]]+HOME+::
+This variable specifies the pathname of the user's home directory and affects
+results of link:expand.html#tilde[tilde expansion] and link:_cd.html[cd
+built-in].
+
+[[sv-ifs]]+IFS+::
+This variable specifies separators used in link:expand.html#split[field
+splitting].
+The variable value is initialized to the three characters of a space, a tab,
+and a newline when the shell is started.
+
+[[sv-lang]]+LANG+::
+[[sv-lc_all]]+LC_ALL+::
+[[sv-lc_collate]]+LC_COLLATE+::
+[[sv-lc_ctype]]+LC_CTYPE+::
+[[sv-lc_messages]]+LC_MESSAGES+::
+[[sv-lc_monetary]]+LC_MONETARY+::
+[[sv-lc_numeric]]+LC_NUMERIC+::
+[[sv-lc_time]]+LC_TIME+::
+These variables specify a locale in which the shell runs.
+The shell chooses the file input/output encoding, the error message language,
+etc. according to the locale specified.
++
+Unless the shell is link:interact.html[interactive] and not in the
+link:posix.html[POSIXly-correct mode], the value of the +LC_CTYPE+ variable is
+considered only when the shell is started. Once the shell has been
+initialized, changing the value of +LC_CTYPE+ will have no effect on the
+shell's behavior.
+
+[[sv-lineno]]+LINENO+::
+The value of this variable is automatically set to the line number in which
+the currently executed command appears in the file.
++
+In the link:interact.html[interactive shell], the line number is reset to 1
+each time the shell reads and executes a command.
++
+If you assign to or remove this variable, it will no longer provide line
+numbers.
+
+[[sv-lines]]+LINES+::
+This variable specifies the height (the number of character lines) of the
+terminal screen.
+The value affects the display of link:lineedit.html[line-editing].
+
+[[sv-mail]]+MAIL+::
+This variable specifies the pathname of a file that is checked in
+link:interact.html#mailcheck[mail checking].
+
+[[sv-mailcheck]]+MAILCHECK+::
+This variable specifies how often the shell should do
+link:interact.html#mailcheck[mail checking].
+The value has to be specified as a positive integer in seconds.
+The value is initialized to the default value of +600+ when the shell is
+started.
+
+[[sv-mailpath]]+MAILPATH+::
+This variable specifies the pathnames of files that are checked in
+link:interact.html#mailcheck[mail checking].
+
+[[sv-nlspath]]+NLSPATH+::
+The POSIX standard prescribes that the value of this variable specifies
+pathname templates of locale-dependent message data files, but yash does not
+use it.
+
+[[sv-oldpwd]]+OLDPWD+::
+This variable is set to the previous working directory path when you change
+the working directory by using the link:_cd.html[cd] or other built-ins.
+This variable is exported by default.
+
+[[sv-optarg]]+OPTARG+::
+When the link:_getopts.html[getopts built-in] parses an option that takes an
+argument, the argument value is assigned to this variable.
+
+[[sv-optind]]+OPTIND+::
+The value of this variable specifies the index of an option that is to be
+parsed by the next link:_getopts.html[getopts built-in] execution.
+This variable is initialized to +1+ when the shell is started.
+
+[[sv-path]]+PATH+::
+This variable specifies paths that are searched for a command in
+link:exec.html#search[command search].
+
+[[sv-ppid]]+PPID+::
+The value of this variable is the process ID of the shell's parent process,
+which is a positive integer.
+This variable is initialized when the shell is started.
+The value is not changed when the shell makes a new
+link:exec.html#subshell[subshell].
+
+[[sv-prompt_command]]+PROMPT_COMMAND+::
+The shell interprets and executes the value of this variable before printing
+each command prompt if the shell is link:interact.html[interactive] and not in
+the link:posix.html[POSIXly-correct mode].
+This behavior is equivalent to executing the command
+ifdef::basebackend-html[]
+pass:[<code><a href="_eval.html">eval</a> -i -- "${PROMPT_COMMAND-}"</code>]
+endif::basebackend-html[]
+ifndef::basebackend-html[`eval -i -- "${PROMPT_COMMAND-}"`]
+before each command prompt, but its exit status does not affect the expansion
+of the +?+ special parameter in the next command.
+
+[[sv-ps1]]+PS1+::
+This variable specifies the main command prompt string printed by an
+link:interact.html[interactive] shell.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+The value is initialized to +\$&#x20;+ when the shell is started.
+(In the link:posix.html[POSIXly-correct mode], the initial value is either
++$&#x20;+ or +#&#x20;+ depending on whether the effective user ID of the shell
+process is zero or not.)
+
+[[sv-ps1r]]+PS1R+::
+This variable specifies the auxiliary prompt string printed to the right of
+the cursor when you input a command line to an link:interact.html[interactive]
+shell.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+
+[[sv-ps1s]]+PS1S+::
+This variable specifies the font style of command strings you enter to an
+link:interact.html[interactive] shell.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+
+[[sv-ps2]]+PS2+::
+This variable is like the <<sv-ps1,+PS1+>> variable, but it is used for the
+second and following lines of a command that is longer than one line.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+The value is initialized to +>&#x20;+ when the shell is started.
+
+[[sv-ps2r]]+PS2R+::
+This variable is like the <<sv-ps1r,+PS1R+>> variable, but it is used when
+<<sv-ps2,+PS2+>> is used.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+
+[[sv-ps2s]]+PS2S+::
+This variable is like the <<sv-ps1s,+PS1S+>> variable, but it is used when
+<<sv-ps2,+PS2+>> is used.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+
+[[sv-ps4]]+PS4+::
+The value of this variable is printed before each command trace output when
+the link:_set.html#so-xtrace[xtrace option] is enabled.
+The value is subject to link:expand.html#params[parameter expansion],
+link:expand.html#cmdsub[command substitution],
+link:expand.html#arith[arithmetic expansion].
+You can also use backslash notations if the shell is not in the
+link:posix.html[POSIXly-correct mode].
+The value is initialized to +&#x2B;&#x20;+ when the shell is started.
+
+[[sv-ps4s]]+PS4S+::
+This variable is like the <<sv-ps1s,+PS1S+>> variable, but it is used when
+<<sv-ps4,+PS4+>> is used.
+You can use this variable to modify font style of command trace output.
+
+[[sv-pwd]]+PWD+::
+The value of this variable is the pathname of the current working directory.
+The value is set when the shell is started and reset each time the working
+directory is changed by the link:_cd.html[cd] or other built-ins.
+This variable is exported by default.
+
+[[sv-random]]+RANDOM+::
+You can use this variable to get random numbers.
+The value of this variable is a uniformly distributed random integer between 0
+and 32767 (inclusive). You will get a different number each time the variable
+is expanded.
++
+You can set the ``seed'' of random numbers by assigning a non-negative integer
+to the variable.
+If you remove this variable, it will no longer work as a random number
+generator.
+
+[[sv-term]]+TERM+::
+This variable specifies the type of the terminal in which the shell is
+running.
+The value affects the behavior of link:lineedit.html[line-editing].
+
+[[sv-yash_after_cd]]+YASH_AFTER_CD+::
+The shell interprets and executes the value of this variable after each time
+the shell's working directory is changed by the link:_cd.html[cd] or other
+built-ins.
+This behavior is equivalent to executing the command
+ifdef::basebackend-html[]
+pass:[<code><a href="_eval.html">eval</a> -i -- "${YASH_AFTER_CD-}"</code>]
+endif::basebackend-html[]
+ifndef::basebackend-html[`eval -i -- "${YASH_AFTER_CD-}"`]
+after the directory was changed.
+
+[[sv-yash_loadpath]]+YASH_LOADPATH+::
+This variable specifies directories the dot built-in searches
+for a script file.
+More than one directory can be specified by separating them by colons like the
+<<sv-path,+PATH+>> variable.
+When the shell is started, this variable is initialized to the pathname of the
+directory where common script files are installed.
+
+[[sv-yash_le_timeout]]+YASH_LE_TIMEOUT+::
+This variable specifies how long the shell should wait for a next possible
+input from the terminal when it encountered an ambiguous control sequence
+while link:lineedit.html[line-editing].
+The value must be specified in milliseconds.
+If you do not define this variable, the default value of 100 milliseconds is
+assumed.
+
+[[sv-yash_version]]+YASH_VERSION+::
+The value is initialized to the version number of the shell
+when the shell is started.
+
+[[arrays]]
+=== Arrays
+
+An dfn:[array] is a variable that contains zero or more strings.
+The string values of an array are identified by natural numbers (like
+<<positional,positional parameters>>).
+
+You can assign values to an array by using a
+link:syntax.html#simple[simple command] as well as the
+link:_array.html[array built-in].
+You can use the link:_unset.html[unset built-in] to remove arrays.
+
+Arrays cannot be exported as arrays.
+When an array is exported, it is treated as a normal variable whose value is
+a concatenation of all the array values, each separated by a colon.
+
+Arrays are not supported in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

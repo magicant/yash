@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.h: command execution */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,8 +86,6 @@ extern int command_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int times_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *return_help[], *break_help[], *continue_help[], *eval_help[],
-       *dot_help[], *exec_help[], *command_help[], *type_help[], *times_help[];
 
 
 #endif /* YASH_EXEC_H */

@@ -1,0 +1,1516 @@
+= 行編集
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - 行編集
+:description: Yash の行編集機能の説明
+
+dfn:[行編集]機能は、link:interact.html[対話モード]のシェルにコマンドを入力する際に使える、コマンドの簡易編集機能です。行編集機能は、コマンドを編集するための簡単なエディタとして働きます。行編集機能はlink:interact.html#history[コマンド履歴]とも連携しており、link:_fc.html[fc コマンド]を使ってエディタを起動する代わりに行編集で直接コマンドを編集・再実行できます。
+
+行編集には複数の編集モードがあり、モードごとにキー操作の割り当てが異なります。行編集の有効・無効を切り替えたりモードを選択したりするには、link:_set.html[set 組込みコマンド]で編集モードに対応するオプションを設定します。あるモードに対応するオプションを有効にすると、そのモードの行編集が有効になります (同時に他のモードのオプションは自動的に無効になります)。現在有効になっているモードのオプションを無効にすると、行編集は無効になります。現在 yash が搭載している編集モードは vi 風と emacs 風の二種類で、それぞれ対応するオプションは +-o vi+ と +-o emacs+ です。
+
+シェルが対話モードで起動したとき、標準入力と標準エラーがともに端末ならば、vi 風行編集が自動的に有効になります。
+
+行編集は、標準入力と標準エラーがともに端末のときだけ使えます。この条件が満たされていないときは、行編集は働きません。行編集が働くとき、シェルは termios インタフェースを使用して端末の入出力モードを一時的に変更し、terminfo インタフェースを使用して入力されたキーの判別などを行います。
+
+[[options]]
+== 行編集のオプション
+
+行編集を有効にし編集モードを選択するオプションとして、以下のオプションが link:_set.html[set 組込みコマンド]で設定できます。
+
+link:_set.html#so-vi[vi]::
+Vi 風編集モードを有効にします
+link:_set.html#so-emacs[emacs]::
+Emacs 風編集モードを有効にします
+
+この他に、行編集に関わるものとして以下のオプションが設定できます。
+
+link:_set.html#so-lealwaysrp[le-always-rp]::
+このオプションが無効な時は、長いコマンドを入力してコマンドが右プロンプトに達すると、右プロンプトは見えなくなります。このオプションが有効な時は、右プロンプトは見えなくなる代わりに下に移動します。
+
+link:_set.html#so-lecompdebug[le-comp-debug]::
+<<completion,補完>>を行う際にデバッグ用の情報を出力します
+
+link:_set.html#so-leconvmeta[le-conv-meta]::
+Terminfo データベースで得られた情報を無視し、入力の 8 ビット目を常に meta-key フラグとみなします。
+
+link:_set.html#so-lenoconvmeta[le-no-conv-meta]::
+Terminfo データベースで得られた情報を無視し、入力の 8 ビット目を他のビットと同様に扱います。
++
+Le-conv-meta オプションと le-no-conv-meta オプションは片方しか有効にできません (片方を有効にするともう片方は自動的に無効になります)。どちらも無効な時は terminfo データベースの情報に従って 8 ビット目を meta-key とみなすかどうか判断します。
+
+link:_set.html#so-lepromptsp[le-prompt-sp]::
+このオプションが有効な時、シェルはlink:interact.html#prompt[プロンプト]を出力する前に、プロンプトが必ず行頭に来るようにカーソルを移動するための特殊な文字列を出力します。
++
+このオプションは最初から有効になっています。
+
+link:_set.html#so-levisiblebell[le-visible-bell]::
+シェルが警告を発する際、警告音を鳴らす代わりに端末を点滅させます。
+
+[[modes]]
+== 編集モード
+
+dfn:[Vi 風編集モード]は vi に似たキー操作で編集を行う編集モードです。Vi 風編集モードでは、挿入モードとコマンドモードの二つのモードを適宜切り替えて編集を行います。編集が始まるときはモードは必ず挿入モードになっています。挿入モードでは入力した文字が基本的にそのままバッファに挿入されます。コマンドモードでは入力した文字はカーソルを移動したり文字を消去したりするコマンドとして解釈されます。
+
+dfn:[Emacs 風編集モード]は emacs に似たキー操作で編集を行う編集モードです。入力した文字は基本的にそのままバッファに挿入されますが、コマンドとして解釈される一部のキー操作が vi 風編集モードの挿入モードと異なります。
+
+これらのモードの他に、コマンドの検索の際に用いる検索モードが vi 風と emacs 風とそれぞれにあります。
+
+[[commands]]
+== 行編集コマンド
+
+行編集中に入力された文字は全て以下の行編集コマンドのいずれかとして解釈されます。コマンドとキーの対応は link:_bindkey.html[bindkey 組込みコマンド]で変更できます (検索モードを除く)。
+
+以下の一覧には各コマンドに対応するキー入力の初期設定も示してあります。なお、 ``vi-insert'' は vi 風編集モードの挿入モードを、 ``vi-command'' は vi 風編集モードのコマンドモードを、 ``vi-search'' は vi 風編集モードの検索モードを、 ``emacs'' は emacs 風編集モードを、 ``emacs-search'' は emacs 風編集モードの検索モードを示します。
+
+コマンドの中には引数を指定することでその動作を変更できるものがあります。例えば forward-char コマンドは通常はカーソルを一文字分前に移動しますが、引数を指定するとその引数の文字数分だけカーソルを移動します。引数は、目的のコマンドの直前に digit-argument コマンドを使うことで指定できます。
+
+[[basic-commands]]
+=== 基本的な編集コマンド
+
+noop::
+何も行いません。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+--
+
+alert::
+警告音を発しまたは端末を点滅させます。
+
+self-insert::
+入力した文字を現在のカーソルの位置に挿入します。(<<escape,エスケープシーケンス>>によるエスケープの対象となる文字は挿入できません)
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+insert-tab::
+タブを現在のカーソルの位置に挿入します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\^I</code></kbd>+++]
+ifndef::basebackend-html[`\^[\^I`]
+--
+
+expect-verbatim::
+このコマンドの直後に入力する一文字を現在のカーソル位置に挿入します。このコマンドを使うと self-insert コマンドで入力できない文字も入力できます (ナル文字 `'\0'` を除く)。
++
+--
+vi-insert::
+vi-search::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^V</code></kbd>+++]
+ifndef::basebackend-html[`\^V`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^Q`, `\^V`]
+
+digit-argument::
+このコマンドは数字またはハイフンの入力に対してのみ有効です。入力した数字を次のコマンドへの引数として受け付けます (ハイフンの場合は符号を反転します)。
++
+Digit-argument コマンドを連続して使うことで複数桁の引数を指定できます。例えば vi 風編集モードのコマンドモードで +12l+ と入力すると、forward-char コマンドに引数 12 を与えたことになります (すなわちカーソルが左に 12 文字分移動します)。
++
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,
+<kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>0</kbd>, <kbd><code>\^[</code>1</kbd>,
+<kbd><code>\^[</code>2</kbd>, <kbd><code>\^[</code>3</kbd>,
+<kbd><code>\^[</code>4</kbd>, <kbd><code>\^[</code>5</kbd>,
+<kbd><code>\^[</code>6</kbd>, <kbd><code>\^[</code>7</kbd>,
+<kbd><code>\^[</code>8</kbd>, <kbd><code>\^[</code>9</kbd>,
+<kbd><code>\^[</code>-</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[]
+`\^[0`, `\^[1`, `\^[2`, `\^[3`, `\^[4`, `\^[5`, `\^[6`, `\^[7`, `\^[8`,
+`\^[9`, `\^[-`, 
+endif::basebackend-html[]
+--
+
+bol-or-digit::
+引数がない場合は beginning-of-line コマンドと同じように、引数がある場合は digit-argument コマンドと同じように動作します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>0</kbd>+++]
+ifndef::basebackend-html[`0`]
+--
+
+accept-line::
+行編集を終了し、現在のバッファの内容をシェルへの入力として与えます。行の末尾には自動的に改行が付け加わります。
++
+--
+vi-insert::
+vi-command::
+emacs::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^M`]
+--
+
+abort-line::
+行編集を中止し、空の入力をシェルに与えます。
++
+--
+vi-insert::
+vi-command::
+vi-search::
+emacs::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\!</code></kbd>, <kbd><code>\^C</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\!`, `\^C`]
+--
+
+eof::
+シェルに入力の終わりを知らせます (これによりシェルは終了します)。
+
+eof-if-empty::
+バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、alert コマンドと同じ動作をします。
++
+--
+vi-insert::
+vi-command::
+ifdef::basebackend-html[]
++++<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\#`, `\^D`]
+--
+
+eof-or-delete::
+バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、delete-char コマンドと同じ動作をします。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\#`, `\^D`]
+--
+
+accept-with-hash::
+引数が与えられていないかバッファの最初の文字が +&#x23;+ でなければ、バッファの最初に +&#x23;+ を挿入します。そうでなければバッファの最初の +&#x23;+ を削除します。いずれの場合も、その後 accept-line コマンドと同じ動作をします。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>#</kbd>+++]
+ifndef::basebackend-html[`#`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>#</kbd>+++]
+ifndef::basebackend-html[`\^[#`]
+--
+
+setmode-viinsert::
+編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>i</kbd>, <kbd><code>\I</code></kbd>+++]
+ifndef::basebackend-html[`i`, `\I`]
+--
+
+setmode-vicommand::
+編集モードを vi 風編集モードのコマンドモードに変更します。
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+--
+
+setmode-emacs::
+編集モードを emacs 風編集モードに変更します。
+
+expect-char::
+abort-expect-char::
+これは find-char コマンドなどを実装するために yash 内部で使われているコマンドで、直接使用しても意味はありません。
+
+redraw-all::
+行編集のプロンプトやバッファを端末に表示しなおします。
++
+--
+vi-insert::
+vi-command::
+vi-search::
+emacs::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^L</code></kbd>+++]
+ifndef::basebackend-html[`\^L`]
+--
+
+clear-and-redraw-all::
+端末の表示をクリアし、行編集のプロンプトやバッファを端末に表示しなおします。
+
+[[motion-commands]]
+=== 移動コマンド
+
+dfn:[移動コマンド]はカーソルを移動させるコマンドです。ほとんどの移動コマンドは引数を与えることでそのコマンドを引数の回数だけ実行するのと同じように動作させられます。例えば forward-char コマンドに引数 4 を与えると、カーソルを 4 文字先に進めます。
+
+以下、dfn:[bigword] とは一文字以上の連続した空白でない文字をいい、dfn:[semiword] とは一文字以上の連続した空白でも句読点でもない文字をいい、dfn:[emacsword] とは一文字以上の連続した英数字をいいます。また dfn:[viword] とは以下のいずれかをいいます
+
+- 一文字以上の連続した英数字または下線 (+_+)
+- 一文字以上の連続した、英数字でも下線でも空白でもない文字
+
+以下に移動コマンドの一覧を示します。
+
+forward-char::
+カーソルを次の文字に移動します。
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\R</code></kbd>+++]
+ifndef::basebackend-html[`\R`]
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>l</kbd>, <kbd> </kbd> (空白文字), <kbd><code>\R</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`l`, (space), `\R`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\R</code></kbd>, <kbd><code>\^F</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\R`, `\^F`]
+--
+
+backward-char::
+カーソルを前の文字に移動します。
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\L</code></kbd>+++]
+ifndef::basebackend-html[`\L`]
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>h</kbd>, <kbd><code>\B</code></kbd>, <kbd><code>\L</code></kbd>,
+<kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>, +++
+endif::basebackend-html[]
+ifndef::basebackend-html[`h`, `\B`, `\L`, `\?`, `\^H`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\L</code></kbd>, <kbd><code>\^B</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\L`, `\^B`]
+--
+
+forward-bigword::
+カーソルを次の bigword に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>W</kbd>+++]
+ifndef::basebackend-html[`W`]
+--
+
+end-of-bigword::
+カーソルを bigword の終わりまで移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>E</kbd>+++]
+ifndef::basebackend-html[`E`]
+--
+
+backward-bigword::
+カーソルを前の bigword に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>B</kbd>+++]
+ifndef::basebackend-html[`B`]
+--
+
+forward-semiword::
+カーソルを次の semiword に移動します。
+
+end-of-semiword::
+カーソルを semiword の終わりまで移動します。
+
+backward-semiword::
+カーソルを前の semiword に移動します。
+
+forward-viword::
+カーソルを次の viword に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>w</kbd>+++]
+ifndef::basebackend-html[`w`]
+--
+
+end-of-viword::
+カーソルを viword の終わりまで移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>e</kbd>+++]
+ifndef::basebackend-html[`e`]
+--
+
+backward-viword::
+カーソルを前の viword に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>b</kbd>+++]
+ifndef::basebackend-html[`b`]
+--
+
+forward-emacsword::
+カーソルを次の emacsword に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>f</kbd>, <kbd><code>\^[</code>F</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[f`, `\^[F`]
+--
+
+backward-emacsword::
+カーソルを前の emacsword に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>b</kbd>, <kbd><code>\^[</code>B</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[b`, `\^[B`]
+--
+
+beginning-of-line::
+カーソルをバッファの先頭に移動します。
++
+--
+vi-insert::
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\H</code></kbd>+++]
+ifndef::basebackend-html[`\H`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\H</code></kbd>, <kbd><code>\^A</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\H`, `\^A`]
+--
+
+end-of-line::
+カーソルをバッファの末尾に移動します。
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\E</code></kbd>+++]
+ifndef::basebackend-html[`\E`]
+vi-command::
+ifdef::basebackend-html[+++<kbd>$</kbd>, <kbd><code>\E</code></kbd>+++]
+ifndef::basebackend-html[`$`, `\E`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\E</code></kbd>, <kbd><code>\^E</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\E`, `\^E`]
+--
+
+go-to-column::
+カーソルをバッファ内の {{n}} 文字目に移動します。ただし {{n}} は引数です (引数が与えられていない場合は 1)。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>|</kbd>+++]
+ifndef::basebackend-html[`|`]
+--
+
+first-nonblank::
+カーソルをバッファ内の最初の空白でない文字に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>^</kbd>+++]
+ifndef::basebackend-html[`^`]
+--
+
+find-char::
+このコマンドの直後に入力した文字がある位置までカーソルを進めます。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>f</kbd>+++]
+ifndef::basebackend-html[`f`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^\]</code></kbd>+++]
+ifndef::basebackend-html[`\^\]`]
+--
+
+find-char-rev::
+このコマンドの直後に入力した文字がある位置までカーソルを戻します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>F</kbd>+++]
+ifndef::basebackend-html[`F`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\^\]</code></kbd>+++]
+ifndef::basebackend-html[`\^[\^\]`]
+--
+
+till-char::
+このコマンドの直後に入力した文字がある位置の直前までカーソルを進めます。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>t</kbd>+++]
+ifndef::basebackend-html[`t`]
+--
+
+till-char-rev::
+このコマンドの直後に入力した文字がある位置の直後までカーソルを戻します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>T</kbd>+++]
+ifndef::basebackend-html[`T`]
+--
+
+refind-char::
+前回実行した find-char, find-char-rev, till-char, till-char-rev コマンドを再実行します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>;</kbd>+++]
+ifndef::basebackend-html[`;`]
+--
+
+refind-char-rev::
+前回実行した find-char, find-char-rev, till-char, till-char-rev コマンドを、カーソルの進む向きを逆にして再実行します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>,</kbd>+++]
+ifndef::basebackend-html[`,`]
+--
+
+[[editing-commands]]
+=== 編集コマンド
+
+編集コマンドはバッファの内容を変更するコマンドです。ほとんどの編集コマンドは引数を与えることでそのコマンドを引数の回数だけ実行するのと同じように動作させられます。
+
+名前に ``kill'' が付くコマンドで削除した文字列はdfn:[キルリング]という場所に保管され、後で put などのコマンドでバッファに戻すことができます。
+
+以下に編集コマンドの一覧を示します。
+
+delete-char::
+カーソルのところにある文字を削除します。引数を与えた場合は kill-char コマンドと同じ動作をします。
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\X</code></kbd>+++]
+ifndef::basebackend-html[`\X`]
+--
+
+delete-bigword::
+カーソルのところにある bigword を削除します。引数を与えた場合は kill-bigword コマンドと同じ動作をします。
+
+delete-semiword::
+カーソルのところにある semiword を削除します。引数を与えた場合は kill-semiword コマンドと同じ動作をします。
+
+delete-viword::
+カーソルのところにある viword を削除します。引数を与えた場合は kill-viword コマンドと同じ動作をします。
+
+delete-emacsword::
+カーソルのところにある emacsword を削除します。引数を与えた場合は kill-emacsword コマンドと同じ動作をします。
+
+backward-delete-char::
+カーソルの前にある文字を削除します。引数を与えた場合は backward-kill-char コマンドと同じ動作をします。
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\B`, `\?`, `\^H`]
+--
+
+backward-delete-bigword::
+カーソルの前にある bigword を削除します。引数を与えた場合は backward-kill-bigword コマンドと同じ動作をします。
+
+backward-delete-semiword::
+カーソルの前にある semiword を削除します。引数を与えた場合は backward-kill-semiword コマンドと同じ動作をします。
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\^W</code></kbd>+++]
+ifndef::basebackend-html[`\^W`]
+--
+
+backward-delete-viword::
+カーソルの前にある viword を削除します。引数を与えた場合は backward-kill-viword コマンドと同じ動作をします。
+
+backward-delete-emacsword::
+カーソルの前にある emacsword を削除します。引数を与えた場合は backward-kill-emacsword コマンドと同じ動作をします。
+
+delete-line::
+バッファの内容を全て削除します。
+
+forward-delete-line::
+カーソル以降の全ての文字を削除します。
+
+backward-delete-line::
+カーソルより前の全ての文字を削除します。
++
+--
+vi-insert::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`]
+--
+
+kill-char::
+カーソルのところにある文字を削除し、キルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>x</kbd>, <kbd><code>\X</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`x`, `\X`]
+--
+
+kill-bigword::
+カーソルのところにある bigword を削除し、キルリングに保管します。
+
+kill-semiword::
+カーソルのところにある semiword を削除し、キルリングに保管します。
+
+kill-viword::
+カーソルのところにある viword を削除し、キルリングに保管します。
+
+kill-emacsword::
+カーソルのところにある emacsword を削除し、キルリングに保管します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>d</kbd>, <kbd><code>\^[</code>D</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[d`, `\^[D`]
+--
+
+backward-kill-char::
+カーソルの前にある文字を削除し、キルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>X</kbd>+++]
+ifndef::basebackend-html[`X`]
+--
+
+backward-kill-bigword::
+カーソルの前にある bigword を削除し、キルリングに保管します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^W</code></kbd>+++]
+ifndef::basebackend-html[`\^W`]
+--
+
+backward-kill-semiword::
+カーソルの前にある semiword を削除し、キルリングに保管します。
+
+backward-kill-viword::
+カーソルの前にある viword を削除し、キルリングに保管します。
+
+backward-kill-emacsword::
+カーソルの前にある emacsword を削除し、キルリングに保管します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code><code>\B</code></kbd>,
+<kbd><code>\^[</code><code>\?</code></kbd>,
+<kbd><code>\^[</code><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[\B`, `\^[\?`, `\^[\^H`]
+--
+
+kill-line::
+バッファの内容を全て削除し、キルリングに保管します。
+
+forward-kill-line::
+カーソル以降の全ての文字を削除し、キルリングに保管します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^K</code></kbd>+++]
+ifndef::basebackend-html[`\^K`]
+--
+
+backward-kill-line::
+カーソルより前の全ての文字を削除し、キルリングに保管します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>,
+<kbd><code>\^X</code><code>\B</code></kbd>,
+<kbd><code>\^X</code><code>\?</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`, `\^X\B`, `\^X\?`]
+--
+
+put-before::
+最後にキルリングに保管した文字列をカーソルの直前に挿入します。カーソルは挿入した文字列の最後の文字のところに移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>P</kbd>+++]
+ifndef::basebackend-html[`P`]
+--
+
+put::
+最後にキルリングに保管した文字列をカーソルの直後に挿入します。カーソルは挿入した文字列の最後の文字のところに移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>p</kbd>+++]
+ifndef::basebackend-html[`p`]
+--
+
+put-left::
+最後にキルリングに保管した文字列をカーソルの直前に挿入します。カーソルは挿入した文字列の直後に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^Y</code></kbd>+++]
+ifndef::basebackend-html[`\^Y`]
+--
+
+put-pop::
+このコマンドは put-before, put, put-left, put-pop コマンドの直後にだけ使えます。このコマンドは直前のコマンドでキルリングから挿入した文字列を削除し、代わりにその文字列の前にキルリングに保管した文字列を挿入します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>y</kbd>, <kbd><code>\^[</code>Y</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[y`, `\^[Y`]
+--
+
+undo::
+直前の編集コマンドを取り消し、バッファの内容を前の状態に戻します。
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd>u</kbd>+++]
+ifndef::basebackend-html[`u`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>,
+<kbd><code>\^X</code><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^_`, `\^X\$`, `\^X\^U`]
+--
+
+undo-all::
+全ての編集コマンドを取り消し、バッファの内容を初期状態に戻します。
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd>U</kbd>+++]
+ifndef::basebackend-html[`U`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code><code>\^R</code></kbd>, <kbd><code>\^[</code>r</kbd>,
+<kbd><code>\^[</code>R</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[\^R`, `\^[r`, `\^[R`]
+--
+
+cancel-undo::
+undo, undo-all による編集コマンドの取り消しを取り消し、バッファの内容を復元します。
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+cancel-undo-all::
+undo, undo-all による編集コマンドの取り消しを全て取り消し、バッファの内容を復元します。
+
+redo::
+直前の編集コマンドを繰り返します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>.</kbd>+++]
+ifndef::basebackend-html[`.`]
+--
+
+[[completion-commands]]
+=== 補完コマンド
+
+complete::
+現在のカーソル位置で<<completion,補完>>を行います。補完候補が複数ある場合はその一覧を表示します。
+
+complete-next-candidate::
+補完候補の一覧を既に表示している場合は一覧の中から次の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^I</code></kbd>+++]
+ifndef::basebackend-html[`\^I`]
+--
+
+complete-prev-candidate::
+補完候補の一覧を既に表示している場合は一覧の中から前の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\bt</code></kbd>+++]
+ifndef::basebackend-html[`\bt`]
+--
+
+complete-next-column::
+補完候補の一覧を既に表示している場合は一覧の中から次の列の最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+
+complete-prev-column::
+補完候補の一覧を既に表示している場合は一覧の中から前の列の最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+
+complete-next-page::
+補完候補の一覧を既に表示している場合は一覧の中から次のページの最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+
+complete-prev-page::
+補完候補の一覧を既に表示している場合は一覧の中から前のページの最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+
+complete-list::
+現在のカーソル位置で補完を行います。引数を指定しない場合、補完候補の一覧を表示します。引数を指定すると、その番号の候補で補完内容を確定します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[?`, `\^[=`]
+--
+
+complete-all::
+現在のカーソル位置で補完を行い、カーソル位置にある単語をすべての補完候補で置き換えます。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>*</kbd>+++]
+ifndef::basebackend-html[`\^[*`]
+--
+
+complete-max::
+現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。
+
+clear-candidates::
+補完候補の一覧を消去します。
+
+[[vi-commands]]
+=== Vi 固有のコマンド
+
+vi-replace-char::
+カーソルのところにある文字を、このコマンドの直後に入力した文字に置き換えます。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>r</kbd>+++]
+ifndef::basebackend-html[`r`]
+--
+
+vi-insert-beginning::
+カーソルをバッファの先頭に移動したのち、setmode-viinsert コマンドと同じ動作をします。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>I</kbd>+++]
+ifndef::basebackend-html[`I`]
+--
+
+vi-append::
+カーソルを次の文字に移動したのち、setmode-viinsert コマンドと同じ動作をします。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>I</kbd>+++]
+ifndef::basebackend-html[`I`]
+--
+
+vi-append-to-eol::
+カーソルをバッファの末尾に移動したのち、setmode-viinsert コマンドと同じ動作をします。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>A</kbd>+++]
+ifndef::basebackend-html[`A`]
+--
+
+vi-replace::
+Setmode-viinsert コマンドと同じ動作をしますが、同時に上書きモードを有効にします。上書きモードでは、self-insert コマンドは文字を挿入する代わりにカーソルのところにある文字を置き換えます。上書きモードは編集モードを変更するまで有効です。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>R</kbd>+++]
+ifndef::basebackend-html[`R`]
+--
+
+vi-switch-case::
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字の大文字と小文字を入れ替えます。
+
+vi-switch-case-char::
+カーソルのところにある文字の大文字と小文字を入れ替えて、カーソルを次の文字に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>~</kbd>+++]
+ifndef::basebackend-html[`~`]
+--
+
+vi-yank::
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字をキルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>y</kbd>+++]
+ifndef::basebackend-html[`y`]
+--
+
+vi-yank-to-eol::
+カーソルの位置からバッファの末尾までにある文字をキルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>Y</kbd>+++]
+ifndef::basebackend-html[`Y`]
+--
+
+vi-delete::
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字を削除し、キルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>d</kbd>+++]
+ifndef::basebackend-html[`d`]
+--
+
+vi-delete-to-eol::
+カーソルの位置からバッファの末尾までにある文字を削除し、キルリングに保管します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>D</kbd>+++]
+ifndef::basebackend-html[`D`]
+--
+
+vi-change::
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>c</kbd>+++]
+ifndef::basebackend-html[`c`]
+--
+
+vi-change-to-eol::
+カーソルの位置からバッファの末尾までにある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
+Delete the characters from the current cursor position to the end of the line
+and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>C</kbd>+++]
+ifndef::basebackend-html[`C`]
+--
+
+vi-change-line::
+バッファの内容を全て削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>S</kbd>+++]
+ifndef::basebackend-html[`S`]
+--
+
+vi-yank-and-change::
+Vi-change コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+
+vi-yank-and-change-to-eol::
+Vi-change-to-eol コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+
+vi-yank-and-change-line::
+Vi-change-line コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+
+vi-substitute::
+カーソルのところにある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>s</kbd>+++]
+ifndef::basebackend-html[`s`]
+--
+
+vi-append-last-bigword::
+link:interact.html#history[コマンド履歴]の中で最も新しいコマンドにおける最後の bigword を、空白文字に続けてカーソルの位置の直後に挿入します。引数 {{n}} を与えたときは最後の bigword の代わりに {{n}} 番目の bigword を挿入します。その後、setmode-viinsert コマンドと同じ動作をします。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>_</kbd>+++]
+ifndef::basebackend-html[`_`]
+--
+
+vi-exec-alias::
+このコマンドの直後に入力した文字を {{c}} とすると、+_{{c}}+ という名前のlink:syntax.html#aliases[エイリアス]の内容をシェルへの入力とみなして行編集コマンドとして解釈・実行します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>@</kbd>+++]
+ifndef::basebackend-html[`@`]
+--
+
+vi-edit-and-accept::
+エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同じ動作をします。ただしエディタの終了ステータスが 0 でないときは何も行いません。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>v</kbd>+++]
+ifndef::basebackend-html[`v`]
+--
+
+vi-complete-list::
+Complete-list コマンドと同様ですが、候補を確定したとき編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>=</kbd>+++]
+ifndef::basebackend-html[`=`]
+--
+
+vi-complete-all::
+Complete-all コマンドと同様ですが、単語を置き換えた後、編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>*</kbd>+++]
+ifndef::basebackend-html[`*`]
+--
+
+vi-complete-max::
+Complete-max コマンドと同様ですが、候補を挿入した後、編集モードを vi 風編集モードの挿入モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+vi-search-forward::
+順方向のlink:interact.html#history[履歴]検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>?</kbd>+++]
+ifndef::basebackend-html[`?`]
+--
+
+vi-search-backward::
+逆方向のlink:interact.html#history[履歴]検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>/</kbd>+++]
+ifndef::basebackend-html[`/`]
+--
+
+[[emacs-commands]]
+=== Emacs 固有のコマンド
+
+emacs-transpose-chars::
+カーソルの前にある文字を右に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^T</code></kbd>+++]
+ifndef::basebackend-html[`\^T`]
+--
+
+emacs-transpose-words::
+カーソルの前にある emacsword を右に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>t</kbd>, <kbd><code>\^[</code>T</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[t`, `\^[T`]
+--
+
+emacs-downcase-word::
+カーソルの後にある emacsword を小文字に変換します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>l</kbd>, <kbd><code>\^[</code>L</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[l`, `\^[L`]
+--
+
+emacs-upcase-word::
+カーソルの後にある emacsword を大文字に変換します。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>u</kbd>, <kbd><code>\^[</code>U</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[u`, `\^[U`]
+--
+
+emacs-capitalize-word::
+カーソルの後にある emacsword をキャピタライズします (各単語の頭文字だけ大文字にする)。
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>c</kbd>, <kbd><code>\^[</code>C</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[c`, `\^[u`]
+--
+
+emacs-delete-horizontal-space::
+カーソルの前後にある空白を削除します。引数を与えるとカーソルの前にある空白を削除します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\^[\\`]
+--
+
+emacs-just-one-space::
+カーソルの前後にある空白の個数を一つに調整します。引数を与えるとその引数の数だけ空白を残します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code> </kbd>+++]
+ifndef::basebackend-html[`\^[`]
+(エスケープの後に空白文字)
+--
+
+emacs-search-forward::
+順方向の履歴検索を開始します。編集モードを emacs 風編集モードの検索モードに変更します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
+ifndef::basebackend-html[`\^S`]
+--
+
+emacs-search-backward::
+順方向の履歴検索を開始します。編集モードを emacs 風編集モードの検索モードに変更します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+[[history-commands]]
+=== コマンド履歴関連のコマンド
+
+oldest-history::
+link:interact.html#history[コマンド履歴]の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+
+newest-history::
+link:interact.html#history[コマンド履歴]の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+
+return-history::
+link:interact.html#history[コマンド履歴]のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+
+oldest-history-bol::
+link:interact.html#history[コマンド履歴]の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>G</kbd>+++]
+ifndef::basebackend-html[`G`]
+--
+
+newest-history-bol::
+link:interact.html#history[コマンド履歴]の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
+
+return-history-bol::
+link:interact.html#history[コマンド履歴]のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>g</kbd>+++]
+ifndef::basebackend-html[`g`]
+--
+
+oldest-history-eol::
+link:interact.html#history[コマンド履歴]の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>&lt;</kbd>+++]
+ifndef::basebackend-html[`\^[<`]
+--
+
+newest-history-eol::
+link:interact.html#history[コマンド履歴]の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
+
+return-history-eol::
+link:interact.html#history[コマンド履歴]のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>&gt;</kbd>+++]
+ifndef::basebackend-html[`\^[>`]
+--
+
+next-history::
+link:interact.html#history[コマンド履歴]の中で次のコマンドに移動します。カーソルの位置は変わりません。
+
+prev-history::
+link:interact.html#history[コマンド履歴]の中で前のコマンドに移動します。カーソルの位置は変わりません。
+
+next-history-bol::
+link:interact.html#history[コマンド履歴]の中で次のコマンドに移動します。カーソルはバッファの先頭に移動します
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>j</kbd>, <kbd>+</kbd>, <kbd><code>\D</code></kbd>,
+<kbd><code>\^N</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`j`, `+`, `\D`, `\^N`]
+--
+
+prev-history-bol::
+link:interact.html#history[コマンド履歴]の中で前のコマンドに移動します。カーソルはバッファの先頭に移動します
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>k</kbd>, <kbd>-</kbd>, <kbd><code>\U</code></kbd>,
+<kbd><code>\^P</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`k`, `-`, `\U`, `\^P`]
+--
+
+next-history-eol::
+link:interact.html#history[コマンド履歴]の中で次のコマンドに移動します。カーソルはバッファの末尾に移動します
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\D</code></kbd>, <kbd><code>\^N</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\D`, `\^N`]
+--
+
+prev-history-eol::
+link:interact.html#history[コマンド履歴]の中で前のコマンドに移動します。カーソルはバッファの末尾に移動します
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\U</code></kbd>, <kbd><code>\^P</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\U`, `\^P`]
+--
+
+search-again::
+最後に行ったコマンド履歴検索をもう一度行います。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>n</kbd>+++]
+ifndef::basebackend-html[`n`]
+--
+
+search-again-rev::
+最後に行ったコマンド履歴検索を方向を逆にしてもう一度行います。
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>N</kbd>+++]
+ifndef::basebackend-html[`N`]
+--
+
+search-again-forward::
+最後に行ったコマンド履歴検索を順方向にもう一度行います。
+
+search-again-backward::
+最後に行ったコマンド履歴検索を逆方向にもう一度行います。
+
+beginning-search-forward::
+link:interact.html#history[コマンド履歴]を順方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ次のコマンドに移動します。カーソル位置は変わりません。
+
+beginning-search-backward::
+link:interact.html#history[コマンド履歴]を逆方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ前のコマンドに移動します。カーソル位置は変わりません。
+
+[[search-commands]]
+=== コマンド履歴検索モードのコマンド
+
+srch-self-insert::
+入力した文字を検索用バッファに挿入します。(<<escape,エスケープシーケンス>>によるエスケープの対象となる文字は挿入できません)
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+srch-backward-delete-char::
+検索用バッファの最後の一文字を削除します。検索用バッファが空の場合は:
++
+--
+- vi 風編集モードでは srch-abort-search コマンドと同じ動作をします。
+- emacs 風編集モードでは alert コマンドと同じ動作をします。
+--
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\B`, `\?`, `\^H`]
+--
+
+srch-backward-delete-line::
+検索用バッファの内容を全て削除します。
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`]
+--
+
+srch-continue-forward::
+現在表示している暫定検索結果の次の結果を順方向に探します。
++
+--
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
+ifndef::basebackend-html[`\^S`]
+--
+
+srch-continue-backward::
+現在表示している暫定検索結果の次の結果を逆方向に探します。
++
+--
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+srch-accept-search::
+検索を終了し、現在表示している暫定検索結果を確定します。検索結果に移動します。
++
+--
+vi-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^M`]
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^[</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^[`]
+--
+
+srch-abort-search::
+検索を中止し、検索を開始する前の状態に戻ります。
++
+--
+vi-search::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^G</code></kbd>+++]
+ifndef::basebackend-html[`\^G`]
+--
+
+[[escape]]
+== エスケープシーケンス
+
+link:_bindkey.html[Bindkey コマンド]で行編集のキー設定を表示・設定する際、ファンクションキーなどの特殊なキーはエスケープシーケンスで表わします。エスケープシーケンスは全てバックスラッシュ (+\+) で始まります。またバックスラッシュそのものもエスケープの対象です。エスケープシーケンスに対するキーの割り当ては以下の通りです。
+
+`\\`:: バックスラッシュ (+\+)       
+`\B`:: Backspace                               
+`\D`:: ↓矢印キー                               
+`\E`:: End                                     
+`\H`:: Home                                    
+`\I`:: Insert (Insert-char, Enter-insert-mode) 
+`\L`:: ←矢印キー                               
+`\N`:: Page-down (Next-page)                   
+`\P`:: Page-up (Previous-page)                 
+`\R`:: →矢印キー                               
+`\U`:: ↑矢印キー                               
+`\X`:: Delete                                  
+`\!`:: INTR                                    
+`\#`:: EOF                                     
+`\$`:: KILL                                    
+`\?`:: ERASE                                   
+`\^@`:: Ctrl + @
+
+`\^A`, `\^B`, ..., `\^Z`::
+Ctrl + A, Ctrl + B, ..., Ctrl + Z
++
+※ Ctrl + I は Tab、Ctrl + J は Newline、Ctrl + M は Carriage-return です。
+
+`\^[`:: Ctrl + [ (Escape)
+`\^\`:: Ctrl + \
+`\^]`:: Ctrl + ]
+`\^^`:: Ctrl + ^
+`\^_`:: Ctrl + _
+`\^?`:: Ctrl + ? (Delete)
+`\F00`, `\F01`, ..., `\F63`:: F0, F1, ..., F63
+`\a1`:: キーパッドの左上キー         
+`\a3`:: キーパッドの右上キー         
+`\b2`:: キーパッドの中央キー         
+`\bg`:: Beginning                    
+`\bt`:: Back-tab                     
+`\c1`:: キーパッドの左下キー         
+`\c3`:: キーパッドの右下キー         
+`\ca`:: Clear-all-tabs               
+`\cl`:: Close                        
+`\cn`:: Cancel                       
+`\co`:: Command                      
+`\cp`:: Copy                         
+`\cr`:: Create                       
+`\cs`:: Clear-screen または erase    
+`\ct`:: Clear-tab                    
+`\dl`:: Delete-line                  
+`\ei`:: Exit-insert-mode             
+`\el`:: Clear-to-end-of-line         
+`\es`:: Clear-to-end-of-screen       
+`\et`:: Enter (Send)                 
+`\ex`:: Exit                         
+`\fd`:: Find                         
+`\hp`:: Help                         
+`\il`:: Insert-line                  
+`\ll`:: Home-down                    
+`\me`:: Message                      
+`\mk`:: Mark                         
+`\ms`:: マウスイベント               
+`\mv`:: Move                         
+`\nx`:: Next-object                  
+`\on`:: Open                         
+`\op`:: Options                      
+`\pr`:: Print (Copy)                 
+`\pv`:: Previous-object              
+`\rd`:: Redo                         
+`\re`:: Resume                       
+`\rf`:: Ref (Reference)              
+`\rh`:: Refresh                      
+`\rp`:: Replace                      
+`\rs`:: Restart                      
+`\sf`:: Scroll-forward (Scroll-down) 
+`\sl`:: Select                       
+`\sr`:: Scroll-backward (Scroll-up)  
+`\st`:: Set-tab                      
+`\su`:: Suspend                      
+`\sv`:: Save                         
+`\ud`:: Undo                         
+`\SE`:: Shift + End
+`\SH`:: Shift + Home
+`\SI`:: Shift + Insert
+`\SL`:: Shift + ←矢印キー
+`\SR`:: Shift + →矢印キー
+`\SX`:: Shift + Delete
+`\Sbg`:: Shift + Beginning
+`\Scn`:: Shift + Cancel
+`\Sco`:: Shift + Command
+`\Scp`:: Shift + Copy
+`\Scr`:: Shift + Create
+`\Sdl`:: Shift + Delete-line
+`\Sel`:: Shift + End-of-line
+`\Sex`:: Shift + Exit
+`\Sfd`:: Shift + Find
+`\Shp`:: Shift + Help
+`\Smg`:: Shift + Message
+`\Smv`:: Shift + Move
+`\Snx`:: Shift + Next
+`\Sop`:: Shift + Options
+`\Spr`:: Shift + Print
+`\Spv`:: Shift + Previous
+`\Srd`:: Shift + Redo
+`\Sre`:: Shift + Resume
+`\Srp`:: Shift + Replace
+`\Ssu`:: Shift + Suspend
+`\Ssv`:: Shift + Save
+`\Sud`:: Shift + Undo
+
+INTR, EOF, KILL, ERASE の四つは stty コマンドなどで設定される端末の特殊文字です。一般的な環境では、INTR は Ctrl + C に、EOF は Ctrl + D に、KILL は Ctrl + U に、ERASE は Ctrl + H または Ctrl + ? に設定されています。これら四つは他のキー入力よりも優先して認識されます。
+
+[[completion]]
+== コマンドライン補完
+
+行編集でコマンドを入力している途中で Tab キーを押すことで、コマンドの名前やオプション、引数を補完することができます。コマンド名やファイル名を途中まで打ち込んだところで Tab キーを押すと、その名前に一致するコマンド名やファイル名の一覧が現れます。さらに続けて Tab キーを押すと、入力したい名前を一覧の中から選ぶことができます。(一致する名前が一つしかない場合は、一覧は現れず、直接名前がコマンドラインに入力されます。)
+
+補完の対象となる名前に +*+ や +?+ などの文字が入っている場合は、そのlink:pattern.html[パターン]に一致する名前全てがコマンドラインに展開されます。(一覧による選択はできません)
+
+標準状態では、コマンド名を入力しているときはコマンド名が、コマンドの引数を入力しているときはファイル名が補完されます。しかし補完を行う関数 (dfn:[補完関数]) を定義することで補完内容を変更することができます。
+
+[[completion-detail]]
+=== 補完動作の詳細
+
+シェルを起動してから初めて補完を行おうとしたとき、コマンド +link:_dot.html[.] -AL completion/INIT+ を実行するのと同様にして、ファイル completion/INIT をlink:params.html#sv-yash_loadpath[ロードパス]から読み込みます。ファイルが見つからない場合は、そのまま補完動作を続けます。(この処理は主にシェルに付属している補完関数を読み込むためのものですが、ロードパス内に自分で用意したファイルを置いておくことで代わりにそれを読み込ませることもできます。)
+
+補完は、対象に応じて以下のように行います。
+
+コマンド名::
+関数 +completion//command+ が定義されている場合は、それを補完関数として実行します。定義されていない場合は、入力中の単語をコマンド名として補完します。
+コマンドの引数::
+関数 +completion//argument+ が定義されている場合は、それを補完関数として実行します。定義されていない場合は、入力中の単語をファイル名として補完します。
+
+この他、link:expand.html#tilde[チルダ展開]におけるユーザ名やlink:expand.html#params[パラメータ展開]におけるパラメータ名を入力しているときは、ユーザ名やパラメータ名が常に補完されます。(補完のしかたを変更することはできません)
+
+補完関数は普通のlink:exec.html#function[関数]と同様に (link:params.html#positional[位置パラメータ]なしで) 実行されます。ただし、補完関数の実行時には以下のlink:exec.html#localvar[ローカル変数]が自動的に設定されます。
+
+link:params.html#sv-ifs[+IFS+]::
+空白文字・タブ・改行の三文字 (シェル起動時のデフォルト)
++WORDS+::
+既に入力されているコマンド名とコマンドの引数を含むlink:params.html#arrays[配列]です。コマンド名を補完しようとしているときは、この配列は空になります。
++TARGETWORD+::
+現在補完を行おうとしている、途中まで入力されたコマンド名またはコマンドの引数です。
+
+補完関数の中で link:_complete.html[complete 組込みコマンド]を実行することで、補完候補が生成されます。シェルは補完関数実行中に生成された補完候補を用いて補完を行います。
+
+補完関数の実行中は、端末に対して入出力を行ってはなりません (端末の表示が乱れてしまいます)。スムーズな補完を行うために、補完の実行中に長い時間のかかる処理を行うのは避けてください。
+
+補完の実行中は、link:posix.html[POSIX 準拠モード]が強制的に解除されます。また link:_set.html#so-errexit[errexit オプション]は無効となり、link:_trap.html[トラップ]は実行されません。
+
+// vim: set filetype=asciidoc expandtab:

@@ -1,0 +1,64 @@
+= Wait built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Wait built-in
+
+The dfn:[wait built-in] waits for jobs to terminate.
+
+[[syntax]]
+== Syntax
+
+- +wait [{{job}}...]+
+
+[[description]]
+== Description
+
+The wait built-in waits for background jobs to terminate.
+If link:job.html[job] control is enabled, stopped jobs are considered as
+terminated.
+
+The built-in can be used to wait for link:syntax.html#async[asynchronous
+commands] if job control is disabled.
+
+If the shell receives a signal while the built-in is waiting and if a
+link:_trap.html[trap] has been set for the signal, then the trap is executed
+and the built-in immediately finishes (without waiting for the jobs).
+If the shell receives a SIGINT signal when job control is enabled, the
+built-in aborts waiting.
+
+[[operands]]
+== Operands
+
+{{job}}::
+The link:job.html#jobid[job ID] of the job or the process ID of a process in
+the job.
+
+If no {{job}}s are specified, the built-in waits for all existing jobs.
+
+If the specified job does not exist, the job is considered to have terminated
+with the exit status of 127.
+
+[[exitstatus]]
+== Exit status
+
+If no {{job}}s were specified and the built-in successfully waited for all the
+jobs, the exit status is zero.
+If one or more {{job}}s were specified, the exit status is that of the last
+{{job}}.
+
+If the built-in was aborted by a signal, the exit status is an integer (&gt;
+128) that denotes the signal.
+If there was any other error, the exit status is between 1 and 126
+(inclusive).
+
+[[notes]]
+== Notes
+
+The wait built-in is a link:builtin.html#types[semi-special built-in].
+
+The process ID of the last process of a job can be obtained by the
+link:params.html#sp-exclamation[+!+ special parameter].
+You can use the link:_jobs.html[jobs built-in] as well to obtain process IDs
+of job processes.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

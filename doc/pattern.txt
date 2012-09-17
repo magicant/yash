@@ -1,0 +1,174 @@
+= Pattern matching notation
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Pattern matching notation
+:description: This page describes pattern matching notation supported by yash.
+
+dfn:[Pattern matching notation] is a syntax of dfn:[patterns] that represent
+particular sets of strings.
+When a string is included in the set of strings a pattern represents,
+the pattern is said to dfn:[match] the string.
+Whether a pattern matches a string or not is defined as follows.
+
+[[normal]]
+== Normal characters
+
+A character that is not link:syntax.html#quotes[quoted] or any of special
+characters defined below is a normal character, which matches the character
+itself.
+
+For example, the pattern +abc+ matches the string +abc+, and not any other
+strings.
+
+[[single]]
+== Single-character wildcard
+
+The character +?+ matches any single character.
+
+For example, the pattern +a?c+ matches any three-character strings that starts
+with +a+ and ends with +c+, such as +aac+, +abc+, and +a;c+.
+
+[[multiple]]
+== Multi-character wildcard
+
+The character +*+ matches any strings (of any length, including the empty
+string).
+
+For example, the pattern +a*c+ matches any string that starts with +a+
+and ends with +c+, such as +ac+, +abc+, and +a;xyz;c+.
+
+[[bracket]]
+== Bracket expression
+
+A pattern that is enclosed by brackets (+[+ and +]+) is a dfn:[bracket
+expression].
+A bracket expression must have at least one character between the brackets.
+The characters between the brackets are interpreted as a dfn:[bracket
+expression pattern], which is a below-defined special notation for bracket
+expression.
+A bracket expression pattern represents a set of characters.
+The bracket expression matches any one of the characters in the set the
+bracket expression pattern represents.
+
+If the opening bracket (+[+) is followed by an exclamation mark (+!+), the
+exclamation is not treated as part of the bracket expression pattern and the 
+whole bracket expression instead matches a character that is _not_ included in
+the set the bracket expression pattern represents.
+If the opening bracket is followed by a caret (+^+), it is treated like an
+exclamation mark as above (but shells other than yash may treat the caret
+differently).
+
+If the opening bracket (or the following exclamation or caret, if any) is
+followed by a closing bracket (+]+), it is treated as part of the bracket
+expression pattern rather than the end of the bracket expression.
+You cannot link:syntax.html#quotes[quote] characters in the bracket expression
+pattern because quotation is treated before bracket expression.
+
+An opening bracket in a pattern is treated as a normal character if it is not
+the beginning of a valid bracket expression.
+
+[[bra-normal]]
+== Normal characters (in bracket expression pattern)
+
+A character that is not any of special characters defined below is a normal
+character, which represents the character itself.
+
+For example, the bracket expression pattern +abc+ represents the set of the
+three characters +a+, +b+, and +c+. The bracket expression +[abc]+ therefore
+matches any of the three characters.
+
+[[bra-range]]
+== Range expressions
+
+A hyphen preceded and followed by a character (or <<bra-colsym,collating
+symbol>>) is a dfn:[range expression], which represents the set of the two
+characters and all characters between the two in the collation order.
+A dfn:[collation order] is an order of characters that is defined in the
+locale data.
+
+If a hyphen is followed by a closing bracket (+]+), the bracket is treated as
+the end of the bracket expression and the hyphen as a normal character.
+
+For example, the range expression +3-5+ represents the set of the three
+characters +3+, +4+, and +5+. The bracket expression +[3-5-]+ therefore
+matches one of the four characters +3+, +4+, +5+, and +-+.
+
+[[bra-colsym]]
+== Collating symbols
+
+A dfn:[collating symbol] allows more than one character to be treated as a
+single character in matching.
+A collating symbol is made up of one or more characters enclosed by the
+special brackets +[.+ and +.]+.
+
+One or more characters that are treated as a single character in matching are
+called a dfn:[collating element].
+Precisely, a bracket expression pattern represents a set of collating elements
+and a bracket expression matches a collating element rather than a character,
+but we do not differentiate them for brevity here.
+
+For example, the characters ``ch'' was treated as a single character in the
+traditional Spanish language.
+If this character combination is registered as a collating element in the
+locale data, the bracket expression +[[.ch.]df]+ matches one of +ch+, +d+, and
++f+.
+
+[[bra-eqclass]]
+== Equivalence classes
+
+An dfn:[equivalence class] represents a set of characters that are considered
+_equivalent_.
+A equivalence class is made up of a character (or more precisely, a collating
+element) enclosed by the special brackets +[=+ and +=]+.
+
+An equivalence class represents the set of characters that consists of the
+character enclosed by the brackets and the characters that are in the same
+primary equivalence class as the enclosed character.
+The shell consults the locale data for the definition of equivalence classes
+in the current locale.
+
+For example, if the six characters +a+, +&#224;+, +&#225;+, +&#226;+,
++&#227;+, +&#228;+ are defined to be in the same primary equivalence class,
+the bracket expressions +[[=a=]]+, +[[=&#224;=]]+, and +[[=&#225;=]]+ match
+one of the six.
+
+[[bra-chclass]]
+== Character classes
+
+A dfn:[character class] represents a predefined set of characters.
+A character class is made up of a class name enclosed by the special brackets
++[:+ and +:]+.
+The shell consults the locale data for which class a character belongs to.
+
+The following character classes can be used in all locales:
+
++[:lower:]+::
+set of lower case characters
++[:upper:]+::
+set of upper case characters
++[:alpha:]+::
+set of alphabets, including the +[:lower:]+ and +[:upper:]+ classes.
++[:digit:]+::
+set of decimal digits
++[:xdigit:]+::
+set of hexadecimal digits
++[:alnum:]+::
+set of alphabets and digits, including the +[:alpha:]+ and +[:digit:]+
+classes.
++[:blank:]+::
+set of blank characters, not including the newline character
++[:space:]+::
+set of space characters, including the newline character
++[:punct:]+::
+set of punctuations
++[:print:]+::
+set of printable characters
++[:cntrl:]+::
+set of control characters
+
+For example, the bracket expression `[[:lower:][:upper:]]` matches a lower or
+upper case character.
+In addition to the classes listed above, other classes may be used depending
+on the definition of the current locale.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

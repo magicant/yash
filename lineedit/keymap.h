@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.h: mappings from keys to functions */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,6 @@ extern void le_set_mode(le_mode_id_T id);
 
 extern int bindkey_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *bindkey_help[];
 
 
 /* Returns the mode ID of the specified mode. */

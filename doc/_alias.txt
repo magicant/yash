@@ -1,0 +1,62 @@
+= Alias built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Alias built-in
+
+The dfn:[alias built-in] defines and/or prints
+link:syntax.html#aliases[aliases].
+
+[[syntax]]
+== Syntax
+
+- +alias [-gp] [{{name}}[={{value}}]...]+
+
+[[description]]
+== Description
+
+The alias built-in defines and/or prints link:syntax.html#aliases[aliases] as
+specified by operands.
+The printed aliases can be used as (part of) shell commands.
+The built-in prints all currently defined aliases when given no operands.
+
+[[options]]
+== Options
+
++-g+::
++--global+::
+With this option, aliases are defined as global aliases;
+without this option, as normal aliases.
+
++-p+::
++--prefix+::
+With this option, aliases are printed in a full command form like
+`alias -g foo='bar'`.
+Without this option, only command operands are printed like `foo='bar'`.
+
+[[operands]]
+== Operands
+
+{{name}}::
+The name of an alias that should be printed.
+
+{{name}}={{value}}::
+The name and value of an alias that is being defined.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the alias built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The characters that cannot be used in an alias name are the space, tab,
+newline, and any of +=$<>\'"`;&|()#+.
+You can use any characters in an alias value.
+
+The alias built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard defines no options for the alias built-in, thus no options
+are available in the link:posix.html[POSIXly correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

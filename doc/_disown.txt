@@ -1,0 +1,48 @@
+= Disown built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Disown built-in
+
+The dfn:[disown built-in] removes jobs.
+
+[[syntax]]
+== Syntax
+
+- +disown [-a] [{{job}}...}+
+
+[[description]]
+== Description
+
+The disown built-in removes the specified jobs from the job list.
+The removed jobs will no longer be link:job.html[job-controlled], but the job
+processes continue execution (unless they have been suspended).
+
+[[options]]
+== Options
+
++-a+::
++--all+::
+Removes all jobs.
+
+[[operands]]
+== Operands
+
+{{job}}::
+The link:job.html#jobid[job ID] of the job to be removed.
++
+You can specify more than one job ID.
+If you do not specify any job ID, the current job is removed.
+If the shell is not in the link:posix.html[POSIXly-correct mode], the %-prefix
+of the job ID can be omitted.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the disown built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The disown built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

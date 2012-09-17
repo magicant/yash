@@ -1,0 +1,121 @@
+= Fc built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Fc built-in
+
+The dfn:[fc built-in] re-executes or prints commands from
+link:interact.html#history[command history].
+
+[[syntax]]
+== Syntax
+
+- +fc [-qr] [-e {{editor}}] [{{start}} [{{end}}]]+
+- +fc -s[q] [{{old}}={{new}}] [{{start}}]+
+- +fc -l[nrv] [{{start}} [{{end}}]]+
+
+[[description]]
+== Description
+
+When executed without the +-l+ (+--list+) option, the built-in executes the
+commands in the link:interact.html#history[command history] range specified by
+the operands.
+If the +-s+ (+--silent+) option is not specified, the shell invokes an editor
+which allows you to edit the commands before they are executed.
+The commands are executed when you quit the editor.
+If the +-s+ (+--silent+) option is specified, the commands are immediately
+executed.
+In either case, the executed commands are printed to the standard output and
+added to the history.
+
+When executed with the +-l+ (+--list+) option, the built-in prints the
+commands in the command history range specified by the operands.
+By default, commands are printed with their history entry numbers, but output
+format can be changed using the +-n+ (+--no-numbers)+) and +-v+ (+--verbose+)
+options.
+
+[[options]]
+== Options
+
++-e {{editor}}+::
++--editor={{editor}}+::
+Specify an editor that is used to edit commands.
++
+If this option is not specified, the value of the
+link:params.html#sv-fcedit[+FCEDIT+ variable] is used.
+If the variable is not set either, +vi+ is used.
+
++-l+::
++--list+::
+Print command history entries.
+
++-n+::
++--no-numbers+::
+Don't print entry numbers when printing history entries.
+
++-q+::
++--quiet+::
+Don't print commands before executing.
+
++-r+::
++--reverse+::
+Reverse the order of command entries in the range.
+
++-s+::
++--silent+::
+Execute commands without editing them.
+
++-v+::
++--verbose+::
+Print execution time before each history entry when printing.
+
+[[operands]]
+== Operands
+
+{{start}} and {{end}}::
+The {{start}} and {{end}} operands specify a range of command history entries
+that are executed or printed.
+If one of the operands is an integer, it is treated as a history entry number.
+A negative integer means the {{n}}th most recent entry where {{n}} is the
+absolute value of the integer.
+If one of the operands is not an integer, it is treated as part of a command
+string: the most recent entry that starts with the string is selected as the
+start or end of the range.
++
+If the first entry of the range that is specified by {{start}} is newer than
+the last entry of the range that is specified by {{end}}, the range is
+reversed as if the +-r+ (+--reverse+) option was specified.
+(If the option is already specified, it is cancelled.)
++
+The default values for {{start}} and {{end}} are:
++
+[width="50%",options="header"]
+|===
+|          |with +-l+ |without +-l+
+|{{start}} |-16       |-1
+|{{end}}   |-16       |same as {{start}}
+|===
+
+{{old}}={{new}}::
+An operand of this format replaces part of the command string.
+If the command string contains {{old}}, it is replaced with {{new}} and the
+new string is executed.
+Only the first occurrence of {{old}} is replaced.
+
+[[exitstatus]]
+== Exit status
+
+If commands was executed, the exit status of the fc built-in is that of the
+last executed command.
+Otherwise, the exit status is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The fc built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard does not define the +-q+ (+--quiet+) or +-v+ (+--verbose+)
+options, so they cannot be used in the link:posix.html[POSIXly-correct mode].
+
+Command history cannot be modified during link:lineedit.html[line-editing].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

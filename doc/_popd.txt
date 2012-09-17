@@ -1,0 +1,42 @@
+= Popd built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Popd built-in
+
+The dfn:[popd built-in] pops a directory from the directory stack.
+
+[[syntax]]
+== Syntax
+
+- +popd [{{index}}]+
+
+[[description]]
+== Description
+
+The popd built-in removes the last entry from the link:_dirs.html[directory
+stack], returning to the previous working directory.
+If {{index}} is given, the entry specified by {{index}} is removed instead of
+the last one. 
+
+[[operands]]
+== Operands
+
+{{index}}::
+The index of a directory stack entry you want to remove.
++
+If omitted, `+0` (the last entry) is assumed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the popd built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+It is an error to use this built-in when there is only one directory stack
+entry.
+
+The popd built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

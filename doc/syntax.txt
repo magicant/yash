@@ -1,0 +1,419 @@
+= Syntax
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Syntax
+:description: This page defines yash's command syntax and semantics.
+
+The shell reads, parses, and executes command line by line. If there is more
+than one command on a line, all the commands are parsed before executed. If a
+command is continued to next lines, the shell reads more enough lines to
+complete the command. On a syntax error, the shell neither reads nor executes
+any more commands.
+
+[[tokens]]
+== Tokens and keywords
+
+A command is composed of one or more tokens. In the shell syntax, a
+dfn:[token] is a word that is part of a command. Normally, tokens are
+separated by whitespaces, that is, the space or tab character. Whitespaces
+inside a command substitution or a parameter expansion, however, do not
+separate tokens.
+
+The following symbols have special meanings in the shell syntax and in most
+cases separate tokens:
+
+ ; & | < > ( ) [newline]
+
+The following symbols do not separate tokens, but have syntactic meanings:
+
+ $ ` \ " ' * ? [ # ~ = %
+
+The following tokens are treated as dfn:[keywords] depending on the context in
+which they appear:
+
+ ! { } case do done elif else esac fi
+ for function if in then until while
+
+A token is treated as a keyword when:
+
+* it is the first token of a command,
+* it follows another keyword (except +case+, +for+, and +in+), or
+* it is a non-first token of a command and is supposed to be a keyword to
+  compose a composite command.
+
+If a token begins with `#`, then the `#` and any following characters up to
+the end of the line are treated as a dfn:[comment], which is completely
+ignored in syntax parsing.
+
+[[quotes]]
+== Quotations
+
+If you want whitespaces, separator characters, or keywords described above to
+be treated as a normal characters, you must quote the characters using
+appropriate quotation marks. Quotation marks are not treated as normal
+characters unless they are themselves quoted. You can use the following three
+quotation marks:
+
+* A backslash (+\+) quotes a character that immediately follows.
+  +
+  The only exception about a backslash is the case where a backslash is
+  followed by a newline. In this case, the two characters are treated as a
+  dfn:[line continuation] rather than a newline being quoted. The two
+  characters are removed from the input and the two lines surrounding the line
+  continuation are concatenated into a single line.
+* A pair of single-quotation marks (+'+) quote any characters between them
+  except another single-quotation. Note that newlines can be quoted using
+  single-quotations.
+* Double-quotation marks (+"+) are like single-quotations, but they have a few
+  exceptions: Parameter expansion, command substitution, and arithmetic
+  expansion are interpreted as usual even between double-quotations. A
+  backslash between double-quotations is treated as a quotation mark only when
+  it is followed by +$+, +`+, +"+, +\+, or a newline; other backslashes are
+  treated as normal characters.
+
+[[aliases]]
+== Aliases
+
+Tokens that compose a command are subject to dfn:[alias substitution]. A token
+that matches the name of an alias that has already been defined is substituted
+with the value of the alias before the command is parsed.
+
+Tokens that contain quotations are not alias-substituted since an alias name
+cannot contain quotation marks. Keywords and command separator characters are
+not alias-substituted either.
+
+There are two kinds of aliases: normal aliases and global aliases. A
+dfn:[normal alias] can only substitute the first token of a command while a
+dfn:[global alias] can substitute any part of a command. Global aliases are
+yash extension that is not defined in POSIX.
+
+If a token is alias-substituted with the value of a normal alias that ends
+with a whitespace, the next token is exceptionally subject to alias
+substitution for normal aliases.
+
+The results of alias substitution are again subject to alias substitution for
+other aliases (but not for the aliases that have been already applied).
+
+You can define aliases using the link:_alias.html[alias built-in] and remove
+using the link:_unalias.html[unalias built-in].
+
+[[simple]]
+== Simple commands
+
+A command that does not start with a keyword token is a dfn:[simple command].
+Simple commands are executed as defined in link:exec.html#simple[Execution of
+simple commands].
+
+If the first and any number of following tokens of a simple command have the
+form +{{name}}={{value}}+, they are interpreted as
+link:params.html#variables[variable] assignments.
+A variable name must consist of one or more alphabets, digits and/or
+underlines (+_+) and must not start with a digit.
+The first token that is not a variable assignment is considered as a command
+name and all the following tokens (whether or not they have the form
++{{name}}={{value}}+) as command arguments.
+
+A variable assignment of the form +{{var}}=({{tokens}})+ is interpreted as
+assignment to an link:params.html#arrays[array].
+You can write any number of tokens between a pair of parentheses. Tokens can
+be separated by not only spaces and tabs but also newlines.
+
+[[pipelines]]
+== Pipelines
+
+A dfn:[pipeline] is a sequence of one or more <<simple,simple commands>>,
+<<compound,compound commands>>, and/or <<funcdef,function definitions>> that
+are separated by +|+.
+
+A pipeline is executed by executing each subcommand of the pipeline in a
+subshell simultaneously. The standard output of each subcommand except the
+last one is redirected to the standard input of the next subcommand. The
+standard input of the first subcommand and the standard output of the last
+subcommand are not redirected. The exit status of the pipeline is that of the
+last subcommand.
+
+A pipeline can be prefixed by +!+, in which case the exit status of the
+pipeline is _reversed_: the exit status of the pipeline is 1 if that of the
+last subcommand is 0, and 0 otherwise.
+
+[NOTE]
+When the execution of a pipeline finishes, at least the execution of the last
+subcommand has finished since the exit status of the last subcommand defines
+that of the whole pipeline. The execution of other subcommands, however, may
+not have finished then. On the other hand, the execution of the pipeline may
+not finish soon after that of the last subcommand finished because the shell
+may choose to wait for the execution of other subcommands to finish.
+
+[NOTE]
+The POSIX standard allows executing any of subcommands in the current shell
+rather than subshells, though yash does not do so.
+
+[[and-or]]
+== And/or lists
+
+An dfn:[and/or list] is a sequence of one or more <<pipelines,pipelines>>
+separated by +&&+ or +||+.
+
+An and/or list is executed by executing some of the pipelines conditionally.
+The first pipeline is always executed. The other pipelines are either executed
+or not executed according to the exit status of the previous pipelines.
+
+- If two pipelines are separated by +&&+ and the exit status of the first
+  pipeline is zero, the second pipeline is executed.
+- If two pipelines are separated by +||+ and the exit status of the first
+  pipeline is not zero, the second pipeline is executed.
+- In other cases, the execution of the and/or list ends: the second and any
+  remaining pipelines are not executed.
+
+The exit status of an and/or list is that of the last pipeline that was
+executed.
+
+Normally, an and/or list must be terminated by a semicolon, ampersand, or
+newline. See <<async,Command separators and asynchronous commands>>.
+
+[[async]]
+== Command separators and asynchronous commands
+
+The whole input to the shell must be composed of any number of <<and-or,and/or
+lists>> separated by a semicolon or ampersand.
+A terminating semicolon can be omitted if it is followed by +;;+, +)+, or a
+newline.
+Otherwise, an and/or list must be terminated by a semicolon or ampersand.
+
+If an and/or list is terminated by a semicolon, it is executed synchronously:
+the shell waits for the and/or list to finish before executing the next and/or
+list. If an and/or list is terminated by an ampersand, it is executed
+asynchronously: after the execution of the and/or list is started, the next
+and/or list is executed immediately. An asynchronous and/or list is always
+executed in a link:exec.html#subshell[subshell] and its exit status is zero.
+
+If the shell is not doing link:job.html[job control],
+the standard input of an asynchronous and/or list is automatically redirected
+to /dev/null. Signal handlers of the and/or list for the SIGINT and SIGQUIT
+signals are set to ``ignore'' the signal so that the execution of the and/or
+list cannot be stopped by those signals.
+(In the link:posix.html[POSIXly-correct mode], the standard input is
+redirected if and only if the shell is link:interact.html[interactive],
+regardless of whether job control is on. Moreover, the SIGINT and SIGQUIT
+signals are ignored even if job control is on.)
+
+When the execution of an asynchronous and/or list is started, the shell
+remembers its process ID. You can obtain the ID by referencing the
+link:params.html#sp-exclamation[+!+ special parameter]. You can obtain the
+current and exit status of the asynchronous list as well by using the
+link:_jobs.html[jobs] and link:_wait.html[wait] built-ins.
+
+[[compound]]
+== Compound commands
+
+Compound commands provide you with programmatic control of shell command
+execution.
+
+[[grouping]]
+=== Grouping
+
+A grouping is a list of commands that is treated as a <<simple,simple
+command>>.
+
+Normal grouping syntax::
+  +{ {{command}}...; }+
+
+Subshell grouping syntax::
+  +({{command}}...)+
+
+The +{+ and +}+ tokens are keywords, which must be separated from other
+tokens. The +(+ and +)+ tokens, however, are special separators that need not
+to be separated.
+
+In the normal grouping syntax, the commands in a grouping are executed in the
+current shell. In the subshell grouping syntax, the commands are executed in a
+new link:exec.html#subshell[subshell].
+
+In the link:posix.html[POSIXly-correct mode], a grouping must contain at least
+one command. If the shell is not in the POSIXly-correct mode, a grouping may
+contain no commands.
+
+The exit status of a grouping is that of the last command in the grouping. If
+the grouping contains no commands, its exit status is that of the last
+executed command before the grouping.
+
+[[if]]
+=== If command
+
+The if command performs a conditional branch.
+
+Basic if command syntax::
+  +if {{condition}}...; then {{body}}...; fi+
+
+Syntax with the else clause::
+  +if {{condition}}...; then {{body}}...; else {{body}}...; fi+
+
+Syntax with the elif clause::
+  +if {{condition}}...; then {{body}}...; elif {{condition}}...; then {{body}}...; fi+
+
+Syntax with the elif clause::
+  +if {{condition}}...; then {{body}}...; elif {{condition}}...; then {{body}}...; else {{body}}...; fi+
+
+For all the syntaxes, the execution of an if command starts with the execution
+of the {{condition}} commands that follows the +if+ token. If the exit status
+of the condition commands is zero, the condition is considered as ``true''. In
+this case, the {{body}} commands that follows the +then+ token are executed
+and the execution of the if command finishes. If the exit status of the
+condition commands is non-zero, the condition is considered as ``false''. In
+this case, the {{condition}} commands for the next elif clause are executed
+and the exit status is tested in the same manner as above. If there is no elif
+clause, the {{body}} commands that follow the +else+ token are executed and
+the execution of the if command finishes. If there is no else clause either,
+the execution of the if command just ends.
+
+An if command may have more than one elif-then clause.
+
+The exit status of an if command is that of the {{body}} commands that were
+executed. The exit status is zero if no {{body}} commands were executed, that
+is, all the conditions were false and there was no else clause.
+
+[[while-until]]
+=== While and until loops
+
+The while loop and until loop are simple loops with condition.
+
+While loop syntax::
+  +while {{condition}}...; do {{body}}...; done+
+
+Until loop syntax::
+  +until {{condition}}...; do {{body}}...; done+
+
+If the shell is not in the link:posix.html[POSIXly-correct mode], you can omit
+the {{condition}} and/or {{body}} commands of a while/until loop.
+
+The execution of a while loop is started by executing the {{condition}}
+commands. If the exit status of the {{condition}} commands is zero, the shell
+executes the {{body}} commands and returns to the execution of the
+{{condition}} commands. The {{condition}} and {{body}} commands are repeatedly
+executed until the exit status of the {{condition}} commands is non-zero.
+
+[NOTE]
+The {{body}} commands are not executed at all if the first execution of the
+{{condition}} commands yields a non-zero exit status.
+
+An until loop is executed in the same manner as an while loop except that the
+condition to repeat the loop is reversed: the {{body}} commands are executed
+when the exit status of the {{condition}} commands is non-zero.
+
+The exit status of a while/until loop is that of the last executed {{body}}
+command. The exit status is zero if the {{body}} commands are empty or were
+not executed at all.
+
+[[for]]
+=== For loop
+
+The for loop repeats commands with a variable assigned one of given values in
+each round.
+
+For loop syntax::
+  +for {{varname}} in {{word}}...; do {{command}}...; done+
+  +
+  +for {{varname}} do {{command}}...; done+
+
+The {{word}} list after the +in+ token may be empty, but the semicolon (or
+newline) before the +do+ token is required even in that case. The {{word}}s
+are not treated as keywords, but you need to <<quotes,quote>> separator
+characters (such as +&+ and +|+) to include them as part of a {{word}}. If you
+omit the +in+ token and the following {{word}}s, you must also omit the
+semicolon before the +do+ token. However, the shell does not complain about
+the existence of the semicolon if not in the link:posix.html[POSIXly-correct
+mode]. The {{command}} list may be empty if not in the POSIXly-correct mode.
+
+The execution of a for loop is started by expanding the {{word}}s in the same
+manner as in the execution of a <<simple,simple command>>. If the +in+
+and {{word}} tokens are omitted, the shell assumes the {{word}} tokens to be
++"$@"+. Next, the following steps are taken for each word expanded (in the
+order the words were expanded):
+
+. Assign the word to the variable whose name is {{varname}}.
+. Execute the {{command}}s.
+
+Each word is assigned as a link:exec.html#localvar[local variable] except in
+the POSIXly-correct mode.
+If the expansion of the {{word}}s yielded no words as a result, the
+{{command}}s are not executed at all.
+
+The exit status of a for loop is that of the last executed {{command}}. The
+exit status is zero if the {{command}}s are not empty and not executed at all.
+If the {{command}}s are empty, the exit status is that of the last executed
+command before the for loop.
+
+[[case]]
+=== Case command
+
+The case command performs a pattern matching to select commands to execute.
+
+Case command syntax::
+  +case {{word}} in {{caseitem}}... esac+
+
+Case item syntax::
+  +({{patterns}}) {{command}}...;;+
+
+The {{word}} between the +case+ and +in+ tokens must be exactly one word. The
+{{word}} is not treated as a keyword, but you need to <<quotes,quote>>
+separator characters (such as +&+ and +|+) to include them as part of the
+{{word}}. Between the +in+ and +esac+ tokens you can put any number of case
+items (may be none). You can omit the first +(+ token of a case item and the
+last +;;+ token before the +case+ token. If the last {{command}} of a case
+item is terminated by a semicolon, you can omit the semicolon as well. The
+{{command}}s in a case item may be empty.
+
+The {{patterns}} in a case item are one or more tokens each separated by a +|+
+token.
+
+The execution of a case command starts with subjecting the {{word}} to
+link:expand.html[the four expansions]. Next, the following steps are taken for
+each case item (in the order of appearance):
+
+. For each word in the {{patterns}}, expand the word in the same manner as the
+  {{word}} and test if the expanded pattern link:pattern.html[matches] the
+  expanded word. (If a pattern is found that matches the word, the remaining
+  patterns are not expanded nor tested, so some of the {{patterns}} may not be
+  expanded. Yash expands and tests the patterns in the order of appearance,
+  but it may not be the case for other shells.)
+. If one of the {{patterns}} was found to match the {{word}} in the previous
+  step, the {{command}}s in this case item are executed and the execution of
+  the whole case item ends. Otherwise, proceed to the next case item.
+
+The exit status of a case command is that of the {{command}}s executed. The
+exit status is zero if no
+{{command}}s were executed, that is, there were no case items, no matching
+pattern was found, or no commands were associated with the matching pattern.
+
+In the link:posix.html[POSIXly-correct mode], the first pattern in a case item
+cannot be +esac+ (even if you do not omit the +(+ token).
+
+[[funcdef]]
+== Function definition
+
+The function definition command defines a link:exec.html#function[function].
+
+Function definition syntax::
+  +{{funcname}} ( ) {{compound_command}}+
+  +
+  +function {{funcname}} {{compound_command}}+
+  +
+  +function {{funcname}} ( ) {{compound_command}}+
+
+In the first syntax without the +function+ keyword, {{funcname}} cannot
+contain any special characters such as semicolons and quotation marks. In the
+second and third syntax, which cannot be used in the
+link:posix.html[POSIXly-correct mode], {{funcname}} is subjected to
+link:expand.html[the four expansions] when executed.
+
+When a function definition command is executed, a function whose name is
+{{funcname}} is defined with its body being {{compound_command}}.
+
+A function definition command cannot be directly link:redir.html[redirected].
+Any redirections that follow a function definition are associated with
+{{compound_command}} rather than the whose function definition command.
+
+The exit status of a function definition is zero if the function was defined
+without errors, and non-zero otherwise.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

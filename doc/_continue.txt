@@ -1,0 +1,60 @@
+= Continue built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Continue built-in
+
+The dfn:[continue built-in] skips an iteration of a loop being executed.
+
+[[syntax]]
+== Syntax
+
+- +continue [{{nest}}]+
+- +continue -i+
+
+[[description]]
+== Description
+
+When executed without the +-i+ (+--iteration+) option, the built-in aborts the
+current iteration of link:syntax.html#for[for],
+link:syntax.html#while-until[while], or link:syntax.html#while-until[until]
+loop and starts the next iteration of the loop.
+When executed in nested loops, it affects the {{nest}}th innermost loop.
+The default {{nest}} is one.
+If the number of currently executed nested loops is less than {{nest}}, the
+built-in affects the outermost loop.
+
+When executed with the +-i+ (+--iteration+) option, the built-in aborts the
+current iteration of (innermost) link:_eval.html#iter[iterative execution].
+
+[[options]]
+== Options
+
++-i+::
++--iteration+::
+Skip an iterative execution instead of a loop.
+
+[[operands]]
+== Operands
+
+{{nest}}::
+The {{nest}}th innermost loop is affected.
+{{nest}} must be a positive integer.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the continue built-in is:
+
+- zero if loop iteration was successfully skipped.
+- that of the command that was executed just before the continue built-in if 
+  iterative execution was successfully skipped.
+
+[[notes]]
+== Notes
+
+The continue built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines no options for the continue built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

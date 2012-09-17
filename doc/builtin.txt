@@ -1,0 +1,129 @@
+= Built-in commands
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Built-in commands
+:description: This page describes common properties of built-ins of yash.
+
+dfn:[Built-in commands] are commands that are implemented in the shell and are
+executed by the shell without external programs.
+
+[[types]]
+== Types of built-in commands
+
+There are three types of built-in commands in yash: special built-in commands,
+semi-special built-in commands and regular built-in commands.
+
+dfn:[Special built-in commands] are much more important commands than others.
+They are executed regardless of whether the corresponding external commands
+exist or not. Results of variable assignments that occur in a
+link:syntax.html#simple[simple command] that invokes a special built-in last
+after the command has finished. Moreover, in the
+link:posix.html[POSIXly-correct mode], a link:interact.html[non-interactive]
+shell immediately exits with a non-zero exit status when a redirect error,
+assignment error, or misuse of option or operand occurs in a special built-in
+command.
+
+dfn:[Semi special built-in commands] are the second important built-in
+commands. They are executed regardless of whether the corresponding external
+commands exist or not. In other parts they are the same as regular built-in
+commands.
+
+dfn:[Regular built-in commands] are less important built-in commands including
+commands that can be implemented as external commands or are not listed in
+POSIX. In the POSIXly-correct mode, a regular built-in is executed only when
+a corresponding external command is link:exec.html#search[found in PATH].
+
+[[argsyntax]]
+== Syntax of command arguments
+
+In this section we explain common rules about command arguments. 
+The built-in commands of yash follow the rules unless otherwise stated. 
+
+There are two types of command arguments. One is options and the other is
+operands. An option is an argument that is started with a hyphen (+-+) and
+changes the way the command behaves. Some options take arguments. An operand
+is an argument that is not an option and specifies objects the command
+operates on.
+
+If you specify more than one option to a command, the order of the options are
+normally not significant. The order of operands, however, affects the command
+behavior.
+
+An option is either a single-character option or a long option.
+A single-character option is identified by one alphabet character. A long
+option is identified by multiple alphabet characters. The POSIX standard only
+prescribes single-character options, so in the link:posix.html[POSIXly-correct
+mode] you cannot use long options.
+
+A single-character option is composed of a hyphen followed by an alphabet. For
+example, +-a+ is a single-character option. A single-character option that
+takes an argument requires the argument to be just after the option name.
+
+.The set built-in and single-character options
+====
+For the set built-in, +-m+ is a single-character option that does not take an
+argument and +-o+ is one that takes an argument.
+
+- +set -o errexit -m+
+- +set -oerrexit -m+
+
+In these two command lines, +errexit+ is the argument to the +-o+ option.
+====
+
+In the second example above, the +-o+ option and its argument are combined
+into a single command line argument.
+The POSIX standard deprecates that style and any POSIX-conforming applications
+must specify options and their arguments as separate command line arguments,
+although yash accepts both styles.
+
+You can combine single-character options that do not take arguments into a
+single command line argument. For example, the three options +-a+, +-b+ and
++-c+ can be combined into +-abc+.
+
+A long option is composed of two hyphens followed by a option name.
+For example, +--long-option+ is a long option.
+You can omit some last characters of a long option name as long as it is not ambiguous.
+For example, you can use +--long+ instead of +--long-option+
+if there is no other options beginning with +--long+.
+Like a single-character option, a long option that takes an argument requires
+the argument to be a command line argument just after the option name or to be
+specified in the same command line argument as the option name,
+separated by an equal sign (+=+).
+
+.The fc built-in and long options
+====
+For the fc built-in, +--quiet+ is a long option that does not take an argument
+and +--editor+ is one that takes an argument.
+
+- +fc --editor vi --quiet+
+- +fc --editor=vi --quiet+
+
+In these command lines, +vi+ is the argument to the +--editor+ option. 
+====
+
+Arguments that are not options (nor arguments to them) are interpreted as
+operands. The POSIX standard requires all options should be specified before
+any operands. Therefore, in the link:posix.html[POSIXly-correct mode], any
+arguments that come after the first operand are interpreted as operands (even
+if they look like options). If not in the POSIXly-correct mode, you can
+specify options after operand.
+
+Regardless of whether the shell is in the POSIXly-correct mode or not, an
+argument that is just composed of two hyphens (+--+) can be used as a
+separator between options and operands. All command line arguments after the
++--+ separator are interpreted as operands, so you can specify operands that
+start with a hyphen correctly using the separator.
+
+.Options and operands to the set built-in
+====
+- `set -a -b -- -c -d`
+
+In this example, +-a+ and +-b+ are options and +-c+ and +-d+ are operands. The
++--+ separator itself is neither an option nor an operand.
+====
+
+Regardless of whether the shell is in the POSIXly-correct mode or not, an
+argument that is just composed of a single hyphen (+-+) is interpreted as an
+operand.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

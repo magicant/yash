@@ -1,0 +1,52 @@
+= Fg built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Fg built-in
+
+The dfn:[fg built-in] resumes a job in the foreground.
+
+[[syntax]]
+== Syntax
+
+- +fg [{{job}}...]+
+
+[[description]]
+== Description
+
+The fg built-in brings the specified job to the foreground and sends the
+SIGCONT signal to the job.
+As a result, the job is resumed in the foreground (if it has been suspended).
+The built-in then waits for the job to finish and returns the exit status of
+it.
+
+The name of the job is printed when the job is resumed.
+
+The built-in can be used only when link:job.html[job control] is enabled.
+
+[[operands]]
+== Operands
+
+{{job}}::
+The link:job.html#jobid[job ID] of the job to be resumed.
++
+If more than one job is specified, they are resumed in order, one at a time.
+The current job is resumed if none is specified.
++
+The percent sign (+%+) at the beginning of a job ID can be omitted if the
+shell is not in the link:posix.html[POSIXly-correct mode].
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the fg built-in is that of the (last) job resumed.
+The exit status is non-zero when there was some error.
+
+[[notes]]
+== Notes
+
+The fg built-in is a link:builtin.html#types[semi-special built-in].
+
+You cannot specify more than one job in the link:posix.html[POSIXly-correct
+mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

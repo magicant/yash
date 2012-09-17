@@ -1,0 +1,118 @@
+= Command built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Command built-in
+
+The dfn:[command built-in] executes or identifies a command.
+
+[[syntax]]
+== Syntax
+
+- +command [-befp] {{command}} [{{argument}}...]+
+- +command -v|-V [-abefkp] {{command}}...+
+
+[[description]]
+== Description
+
+Without the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option, the
+built-in executes {{command}} with {{argument}}s in the same manner as the
+last step of link:exec.html#simple[execution of simple commands].
+The command is treated as a built-in or external command or a function
+according to the options specified to the command built-in.
+The shell does not exit on argument syntax error etc. even if the command is a
+link:builtin.html#types[special built-in]
+
+With the +-v+ (+--identify+) option, {{command}} is identified.
+If the command is found in link:params.html#sv-path[+$PATH+], its full
+pathname is printed.
+If it is a link:syntax.html#tokens[keyword], link:exec.html#function[function], or link:builtin.html[built-in] that is not found in +$PATH+,
+the command name is simply printed.
+If it is an link:syntax.html#aliases[alias], it is printed in the form like
+`alias ll='ls -l'`.
+If the command is not found, nothing is printed and the exit status is
+non-zero.
+
+The +-V+ (+--verbose-identify+) option is similar to the +-v+ (+--identify+)
+option, but the output format is more human-friendly.
+
+[[options]]
+== Options
+
++-a+::
++--alias+::
+Search for the command as an link:syntax.html#aliases[alias].
+Must be used with the +-v+ (+--identify+) or +-V+ (+--verbose-identify+)
+option.
+
++-b+::
++--builtin-command+::
+Search for the command as a link:builtin.html[built-in].
+
++-e+::
++--external-command+::
+Search for the command as an external command.
+
++-f+::
++--function+::
+Search for the command as a link:exec.html#function[function].
+
++-k+::
++--keyword+::
+Search for the command as a link:syntax.html#tokens[keyword].
+Must be used with the +-v+ (+--identify+) or +-V+ (+--verbose-identify+)
+option.
+
++-p+::
++--standard-path+::
+Search the system's default +PATH+ instead of the current
+link:params.html#sv-path[+$PATH+].
+
++-v+::
++--identify+::
+Identify {{command}}s and print in the format defined in the POSIX standard.
+
++-V+::
++--verbose-identify+::
+Identify {{command}}s and print in a human-friendly format.
+
+If none of the +-a+ (+--alias+), +-b+ (+--builtin-command+), +-e+
+(+--external-command+), +-f+ (+--function+), and +-k+ (+--keyword+) options
+is specified, the followings are assumed:
+
+Without the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option::
++-b -e+
+
+With the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option::
++-a -b -e -f -k+
+
+[[operands]]
+== Operands
+
+{{command}}::
+A command to be executed or identified.
+
+{{argument}}...::
+Arguments passed to the executed command.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the command built-in is:
+
+Without the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option::
+the exit status of the executed command.
+
+With the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option::
+zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The command built-in is a link:builtin.html#types[semi-special built-in].
+
+In the link:posix.html[POSIXly-correct mode], options other than +-p+, +-v+,
+and +-V+ cannot be used and at most one {{command}} can be specified.
+The POSIX standard does not allow specifying +-v+ and +-V+ at a time, but yash
+do (only the last specified one is effective).
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

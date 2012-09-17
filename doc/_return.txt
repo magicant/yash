@@ -1,0 +1,72 @@
+= Return built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Return built-in
+
+The dfn:[return built-in] returns from a function or script.
+
+[[syntax]]
+== Syntax
+
+- +return [-n] [{{exit_status}}]+
+
+[[description]]
+== Description
+
+When executed without the +-n+ (+--no-return+) option, one of the following
+happens:
+
+- If the shell is executing a link:exec.html#function[function], the execution
+  of the function is terminated.
+- If the link:_dot.html[dot built-in] is executing a script, the execution of
+  the script is terminated.
+- If the link:_eval.html[eval built-in] is executing a command string, the
+  execution of the command is terminated.
+- Otherwise, the shell exits unless it is link:interact.html[interactive].
+
+When executed with the +-n+ (+--no-return+) option, the built-in does nothing
+but return the specified {{exit_status}}.
+
+[[options]]
+== Options
+
++-n+::
++--no-return+::
+Do not terminate a function, script, evaluated command, or the shell.
+
+[[operands]]
+== Operands
+
+{{exit_status}}::
+The exit status of the built-in.
++
+The value must be a non-negative integer.
++
+If omitted, the exit status of the last executed command is used.
+(But when the shell is executing a link:_trap.html[trap], the exit status of
+the last command before the trap is used.)
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the return built-in is defined by the {{exit_status}}
+operand.
+The exit status is used also as the exit status of the terminated function,
+script, evaluated script, or the shell.
+
+[[notes]]
+== Notes
+
+The return built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard provides that the {{exit_status}} operand should be between
+0 and 255 (inclusive).
+Yash accepts integers larger than 255 as an extension.
+
+In the POSIX standard, the behavior of the return built-in is defined only
+when the shell is executing a function or script.
+
+The POSIX standard defines no options for the return built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

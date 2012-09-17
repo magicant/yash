@@ -1,0 +1,85 @@
+= Array built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Array built-in
+
+The dfn:[array built-in] prints or modifies link:params.html#arrays[arrays].
+
+[[syntax]]
+== Syntax
+
+- +array+
+- +array {{name}} [{{value}}...]+
+- +array -d {{name}} [{{index}}...]+
+- +array -i {{name}} {{index}} [{{value}}...]+
+- +array -s {{name}} {{index}} {{value}}+
+
+[[description]]
+== Description
+
+When executed without any option or operands, the built-in prints all array
+definitions to the standard output in a form that can be parsed as commands.
+
+When executed with {{name}} and {{value}}s (but without an option), the
+built-in sets the {{value}}s as the values of the array named {{name}}.
+
+With the +-d+ (+--delete+) option, the built-in removes the {{index}}th values
+of the array named {{name}}.
+The number of values in the array will be decreased by the number of the
+{{index}}es specified.
+If the {{index}}th value does not exist, it is silently ignored.
+
+With the +-i+ (+--insert+) option, the built-in inserts {{value}}s to the
+array named {{name}}.
+The number of values in the array will be increased by the number of the
+{{value}}s specified.
+The values are inserted between the {{index}}th and next values.
+If {{index}} is zero, the values are inserted before the first value.
+If {{index}} is larger than the number of values in the array, the values are
+appended after the last element.
+
+With the +-s+ (+--set+) option, the built-in sets {{value}} as the {{index}}th
+value of the array named {{name}}.
+The array must have at least {{index}} values.
+
+[[options]]
+== Options
+
++-d+::
++--delete+::
+Delete array values.
+
++-i+::
++--insert+::
+Insert array values.
+
++-s+::
++--set+::
+Set an array value.
+
+[[operands]]
+== Operands
+
+{{name}}::
+The name of an array to operate on.
+
+{{index}}::
+The index to an array element. The first element has the index of 1.
+
+{{value}}::
+A string to which the array element is set.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the array built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The array built-in is not defined in the POSIX standard.
+
+The command +array {{name}} {{value}}...+ is equivalent to the assignment
++{{name}}=({{value}}...)+.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

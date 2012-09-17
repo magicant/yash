@@ -1,0 +1,32 @@
+= True built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - True built-in
+
+The dfn:[true built-in] does nothing successfully.
+
+[[syntax]]
+== Syntax
+
+- +true+
+
+[[description]]
+== Description
+
+The true built-in does nothing.
+Any command line arguments are ignored.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the true built-in is zero.
+
+[[notes]]
+== Notes
+
+The true built-in is a link:builtin.html#types[semi-special built-in].
+
+The true and link:_colon.html[colon] built-ins have the same effect, but true
+is a semi-special built-in while colon is a special.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

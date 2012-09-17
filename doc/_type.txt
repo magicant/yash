@@ -1,0 +1,26 @@
+= Type built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Type built-in
+
+The dfn:[type built-in] identifies a command.
+
+[[syntax]]
+== Syntax
+
+- +type [-abefkp] {{command}}...+
+
+[[description]]
+== Description
+
+The type built-in is equivalent to the link:_command.html[command built-in]
+with the +-V+ option.
+
+[[notes]]
+== Notes
+
+The POSIX standard does not define the relation between the type and command
+built-ins.
+The standard does not define options for the type built-in.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

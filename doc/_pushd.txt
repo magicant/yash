@@ -1,0 +1,60 @@
+= Pushd built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Pushd built-in
+
+The dfn:[pushd built-in] pushes a directory into the directory stack.
+
+[[syntax]]
+== Syntax
+
+- +pushd [-L|-P] [{{directory}}]+
+
+[[description]]
+== Description
+
+The pushd built-in changes the working directory to {{directory}} in the same
+manner as the link:_cd.html[cd built-in] and adds it to the directory stack.
+If the working directory could not be changed successfully, the stack is not
+modified.
+
+[[options]]
+== Options
+
+The pushd built-in accepts the following option as well as the
+link:_cd.html#options[options that can be used for the cd built-in]:
+
++--remove-duplicates+::
+If the new working directory has already been in the directory stack, the
+existing entry is removed from the stack before the new directory is pushed
+into the stack.
+
+[[operands]]
+== Operands
+
+{{directory}}::
+The pathname of the new working directory.
++
+If {{directory}} is a single hyphen (`-'), the value of the
+link:params.html#sv-oldpwd[+OLDPWD+ variable] is assumed for the new directory
+pathname, which is printed to the standard output.
++
+If {{directory}} is an integer with a plus or minus sign, it is considered as
+an entry index of the directory stack.
+The entry is removed from the stack and then pushed to the stack again.
++
+If {{directory}} is omitted, the working directory is changed to the directory
+specified by the +--default-directory=...+ option. If that option is not
+specified either, the default is index `+1`.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the pushd built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The pushd built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

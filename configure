@@ -24,7 +24,7 @@ tempo=".temp.o"
 tempd=".temp.d"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins lineedit po tests"
+dirs=". builtins doc doc/ja lineedit po tests"
 
 target="yash"
 version="2.31"
@@ -62,6 +62,9 @@ bindir='$(exec_prefix)/bin'
 datarootdir='$(prefix)/share'
 datadir='$(datarootdir)'
 localedir='$(datarootdir)/locale'
+mandir='$(datarootdir)/man'
+docdir='$(datarootdir)/doc/'"$target"
+htmldir='$(docdir)'
 install_program='$(INSTALL) -c'
 install_data='$(INSTALL) -c -m 644'
 install_dir='$(INSTALL) -d'
@@ -128,6 +131,12 @@ do
 	    datadir="${i#--datadir=}" ;;
 	--localedir=*)
 	    localedir="${i#--localedir=}" ;;
+	--mandir=*)
+	    mandir="${i#--mandir=}" ;;
+	--docdir=*)
+	    docdir="${i#--docdir=}" ;;
+	--htmldir=*)
+	    htmldir="${i#--htmldir=}" ;;
 	--enable-*|--disable-*)
 	    parseenable "$i" ;;
 	--default-loadpath=*)
@@ -170,6 +179,9 @@ Installation options:
   --datarootdir=DIR      architecture-independent data root [PREFIX/share]
   --datadir=DIR          architecture-independent data [DATAROOTDIR]
   --localedir=DIR        localization data [DATAROOTDIR/locale]
+  --mandir=DIR           man documentation [DATAROOTDIR/man]
+  --docdir=DIR           documentation root [DATAROOTDIR/doc/$target]
+  --htmldir=DIR          html documentation [DOCDIR]
 
 Optional features:
   --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
@@ -195,6 +207,7 @@ Influential environment variables:
   CC, CFLAGS, CADDS, CPPFLAGS, CPPADDS, LDFLAGS, LDADDS, LDLIBS, AR, ARFLAGS,
   ARCHIVER, LINGUAS, XGETTEXT, XGETTEXTFLAGS, MSGFMT, MSGFMTFLAGS, MSGMERGE,
   MSGMERGEFLAGS, MSGINIT, MSGCONV, MSGFILTER,
+  ASCIIDOC, ASCIIDOCFLAGS, ASCIIDOCATTRS, A2X, A2XFLAGS,
   INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
   CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
 END
@@ -314,6 +327,12 @@ msgmerge="${MSGMERGE-msgmerge}"
 msgmergeflags="${MSGMERGEFLAGS-${null}}"
 msgconv="${MSGCONV-msgconv}"
 msgfilter="${MSGFILTER-msgfilter}"
+asciidoc="${ASCIIDOC-asciidoc}"
+asciidocflags="${ASCIIDOCFLAGS-}"
+asciidocattrs="${ASCIIDOCATTRS--a docdate=\"\`date +%Y-%m-%d\`\" \
+-a yashversion=\"\$(VERSION)\" -a linkcss -a disable-javascript}"
+a2x="${A2X-a2x}"
+a2xflags="${A2XFLAGS-}"
 ctags="${CTAGS-ctags}"
 etags="${ETAGS-etags}"
 cscope="${CSCOPE-cscope}"
@@ -1632,6 +1651,11 @@ MSGMERGE="${MSGMERGE-${msgmerge}}"
 MSGMERGEFLAGS="${MSGMERGEFLAGS-${msgmergeflags}}"
 MSGCONV="${MSGCONV-${msgconv}}"
 MSGFILTER="${MSGFILTER-${msgfilter}}"
+ASCIIDOC="${ASCIIDOC-${asciidoc}}"
+ASCIIDOCFLAGS="${ASCIIDOCFLAGS-${asciidocflags}}"
+ASCIIDOCATTRS="${ASCIIDOCATTRS-${asciidocattrs}}"
+A2X="${A2X-${a2x}}"
+A2XFLAGS="${A2XFLAGS-${a2xflags}}"
 CTAGS="${CTAGS-${ctags}}"
 ETAGS="${ETAGS-${etags}}"
 CSCOPE="${CSCOPE-${cscope}}"
@@ -1669,6 +1693,18 @@ case "${localedir}" in
     / ) localedir=  ;;
     //) localedir=/ ;;
 esac
+case "${mandir}" in
+    / ) mandir=  ;;
+    //) mandir=/ ;;
+esac
+case "${docdir}" in
+    / ) docdir=  ;;
+    //) docdir=/ ;;
+esac
+case "${htmldir}" in
+    / ) htmldir=  ;;
+    //) htmldir=/ ;;
+esac
 
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
@@ -1690,6 +1726,11 @@ s!@MSGMERGE@!${MSGMERGE}!g
 s!@MSGMERGEFLAGS@!${MSGMERGEFLAGS}!g
 s!@MSGCONV@!${MSGCONV}!g
 s!@MSGFILTER@!${MSGFILTER}!g
+s!@ASCIIDOC@!${ASCIIDOC}!g
+s!@ASCIIDOCFLAGS@!${ASCIIDOCFLAGS}!g
+s!@ASCIIDOCATTRS@!${ASCIIDOCATTRS}!g
+s!@A2X@!${A2X}!g
+s!@A2XFLAGS@!${A2XFLAGS}!g
 s!@CATALOGS@!${CATALOGS}!g
 s!@CTAGS@!${CTAGS}!g
 s!@CTAGSARGS@!${CTAGSARGS}!g
@@ -1713,6 +1754,9 @@ s!@bindir@!${bindir}!g
 s!@datarootdir@!${datarootdir}!g
 s!@datadir@!${datadir}!g
 s!@localedir@!${localedir}!g
+s!@mandir@!${mandir}!g
+s!@docdir@!${docdir}!g
+s!@htmldir@!${htmldir}!g
 s!@default_loadpath@!${default_loadpath}!g
 s!@enable_nls@!${enable_nls}!g
 "

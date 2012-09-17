@@ -1,0 +1,75 @@
+= Exit built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Exit built-in
+
+The dfn:[exit built-in] causes the shell process to exit.
+
+[[syntax]]
+== Syntax
+
+- +exit [-f] [{{exit_status}}]+
+
+[[description]]
+== Description
+
+The exit built-in causes the current shell (or
+link:exec.html#subshell[subshell]) process to exit.
+
+If an interactive shell has a stopped link:job.html[job], the shell prints a
+warning message and refuses to exit.
+To force the shell to exit regardless, specify the +-f+ (+--force+) option or
+execute the built-in twice in a row.
+
+If an EXIT link:_trap.html[trap] has been set, the shell executes the trap
+before exiting.
+
+[[options]]
+== Options
+
++-f+::
++--force+::
+Suppress warnings that would prevent the shell from exiting.
+
+[[operands]]
+== Operands
+
+{{exit_status}}::
+A non-negative integer that will be the exit status of the exiting shell.
++
+If this operand is omitted, the exit status of the shell will be that of the
+last command executed before the exit built-in (but, if the built-in is
+executed during a link:_trap.html[trap], the exit status of the last command
+before the trap is used).
++
+If {{exit_status}} is 256 or larger, the actual exit status will be
+the remainder of {{exit_status}} divided by 256.
+
+[[exitstatus]]
+== Exit status
+
+Because the built-in causes the shell to exit, there is no exit status of the
+built-in.
+
+As an exception, if the shell refused to exit, the exit status of the built-in
+is non-zero.
+
+[[notes]]
+== Notes
+
+The exit built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines no options for the exit built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+The POSIX standard provides that the {{exit_status}} operand should be between
+0 and 255 (inclusive).
+Yash accepts integers larger than 255 as an extension.
+
+If the built-in is executed during an EXIT link:_trap.html[trap], the shell
+just exits without executing the trap again.
+If {{exit_status}} was not specified, the exit status of the shell is what the
+exit status would be if the trap had not been set.
+See also link:exec.html#exit[Termination of the shell].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

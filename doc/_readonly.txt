@@ -1,0 +1,29 @@
+= Readonly built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Readonly built-in
+
+The dfn:[readonly built-in] makes variables and functions read-only.
+
+[[syntax]]
+== Syntax
+
+- +readonly [-pxX] [{{name}}[={{value}}]...]+
+- +readonly -f[p] [{{name}}...]+
+
+[[description]]
+== Description
+
+The readonly built-in is equivalent to the link:_typeset.html[typeset
+built-in] with the +-gr+ option.
+
+[[notes]]
+== Notes
+
+The readonly built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines the +-p+ option only;
+other options cannot be used in the link:posix.html[POSIXly-correct mode].
+The POSIX does not allow using the option together with operands.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

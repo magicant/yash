@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,8 +103,6 @@ extern int wait_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int disown_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *jobs_help[], *fg_help[], *bg_help[], *wait_help[],
-       *disown_help[];
 
 
 #endif /* YASH_JOB_H */

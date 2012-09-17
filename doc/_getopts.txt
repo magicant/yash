@@ -1,0 +1,111 @@
+= Getopts built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Getopts built-in
+
+The dfn:[getopts built-in] parses command options.
+
+[[syntax]]
+== Syntax
+
+- +getopts {{optionlist}} {{variable}} [{{argument}}...]+
+
+[[description]]
+== Description
+
+The getopts built-in parses link:builtin.html#argsyntax[single-character
+options] that appear in {{argument}}s.
+Each time the built-in is invoked, it parses one option and assigns the option
+character to {{variable}}.
+
+The {{optionlist}} operand is a list of option characters that should be
+accepted by the parser.
+In {{optionlist}}, an option that takes an argument should be specified as the
+option character followed by a colon.
+For example, if you want the +-a+, +-b+ and +-c+ options to be parsed and the
++-b+ option to take an argument, then {{optionlist}} should be +ab:c+.
+
+When an option that takes an argument is parsed, the argument is assigned to
+the link:params.html#sv-optarg[+OPTARG+ variable].
+
+When an option that is not specified in {{optionlist}} is found or when an
+option argument is missing, the result depends on the first character of
+{{optionlist}}:
+
+- If {{optionlist}} starts with a colon, the option character is assigned to
+  the +OPTARG+ variable and {{variable}} is set to either +?+ (when the option
+  is not in {{optionlist}}) or +:+ (when the option argument is missing).
+- Otherwise, {{variable}} is set to +?+, the +OPTARG+ variable is unset, and
+  an error message is printed.
+
+The built-in parses one option for each execution.
+For all options in a set of command line arguments to be parsed, the built-in
+has to be executed repeatedly with the same arguments.
+The built-in uses the link:params.html#sv-optind[+OPTIND+ variable] to
+remember which {{argument}} should be parsed next.
+When the built-in is invoked for the first time, the variable value must be
++1+, which is the default value.
+You must not modify the variable until all the options have been parsed, when
+the built-in sets the variable to the index of the first operand in
+{{argument}}s.
+(If there are no operands, it will be set to the number of {{argument}}s plus
+one.)
+
+When you want to start parsing a new set of {{argument}}s, you have to reset
+the +OPTIND+ variable to +1+ beforehand.
+
+[[operands]]
+== Operands
+
+{{optionlist}}::
+A list of options that should be accepted as valid options in parsing.
+
+{{variable}}::
+The name of a variable the result is to be assigned to.
+
+{{argument}}s::
+Command line arguments that are to be parsed.
++
+When no {{argument}}s are given, the link:params.html#positional[positional
+parameters] are parsed.
+
+[[exitstatus]]
+== Exit status
+
+If an option is found, whether or not it is specified in {{optionlist}}, the
+exit status is zero.
+If there is no more option to be parsed, the exit status is non-zero.
+
+[[example]]
+== Example
+
+----
+aopt=false bopt= copt=false
+while getopts ab:c opt
+do
+  case $opt in
+  a) aopt=true ;;
+  b) bopt=$OPTARG ;;
+  c) copt=true ;;
+  \?) return 2 ;;
+  esac
+done
+if $aopt;          then echo Option -a specified;       fi
+if [ -n "$bopt" ]; then echo Option -b $bopt specified; fi
+if $copt;          then echo Option -c specified;       fi
+shift $((OPTIND - 1))
+echo Operands are: $*
+----
+
+[[notes]]
+== Notes
+
+In {{argument}}s that are parsed, options must precede operands.
+The built-in ends parsing when it encounters the first operand.
+
+The getopts built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard does not specify what will happen when the +OPTIND+
+variable is assigned a value other than +1+.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

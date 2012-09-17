@@ -1,0 +1,89 @@
+= POSIXly-correct mode
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - POSIXly-correct mode
+:description: This page describes the behavior of yash's POSIXly-correct mode.
+
+Yash behaves as defined in
+link:http://pubs.opengroup.org/onlinepubs/9699919799/[POSIX.1-2008], Shell &
+Utilities for the most part, but some functionalities disobey POSIX for
+usability.
+When full POSIX-conformance is needed, you can enable the dfn:[POSIXly-correct
+mode] to make yash obey POSIX as mush as possible.
+
+If yash is started in the name of ``sh'', the POSIXly-correct mode is
+automatically enabled.
+The +-o posixly-correct+ command-line option also enables the POSIXly-correct
+mode.
+After yash has been started, the POSIXly-correct mode can be enabled by
+executing the command string +link:_set.html[set] -o posixly-correct+.
+
+When the POSIXly-correct mode is on, yash not only tries to obey the
+requirements by POSIX, but also treats as errors most conditions where the
+behavior is _undefined_ or _unspecified_ by POSIX.
+As a result, most yash-specific functionalities are disabled in the
+POSIXly-correct mode.
+
+Below is the complete list of the behavioral differences between when yash is
+in the POSIXly-correct mode and when not.
+When the POSIXly-correct mode is enabled:
+
+- Different link:invoke.html#init[initialization scripts] are used.
+- Global link:syntax.html#aliases[aliases] are not substituted.
+- Nested commands in a link:syntax.html#compound[compound command] must not be
+  empty.
+- Words expanded in a link:syntax.html#for[for loop] are assigned as a global
+  variable rather than a local.
+- The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
+- The +function+ keyword cannot be used for link:syntax.html#funcdef[function
+  definition].
+- link:syntax.html#simple[Simple commands] cannot assign to
+  link:params.html#arrays[arrays].
+- Changing the value of the link:params.html#sv-lc_ctype[+LC_CTYPE+ variable]
+  after the shell has been initialized does not affect the shell's locale.
+- The link:params.html#sv-random[+RANDOM+ variable] cannot be used to generate
+  random numbers.
+- link:expand.html#tilde[Tilde expansion] only expands +~+ and
+  +~{{username}}+.
+- link:expand.html#params[Parameter expansion] cannot be nested.
+  No link:expand.html#param-index[indexes] are allowed.
+- The commands in a link:expand.html#cmdsub[command substitution] of the form
+  +$({{commands}})+ are parsed every time the substitution is executed.
+- Fractional numbers cannot be used in link:expand.html#arith[arithmetic
+  expansion].
+- In a link:redir.html#file[redirection to a file], if the
+  link:expand.html#glob[pathname expansion] yielded more than one or no
+  pathname, it is not immediately treated as an error. Instead, the shell
+  tries to treat the word before the expansion as a pathname.
+- link:redir.html#socket[Socket redirection], link:redir.html#here[here
+  strings], link:redir.html#pipe[pipe redirection], and
+  link:redir.html#process[process redirection] cannot be used.
+- When link:exec.html#simple[executing a simple command], failure in command
+  search does not trigger execution of the
+  link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+
+  variable].
+- In link:exec.html#search[command search], a link:builtin.html#types[regular
+  built-in] needs to have a corresponding external command for the built-in to
+  be found.
+- link:syntax.html#async[asynchronous commands] ignore the SIGINT and SIGQUIT
+  signals even when link:job.html[job control] is active.
+  The standard input of asynchronous commands are redirected to /dev/null if
+  the shell is not link:interact.html[interactive], regardless of whether job
+  control is active or not.
+- Some link:builtin.html[built-ins] behave differently.
+  Especially, some command-line options cannot be used.
+- A link:interact.html[non-interactive] shell exits when a
+  link:builtin.html#types[special built-in] is given a syntactically wrong
+  arguments or when an error occurs in assignment or redirection with a
+  special built-in.
+- An link:interact.html[interactive] shell does not execute the
+  link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable] before
+  printing a prompt.
+  The values of the link:params.html#sv-ps1[+PS1+],
+  link:params.html#sv-ps2[+PS2+], and link:params.html#sv-ps4[+PS4+] variables
+  are parsed differently.
+- In link:interact.html#mailcheck[mail checking], a notification message is
+  printed if the file has been modified, regardless of whether the file is
+  empty.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

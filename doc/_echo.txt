@@ -1,0 +1,115 @@
+= Echo built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Echo built-in
+
+The dfn:[echo built-in] prints arguments.
+
+[[syntax]]
+== Syntax
+
+- +echo [{{string}}...]+
+
+The built-in treats all command line arguments as operands except for the
+options described below.
+Any word that cannot be parsed as an acceptable option is treated as an
+operand.
+Options must precede all operands.
+Syntax errors never happen in the echo built-in.
+
+[[description]]
+== Description
+
+The echo built-in prints the operand {{string}}s followed by a newline to the
+standard output.
+The {{string}}s are each separated by a space.
+
+[[escapes]]
+=== Escape sequences
+
+The +ECHO_STYLE+ variable and the +-e+ option enable escape sequences that are
+replaced with corresponding characters:
+
++\a+::
+Bell character (ASCII code: 7)
++\b+::
+Backspace (ASCII code: 8)
++\c+::
+Nothing. After this escape sequence, no characters are printed at all.
++\e+::
+Escape character (ASCII code: 27)
++\f+::
+Form feed character (ASCII code: 12)
++\n+::
+Newline character (ASCII code: 10)
++\r+::
+Carriage return character (ASCII code: 13)
++\t+::
+Horizontal tab character (ASCII code: 9)
++\v+::
+Vertical tab character (ASCII code: 11)
++\\+::
+Backslash
++\0{{xxx}}+::
+Character whose code is {{xxx}}, where {{xxx}} is an octal number of at most
+three digits.
+
+When escape sequences are not enabled, they are just printed intact.
+
+[[echo_style]]
+=== +ECHO_STYLE+ variable
+
+The link:params.html#sv-echo_style[+ECHO_STYLE+ variable] defines which
+options are accepted and whether escape sequences are enabled by default.
+The variable value should be set to one of the following:
+
++SYSV+::
++XSI+::
+No options are accepted.
+Escape sequences are always enabled.
++BSD+::
+The +-n+ option is accepted.
+Escape sequences are never enabled.
++GNU+::
+The +-n+, +-e+, and +-E+ options are accepted.
+Escape sequences are not enabled by default, but can be enabled by the +-e+
+option.
++ZSH+::
+The +-n+, +-e+, and +-E+ options are accepted.
+Escape sequences are enabled by default, but can be disabled by the +-E+
+option.
++DASH+::
+The +-n+ option is accepted.
+Escape sequences are always enabled.
++RAW+::
+No options are accepted.
+Escape sequences are never enabled.
+
+When the +ECHO_STYLE+ variable is not set, it defaults to +SYSV+.
+
+[[options]]
+== Options
+
++-n+::
+Do not print a newline at the end.
++-e+::
+Enable escape sequences.
++-E+::
+Disable escape sequences.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the echo built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The POSIX standard does not define the +ECHO_STYLE+ variable nor any options
+for the built-in.
+According to POSIX, the behavior of the built-in is implementation-defined
+when the first argument is +-n+ or when any argument contains a backslash.
+For maximum portability, the link:_printf.html[printf built-in] should be
+preferred over the echo built-in.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

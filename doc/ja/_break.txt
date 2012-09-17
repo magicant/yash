@@ -1,0 +1,46 @@
+= Break 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Break 組込みコマンド
+
+dfn:[Break 組込みコマンド]は実行中のループを中断します。
+
+[[syntax]]
+== 構文
+
+- +break [{{深さ}}]+
+- +break -i+
+
+[[description]]
+== 説明
+
++-i+ (+--iteration+) オプションを付けずに実行すると、break コマンドは現在実行中の link:syntax.html#for[for ループ]または link:syntax.html#while-until[while ループ]または link:syntax.html#while-until[until ループ]を中断します。多重ループの中で実行した場合、内側から数えて{{深さ}}番目のループを中断します。{{深さ}}が指定されていないときは、最も内側のループを中断します ({{深さ}} = 1)。指定された{{深さ}}が実際に実行している多重ループの深さより大きい場合は最も外側のループを中断します。
+
++-i+ (+--iteration+) オプションを付けて実行すると、break コマンドは現在実行中のlink:_eval.html#iter[反復実行]を中断します。
+
+[[options]]
+== オプション
+
++-i+::
++--iteration+::
+ループではなく反復実行を中断します。
+
+[[operands]]
+== オペランド
+
+{{nest}}::
+内側から何番目のループを中断するのかを指定する 1 以上の自然数です。
+
+[[exitstatus]]
+== 終了ステータス
+
+ループの中断に成功すると終了ステータスは 0 です。反復実行の中断に成功すると break コマンドの直前に実行されたコマンドの終了ステータスが break コマンドの終了ステータスになります。
+
+[[notes]]
+== 補足
+
+Break コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
+
+// vim: set filetype=asciidoc expandtab:

@@ -1,0 +1,95 @@
+= Cd built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Cd built-in
+
+The dfn:[cd built-in] changes the working directory.
+
+[[syntax]]
+== Syntax
+
+- +cd [-L|-P] [{{directory}}]+
+
+[[description]]
+== Description
+
+The cd built-in changes the working directory to the directory specified by
+the operand.
+The pathname of the new working directory is assigned to the
+link:params.html#sv-pwd[+PWD+ variable], whose previous value is again
+assigned to the link:params.html#sv-oldpwd[+OLDPWD+ variable].
+
+If {{directory}} is a relative path that does not start with `.' or `..',
+paths in the link:params.html#sv-cdpath[+CDPATH+ variable] are searched to
+find a new working directory.
+The search is done in a manner similar to the last step of
+link:exec.html#search[command search], but a directory is sought instead of an
+executable regular file.
+If a new working directory was found from +CDPATH+, its pathname is printed to
+the standard output.
+If no applicable directory was found in the search, {{directory}} is simply
+treated as a pathname relative to the current working directory.
+
+If the working directory was successfully changed, the value of the
+link:params.html#sv-yash_after_cd[+YASH_AFTER_CD+ variable] is executed as a
+command unless the shell is in the link:posix.html[POSIXly-correct mode].
+If the variable is an link:params.html#arrays[array], its values are executed
+iteratively (cf. link:_eval.html#iter[eval built-in]).
+
+[[options]]
+== Options
+
++-L+::
++--logical+::
+Symbolic links in the pathname of the new working directory are not resolved.
+The new value of the +PWD+ may include pathname components that are symbolic
+links.
+
++-P+::
++--physical+::
+Symbolic links in the pathname of the new working directory are resolved.
+The new value of the +PWD+ variable never includes pathname components that
+are symbolic links.
+
++--default-directory={{directory}}+::
+If this option is specified and the {{directory}} operand is omitted, the
+argument to this option is used for the {{directory}} operand.
+If the {{directory}} operand is specified, this option is ignored.
+
+The +-L+ (+--logical+) and +-P+ (+--physical+) options are mutually exclusive:
+only the last specified one is effective.
+If neither is specified, +-L+ is assumed.
+
+[[operands]]
+== Operands
+
+{{directory}}::
+The pathname of the new working directory.
++
+If {{directory}} is a single hyphen (`-'), the value of the
+link:params.html#sv-oldpwd[+OLDPWD+ variable] is assumed for the new directory
+pathname, which is printed to the standard output.
++
+If {{directory}} is omitted, the working directory is changed to the directory
+specified by the +--default-directory=...+ option. If that option is not
+specified either, the default is the link:params.html#sv-home[home directory].
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the cd built-in is zero if the working directory was
+successfully changed and non-zero if there was an error.
+
+[[notes]]
+== Notes
+
+The cd built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard does not define the use of the +YASH_AFTER_CD+ variable or
+the +--default-directory=...+ option.
+The standard does not allow using an option with a single hyphen operand.
+
+The exit status of the commands in the +YASH_AFTER_CD+ variable does not
+affect that of the cd built-in.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1910,48 +1910,6 @@ end:
     free(qname);
 }
 
-#if YASH_ENABLE_HELP
-const char *typeset_help[] = { Ngt(
-"typeset, export, readonly - set or print variables\n"
-), Ngt(
-"\ttypeset  [-fgprxX] [name[=value]...]\n"
-"\texport   [-prX]    [name[=value]...]\n"
-"\treadonly [-fpxX]   [name[=value]...]\n"
-), Ngt(
-"For each operand of the form <name>, the variable of the specified name is\n"
-"created if not yet created, without assigning any value. If the -p (--print)\n"
-"option is specified, the current value and the attributes of the variable\n"
-"are printed instead of creating the variable.\n"
-), Ngt(
-"For each operand of the form <name=value>, the value is assigned to the\n"
-"specified variable. The variable is created if not yet created.\n"
-"If no operands are given, all existing variables are printed.\n"
-), (
-"\n"
-), Ngt(
-"By default, the typeset built-in affects local variables only. To create a\n"
-"global variable inside a function, the -g (--global) option can be used.\n"
-), Ngt(
-"The -r (--readonly) option makes the specified variables/functions read-\n"
-"only.\n"
-), Ngt(
-"The -x (--export) option makes the variables exported to external commands.\n"
-), Ngt(
-"The -X (--unexport) option undoes the exportation.\n"
-), Ngt(
-"The -f (--functions) option can be used to affect functions instead of\n"
-"variables. Functions cannot be assigned or exported with the typeset\n"
-"built-in: the -f option can be used only together with the -r or -p option\n"
-"to make functions read-only or print them.\n"
-), (
-"\n"
-), Ngt(
-"`export' is equivalent to `typeset -gx'.\n"
-"`readonly' is equivalent to `typeset -gr'.\n"
-"Note that the typeset built-in is unavailable in the POSIXly correct mode.\n"
-), NULL };
-#endif /* YASH_ENABLE_HELP */
-
 #if YASH_ENABLE_ARRAY
 
 /* The "array" built-in, which accepts the following options:
@@ -2205,33 +2163,6 @@ invalid_index:
 	    indexword, name, array->v_valc);
 }
 
-#if YASH_ENABLE_HELP
-const char *array_help[] = { Ngt(
-"array - manipulate an array\n"
-), Ngt(
-"\tarray\n"
-"\tarray name [value...]\n"
-"\tarray -d name [index...]\n"
-"\tarray -i name index [value...]\n"
-"\tarray -s name index value\n"
-), Ngt(
-"The first form (without arguments) prints all existing arrays.\n"
-), Ngt(
-"The second form sets the values of the array of the specified <name>. This\n"
-"is equivalent to an assignment of the form `name=(values)'.\n"
-), Ngt(
-"The third form (with the -d (--delete) option) removes the elements of the\n"
-"specified <index>es from the array.\n"
-), Ngt(
-"The fourth form (with the -i (--insert) option) inserts elements after the\n"
-"element of the specified <index> in the array. If the index is zero, the\n"
-"elements are inserted at the head of the array.\n"
-), Ngt(
-"The fifth form (with the -s (--set) option) sets the value of the specified\n"
-"single element.\n"
-), NULL };
-#endif /* YASH_ENABLE_HELP */
-
 #endif /* YASH_ENABLE_ARRAY */
 
 /* The "unset" built-in, which accepts the following options:
@@ -2328,22 +2259,6 @@ bool unset_variable(const wchar_t *name)
     return false;
 }
 
-#if YASH_ENABLE_HELP
-const char *unset_help[] = { Ngt(
-"unset - remove variables or functions\n"
-), Ngt(
-"\tunset [-fv] name...\n"
-), Ngt(
-"The unset built-in removes the specified variables or functions.\n"
-"When the -f (--functions) option is specified, this built-in removes\n"
-"functions. When the -v (--variables) option is specified, this built-in\n"
-"removes variables.\n"
-), Ngt(
-"-f and -v are mutually exclusive: only the last specified one is effective.\n"
-"If neither is specified, -v is the default.\n"
-), NULL };
-#endif
-
 /* The "shift" built-in */
 int shift_builtin(int argc, void **argv)
 {
@@ -2410,18 +2325,6 @@ int shift_builtin(int argc, void **argv)
 
     return Exit_SUCCESS;
 }
-
-#if YASH_ENABLE_HELP
-const char *shift_help[] = { Ngt(
-"shift - remove some positional parameters\n"
-), Ngt(
-"\tshift [n]\n"
-), Ngt(
-"The shift built-in removes the first <n> positional parameters.\n"
-"If <n> is not specified, it defaults to 1.\n"
-"<n> must be a non-negative integer that is not greater than $#.\n"
-), NULL };
-#endif
 
 /* The "getopts" built-in */
 int getopts_builtin(int argc, void **argv)
@@ -2611,59 +2514,6 @@ bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     v[1] = L'\0';
     return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
 }
-
-#if YASH_ENABLE_HELP
-const char *getopts_help[] = { Ngt(
-"getopts - parse command options\n"
-), Ngt(
-"\tgetopts options var [arg...]\n"
-), Ngt(
-"The getopts built-in parses <options> that appear in <arg>s. Each time\n"
-"getopts is invoked, one option is parsed and the option character is\n"
-"assigned to variable <var>.\n"
-), Ngt(
-"String <options> is a list of option characters that can be accepted by the\n"
-"parser. In <options>, an option that takes an argument can be specified as\n"
-"a character followed by a colon.\n"
-"For example, if you want the -a, -b and -c options to be parsed and the -b\n"
-"option takes an argument, then <options> should be `ab:c'.\n"
-), Ngt(
-"Argument <var> is the name of a variable to which the parsed option\n"
-"character is assigned. When an option specified in <options> is parsed, the\n"
-"option character is assigned to variable <var>. Otherwise, `?' is assigned\n"
-"to <var>.\n"
-), Ngt(
-"Arguments <arg>s are the strings to parse. If no <arg>s are given, the\n"
-"current positional parameters are parsed.\n"
-), (
-"\n"
-), Ngt(
-"When an option that takes an argument is parsed, the option's argument is\n"
-"assigned to $OPTARG.\n"
-), Ngt(
-"When an option that is not specified in <options> is found or when an\n"
-"option's argument is missing, the result depends on the first character of\n"
-"<options>: If <options> starts with a colon, the option character is\n"
-"assigned to $OPTARG and variable <var> is set to `?' (when the option is not\n"
-"in <options>) or `:' (when the option's argument is missing). Otherwise,\n"
-"variable <var> is set to `?', $OPTARG is unset, and an error message is\n"
-"printed.\n"
-), (
-"\n"
-), Ngt(
-"If an option is found, whether or not it is specified in <options>, the exit\n"
-"status is zero. If there is no more option to parse, the exit status is\n"
-"non-zero and $OPTIND is updated so that the $OPTIND'th argument of <arg>s is\n"
-"the first operand (non-option argument). If there are no operands, $OPTIND\n"
-"will be the number of <arg>s plus one.\n"
-), Ngt(
-"When this command is invoked for the first time, $OPTIND must be `1', which\n"
-"is the default value of $OPTIND. Until all the options are parsed, you must\n"
-"not change the value of $OPTIND and the getopts built-in must be invoked\n"
-"with the same arguments. Reset $OPTIND to `1' and then getopts can be used\n"
-"with another set of <options>, <var> and <arg>s.\n"
-), NULL };
-#endif /* YASH_ENABLE_HELP */
 
 /* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
@@ -2867,28 +2717,6 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
     free(values);
 }
 
-#if YASH_ENABLE_HELP
-const char *read_help[] = { Ngt(
-"read - read a line from the standard input\n"
-), Ngt(
-"\tread [-Ar] var...\n"
-), Ngt(
-"The read built-in reads a line from the standard input and splits it into\n"
-"words using $IFS as separators. The words are assigned to variables <var>s:\n"
-"the first word is assigned to the first <var>, the second word to the second\n"
-"<var>, and so on. If <var>s are fewer than the words, the leftover words are\n"
-"not split and assigned to the last <var> at once. If the words are fewer\n"
-"than <var>s, the leftover <var>s are set to empty strings.\n"
-), Ngt(
-"If the -r (--raw-mode) option is not specified, backslashes in the input are\n"
-"considered to be an escape character.\n"
-), Ngt(
-"If the -A (--array) option is specified, the leftover words are assigned to\n"
-"the array whose name is the last <var>.\n"
-"The -A option is not available in the POSIXly correct mode.\n"
-), NULL };
-#endif
-
 /* options for the "pushd" built-in */
 static const struct xgetopt_T pushd_options[] = {
 #if YASH_ENABLE_DIRSTACK
@@ -3074,29 +2902,6 @@ void remove_dirstack_dups(variable_T *var)
 	    remove_dirstack_entry_at(var, index);
 }
 
-#if YASH_ENABLE_HELP
-const char *pushd_help[] = { Ngt(
-"pushd - push a directory into the directory stack\n"
-), Ngt(
-"\tpushd [-L|-P] [directory]\n"
-), Ngt(
-"The pushd built-in changes the working directory to <dir> and appends it to\n"
-"the directory stack. Options that can be used for the cd built-in can also\n"
-"be used for the pushd built-in: -L, -P, and --default-directory=...\n"
-), Ngt(
-"If <dir> is an integer with the plus or minus sign, it is considered a\n"
-"specific entry of the stack, which is removed from the stack and appended\n"
-"again. An integer with the plus sign specifies the nth newest entry, and\n"
-"a one with the minus sign specifies the nth oldest entry.\n"
-), Ngt(
-"If neither of <dir> and the --default-directory=... option is specified,\n"
-"`+1' is assumed for <dir>.\n"
-), Ngt(
-"If the --remove-duplicates option is specified, entries that are the same as\n"
-"the new working directory are removed from the stack.\n"
-), NULL };
-#endif
-
 /* The "popd" built-in. */
 int popd_builtin(int argc, void **argv)
 {
@@ -3154,21 +2959,6 @@ int popd_builtin(int argc, void **argv)
     free(newpwd);
     return result;
 }
-
-#if YASH_ENABLE_HELP
-const char *popd_help[] = { Ngt(
-"popd - pop a directory from the directory stack\n"
-), Ngt(
-"\tpopd [index]\n"
-), Ngt(
-"The popd built-in removes the last entry from the directory stack, returning\n"
-"to the previous directory.\n"
-), Ngt(
-"If <index> is given, the entry specified by <index> is removed instead of\n"
-"the last one. An integer with the plus sign specifies the nth newest entry\n"
-"and a one with the minus sign specifies the nth oldest entry.\n"
-), NULL };
-#endif
 
 /* The "dirs" built-in, which accepts the following options:
  *  -c: clear the stack
@@ -3251,21 +3041,6 @@ bool print_dirstack_entry(
     else
 	return xprintf("%ls\n", dir);
 }
-
-#if YASH_ENABLE_HELP
-const char *dirs_help[] = { Ngt(
-"dirs - print the directory stack\n"
-), Ngt(
-"\tdirs [-cv] [index...]\n"
-), Ngt(
-"With no arguments, the dirs built-in prints the entries of the directory\n"
-"stack. If <index> is specified, only the specified entry is printed.\n"
-), Ngt(
-"The -v (--verbose) option prints the index before each entry.\n"
-), Ngt(
-"The -c (--clear) option clears the stack.\n"
-), NULL };
-#endif
 
 #endif /* YASH_ENABLE_DIRSTACK */
 

@@ -1,0 +1,109 @@
+= Kill built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Kill built-in
+
+The dfn:[kill built-in] sends a signal to processes.
+
+[[syntax]]
+== Syntax
+
+- +kill [-{{signal}}|-s {{signal}}|-n {{signal}}] {{process}}...+
+- +kill -l [-v] [{{signal}}...]+
+
+The kill built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.
+
+[[description]]
+== Description
+
+When executed without the +-l+ option, the built-in sends a signal to
+processes.
+The signal sent can be specified by option.
+The SIGTERM signal is sent if no signal is specified.
+
+When executed with the +-l+ option, the built-in prints information of
+{{signal}}s to the standard output.
+If no {{signal}} is specified, information of all signals is printed.
+
+[[options]]
+== Options
+
+=== Signal-specifying options
+
++-{{signal}}+::
++-s {{signal}}+::
++-n {{signal}}+::
+A signal-specifying option specifies a signal to be sent to processes.
+{{signal}} can be specified by name or number.
+If number +0+ is specified, the built-in checks if a signal could be sent to
+the processes but no signal is actually sent.
+Signal names are case-insensitive.
+
+You can specify at most one signal-specifying option at a time.
+
+=== Other options
+
++-l+::
+Print signal information instead of sending a signal.
+
++-v+::
+Print more signal information.
++
+Without this option, the built-in prints the signal name only.
+This option adds the signal number and a short description.
++
+When the +-v+ option is specified, the +-l+ option can be omitted.
+
+[[operands]]
+== Operands
+
+{{process}}es::
+Specify processes to which a signal is sent.
++
+Processes can be specified by the process ID, the process group ID, or the
+link:job.html#jobid[job ID].
+The process group ID must be prefixed with a hyphen (+-+) so that it is not
+treated as a process ID.
++
+When +0+ is specified as {{process}}, the signal is sent to the process group
+to which the shell process belongs.
+When +-1+ is specified, the signal is sent to all processes on the system.
+
+{{signal}}::
+Specify a signal of which information is printed.
++
+The signal can be specified by the name, the number, or the exit status of a
+command that was killed by the signal.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the kill built-in is zero unless there is any error.
+If the signal was sent to at least one process, the exit status is zero even
+if the signal was not sent to all of the specified processes.
+
+[[notes]]
+== Notes
+
+The kill built-in is a link:builtin.html#types[semi-special built-in].
+
+Command arguments that start with a hyphen should be used with care.
+The command +kill -1 -2+, for example, sends signal 1 to process group 2 since
++-1+ is treated as a signal-specifying option and +-2+ as an operand that
+specifies a process group.
+The commands `kill -- -1 -2` and +kill -TERM -1 -2+, on the other hand, treats
+both +-1+ and +-2+ as operands.
+
+The POSIX standard does not define the +-n+ or +-v+ options, so they cannot be
+used in the link:posix.html[POSIXly-correct mode].
+The standard does not allow specifying a signal number as the argument of the
++-s+ option or a signal name as the {{signal}} operand.
+
+The standard requires signal names to be specified without the +SIG+ prefix,
+like +INT+ and +QUIT+.
+If the shell is not in the POSIXly-correct mode, the built-in accepts
++SIG+-prefixed signal names as well.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -56,6 +56,9 @@ datarootdir = @datarootdir@
 datadir = @datadir@
 yashdatadir = $(datadir)/$(TARGET)
 localedir = @localedir@
+mandir = @mandir@
+docdir = @docdir@
+htmldir = @htmldir@
 
 # stamp-po is a timestamp denoting the last time at which the $(CATALOGS) have
 # been loosely updated. Its purpose is that when a developer or translator

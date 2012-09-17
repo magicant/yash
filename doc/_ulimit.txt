@@ -1,0 +1,124 @@
+= Ulimit built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Ulimit built-in
+
+The dfn:[ulimit built-in] sets or prints a resource limit.
+
+[[syntax]]
+== Syntax
+
+- +ulimit [-HSaefilnqrstuvx] [{{limit}}]+
+
+[[description]]
+== Description
+
+The ulimit built-in sets or prints a resource limit.
+
+If executed with the +-a+ (+--all+) option, the built-in prints the current
+limit for all resource types.
+Otherwise, it sets or prints the limit of a single resource type.
+The resource type can be specified by the options listed below.
+The resource limits will affect the current shell process and all commands
+invoked from the shell.
+
+Each resource type has two limit values: the hard and soft limit.
+You can change a soft limit freely as long as it does not exceed the hard
+limit.
+You can decrease a hard limit but cannot increase it without a proper
+permission.
+
+When the +-H+ (+--hard+) or +-S+ (+--soft+) option is specified, the built-in
+sets or prints the hard or soft limit, respectively.
+If neither of the options is specified, the built-in sets both the hard and
+soft limit or prints the soft limit.
+
+[[options]]
+== Options
+
++-H+::
++--hard+::
+Set or print a hard limit.
+
++-S+::
++--soft+::
+Set or print a soft limit.
+
++-a+::
++--all+::
+Print all current limit settings.
+
+The following options specify the type of resources.
+If none of them is specified, +-f+ is the default.
+The types of resources that can be set depend on the operating system.
+
++-c+::
++--core+::
+Maximum size of core files created (in 512-byte blocks)
++-d+::
++--data+::
+Maximum size of a process's data segment (in kilobytes)
++-e+::
++--nice+::
+Maximum scheduling priority (`nice')
++-f+::
++--fsize+::
+Maximum size of files created by a process (in 512-byte blocks)
++-i+::
++--sigpending+::
+Maximum number of pending signals
++-l+::
++--memlock+::
+Maximum memory size that can be locked into RAM (in kilobytes)
++-m+::
++--rss+::
+Maximum size of a process's resident set (in kilobytes)
++-n+::
++--nofile+::
+Maximum file descriptor + 1
++-q+::
++--msgqueue+::
+Maximum size of POSIX message queues
++-r+::
++--rtprio+::
+Maximum real-time scheduling priority
++-s+::
++--stack+::
+Maximum size of a process's stack (in kilobytes)
++-t+::
++--cpu+::
+Maximum CPU time that can be used by a process (in seconds)
++-u+::
++--nproc+::
+Maximum number of processes for a user
++-v+::
++--as+::
+Maximum size of memory used by a process (in kilobytes)
++-x+::
++--locks+::
+Maximum number of file locks
+
+[[operands]]
+== Operands
+
+{{limit}}::
+A limit to be set.
++
+The value must be a non-negative integer or one of `hard`, `soft`, and
+`unlimited`.
+If {{value}} is `hard` or `soft`, the new limit is set to the current hard or
+soft limit.
+If {{limit}} is not specified, the current limit is printed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the ulimit built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The POSIX standard defines no options other than +-f+.
+It neither defines `hard`, `soft`, or `unlimited` for {{limit}} values.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

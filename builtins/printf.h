@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.h: echo/printf built-ins */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ extern int echo_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int printf_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *echo_help[], *printf_help[];
 
 
 #endif /* YASH_PRINTF_H */

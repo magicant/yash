@@ -1,0 +1,1776 @@
+= Line-editing
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Line-editing
+:description: This page describes yash's line-editing feature.
+
+With the dfn:[line-editing] feature, you can edit the command text
+when you input a command to an link:interact.html[interactive shell].
+It not only works as a simple visual-interface editor, but also is integrated
+with the link:interact.html#history[command history].
+You can recall, edit, and execute commands in the history with line-editing
+instead of using the link:_fc.html[fc built-in].
+
+Line-editing has two editing modes, the vi and emacs modes, which each have
+their own key binding settings.
+By switching editing modes, you can change key bindings used in line-editing.
+Each mode has a corresponding link:_set.html#options[shell option],
+which determines whether the mode is currently active or not.
+No more than one mode can be active at a time, so the options for the other
+modes are automatically turned off when you turn on the option for one mode.
+The whole line-editing feature is deactivated when those options are off.
+
+When an interactive shell is started, the vi mode is automatically activated
+if the standard input and error are both connected to a terminal.
+
+Line-editing can be used only when the standard input and error are both
+connected to a terminal.
+If not, the shell silently falls back to the normal input mechanism.
+While line-editing is being used, the shell uses the termios interface to
+change I/O settings of the terminal and the terminfo interface to parse input
+key sequences.
+
+[[options]]
+== Shell options on line-editing
+
+The following options can be set by the link:_set.html[set built-in]
+to enable line-editing and choose an editing mode to activate:
+
+link:_set.html#so-vi[vi]::
+activates the vi mode.
+link:_set.html#so-emacs[emacs]::
+activates the emacs mode.
+
+The other line-editing-related options are:
+
+link:_set.html#so-lealwaysrp[le-always-rp]::
+When this options is enabled, the right prompt is always visible:
+when the cursor reaches the right prompt, it moves to the next line from the
+original position, which would otherwise be overwritten by input text.
+
+link:_set.html#so-lecompdebug[le-comp-debug]::
+When enabled, internal information is printed during
+<<completion,completion>>, which will help debugging completion scripts.
+
+link:_set.html#so-leconvmeta[le-conv-meta]::
+When enabled, the 8th bit of each input byte is always treated as a meta-key
+flag, regardless of terminfo data.
+
+link:_set.html#so-lenoconvmeta[le-no-conv-meta]::
+When enabled, the 8th bit of each input byte is never treated as a meta-key
+flag, regardless of terminfo data.
++
+The le-conv-meta and le-no-conv-meta options cannot be both enabled at a time.
+When either is enabled, the other is automatically disabled.
+When neither is enabled, the 8th bit may be treated as a meta-key flag
+depending on terminfo data.
+
+link:_set.html#so-lepromptsp[le-prompt-sp]::
+When enabled, the shell prints a special character sequence before printing
+each prompt so that every prompt is printed at the beginning of a line.
++
+This option is enabled by default.
+
+link:_set.html#so-levisiblebell[le-visible-bell]::
+When enabled, the shell flashes the terminal instead of sounding an alarm when
+an alert is required.
+
+[[modes]]
+== Editing modes
+
+The dfn:[vi mode] is an editing mode that offers key bindings similar to that
+of the vi editor.
+The vi mode has two sub-modes that are switched during editing:
+the insert and command modes.
+The sub-mode is always reset to the insert mode when line-editing is started
+for a new command line.
+In the insert mode, most characters are inserted to the buffer as typed.
+In the command mode, input characters are treated as commands that move the
+cursor, insert/delete text, etc.
+
+The dfn:[emacs mode] offers key bindings similar to the emacs editor.
+Most characters are inserted to the buffer as typed, but more characters are
+treated as commands than the vi insert mode.
+
+Another sub-mode is used while you enter search keywords.
+The sub-mode is called the dfn:[search mode], which offers slightly different
+key bindings depending on the active editing mode.
+
+[[commands]]
+== Line-editing commands
+
+All characters that are input during line-editing are treated as line-editing
+commands listed below.
+The link:_bindkey.html[bindkey built-in] allows customizing the key bindings
+of each mode (except for the search mode).
+
+The list below shows not only the functions of commands but also the default
+key bindings.
+The keywords ``vi-insert'', ``vi-command'', ``vi-search'', ``emacs'',
+``emacs-search'' means the vi insert mode, the vi command mode, the search
+mode for the vi mode (the vi search mode), the emacs mode, and the search mode
+for the emacs mode (the emacs search mode), respectively.
+
+Some commands take an argument that affects the function of the commands.
+For example, the forward-char command moves the cursor by as many characters
+as specified by the argument.
+To specify an argument, use the digit-argument command just before another
+command that takes an argument.
+
+[[basic-commands]]
+=== Basic editing commands
+
+noop::
+Do nothing.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+--
+
+alert::
+Alert.
+
+self-insert::
+Insert the input character at the current cursor position.
+Characters escaped by <<escape,escape sequences>> cannot be inserted.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+insert-tab::
+Insert a tab character at the current cursor position.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\^I</code></kbd>+++]
+ifndef::basebackend-html[`\^[\^I`]
+--
+
+expect-verbatim::
+Insert a character that is input just after this command
+at the current cursor position.
+This command can input a character that cannot be input by the self-insert
+command.
+You cannot a null character (`'\0'`) even using this command.
++
+--
+vi-insert::
+vi-search::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^V</code></kbd>+++]
+ifndef::basebackend-html[`\^V`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^Q`, `\^V`]
+
+digit-argument::
+Pass the input digit to the next command as an argument.
++
+This command can be bound to a digit or hyphen.
+To pass ``12'' as an argument to the forward-char command in the vi mode,
+for example, enter `12l`.
++
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,
+<kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>0</kbd>, <kbd><code>\^[</code>1</kbd>,
+<kbd><code>\^[</code>2</kbd>, <kbd><code>\^[</code>3</kbd>,
+<kbd><code>\^[</code>4</kbd>, <kbd><code>\^[</code>5</kbd>,
+<kbd><code>\^[</code>6</kbd>, <kbd><code>\^[</code>7</kbd>,
+<kbd><code>\^[</code>8</kbd>, <kbd><code>\^[</code>9</kbd>,
+<kbd><code>\^[</code>-</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[]
+`\^[0`, `\^[1`, `\^[2`, `\^[3`, `\^[4`, `\^[5`, `\^[6`, `\^[7`, `\^[8`,
+`\^[9`, `\^[-`, 
+endif::basebackend-html[]
+--
+
+bol-or-digit::
+Like the beginning-of-line command if there is no argument;
+like the digit-argument command otherwise.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>0</kbd>+++]
+ifndef::basebackend-html[`0`]
+--
+
+accept-line::
+Finish editing the current line.
+A newline is automatically appended to the line.
+The line will be executed by the shell.
++
+--
+vi-insert::
+vi-command::
+emacs::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^M`]
+--
+
+abort-line::
+Abandon the current buffer and finish editing as if an empty line was input.
++
+--
+vi-insert::
+vi-command::
+vi-search::
+emacs::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\!</code></kbd>, <kbd><code>\^C</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\!`, `\^C`]
+--
+
+eof::
+Abandon the current buffer and finish editing as if the shell reached the end
+of input.
+This normally makes the shell exit.
+
+eof-if-empty::
+Like the eof command if the buffer is empty;
+like the alert command otherwise.
++
+--
+vi-insert::
+vi-command::
+ifdef::basebackend-html[]
++++<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\#`, `\^D`]
+--
+
+eof-or-delete::
+Like the eof command if the buffer is empty;
+like the delete-char command otherwise.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\#`, `\^D`]
+--
+
+accept-with-hash::
+Like the accept-line command, but:
++
+--
+- A hash sign (+#+) is inserted at the beginning of the line if there is none.
+- Otherwise, the hash sign is removed from the beginning of the line.
+
+vi-command::
+ifdef::basebackend-html[+++<kbd>#</kbd>+++]
+ifndef::basebackend-html[`#`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>#</kbd>+++]
+ifndef::basebackend-html[`\^[#`]
+--
+
+setmode-viinsert::
+Switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>i</kbd>, <kbd><code>\I</code></kbd>+++]
+ifndef::basebackend-html[`i`, `\I`]
+--
+
+setmode-vicommand::
+Switch to the vi command mode.
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+--
+
+setmode-emacs::
+Switch to the emacs mode.
+
+expect-char::
+abort-expect-char::
+These commands are not meant for use by the user.
+They are used by the shell to implement some other commands.
+
+redraw-all::
+Reprint the prompt and the current line to the terminal.
++
+--
+vi-insert::
+vi-command::
+vi-search::
+emacs::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^L</code></kbd>+++]
+ifndef::basebackend-html[`\^L`]
+--
+
+clear-and-redraw-all::
+Clear the terminal and reprint the prompt and the current line.
+
+[[motion-commands]]
+=== Motion commands
+
+dfn:[Motion commands] move the cursor on the line.
+Most motion commands accept an argument.
+When passed an argument, they repeat the cursor motion as many times as
+specified by the argument.
+Passing ``4'' as an argument to the forward-char command, for example,
+advances the cursor by four characters.
+
+--
+The shell has several definitions of words as units of distance:
+A dfn:[bigword] is one or more adjacent non-whitespace characters.
+A dfn:[semiword] is one or more adjacent characters that contain no
+whitespaces or punctuations.
+An dfn:[emacsword] is one or more adjacent alphanumeric characters.
+A dfn:[viword] is either:
+
+- one or more adjacent alphanumeric characters and/or underscores (+_+), or
+- one or more adjacent characters that contain none of alphanumeric
+  characters, underscores, and whitespaces.
+--
+
+forward-char::
+Move the cursor to the next character.
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\R</code></kbd>+++]
+ifndef::basebackend-html[`\R`]
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>l</kbd>, <kbd> </kbd> (a space), <kbd><code>\R</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`l`, (space), `\R`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\R</code></kbd>, <kbd><code>\^F</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\R`, `\^F`]
+--
+
+backward-char::
+Move the cursor to the previous character.
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\L</code></kbd>+++]
+ifndef::basebackend-html[`\L`]
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>h</kbd>, <kbd><code>\B</code></kbd>, <kbd><code>\L</code></kbd>,
+<kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>, +++
+endif::basebackend-html[]
+ifndef::basebackend-html[`h`, `\B`, `\L`, `\?`, `\^H`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\L</code></kbd>, <kbd><code>\^B</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\L`, `\^B`]
+--
+
+forward-bigword::
+Move the cursor to the next bigword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>W</kbd>+++]
+ifndef::basebackend-html[`W`]
+--
+
+end-of-bigword::
+Move the cursor to the next end of a bigword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>E</kbd>+++]
+ifndef::basebackend-html[`E`]
+--
+
+backward-bigword::
+Move the cursor to the previous bigword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>B</kbd>+++]
+ifndef::basebackend-html[`B`]
+--
+
+forward-semiword::
+Move the cursor to the next semiword.
+
+end-of-semiword::
+Move the cursor to the next end of a semiword.
+
+backward-semiword::
+Move the cursor to the previous semiword.
+
+forward-viword::
+Move the cursor to the next viword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>w</kbd>+++]
+ifndef::basebackend-html[`w`]
+--
+
+end-of-viword::
+Move the cursor to the next end of a viword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>e</kbd>+++]
+ifndef::basebackend-html[`e`]
+--
+
+backward-viword::
+Move the cursor to the previous viword.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>b</kbd>+++]
+ifndef::basebackend-html[`b`]
+--
+
+forward-emacsword::
+Move the cursor to the next emacsword.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>f</kbd>, <kbd><code>\^[</code>F</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[f`, `\^[F`]
+--
+
+backward-emacsword::
+Move the cursor to the previous emacsword.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>b</kbd>, <kbd><code>\^[</code>B</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[b`, `\^[B`]
+--
+
+beginning-of-line::
+Move the cursor to the beginning of the line.
++
+--
+vi-insert::
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\H</code></kbd>+++]
+ifndef::basebackend-html[`\H`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\H</code></kbd>, <kbd><code>\^A</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\H`, `\^A`]
+--
+
+end-of-line::
+Move the cursor to the end of the line.
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\E</code></kbd>+++]
+ifndef::basebackend-html[`\E`]
+vi-command::
+ifdef::basebackend-html[+++<kbd>$</kbd>, <kbd><code>\E</code></kbd>+++]
+ifndef::basebackend-html[`$`, `\E`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\E</code></kbd>, <kbd><code>\^E</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\E`, `\^E`]
+--
+
+go-to-column::
+Move the cursor to the {{n}}th character on the line,
+where {{n}} is the argument.
+Assume {{n}} = 1 when no argument.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>|</kbd>+++]
+ifndef::basebackend-html[`|`]
+--
+
+first-nonblank::
+Move the cursor to the first non-blank character on the line.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>^</kbd>+++]
+ifndef::basebackend-html[`^`]
+--
+
+find-char::
+Move the cursor to the first position where a character that is input just
+after this command appears after the current cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>f</kbd>+++]
+ifndef::basebackend-html[`f`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^\]</code></kbd>+++]
+ifndef::basebackend-html[`\^\]`]
+--
+
+find-char-rev::
+Move the cursor to the last position where a character that is input just
+after this command appears before the current cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>F</kbd>+++]
+ifndef::basebackend-html[`F`]
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\^\]</code></kbd>+++]
+ifndef::basebackend-html[`\^[\^\]`]
+--
+
+till-char::
+Move the cursor to the first position just before a character that is input
+just after this command appears after the current cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>t</kbd>+++]
+ifndef::basebackend-html[`t`]
+--
+
+till-char-rev::
+Move the cursor to the last position just after a character that is input
+just after this command appears before the current cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>T</kbd>+++]
+ifndef::basebackend-html[`T`]
+--
+
+refind-char::
+Redo the last find-char, find-char-rev, till-char, till-char-rev command.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>;</kbd>+++]
+ifndef::basebackend-html[`;`]
+--
+
+refind-char-rev::
+Redo the last find-char, find-char-rev, till-char, till-char-rev command
+in the reverse direction.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>,</kbd>+++]
+ifndef::basebackend-html[`,`]
+--
+
+[[editing-commands]]
+=== Editing commands
+
+Editing commands modify contents of the buffer.
+Most editing commands accept an argument.
+When passed an argument, they repeat the modification as many times as
+specified by the argument.
+
+Texts deleted by commands whose name starts with ``kill'' are saved in
+dfn:[kill ring], from which deleted contents can be restored to the buffer.
+The most recent 32 texts are kept in the kill ring.
+
+delete-char::
+Delete a character at the current cursor position if no argument is passed;
+like the kill-char command otherwise.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\X</code></kbd>+++]
+ifndef::basebackend-html[`\X`]
+--
+
+delete-bigword::
+Delete a bigword at the current cursor position if no argument is passed;
+like the kill-bigword command otherwise.
+
+delete-semiword::
+Delete a semiword at the current cursor position if no argument is passed;
+like the kill-semiword command otherwise.
+
+delete-viword::
+Delete a viword at the current cursor position if no argument is passed;
+like the kill-viword command otherwise.
+
+delete-emacsword::
+Delete a emacsword at the current cursor position if no argument is passed;
+like the kill-emacsword command otherwise.
+
+backward-delete-char::
+Delete a character just before the current cursor position if no argument is
+passed;
+like the backward-kill-char command otherwise.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\B`, `\?`, `\^H`]
+--
+
+backward-delete-bigword::
+Delete a bigword just before the current cursor position if no argument is
+passed;
+like the backward-kill-bigword command otherwise.
+
+backward-delete-semiword::
+Delete a semiword just before the current cursor position if no argument is
+passed;
+like the backward-kill-semiword command otherwise.
++
+--
+vi-insert::
+ifdef::basebackend-html[+++<kbd><code>\^W</code></kbd>+++]
+ifndef::basebackend-html[`\^W`]
+--
+
+backward-delete-viword::
+Delete a viword just before the current cursor position if no argument is
+passed;
+like the backward-kill-viword command otherwise.
+
+backward-delete-emacsword::
+Delete a emacsword just before the current cursor position if no argument is
+passed;
+like the backward-kill-emacsword command otherwise.
+
+delete-line::
+Delete the whole buffer contents.
+
+forward-delete-line::
+Delete all characters from the current cursor position to the end of the
+buffer.
+
+backward-delete-line::
+Delete all characters before the current cursor position.
++
+--
+vi-insert::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`]
+--
+
+kill-char::
+Delete a character at the current cursor position and add it to the kill ring.
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>x</kbd>, <kbd><code>\X</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`x`, `\X`]
+--
+
+kill-bigword::
+Delete a bigword at the current cursor position and add it to the kill ring.
+
+kill-semiword::
+Delete a semiword at the current cursor position and add it to the kill ring.
+
+kill-viword::
+Delete a viword at the current cursor position and add it to the kill ring.
+
+kill-emacsword::
+Delete a emacsword at the current cursor position and add it to the kill ring.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>d</kbd>, <kbd><code>\^[</code>D</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[d`, `\^[D`]
+--
+
+backward-kill-char::
+Delete a character just before the current cursor position and add it to the
+kill ring.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>X</kbd>+++]
+ifndef::basebackend-html[`X`]
+--
+
+backward-kill-bigword::
+Delete a bigword just before the current cursor position and add it to the
+kill ring.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^W</code></kbd>+++]
+ifndef::basebackend-html[`\^W`]
+--
+
+backward-kill-semiword::
+Delete a semiword just before the current cursor position and add it to the
+kill ring.
+
+backward-kill-viword::
+Delete a viword just before the current cursor position and add it to the kill
+ring.
+
+backward-kill-emacsword::
+Delete a emacsword just before the current cursor position and add it to the
+kill ring.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code><code>\B</code></kbd>,
+<kbd><code>\^[</code><code>\?</code></kbd>,
+<kbd><code>\^[</code><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[\B`, `\^[\?`, `\^[\^H`]
+--
+
+kill-line::
+Delete the whole buffer contents and add it to the kill ring.
+
+forward-kill-line::
+Delete all characters from the current cursor position to the end of the
+buffer and add it to the kill ring.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^K</code></kbd>+++]
+ifndef::basebackend-html[`\^K`]
+--
+
+backward-kill-line::
+Delete all characters before the current cursor position and add it to the
+kill ring.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>,
+<kbd><code>\^X</code><code>\B</code></kbd>,
+<kbd><code>\^X</code><code>\?</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`, `\^X\B`, `\^X\?`]
+--
+
+put-before::
+Insert the last-killed text before the current cursor position and move the
+cursor to the last character that was inserted.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>P</kbd>+++]
+ifndef::basebackend-html[`P`]
+--
+
+put::
+Insert the last-killed text after the current cursor position and move the
+cursor to the last character that was inserted.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>p</kbd>+++]
+ifndef::basebackend-html[`p`]
+--
+
+put-left::
+Insert the last-killed text before the current cursor position and move the
+cursor to the last character that was inserted.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^Y</code></kbd>+++]
+ifndef::basebackend-html[`\^Y`]
+--
+
+put-pop::
+Replace the just put text with the next older killed text.
++
+This command can be used only just after the put-before, put, put-left, or
+put-pop command.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>y</kbd>, <kbd><code>\^[</code>Y</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[y`, `\^[Y`]
+--
+
+undo::
+Cancel modification by the last editing command.
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd>u</kbd>+++]
+ifndef::basebackend-html[`u`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>,
+<kbd><code>\^X</code><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^_`, `\^X\$`, `\^X\^U`]
+--
+
+undo-all::
+Cancel all modification in the current buffer, restoring the initial contents.
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd>U</kbd>+++]
+ifndef::basebackend-html[`U`]
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code><code>\^R</code></kbd>, <kbd><code>\^[</code>r</kbd>,
+<kbd><code>\^[</code>R</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[\^R`, `\^[r`, `\^[R`]
+--
+
+cancel-undo::
+Cancel cancellation by the last undo or undo-all command.
++
+--
+vi::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+cancel-undo-all::
+Cancel all cancellation by all most recent undo and undo-all commands.
+
+redo::
+Repeat modification by the last editing command.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>.</kbd>+++]
+ifndef::basebackend-html[`.`]
+--
+
+[[completion-commands]]
+=== Completion commands
+
+complete::
+<<completion,Complete>> a word just before the cursor position and, if there
+is more than one candidate, show a list of the candidates.
+
+complete-next-candidate::
+Like the complete command when candidates are not being listed;
+otherwise, select the next candidate in the list.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^I</code></kbd>+++]
+ifndef::basebackend-html[`\^I`]
+--
+
+complete-prev-candidate::
+Like the complete command when candidates are not being listed;
+otherwise, select the previous candidate in the list.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\bt</code></kbd>+++]
+ifndef::basebackend-html[`\bt`]
+--
+
+complete-next-column::
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the next column in the list.
+
+complete-prev-column::
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the previous column in the list.
+
+complete-next-page::
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the next page in the list.
+
+complete-prev-page::
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the previous page in the list.
+
+complete-list::
+Complete a word just before the cursor position.
++
+If you pass no argument, a list of completion candidates is shown.
+Otherwise, the word is completed with the {{n}}th candidate where {{n}} is the
+argument.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[?`, `\^[=`]
+--
+
+complete-all::
+Replace a word just before the cursor position with all possible completion
+candidates, each separated by a space.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>*</kbd>+++]
+ifndef::basebackend-html[`\^[*`]
+--
+
+complete-max::
+Complete a word just before the cursor position with the longest prefix of all
+possible completion candidates.
+
+clear-candidates::
+Clear the list of completion candidates.
+
+[[vi-commands]]
+=== Vi-specific commands
+
+vi-replace-char::
+Replace the character at the cursor position with a character that is input
+just after this command.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>r</kbd>+++]
+ifndef::basebackend-html[`r`]
+--
+
+vi-insert-beginning::
+Move the cursor to the beginning of the line and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>I</kbd>+++]
+ifndef::basebackend-html[`I`]
+--
+
+vi-append::
+Move the cursor to the next character and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>I</kbd>+++]
+ifndef::basebackend-html[`I`]
+--
+
+vi-append-to-eol::
+Move the cursor to the end of the line and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>A</kbd>+++]
+ifndef::basebackend-html[`A`]
+--
+
+vi-replace::
+Switch to the vi insert mode and start overwriting. While overwriting, the
+self-insert command replaces the character at cursor position rather than
+inserting a character. Overwriting ends when the editing mode is changed.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>R</kbd>+++]
+ifndef::basebackend-html[`R`]
+--
+
+vi-switch-case::
+Switch case of characters between the current and next cursor positions.
+This command must be followed by a motion command, which determines the next
+cursor position.
+
+vi-switch-case-char::
+Switch case of the character at the current cursor position and move the
+cursor to the next character.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>~</kbd>+++]
+ifndef::basebackend-html[`~`]
+--
+
+vi-yank::
+Add to the kill ring the characters between the current and next cursor
+positions.
+This command must be followed by a motion command, which determines the next
+cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>y</kbd>+++]
+ifndef::basebackend-html[`y`]
+--
+
+vi-yank-to-eol::
+Add to the kill ring the characters from the current cursor position to the
+end of the line.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>Y</kbd>+++]
+ifndef::basebackend-html[`Y`]
+--
+
+vi-delete::
+Delete characters between the current and next cursor positions and add it to
+the kill ring.
+This command must be followed by a motion command, which determines the next
+cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>d</kbd>+++]
+ifndef::basebackend-html[`d`]
+--
+
+vi-delete-to-eol::
+Delete the characters from the current cursor position to the end of the line
+and add it to the kill ring.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>D</kbd>+++]
+ifndef::basebackend-html[`D`]
+--
+
+vi-change::
+Delete characters between the current and next cursor positions and switch to
+the vi insert mode.
+This command must be followed by a motion command, which determines the next
+cursor position.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>c</kbd>+++]
+ifndef::basebackend-html[`c`]
+--
+
+vi-change-to-eol::
+Delete the characters from the current cursor position to the end of the line
+and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>C</kbd>+++]
+ifndef::basebackend-html[`C`]
+--
+
+vi-change-line::
+Delete the whole buffer contents and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>S</kbd>+++]
+ifndef::basebackend-html[`S`]
+--
+
+vi-yank-and-change::
+Like the vi-change command, but the deleted text is added to the kill ring.
+
+vi-yank-and-change-to-eol::
+Like the vi-change-to-eol command, but the deleted text is added to the kill
+ring.
+
+vi-yank-and-change-line::
+Like the vi-change-line command, but the deleted text is added to the kill
+ring.
+
+vi-substitute::
+Delete a character at the current cursor position, add it to the kill ring,
+and switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>s</kbd>+++]
+ifndef::basebackend-html[`s`]
+--
+
+vi-append-last-bigword::
+Insert a space and the last bigword in the most recent command
+link:interact.html#history[history] entry just after the current cursor
+position and switch to the vi insert mode.
+If argument {{n}} is passed, the {{n}}th bigword in the entry is inserted
+instead of the last.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>_</kbd>+++]
+ifndef::basebackend-html[`_`]
+--
+
+vi-exec-alias::
+Execute the value of an link:syntax.html#aliases[alias] named +_{{c}}+ as
+editing commands where {{c}} is a character input just after this command.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>@</kbd>+++]
+ifndef::basebackend-html[`@`]
+--
+
+vi-edit-and-accept::
+Start the vi editor to edit the current buffer contents.
+When the editor finished, the edited buffer contents is accepted like the
+accept-line command unless the exit status of the editor is non-zero.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>v</kbd>+++]
+ifndef::basebackend-html[`v`]
+--
+
+vi-complete-list::
+Like the complete-list command, but also switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>=</kbd>+++]
+ifndef::basebackend-html[`=`]
+--
+
+vi-complete-all::
+Like the complete-all command, but also switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>*</kbd>+++]
+ifndef::basebackend-html[`*`]
+--
+
+vi-complete-max::
+Like the complete-max command, but also switch to the vi insert mode.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+vi-search-forward::
+Switch to the vi search mode and start forward
+link:interact.html#history[history] search.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>?</kbd>+++]
+ifndef::basebackend-html[`?`]
+--
+
+vi-search-backward::
+Switch to the vi search mode and start backward
+link:interact.html#history[history] search.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>/</kbd>+++]
+ifndef::basebackend-html[`/`]
+--
+
+[[emacs-commands]]
+=== Emacs-specific commands
+
+emacs-transpose-chars::
+Move a character just before the cursor to the right.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^T</code></kbd>+++]
+ifndef::basebackend-html[`\^T`]
+--
+
+emacs-transpose-words::
+Move an emacsword just before the cursor to the right.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>t</kbd>, <kbd><code>\^[</code>T</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[t`, `\^[T`]
+--
+
+emacs-downcase-word::
+Make an emacsword just after the cursor lowercase.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>l</kbd>, <kbd><code>\^[</code>L</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[l`, `\^[L`]
+--
+
+emacs-upcase-word::
+Make an emacsword just after the cursor uppercase.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>u</kbd>, <kbd><code>\^[</code>U</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[u`, `\^[U`]
+--
+
+emacs-capitalize-word::
+Capitalize the first letter of an emacsword just after the cursor.
++
+--
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^[</code>c</kbd>, <kbd><code>\^[</code>C</kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^[c`, `\^[u`]
+--
+
+emacs-delete-horizontal-space::
+Delete spaces around the cursor.
+If any argument was passed, delete spaces just before the cursor only.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\^[\\`]
+--
+
+emacs-just-one-space::
+Delete spaces around the cursor and leave one space.
+If an argument is specified, leave as many spaces as the argument.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code> </kbd>+++]
+ifndef::basebackend-html[`\^[`]
+(Escape followed by a space)
+--
+
+emacs-search-forward::
+Switch to the emacs search mode and start forward
+link:interact.html#history[history] search.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
+ifndef::basebackend-html[`\^S`]
+--
+
+emacs-search-backward::
+Switch to the emacs search mode and start backward
+link:interact.html#history[history] search.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+[[history-commands]]
+=== History-related commands
+
+oldest-history::
+Recall the oldest entry in the link:interact.html#history[history].
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
+The cursor position remains unchanged.
+
+newest-history::
+Recall the newest entry in the link:interact.html#history[history].
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
+The cursor position remains unchanged.
+
+return-history::
+Return to the initial buffer corresponding to none of existing
+link:interact.html#history[history] entries.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
+The cursor position remains unchanged.
+
+oldest-history-bol::
+Recall the oldest entry in the link:interact.html#history[history] and move
+the cursor to the beginning of the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>G</kbd>+++]
+ifndef::basebackend-html[`G`]
+--
+
+newest-history-bol::
+Recall the newest entry in the link:interact.html#history[history] and move
+the cursor to the beginning of the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
+
+return-history-bol::
+Return to the initial buffer corresponding to none of existing
+link:interact.html#history[history] entries and move the cursor to the
+beginning of the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>g</kbd>+++]
+ifndef::basebackend-html[`g`]
+--
+
+oldest-history-eol::
+Recall the oldest entry in the link:interact.html#history[history] and move
+the cursor to the end of the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>&lt;</kbd>+++]
+ifndef::basebackend-html[`\^[<`]
+--
+
+newest-history-eol::
+Recall the newest entry in the link:interact.html#history[history] and move
+the cursor to the end of the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
+
+return-history-eol::
+Return to the initial buffer corresponding to none of existing
+link:interact.html#history[history] entries and move the cursor to the end of
+the line.
+If argument {{n}} is passed, the entry whose number is {{n}} is recalled
+instead.
++
+--
+emacs::
+ifdef::basebackend-html[+++<kbd><code>\^[</code>&gt;</kbd>+++]
+ifndef::basebackend-html[`\^[>`]
+--
+
+next-history::
+Recall the next link:interact.html#history[history] entry.
+The cursor position remains unchanged.
+
+prev-history::
+Recall the previous link:interact.html#history[history] entry.
+The cursor position remains unchanged.
+
+next-history-bol::
+Recall the next link:interact.html#history[history] entry and move the cursor
+to the beginning of the line.
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>j</kbd>, <kbd>+</kbd>, <kbd><code>\D</code></kbd>,
+<kbd><code>\^N</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`j`, `+`, `\D`, `\^N`]
+--
+
+prev-history-bol::
+Recall the previous link:interact.html#history[history] entry and move the
+cursor to the beginning of the line.
++
+--
+vi-command::
+ifdef::basebackend-html[]
++++<kbd>k</kbd>, <kbd>-</kbd>, <kbd><code>\U</code></kbd>,
+<kbd><code>\^P</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`k`, `-`, `\U`, `\^P`]
+--
+
+next-history-eol::
+Recall the next link:interact.html#history[history] entry and move the cursor
+to the end of the line.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\D</code></kbd>, <kbd><code>\^N</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\D`, `\^N`]
+--
+
+prev-history-eol::
+Recall the previous link:interact.html#history[history] entry and move the
+cursor to the end of the line.
++
+--
+vi-insert::
+emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\U</code></kbd>, <kbd><code>\^P</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\U`, `\^P`]
+--
+
+search-again::
+Repeat the last command history search.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>n</kbd>+++]
+ifndef::basebackend-html[`n`]
+--
+
+search-again-rev::
+Repeat the last command history search in the reverse direction.
++
+--
+vi-command::
+ifdef::basebackend-html[+++<kbd>N</kbd>+++]
+ifndef::basebackend-html[`N`]
+--
+
+search-again-forward::
+Repeat the last command history search in the forward direction.
+
+search-again-backward::
+Repeat the last command history search in the backward direction.
+
+beginning-search-forward::
+Recall the next link:interact.html#history[history] entry that starts with the
+same text as the text from the beginning of the line up to the current cursor
+position.
+The cursor position remains unchanged.
+
+beginning-search-backward::
+Recall the previous link:interact.html#history[history] entry that starts with
+the same text as the text from the beginning of the line up to the current
+cursor position.
+The cursor position remains unchanged.
+
+[[search-commands]]
+=== Search mode commands
+
+srch-self-insert::
+Insert the input character at the current cursor position.
+Characters escaped by <<escape,escape sequences>> cannot be inserted.
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\\</code></kbd>+++]
+ifndef::basebackend-html[`\\`]
+--
+
+srch-backward-delete-char::
+Delete the last character in the search text.
+If the text is empty:
++
+--
+- like the srch-abort-search command when in the vi search mode, or
+- like the alert command when in the emacs search mode.
+--
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\B`, `\?`, `\^H`]
+--
+
+srch-backward-delete-line::
+Delete the whole search text.
++
+--
+vi-search::
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\$`, `\^U`]
+--
+
+srch-continue-forward::
+Find the next matching history entry.
++
+--
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
+ifndef::basebackend-html[`\^S`]
+--
+
+srch-continue-backward::
+Find the previous matching history entry.
++
+--
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
+ifndef::basebackend-html[`\^R`]
+--
+
+srch-accept-search::
+Finish the search mode, accepting the result being shown.
++
+--
+vi-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^M`]
+emacs-search::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^[</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^[`]
+--
+
+srch-abort-search::
+Abort search and restore the previous buffer contents.
++
+--
+vi-search::
+ifdef::basebackend-html[+++<kbd><code>\^[</code></kbd>+++]
+ifndef::basebackend-html[`\^[`]
+emacs-search::
+ifdef::basebackend-html[+++<kbd><code>\^G</code></kbd>+++]
+ifndef::basebackend-html[`\^G`]
+--
+
+[[escape]]
+== Escape sequences
+
+In the link:_bindkey.html[bindkey built-in], escape sequences are used to
+represent special keys such as function keys and arrow keys.
+Every escape sequence starts with a backslash (`\`) and thus there is also an
+escape sequence for a backslash itself.
+
+Below are available escape sequences:
+
+`\\`:: Backslash (`\`)
+`\B`:: Backspace
+`\D`:: Down arrow
+`\E`:: End
+`\H`:: Home
+`\I`:: Insert (Insert-char, Enter-insert-mode)
+`\L`:: Left arrow
+`\N`:: Page-down (Next-page)
+`\P`:: Page-up (Previous-page)
+`\R`:: Right arrow
+`\U`:: Up arrow
+`\X`:: Delete
+`\!`:: INTR
+`\#`:: EOF
+`\$`:: KILL
+`\?`:: ERASE
+`\^@`:: Ctrl + @
+
+`\^A`, `\^B`, ..., `\^Z`::
+Ctrl + A, Ctrl + B, ..., Ctrl + Z
++
+Note that Ctrl + I, Ctrl + J, and Ctrl + M are tab, newline, and carriage
+return, respectively.
+
+`\^[`:: Ctrl + [ (Escape)
+`\^\`:: Ctrl + \
+`\^]`:: Ctrl + ]
+`\^^`:: Ctrl + ^
+`\^_`:: Ctrl + _
+`\^?`:: Ctrl + ? (Delete)
+`\F00`, `\F01`, ..., `\F63`:: F0, F1, ..., F63
+`\a1`:: Top-left on keypad
+`\a3`:: Top-right on keypad
+`\b2`:: Center on keypad
+`\bg`:: Beginning
+`\bt`:: Back-tab
+`\c1`:: Bottom-left on keypad
+`\c3`:: Bottom-right on keypad
+`\ca`:: Clear-all-tabs
+`\cl`:: Close
+`\cn`:: Cancel
+`\co`:: Command
+`\cp`:: Copy
+`\cr`:: Create
+`\cs`:: Clear-screen or erase
+`\ct`:: Clear-tab
+`\dl`:: Delete-line
+`\ei`:: Exit-insert-mode
+`\el`:: Clear-to-end-of-line
+`\es`:: Clear-to-end-of-screen
+`\et`:: Enter (Send)
+`\ex`:: Exit
+`\fd`:: Find
+`\hp`:: Help
+`\il`:: Insert-line
+`\ll`:: Home-down
+`\me`:: Message
+`\mk`:: Mark
+`\ms`:: Mouse event
+`\mv`:: Move
+`\nx`:: Next-object
+`\on`:: Open
+`\op`:: Options
+`\pr`:: Print (Copy)
+`\pv`:: Previous-object
+`\rd`:: Redo
+`\re`:: Resume
+`\rf`:: Ref (Reference)
+`\rh`:: Refresh
+`\rp`:: Replace
+`\rs`:: Restart
+`\sf`:: Scroll-forward (Scroll-down)
+`\sl`:: Select
+`\sr`:: Scroll-backward (Scroll-up)
+`\st`:: Set-tab
+`\su`:: Suspend
+`\sv`:: Save
+`\ud`:: Undo
+`\SE`:: Shift + End
+`\SH`:: Shift + Home
+`\SI`:: Shift + Insert
+`\SL`:: Shift + Left arrow
+`\SR`:: Shift + Right arrow
+`\SX`:: Shift + Delete
+`\Sbg`:: Shift + Beginning
+`\Scn`:: Shift + Cancel
+`\Sco`:: Shift + Command
+`\Scp`:: Shift + Copy
+`\Scr`:: Shift + Create
+`\Sdl`:: Shift + Delete-line
+`\Sel`:: Shift + End-of-line
+`\Sex`:: Shift + Exit
+`\Sfd`:: Shift + Find
+`\Shp`:: Shift + Help
+`\Smg`:: Shift + Message
+`\Smv`:: Shift + Move
+`\Snx`:: Shift + Next
+`\Sop`:: Shift + Options
+`\Spr`:: Shift + Print
+`\Spv`:: Shift + Previous
+`\Srd`:: Shift + Redo
+`\Sre`:: Shift + Resume
+`\Srp`:: Shift + Replace
+`\Ssu`:: Shift + Suspend
+`\Ssv`:: Shift + Save
+`\Sud`:: Shift + Undo
+
+INTR, EOF, KILL, and ERASE are special characters configured by the stty
+command.
+In a typical configuration, they are sent by typing Ctrl+C, Ctrl+D, Ctrl+U,
+and Ctrl+H, respectively, but some configuration uses Ctrl+? instead of Ctrl+H
+for ERASE.
+
+[[completion]]
+== Command line completion
+
+By using the complete and complete-next-candidate commands, etc., you can
+complete command names, options, and operands.
+By default, the complete-next-candidate command is bound with the Tab key in
+the vi insert and emacs modes.
+
+Type a few first letters of a command name or pathname and hit the Tab key,
+and a list of matching names will be shown.
+You can choose a candidate from the list to complete the name by hitting the
+Tab key again.
+If there is only one matching name, no list will be shown and the name will
+directly be completed.
+
+If the name to be completed contains characters like `*` and `?`, it is
+treated as a link:pattern.html[pattern].
+The name on the command line will be directly substituted with all possible
+names matching the pattern (you cannot choose from a list).
+
+Normally, command names are completed with command names and command arguments
+with pathnames.
+However, dfn:[completion functions] can be defined to refine completion
+results.
+
+[[completion-detail]]
+=== Completion details
+
+When doing completion for the first time after the shell has been started, the
+INIT file is loaded as if the command string
++link:_dot.html[.] -AL completion/INIT+ is executed.
+If the file is not found, it is silently ignored.
+This automatic loading is mainly intended for loading completion functions
+bundled with the shell, but you can let the shell load your own functions by
+putting a file in the link:params.html#sv-yash_loadpath[load path].
+
+When completing a command name, the shell executes the +completion//command+
+function and when completing a command argument, the +completion//argument+
+function.
+If those completion functions are not defined, the shell just completes with
+command names or pathnames.
+When completing other names, such as the user name in
+link:expand.html#tilde[tilde expansion] and the parameter name in
+link:expand.html#params[parameter expansion], completion functions are never
+used: the shell just completes with user names, parameter names, or whatever
+applicable.
+
+Completion functions are link:exec.html#function[executed] without any
+arguments.
+The following link:exec.html#localvar[local variables] are automatically
+defined while executing completion functions:
+
+link:params.html#sv-ifs[+IFS+]::
+The value is the three characters of a space, a tab, and a newline, which are
+the default value of the variable.
++WORDS+::
+This variable is an link:params.html#arrays[array] whose elements are a
+command name and arguments that have already been entered before the argument
+being completed.
+When completing a command name, the array has no elements.
++TARGETWORD+::
+The value is the partially entered command name or argument that is being
+completed.
+
+Completion candidates are generated by executing the
+link:_complete.html[complete built-in] during a completion function.
+
+Completion functions must not perform I/O to the terminal, or displayed text
+will be corrupted.
+Completion functions should run as quickly as possible for better user
+experience.
+
+While a completion function is being executed:
+
+- the link:posix.html[POSIXly-correct mode] is temporarily disabled,
+- the link:_set.html#so-errexit[err-exit option] is temporarily disabled, and
+- link:_trap.html[traps] are not executed.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1,0 +1,284 @@
+= Interactive mode
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Interactive mode
+:description: This page describes the interactive mode of the yash shell.
+
+The dfn:[interactive mode] is a mode of the shell intended for direct
+interaction to the user.
+If yash is in the interactive mode, it is called an dfn:[interactive shell].
+
+Whether a shell runs in the interactive mode or not is determined in the
+link:invoke.html[invocation of the shell].
+After the shell has started up, the interactive mode cannot be switched on or
+off.
+
+When the shell is interactive:
+
+- link:invoke.html#init[Initialization] scripts are executed during
+  invocation.
+- The shell link:interact.html#mailcheck[checks for mail] and prints a command
+  <<prompt,prompt>> when it reads a command.
+  Job status changes are also reported if link:job.html[job control] is
+  active.
+  link:lineedit.html[Line-editing] may be used depending on the capability of
+  the terminal.
+- Commands executed are automatically registered in command
+  <<history,history>>.
+- If a command executed by the shell is killed by a signal other than SIGINT
+  and SIGPIPE, the shell reports the fact to the standard error.
+- The filename token is subject to link:expand.html#glob[pathname expansion]
+  in link:redir.html#file[file redirection].
+- The standard input of an link:syntax.html#async[asynchronous command] is not
+  automatically redirected to /dev/null (in the
+  link:posix.html[POSIXly-correct mode] only).
+- The shell does not exit when it encounters a syntax or expansion error
+  during command execution. (cf. link:exec.html#exit[Termination of the
+  shell])
+- The shell does not exit when it receives the SIGINT, SIGTERM, or SIGQUIT
+  signal.
+- A signal handler can be changed by the link:_trap.html[trap built-in]
+  even if the handler had been set to ``ignore'' when the shell was invoked.
+- The value of the link:params.html#sp-hyphen[+-+ special parameter] contains
+  +i+.
+- The shell's locale reflects the value of the
+  link:params.html#sv-lc_ctype[+LC_CTYPE+ variable] whenever the value is
+  changed (if the shell is not in the link:posix.html[POSIXly-correct mode]).
+- Commands are executed even when the link:_set.html#so-exec[exec option] is
+  off.
+- The link:_set.html#so-ignoreeof[ignore-eof option] takes effect when
+  enabled.
+- When the shell reaches the end of input or the link:_exit.html[exit
+  built-in] is executed, the shell checks if there is any stopped
+  link:job.html[job].
+  If so, the shell prints a warning and does not actually exit.
+- The link:_suspend.html[suspend built-in] by default cannot stop the shell
+  if it is a session leader.
+- The shell does not exit when the link:_dot.html[dot built-in] fails to find
+  a script file to read.
+- The shell does not exit when the link:_exec.html[exec built-in] fails to
+  execute a command (if not in the link:posix.html[POSIXly-correct mode]).
+- When a job finished for which the link:_wait.html[wait built-in] has been
+  waiting, the fact is reported (only if link:job.html[job control] is active
+  and not in the link:posix.html[POSIXly-correct mode]).
+- A prompt is printed when the link:_read.html[read built-in] reads a second
+  or following line.
+
+[[prompt]]
+== Prompts
+
+The interactive shell prints a dfn:[prompt] just before it reads a command.
+The contents of the prompt is specified by the value of the
+link:params.html#sv-ps1[+PS1+] and link:params.html#sv-ps2[+PS2+] variables.
+The former is used for reading the first line of the command and the latter
+for other lines.
+
+When the prompt is printed, the variable value is subjected to
+link:expand.html#params[parameter expansion], link:expand.html#cmdsub[command
+substitution], and link:expand.html#arith[arithmetic expansion]
+(but note that the POSIX standard requires parameter expansion only).
+The results of the expansion is parsed as the rules below to make the actual
+prompt string, which is printed to the standard error.
+
+In the link:posix.html[POSIXly-correct mode], each exclamation mark (+!+) in
+the string is substituted with the command <<history,history>> number of the
+command that is being input.
+Two adjacent exclamation marks (+!!+) are printed as a single exclamation.
+Other characters are printed intact.
+
+If the shell is not in the POSIXly-command mode, the following notations can
+be used to format the prompt string.
+Notations are replaced with the strings designated in the list below.
+Characters that are not interpreted as notations are printed intact.
+
++\a+::
+Bell character (ASCII code: 7)
++\e+::
+Escape character (ASCII code: 27)
++\j+::
+The number of link:job.html[jobs] in the shell.
++\n+::
+Newline character (ASCII code: 10)
++\r+::
+Carriage return character (ASCII code: 13)
++\!+::
+The command <<history,history>> number of the command that is being input
++\$+::
++#+ if the shell's effective user ID is 0; +$+ otherwise.
++\\+::
+Backslash
++\[+::
++\]+::
+These two notations can surround part of the prompt string that is not visible
+on the terminal.
+The surrounded part is ignored when the shell counts the number of characters
+that is displayed on the terminal, thus making characters correctly aligned on
+the terminal when the prompt string contains special invisible characters.
++\f{{fontspecs}}.+::
+When link:lineedit.html[line-editing] is active, this notation is replaced
+with special characters to change font styles on the terminal
+if the terminal is capable of it.
+If line-editing is inactive or the terminal is incapable of changing font
+styles, this notation is silently ignored.
+One or more of the following can be used for {{fontspecs}}:
++
+--
++k+:: Change font color to black
++r+:: Change font color to red
++g+:: Change font color to green
++y+:: Change font color to yellow
++b+:: Change font color to blue
++m+:: Change font color to magenta
++c+:: Change font color to cyan
++w+:: Change font color to white
++K+:: Change background color to black
++R+:: Change background color to red
++G+:: Change background color to green
++Y+:: Change background color to yellow
++B+:: Change background color to blue
++M+:: Change background color to magenta
++C+:: Change background color to cyan
++W+:: Change background color to white
++t+::
+Make font color or background brighter
+(can only be used just after one of the characters above)
++d+:: Change font and background colors to normal
++s+:: Make font standout
++u+:: Make font underlined
++v+:: Make font and background colors reversed
++b+:: Make font blink
++i+:: Make font dim
++o+:: Make font bold
++x+:: Make font invisible
++D+:: Make color and style normal
+--
++
+The actual colors of font and background are defined by the terminal.
+Different terminals may use different colors.
+
+In addition to the normal prompt, a prompt string can be displayed to the
+right of the cursor if link:lineedit.html[line-editing] is active.
+Those prompts are called dfn:[right prompts].
+The contents of right prompts are defined by the value of the 
+link:params.html#sv-ps1r[+PS1R+] and link:params.html#sv-ps2r[+PS2R+]
+variables, each corresponding to the
+link:params.html#sv-ps1[+PS1+] and link:params.html#sv-ps2[+PS2+] variables.
+
+Using the above-said notations, the font style of command strings the user
+inputs can be changed as well as that of prompts.
+The font style of command strings is defined by the value of the
+link:params.html#sv-ps1s[+PS1S+] and link:params.html#sv-ps2s[+PS2S+]
+variables, each corresponding to the
+link:params.html#sv-ps1[+PS1+] and link:params.html#sv-ps2[+PS2+] variables.
+The value can contain the +\f{{fontspecs}}.+ notation only.
+
+When the shell is not in the link:posix.html[POSIXly-correct mode],
+the value of the link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable]
+is executed before each prompt.
+
+[[history]]
+== Command history
+
+dfn:[Command history] is a feature of the shell that remembers executed
+commands to allow re-executing them later.
+Commands executed in the interactive mode are automatically saved in the
+command history.
+Saved commands can be edited and re-executed using
+link:lineedit.html[line-editing] and the link:_fc.html[fc] and
+link:_history.html[history] built-ins.
+
+Commands are saved line by line.
+Lines that do not contain any non-whitespace characters are not saved in the
+history.
+Lines that start with whitespaces are not saved
+when the link:_set.html#so-histspace[hist-space option] is on.
+
+Command history is saved in a file.
+When history is first used after an interactive shell was started,
+the shell opens a file to save history in.
+The filename is specified by the value of the
+link:params.html#sv-histfile[+HISTFILE+ variable].
+If the file contains history data when opened, the data is restored to the
+shell's history.
+The file contents are updated in real time as the user inputs commands into
+the shell.
+If the +HISTFILE+ variable is not set or the file cannot be opened
+successfully, history is not saved in the file, but the history feature will
+be functional in all other respects.
+
+The number of commands saved in history is specified by the value of the
+link:params.html#sv-histsize[+HISTSIZE+ variable].
+The shell automatically removes old history data so that the number of saved
+commands does not exceed the value.
+If the +HISTSIZE+ variable is not set or its value is not a natural number,
+500 items will be saved in history.
+
+The shell looks at the value of the +HISTFILE+ and +HISTSIZE+ variables only
+when the history feature is first used after the shell was started.
+``The history feature is used'' when:
+
+- the link:_fc.html[fc] or link:_history.html[history] built-in is executed,
+- link:lineedit.html[line-editing] is used (regardless of whether or not
+  history data is recalled in line-editing), or
+- a command is input to the shell
+
+Therefore, the variables should be set in
+link:invoke.html#init[initialization] scripts.
+
+When more than one instance of yash shares a single history file, the shells
+the same history data.
+As a result, commands that have been executed by a shell instance can be
+recalled on another shell instance.
+Shells sharing the same history should have the same +HISTSIZE+ value so that
+they manipulate history data properly.
+
+Yash's history data file has its own format that is incompatible with other
+kinds of shells.
+
+The link:params.html#sv-histrmdup[+HISTRMDUP+ variable] can be set to remove
+duplicate history items.
+
+[[mailcheck]]
+== Mail checking
+
+An interactive shell can notify receipt of email.
+The shell periodically checks the modification date/time of a file specified
+by the user.
+If the file has been modified since the previous check, the shell prints a
+notification message (except when the shell is not in the
+link:posix.html[POSIXly-correct mode] and the file is empty).
+By specifying a mailbox file to be checked, the shell will print a message
+when the file has been modified, that is, some mail has received.
+
+Check is done just before the shell prints a command line prompt.
+The interval of checks can be specified by the
+link:params.html#sv-mailcheck[+MAILCHECK+ variable] in seconds.
+If the variable value is 0, check is done before every prompt.
+If the variable value is not a non-negative integer, no checks are done.
+
+The file whose modification time is checked is specified by the
+link:params.html#sv-mail[+MAIL+ variable].
+The variable value should be set to the pathname of the file.
+
+If you want to check more than one file or customize the notification message,
+you can set the link:params.html#sv-mailpath[+MAILPATH+ variable] instead of
+the +MAIL+ variable.
+When the +MAILPATH+ variable is set, the +MAIL+ variable is ignored.
+The value of the +MAILPATH+ variable should be set to one or more
+colon-separated pathnames of files to be checked.
+Each pathname can be followed by a percent sign (+%+) and a custom
+notification message, which is printed when the corresponding file has been
+modified.
+If the pathname contains a percent sign, it should be
+link:syntax.html#quotes[quoted] by a backslash.
+The specified message is subject to link:expand.html#params[parameter
+expansion].
+For example, if the value of the +MAILPATH+ variable is
+`/foo/mail%New mail!:/bar/mailbox%You've got mail:/baz/mail\%data`,
+the shell will print
+
+- `New mail!` when the file /foo/mail has been modified
+- `You've got mail` when the file /bar/mailbox has been modified
+- the default message when the file /baz/mail%data has been modified.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1,0 +1,207 @@
+= Printf built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Printf built-in
+
+The dfn:[printf built-in] prints a formatted values.
+
+[[syntax]]
+== Syntax
+
+- +printf {{format}} [{{value}}...]+
+
+[[description]]
+== Description
+
+The printf built-in formats {{value}}s according to {{format}} and prints them
+to the standard output.
+Unlike the link:_echo.html[echo built-in], the printf built-in does not print
+a newline automatically.
+
+The formatting process is very similar to that of the printf function in the C
+programming language.
+You can use conversion specifications (which start with +%+) and escape
+sequences (which start with +\+) in {{format}}.
+Any other characters that are not part of a conversion specification or escape
+sequence are printed literally.
+
+[[convspec]]
+=== Conversion specifications
+
+A conversion specification starts with a percent sign (+%+).
+
+A conversion specification except +%%+ consumes a {{value}}, which is
+formatted according to the specification and printed.
+Each conversion specification consumes one {{value}} in the order of
+appearance.
+If there are more {{value}}s than conversion specifications, the entire
+{{format}} is re-processed until all the {{value}}s are consumed.
+If a {{value}} to be consumed is missing, it is assumed to be an empty string
+(if the specification requires a string) or zero (if a number).
+If no {{value}}s are given, {{format}} is processed just once.
+
+Available conversion specifications are:
+
++%d+::
++%i+:: prints a signed integer in decimal
++%u+:: prints an unsigned integer in decimal
++%o+:: prints an unsigned integer in octal
++%x+:: prints an unsigned integer in lowercase hexadecimal
++%X+:: prints an unsigned integer in uppercase hexadecimal
++%f+:: prints a floating-point number in lowercase
++%F+:: prints a floating-point number in uppercase
++%e+:: prints a floating-point number with exponent in lowercase
++%E+:: prints a floating-point number with exponent in uppercase
++%g+:: the same as +%f+ or +%e+, automatically selected
++%G+:: the same as +%F+ or +%E+, automatically selected
++%c+:: prints the first character of string
++%s+:: prints a string
++%b+::
+prints a string (recognizing escape sequences like the
+link:_echo.html#escapes[echo built-in])
++%%+:: prints a percent sign (+%+)
+
+For +%g+ and +%G+, the specification that is actually used is +%f+ or +%F+ if
+the exponent part is between -5 and the precision (exclusive); +%e+ or +%E+
+otherwise.
+
+In a conversion specification except +%%+, the leading percent sign may be
+followed by flags, field width, and/or precision in this order.
+
+[[convspec-flags]]
+==== Flags
+
+The flags are a sequence of any number of the following characters:
+
+Minus sign (+-+)::
+With this flag, spaces are appended to the formatted value to fill up to the
+field width.
+Otherwise, spaces are prepended.
+
+Plus sign (+&#43;+)::
+A plus or minus sign is always prepended to a number.
+
+Space (+&#32;+)::
+A space is prepended to a formatted number if it has no plus or minus sign.
+
+Hash sign (+#+)::
+The value is formatted in an alternative form:
+For +%o+, the printed octal integer has at least one leading zero.
+For +%x+ and +%X+, a non-zero integer is formatted with +0x+ and +0X+
+prefixes, respectively.
+For +%e+, +%E+, +%f+, +%F+, +%g+, and +%G+, a decimal mark (a.k.a. radix
+character) is always printed even if the value is an exact integer.
+For +%g+ and +%G+, the printed number has at least one digit in the fractional
+part.
+
+Zero (+0+)::
+Zeros are prepended to a formatted number to fill up to the field width.
+This flag is ignored if the minus flag is specified or if the conversion
+specification is +%d+, +%i+, +%u+, +%o+, +%x+, or +%X+ with a precision.
+
+[[convspec-width]]
+==== Field width
+
+A field width is specified as a decimal integer that has no leading zeros.
+
+A field width defines a minimum byte count of a formatted value.
+If the formatted value does not reach the minimum byte count, so many spaces
+are prepended that the printed value has the specified byte
+count.
+
+[[convspec-precision]]
+==== Precision
+
+A precision is specified as a period (+.+) followed by a decimal integer.
+If the integer is omitted after the period, the precision is assumed to be
+zero.
+
+For conversion specifications +%d+, +%i+, +%u+, +%o+, +%x+, and +%X+, a
+precision defines a minimum digit count.
+If the formatted integer does not reach the minimum digit count, so many zeros
+are prepended that the printed integer has the specified number of digits.
+The default precision is one for these conversion specifications.
+
+For conversion specifications +%e+, +%E+, +%f+, and +%F+, a precision defines
+the number of digits after the decimal mark.
+The default precision is six for these conversion specifications.
+
+For conversion specifications +%g+, and +%G+, a precision defines a maximum
+number of significant digits in the printed value.
+The default precision is six for these conversion specifications.
+
+For conversion specifications +%s+, and +%b+, a precision defines a maximum
+byte count of the printed string.
+The default precision is infinity for these conversion specifications.
+
+[[convspec-examples]]
+==== Examples
+
+In the conversion specification +%08.3f+, the zero flag is specified, the
+field width is 8, and the precision is 3.
+If this specification is applied to value 12.34, the output will be
++0012.340+.
+
+[[escapes]]
+=== Escape sequences
+
+The following escape sequences are recognized in {{format}}:
+
++\a+::
+Bell character (ASCII code: 7)
++\b+::
+Backspace (ASCII code: 8)
++\f+::
+Form feed character (ASCII code: 12)
++\n+::
+Newline character (ASCII code: 10)
++\r+::
+Carriage return character (ASCII code: 13)
++\t+::
+Horizontal tab character (ASCII code: 9)
++\v+::
+Vertical tab character (ASCII code: 11)
++\\+::
+Backslash
++\"+::
+Double quotation
++\'+::
+Single quotation (apostrophe)
++&#x5C;{{xxx}}+::
+Character whose code is {{xxx}}, where {{xxx}} is an octal number of at most
+three digits.
+
+[[operands]]
+== Operands
+
+{{format}}::
+A string that defines how {{value}}s should be formatted.
+
+{{value}}s::
+Values that are formatted according to {{format}}.
++
+A value is either a number or a string.
++
+When a numeric value is required, {{value}} can be a single or double
+quotation followed by a character, instead of a normal number.
+For example, the command `printf '%d' '"3'` will print +51+ on a typical
+environment where character +3+ has character code 51.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the printf built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The POSIX standard does not precisely define how multibyte characters should
+be handled by the built-in.
+When you use the +%s+ conversion specification with precision or the +%c+
+conversion specification, you may obtain unexpected results if the formatted
+value contains a character that is represented by more than one byte.
+Yash never prints only part of the bytes that represent a single multibyte
+character because all multibyte characters are converted to wide characters
+when processed in the shell.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

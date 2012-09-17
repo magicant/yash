@@ -1,0 +1,110 @@
+= Invocation
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Invocation
+:description: This page describes how yash is initialized when invoked.
+
+When invoked as a program, yash performs the predefined initialization steps
+and repeatedly reads and executed commands. Command line arguments given in
+the invocation determines how the shell initializes itself and executes
+commands.
+
+[[arguments]]
+== Command line arguments
+
+The syntax of command line arguments for yash conforms POSIX. As defined in
+POSIX, arguments are separated into dfn:[options] and dfn:[operands]. For more
+detailed explanation about options and operands, see
+link:builtin.html#argsyntax[Command argument syntax]. All options must come
+before operands. The interpretation of operands depends on options specified.
+
+When you specify the +-c+ (+--cmdline+) option, you must give at least one
+operand. The shell interprets and executes the first operand as a command
+string. The second operand, if any, is used to initialize the
+link:params.html#sp-zero[+0+ special parameter].
+The other operands, if any, are used to initialize the
+link:params.html#positional[positional parameters].
+When the +-c+ (+--cmdline+) option is specified, the shell does not read any
+file or the standard input (unless the link:_dot.html[dot built-in] is used).
+
+If you specify the +-s+ (+--stdin+) option, the shell reads the standard
+input, interprets the input as commands, and executes them. All the operands
+given are used to initialize the link:params.html#positional[positional
+parameters].
+The link:params.html#sp-zero[+0+ special parameter] is initialized to the name
+the shell is invoked as.
+
+If you specify neither the +-c+ (+--cmdline+) nor +-s+ (+--stdin+) option, the
+shell reads a file, interprets the file contents as commands, and executes
+them. The first operand specifies the pathname of the file. The remaining
+operands are used to initialize the link:params.html#positional[positional
+parameters].
+If you do not give any operands, the shell reads the standard input as if the
++-s+ (+--stdin+) option is specified.
+
+You cannot use both the +-c+ (+--cmdline+) and +-s+ (+--stdin+) options at a
+time.
+
+If you specify either the +--help+ or +--version+ option, the shell never
+performs the usual initialization or command execution. Instead, it just
+prints brief usage (for +--help+) or version information (for +--version+). If
+the +--version+ option is accompanied by the +-v+ (+--verbose+) option, the
+shell prints a list of the available optional features as well.
+
+If you specify the +-i+ (+--interactive+) option, the shell goes into the
+link:interact.html[interactive mode].
+If you specify the `+i` (`++interactive`) option, conversely, the shell never
+goes into the interactive mode.
+
+If you specify the +-l+ (+--login+) option, the shell behaves as a login
+shell.
+
+The +--noprofile+, +--norcfile+, +--profile+, and +--rcfile+ options determine
+how the shell is initialized (see below for details).
+
+In addition to the options described above, you can specify options that can
+be specified to the link:_set.html[set built-in].
+
+If the first operand is +-+ and the options and the operands are not separated
+by +--+, the first operands is ignored.
+
+[[init]]
+== Initialization of yash
+
+Yash initializes itself as follows:
+
+. Yash first parses the name it was invoked as. If the name starts with +-+,
+  the shell behaves as a login shell. If the name is +sh+ (including names
+  such as +/bin/sh+), the shell goes into the link:posix.html[POSIXly-correct
+  mode].
+. If no operands are given and the standard input and standard error are both
+  connected to a terminal, the shell goes into the
+  link:interact.html[interactive mode] unless the `+i` (`++interactive`)
+  option is specified.
+. link:job.html[Job control] is automatically enabled in an interactive shell
+  unless the `+m` (`++monitor`) option is specified.
+. Yash reads and executes commands from the following files (unless the real
+  and effective user IDs of the shell process are different or the real and
+  effective group IDs of the shell process are different):
+ .. If it is behaving as a login shell, the shell reads the file specified by
+    the +--profile={{filename}}+ option unless the +--noprofile+ option is
+    specified or the shell is in the link:posix.html[POSIXly-correct mode].
+    +
+    If the +--profile={{filename}}+ option is not specified, the shell reads
+    link:expand.html#tilde[~]/.yash_profile as a default.
+ .. If in the interactive mode, the shell reads the file specified by the
+    +--rcfile={{filename}}+ option unless the +--norcfile+ option is specified.
+    +
+    If the +--rcfile={{filename}}+ option is not specified, the shell
+    - reads link:expand.html#tilde[~]/.yashrc as a default if not in the
+      POSIXly-correct mode; or
+    - performs link:expand.html[parameter expansion] on the value of the
+      link:params.html#sv-env[+ENV+ environment variable] and treats the
+      expansion result as the name of the file to read if in the
+      POSIXly-correct mode.
+
+[NOTE]
+Yash never automatically reads /etc/profile, /etc/yashrc, nor
+link:expand.html#tilde[~]/.profile.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

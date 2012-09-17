@@ -1,0 +1,59 @@
+= Break built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Break built-in
+
+The dfn:[break built-in] aborts a loop being executed.
+
+[[syntax]]
+== Syntax
+
+- +break [{{nest}}]+
+- +break -i+
+
+[[description]]
+== Description
+
+When executed without the +-i+ (+--iteration+) option, the built-in aborts a
+currently executed link:syntax.html#for[for],
+link:syntax.html#while-until[while], or link:syntax.html#while-until[until]
+loop.
+When executed in nested loops, it aborts the {{nest}}th innermost loop.
+The default {{nest}} is one.
+If the number of currently executed nested loops is less than {{nest}}, the
+built-in aborts the outermost loop.
+
+When executed with the +-i+ (+--iteration+) option, the built-in aborts the
+currently executed (innermost) link:_eval.html#iter[iterative execution].
+
+[[options]]
+== Options
+
++-i+::
++--iteration+::
+Abort an iterative execution instead of a loop.
+
+[[operands]]
+== Operands
+
+{{nest}}::
+The number of loops to abort, which must be a positive integer.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the break built-in is:
+
+- zero if a loop was successfully aborted.
+- that of the command that was executed just before the break built-in if an
+  iterative execution was successfully aborted.
+
+[[notes]]
+== Notes
+
+The break built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines no options for the break built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

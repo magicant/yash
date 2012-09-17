@@ -1,0 +1,153 @@
+= Test built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Test built-in
+
+The dfn:[test built-in] evaluates an expression.
+
+[[syntax]]
+== Syntax
+
+- +test {{expression}}+
+- +[ {{expression}} ]+
+
+The test built-in does not distinguish options and operands;
+all command line arguments are interpreted as {{expression}}.
+If the built-in is executed in the name of +[+, {{expression}} must be
+followed by +]+.
+
+[[description]]
+== Description
+
+The test built-in evaluates {{expression}} as a conditional expression that is
+made up of operators and operands described below.
+The exit status is 0 if the condition is true and 1 otherwise.
+
+The unary operators below test a file.
+If the operand file is a symbolic link, the file referred to by the link is
+tested (except for the +-h+ and +-L+ operators).
+
++-b {{file}}+:: {{file}} is a block special file
++-c {{file}}+:: {{file}} is a character special file
++-d {{file}}+:: {{file}} is a directory
++-e {{file}}+:: {{file}} exists
++-f {{file}}+:: {{file}} is a regular file
++-G {{file}}+:: {{file}}'s group ID is same as the shell's effective group ID
++-g {{file}}+:: {{file}}'s set-group-ID flag is set
++-h {{file}}+:: same as -L
++-k {{file}}+:: {{file}}'s sticky bit is set
++-L {{file}}+:: {{file}} is a symbolic link
++-N {{file}}+:: {{file}} has not been accessed since last modified
++-O {{file}}+:: {{file}}'s user ID is same as the shell's effective user ID
++-p {{file}}+:: {{file}} is a FIFO (named pipe)
++-r {{file}}+:: {{file}} is readable
++-S {{file}}+:: {{file}} is a socket
++-s {{file}}+:: {{file}} is not empty
++-u {{file}}+:: {{file}}'s set-user-ID flag is set
++-w {{file}}+:: {{file}} is writable
++-x {{file}}+:: {{file}} is executable
+
+The unary operator below tests a file descriptor:
+
++-t {{fd}}+:: {{fd}} is associated with a terminal
+
+The unary operators below test a string:
+
++-n {{string}}+:: {{string}} is not empty
++-z {{string}}+:: {{string}} is empty
+
+The binary operators below compare files.
+Non-existing files are considered older than any existing files.
+
++{{file1}} -nt {{file2}}+:: {{file1}} is newer than {{file2}}
++{{file1}} -ot {{file2}}+:: {{file1}} is older than {{file2}}
++{{file1}} -ef {{file2}}+:: {{file1}} is a hard link to {{file2}}
+
+The binary operators below compare strings:
+
++{{string1}} = {{string2}}+::
+{{string1}} is the same string as {{string2}}
++{{string1}} != {{string2}}+::
+{{string1}} is not the same string as {{string2}}
+
+The binary operators below compare strings according to the alphabetic order
+in the current locale:
+
++{{string1}} === {{string2}}+::
+{{string1}} is equal to {{string2}}
++{{string1}} !== {{string2}}+::
+{{string1}} is not equal to {{string2}}
++{{string1}} < {{string2}}+::
+{{string1}} is less than {{string2}}
++{{string1}} <= {{string2}}+::
+{{string1}} is less than or equal to {{string2}}
++{{string1}} > {{string2}}+::
+{{string1}} is greater than {{string2}}
++{{string1}} >= {{string2}}+::
+{{string1}} is greater than or equal to {{string2}}
+
+The binary operators below compare integers:
+
++{{v1}} -eq {{v2}}+:: {{v1}} is equal to {{v2}}
++{{v1}} -ne {{v2}}+:: {{v1}} is not equal to {{v2}}
++{{v1}} -gt {{v2}}+:: {{v1}} is greater than {{v2}}
++{{v1}} -ge {{v2}}+:: {{v1}} is greater than or equal to {{v2}}
++{{v1}} -lt {{v2}}+:: {{v1}} is less than {{v2}}
++{{v1}} -le {{v2}}+:: {{v1}} is less than or equal to {{v2}}
+
+The binary operators below compare version numbers:
+
++{{v1}} -veq {{v2}}+:: {{v1}} is equal to {{v2}}
++{{v1}} -vne {{v2}}+:: {{v1}} is not equal to {{v2}}
++{{v1}} -vgt {{v2}}+:: {{v1}} is greater than {{v2}}
++{{v1}} -vge {{v2}}+:: {{v1}} is greater than or equal to {{v2}}
++{{v1}} -vlt {{v2}}+:: {{v1}} is less than {{v2}}
++{{v1}} -vle {{v2}}+:: {{v1}} is less than or equal to {{v2}}
+
+The operators below can be used to make complex expressions:
+
++! {{expression}}+:: negate (reverse) the result
++( {{expression}} )+:: change operator precedence
++{{expression1}} -a {{expression2}}+:: logical conjunction (and)
++{{expression1}} -o {{expression2}}+:: logical disjunction (or)
+
+If the expression is a single word without operators, the +-n+ operator is
+assumed. An empty expression evaluates to false.
+
+[[version-compare]]
+=== Comparison of version numbers
+
+Comparison of version numbers is similar to comparison of strings in
+alphabetic order.
+The differences are:
+
+- Adjacent digits are treated as an integer.
+  Integers are compared in mathematical order rather than alphabetic order.
+- Digits are considered larger than any non-digit characters.
+
+For example, version numbers +0.1.2-3+ and +00.001.02-3+ are equal and +0.2.1+
+is smaller than +0.10.0+.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the test built-in is 0 if {{expression}} is true and 1
+otherwise.
+The exit status is 2 if {{expression}} cannot be evaluated because of a syntax
+error or any other reasons.
+
+[[notes]]
+== Notes
+
+Complex expressions may cause confusion and should be avoided.
+Use the shell's link:syntax.html#compound[compound commands].
+For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
++[ 1 -eq 1 -a -t = 1 -a ! foo ]+.
+
+The POSIX standard provides that the exit status should be larger than 1 on
+error.
+The POSIX standard does not define the following operators:
++-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +<=+, +>+, +>=+, +-veq+, +-vne+,
++-vgt+, +-vge+, +-vlt+, and +-vle+.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

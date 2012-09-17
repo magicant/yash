@@ -1,0 +1,119 @@
+html, body {
+	color: black;
+	background: white;
+}
+body {
+	margin: 1em 5%;
+	text-align: justify;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	padding: 0;
+	padding-left: 0.5em;
+	border-style: none none solid solid;
+	border-bottom-width: 1px;
+}
+h1, h2, h3 {
+	margin: 1em -3.5% 0.5em;
+}
+h4, h5, h6 {
+	margin: 1em -2.5% 0.5em;
+}
+h1 {
+	border-color: orange;
+	border-left-width: 1em;
+}
+h2 {
+	border-color: navy;
+	border-left-width: 0.7em;
+}
+h3 {
+	border-color: green;
+	border-left-width: 0.5em;
+}
+
+.sectionbody {
+	/*margin: 0 3%;*/
+}
+#footer {
+	margin: 0 -3%;
+	font-size: small;
+	border: none;
+	border-top: 2px solid silver;
+}
+.title {
+	border-bottom: 1px solid maroon;
+	font-weight: bold;
+}
+.list-group p {
+	margin-top: 0.2em;
+	margin-bottom: 0.2em;
+}
+.admonitionblock td.icon {
+	vertical-align: top;
+	padding-right: 0.5em;
+}
+.exampleblock {
+	margin: 0.8em auto;
+	border: 0.15em dotted maroon;
+	padding: 0 0.5em;
+}
+.exampleblock > .title {
+	margin-top: 0.5em;
+}
+
+ul, ol {
+	list-style-position: outside;
+}
+ol.arabic {
+	list-style-type: decimal;
+}
+ol.loweralpha {
+	list-style-type: lower-alpha;
+}
+ol.upperalpha {
+	list-style-type: upper-alpha;
+}
+ol.lowerroman {
+	list-style-type: lower-roman;
+}
+ol.upperroman {
+	list-style-type: upper-roman;
+}
+
+li p {
+	margin-top: 0.65em;
+	margin-bottom: 0.65em;
+}
+dd p {
+	margin-top: 0.1em;
+	margin-bottom: 0.65em;
+}
+
+pre {
+	border: dashed 1px gray;
+	padding: 0.3em;
+	background: #f8f8f8;
+}
+code, kbd, samp {
+	border: dotted 1px gray;
+	padding: 1px;
+	text-decoration: none;
+	white-space: pre-wrap;
+}
+pre code, pre kbd, pre samp {
+	white-space: inherit;
+}
+code {
+	background: #efe;
+}
+kbd {
+	background: #ffd;
+}
+samp {
+	background: #eef;
+}
+var {
+	color: maroon;
+	background: inherit;
+}

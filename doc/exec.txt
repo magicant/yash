@@ -1,0 +1,243 @@
+= Command execution
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Command execution
+:description: This page describes how commands are executed by yash.
+
+This section describes how commands are executed.
+
+[[simple]]
+== Execution of simple commands
+
+link:syntax.html#simple[A simple command] is executed as follows:
+
+. All tokens in the simple command are link:expand.html[expanded] except for
+  assignment and redirection tokens.
+  If an error occurs during expansion, the execution of the simple command is
+  aborted with a non-zero exit status.
+  +
+  In the following steps, the first word of the expansion results is referred
+  to as dfn:[command name], and the other words as dfn:[command arguments].
+  If there is only one word of the expansion results, there are no command
+  argument words.
+  If there are none of the expansion results, there is no command name either.
+. link:redir.html[Redirection] specified in the command, if any, is processed.
+  The word token after each redirection operator is expanded.
+  If an error occurs during processing redirection (including when expanding
+  the word token), the execution of this simple command is aborted with a
+  non-zero exit status.
+. Assignments specified in the command, if any, are processed.
+  For each assignment token, the value is expanded and assigned to the
+  specified link:params.html#variables[variable].
+  If an error occurs during assignments (including when expanding the values
+  to be assigned), the execution of this simple command is aborted with a
+  non-zero exit status.
+  - If there is no command name or the name denotes a
+    link:builtin.html#types[special built-in] or <<function,function>>, the
+    assignments are permanent: the assigned values remain after the command
+    has finished (until the variable is reassigned).
+  - Otherwise, the assignments are temporary: the assigned values only last
+    during the execution of this simple command.
+    The assigned variables are automatically exported.
+. If there is no command name, the command execution ends with the exit status
+  of zero (unless there are any link:expand.html#cmdsub[command substitutions]
+  in the command, in which case the exit status of the simple command is that
+  of the last executed command substitution).
+. A command to be executed is determined using the <<search,command search
+  algorithm>> and the command is executed.
++
+--
+If the command was executed, the exit status of this simple command is that
+of the executed command.
+If the algorithm failed to determine a command, no command is executed and
+the exit status is 127.
+If the shell failed to execute the determined command, the exit status is
+126.
+If the executed command was killed by a signal, the exit status is the
+unique number that corresponds to the signal and is larger than 128.
+
+- If the command is an external command, the command is executed by creating
+  a new <<subshell,subshell>> and calling the ``exec'' system call in the
+  subshell.
+  The command name and arguments are passed to the executed command.
+  Exported variables are passed to the executed command as environment
+  variables.
+- If the command is a link:builtin.html[built-in], the built-in is executed
+  with the command arguments passed to the built-in.
+- If the command is a <<function,function>>, the contents of the function
+  are executed with the command arguments as function arguments.
+
+If the shell is not in the link:posix.html[POSIXly-correct mode] and the
+algorithm failed to determine a command, the command
+ifdef::basebackend-html[]
+pass:[<code><a href="_eval.html">eval</a> -i -- "${COMMAND_NOT_FOUND_HANDLER-}"</code>]
+endif::basebackend-html[]
+ifndef::basebackend-html[`eval -i -- "${COMMAND_NOT_FOUND_HANDLER-}"`]
+is evaluated.
+During the command execution, link:params.html#positional[positional
+parameters] are temporarily set to the command name and arguments that
+resulted in the first step.
+Any <<localvar,local variables>> defined during the execution are removed
+when the execution is finished.
+The +HANDLED+ local variable is automatically defined with the initial value
+being the empty string.
+If the +HANDLED+ variable has a non-empty value when the execution of the
+command string is finished, the shell pretends that the command was
+successfully determined and executed.
+The exit status of the simple command is that of the command string in this
+case.
+--
+
+[[search]]
+=== Command search
+
+A command that is executed in a simple command is determined by the command
+name using the following algorithm:
+
+. If the command name contains a slash (+/+), the whole name is treated as the
+  pathname of an external command. The external command is determined as the
+  executed command.
+. If the command name is a link:builtin.html#types[special built-in], the
+  built-in is determined as the executed command.
+. If the command name is the name of an existing <<function,function>>, the
+  function is determined as the executed command.
+. If the command name is a link:builtin.html#types[semi-special built-in], the
+  built-in is determined as the executed command.
+. If the command name is a link:builtin.html#types[regular built-in], the
+  built-in is determined as the executed command unless the shell is in the
+  link:posix.html[POSIXly-correct mode].
+. The shell searches the PATH for a executed command:
++
+--
+The value of the link:params.html#sv-path[+PATH+ variable] is separated by
+colons.
+Each separated part is considered as a directory pathname
+(an empty pathname denotes the current working directory).
+The shell searches the directories (in the order of appearance) and checks if
+any directory directly contains an executable regular file whose name is equal
+to the command name.
+If such a file is found: 
+
+- If the command name is the name of a built-in, the built-in is determined as
+  the executed command.
+- Otherwise, the file is determined as the executed command.
+  (The file will be executed as an external command.)
+
+If no such file is found, no command is determined as the executed command.
+--
+
+When the shell finds a file that matches the command name during the search
+above, the shell remembers the pathname of the file if it is an absolute path.
+When the algorithm above is used for the same command name again, the shell
+skips searching and directly determines the command to be executed.
+If an executable regular file no longer exists at the remembered pathname,
+however, the shell searches again to update the remembered pathname.
+You can manage remembered pathnames using the link:_hash.html[hash built-in].
+
+[[exit]]
+== Termination of the shell
+
+The shell exits when it reached the end of input and has parsed and executed
+all input commands or when the link:_exit.html[exit built-in] is executed.
+The exit status of the shell is that of the last command the shell executed
+(or zero if no commands were executed).
+The exit status of the shell is always between 0 and 255 (inclusive).
+If the exit status of the last command is 256 or larger, the exit status 
+the shell will be the remainder of the exit status divided by 256.
+
+If an exit handler has been registered by the link:_trap.html[trap built-in],
+The handler is executed just before the shell exits.
+The exit status of the commands executed in the handler does not affect the
+exit status of the shell.
+
+If a non-link:interact.html[interactive] shell encountered one of the
+following errors, the shell immediately exits with a non-zero exit status:
+
+- A command cannot be parsed due to an syntax error.
+- A link:builtin.html#types[special built-in] is executed in the
+  link:posix.html[POSIXly-correct mode] and the command arguments do not meet
+  the syntax of the built-in's arguments.
+- An error occurs during redirection or assignment in a
+  link:syntax.html#simple[simple command] whose command name is a special
+  built-in and the shell is in the POSIXly-correct mode.
+- An error occurs during link:expand.html[expansion].
+
+[NOTE]
+Some shells other than yash exit when they fail to find a command to execute
+in <<search,command search>>.
+
+[[function]]
+== Functions
+
+dfn:[Functions] allow executing a link:syntax.html#compound[compound command]
+as a link:syntax.html#simple[simple command].
+A function can be defined by the link:syntax.html#funcdef[function definition
+command] and executed by a simple command.
+You can use the link:_unset.html[unset built-in] to remove function
+definitions.
+
+There are no functions predefined when yash is started.
+
+A function is executed by executing its body, which is a compound command.
+While the function is being executed, link:params.html#positional[positional
+parameters] are set to the arguments given to the function.
+The old positional parameters are restored when the function execution
+finishes.
+
+[[localvar]]
+=== Local variables
+
+dfn:[Local variables] are temporary variables that are defined in a function
+and existent during the function execution only.
+They can be defined by the link:_typeset.html[typeset built-in].
+They are removed when the function execution finishes.
+
+Local variables may _hide_ variables that have already been defined before
+the function execution had started.
+An existing variable becomes inaccessible if a local variable of the same name
+is defined in a function.
+The old variable becomes accessible again when the function execution
+finishes.
+
+You cannot create a local variable when not executing a function.
+A normal variable is created if you try to do so.
+
+[[environment]]
+== Command execution environment
+
+The shell holds following properties during execution.
+
+- The working directory
+- Open file descriptors
+- The file creation mask (link:_umask.html[umask])
+- The set of signals whose handler is set to ``ignore'' (link:_trap.html[trap])
+- link:params.html#variables[Environment variables]
+- Resource limits (link:_ulimit.html[ulimit])
+
+Those properties are inherited from the invoker of the shell to the shell, and
+from the shell to each external command executed by the shell.
+
+The properties can be changed during the execution of the shell by built-in
+commands, variable assignments, etc.
+
+[[subshell]]
+=== Subshells
+
+A dfn:[subshell] is a copy of the shell process.
+Subshells are used in execution of link:syntax.html#grouping[groupings],
+link:syntax.html#pipelines[pipelines], etc.
+
+Subshells inherit functions, aliases, etc. defined in the shell as well as the
+properties above since subshells are copies of the shell process.
+Notable exceptions are:
+
+- Signal handlers registered by the link:_trap.html[trap built-in] are all
+  reset in subshells except for ones whose action is set to ``ignore''.
+- The link:interact.html[interactive] mode and link:job.html[job control] are
+  disabled in subshells.
+  Jobs are not inherited to subshells.
+
+Subshells are executed independently of the original shell, so changes of
+any properties above do not affect those of the original shell.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

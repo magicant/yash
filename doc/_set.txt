@@ -1,0 +1,238 @@
+= Set built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Set built-in
+
+The dfn:[set built-in] sets shell options and positional parameters.
+
+[[syntax]]
+== Syntax
+
+- +set [{{option}}s] [{{operand}}s]+
+- +set -o+
+- +set +o+
+
+The set built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.
+
+[[description]]
+== Description
+
+When executed without any command arguments, the built-in prints a list of all
+existing link:params.html#variables[variables] to the standard input in a form
+that can be reused as commands that will restore the variable definitions.
+
+When +-o+ is the only command argument, the built-in prints a list of shell
+options with their current settings.
+When `+o` is the only command argument, the built-in prints commands that can
+be reused to restore the current shell option settings.
+
+In other cases, the built-in changes shell option settings and/or
+link:params.html#positional[positional parameters].
+
+[[options]]
+== Options
+
+When one or more options are specified, the built-in enables or disables the
+shell options.
+A normal hyphen-prefixed option enables a shell option.
+An option that is prefixed with a plus (`+`) instead of a hyphen disables a
+shell option.
+For example, options +-m+, +-o monitor+, and +--monitor+ enable the monitor
+option and options `+m`, `+o monitor`, `++monitor` disable it.
+
+The name of a long option is case-insensitive and may include irrelevant
+non-alphanumeric characters, which are ignored.
+For example, options +--le-comp-debug+ and +--LeCompDebug+ are equivalent.
+If +no+ is prepended to the name of a long option, the meaning is reversed.
+For example, +--noallexport+ is equivalent to `++allexport` and `++nonotify`
+to +--notify+.
+
+An option can be specified in one of the following forms:
+
+- a long option e.g. +--allexport+
+- an +-o+ option with a option name specified as the argument
+  e.g. +-o allexport+
+- a single-character option e.g. +-a+
+
+Not all options can be specified as single-character options.
+
+The available options are:
+
+[[so-allexport]]all-export (+-a+)::
+When enabled, all link:params.html#variables[variables] are automatically
+link:_export.html[exported] when assigned.
+
+[[so-braceexpand]]brace-expand::
+This option enables link:expand.html#brace[brace expansion].
+
+[[so-caseglob]]case-glob::
+(Enabled by default)
+When enabled, pattern matching is case-insensitive in
+link:expand.html#glob[pathname expansion].
+
+[[so-clobber]]clobber (`+C`)::
+(Enabled by default)
+When enabled, the +>+ link:redir.html#file[redirection] behaves the same as
+the +>|+ redirection.
+
+[[so-curasync]]cur-async::
+[[so-curbg]]cur-bg::
+[[so-curstop]]cur-stop::
+(Enabled by default)
+These options affect choice of the current job
+(cf. link:job.html#jobid[job ID]).
+
+[[so-dotglob]]dot-glob::
+When enabled, periods at the beginning of filenames are not treated specially
+in link:expand.html#glob[pathname expansion].
+
+[[so-emacs]]emacs::
+This option enables link:lineedit.html[line-editing] in the
+link:lineedit.html#modes[emacs mode].
+
+[[so-errexit]]err-exit (+-e+)::
+When enabled, if a link:syntax.html#pipelines[pipeline] ends with a non-zero
+exit status, the shell immediately exits unless the pipeline is a condition of
+an link:syntax.html#if[if command] or link:syntax.html#while-until[while or
+until loop] or is prefixed by +!+.
+
+[[so-exec]]exec (`+n`)::
+(Enabled by default)
+Commands are actually executed only when this option is enabled.
+Otherwise, commands are just parsed and not executed.
+Disabling this option may be useful for syntax checking.
+In an link:interact.html[interactive shell], this option is always assumed
+enabled.
+
+[[so-extendedglob]]extended-glob::
+This option enables link:expand.html#extendedglob[extension in pathname
+expansion].
+
+[[so-glob]]glob (`+f`)::
+(Enabled by default)
+This option enables link:expand.html#glob[pathname expansion].
+
+[[so-hashondef]]hash-on-def (+-h+)::
+When a link:exec.html#function[function] is defined when this option is
+enabled, the shell immediately performs link:exec.html#search[command path
+search] for each command that appears in the function and caches the command's
+full path.
+
+[[so-histspace]]hist-space::
+When enabled, command lines that start with a whitespace are not saved in
+link:interact.html#history[command history].
+
+[[so-ignoreeof]]ignore-eof::
+When enabled, an link:interact.html[interactive shell] does not exit when EOF
+(end of file) is input.
+This prevents the shell from exiting when you accidentally hit Ctrl-D.
+
+[[so-lealwaysrp]]le-always-rp::
+[[so-lecompdebug]]le-comp-debug::
+[[so-leconvmeta]]le-conv-meta::
+[[so-lenoconvmeta]]le-no-conv-meta::
+[[so-lepromptsp]]le-prompt-sp::
+[[so-levisiblebell]]le-visible-bell::
+See link:lineedit.html#options[shell options on line-editing].
+
+[[so-markdirs]]mark-dirs::
+When enabled, resulting directory names are suffixed by a slash in
+link:expand.html#glob[pathname expansion].
+
+[[so-monitor]]monitor (+-m+)::
+This option enables link:job.html[job control].
+This option is enabled by default for an link:interact.html[interactive
+shell].
+
+[[so-notify]]notify (+-b+)::
+When the status of a link:job.html[job] changes when this option is enabled,
+the shell immediately notifies at any time.
+This option overrides the notify-le option.
+
+[[so-notifyle]]notify-le::
+This option is similar to the notify option, but the status change is notified
+only while the shell is waiting for input with
+link:lineedit.html[line-editing].
+
+[[so-nullglob]]null-glob::
+When enabled, in link:expand.html#glob[pathname expansion], patterns that do
+not match any pathname are removed from the command line rather than left as
+is.
+
+[[so-posixlycorrect]]posixly-correct::
+This option enables the link:posix.html[POSIXly-correct mode].
+
+[[so-unset]]unset (`+u`)::
+(Enabled by default)
+When enabled, undefined parameters are expanded to empty strings in
+link:expand.html#params[parameter expansion].
+When disabled, expansion of undefined parameter results in an error.
+
+[[so-verbose]]verbose (+-v+)::
+When enabled, the shell prints each command line to the standard error before
+parsing and executing it.
+
+[[so-vi]]vi::
+This option enables link:lineedit.html[line-editing] in the
+link:lineedit.html#modes[vi mode].
+This option is enabled by default in an link:interact.html[interactive shell]
+if the standard input and error are both terminals.
+
+[[so-xtrace]]x-trace (+-x+)::
+When enabled, the results of link:expand.html[expansion] are printed to the
+standard error for each link:syntax.html#simple[simple command] being
+executed.
+When printed, each line is prepended with an expansion result of the
+link:params.html#sv-ps4[+PS4+ variable].
+
+[[operands]]
+== Operands
+
+If one or more operands are passed to the set built-in, current
+link:params.html#positional[positional parameters] are all removed and the
+operands are set as new positional parameters.
+If the +--+ separator (cf. link:builtin.html#argsyntax[syntax of command
+arguments]) is passed, the positional parameters are set even when there are
+no operands, in which case new positional parameters will be nothing.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the set built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The set built-in is a link:builtin.html#types[special built-in].
+
+In the POSIX standard, available shell options are much limited.
+The standard does not define:
+
+- long options such as +--allexport+,
+- prepending +no+ to negate an option,
+- using uppercase alphabets and/or non-alphanumeric characters in option names
+
+The options defined in the standard are:
+
+- +-a+, +-o allexport+
+- +-e+, +-o errexit+
+- +-m+, +-o monitor+
+- +-C+, +-o noclobber+
+- +-n+, +-o noexec+
+- +-f+, +-o noglob+
+- +-b+, +-o notify+
+- +-u+, +-o nounset+
+- +-v+, +-o verbose+
+- +-x+, +-o xtrace+
+- +-h+
+- +-o ignoreeof+
+- +-o nolog+
+- +-o vi+
+
+Yash does not support the nolog option, which prevents
+link:syntax.html#funcdef[function definitions] from being added to
+link:interact.html#history[command history].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

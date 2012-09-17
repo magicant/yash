@@ -1,0 +1,58 @@
+= Unset built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Unset built-in
+
+The dfn:[unset built-in] undefines variables or functions.
+
+[[syntax]]
+== Syntax
+
+- +unset [-fv] [{{name}}...]+
+
+[[description]]
+== Description
+
+The unset built-in removes the definition of the
+link:params.html#variables[variables] or link:exec.html#function[functions]
+specified by operands.
+
+It is not an error if any of the specified variables or functions do not
+exist; they are silently ignored.
+
+[[options]]
+== Options
+
++-f+::
++--functions+::
+Undefine functions.
+
++-v+::
++--variables+::
+Undefine variables.
+
+These options are mutually exclusive:
+only the last specified one is effective.
+If neither is specified, +-v+ is assumed.
+
+[[operands]]
+== Operands
+
+{{name}}::
+The name of a variable or function to be undefined.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the unset built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The unset built-in is a link:builtin.html#types[special built-in].
+
+Although yash does not do so, the POSIX standard allows removing a function if
+neither of the +-f+ and +-v+ options is specified and the specified variable
+does not exist.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1,0 +1,28 @@
+= Times 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Times 組込みコマンド
+
+dfn:[Times 組込みコマンド]はシェルとシェルが起動したコマンドが消費した CPU 時間を表示します。
+
+[[syntax]]
+== 構文
+
+- +times+
+
+[[description]]
+== 説明
+
+Times コマンドはシェルプロセスとその子プロセスが消費した CPU 時間を標準出力に出力します。一行目にシェルプロセス自身がユーザモードおよびシステムモードで消費した CPU 時間をそれぞれ表示します。二行目にシェルの全ての子孫プロセス (親プロセスが wait していないものを除く) がユーザモードおよびシステムモードで消費した CPU 時間をそれぞれ表示します。
+
+[[exitstatus]]
+== 終了ステータス
+
+エラーがない限り times コマンドの終了ステータスは 0 です。
+
+[[notes]]
+== 補足
+
+Times コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+// vim: set filetype=asciidoc expandtab:

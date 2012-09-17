@@ -1,0 +1,32 @@
+= コロン組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - コロン組込みコマンド
+
+dfn:[コロン組込みコマンド]は何も行わない組込みコマンドです。
+
+[[syntax]]
+== 構文
+
+- +: [{{引数}}...]+
+
+[[description]]
+== 説明
+
+コロンコマンドは何も行いません。コマンドライン引数は一切無視します。
+
+[[exitstatus]]
+== 終了ステータス
+
+コロンコマンドの終了ステータスは 0 です。
+
+[[notes]]
+== 補足
+
+コロンコマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+引数のlink:expand.html[展開]とlink:redir.html[リダイレクト]は他のコマンドと同様に行います。
+
+link:_true.html[True コマンド]はコロンコマンドと同様に何も行いませんが、コロンコマンドは特殊組込みコマンドであるのに対し true コマンドは準特殊組込みコマンドです。
+
+// vim: set filetype=asciidoc expandtab:

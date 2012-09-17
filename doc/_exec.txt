@@ -1,0 +1,95 @@
+= Exec built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Exec built-in
+
+The dfn:[exec built-in] replaces the shell process with another external
+command.
+
+[[syntax]]
+== Syntax
+
+- +exec [-cf] [-a {{name}}] [{{command}} [{{argument}}...]]+
+
+The exec built-in requires that all options precede operands.
+It is important so that options to the exec built-in are not confused with
+options to {{command}}.
+Any command line arguments after {{command}} are treated as {{argument}}s.
+
+[[description]]
+== Description
+
+When the exec built-in is executed with {{command}}, the shell executes
+{{command}} with {{argument}}s in a manner similar to the last step of
+link:exec.html#simple[execution of a simple command].
+The differences are that {{command}} is always treated as an external command
+ignoring any existing functions and built-ins and that the exec system call
+that starts the external command is called in the current
+link:exec.html#environment[command execution environment] instead of a
+subshell, replacing the shell process with the new command process.
+
+If the shell is in the link:posix.html[POSIXly-correct mode] or not
+link:interact.html[interactive], failure in execution of {{command}} causes
+the shell to exit immediately.
+
+If an interactive shell that is not in the POSIXly-correct mode has a stopped
+link:job.html[job], the shell prints a warning message and refuses to execute
+{{command}}.
+Once the shell process is replaced with an external command, information about
+the shell's jobs is lost, so you will have to resume or kill the stopped jobs
+by sending signals by hand.
+To force the shell to execute {{command}} regardless, specify the +-f+
+(+--force+) option.
+
+When executed without {{command}}, the built-in does nothing.
+As a side effect, however, link:redir.html[redirection] applied to the
+built-in remains in the current link:exec.html#environment[command execution
+environment] even after the built-in finished.
+
+[[options]]
+== Options
+
++-a {{name}}+::
++--as={{name}}+::
+Pass {{name}}, instead of {{command}}, to the external command as its name.
+
++-c+::
++--clear+::
+Pass to the external command only variables that are assigned in the
+link:exec.html#simple[simple command] in which the built-in is being executed.
+Other environment variables are not passed to the command.
+
++-f+::
++--force+::
+Suppress warnings that would prevent command execution.
+
+[[operands]]
+== Operands
+
+{{command}}::
+An external command to be executed.
+
+{{argument}}...::
+Arguments to be passed to the command.
+
+[[exitstatus]]
+== Exit status
+
+If the shell process was successfully replaced with the external command,
+there is no exit status since the shell process no longer exists.
+
+The exit status is:
+
+- 127 if the command was not found,
+- 126 if the command was found but could not be executed, and
+- zero if no {{command}} was specified.
+
+[[notes]]
+== Notes
+
+The exec built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines no options for the exec built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

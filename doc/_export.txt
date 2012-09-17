@@ -1,0 +1,28 @@
+= Export built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Export built-in
+
+The dfn:[export built-in] marks variables for exportation.
+
+[[syntax]]
+== Syntax
+
+- +export [-prX] [{{name}}[={{value}}]...]+
+
+[[description]]
+== Description
+
+The export built-in is equivalent to the link:_typeset.html[typeset built-in]
+with the +-gx+ option.
+
+[[notes]]
+== Notes
+
+The export built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines the +-p+ option only;
+other options cannot be used in the link:posix.html[POSIXly-correct mode].
+The POSIX does not allow using the option together with operands.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

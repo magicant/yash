@@ -1,0 +1,25 @@
+= Export 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Export 組込みコマンド
+
+dfn:[Export 組込みコマンド]はエクスポート対象のlink:params.html#variables[変数]を表示・設定します。
+
+[[syntax]]
+== 構文
+
+- +export [-prX] [{{変数}}[={{値}}]...]+
+
+[[description]]
+== 説明
+
+Export コマンドは link:_typeset.html[typeset コマンド]に +-gx+ オプションを付けたものと同じです。その他オプション・オペランド・終了ステータスは typeset コマンドと同様です。
+
+[[notes]]
+== 補足
+
+Export コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+POSIX には export コマンドに関する規定はありますが、オプションは +-p+ しか規定がありません。その他のオプションは link:posix.html[POSIX 準拠モード]では使えません。また POSIX は +-p+ オプションをオペランドとともに使うことを認めていません。
+
+// vim: set filetype=asciidoc expandtab:

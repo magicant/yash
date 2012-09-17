@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1203,32 +1203,6 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
     return ok;
 }
 
-#if YASH_ENABLE_HELP
-const char *trap_help[] = { Ngt(
-"trap - set or print signal handlers\n"
-), Ngt(
-"\ttrap [action signal...]\n"
-"\ttrap signum [signal...]\n"
-"\ttrap -p [signal...]\n"
-), Ngt(
-"The trap built-in sets the signal handler of the specified <signal>s to\n"
-"<action>. When the shell receives the signal, the corresponding action is\n"
-"executed as if by the eval built-in.\n"
-), Ngt(
-"If <action> is an empty string, no actions are taken and the signal is\n"
-"silently ignored when received.\n"
-"If <action> is `-', the signal handler is reset to the default.\n"
-"If the first operand is a non-negative integer, the operand is considered as\n"
-"a signal specification and <action> is assumed to be `-'.\n"
-), Ngt(
-"If the -p (--print) option is specified, the actions for the specified\n"
-"<signal>s are printed. This option is not available in the POSIXly correct\n"
-"mode.\n"
-), Ngt(
-"Without any operands, all signal handlers currently set are printed.\n"
-), NULL };
-#endif
-
 /* The "kill" built-in, which accepts the following options:
  *  -s sig: specifies the signal to send
  *  -n num: specifies the signal to send by number
@@ -1409,27 +1383,6 @@ void signal_job(int signum, const wchar_t *jobspec)
     if (kill(-jobpgid, signum) < 0)
 	xerror(errno, "%ls", jobspec);
 }
-
-#if YASH_ENABLE_HELP
-const char *kill_help[] = { Ngt(
-"kill - send a signal to processes\n"
-), Ngt(
-"\tkill [-signal|-s signal|-n number] process...\n"
-"\tkill -l [-v] [number...]\n"
-), Ngt(
-"The first form sends a signal to the specified processes. The signal to send\n"
-"can be specified by the name or by the number, which defaults to SIGTERM if\n"
-"not specified. The processes can be specified by the process ID or in the\n"
-"job specification format like `%1'. If the process ID is negative, the\n"
-"signal is sent to the process group.\n"
-), Ngt(
-"The second form prints info about signals. For each <number> given, the name\n"
-"of the corresponding signal is printed. The <number> must be a valid signal\n"
-"number or the exit status of a process kill by a signal. If no <number>s are\n"
-"given, a list of available signals is printed. With the -v option, the\n"
-"signal numbers and descriptions of signals are printed as well.\n"
-), NULL };
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

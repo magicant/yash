@@ -1,0 +1,67 @@
+= Dirs built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Dirs built-in
+
+The dfn:[dirs built-in] prints the contents of the directory stack.
+
+[[syntax]]
+== Syntax
+
+- +dirs [-cv] [{{index}}..]+
+
+[[description]]
+== Description
+
+The dfn:[directory stack] is a feature that records history of working
+directories.
+You can use the link:_pushd.html[pushd built-in] to save a working directory
+in the directory stack, the link:_popd.html[popd built-in] to recall the saved
+working directory, and the dirs built-in to see the stack contents.
+Those built-ins use the link:params.html#sv-dirstack[+DIRSTACK+ array] and the
+link:params.html#sv-pwd[+PWD+ variable] to save the stack contents. Modifying
+the array means modifying the stack contents.
+
+Directory stack entries are indexed by signed integers.
+The entry of index +0 is the current working directory, +1 is the last saved
+directory, +2 is the second last, and so on.
+Negative indices are in the reverse order: the entry of index -0 is the first
+saved directory, -1 is the second, and -{{n}} is the current working directory
+if the stack has {{n}} entries,
+
+When executed without the +-c+ (+--clear+) option, the dirs built-in prints the
+current contents of the directory stack to the standard output.
+With the +-c+ (+--clear+) option, the built-in clears the directory stack.
+
+[[options]]
+== Options
+
++-c+::
++--clear+::
+Clear the directory stack contents except for the current working directory,
+which has index +0.
+
++-v+::
++--verbose+::
+Print indices when printing stack contents.
+
+[[operands]]
+== Operands
+
+{{index}}::
+The index of a stack entry to be printed.
++
+You can specify more than one index.
+If you do not specify any index, all the entries are printed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the dirs built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The dirs built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

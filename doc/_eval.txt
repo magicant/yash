@@ -1,0 +1,65 @@
+= Eval built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Eval built-in
+
+The dfn:[eval built-in] evaluates operands as commands.
+
+[[syntax]]
+== Syntax
+
+- +eval [-i] [{{command}}...]+
+
+The eval built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.
+
+[[description]]
+== Description
+
+The eval parses operands as commands and executes them in the current
+link:exec.html#environment[command execution environment].
+
+When executed without the +-i+ (+--iteration+) option, all the operands are
+concatenated into one string (with a space inserted between each operand) and
+parsed/executed at once.
+
+With the +-i+ (+--iteration+) option, the built-in performs dfn:iter[iterative
+execution]: operands are parsed/executed one by one.
+If the link:_continue.html[continue built-in] is executed with the +-i+
+(+--iteration+) option during the iterative execution, the execution of the
+current operand is aborted and the next operand is parsed/executed
+immediately.
+The link:_break.html[break built-in] with the +-i+ (+--iteration+) option is
+similar but the remaining operands are not parsed/executed.
+
+[[options]]
+== Options
+
++-i+::
++--iteration+::
+Perform iterative execution.
+
+[[operands]]
+== Operands
+
+{{command}}::
+A string that is parsed and executed as commands.
+
+[[exitstatus]]
+== Exit status
+
+The exit status is zero if no {{command}} was specified or {{command}}
+contained no actual command that can be executed.
+Otherwise, that is, if the eval built-in executed one or more commands, the
+exit status of the eval built-in is that of the last executed command.
+
+[[notes]]
+== Notes
+
+The eval built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard defines no options for the eval built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

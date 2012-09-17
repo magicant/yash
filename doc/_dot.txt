@@ -1,0 +1,84 @@
+= Dot built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Dot built-in
+
+The dfn:[dot built-in] reads a file and executes commands in it.
+
+[[syntax]]
+== Syntax
+
+- +. [-AL] {{file}} [{{argument}}...]+
+
+[[description]]
+== Description
+
+The dot built-in reads the specified {{file}}, parses its contents as
+commands, and executes them in the current link:exec.html#environment[command
+execution environment].
+
+If {{argument}}s are specified, link:params.html#positional[positional
+parameters] are temporarily set to them.
+The positional parameters will be restored when the dot built-in finishes.
+If no {{argument}}s are specified, the positional parameters are not changed.
+
+If {{file}} does not contain any slashes, the shell searches
+link:params.html#sv-path[+$PATH+] for a readable (but not necessarily
+executable) shell script file whose name is {{file}} in the same manner as
+link:exec.html#search[command search].
+If no such file was found, the shell searches the current working directory
+for a file unless in the link:posix.html[POSIXly-correct mode].
+To ensure that the file in the current working directory is used, start
+{{file}} with `./'.
+
+[[options]]
+== Options
+
++-A+::
++--no-alias+::
+Disable alias substitution while parsing.
+
++-L+::
++--autoload+::
+Search link:params.html#sv-yash_loadpath[+$YASH_LOADPATH+]
+instead of link:params.html#sv-path[+$PATH+],
+regardless of whether {{file}} contains slashes.
+The {{file}} value is not considered relative to the current working
+directory.
+
+The dot built-in treats as operands any command line arguments after the first
+operand.
+
+[[operands]]
+== Operands
+
+{{file}}::
+The pathname of a file to be read.
+
+{{arguments}}...::
+Strings to which positional parameters are set while execution.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the dot built-in is that of the last command executed.
+The exit status is zero if the file contains no commands to execute and
+non-zero if a file was not found or could not be opened.
+
+[[notes]]
+== Notes
+
+The dot built-in is a link:builtin.html#types[special built-in].
+
+A link:interact.html[non-interactive] shell that is not in the
+link:posix.html[POSIXly-correct mode] will immediately exit with a non-zero
+exit status if the dot built-in fails to find or open a file to execute.
+
+The POSIX standard defines no options for the dot built-in;
+the built-in accepts no options in the POSIXly-correct mode.
+
+The POSIX standard does not define the {{arguments}}... operands.
+It is an error to specify the {{arguments}}... operands in the POSIXly-correct
+mode.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

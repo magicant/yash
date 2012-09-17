@@ -1,0 +1,106 @@
+= Typeset built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Typeset built-in
+
+The dfn:[typeset built-in] prints or sets variables or functions.
+
+[[syntax]]
+== Syntax
+
+- +typeset [-gprxX] [{{variable}}[={{value}}]...]+
+- +typeset -f[pr] [{{function}}...]+
+
+[[description]]
+== Description
+
+If executed without the +-f+ (+--functions+) option, the typeset built-in
+prints or sets link:params.html#variables[variables] to the standard output.
+Otherwise, it prints or sets link:exec.html#function[functions].
+
+If executed with the +-p+ (+--print+) option, the built-in prints the
+variables or functions specified by operands.
+Without the option, it sets variables or functions.
+If no operands are specified, it prints all existing variables or functions,
+regardless of whether the +-p+ (+--print+) option is specified.
+
+[[options]]
+== Options
+
++-f+::
++--functions+::
+Print or set functions rather than variables.
+
++-g+::
++--global+::
+When setting a new variable, the variable will be a global variable if this
+option is specified.
+Without this option, the variable would be a link:exec.html#localvar[local
+variable].
++
+When printing variables, all existing variables including global variables are
+printed if this option is specified.
+Without this option, only local variables are printed.
+
++-p+::
++--print+::
+Print variables or functions in a form that can be parsed and executed as
+commands that will restore the currently set variables or functions.
+
++-r+::
++--readonly+::
+When setting variables or functions, make them read-only.
++
+When printing variables or functions, print read-only variables or functions
+only.
+
++-x+::
++--export+::
+When setting variables, link:params.html#variables[mark them for exportation],
+so that they will be exported to external commands.
++
+When printing variables, print exported variables only.
+
++-X+::
++--unexport+::
+When setting variables, cancel exportation of the variables.
+
+[[operands]]
+== Operands
+
+{{variable}} (without {{value}})::
+The name of a variable that is to be set or printed.
++
+Without the +-p+ (+--print+) option, the variable is defined (if not yet
+defined) but its value is not set nor changed.
+Variables that are defined without values are treated as unset in
+link:expand.html#params[parameter expansion].
+
+{{variable}}={{value}}::
+The name of a variable and its new value.
++
+The value is assigned to the variable (regardless of the +-p+ (+--print+)
+option).
+
+{{function}}::
+The name of an existing function that is to be set or printed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the typeset built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+A global variable cannot be newly defined if a local variable has already been
+defined with the same name.
+The local variable will be set regardless of the +-g+ (+--global+) option.
+
+The POSIX standard does not define the typeset built-in.
+
+The export and readonly built-ins are equivalent to the
+link:_typeset.html[typeset built-in] with the +-gx+ and +-gr+ options,
+respectively.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

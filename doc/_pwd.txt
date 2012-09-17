@@ -1,0 +1,48 @@
+= Pwd built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Pwd built-in
+
+The dfn:[pwd built-in] prints the current working directory.
+
+[[syntax]]
+== Syntax
+
+- +pwd [-L|-P]+
+
+[[description]]
+== Description
+
+The pwd built-in prints an absolute path to the shell's current working
+directory to the standard output.
+
+[[options]]
+== Options
+
++-L+::
++--logical+::
+If the value of the link:params.html#sv-pwd[+PWD+ variable] is an absolute
+path to the shell's working directory and the path does not contain any +.+ or
++..+ components, then the path is printed.
+Otherwise, the printed path is the same as when the +-P+ option is specified.
+
++-P+::
++--physical+::
+The printed path does not contain any +.+ or +..+ components, symbolic link
+components, or redundant slashes.
+
+The +-L+ (+--logical+) and +-P+ (+--physical+) options are mutually exclusive:
+only the last specified one is effective.
+If neither is specified, +-L+ is assumed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the pwd built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The pwd built-in is a link:builtin.html#types[semi-special built-in].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

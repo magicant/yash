@@ -1,0 +1,82 @@
+= History built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - History built-in
+
+The dfn:[history built-in] prints or edits link:interact.html#history[command
+history].
+
+[[syntax]]
+== Syntax
+
+- +history [-cF] [-d {{entry}}] [-s {{command}}] [-r {{file}}] [-w {{file}}] [{{count}}]+
+
+[[description]]
+== Description
+
+The history built-in prints or edits link:interact.html#history[command
+history].
+
+When executed with an option, the built-in edits history according to the
+option. If more than one option is specified, each option is processed in
+order.
+
+When executed with the {{count}} operand, the built-in prints the most recent
+{{count}} history entries to the standard output in the same manner as the
+link:_fc.html[fc built-in].
+
+When executed with neither options nor operands, the built-in prints the whole
+history.
+
+[[options]]
+== Options
+
++-c+::
++--clear+::
+Clear all history entries completely.
+
++-d {{entry}}+::
++--delete={{entry}}+::
+Delete the specified {{entry}}.
+The {{entry}} should be specified in the same manner as the {{start}} and
+{{end}} operands of the link:_fc.html[fc built-in].
+
++-F+::
++--flush-file+::
+Rebuild the history file.
+This operation removes unused old data from the file.
+
++-r {{file}}+::
++--read={{file}}+::
+Read command lines from {{file}} and add them to the history.
+The file contents are treated as lines of simple text.
+
++-s {{command}}+::
++--set={{command}}+::
+Add {{command}} as a new history entry after removing the most recent entry.
+
++-w {{file}}+::
++--write={{file}}+::
+Write the whole history to {{file}}.
+Any existing data in the file will be lost.
+The output format is lines of simple text, each of which is a command string.
+
+[[operands]]
+== Operands
+
+{{count}}::
+The number of entries to be printed.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the history built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The history built-in is not defined in the POSIX standard.
+
+Command history cannot be modified during link:lineedit.html[line-editing].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1,0 +1,83 @@
+= Trap built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Trap built-in
+
+The dfn:[trap built-in] sets or prints signal handlers.
+
+[[syntax]]
+== Syntax
+
+- +trap+
+- +trap {{action}} {{signal}}...+
+- +trap {{signal_number}} [{{signal}}...]+
+- +trap -p [{{signal}}...]+
+
+[[description]]
+== Description
+
+The trap built-in sets or prints actions that are taken when the shell
+receives signals.
+(Those actions are called dfn:[traps].)
+
+When executed with {{action}} and one or more {{signal}}s, the built-in sets
+the traps for {{signal}}s to {{action}}.
+If the shell receives one of the signals, the action will be taken.
+
+If the first operand is {{signal_number}} instead of {{action}}, the built-in
+resets the traps for {{signal_number}} and {{signal}}s as if {{action}} was
++-+.
+
+When executed with the +-p+ (+--print+) option or with no operands, the
+built-in prints currently set traps to the standard output in a format that
+can be executed as commands that restore the current traps.
+If one or more {{signal}}s are specified, only those signals are printed.
+Otherwise, all signals with non-default actions are printed.
+
+[[options]]
+== Options
+
++-p+::
++--print+::
+Print current trap settings.
+
+[[operands]]
+== Operands
+
+{{action}}::
+An action that will be taken when {{signal}} is received.
++
+If {{action}} is a single hyphen (+-+), the action is reset to the default
+action that is defined by the operating system.
+If {{action}} is an empty string, the signal is ignored on receipt.
+Otherwise, {{action}} is treated as a command string: the string is parsed and
+executed as commands when the signal is received.
+(If a signal is received while a command is being executed, the action is
+taken just after the command finishes.)
+
+{{signal}}::
+The number or name of a signal.
++
+If {{signal}} is number +0+ or name +EXIT+, it is treated as a special
+imaginary signal that is always received when the shell exits.
+The action set for this signal is taken when the shell exits normally.
+
+{{signal_number}}::
+This is like {{signal}}, but must be a number.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the trap built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The trap built-in is a link:builtin.html#types[special built-in].
+
+The POSIX standard requires that signal names must be specified without the
++SIG+-prefix, like +INT+ and +QUIT+.
+As an extension, yash accepts +SIG+-prefixed names like +SIGINT+ and +SIGQUIT+
+and treats signal names case-insensitively.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -1,0 +1,77 @@
+= Jobs built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Jobs built-in
+
+The dfn:[jobs built-in] reports job status.
+
+[[syntax]]
+== Syntax
+
+- +jobs [-lnprs] [{{job}}...]+
+
+[[description]]
+== Description
+
+The jobs built-in prints information of link:job.html[jobs] the shell is
+currently controlling.
+
+By default, the following information is printed for each job, line by line:
+
+- the job number,
+- the +&#43;+ or +-+ symbol if the job is the current or previous job,
+  respectively,
+- the status, and
+- the command string.
+
+[[options]]
+== Options
+
++-l+::
++--verbose+::
+Print the process ID, status, and command string for each process in the jobs.
+
++-n+::
++--new+::
+Print new jobs only: jobs whose status has never been reported since the
+status changed.
+
++-p+::
++--pgid-only+::
+Print process group IDs of jobs only.
+
++-r+::
++--running-only+::
+Print running jobs only.
+
++-s+::
++--stopped-only+::
+Print stopped jobs only.
+
+[[operands]]
+== Operands
+
+{{job}}s::
+The link:job.html#jobid[job IDs] of jobs to be reported.
+When no {{job}} is specified, all jobs under the shell's control are reported.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the jobs built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The jobs built-in is a link:builtin.html#types[semi-special built-in].
+
+The POSIX standard defines the +-l+ and +-p+ options only:
+other options cannot be used in the link:posix.html[POSIXly-correct mode].
+In the POSIXly-correct mode, the effect of the +-l+ option is different in
+that status is reported for each job rather than for each process.
+
+The process group ID of a job executed by yash is equal to the process ID of
+the first command of the link:syntax.html#pipelines[pipeline] that forms the
+job.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

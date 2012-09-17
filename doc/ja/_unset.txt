@@ -1,0 +1,51 @@
+= Unset 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Unset 組込みコマンド
+
+dfn:[Unset 組込みコマンド]は変数または関数を削除します。
+
+[[syntax]]
+== 構文
+
+- +unset [-fv] [{{名前}}...]+
+
+[[description]]
+== 説明
+
+Unset コマンドはオペランドで指定した名前のlink:params.html#variables[変数]またはlink:exec.html#function[関数]を削除します。
+
+元々存在しない変数・関数を削除しようとしても、何も起こりません (エラーにはなりません)。
+
+[[options]]
+== オプション
+
++-f+::
++--functions+::
+関数を削除します。
+
++-v+::
++--variables+::
+変数を削除します。
+
++-f+ (+--functions+) オプションと +-v+ (+--variables+) オプションの両方を指定した場合、後に指定したほうを優先します。どちらも指定していない場合は、+-v+ を指定したものとみなします。
+
+[[operands]]
+== オペランド
+
+{{名前}}::
+削除する変数または関数の名前です。
+
+[[exitstatus]]
+== 終了ステータス
+
+エラーがない限り unset コマンドの終了ステータスは 0 です。
+
+[[notes]]
+== 補足
+
+Unset コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+
+POSIX では、+-f+ と +-v+ のどちらのオプションも指定されていない場合、指定した名前の変数がない場合はかわりにその名前の関数を削除してよいと規定しています。
+
+// vim: set filetype=asciidoc expandtab:

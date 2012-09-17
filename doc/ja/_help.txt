@@ -1,0 +1,39 @@
+= Help 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Help 組込みコマンド
+
+dfn:[Help 組込みコマンド]は組込みコマンドに関する説明を表示します。
+
+[[syntax]]
+== 構文
+
+- +help [{{コマンド}}...]+
+
+[[description]]
+== 説明
+
+Help 組込みコマンドは、オペランドで指定した組込みコマンドに関する説明を出力します。
+
+このコマンドは、+man yash+ の出力の一部を抜き出して標準出力に出力します。従って、マニュアルページがインストールされていなければ正しく動作しません。また、man コマンドの出力の形式によっては正しく説明を抜き出せないことがあります。
+
+[[operands]]
+== オペランド
+
+{{コマンド}}::
+説明を表示する組込みコマンドの名前です。
+
+[[exitstatus]]
+== 終了ステータス
+
+エラーがない限り help コマンドの終了ステータスは 0 です。
+The exit status of the help built-in is zero unless there is any error.
+
+[[notes]]
+== 補足
+
+POSIX には help コマンドに関する規定はありません。
+
+Yash の多くの組込みコマンドでは、+--help+ オプションを与えることで help コマンドの出力と同様の説明を表示させることができます。
+
+// vim: set filetype=asciidoc expandtab:

@@ -1,0 +1,150 @@
+# Makefile.in for the documentation of yash
+# (C) 2007-2012 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# NOTE: In this Makefile it is assumed that the make implementation allows the
+# use of hyphens in target names. This means that there may be a strictly
+# POSIX-conforming implementation of make that rejects this Makefile. I have
+# never seen such an implementation but if you know of one please let me know.
+
+.POSIX:
+.SUFFIXES: .txt .1 .xml .html
+
+@MAKE_SHELL@
+topdir = ../..
+subdir = doc/$(LOCALE)
+recdirs =
+
+ASCIIDOC = @ASCIIDOC@
+ASCIIDOCFLAGS = @ASCIIDOCFLAGS@
+ASCIIDOCATTRS = @ASCIIDOCATTRS@
+A2X = @A2X@
+A2XFLAGS = @A2XFLAGS@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_DIR = @INSTALL_DIR@
+VERSION = @VERSION@
+LOCALE = ja
+
+MANTXT = yash.txt
+INDEXTXT = index.txt
+# MAINTXTS must be in the contents order
+MAINTXTS = intro.txt invoke.txt syntax.txt params.txt expand.txt pattern.txt redir.txt exec.txt interact.txt job.txt builtin.txt lineedit.txt posix.txt fgrammar.txt
+# BUILTINTXTS must be in the alphabetic order
+BUILTINTXTS = _alias.txt _array.txt _bg.txt _bindkey.txt _break.txt _cd.txt _colon.txt _command.txt _complete.txt _continue.txt _dirs.txt _disown.txt _dot.txt _echo.txt _eval.txt _exec.txt _exit.txt _export.txt _false.txt _fc.txt _fg.txt _getopts.txt _hash.txt _help.txt _history.txt _jobs.txt _kill.txt _popd.txt _printf.txt _pushd.txt _pwd.txt _read.txt _readonly.txt _return.txt _set.txt _shift.txt _suspend.txt _test.txt _times.txt _trap.txt _true.txt _type.txt _typeset.txt _ulimit.txt _umask.txt _unalias.txt _unset.txt _wait.txt
+# CONTENTSTXTS must be in the contents order
+CONTENTSTXTS = $(MAINTXTS) $(BUILTINTXTS)
+TXTS = $(MANTXT) $(INDEXTXT) $(CONTENTSTXTS)
+MANFILE = $(MANTXT:.txt=.1)
+INDEXHTML = $(INDEXTXT:.txt=.html)
+HTMLFILES = $(INDEXHTML) $(CONTENTSTXTS:.txt=.html)
+HTMLAUXFILES = asciidoc.css
+TARGETS = $(MANFILE) $(HTMLFILES)
+CONFFILE = asciidoc.conf
+
+DESTDIR =
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+yashdatadir = $(datadir)/$(TARGET)
+localedir = @localedir@
+mandir = @mandir@
+man1dir = $(mandir)/man1
+docdir = @docdir@
+htmldir = @htmldir@
+
+localemandir = $(mandir)/$(LOCALE)
+localeman1dir = $(localemandir)/man1
+localedocdir = $(docdir)/$(LOCALE)
+localehtmldir = $(htmldir)/$(LOCALE)
+
+default-rec: default
+all-rec: all
+man-rec: man
+html-rec: html
+
+default: man html
+all: $(TARGETS)
+man: $(MANFILE)
+html: $(HTMLFILES)
+
+.txt.1:
+	$(A2X) -d manpage -f manpage -L $(A2XFLAGS) $(ASCIIDOCATTRS) $<
+.txt.html:
+	$(ASCIIDOC) -b html -d article $(ASCIIDOCFLAGS) $(ASCIIDOCATTRS) $<
+
+$(MANTXT): ../makeyash.sh $(MANTXT).in
+	$(SHELL) ../makeyash.sh $(CONTENTSTXTS) <$@.in >$@
+$(INDEXTXT): ../makeindex.sh $(INDEXTXT).in $(MAINTXTS)
+	$(SHELL) ../makeindex.sh $(MAINTXTS) <$@.in >$@
+$(MANFILE): $(MANTXT) $(CONTENTSTXTS) $(CONFFILE)
+$(HTMLFILES): $(CONFFILE)
+# update date in index.html when any contents file has been modified
+$(INDEXHTML): $(CONTENTSTXTS)
+
+install-rec: install
+install-data-rec: install-data
+install-html-rec: install-html
+installdirs-rec: installdirs
+installdirs-data-rec: installdirs-data
+installdirs-html-rec: installdirs-html
+uninstall-rec: uninstall
+uninstall-data-rec: uninstall-data
+
+INSTALLDIRS = $(DESTDIR)$(localeman1dir) $(DESTDIR)$(localehtmldir)
+install: install-data
+install-data: man installdirs-data
+	$(INSTALL_DATA) $(MANFILE) $(DESTDIR)$(localeman1dir)
+install-html: html installdirs-html
+	$(INSTALL_DATA) $(HTMLFILES) $(HTMLAUXFILES) $(DESTDIR)$(localehtmldir)
+installdirs: installdirs-data
+installdirs-data: $(DESTDIR)$(localeman1dir)
+installdirs-html: $(DESTDIR)$(localehtmldir)
+$(INSTALLDIRS):
+	$(INSTALL_DIR) $@
+uninstall: uninstall-data
+uninstall-data:
+	rm -f $(DESTDIR)$(localeman1dir)/$(MANFILE)
+	(if cd $(DESTDIR)$(localehtmldir); then rm -f $(HTMLFILES) $(HTMLAUXFILES); fi)
+	-rmdir $(DESTDIR)$(localehtmldir)
+
+DISTFILES = $(TARGETS) $(HTMLAUXFILES) $(TXTS) $(MANTXT).in $(INDEXTXT).in Makefile.in $(CONFFILE)
+distfiles: $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(topdir)/$(DISTTARGETDIR)
+
+mostlyclean: _mostlyclean
+_mostlyclean:
+clean: _clean
+_clean: _mostlyclean
+distclean: _distclean
+_distclean: _clean
+	rm -fr Makefile
+maintainer-clean: _maintainer-clean
+_maintainer-clean: _distclean
+	rm -fr $(TARGETS) $(MANTXT) $(INDEXTXT)
+
+Makefile: Makefile.in $(topdir)/config.status
+	@+(cd $(topdir) && $(MAKE) config.status)
+	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
+
+default-rec all-rec man-rec html-rec install-rec install-data-rec install-html-rec installdirs-rec installdirs-data-rec installdirs-html-rec uninstall-rec uninstall-data-rec mostlyclean clean distclean maintainer-clean:
+	@+for dir in $(recdirs); do (cd $$dir && $(MAKE) $@) done
+
+.PHONY: default-rec all-rec man-rec html-rec default all man html install-rec install-data-rec install-html-rec installdirs-rec installdirs-data-rec installdirs-html-rec uninstall-rec uninstall-data-rec install install-data install-html installdirs installdirs-data installdirs-html uninstall uninstall-data distfiles copy-distfiles mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean _maintainer-clean

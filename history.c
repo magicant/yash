@@ -1583,57 +1583,6 @@ void fc_read_history(FILE *f, bool quiet)
     }
 }
 
-#if YASH_ENABLE_HELP
-const char *fc_help[] = { Ngt(
-"fc - list or re-execute command history\n"
-), Ngt(
-"\tfc [-qr] [-e editor] [first [last]]\n"
-"\tfc -s [-q] [old=new] [first]\n"
-"\tfc -l [-nrv] [first [last]]\n"
-), Ngt(
-"The first form invokes an editor to edit a temporary file containing the\n"
-"command history and, after the editor exited, executes commands in the file.\n"
-), Ngt(
-"The second form, with the -s (--silent) option, re-executes commands in the\n"
-"history without invoking an editor. If <old=new> is given, string <old> in\n"
-"the command is replaced with <new> before execution.\n"
-), Ngt(
-"The third form, with the -l (--list) option, prints the command history. In\n"
-"this form commands are not re-executed.\n"
-), (
-"\n"
-), Ngt(
-"The -e (--editor) option can be used to specify the editor. If this option\n"
-"is not given, the value of $FCEDIT is used as the default editor. If $FCEDIT\n"
-"is not set either, `ed' is the last resort.\n"
-), Ngt(
-"The -n (--no-numbers) option suppresses command numbers, which would\n"
-"otherwise be printed preceding each command.\n"
-), Ngt(
-"The -q (--quiet) option suppresses echoing the executed command.\n"
-), Ngt(
-"The -r (--reverse) option reverses the order of commands to be edited or\n"
-"printed.\n"
-), Ngt(
-"The -v (--verbose) option prints command dates in the listing.\n"
-), (
-"\n"
-), Ngt(
-"The range of command history to be edited or printed can be specified by\n"
-"parameters <first> and <last>. If the value of <first> or <last> is an\n"
-"integer, it is considered a history number. If it is negative, the command\n"
-"is counted from the end of history: for example, -2 represents the second\n"
-"previous command. If the value is not an integer, it is considered part of a\n"
-"command: it indicates the most recent command beginning with it.\n"
-"If <first> is omitted, it defaults to -16 (with -l) or -1 (without -l).\n"
-"If <last> is omitted, it defaults to -1 (with -l) or <first> (without -l).\n"
-), (
-"\n"
-), Ngt(
-"In the POSIXly correct mode, the -q and -v options are not available.\n"
-), NULL };
-#endif /* YASH_ENABLE_HELP */
-
 /* The "history" built-in, which accepts the following options:
  *  -c: clear whole history
  *  -d: remove history entry
@@ -1879,31 +1828,6 @@ void history_refresh_file(void)
 	}
     }
 }
-
-#if YASH_ENABLE_HELP
-const char *history_help[] = { Ngt(
-"history - manage command history\n"
-), Ngt(
-"\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [n]\n"
-), Ngt(
-"Without options, the history built-in prints the command history. The number\n"
-"of entries to print can be specified by argument <n>.\n"
-), Ngt(
-"The -c (--clear) option clears the command history completely.\n"
-), Ngt(
-"The -d (--delete) option deletes the specified <entry>. You can specify\n"
-"<entry> by the number or by the prefix.\n"
-), Ngt(
-"The -s (--set) option replaces the last history entry with <command>.\n"
-), Ngt(
-"The -r (--read) option reads history entries from <file>.\n"
-), Ngt(
-"The -w (--write) option writes all the history entries into <file>.\n"
-), Ngt(
-"The -F (--flush-file) option rebuilds the history file, removing unused old\n"
-"data.\n"
-), NULL };
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

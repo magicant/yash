@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1584,111 +1584,6 @@ finish:
     }
     return exitstatus;
 }
-
-#if YASH_ENABLE_HELP
-const char *complete_help[] = { Ngt(
-"complete - generate completion candidates\n"
-), Ngt(
-"\tcomplete [-T] [-P prefix] [-S suffix] \\\n"
-"\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"
-), Ngt(
-"The complete built-in is called from completion functions and generates\n"
-"completion candidates according to the given arguments.\n"
-), (
-"\n"
-), Ngt(
-"The following options specify types of candidates to generate:\n"
-), Ngt(
-" -a --alias                 aliases (global and non-global)\n"
-), Ngt(
-"    --array-variable        array variables\n"
-), Ngt(
-"    --bindkey               command names for line-editing key bindings\n"
-), Ngt(
-" -b --builtin-command       built-in commands\n"
-), Ngt(
-" -c --command               commands and functions\n"
-), Ngt(
-" -d --directory             directories\n"
-), Ngt(
-"    --dirstack-index        directory stack indices\n"
-), Ngt(
-"    --executable-file       executable regular files\n"
-), Ngt(
-"    --external-command      external commands\n"
-), Ngt(
-" -f --file                  files (including directories)\n"
-), Ngt(
-"    --finished-job          finished job names\n"
-), Ngt(
-"    --function              shell functions\n"
-), Ngt(
-"    --global-alias          global aliases\n"
-), Ngt(
-" -g --group                 group names\n"
-), Ngt(
-" -h --hostname              host names\n"
-), Ngt(
-" -j --job                   job names\n"
-), Ngt(
-" -k --keyword               shell keywords\n"
-), Ngt(
-"    --normal-alias          non-global aliases\n"
-), Ngt(
-"    --regular-builtin       regular built-ins\n"
-), Ngt(
-"    --running-job           running job names\n"
-), Ngt(
-"    --scalar-variable       normal (non-array) variables\n"
-), Ngt(
-"    --semi-special-builtin  semi-special built-ins\n"
-), Ngt(
-"    --signal                signal names\n"
-), Ngt(
-"    --special-builtin       special built-ins\n"
-), Ngt(
-"    --stopped-job           stopped job names\n"
-), Ngt(
-" -u --username              user names\n"
-), Ngt(
-" -v --variable              variable names\n"
-), Ngt(
-"Any operands to the complete built-in are treated as candidates.\n"
-"The following options can be used to add attributes to candidates generated\n"
-"in this way:\n"
-), Ngt(
-" -O  --option\n"
-"\tThe candidates are treated as command line options.\n"
-), Ngt(
-" -D ...  --description=...\n"
-"\tGive a description of the candidates. The description is shown\n"
-"\tbeside the candidates in the candidate list.\n"
-), (
-"\n"
-), Ngt(
-"The followed options can be used for candidate generation both by options\n"
-"and by operands.\n"
-), Ngt(
-" -A ...  --accept=...\n"
-"\tAccept candidates only that match the pattern specified by this option.\n"
-), Ngt(
-" -R ...  --reject=...\n"
-"\tReject candidates that match the pattern specified by this option.\n"
-), Ngt(
-" -T  --no-termination\n"
-"\tWhen the command line word is completed using a candidate that is\n"
-"\tgenerated with this option, a space is not appended to the completed\n"
-"\tword.\n"
-), Ngt(
-" -P ...  --prefix=...\n"
-"\tIn pattern matching during the candidate generation, the prefix of\n"
-"\t$TARGETWORD specified by this option is ignored.\n"
-), Ngt(
-" -S ...  --suffix=...\n"
-"\tAfter candidates are generated as usual, the suffix specified by\n"
-"\tthis option is added to each candidate generated.\n"
-), NULL };
-#endif /* YASH_ENABLE_HELP */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

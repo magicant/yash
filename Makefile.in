@@ -57,11 +57,14 @@ datarootdir = @datarootdir@
 datadir = @datadir@
 yashdatadir = $(datadir)/$(TARGET)
 localedir = @localedir@
+mandir = @mandir@
+docdir = @docdir@
+htmldir = @htmldir@
 
 default_loadpath = @default_loadpath@
 enable_nls = @enable_nls@
 
-all: $(TARGET) tester mofiles
+all: $(TARGET) tester mofiles docs
 
 .c.o:
 	@rm -f $@
@@ -101,9 +104,14 @@ tester: _PHONY
 mofiles: _PHONY
 	@+(cd po && $(MAKE))
 
+docs:
+	-@+(cd doc && $(MAKE))
+man html:
+	-@+(cd doc && $(MAKE) $@-rec)
+
 INSTALLBINDIRS = $(DESTDIR)$(bindir)
-INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion
-INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS)
+INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(mandir)
+INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS) $(DESTDIR)$(htmldir)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
 install-binary: $(TARGET) installdirs-binary
@@ -116,11 +124,16 @@ install-data: installdirs-data-main
 		$(INSTALL_DATA) $$file $(DESTDIR)$(yashdatadir)/completion; \
 	done
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
+	@+(cd doc && $(MAKE) install-rec)
+install-html:
+	@+(cd doc && $(MAKE) $@-rec)
 installdirs: installdirs-binary installdirs-data
 installdirs-binary: $(INSTALLBINDIRS)
 installdirs-data: installdirs-data-main
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
+	@+(cd doc && $(MAKE) installdirs-rec)
 installdirs-data-main: $(INSTALLDATADIRS)
+installdirs-html: $(DESTDIR)$(htmldir)
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
 uninstall: uninstall-binary uninstall-data
@@ -134,6 +147,7 @@ uninstall-data:
 	-rmdir $(DESTDIR)$(yashdatadir)/completion
 	-rmdir $(DESTDIR)$(yashdatadir)
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
+	@+(cd doc && $(MAKE) $@-rec)
 
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
@@ -203,6 +217,7 @@ cscope.out: $(SOURCES) $(HEADERS)
 
 mostlyclean: _mostlyclean
 	-@+(cd builtins && $(MAKE) mostlyclean)
+	-@+(cd doc      && $(MAKE) mostlyclean)
 	-@+(cd lineedit && $(MAKE) mostlyclean)
 	-@+(cd po       && $(MAKE) mostlyclean)
 	-@+(cd tests    && $(MAKE) mostlyclean)
@@ -210,6 +225,7 @@ _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
 clean: _clean
 	-@+(cd builtins && $(MAKE) clean)
+	-@+(cd doc      && $(MAKE) clean)
 	-@+(cd lineedit && $(MAKE) clean)
 	-@+(cd po       && $(MAKE) clean)
 	-@+(cd tests    && $(MAKE) clean)
@@ -217,6 +233,7 @@ _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean: _distclean
 	-@+(cd builtins && $(MAKE) distclean)
+	-@+(cd doc      && $(MAKE) distclean)
 	-@+(cd lineedit && $(MAKE) distclean)
 	-@+(cd po       && $(MAKE) distclean)
 	-@+(cd tests    && $(MAKE) distclean)
@@ -226,6 +243,7 @@ maintainer-clean:
 	-@echo 'This command is intended for maintainers to use;'
 	-@echo 'it deletes files that may need special tools to rebuild.'
 	-@+(cd builtins && $(MAKE) maintainer-clean)
+	-@+(cd doc      && $(MAKE) maintainer-clean)
 	-@+(cd lineedit && $(MAKE) maintainer-clean)
 	-@+(cd po       && $(MAKE) maintainer-clean)
 	-@+(cd tests    && $(MAKE) maintainer-clean)
@@ -239,7 +257,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check tester mofiles install install-strip install-binary install-binary-strip install-data installdirs installdirs-binary installdirs-data installdirs-data-main uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean
+.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d

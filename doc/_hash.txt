@@ -1,0 +1,80 @@
+= Hash built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Hash built-in
+
+The dfn:[hash built-in] remembers, forgets, or reports command locations.
+
+[[syntax]]
+== Syntax
+
+- +hash {{command}}...+
+- +hash -r [{{command}}...]+
+- +hash [-a]+
+- +hash -d {{user}}...+
+- +hash -dr [{{user}}...]+
+- +hash -d+
+
+[[description]]
+== Description
+
+When executed with {{command}}s but without options, the built-in immediately
+performs link:exec.html#search[command path search] and caches {{command}}s'
+full paths.
+
+When executed with the +-r+ (+--remove+) option, it removes the paths of
+{{command}}s (or all cached paths if none specified) from the cache.
+
+When executed without options or {{command}}s, it prints the currently cached
+paths to the standard output.
+
+With the +-d+ (+--directory+) option, the built-in does the same things to the
+home directory cache, rather than the command path cache.
+Cached home directory paths are used in link:expand.html#tilde[tilde
+expansion].
+
+[[options]]
+== Options
+
++-a+::
++--all+::
+Print all cached paths.
++
+Without this option, paths for built-ins are not printed.
+
++-d+::
++--directory+::
+Affect the home directory cache instead of the command path cache.
+
++-r+::
++--remove+::
+Remove cached paths.
+
+[[operands]]
+== Operands
+
+{{command}}::
+The name of an external command (that does not contain any slash).
+
+{{user}}::
+A user name.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the hash built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The shell automatically caches command and directory paths when executing a
+command or performing tilde expansion, so normally there is no need to use
+this built-in explicitly to cache paths.
+
+Assigning a value to the link:params.html#sv-path[+PATH+ variable] removes all
+command paths from the cache as if +hash -r+ was executed.
+
+The POSIX standard defines the +-r+ option only:
+other options cannot be used in the link:posix.html[POSIXly-correct mode].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

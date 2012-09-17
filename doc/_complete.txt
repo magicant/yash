@@ -1,0 +1,192 @@
+= Complete built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Complete built-in
+
+The dfn:[complete built-in] generates completion candidates.
+This built-in can only be executed from completion functions during
+link:lineedit.html#completion[command line completion].
+
+[[syntax]]
+== Syntax
+
+- +complete [-A {{pattern}}] [-R {{pattern}}] [-T] [-P {{prefix}}] [-S {{suffix}}] [-abcdfghjkuv] [[-O] [-D {{description}}] {{word}}...]+
+
+[[description]]
+== Description
+
+The built-in generates completion candidates according to the specified
+arguments.
+No matter how candidates are generated, only candidates that match the word
+being completed are generated.
+
+[[options]]
+== Options
+
++-A {{pattern}}+::
++--accept={{pattern}}+::
+Only accept candidates that match the link:pattern.html[pattern] specified by
+this option.
+When more than one of this option is specified, only candidates that match all
+of the patterns are generated.
+
++-D {{description}}+::
++--description={{description}}+::
+Give a description of the {{word}} candidates.
+The description is shown beside the candidates in the candidate list.
+
++-O+::
++--option+::
+The candidates are treated as command line options.
+A hyphen is prepended to each candidate that is treated as an option.
+
++-P {{prefix}}+::
++--prefix={{prefix}}+::
+Ignore {{prefix}} of the word being completed when generating candidates.
+The specified {{prefix}} must be initial part of the word.
++
+If the word being completed is `file:///home/user/docume` for example, the
+command line `complete -P file:// -f` will generate pathname candidates that
+complete `/home/user/docume`.
+
++-R {{pattern}}+::
++--reject={{pattern}}+::
+Reject candidates that match the link:pattern.html[pattern] specified by this
+option.
+When more than one of this option is specified, only candidates that match
+none of the patterns are generated.
+
++-S {{suffix}}+::
++--suffix={{suffix}}+::
+Append {{suffix}} to each generated candidate.
+
++-T+::
++--no-termination+::
+Do not append a space after the word is completed.
+Without this option, a space is appended to the completed word so that you do
+not have to enter a space before the next word.
+
+=== Options that select candidate types
+
++-a+::
++--alias+::
+link:syntax.html#aliases[Aliases].
+(same as +--normal-alias --global-alias+)
+
++--array-variable+::
+link:params.html#arrays[Arrays].
+
++--bindkey+::
+link:lineedit.html#commands[Line-editing commands] the
+link:_bindkey.html[+bindkey+ built-in] accepts.
+
++-b+::
++--builtin-command+::
+link:builtin.html[Built-in commands].
+(same as +--special-builtin --semi-special-builtin --regular-builtin+)
+
++-c+::
++--command+::
+Commands.
+(same as +--builtin-command --external-command --function+)
+
++-d+::
++--directory+::
+Directories.
+
++--dirstack-index+::
+Valid indices of the link:_dirs.html[directory stack].
+
++--executable-file+::
+Executable regular files.
+
++--external-command+::
+External commands.
+
++-f+::
++--file+::
+Files (including directories).
+
++--finished-job+::
+link:job.html#jobid[Job IDs] of finished jobs.
+
++--function+::
+link:exec.html#function[Functions].
+
++--global-alias+::
+Global link:syntax.html#aliases[aliases].
+
++-g+::
++--group+::
+User groups.
+
++-h+::
++--hostname+::
+Host names.
+
++-j+::
++--job+::
+link:job.html#jobid[Job IDs].
+
++-k+::
++--keyword+::
+link:syntax.html#tokens[Keywords].
+
++--normal-alias+::
+Normal link:syntax.html#aliases[aliases].
+
++--regular-builtin+::
+link:builtin.html#types[Regular built-in commands].
+
++--running-job+::
+link:job.html#jobid[Job IDs] of jobs that are being executed.
+
++--scalar-variable+::
+link:params.html#variables[Variables] that are not arrays.
+
++--semi-special-builtin+::
+link:builtin.html#types[Semi-special built-in commands].
+
++--signal+::
+Signals.
+
++--special-builtin+::
+link:builtin.html#types[Special built-in commands].
+
++--stopped-job+::
+link:job.html#jobid[Job IDs] of jobs that are suspended.
+
++-u+::
++--username+::
+Users' log-in names.
+
++-v+::
++--variable+::
+link:params.html#variables[Variables].
+
+If the +-d+ (+--directory+) option is specified without the +-f+ (+--file+)
+option, the +-S / -T+ options are assumed.
+
+Generated candidates for link:job.html#jobid[job IDs] do not have leading
+percent signs (+%+).
+If the word being completed starts with a percent sign, the +-P %+ option
+should be specified.
+
+[[operands]]
+== Operands
+
+Operands are treated as completion candidates.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the built-in is zero if one or more candidates were
+generated, one if no candidates were generated, or larger than one if an error
+occurred.
+
+[[notes]]
+== Notes
+
+The complete built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

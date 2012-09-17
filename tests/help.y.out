@@ -1,13 +1,4 @@
-help - print usage of built-ins
-	help command...
-The help built-in prints a description of the specified built-in <command>s.
 ===== 1 0
-help - print usage of built-ins
-	help command...
-The help built-in prints a description of the specified built-in <command>s.
-help - print usage of built-ins
-	help command...
-The help built-in prints a description of the specified built-in <command>s.
 ===== 2 0
 ===== 3 0
 ===== 4 0
@@ -23,4 +14,3 @@ The help built-in prints a description of the specified built-in <command>s.
 ===== 14 0
 help no-such-option 2
 help no-such-builtin 1
-help output error 1

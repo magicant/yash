@@ -1,0 +1,23 @@
+= Type 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Type 組込みコマンド
+
+dfn:[Type 組込みコマンド]はコマンドの種類を特定します。
+
+[[syntax]]
+== 構文
+
+- +type [-abefkp] {{コマンド}}...+
+
+[[description]]
+== 説明
+
+Type コマンドは link:_command.html[command コマンド]に +-V+ オプションを付けたものと同じです。その他オプション・オペランド・終了ステータスは command コマンドと同じです。
+
+[[notes]]
+== 補足
+
+POSIX では、type コマンドと command コマンドとの関係について規定していません。従って他のシェルの type コマンドは command コマンドに +-V+ オプションを付けたものとは異なる動作をすることがあります。また POSIX は type コマンドのオプションを規定していません。
+
+// vim: set filetype=asciidoc expandtab:

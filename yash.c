@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -626,22 +626,6 @@ int exit_builtin(int argc, void **argv)
     assert(false);
 }
 
-#if YASH_ENABLE_HELP
-const char *exit_help[] = { Ngt(
-"exit - exit the shell\n"
-), Ngt(
-"\texit [-f] [n]\n"
-), Ngt(
-"The exit built-in makes the shell terminate with the exit status of <n>.\n"
-"If <n> is not specified, it defaults to the exit status of the last executed\n"
-"command. <n> should be between 0 and 255 inclusive.\n"
-), Ngt(
-"If the shell is interactive and you have any stopped jobs, the shell prints\n"
-"a warning message and does not exit. Use the -f (--force) option or use\n"
-"`exit' twice in a row to avoid the warning and really exit.\n"
-), NULL };
-#endif
-
 /* The "suspend" built-in, which accepts the following options:
  *  -f: suspend even if it may cause a deadlock. */
 int suspend_builtin(int argc, void **argv)
@@ -678,20 +662,6 @@ int suspend_builtin(int argc, void **argv)
 	ensure_foreground();
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
-
-#if YASH_ENABLE_HELP
-const char *suspend_help[] = { Ngt(
-"suspend - suspend the shell\n"
-), Ngt(
-"\tsuspend [-f]\n"
-), Ngt(
-"The suspend built-in suspends the shell until it receives SIGCONT.\n"
-), Ngt(
-"If the shell is interactive and is a session leader, this command refuses to\n"
-"suspend it in order to avoid a possible deadlock. You can use the -f option\n"
-"to force the shell to suspend anyway.\n"
-), NULL };
-#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

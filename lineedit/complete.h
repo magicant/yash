@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.h: command line completion */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -212,7 +212,6 @@ extern _Bool le_wmatch_comppatterns(
 
 extern int complete_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char *complete_help[];
 
 
 /* This function is defined in "../alias.c". */

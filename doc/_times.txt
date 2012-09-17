@@ -1,0 +1,34 @@
+= Times built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Times built-in
+
+The dfn:[times built-in] prints CPU time usage.
+
+[[syntax]]
+== Syntax
+
+- +times+
+
+[[description]]
+== Description
+
+The times built-in prints the CPU times consumed by the shell process and its
+child processes to the standard output.
+
+The built-in prints two lines:
+the first line shows the CPU time of the shell process and the second of its
+child processes (not including those which have not terminated).
+Each line shows the CPU times consumed in the user and system mode.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the times built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The times built-in is a link:builtin.html#types[special built-in].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

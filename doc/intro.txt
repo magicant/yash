@@ -1,0 +1,27 @@
+= Introduction
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Introduction
+:description: This is the introduction page of the yash manual.
+
+dfn:[Yet anther shell] (yash) is a command line shell for UNIX-like operating
+systems. The shell conforms to the POSIX.1-2008 standard (for the most parts),
+and actually is more conforming than other POSIX-conforming shells. Moreover,
+it has many features that are used for interactive use, such as command
+history and command line editing.
+
+This program can be freely modified and redistributed under the terms of
+http://www.gnu.org/licenses/gpl.html[GNU General Public License] (Version 2).
+*Use of this program is all at your own risk. There is no warranty and the
+author is not responsible for any consequences caused by use of this program.*
+
+This manual can be freely modified and redistributed under the terms of
+http://creativecommons.org/licenses/by-sa/2.1/jp/[Creative Commons
+Attribution-ShareAlike 2.1 Japan].
+
+Yash is developed and maintained by 渡邊裕貴 (WATANABE Yuki) aka Magicant.
+http://sourceforge.jp/projects/yash/[Yash development project] and
+http://yash.sourceforge.jp/[Yash's homepage] are hosted by
+http://sourceforge.jp/[SourceForge.jp].
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

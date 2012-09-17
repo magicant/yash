@@ -1,0 +1,69 @@
+= Bindkey built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Bindkey built-in
+
+The dfn:[bindkey built-in] prints or modifies key bindings used in
+link:lineedit.html[line-editing].
+
+[[syntax]]
+== Syntax
+
+- +bindkey -aev [{{key}} [{{command}}]]+
+- +bindkey -l+
+
+[[description]]
+== Description
+
+When executed with the +-l+ (+--list+) option, the built-in lists all
+available link:lineedit.html#commands[line-editing commands] to the standard
+output.
+
+When executed with one of the other options, the built-in prints or modifies
+key bindings for the link:lineedit.html#modes[editing mode] specified by the
+option:
+
+- Without {{key}} or {{command}}, all currently defined bindings are printed
+  to the standard output in a form that can be parsed as commands that
+  restore the current bindings when executed.
+- With {{key}} but without {{command}}, only the binding for the given {{key}}
+  is printed.
+- With {{key}} and {{command}}, {{key}} is bound to {{command}}.
+
+[[options]]
+== Options
+
++-a+::
++--vi-command+::
+Print or modify bindings for the vi command mode.
+
++-e+::
++--emacs+::
+Print or modify bindings for the emacs mode.
+
++-v+::
++--vi-insert+::
+Print or modify bindings for the vi insert mode.
+
+[[operands]]
+== Operands
+
+{{key}}::
+A character sequence of one or more keys that is bound to an editing command.
+The sequence may include link:lineedit.html#escape[escape sequences].
+
+{{command}}::
+A link:lineedit.html#commands[line-editing command] to which {{key}} is bound.
+If {{command}} is a single hyphen (+-+), {{key}} is unbound.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the bindkey built-in is zero unless there is any error.
+
+[[notes]]
+== Notes
+
+The bindkey built-in is not defined in the POSIX standard.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

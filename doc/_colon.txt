@@ -1,0 +1,34 @@
+= Colon built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Colon built-in
+
+The dfn:[colon built-in] does nothing.
+
+[[syntax]]
+== Syntax
+
+- +: [{{argument}}...]+
+
+[[description]]
+== Description
+
+The colon built-in does nothing.
+Any command line arguments are ignored.
+
+[[exitstatus]]
+== Exit status
+
+The exit status of the colon built-in is zero.
+
+[[notes]]
+== Notes
+
+The colon built-in is a link:builtin.html#types[special built-in].
+
+Arguments are link:expand.html[expanded] and link:redir.html[redirections] are
+performed as usual.
+The colon and link:_true.html[true] built-ins have the same effect, but colon
+is a special built-in while true is a semi-special.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:
