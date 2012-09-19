@@ -231,12 +231,13 @@ clean: _clean
 	-@+(cd tests    && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
-distclean: _distclean
+distclean:
 	-@+(cd builtins && $(MAKE) distclean)
 	-@+(cd doc      && $(MAKE) distclean)
 	-@+(cd lineedit && $(MAKE) distclean)
 	-@+(cd po       && $(MAKE) distclean)
 	-@+(cd tests    && $(MAKE) distclean)
+	-@+$(MAKE) _distclean
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
 maintainer-clean:
