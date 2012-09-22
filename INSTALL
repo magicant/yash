@@ -140,6 +140,15 @@ The following options specify where files are installed:
   --localedir=...
     The directory where localized message data are installed.
     (default: <datarootdir>/locale)
+  --mandir=...
+    The directory where roff-format manual pages are installed.
+    (default: <datarootdir>/man)
+  --docdir=...
+    The directory where non-roff-format manual pages are installed.
+    (default: <datarootdir>/doc/yash)
+  --htmldir=...
+    The directory where HTML manual pages are installed.
+    (default: <docdir>)
 
 The following variables can be used to specify commands and their
 options used during the build:
@@ -209,6 +218,8 @@ the following directories by default:
   Main executable binary:   /usr/local/bin
   Auxiliary shell scripts:  /usr/local/share/yash
   Localization data:        /usr/local/share/locale
+  Roff-format manual:       /usr/local/share/man
+  HTML-format manual:       /usr/local/share/doc/yash
 
 In most systems, a special permission is required to install files
 into these directories. Use the `sudo' or other proper command to

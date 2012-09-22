@@ -133,6 +133,15 @@ Yash はコマンドライン編集機能を実現するために `curses' ラ�
   --localedir=...
     地域化対応用メッセージデータファイルのインストール先
     (デフォルト: <datarootdir>/locale)
+  --mandir=...
+    Roff 形式のマニュアルのインストール先
+    (デフォルト: <datarootdir>/man)
+  --docdir=...
+    Roff 形式以外のマニュアルのインストール先
+    (デフォルト: <datarootdir>/doc/yash)
+  --htmldir=...
+    HTML 形式のマニュアルのインストール先
+    (デフォルト: <docdir>)
 
 以下の変数はビルドで使用するコマンドとそのオプションを指定するのに使え
 ます:
@@ -199,6 +208,8 @@ Yash のビルドが済んだら、yash が正しく機能するかどうか `ma
   実行可能バイナリ:      /usr/local/bin          
   補助シェルスクリプト:  /usr/local/share/yash   
   地域化対応用データ:    /usr/local/share/locale 
+  Roff 形式マニュアル:   /usr/local/share/man
+  HTML 形式マニュアル:   /usr/local/share/doc/yash
 
 ほとんどのシステムでは、これらのディレクトリにファイルをインストールす
 るには特別な権限が必要となります。権限を取得するために `sudo' 等のコマ
