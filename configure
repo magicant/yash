@@ -992,7 +992,7 @@ then
 fi
 
 # check if unsetenv returns int
-checking 'the return type of unsetenv'
+checking 'if unsetenv returns int'
 cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdlib.h>
