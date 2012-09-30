@@ -630,6 +630,9 @@ int exit_builtin(int argc, void **argv)
 const char exit_help[] = Ngt(
 "exit the shell"
 );
+const char exit_syntax[] = Ngt(
+"\texit [-f] [exit_status]\n"
+);
 #endif
 
 /* The "suspend" built-in, which accepts the following options:
@@ -672,6 +675,9 @@ int suspend_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char suspend_help[] = Ngt(
 "suspend the shell"
+);
+const char suspend_syntax[] = Ngt(
+"\tsuspend [-f]\n"
 );
 #endif
 

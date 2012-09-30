@@ -568,6 +568,10 @@ const char *get_command_name(le_command_func_T *command)
 const char bindkey_help[] = Ngt(
 "set or print key bindings for line-editing"
 );
+const char bindkey_syntax[] = Ngt(
+"\tbindkey -aev [key_sequence [command]]\n"
+"\tbindkey -l\n"
+);
 #endif
 
 

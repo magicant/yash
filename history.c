@@ -1587,6 +1587,11 @@ void fc_read_history(FILE *f, bool quiet)
 const char fc_help[] = Ngt(
 "list or re-execute command history"
 );
+const char fc_syntax[] = Ngt(
+"\tfc [-qr] [-e editor] [first [last]]\n"
+"\tfc -s [-q] [old=new] [first]\n"
+"\tfc -l [-nrv] [first [last]]\n"
+);
 #endif
 
 /* The "history" built-in, which accepts the following options:
@@ -1838,6 +1843,9 @@ void history_refresh_file(void)
 #if YASH_ENABLE_HELP
 const char history_help[] = Ngt(
 "manage command history"
+);
+const char history_syntax[] = Ngt(
+"\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [count]\n"
 );
 #endif
 

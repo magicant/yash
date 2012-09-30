@@ -255,6 +255,9 @@ print_usage:
 const char ulimit_help[] = Ngt(
 "set or print a resource limitation"
 );
+const char ulimit_syntax[] = Ngt(
+"\tulimit [-HSaefilnqrstuvx] [limit]\n"
+);
 #endif
 
 

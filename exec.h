@@ -74,20 +74,32 @@ extern _Bool call_completion_function(const wchar_t *funcname)
 
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char return_help[], return_syntax[];
+
 extern int break_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char break_help[], break_syntax[], continue_help[],
+	continue_syntax[];
+
 extern int eval_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char eval_help[], eval_syntax[];
+
 extern int dot_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char dot_help[], dot_syntax[];
+
 extern int exec_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char exec_help[], exec_syntax[];
+
 extern int command_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char command_help[], command_syntax[], type_help[], type_syntax[];
+
 extern int times_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char return_help[], break_help[], continue_help[], eval_help[],
-	dot_help[], exec_help[], command_help[], type_help[], times_help[];
+extern const char times_help[], times_syntax[];
 
 
 #endif /* YASH_EXEC_H */

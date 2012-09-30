@@ -829,6 +829,10 @@ int set_builtin_print_restoring_commands(void)
 const char set_help[] = Ngt(
 "set shell options and positional parameters"
 );
+const char set_syntax[] = Ngt(
+"\tset [option...] [--] [new_positional_parameter...]\n"
+"\tset -o|+o  # print current settings\n"
+);
 #endif
 
 

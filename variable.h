@@ -142,24 +142,40 @@ extern const struct xgetopt_T *const pwd_options;
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char typeset_help[], typeset_syntax[], export_syntax[],
+	readonly_syntax[];
+
 extern int array_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char array_help[], array_syntax[];
+
 extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char unset_help[], unset_syntax[];
+
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char shift_help[], shift_syntax[];
+
 extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char getopts_help[], getopts_syntax[];
+
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char read_help[], read_syntax[];
+
 extern int pushd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char pushd_help[], pushd_syntax[];
+
 extern int popd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char popd_help[], popd_syntax[];
+
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], array_help[], unset_help[], shift_help[],
-	getopts_help[], read_help[], pushd_help[], popd_help[], dirs_help[];
+extern const char dirs_help[], dirs_syntax[];
 
 
 #endif /* YASH_VARIABLE_H */

@@ -74,7 +74,7 @@ extern const struct xgetopt_T *const all_option, *const help_option;
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char set_help[];
+extern const char set_help[], set_syntax[];
 
 
 #endif /* YASH_OPTION_H */

@@ -82,9 +82,11 @@ extern void end_using_history(void);
 
 extern int fc_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char fc_help[], fc_syntax[];
+
 extern int history_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char fc_help[], history_help[];
+extern const char history_help[], history_syntax[];
 
 
 #endif /* YASH_HISTORY_H */

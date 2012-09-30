@@ -1207,6 +1207,11 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
 const char trap_help[] = Ngt(
 "set or print signal handlers"
 );
+const char trap_syntax[] = Ngt(
+"\ttrap [action signal...]\n"
+"\ttrap signal_number [signal...]\n"
+"\ttrap -p [signal...]\n"
+);
 #endif
 
 /* The "kill" built-in, which accepts the following options:
@@ -1393,6 +1398,10 @@ void signal_job(int signum, const wchar_t *jobspec)
 #if YASH_ENABLE_HELP
 const char kill_help[] = Ngt(
 "send a signal to processes"
+);
+const char kill_syntax[] = Ngt(
+"\tkill [-signal|-s signal|-n number] process...\n"
+"\tkill -l [-v] [number...]\n"
 );
 #endif
 

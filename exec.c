@@ -1666,6 +1666,9 @@ print_usage:
 const char return_help[] = Ngt(
 "return from a function or script"
 );
+const char return_syntax[] = Ngt(
+"\treturn [-n] [exit_status]\n"
+);
 #endif
 
 /* The "break"/"continue" built-in, which accepts the following option:
@@ -1754,9 +1757,17 @@ int break_builtin(int argc, void **argv)
 const char break_help[] = Ngt(
 "exit a loop"
 );
+const char break_syntax[] = Ngt(
+"\tbreak [count]\n"
+"\tbreak -i\n"
+);
 
 const char continue_help[] = Ngt(
 "continue a loop"
+);
+const char continue_syntax[] = Ngt(
+"\tcontinue [count]\n"
+"\tcontinue -i\n"
 );
 
 #endif
@@ -1800,6 +1811,9 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 #if YASH_ENABLE_HELP
 const char eval_help[] = Ngt(
 "evaluate arguments as a command"
+);
+const char eval_syntax[] = Ngt(
+"\teval [-i] [argument...]\n"
 );
 #endif
 
@@ -1913,6 +1927,9 @@ error:
 #if YASH_ENABLE_HELP
 const char dot_help[] = Ngt(
 "read a file and execute commands"
+);
+const char dot_syntax[] = Ngt(
+"\t. [-AL] file [argument...]\n"
 );
 #endif
 
@@ -2058,6 +2075,9 @@ error1:
 #if YASH_ENABLE_HELP
 const char exec_help[] = Ngt(
 "replace the shell process with an external command"
+);
+const char exec_syntax[] = Ngt(
+"\texec [-cf] [-a name] [command [argument...]]\n"
 );
 #endif
 
@@ -2320,9 +2340,16 @@ void print_command_absolute_path(
 const char command_help[] = Ngt(
 "execute or identify a command"
 );
+const char command_syntax[] = Ngt(
+"\tcommand [-befp] command [argument...]\n"
+"\tcommand -v|-V [-abefkp] command...\n"
+);
 
 const char type_help[] = Ngt(
 "identify a command"
+);
+const char type_syntax[] = Ngt(
+"\ttype command...\n"
 );
 
 #endif
@@ -2382,6 +2409,9 @@ print_usage:
 #if YASH_ENABLE_HELP
 const char times_help[] = Ngt(
 "print CPU time usage"
+);
+const char times_syntax[] = Ngt(
+"\ttimes\n"
 );
 #endif
 

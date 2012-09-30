@@ -22,9 +22,11 @@
 
 extern int echo_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char echo_help[], echo_syntax[];
+
 extern int printf_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char echo_help[], printf_help[];
+extern const char printf_help[], printf_syntax[];
 
 
 #endif /* YASH_PRINTF_H */

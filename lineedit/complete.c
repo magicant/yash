@@ -1589,6 +1589,10 @@ finish:
 const char complete_help[] = Ngt(
 "generate completion candidates"
 );
+const char complete_syntax[] = Ngt(
+"\tcomplete [-T] [-P prefix] [-S suffix] \\\n"
+"\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"
+);
 #endif
 
 

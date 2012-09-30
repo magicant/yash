@@ -1914,6 +1914,15 @@ end:
 const char typeset_help[] = Ngt(
 "set or print variables"
 );
+const char typeset_syntax[] = Ngt(
+"\ttypeset [-fgprxX] [name[=value]...]\n"
+);
+const char export_syntax[] = Ngt(
+"\texport [-prX] [name[=value]...]\n"
+);
+const char readonly_syntax[] = Ngt(
+"\treadonly [-fpxX] [name[=value]...]\n"
+);
 #endif
 
 #if YASH_ENABLE_ARRAY
@@ -2173,6 +2182,13 @@ invalid_index:
 const char array_help[] = Ngt(
 "manipulate an array"
 );
+const char array_syntax[] = Ngt(
+"\tarray                  # print arrays\n"
+"\tarray name [value...]  # set array values\n"
+"\tarray -d name [index...]\n"
+"\tarray -i name index [value...]\n"
+"\tarray -s name index value\n"
+);
 #endif
 
 #endif /* YASH_ENABLE_ARRAY */
@@ -2275,6 +2291,9 @@ bool unset_variable(const wchar_t *name)
 const char unset_help[] = Ngt(
 "remove variables or functions"
 );
+const char unset_syntax[] = Ngt(
+"\tunset [-fv] name...\n"
+);
 #endif
 
 /* The "shift" built-in */
@@ -2347,6 +2366,9 @@ int shift_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char shift_help[] = Ngt(
 "remove some positional parameters"
+);
+const char shift_syntax[] = Ngt(
+"\tshift [count]\n"
 );
 #endif
 
@@ -2542,6 +2564,9 @@ bool set_variable_single_char(const wchar_t *varname, wchar_t value)
 #if YASH_ENABLE_HELP
 const char getopts_help[] = Ngt(
 "parse command options"
+);
+const char getopts_syntax[] = Ngt(
+"\tgetopts options variable [argument...]\n"
 );
 #endif
 
@@ -2751,6 +2776,9 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
 const char read_help[] = Ngt(
 "read a line from the standard input"
 );
+const char read_syntax[] = Ngt(
+"\tread [-Ar] variable...\n"
+);
 #endif
 
 /* options for the "pushd" built-in */
@@ -2942,6 +2970,9 @@ void remove_dirstack_dups(variable_T *var)
 const char pushd_help[] = Ngt(
 "push a directory into the directory stack"
 );
+const char pushd_syntax[] = Ngt(
+"\tpushd [-L|-P] [directory]\n"
+);
 #endif
 
 /* The "popd" built-in. */
@@ -3005,6 +3036,9 @@ int popd_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char popd_help[] = Ngt(
 "pop a directory from the directory stack"
+);
+const char popd_syntax[] = Ngt(
+"\tpopd [index]\n"
 );
 #endif
 
@@ -3093,6 +3127,9 @@ bool print_dirstack_entry(
 #if YASH_ENABLE_HELP
 const char dirs_help[] = Ngt(
 "print the directory stack"
+);
+const char dirs_syntax[] = Ngt(
+"\tdirs [-cv] [index...]\n"
 );
 #endif
 

@@ -54,7 +54,7 @@ extern void le_set_mode(le_mode_id_T id);
 
 extern int bindkey_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char bindkey_help[];
+extern const char bindkey_help[], bindkey_syntax[];
 
 
 /* Returns the mode ID of the specified mode. */

@@ -22,7 +22,7 @@
 
 extern int ulimit_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char ulimit_help[];
+extern const char ulimit_help[], ulimit_syntax[];
 
 
 #endif /* YASH_ULIMIT_H */

@@ -266,6 +266,9 @@ print_char:
 const char echo_help[] = Ngt(
 "print arguments"
 );
+const char echo_syntax[] = Ngt(
+"\techo [string...]\n"
+);
 #endif
 
 
@@ -755,6 +758,9 @@ void freeformat(struct format_T *f)
 #if YASH_ENABLE_HELP
 const char printf_help[] = Ngt(
 "print a formatted string"
+);
+const char printf_syntax[] = Ngt(
+"\tprintf format [value...]\n"
 );
 #endif
 

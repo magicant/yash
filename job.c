@@ -1072,6 +1072,9 @@ bool jobs_builtin_print_job(size_t jobnumber,
 const char jobs_help[] = Ngt(
 "print info about jobs"
 );
+const char jobs_syntax[] = Ngt(
+"\tjobs [-lnprs] [job...]\n"
+);
 #endif
 
 /* The "fg"/"bg" built-in */
@@ -1222,9 +1225,15 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 const char fg_help[] = Ngt(
 "run jobs in the foreground"
 );
+const char fg_syntax[] = Ngt(
+"\tfg [job...]\n"
+);
 
 const char bg_help[] = Ngt(
 "run jobs in the background"
+);
+const char bg_syntax[] = Ngt(
+"\tbg [job...]\n"
 );
 
 #endif /* YASH_ENABLE_HELP */
@@ -1336,6 +1345,9 @@ bool wait_builtin_has_job(bool jobcontrol)
 const char wait_help[] = Ngt(
 "wait for jobs to terminate"
 );
+const char wait_syntax[] = Ngt(
+"\twait [job or process_id...]\n"
+);
 #endif
 
 /* The "disown" built-in, which accepts the following option:
@@ -1396,6 +1408,10 @@ int disown_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 const char disown_help[] = Ngt(
 "disown jobs"
+);
+const char disown_syntax[] = Ngt(
+"\tdisown [job...]\n"
+"\tdisown -a\n"
 );
 #endif
 

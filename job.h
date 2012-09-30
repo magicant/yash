@@ -97,13 +97,19 @@ extern void notify_signaled_job(size_t jobnumber);
 
 extern int jobs_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char jobs_help[], jobs_syntax[];
+
 extern int fg_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char fg_help[], fg_syntax[], bg_help[], bg_syntax[];
+
 extern int wait_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char wait_help[], wait_syntax[];
+
 extern int disown_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char jobs_help[], fg_help[], bg_help[], wait_help[], disown_help[];
+extern const char disown_help[], disown_syntax[];
 
 
 #endif /* YASH_JOB_H */

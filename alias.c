@@ -506,6 +506,9 @@ int alias_builtin(int argc, void **argv)
 const char alias_help[] = Ngt(
 "define or print aliases"
 );
+const char alias_syntax[] = Ngt(
+"\talias [-gp] [name[=value]...]\n"
+);
 #endif
 
 /* The "unalias" built-in, which accepts the following option:
@@ -552,6 +555,10 @@ print_usage:
 #if YASH_ENABLE_HELP
 const char unalias_help[] = Ngt(
 "undefine aliases"
+);
+const char unalias_syntax[] = Ngt(
+"\tunalias name...\n"
+"\tunalias -a\n"
 );
 #endif
 

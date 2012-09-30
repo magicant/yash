@@ -57,9 +57,11 @@ extern void reset_sigwinch(void);
 
 extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char trap_help[], trap_syntax[];
+
 extern int kill_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char trap_help[], kill_help[];
+extern const char kill_help[], kill_syntax[];
 
 #if HAVE_STRSIGNAL && !defined(strsignal)
 extern char *strsignal(int signum);

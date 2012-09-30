@@ -45,9 +45,11 @@ extern _Bool print_alias_if_defined(
 
 extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char alias_help[], alias_syntax[];
+
 extern int unalias_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char alias_help[], unalias_help[];
+extern const char unalias_help[], unalias_syntax[];
 
 
 #endif /* YASH_ALIAS_H */

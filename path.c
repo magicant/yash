@@ -1318,6 +1318,9 @@ bool starts_with_root_parent(const wchar_t *path)
 const char cd_help[] = Ngt(
 "change the working directory"
 );
+const char cd_syntax[] = Ngt(
+"\tcd [-L|-P] [directory]\n"
+);
 #endif
 
 /* The "pwd" built-in, which accepts the following options:
@@ -1379,6 +1382,9 @@ print_usage:
 #if YASH_ENABLE_HELP
 const char pwd_help[] = Ngt(
 "print the working directory"
+);
+const char pwd_syntax[] = Ngt(
+"\tpwd [-L|-P]\n"
 );
 #endif
 
@@ -1516,6 +1522,14 @@ void print_home_directories(void)
 #if YASH_ENABLE_HELP
 const char hash_help[] = Ngt(
 "remember, forget, or report command locations"
+);
+const char hash_syntax[] = Ngt(
+"\thash command...\n"
+"\thash -r [command...]\n"
+"\thash [-a]  # print remembered paths\n"
+"\thash -d user...\n"
+"\thash -d -r [user...]\n"
+"\thash -d  # print remembered paths\n"
 );
 #endif
 
@@ -1724,6 +1738,10 @@ mode_t copy_other_mask(mode_t mode)
 #if YASH_ENABLE_HELP
 const char umask_help[] = Ngt(
 "print or set the file creation mask"
+);
+const char umask_syntax[] = Ngt(
+"\tumask mode\n"
+"\tumask [-S]\n"
 );
 #endif
 
