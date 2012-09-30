@@ -281,15 +281,15 @@ int false_builtin(
 #if YASH_ENABLE_HELP
 
 const char colon_help[] = Ngt(
-"does nothing"
+"do nothing"
 );
 
 const char true_help[] = Ngt(
-"does nothing successfully"
+"do nothing successfully"
 );
 
 const char false_help[] = Ngt(
-"does nothing unsuccessfully"
+"do nothing unsuccessfully"
 );
 
 /* The "help" built-in. */
