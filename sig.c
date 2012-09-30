@@ -1203,6 +1203,12 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
     return ok;
 }
 
+#if YASH_ENABLE_HELP
+const char trap_help[] = Ngt(
+"set or print signal handlers"
+);
+#endif
+
 /* The "kill" built-in, which accepts the following options:
  *  -s sig: specifies the signal to send
  *  -n num: specifies the signal to send by number
@@ -1383,6 +1389,12 @@ void signal_job(int signum, const wchar_t *jobspec)
     if (kill(-jobpgid, signum) < 0)
 	xerror(errno, "%ls", jobspec);
 }
+
+#if YASH_ENABLE_HELP
+const char kill_help[] = Ngt(
+"send a signal to processes"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

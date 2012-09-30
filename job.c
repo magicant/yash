@@ -1068,6 +1068,12 @@ bool jobs_builtin_print_job(size_t jobnumber,
     }
 }
 
+#if YASH_ENABLE_HELP
+const char jobs_help[] = Ngt(
+"print info about jobs"
+);
+#endif
+
 /* The "fg"/"bg" built-in */
 int fg_builtin(int argc, void **argv)
 {
@@ -1211,6 +1217,18 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
      * for the continued programs. */
 }
 
+#if YASH_ENABLE_HELP
+
+const char fg_help[] = Ngt(
+"run jobs in the foreground"
+);
+
+const char bg_help[] = Ngt(
+"run jobs in the background"
+);
+
+#endif /* YASH_ENABLE_HELP */
+
 /* The "wait" built-in */
 int wait_builtin(int argc, void **argv)
 {
@@ -1314,6 +1332,12 @@ bool wait_builtin_has_job(bool jobcontrol)
     return false;
 }
 
+#if YASH_ENABLE_HELP
+const char wait_help[] = Ngt(
+"wait for jobs to terminate"
+);
+#endif
+
 /* The "disown" built-in, which accepts the following option:
  *  -a: disown all jobs */
 int disown_builtin(int argc, void **argv)
@@ -1368,6 +1392,12 @@ int disown_builtin(int argc, void **argv)
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
+
+#if YASH_ENABLE_HELP
+const char disown_help[] = Ngt(
+"disown jobs"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

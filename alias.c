@@ -502,6 +502,12 @@ int alias_builtin(int argc, void **argv)
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
+#if YASH_ENABLE_HELP
+const char alias_help[] = Ngt(
+"define or print aliases"
+);
+#endif
+
 /* The "unalias" built-in, which accepts the following option:
  *  -a: remove all aliases */
 int unalias_builtin(int argc, void **argv)
@@ -542,6 +548,12 @@ print_usage:
                        "        unalias -a\n"));
     return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char unalias_help[] = Ngt(
+"undefine aliases"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

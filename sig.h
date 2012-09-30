@@ -59,6 +59,7 @@ extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int kill_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char trap_help[], kill_help[];
 
 #if HAVE_STRSIGNAL && !defined(strsignal)
 extern char *strsignal(int signum);

@@ -212,6 +212,7 @@ extern _Bool le_wmatch_comppatterns(
 
 extern int complete_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char complete_help[];
 
 
 /* This function is defined in "../alias.c". */

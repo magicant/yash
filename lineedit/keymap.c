@@ -564,5 +564,11 @@ const char *get_command_name(le_command_func_T *command)
     return NULL;
 }
 
+#if YASH_ENABLE_HELP
+const char bindkey_help[] = Ngt(
+"set or print key bindings for line-editing"
+);
+#endif
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

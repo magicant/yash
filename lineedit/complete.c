@@ -1585,5 +1585,11 @@ finish:
     return exitstatus;
 }
 
+#if YASH_ENABLE_HELP
+const char complete_help[] = Ngt(
+"generate completion candidates"
+);
+#endif
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

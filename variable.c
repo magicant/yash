@@ -1910,6 +1910,12 @@ end:
     free(qname);
 }
 
+#if YASH_ENABLE_HELP
+const char typeset_help[] = Ngt(
+"set or print variables"
+);
+#endif
+
 #if YASH_ENABLE_ARRAY
 
 /* The "array" built-in, which accepts the following options:
@@ -2163,6 +2169,12 @@ invalid_index:
 	    indexword, name, array->v_valc);
 }
 
+#if YASH_ENABLE_HELP
+const char array_help[] = Ngt(
+"manipulate an array"
+);
+#endif
+
 #endif /* YASH_ENABLE_ARRAY */
 
 /* The "unset" built-in, which accepts the following options:
@@ -2259,6 +2271,12 @@ bool unset_variable(const wchar_t *name)
     return false;
 }
 
+#if YASH_ENABLE_HELP
+const char unset_help[] = Ngt(
+"remove variables or functions"
+);
+#endif
+
 /* The "shift" built-in */
 int shift_builtin(int argc, void **argv)
 {
@@ -2325,6 +2343,12 @@ int shift_builtin(int argc, void **argv)
 
     return Exit_SUCCESS;
 }
+
+#if YASH_ENABLE_HELP
+const char shift_help[] = Ngt(
+"remove some positional parameters"
+);
+#endif
 
 /* The "getopts" built-in */
 int getopts_builtin(int argc, void **argv)
@@ -2514,6 +2538,12 @@ bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     v[1] = L'\0';
     return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
 }
+
+#if YASH_ENABLE_HELP
+const char getopts_help[] = Ngt(
+"parse command options"
+);
+#endif
 
 /* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
@@ -2717,6 +2747,12 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
     free(values);
 }
 
+#if YASH_ENABLE_HELP
+const char read_help[] = Ngt(
+"read a line from the standard input"
+);
+#endif
+
 /* options for the "pushd" built-in */
 static const struct xgetopt_T pushd_options[] = {
 #if YASH_ENABLE_DIRSTACK
@@ -2902,6 +2938,12 @@ void remove_dirstack_dups(variable_T *var)
 	    remove_dirstack_entry_at(var, index);
 }
 
+#if YASH_ENABLE_HELP
+const char pushd_help[] = Ngt(
+"push a directory into the directory stack"
+);
+#endif
+
 /* The "popd" built-in. */
 int popd_builtin(int argc, void **argv)
 {
@@ -2959,6 +3001,12 @@ int popd_builtin(int argc, void **argv)
     free(newpwd);
     return result;
 }
+
+#if YASH_ENABLE_HELP
+const char popd_help[] = Ngt(
+"pop a directory from the directory stack"
+);
+#endif
 
 /* The "dirs" built-in, which accepts the following options:
  *  -c: clear the stack
@@ -3041,6 +3089,12 @@ bool print_dirstack_entry(
     else
 	return xprintf("%ls\n", dir);
 }
+
+#if YASH_ENABLE_HELP
+const char dirs_help[] = Ngt(
+"print the directory stack"
+);
+#endif
 
 #endif /* YASH_ENABLE_DIRSTACK */
 

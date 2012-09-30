@@ -262,6 +262,12 @@ print_char:
     return PR_OK;
 }
 
+#if YASH_ENABLE_HELP
+const char echo_help[] = Ngt(
+"print arguments"
+);
+#endif
+
 
 /* The "printf" built-in. */
 int printf_builtin(int argc, void **argv)
@@ -745,6 +751,12 @@ void freeformat(struct format_T *f)
 	f = next;
     }
 }
+
+#if YASH_ENABLE_HELP
+const char printf_help[] = Ngt(
+"print a formatted string"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

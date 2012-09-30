@@ -1662,6 +1662,12 @@ print_usage:
     return Exit_ERROR;
 }
 
+#if YASH_ENABLE_HELP
+const char return_help[] = Ngt(
+"return from a function or script"
+);
+#endif
+
 /* The "break"/"continue" built-in, which accepts the following option:
  *  -i: iterative execution */
 int break_builtin(int argc, void **argv)
@@ -1743,6 +1749,18 @@ int break_builtin(int argc, void **argv)
     }
 }
 
+#if YASH_ENABLE_HELP
+
+const char break_help[] = Ngt(
+"exit a loop"
+);
+
+const char continue_help[] = Ngt(
+"continue a loop"
+);
+
+#endif
+
 /* The "eval" built-in, which accepts the following option:
  *  -i: iterative execution */
 int eval_builtin(int argc __attribute__((unused)), void **argv)
@@ -1778,6 +1796,12 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 	return laststatus;
     }
 }
+
+#if YASH_ENABLE_HELP
+const char eval_help[] = Ngt(
+"evaluate arguments as a command"
+);
+#endif
 
 /* The "." built-in, which accepts the following option:
  *  -A: disable aliases
@@ -1885,6 +1909,12 @@ error:
 	exit_shell_with_status(Exit_FAILURE);
     return Exit_FAILURE;
 }
+
+#if YASH_ENABLE_HELP
+const char dot_help[] = Ngt(
+"read a file and execute commands"
+);
+#endif
 
 /* The "exec" built-in, which accepts the following options:
  *  -a name: give <name> as argv[0] to the command
@@ -2024,6 +2054,12 @@ error1:
 	exit(err);
     return err;
 }
+
+#if YASH_ENABLE_HELP
+const char exec_help[] = Ngt(
+"replace the shell process with an external command"
+);
+#endif
 
 /* The "command"/"type" built-in, which accepts the following options:
  *  -a: search aliases
@@ -2279,6 +2315,18 @@ void print_command_absolute_path(
     free(pwd);
 }
 
+#if YASH_ENABLE_HELP
+
+const char command_help[] = Ngt(
+"execute or identify a command"
+);
+
+const char type_help[] = Ngt(
+"identify a command"
+);
+
+#endif
+
 /* The "times" built-in. */
 int times_builtin(int argc __attribute__((unused)), void **argv)
 {
@@ -2330,6 +2378,12 @@ print_usage:
     SPECIAL_BI_ERROR;
     return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char times_help[] = Ngt(
+"print CPU time usage"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

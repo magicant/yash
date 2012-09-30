@@ -47,6 +47,7 @@ extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int unalias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char alias_help[], unalias_help[];
 
 
 #endif /* YASH_ALIAS_H */

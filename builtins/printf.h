@@ -24,6 +24,7 @@ extern int echo_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern int printf_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char echo_help[], printf_help[];
 
 
 #endif /* YASH_PRINTF_H */

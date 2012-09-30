@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	if (wargv[i] == NULL) {
 	    fprintf(stderr,
 		    gt("%s: cannot convert the argument `%s' "
-			"into a wide character string\n"),
+			"into a wide character string"),
 		    argv[0], argv[i]);
 	    fprintf(stderr,
 		    gt("%s: the argument is replaced with an empty string\n"),
@@ -626,6 +626,12 @@ int exit_builtin(int argc, void **argv)
     assert(false);
 }
 
+#if YASH_ENABLE_HELP
+const char exit_help[] = Ngt(
+"exit the shell"
+);
+#endif
+
 /* The "suspend" built-in, which accepts the following options:
  *  -f: suspend even if it may cause a deadlock. */
 int suspend_builtin(int argc, void **argv)
@@ -662,6 +668,12 @@ int suspend_builtin(int argc, void **argv)
 	ensure_foreground();
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
+
+#if YASH_ENABLE_HELP
+const char suspend_help[] = Ngt(
+"suspend the shell"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

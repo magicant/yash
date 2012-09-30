@@ -251,5 +251,11 @@ print_usage:
     return Exit_ERROR;
 }
 
+#if YASH_ENABLE_HELP
+const char ulimit_help[] = Ngt(
+"set or print a resource limitation"
+);
+#endif
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

@@ -825,5 +825,11 @@ int set_builtin_print_restoring_commands(void)
     return Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
+const char set_help[] = Ngt(
+"set shell options and positional parameters"
+);
+#endif
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

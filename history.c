@@ -1583,6 +1583,12 @@ void fc_read_history(FILE *f, bool quiet)
     }
 }
 
+#if YASH_ENABLE_HELP
+const char fc_help[] = Ngt(
+"list or re-execute command history"
+);
+#endif
+
 /* The "history" built-in, which accepts the following options:
  *  -c: clear whole history
  *  -d: remove history entry
@@ -1828,6 +1834,12 @@ void history_refresh_file(void)
 	}
     }
 }
+
+#if YASH_ENABLE_HELP
+const char history_help[] = Ngt(
+"manage command history"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

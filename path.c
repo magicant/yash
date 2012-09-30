@@ -1314,6 +1314,12 @@ bool starts_with_root_parent(const wchar_t *path)
 	(path[3] == L'\0' || path[3] == L'/');
 }
 
+#if YASH_ENABLE_HELP
+const char cd_help[] = Ngt(
+"change the working directory"
+);
+#endif
+
 /* The "pwd" built-in, which accepts the following options:
  *  -L: don't resolve symbolic links (default)
  *  -P: resolve symbolic links
@@ -1369,6 +1375,12 @@ print_usage:
     fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
     return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char pwd_help[] = Ngt(
+"print the working directory"
+);
+#endif
 
 /* The "hash" built-in, which accepts the following options:
  *  -a: print all entries
@@ -1500,6 +1512,12 @@ void print_home_directories(void)
 	}
     }
 }
+
+#if YASH_ENABLE_HELP
+const char hash_help[] = Ngt(
+"remember, forget, or report command locations"
+);
+#endif
 
 /* The "umask" built-in, which accepts the following option:
  *  -S: symbolic output */
@@ -1702,6 +1720,12 @@ mode_t copy_other_mask(mode_t mode)
          | ((mode & S_IWOTH) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
 	 | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
+
+#if YASH_ENABLE_HELP
+const char umask_help[] = Ngt(
+"print or set the file creation mask"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
