@@ -263,11 +263,11 @@ int print_builtin_help_body(const wchar_t *name)
 	return Exit_FAILURE;
     }
 
-    if (!xprintf("%ls: %s\n", name, gt(bi->help_text)))
+    if (!xprintf("%ls: %s\n\n", name, gt(bi->help_text)))
 	return Exit_FAILURE;
 
     /* TRANSLATORS: This is printed before syntax info of a built-in. */
-    if (!xprintf(gt("\nSyntax:\n%s\n"), gt(bi->syntax_text)))
+    if (!xprintf(gt("Syntax:\n%s\n"), gt(bi->syntax_text)))
 	return Exit_FAILURE;
 
     return Exit_SUCCESS;
