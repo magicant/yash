@@ -20,6 +20,7 @@
 #define YASH_VARIABLE_H
 
 #include <stddef.h>
+#include "util.h"
 
 
 extern char **environ;
@@ -137,9 +138,6 @@ extern _Bool parse_dirstack_index(
 	const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
 
-extern const struct xgetopt_T *const cd_options;
-extern const struct xgetopt_T *const pwd_options;
-
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char typeset_help[], typeset_syntax[], export_syntax[],
@@ -168,6 +166,14 @@ extern const char read_help[], read_syntax[];
 extern int pushd_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char pushd_help[], pushd_syntax[];
+extern const struct xgetopt_T pushd_options[];
+#if YASH_ENABLE_DIRSTACK
+# define cd_options  (&pushd_options[1])
+# define pwd_options (&pushd_options[2])
+#else
+# define cd_options  pushd_options
+# define pwd_options (&pushd_options[1])
+#endif
 
 extern int popd_builtin(int argc, void **argv)
     __attribute__((nonnull));

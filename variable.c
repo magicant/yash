@@ -2782,7 +2782,7 @@ const char read_syntax[] = Ngt(
 #endif
 
 /* options for the "pushd" built-in */
-static const struct xgetopt_T pushd_options[] = {
+const struct xgetopt_T pushd_options[] = {
 #if YASH_ENABLE_DIRSTACK
     { L'D', L"remove-duplicates", OPTARG_NONE,     true,  NULL, },
 #endif
@@ -2794,18 +2794,10 @@ static const struct xgetopt_T pushd_options[] = {
 #endif
     { L'\0', NULL, 0, false, NULL, },
 };
+/* Note: `cd_options' and `pwd_options' are defined as part of `pushd_options'.
+ */
 
-#if !YASH_ENABLE_DIRSTACK
-
-/* options for the "cd" and "pwd" built-ins */
-const struct xgetopt_T *const cd_options  = pushd_options;
-const struct xgetopt_T *const pwd_options = pushd_options + 1;
-
-#else /* YASH_ENABLE_DIRSTACK */
-
-/* options for the "cd" and "pwd" built-ins */
-const struct xgetopt_T *const cd_options  = pushd_options + 1;
-const struct xgetopt_T *const pwd_options = pushd_options + 2;
+#if YASH_ENABLE_DIRSTACK
 
 static variable_T *get_dirstack(void);
 static void push_dirstack(variable_T *var, wchar_t *value)
