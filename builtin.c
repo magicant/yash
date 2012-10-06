@@ -234,8 +234,8 @@ int print_builtin_help(const wchar_t *name)
 }
 
 /* Prints description of built-ins to the standard output.
- * `builtin_names' must point to a NULL-terminated array of pointers to
- * multibyte strings specifying the names of built-ins.
+ * `builtin_names' must point to a NULL-terminated array of pointers to wide
+ * strings specifying the names of built-ins.
  * Returns Exit_SUCCESS if the built-in was found and the help was printed.
  * Returns Exit_FAILURE if the built-in was not found or an error occurred. */
 int print_builtin_helps(void *const *builtin_names)
