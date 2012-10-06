@@ -220,10 +220,40 @@ const builtin_T *get_builtin(const char *name)
 
 #if YASH_ENABLE_HELP
 
+static int print_builtin_helps(void *const *builtin_names)
+    __attribute__((nonnull));
+static int print_builtin_help_body(const wchar_t *name)
+    __attribute__((nonnull));
+
 /* Prints description of the specified built-in to the standard output.
  * Returns Exit_SUCCESS if the built-in was found and the help was printed.
  * Returns Exit_FAILURE if the built-in was not found or an error occurred. */
 int print_builtin_help(const wchar_t *name)
+{
+    return print_builtin_helps((void *[]) { (void *) name, NULL, });
+}
+
+/* Prints description of built-ins to the standard output.
+ * `builtin_names' must point to a NULL-terminated array of pointers to
+ * multibyte strings specifying the names of built-ins.
+ * Returns Exit_SUCCESS if the built-in was found and the help was printed.
+ * Returns Exit_FAILURE if the built-in was not found or an error occurred. */
+int print_builtin_helps(void *const *builtin_names)
+{
+    for (; *builtin_names != NULL; builtin_names++)
+	if (print_builtin_help_body(*builtin_names) != Exit_SUCCESS)
+	    return Exit_FAILURE;
+
+    if (!xprintf(gt("Try `man yash' for details.\n")))
+	return Exit_FAILURE;
+
+    return Exit_SUCCESS;
+}
+
+/* Prints description of the specified built-in to the standard output.
+ * Returns Exit_SUCCESS if the built-in was found and the help was printed.
+ * Returns Exit_FAILURE if the built-in was not found or an error occurred. */
+int print_builtin_help_body(const wchar_t *name)
 {
     char *mbsname = malloc_wcstombs(name);
     const builtin_T *bi = get_builtin(mbsname);
@@ -237,10 +267,7 @@ int print_builtin_help(const wchar_t *name)
 	return Exit_FAILURE;
 
     /* TRANSLATORS: This is printed before syntax info of a built-in. */
-    if (!xprintf(gt("\nSyntax:\n%s"), gt(bi->syntax_text)))
-	return Exit_FAILURE;
-
-    if (!xprintf(gt("\nTry `man yash' for details.\n")))
+    if (!xprintf(gt("\nSyntax:\n%s\n"), gt(bi->syntax_text)))
 	return Exit_FAILURE;
 
     return Exit_SUCCESS;
@@ -342,9 +369,7 @@ int help_builtin(int argc, void **argv)
 print_help:
 	return print_builtin_help(ARGV(0));
 
-    while (xoptind < argc)
-	print_builtin_help(ARGV(xoptind++));
-    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+    return print_builtin_helps(&argv[xoptind]);
 }
 
 const char help_help[] = Ngt(
