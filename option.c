@@ -773,7 +773,9 @@ wchar_t *get_hyphen_parameter(void)
 
 static const struct xgetopt_T all_help_options[] = {
     { L'a', L"all",  OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
     { L'-', L"help", OPTARG_NONE, false, NULL, },
+#endif
     { L'\0', NULL, 0, false, NULL, },
 };
 
