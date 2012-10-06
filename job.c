@@ -1358,7 +1358,7 @@ int disown_builtin(int argc, void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, all_option, 0)) != NULL) {
+    while ((opt = xgetopt(argv, all_help_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':
 		all = true;

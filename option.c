@@ -771,14 +771,12 @@ wchar_t *get_hyphen_parameter(void)
 
 /********** Built-in **********/
 
-static const struct xgetopt_T all_help_options[] = {
+const struct xgetopt_T all_help_options[] = {
     { L'a', L"all",  OPTARG_NONE, true,  NULL, },
     { L'-', L"help", OPTARG_NONE, false, NULL, },
     { L'\0', NULL, 0, false, NULL, },
 };
-
-const struct xgetopt_T *const all_option  = &all_help_options[0];
-const struct xgetopt_T *const help_option = &all_help_options[1];
+/* Note: `help_option' is defined as (&all_help_options[1]). */
 
 
 static int set_builtin_print_current_settings(void);
