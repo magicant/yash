@@ -60,7 +60,7 @@ static const struct resource res_fsize = {
     RLIMIT_FSIZE, 512, Ngt("file size (blocks)")
 };
 
-static const struct xgetopt_T ulimit_options[] = {
+const struct xgetopt_T ulimit_options[] = {
     { L'H', L"hard", OPTARG_NONE, true, NULL, },
     { L'S', L"soft", OPTARG_NONE, true, NULL, },
     { L'a', L"all",  OPTARG_NONE, true, NULL, },

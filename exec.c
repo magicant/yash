@@ -1592,8 +1592,17 @@ static void print_command_absolute_path(
     __attribute__((nonnull));
 
 /* Options for the "break", "continue" and "eval" built-ins. */
-static const struct xgetopt_T iter_options[] = {
+const struct xgetopt_T iter_options[] = {
     { L'i', L"iteration", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
+/* Options for the "return" built-in. */
+const struct xgetopt_T return_options[] = {
+    { L'n', L"no-return", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
@@ -1604,19 +1613,11 @@ static const struct xgetopt_T iter_options[] = {
  *  -n: don't return from a function. */
 int return_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'n', L"no-return", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool noreturn = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, return_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'n':
 		noreturn = true;
@@ -1817,25 +1818,26 @@ const char eval_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "." built-in. */
+const struct xgetopt_T dot_options[] = {
+    { L'A', L"no-alias", OPTARG_NONE, false, NULL, },
+    { L'L', L"autoload", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "." built-in, which accepts the following option:
  *  -A: disable aliases
  *  -L: autoload */
 int dot_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'A', L"no-alias", OPTARG_NONE, false, NULL, },
-	{ L'L', L"autoload", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool enable_alias = true, autoload = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, dot_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'A':
 		enable_alias = false;
@@ -1933,28 +1935,29 @@ const char dot_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "exec" built-in. */
+const struct xgetopt_T exec_options[] = {
+    { L'a', L"as",    OPTARG_REQUIRED, false, NULL, },
+    { L'c', L"clear", OPTARG_NONE,     false, NULL, },
+    { L'f', L"force", OPTARG_NONE,     false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",  OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "exec" built-in, which accepts the following options:
  *  -a name: give <name> as argv[0] to the command
  *  -c: don't pass environment variables to the command
  *  -f: suppress error when we have stopped jobs */
 int exec_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"as",    OPTARG_REQUIRED, false, NULL, },
-	{ L'c', L"clear", OPTARG_NONE,     false, NULL, },
-	{ L'f', L"force", OPTARG_NONE,     false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",  OPTARG_NONE,     false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     const wchar_t *as = NULL;
     bool clear = false, force = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, exec_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  as = xoptarg;  break;
 	    case L'c':  clear = true;  break;
@@ -2081,6 +2084,22 @@ const char exec_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "command" built-in. */
+const struct xgetopt_T command_options[] = {
+    { L'a', L"alias",            OPTARG_NONE, false, NULL, },
+    { L'b', L"builtin-command",  OPTARG_NONE, false, NULL, },
+    { L'e', L"external-command", OPTARG_NONE, false, NULL, },
+    { L'f', L"function",         OPTARG_NONE, false, NULL, },
+    { L'k', L"keyword",          OPTARG_NONE, false, NULL, },
+    { L'p', L"standard-path",    OPTARG_NONE, true,  NULL, },
+    { L'v', L"identify",         OPTARG_NONE, true,  NULL, },
+    { L'V', L"verbose-identify", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",             OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "command"/"type" built-in, which accepts the following options:
  *  -a: search aliases
  *  -b: search built-ins
@@ -2092,21 +2111,6 @@ const char exec_syntax[] = Ngt(
  *  -V: print info about the command in a human-friendly format */
 int command_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"alias",            OPTARG_NONE, false, NULL, },
-	{ L'b', L"builtin-command",  OPTARG_NONE, false, NULL, },
-	{ L'e', L"external-command", OPTARG_NONE, false, NULL, },
-	{ L'f', L"function",         OPTARG_NONE, false, NULL, },
-	{ L'k', L"keyword",          OPTARG_NONE, false, NULL, },
-	{ L'p', L"standard-path",    OPTARG_NONE, true,  NULL, },
-	{ L'v', L"identify",         OPTARG_NONE, true,  NULL, },
-	{ L'V', L"verbose-identify", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",             OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
     bool printinfo = argv0istype, humanfriendly = argv0istype;
     enum srchcmdtype_T type = 0;
@@ -2114,7 +2118,7 @@ int command_builtin(int argc, void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, command_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  aliases = true;        break;
 	    case L'b':  type |= SCT_BUILTIN;   break;

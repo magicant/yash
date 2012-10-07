@@ -142,14 +142,17 @@ extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char typeset_help[], typeset_syntax[], export_syntax[],
 	readonly_syntax[];
+extern const struct xgetopt_T typeset_options[];
 
 extern int array_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char array_help[], array_syntax[];
+extern const struct xgetopt_T array_options[];
 
 extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char unset_help[], unset_syntax[];
+extern const struct xgetopt_T unset_options[];
 
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
@@ -162,6 +165,7 @@ extern const char getopts_help[], getopts_syntax[];
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char read_help[], read_syntax[];
+extern const struct xgetopt_T read_options[];
 
 extern int pushd_builtin(int argc, void **argv)
     __attribute__((nonnull));
@@ -182,6 +186,7 @@ extern const char popd_help[], popd_syntax[];
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char dirs_help[], dirs_syntax[];
+extern const struct xgetopt_T dirs_options[];
 
 
 #endif /* YASH_VARIABLE_H */

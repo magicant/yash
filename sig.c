@@ -1064,22 +1064,23 @@ static bool print_signal(int signum, const wchar_t *name, bool verbose)
 static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
+/* Options for the "trap" built-in. */
+const struct xgetopt_T trap_options[] = {
+    { L'p', L"print", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",  OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "trap" built-in. */
 int trap_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'p', L"print", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",  OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool print = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, trap_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'p':
 		print = true;

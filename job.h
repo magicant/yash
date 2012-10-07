@@ -20,6 +20,7 @@
 #define YASH_JOB_H
 
 #include <sys/types.h>
+#include "util.h"
 
 
 /* status of job/process */
@@ -98,6 +99,7 @@ extern void notify_signaled_job(size_t jobnumber);
 extern int jobs_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char jobs_help[], jobs_syntax[];
+extern const struct xgetopt_T jobs_options[];
 
 extern int fg_builtin(int argc, void **argv)
     __attribute__((nonnull));

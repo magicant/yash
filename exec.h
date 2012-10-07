@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+#include "util.h"
 
 
 /* options for `fork_and_reset' */
@@ -72,9 +73,12 @@ extern _Bool autoload_completion_function_file(
 extern _Bool call_completion_function(const wchar_t *funcname)
     __attribute__((nonnull));
 
+extern const struct xgetopt_T iter_options[];
+
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char return_help[], return_syntax[];
+extern const struct xgetopt_T return_options[];
 
 extern int break_builtin(int argc, void **argv)
     __attribute__((nonnull));
@@ -88,14 +92,17 @@ extern const char eval_help[], eval_syntax[];
 extern int dot_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char dot_help[], dot_syntax[];
+extern const struct xgetopt_T dot_options[];
 
 extern int exec_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char exec_help[], exec_syntax[];
+extern const struct xgetopt_T exec_options[];
 
 extern int command_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char command_help[], command_syntax[], type_help[], type_syntax[];
+extern const struct xgetopt_T command_options[];
 
 extern int times_builtin(int argc, void **argv)
     __attribute__((nonnull));

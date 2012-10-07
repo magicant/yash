@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+#include "util.h"
 
 struct stat;
 
@@ -117,10 +118,12 @@ extern const char pwd_help[], pwd_syntax[];
 extern int hash_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char hash_help[], hash_syntax[];
+extern const struct xgetopt_T hash_options[];
 
 extern int umask_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char umask_help[], umask_syntax[];
+extern const struct xgetopt_T umask_options[];
 
 extern int change_directory(
 	const wchar_t *newpwd, _Bool printnewdir, _Bool logical)

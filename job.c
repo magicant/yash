@@ -951,6 +951,19 @@ void generate_job_candidates(const le_compopt_T *compopt)
 
 /********** Built-ins **********/
 
+/* Options for the "jobs" built-in. */
+const struct xgetopt_T jobs_options[] = {
+    { L'l', L"verbose",      OPTARG_NONE, true,  NULL, },
+    { L'n', L"new",          OPTARG_NONE, false, NULL, },
+    { L'p', L"pgid-only",    OPTARG_NONE, true,  NULL, },
+    { L'r', L"running-only", OPTARG_NONE, false, NULL, },
+    { L's', L"stopped-only", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",         OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "jobs" built-in, which accepts the following options:
  *  -l: be verbose
  *  -n: print the jobs only whose status have changed
@@ -960,24 +973,12 @@ void generate_job_candidates(const le_compopt_T *compopt)
  * In the POSIXly correct mode, only -l and -p are available. */
 int jobs_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'l', L"verbose",      OPTARG_NONE, true,  NULL, },
-	{ L'n', L"new",          OPTARG_NONE, false, NULL, },
-	{ L'p', L"pgid-only",    OPTARG_NONE, true,  NULL, },
-	{ L'r', L"running-only", OPTARG_NONE, false, NULL, },
-	{ L's', L"stopped-only", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",         OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool verbose = false, changedonly = false, pgidonly = false;
     bool runningonly = false, stoppedonly = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, jobs_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'l':  verbose     = true;  break;
 	    case L'n':  changedonly = true;  break;

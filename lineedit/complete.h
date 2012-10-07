@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include "../plist.h"
+#include "../util.h"
 
 
 typedef enum le_candtype_T {
@@ -213,6 +214,7 @@ extern _Bool le_wmatch_comppatterns(
 extern int complete_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char complete_help[], complete_syntax[];
+extern const struct xgetopt_T complete_options[];
 
 
 /* This function is defined in "../alias.c". */

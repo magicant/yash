@@ -429,25 +429,26 @@ void generate_alias_candidates(const le_compopt_T *compopt)
 
 /********** Built-ins **********/
 
+/* Options for the "alias" built-in. */
+const struct xgetopt_T alias_options[] = {
+    { L'g', L"global", OPTARG_NONE, false, NULL, },
+    { L'p', L"prefix", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",   OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "alias" built-in, which accepts the following options:
  *  -g: define global aliases
  *  -p: print aliases in the form of whole commands */
 int alias_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'g', L"global", OPTARG_NONE, false, NULL, },
-	{ L'p', L"prefix", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",   OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool global = false, prefix = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, alias_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'g':  global = true;  break;
 	    case L'p':  prefix = true;  break;

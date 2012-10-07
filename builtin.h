@@ -34,6 +34,7 @@ typedef struct builtin_T {
     builtintype_T type;
 #if YASH_ENABLE_HELP
     const char *help_text, *syntax_text;
+    const struct xgetopt_T *options;
 #endif
 } builtin_T;
 

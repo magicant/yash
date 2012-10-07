@@ -20,6 +20,7 @@
 #define YASH_YASH_H
 
 #include <sys/types.h>
+#include "util.h"
 
 
 extern pid_t shell_pid, shell_pgid;
@@ -40,6 +41,8 @@ extern void exec_input(int fd, const char *name,
 
 
 extern _Bool nextforceexit;
+
+extern const struct xgetopt_T force_help_options[];
 
 extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));

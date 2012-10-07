@@ -566,7 +566,8 @@ bool input_is_interactive_terminal(const parseparam_T *pinfo)
 
 /********** Built-ins **********/
 
-static const struct xgetopt_T force_help_options[] = {
+/* Options for the "exit" and "suspend" built-ins. */
+const struct xgetopt_T force_help_options[] = {
     { L'f', L"force", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help",  OPTARG_NONE, false, NULL, },

@@ -374,6 +374,18 @@ static int print_binding_main(
 static const char *get_command_name(le_command_func_T *command)
     __attribute__((nonnull,const));
 
+/* Options for the "bindkey" built-in. */
+const struct xgetopt_T bindkey_options[] = {
+    { L'v', L"vi-insert",  OPTARG_NONE, false, NULL, },
+    { L'a', L"vi-command", OPTARG_NONE, false, NULL, },
+    { L'e', L"emacs",      OPTARG_NONE, false, NULL, },
+    { L'l', L"list",       OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",       OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "bindkey" built-in, which accepts the following options:
  *  -v: select the "vi-insert" mode
  *  -a: select the "vi-command" mode
@@ -381,23 +393,12 @@ static const char *get_command_name(le_command_func_T *command)
  *  -l: list names of available commands */
 int bindkey_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'v', L"vi-insert",  OPTARG_NONE, false, NULL, },
-	{ L'a', L"vi-command", OPTARG_NONE, false, NULL, },
-	{ L'e', L"emacs",      OPTARG_NONE, false, NULL, },
-	{ L'l', L"list",       OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",       OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool list = false;
     le_mode_id_T mode = LE_MODE_N;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, bindkey_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  mode = LE_MODE_VI_COMMAND;  break;
 	    case L'e':  mode = LE_MODE_EMACS;       break;

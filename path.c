@@ -1388,27 +1388,28 @@ const char pwd_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "hash" built-in. */
+const struct xgetopt_T hash_options[] = {
+    { L'a', L"all",       OPTARG_NONE, false, NULL, },
+    { L'd', L"directory", OPTARG_NONE, false, NULL, },
+    { L'r', L"remove",    OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "hash" built-in, which accepts the following options:
  *  -a: print all entries
  *  -d: use the directory cache
  *  -r: remove cache entries */
 int hash_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"all",       OPTARG_NONE, false, NULL, },
-	{ L'd', L"directory", OPTARG_NONE, false, NULL, },
-	{ L'r', L"remove",    OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool remove = false, all = false, dir = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, hash_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  all    = true;  break;
 	    case L'd':  dir    = true;  break;
@@ -1533,23 +1534,24 @@ const char hash_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "umask" built-in. */
+const struct xgetopt_T umask_options[] = {
+    { L'S', L"symbolic", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "umask" built-in, which accepts the following option:
  *  -S: symbolic output */
 int umask_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'S', L"symbolic", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool symbolic = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, umask_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'S':
 		symbolic = true;

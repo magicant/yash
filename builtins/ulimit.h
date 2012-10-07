@@ -19,10 +19,13 @@
 #ifndef YASH_ULIMIT_H
 #define YASH_ULIMIT_H
 
+#include "../util.h"
+
 
 extern int ulimit_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char ulimit_help[], ulimit_syntax[];
+extern const struct xgetopt_T ulimit_options[];
 
 
 #endif /* YASH_ULIMIT_H */
