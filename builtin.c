@@ -252,6 +252,10 @@ static int print_builtin_help_body(const wchar_t *name)
 static bool print_builtin_options(const struct xgetopt_T *options);
 static bool there_is_any_short_option(const struct xgetopt_T *options)
     __attribute__((nonnull,pure));
+static void format_option_list_entry(
+	const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
+	bool print_short_option)
+    __attribute__((nonnull));
 
 /* Prints description of the specified built-in to the standard output.
  * Returns Exit_SUCCESS if the built-in was found and the help was printed.
@@ -315,6 +319,19 @@ bool print_builtin_options(const struct xgetopt_T *options)
     if (!xprintf(gt("Options:\n")))
 	return false;
 
+    if (!print_option_list(options))
+	return false;
+
+    if (!xprintf("\n"))
+	return false;
+
+    return true;
+}
+
+/* Prints a list of options to the standard output.
+ * Returns true iff successful. */
+bool print_option_list(const struct xgetopt_T *options)
+{
     bool print_short_option = there_is_any_short_option(options);
 
     xstrbuf_T line;
@@ -325,32 +342,7 @@ bool print_builtin_options(const struct xgetopt_T *options)
 	    continue;
 
 	sb_clear(&line);
-	sb_ccat(&line, '\t');
-
-	if (opt->shortopt != L'-') {
-	    const char *INIT(optargmark);
-	    switch (opt->optarg) {
-		case OPTARG_NONE:      optargmark = "";       break;
-		case OPTARG_REQUIRED:  optargmark = " ...";   break;
-		case OPTARG_OPTIONAL:  optargmark = "[...]";  break;
-	    }
-
-	    sb_printf(&line, "-%lc%s", opt->shortopt, optargmark);
-	}
-
-	if (print_short_option && line.length < 10)
-	    sb_ccat_repeat(&line, ' ', 10 - line.length);
-
-	if (opt->longopt != NULL) {
-	    const char *INIT(optargmark);
-	    switch (opt->optarg) {
-		case OPTARG_NONE:      optargmark = "";        break;
-		case OPTARG_REQUIRED:  optargmark = "=...";    break;
-		case OPTARG_OPTIONAL:  optargmark = "[=...]";  break;
-	    }
-
-	    sb_printf(&line, "--%ls%s", opt->longopt, optargmark);
-	}
+	format_option_list_entry(opt, &line, print_short_option);
 
 	if (!xprintf("%s\n", line.contents)) {
 	    sb_destroy(&line);
@@ -359,10 +351,6 @@ bool print_builtin_options(const struct xgetopt_T *options)
     }
 
     sb_destroy(&line);
-
-    if (!xprintf("\n"))
-	return false;
-
     return true;
 }
 
@@ -372,6 +360,42 @@ bool there_is_any_short_option(const struct xgetopt_T *options)
 	if (opt->shortopt != L'-')
 	    return true;
     return false;
+}
+
+/* Formats a line that describes the specified option.
+ * The results are appended to buffer `buf'. `buf' must have been initialized
+ * before calling this function. `buf' must be destroyed by the caller.
+ * If `print_short_option' is false, the single-character option is omitted. */
+void format_option_list_entry(
+	const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
+	bool print_short_option)
+{
+    sb_ccat(buf, '\t');
+
+    if (print_short_option && opt->shortopt != L'-') {
+	const char *INIT(optargmark);
+	switch (opt->optarg) {
+	    case OPTARG_NONE:      optargmark = "";       break;
+	    case OPTARG_REQUIRED:  optargmark = " ...";   break;
+	    case OPTARG_OPTIONAL:  optargmark = "[...]";  break;
+	}
+
+	sb_printf(buf, "-%lc%s", opt->shortopt, optargmark);
+    }
+
+    if (opt->longopt != NULL) {
+	if (print_short_option && buf->length < 10)
+	    sb_ccat_repeat(buf, ' ', 10 - buf->length);
+
+	const char *INIT(optargmark);
+	switch (opt->optarg) {
+	    case OPTARG_NONE:      optargmark = "";        break;
+	    case OPTARG_REQUIRED:  optargmark = "=...";    break;
+	    case OPTARG_OPTIONAL:  optargmark = "[=...]";  break;
+	}
+
+	sb_printf(buf, "--%ls%s", opt->longopt, optargmark);
+    }
 }
 
 #endif /* YASH_ENABLE_HELP */

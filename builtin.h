@@ -44,6 +44,8 @@ extern const builtin_T *get_builtin(const char *name)
     __attribute__((pure));
 extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
+extern bool print_option_list(const struct xgetopt_T *options)
+    __attribute__((nonnull));
 
 extern int true_builtin(int argc, void **argv)
     __attribute__((nonnull));
