@@ -302,10 +302,32 @@ int print_builtin_help_body(const wchar_t *name)
     if (!xprintf(gt("Syntax:\n%s\n"), gt(bi->syntax_text)))
 	return Exit_FAILURE;
 
-    if (!print_builtin_options(bi->options))
-	return Exit_FAILURE;
+    if (wcscmp(name, L"set") == 0) {
+	if (!print_shopts(false))
+	    return Exit_FAILURE;
+    } else {
+	if (!print_builtin_options(bi->options))
+	    return Exit_FAILURE;
+    }
 
     return Exit_SUCCESS;
+}
+
+/* Prints a list of all shell options to the standard output.
+ * Returns true iff successful. */
+bool print_shopts(bool include_normal_options)
+{
+    /* TRANSLATORS: This text is printed before a list of options. */
+    if (!xprintf(gt("Options:\n")))
+	return false;
+
+    if (!print_shopts_body(include_normal_options))
+	return false;
+
+    if (!xprintf("\n"))
+	return false;
+
+    return true;
 }
 
 /* Prints a list of options for a built-in to the standard output.

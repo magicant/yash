@@ -768,6 +768,36 @@ wchar_t *get_hyphen_parameter(void)
     return wb_towcs(&buf);
 }
 
+/* Prints a list of all shell options to the standard output.
+ * Returns true iff successful. */
+bool print_shopts_body(bool include_normal_options)
+{
+    if (include_normal_options)
+	if (!print_option_list(normal_options))
+	    return false;
+
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (!xprintf("\t"))
+	    return false;
+
+	if (o->shortopt_enable != L'\0') {
+	    if (!xprintf("-%lc", o->shortopt_enable))
+		return false;
+	} else if (o->shortopt_disable != L'\0') {
+	    if (!xprintf("+%lc", o->shortopt_disable))
+		return false;
+	} else {
+	    if (!xprintf("  "))
+		return false;
+	}
+
+	if (!xprintf("       -o %ls\n", o->longopt))
+	    return false;
+    }
+
+    return true;
+}
+
 
 /********** Built-in **********/
 

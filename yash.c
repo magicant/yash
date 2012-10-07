@@ -345,23 +345,18 @@ void exit_shell_with_status(int status)
 /* Prints the help message to the standard output. */
 void print_help(void)
 {
-    if (posixly_correct) {
-	xprintf(gt(
-	    "Usage:  sh [options] [filename [args...]]\n"
-	    "        sh [options] -c command [command_name [args...]]\n"
-	    "        sh [options] -s [args...]\n"));
-	xprintf(gt("Options: -abCefhilmnuvx\n"));
-    } else {
-	xprintf(gt(
-	    "Usage:  yash [options] [filename [args...]]\n"
-	    "        yash [options] -c command [command_name [args...]]\n"
-	    "        yash [options] -s [args...]\n"));
-	xprintf(gt(
-	    "Options: -abCefhilmnuVvx\n"
-	    "         --interactive --login --noprofile --norcfile \n"
-	    "         --profile=filename --rcfile=filename\n"));
-	xprintf(gt("Type `set --help' in the shell for other options.\n"));
-    }
+    const char *shell_name = posixly_correct ? "sh" : "yash";
+    xprintf(gt(
+	    "Usage:  %s [options] [filename [args...]]\n"
+	    "        %s [options] -c command [command_name [args...]]\n"
+	    "        %s [options] -s [args...]\n"),
+	    shell_name, shell_name, shell_name);
+
+    xprintf("\n");
+
+    print_shopts(true);
+
+    xprintf(gt("Try `man yash' for details.\n"));
 }
 
 /* Prints the version info to the standard output. */
