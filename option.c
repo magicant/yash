@@ -332,10 +332,8 @@ int parse_shell_options(int argc, void *const *argv,
 		goto set_positional_parameters;
 	    }
 
-	    /* parse a long option */
 	    result = parse_long_option(argv, enable, shell_invocation);
 	} else {
-	    /* parse short options */
 	    result = parse_short_option(argv, enable, shell_invocation);
 	}
 	if (result != Exit_SUCCESS)
