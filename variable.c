@@ -1959,10 +1959,10 @@ int array_builtin(int argc, void **argv)
     }
 
     if (xoptind == argc) {
-	/* print all arrays */
 	if (options != 0)
 	    goto print_usage;
 
+	/* print all arrays */
 	kvpair_T *kvs;
 	size_t count = make_array_of_all_variables(true, &kvs);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
