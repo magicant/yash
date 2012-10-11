@@ -1043,6 +1043,7 @@ static bool starts_with_root_parent(const wchar_t *path)
     __attribute__((nonnull,pure));
 static void print_command_paths(bool all);
 static void print_home_directories(void);
+static int print_umask(bool symbolic);
 static inline bool print_umask_octal(mode_t mode);
 static bool print_umask_symbolic(mode_t mode);
 static int set_umask(const wchar_t *newmask)
@@ -1076,7 +1077,7 @@ int cd_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
@@ -1104,13 +1105,9 @@ int cd_builtin(int argc, void **argv)
 	    }
 	    break;
 	default:
-	    goto print_usage;
+	    return too_many_operands_error(1);
     }
     return change_directory(newpwd, printnewdir, logical);
-
-print_usage:
-    fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"), L"cd");
-    return Exit_ERROR;
 }
 
 /* Changes the working directory to `newpwd'.
@@ -1342,12 +1339,12 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (xoptind != argc)
-	goto print_usage;
+	return too_many_operands_error(0);
 
     char *mbspwd;
 
@@ -1373,10 +1370,6 @@ print:
 	xerror(errno, Ngt("cannot print to the standard output"));
     free(mbspwd);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
-    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP
@@ -1419,11 +1412,11 @@ int hash_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
     if (all && xoptind != argc)
-	goto print_usage;
+	return too_many_operands_error(0);
 
     if (dir) {
 	if (remove) {
@@ -1478,13 +1471,6 @@ int hash_builtin(int argc, void **argv)
 	}
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt(posixly_correct
-		? Ngt("Usage:  hash [-r] [command...]\n")
-		: Ngt("Usage:  hash [-dr] [command/username...]\n"
-		      "        hash [-adr]\n")));
-    return Exit_ERROR;
 }
 
 /* Prints the entries of the command hashtable.
@@ -1561,28 +1547,31 @@ int umask_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
-    if (xoptind == argc) {
-	mode_t mode = umask(0);
-	umask(mode);
-
-	bool success;
-	if (symbolic)
-	    success = print_umask_symbolic(mode);
-	else
-	    success = print_umask_octal(mode);
-	return success ? Exit_SUCCESS : Exit_FAILURE;
-    } else if (xoptind + 1 == argc) {
-	return set_umask(ARGV(xoptind));
+    switch (argc - xoptind) {
+	case 0:
+	    return print_umask(symbolic);
+	case 1:
+	    return set_umask(ARGV(xoptind));
+	default:
+	    return too_many_operands_error(1);
     }
-    /* falls thru! */
+}
 
-print_usage:
-    fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
-    return Exit_ERROR;
+int print_umask(bool symbolic)
+{
+    mode_t mode = umask(0);
+    umask(mode);
+
+    bool success;
+    if (symbolic)
+	success = print_umask_symbolic(mode);
+    else
+	success = print_umask_octal(mode);
+    return success ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 bool print_umask_octal(mode_t mode)

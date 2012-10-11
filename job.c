@@ -990,9 +990,6 @@ int jobs_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  jobs [-lp] [job...]\n")
-			    : Ngt("Usage:  jobs [-lnprs] [job...]\n")));
 		return Exit_ERROR;
 	}
     }
@@ -1091,9 +1088,7 @@ int fg_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt(fg ? Ngt("Usage:  fg [job]\n")
-		                      : Ngt("Usage:  bg [job...]\n")));
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -1107,10 +1102,10 @@ int fg_builtin(int argc, void **argv)
     job_T *job;
 
     if (xoptind < argc) {
-	if (fg && posixly_correct && argc - xoptind > 1) {
-	    xerror(0, Ngt("too many operands are specified"));
-	    goto print_usage;
-	}
+	if (fg && posixly_correct
+		&& !validate_operand_count(argc - xoptind, 0, 1))
+	    return Exit_ERROR;
+
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    if (jobspec[0] == L'%') {
@@ -1254,7 +1249,6 @@ int wait_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  wait [job or pid...]\n"));
 		return Exit_ERROR;
 	}
     }
@@ -1369,7 +1363,6 @@ int disown_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  disown [-a] [job...]\n"));
 		return Exit_ERROR;
 	}
     }

@@ -1,7 +1,7 @@
 ===== consequences of shell errors =====
 syntax error: encountered `fi' without a matching `if' and/or `then'
-Usage:  . [-AL] file [arg...]
-Usage:  getopts options var [arg...]
+.: this command requires an operand
+getopts: this command requires 2 operands
 ../yash: $ro is read-only
 ../yash: $ro is read-only
 ../yash: parameter `var' is not set
@@ -38,126 +38,96 @@ set: `--version' is not a valid option
 set: `--no-such-option' is not a valid option
 ===== cd =====
 cd: `--no-such-option' is not a valid option
-Usage:  cd [-L|-P] [directory]
 cd: $OLDPWD is not set
 cd: $HOME is not set
 ===== pwd =====
 pwd: `--no-such-option' is not a valid option
-Usage:  pwd [-L|-P]
-Usage:  pwd [-L|-P]
+pwd: no operand is expected
 ===== hash =====
 hash: `--no-such-option' is not a valid option
-Usage:  hash [-dr] [command/username...]
-        hash [-adr]
 hash: `./no/such/command': a command name must not contain `/'
 hash: command `no_such_command' was not found in $PATH
 ===== umask =====
 umask: `--no-such-option' is not a valid option
-Usage:  umask [-S] [mask]
 ===== typeset =====
 typeset: `--no-such-option' is not a valid option
-Usage:  typeset [-fgprxX] [name[=value]...]
 typeset: $readonly is read-only
 ===== unset =====
 unset: `--no-such-option' is not a valid option
-Usage:  unset [-fv] name...
 unset: $readonly is read-only
 unset: function `func' is read-only
 ===== shift =====
 shift: `--no-such-option' is not a valid option
-Usage:  shift [n]
 shift: 10000: cannot shift so many (there are only 0 positional parameters)
 ===== getopts =====
 getopts: `--no-such-option' is not a valid option
-Usage:  getopts options var [arg...]
-Usage:  getopts options var [arg...]
-Usage:  getopts options var [arg...]
+getopts: this command requires 2 operands
+getopts: this command requires 2 operands
 ===== read =====
 read: `--no-such-option' is not a valid option
-Usage:  read [-Ar] var...
-Usage:  read [-Ar] var...
+read: this command requires an operand
 ===== trap =====
 trap: `--no-such-option' is not a valid option
-Usage:  trap [action signal...]
-        trap signum [signal...]
-        trap -p [signal...]
-Usage:  trap [action signal...]
-        trap signum [signal...]
-        trap -p [signal...]
+trap: this command requires 2 operands
 trap: SIGKILL cannot be trapped
 trap: SIGSTOP cannot be trapped
 trap: no such signal `NO-SUCH-SIGNAL'
 ===== kill =====
 kill: no such signal `-NO-SUCH-OPTION'
-Usage:  kill [-s signal | -n signum] process...
-        kill -l [-v] [number...]
+kill: the -n option cannot be used with the -l option
+kill: the -s option cannot be used with the -l option
+kill: this command requires an operand
 kill: no such signal `0'
 kill: no such job `%100'
 ===== jobs kill =====
 jobs: `--no-such-option' is not a valid option
-Usage:  jobs [-lnprs] [job...]
 jobs: no such job `%100'
 jobs: no such job `%no_such_job'
 kill: `%while' is not a job-controlled job
 ===== wait =====
 wait: `--no-such-option' is not a valid option
-Usage:  wait [job or pid...]
 ===== return =====
 return: `--no-such-option' is not a valid option
-Usage:  return [-n] [n]
 return: `foo' is not a valid integer
 return: `-3' is not a valid integer
-Usage:  return [-n] [n]
+return: too many operands are specified
 return: cannot be used in the interactive mode
 ===== break =====
 break: `--no-such-option' is not a valid option
-Usage:  break [n]
-        break -i
 break: not in a loop
 break: not in an iteration
-Usage:  break [n]
-        break -i
+break: no operand is expected
 ===== continue =====
 continue: `--no-such-option' is not a valid option
-Usage:  continue [n]
-        continue -i
 continue: not in a loop
 continue: not in an iteration
-Usage:  continue [n]
-        continue -i
+continue: no operand is expected
 ===== eval =====
 eval: `--no-such-option' is not a valid option
-Usage:  eval [-i] [arg...]
 ===== dot =====
 .: `--no-such-option' is not a valid option
-Usage:  . [-AL] file [arg...]
-Usage:  . [-AL] file [arg...]
+.: this command requires an operand
 ===== exec =====
 exec: `--no-such-option' is not a valid option
-Usage:  exec [-cf] [-a name] [command [arg...]]
 ===== command =====
 command: `--no-such-option' is not a valid option
-Usage:  command [-befp] command [arg...]
-        command -v|-V [-abefkp] command...
-Usage:  command [-befp] command [arg...]
-        command -v|-V [-abefkp] command...
+command: the -a or -k option must be used with the -v option
+command: the -a or -k option must be used with the -v option
 command: no such command `no_such_command'
 =1=
 =2=
 command: no such command `no_such_command'
 ===== times =====
 times: `--no-such-option' is not a valid option
-Usage:  times
-Usage:  times
+times: no operand is expected
 ===== exit =====
 exit: `--no-such-option' is not a valid option
-Usage:  exit [-f] [n]
 exit: `foo' is not a valid integer
 exit: `-3' is not a valid integer
-Usage:  exit [-f] [n]
+exit: too many operands are specified
 ===== suspend =====
 suspend: `--no-such-option' is not a valid option
-Usage:  suspend [-f]
-Usage:  suspend [-f]
+suspend: no operand is expected
 ===== ulimit =====
 ulimit: `xxx' is not a valid integer
+ulimit: too many operands are specified

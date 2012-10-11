@@ -1510,15 +1510,11 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			assert(false);
 		}
 		break;
-	    default:
-		fprintf(stderr, gt(
-"Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
-"        [-abcdfghjkuv] [[-O] [-D description] words...]\n"));
-		exitstatus = Exit_ERROR;
-		goto finish;
 dupopterror:
 		xerror(0, Ngt("more than one -%lc option is specified"),
 			(wint_t) opt->shortopt);
+		/* falls thru */
+	    default:
 		exitstatus = Exit_ERROR;
 		goto finish;
 	}

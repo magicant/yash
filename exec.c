@@ -1627,11 +1627,14 @@ int return_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+    if (!validate_operand_count(argc - xoptind, 0, 1)) {
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
@@ -1653,14 +1656,6 @@ int return_builtin(int argc, void **argv)
 	execstate.exception = E_RETURN;
     }
     return status;
-
-print_usage:
-    fprintf(stderr,
-	    gt(posixly_correct ? Ngt("Usage:  %ls [n]\n")
-		: Ngt("Usage:  %ls [-n] [n]\n")),
-	    ARGV(0));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP
@@ -1689,16 +1684,15 @@ int break_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr,
-			gt("Usage:  %ls [n]\n        %ls -i\n"),
-			ARGV(0), ARGV(0));
+	    default:
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
-    if (argc - xoptind > (iter ? 0 : 1))
-	goto print_usage;
+    if (!validate_operand_count(argc - xoptind, 0, iter ? 0 : 1)) {
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     if (iter) {
 	/* break/continue iteration */
@@ -1791,9 +1785,6 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  eval [arg...]\n")
-			    : Ngt("Usage:  eval [-i] [arg...]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1849,22 +1840,25 @@ int dot_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  . file\n")
-			    : Ngt("Usage:  . [-AL] file [arg...]\n")));
+	    default:
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
 
     const wchar_t *filename = ARGV(xoptind++);
-    if (filename == NULL)
-	goto print_usage;
+    if (filename == NULL) {
+	insufficient_operands_error(1);
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     bool has_args = xoptind < argc;
-    if (has_args && posixly_correct)
-	goto print_usage;
+    if (has_args && posixly_correct) {
+	too_many_operands_error(1);
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (mbsfilename == NULL) {
@@ -1967,9 +1961,6 @@ int exec_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-		    ? Ngt("Usage:  exec [command [arg...]]\n")
-		    : Ngt("Usage:  exec [-cf] [-a name] [command [arg...]]\n")));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -2133,19 +2124,24 @@ int command_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (!printinfo) {
-	if (aliases || keywords)
-	    goto print_usage;
+	if (aliases || keywords) {
+	    xerror(0,
+		Ngt("the -a or -k option must be used with the -v option"));
+	    return Exit_ERROR;
+	}
+
 	if (xoptind == argc) {
 	    if (posixly_correct)
-		goto print_usage;
+		return insufficient_operands_error(1);
 	    else
 		return Exit_SUCCESS;
 	}
+
 	if (type == 0)
 	    type = SCT_EXTERNAL | SCT_BUILTIN;
 	else
@@ -2155,8 +2151,10 @@ int command_builtin(int argc, void **argv)
 	return command_builtin_execute(
 		argc - xoptind, &argv[xoptind], type);
     } else {
-	if (!argv0istype && posixly_correct && argc - xoptind != 1)
-	    goto print_usage;
+	if (!argv0istype && posixly_correct
+		&& !validate_operand_count(argc - xoptind, 1, 1))
+	    return Exit_ERROR;
+
 	if (type == 0 && !aliases && !keywords) {
 	    type = SCT_EXTERNAL | SCT_BUILTIN | SCT_FUNCTION;
 	    aliases = keywords = true;
@@ -2178,17 +2176,6 @@ int command_builtin(int argc, void **argv)
 	return ok && yash_error_message_count == 0
 	    ? Exit_SUCCESS : Exit_FAILURE;
     }
-
-print_usage:
-    if (argv0istype)
-	fprintf(stderr, gt("Usage:  type command...\n"));
-    else if (posixly_correct)
-	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
-			   "        command -v|-V [-p] command\n"));
-    else
-	fprintf(stderr, gt("Usage:  command [-befp] command [arg...]\n"
-			   "        command -v|-V [-abefkp] command...\n"));
-    return Exit_ERROR;
 }
 
 /* Executes the specified simple command.
@@ -2370,12 +2357,16 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
 	}
     }
 
-    if (xoptind < argc)
-	goto print_usage;
+    if (xoptind < argc) {
+	too_many_operands_error(0);
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     double clock;
     struct tms tms;
@@ -2403,11 +2394,6 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
 	    sum, sus, ssm, sss, cum, cus, csm, css);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  times\n"));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP

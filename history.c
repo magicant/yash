@@ -1130,7 +1130,6 @@ enum fcprinttype_T {
 
 static struct search_result_T fc_search_entry(const wchar_t *name, int number)
     __attribute__((nonnull));
-static int fc_builtin_error(void);
 static void fc_update_history(void);
 static void fc_remove_last_entry(void);
 static histlink_T *fc_search_entry_by_prefix(const wchar_t *prefix)
@@ -1150,7 +1149,6 @@ static int fc_edit_and_exec_entries(
     __attribute__((nonnull(1,2)));
 static void fc_read_history(FILE *f, bool quiet)
     __attribute__((nonnull));
-static int history_builtin_error(void);
 static void history_clear_all(void);
 static int history_delete(const wchar_t *s)
     __attribute__((nonnull));
@@ -1203,16 +1201,27 @@ int fc_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return fc_builtin_error();
+		return Exit_ERROR;
 	}
     }
-    if ((editor && (list || silent))
-	    || (list && (quiet || silent))
-	    || (rev && silent)
-	    || (ptype != FC_NUMBERED && !list)
-	    || (argc - xoptind > 2)
-	    || (silent && argc - xoptind > 1))
-	return fc_builtin_error();
+
+    /* error checks */
+    if (editor && list)
+	return mutually_exclusive_option_error(L'e', L'l');
+    if (editor && silent)
+	return mutually_exclusive_option_error(L'e', L's');
+    if (list && quiet)
+	return mutually_exclusive_option_error(L'l', L'q');
+    if (list && silent)
+	return mutually_exclusive_option_error(L'l', L's');
+    if (rev && silent)
+	return mutually_exclusive_option_error(L'r', L's');
+    if (ptype != FC_NUMBERED && !list) {
+	xerror(0, Ngt("the -n or -v option must be used with the -l option"));
+	return Exit_ERROR;
+    }
+    if (!validate_operand_count(argc - xoptind, 0, silent ? 1 : 2))
+	return Exit_ERROR;
     if (hist_lock) {
 	xerror(0, Ngt("cannot be used during line-editing"));
 	return Exit_FAILURE;
@@ -1326,19 +1335,6 @@ struct search_result_T fc_search_entry(const wchar_t *name, int number)
 	assert(result.prev != Histlist || result.next != Histlist);
     }
     return result;
-}
-
-int fc_builtin_error(void)
-{
-    if (posixly_correct)
-	fprintf(stderr, gt("Usage:  fc [-r] [-e editor] [first [last]]\n"
-	                   "        fc -s [old=new] [first]\n"
-	                   "        fc -l [-nr] [first [last]]\n"));
-    else
-	fprintf(stderr, gt("Usage:  fc [-qr] [-e editor] [first [last]]\n"
-	                   "        fc -s [-q] [old=new] [first]\n"
-	                   "        fc -l [-nrv] [first [last]]\n"));
-    return Exit_ERROR;
 }
 
 void fc_update_history(void)
@@ -1660,7 +1656,7 @@ int history_builtin(int argc, void **argv)
 		break;
 #endif
 	    default:
-		return history_builtin_error();
+		return Exit_ERROR;
 	}
 	if (result != Exit_SUCCESS)
 	    return result;
@@ -1669,10 +1665,8 @@ int history_builtin(int argc, void **argv)
     /* print history */
     int count;
     if (xoptind < argc) {
-	if (xoptind + 1 != argc) {
-	    xerror(0, Ngt("too many operands are specified"));
-	    return history_builtin_error();
-	}
+	if (!validate_operand_count(argc - xoptind, 0, 1))
+	    return Exit_ERROR;
 
 	if (!xwcstoi(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
@@ -1693,13 +1687,6 @@ int history_builtin(int argc, void **argv)
     return fc_print_entries(stdout,
 	    ashistentry(start), ashistentry(histlist.Newest),
 	    false, FC_NUMBERED);
-}
-
-int history_builtin_error(void)
-{
-    fprintf(stderr, gt("Usage:  history [-cF] [-d entry] "
-		"[-s command] [-r file] [-w file] [n]\n"));
-    return Exit_ERROR;
 }
 
 /* Clears all the history. */

@@ -457,9 +457,6 @@ int alias_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  alias [name[=value]...]\n")
-			    : Ngt("Usage:  alias [-gp] [name[=value]...]\n")));
 		return Exit_ERROR;
 	}
     }
@@ -528,17 +525,19 @@ int unalias_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (all) {
 	if (xoptind != argc)
-	    goto print_usage;
+	    return too_many_operands_error(0);
+
 	remove_all_aliases();
     } else {
 	if (xoptind == argc)
-	    goto print_usage;
+	    return insufficient_operands_error(1);
+
 	do {
 	    const wchar_t *arg = ARGV(xoptind);
 	    if (!remove_alias(arg))
@@ -546,11 +545,6 @@ int unalias_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  unalias name...\n"
-                       "        unalias -a\n"));
-    return Exit_ERROR;
 }
 
 #if YASH_ENABLE_HELP

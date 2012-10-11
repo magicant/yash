@@ -331,6 +331,13 @@ g
 7	  fc -l
 ===== error =====
 fc no-such-option 2
+fc invalid-option-combination l e 2
+fc invalid-option-combination s e 2
+fc invalid-option-combination l q 2
+fc invalid-option-combination l s 2
+fc invalid-option-combination r s 2
+fc invalid-option-combination n 2
+fc invalid-option-combination v 2
 fc history-empty 2 1
 fc history-empty 3 1
 fc history-empty 5 1

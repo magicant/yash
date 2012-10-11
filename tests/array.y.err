@@ -2,10 +2,6 @@ array: index 100 is out of range (the actual size of array $aaa is 11)
 array: index -100 is out of range (the actual size of array $aaa is 11)
 ===== 1 =====
 array: `--no-such-option' is not a valid option
-Usage:  array [name [value...]]
-        array -d name [index...]
-        array -i name index [value...]
-        array -s name index value
 array: $aaa is read-only
 array: $aaa is read-only
 array: $aaa is read-only

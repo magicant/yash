@@ -409,7 +409,7 @@ int bindkey_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
@@ -418,14 +418,14 @@ int bindkey_builtin(int argc, void **argv)
     if (list) {
 	if (mode != LE_MODE_N) {
 	    xerror(0, Ngt("option combination is invalid"));
-	    goto print_usage;
+	    return Exit_ERROR;
 	}
 	return print_all_commands();
     }
 
     if (mode == LE_MODE_N) {
 	xerror(0, Ngt("no option is specified"));
-	goto print_usage;
+	return Exit_ERROR;
     }
 
     if (xoptind == argc) {
@@ -437,14 +437,8 @@ int bindkey_builtin(int argc, void **argv)
     } else if (xoptind + 2 == argc) {
 	return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
     } else {
-	xerror(0, Ngt("too many operands are specified"));
-	goto print_usage;
+	return too_many_operands_error(2);
     }
-
-print_usage:
-    fprintf(stderr, gt("Usage:  bindkey -aev [keyseq [command]]\n"
-		       "        bindkey -l\n"));
-    return Exit_ERROR;
 }
 
 /* Prints all available commands to the standard output. */

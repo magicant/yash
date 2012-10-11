@@ -243,6 +243,54 @@ const builtin_T *get_builtin(const char *name)
     return ht_get(&builtins, name).value;
 }
 
+/* Prints the following error message and returns Exit_ERROR:
+ * "the -X option cannot be used with the -Y option",
+ * where X and Y are `opt1' and `opt2', respectively. */
+int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2)
+{
+    xerror(0, Ngt("the -%lc option cannot be used with the -%lc option"),
+	    (wint_t) opt1, (wint_t) opt2);
+    return Exit_ERROR;
+}
+
+/* Checks if the number of operands is in an acceptable range.
+ * `max' must not be less than `min'.
+ * If `min <= count <= max', returns true.
+ * Otherwise, prints an error message and returns false. */
+bool validate_operand_count(size_t count, size_t min, size_t max)
+{
+    assert(min <= max);
+    if (count < min) {
+	insufficient_operands_error(min);
+	return false;
+    } else if (count > max) {
+	too_many_operands_error(max);
+	return false;
+    }
+    return true;
+}
+
+/* Prints the "this command requires an operand" error message and returns
+ * Exit_ERROR. */
+int insufficient_operands_error(size_t min_required_operand_count)
+{
+    xerror(0, ngt("this command requires an operand",
+		"this command requires %zu operands",
+		min_required_operand_count),
+	    min_required_operand_count);
+    return Exit_ERROR;
+}
+
+/* Prints the "too many operands" error message and returns Exit_ERROR. */
+int too_many_operands_error(size_t max_accepted_operand_count)
+{
+    if (max_accepted_operand_count == 0)
+	xerror(0, Ngt("no operand is expected"));
+    else
+	xerror(0, Ngt("too many operands are specified"));
+    return Exit_ERROR;
+}
+
 #if YASH_ENABLE_HELP
 
 static int print_builtin_helps(void *const *builtin_names)

@@ -1090,7 +1090,8 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
 	}
     }
 
@@ -1153,8 +1154,11 @@ int trap_builtin(int argc, void **argv)
 	    command = NULL;
 	} else {
 	    command = ARGV(xoptind++);
-	    if (xoptind == argc)
-		goto print_usage;
+	    if (xoptind == argc) {
+		insufficient_operands_error(2);
+		SPECIAL_BI_ERROR;
+		return Exit_ERROR;
+	    }
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;
 	}
@@ -1172,19 +1176,6 @@ int trap_builtin(int argc, void **argv)
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr,
-		Ngt("Usage:  trap [action signal...]\n"
-		    "        trap signum [signal...]\n"));
-    else
-	fprintf(stderr,
-		Ngt("Usage:  trap [action signal...]\n"
-		    "        trap signum [signal...]\n"
-		    "        trap -p [signal...]\n"));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
 
 /* Prints trap to the standard output in a format that can be used to restore
@@ -1237,13 +1228,14 @@ int kill_builtin(int argc, void **argv)
 		case L'n':  case L's':
 		/* we don't make any differences between -n and -s options */
 		    if (list)
-			goto print_usage;
+			return mutually_exclusive_option_error(arg[i], L'l');
+
 		    arg = &arg[i + 1];
 		    if (arg[0] == L'\0') {
 			arg = ARGV(++optind);
 			if (arg == NULL) {
 			    xerror(0, Ngt("the signal name is not specified"));
-			    goto print_usage;
+			    return Exit_ERROR;
 			}
 		    }
 parse_signal_name:
@@ -1285,7 +1277,7 @@ parse_signal_name:
 			goto parse_signal_name;
 		    } else {
 			xerror(0, Ngt("`%ls' is not a valid option"), arg);
-			goto print_usage;
+			return Exit_ERROR;
 		    }
 	    }
 	}
@@ -1330,7 +1322,8 @@ main:
     } else {
 	/* send signal */
 	if (optind == argc)
-	    goto print_usage;
+	    return insufficient_operands_error(1);
+
 	do {
 	    wchar_t *proc = ARGV(optind);
 	    if (proc[0] == L'%') {
@@ -1351,17 +1344,6 @@ main:
 	} while (++optind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr, Ngt(
-		    "Usage:  kill [-s signal] process...\n"
-		    "        kill -l [number...]\n"));
-    else
-	fprintf(stderr, Ngt(
-		    "Usage:  kill [-s signal | -n signum] process...\n"
-		    "        kill -l [-v] [number...]\n"));
-    return Exit_ERROR;
 }
 
 /* Prints info about the specified signal.

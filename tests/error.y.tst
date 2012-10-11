@@ -297,6 +297,10 @@ echo ===== kill ===== >&2
 
 kill --no-such-option
 echo kill no-such-option $?
+kill -l -n 0
+echo kill invalid-option-combination l n $?
+kill -l -s INT
+echo kill invalid-option-combination l s $?
 kill
 echo kill operands missing $?
 kill -l 0
@@ -442,7 +446,9 @@ echo ===== command ===== >&2
 command --no-such-option
 echo command no-such-option $?
 command -a foo
-echo command invalid-option $?
+echo command invalid-option 1 $?
+command -k foo
+echo command invalid-option 2 $?
 (command -v command >&- 2>/dev/null)
 echo command output error $?
 (PATH=; command no_such_command)
@@ -504,13 +510,17 @@ if type ulimit 2>/dev/null | grep -q '^ulimit: regular builtin'; then
     echo ulimit output error $?
     ulimit xxx
     echo ulimit invalid operand $?
+    ulimit 0 0
+    echo ulimit too many operands $?
 else
     cat <<\END
 ulimit no-such-option 2
 ulimit output error 1
 ulimit invalid operand 2
+ulimit too many operands 2
 END
     cat >&2 <<\END
 ulimit: `xxx' is not a valid integer
+ulimit: too many operands are specified
 END
 fi

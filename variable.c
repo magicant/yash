@@ -1626,10 +1626,6 @@ int typeset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  %ls [-p] [name[=value]...]\n")
-			    : Ngt("Usage:  %ls [-fgprxX] [name[=value]...]\n")),
-			ARGV(0));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -1962,11 +1958,7 @@ int array_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
-		                   "        array -d name [index...]\n"
-				   "        array -i name index [value...]\n"
-				   "        array -s name index value\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -1978,7 +1970,7 @@ int array_builtin(int argc, void **argv)
     if (xoptind == argc) {
 	/* print all arrays */
 	if (options != 0)
-	    goto print_usage;
+	    return insufficient_operands_error(1);
 
 	kvpair_T *kvs;
 	size_t count = make_array_of_all_variables(true, &kvs);
@@ -2010,13 +2002,13 @@ int array_builtin(int argc, void **argv)
 		    break;
 		case INSERT:
 		    if (xoptind == argc)
-			goto print_usage;
+			return insufficient_operands_error(2);
 		    array_insert_elements(
 			    array, argc - xoptind, &argv[xoptind]);
 		    break;
 		case SET:
-		    if (xoptind + 2 != argc)
-			goto print_usage;
+		    if (!validate_operand_count(argc - xoptind + 1, 3, 3))
+			return Exit_ERROR;
 		    array_set_element(
 			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
 		    break;
@@ -2223,7 +2215,6 @@ int unset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
@@ -2310,14 +2301,16 @@ int shift_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  shift [n]\n"));
+	    default:
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, 1)) {
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     size_t scount;
     if (xoptind < argc) {
@@ -2387,11 +2380,12 @@ int getopts_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
-    if (xoptind + 2 > argc)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 2, SIZE_MAX))
+	return Exit_ERROR;
 
     const wchar_t *options = ARGV(xoptind++);
     const wchar_t *varname = ARGV(xoptind++);
@@ -2510,9 +2504,6 @@ no_more_options:
 optind_invalid:
     xerror(0, Ngt("$OPTIND has an invalid value"));
     return Exit_FAILURE;
-print_usage:
-    fprintf(stderr, gt("Usage:  getopts options var [arg...]\n"));
-    return Exit_ERROR;
 }
 
 /* Checks if the `options' is valid. Returns true iff OK. */
@@ -2602,11 +2593,12 @@ int read_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
+
     if (xoptind == argc)
-	goto print_usage;
+	return insufficient_operands_error(1);
 
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
@@ -2659,13 +2651,6 @@ int read_builtin(int argc, void **argv)
     pl_destroy(&list);
     return (!eof && yash_error_message_count == 0)
 	    ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr, gt("Usage:  read [-r] var...\n"));
-    else
-	fprintf(stderr, gt("Usage:  read [-Ar] var...\n"));
-    return Exit_ERROR;
 }
 
 /* Reads input from the standard input and, if `noescape' is false, remove line
@@ -2837,9 +2822,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"),
-			L"pushd");
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -2871,7 +2854,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 		return Exit_FAILURE;
 	    break;
 	default:
-	    goto print_usage;
+	    return too_many_operands_error(1);
     }
     assert(newpwd != NULL);
 
@@ -2982,8 +2965,7 @@ int popd_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  popd [index]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -3000,7 +2982,7 @@ int popd_builtin(int argc, void **argv)
     switch (argc - xoptind) {
 	case 0:   arg = L"+0";          break;
 	case 1:   arg = ARGV(xoptind);  break;
-	default:  goto print_usage;
+	default:  return too_many_operands_error(1);
     }
 
     size_t stackindex;
@@ -3066,7 +3048,6 @@ int dirs_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  dirs [-cv] [index...]\n"));
 		return Exit_ERROR;
 	}
     }

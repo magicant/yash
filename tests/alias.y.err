@@ -4,9 +4,6 @@ syntax error: `!' cannot be used as a command name
 syntax error: `;;' is used outside `case'
 syntax error: a command is missing before `&'
 alias: `--no-such-option' is not a valid option
-Usage:  alias [-gp] [name[=value]...]
 alias: no such alias `alias'
 unalias: `--no-such-option' is not a valid option
-Usage:  unalias name...
-        unalias -a
 unalias: no such alias `alias'

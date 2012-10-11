@@ -586,14 +586,16 @@ int exit_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
+	    default:
 		SPECIAL_BI_ERROR;
 		return Exit_ERROR;
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, 1)) {
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    }
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
@@ -648,13 +650,14 @@ int suspend_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  suspend [-f]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
+
     if (argc != xoptind)
-	goto print_usage;
+	return too_many_operands_error(0);
+
     if (!force && is_interactive_now && getsid(0) == shell_pgid) {
 	xerror(0, Ngt("refusing to suspend because of a possible deadlock.\n"
 		    "Use the -f option to suspend anyway."));

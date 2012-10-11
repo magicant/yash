@@ -1,13 +1,10 @@
 ===== error =====
 fg: `--no-such-option' is not a valid option
-Usage:  fg [job]
 fg: no such job `%100'
 fg: no such job `%no_such_job'
 fg: too many operands are specified
-Usage:  fg [job]
 fg: job control is disabled
 bg: `--no-such-option' is not a valid option
-Usage:  bg [job...]
 bg: no such job `%100'
 bg: no such job `%no_such_job'
 bg: job control is disabled

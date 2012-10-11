@@ -283,13 +283,12 @@ int printf_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  printf format [value...]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
     if (xoptind == argc)
-	goto print_usage;
+	return insufficient_operands_error(1);
 
     /* parse the format string */
     struct format_T *format = NULL;

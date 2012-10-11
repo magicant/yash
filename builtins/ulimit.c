@@ -140,7 +140,7 @@ int ulimit_builtin(int argc, void **argv)
 		    resource = opt->ptr;
 		    break;
 		} else {
-		    goto print_usage;
+		    return Exit_ERROR;
 		}
 	}
     }
@@ -172,8 +172,8 @@ int ulimit_builtin(int argc, void **argv)
 	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
     }
 
-    if (xoptind + 1 < argc)
-	goto print_usage;
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return Exit_ERROR;
 
     if (getrlimit(resource->type, &rlimit) < 0) {
 	xerror(errno, Ngt("cannot get the current limit "
@@ -239,15 +239,6 @@ int ulimit_builtin(int argc, void **argv)
 
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-    return Exit_ERROR;
-print_usage:
-    fprintf(stderr, gt("Usage:  ulimit [option] [limit]\n"));
-    fprintf(stderr, gt("Available options: "));
-    fprintf(stderr, "-");
-    for (opt = ulimit_options; opt->shortopt != L'\0'; opt++)
-	if (opt->shortopt != L'-')
-	    fprintf(stderr, "%lc", (wint_t) opt->shortopt);
-    fprintf(stderr, "\n");
     return Exit_ERROR;
 }
 
