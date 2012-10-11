@@ -1553,6 +1553,7 @@ static void print_function(
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
 #if YASH_ENABLE_ARRAY
+static int array_dump_all(const wchar_t *argv0);
 static void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
     __attribute__((nonnull));
@@ -1979,47 +1980,35 @@ int array_builtin(int argc, void **argv)
     if (!validate_operand_count(argc - xoptind, min, max))
 	return Exit_ERROR;
 
-    if (xoptind == argc) {
-	/* print all arrays */
-	kvpair_T *kvs;
-	size_t count = make_array_of_all_variables(true, &kvs);
-	qsort(kvs, count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
-	    variable_T *var = kvs[i].value;
-	    if ((var->v_type & VF_MASK) == VF_ARRAY)
-		print_variable(kvs[i].key, var, ARGV(0), false, false);
-	}
-	free(kvs);
-    } else {
-	const wchar_t *name = ARGV(xoptind++);
-	if (wcschr(name, L'=') != NULL) {
-	    xerror(0, Ngt("`%ls' is not a valid array name"), name);
-	    return Exit_FAILURE;
-	}
+    if (xoptind == argc)
+	return array_dump_all(ARGV(0));
 
-	if (options == 0) {
-	    set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
-		    SCOPE_GLOBAL, false);
-	} else {
-	    variable_T *array = search_array_and_check_if_changeable(name);
-	    if (array == NULL)
-		return Exit_FAILURE;
-	    switch (options) {
-		case DELETE:
-		    array_remove_elements(
-			    array, argc - xoptind, &argv[xoptind]);
-		    break;
-		case INSERT:
-		    array_insert_elements(
-			    array, argc - xoptind, &argv[xoptind]);
-		    break;
-		case SET:
-		    array_set_element(
-			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
-		    break;
-		default:
-		    assert(false);
-	    }
+    const wchar_t *name = ARGV(xoptind++);
+    if (wcschr(name, L'=') != NULL) {
+	xerror(0, Ngt("`%ls' is not a valid array name"), name);
+	return Exit_FAILURE;
+    }
+
+    if (options == 0) {
+	set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
+		SCOPE_GLOBAL, false);
+    } else {
+	variable_T *array = search_array_and_check_if_changeable(name);
+	if (array == NULL)
+	    return Exit_FAILURE;
+	switch (options) {
+	    case DELETE:
+		array_remove_elements(array, argc - xoptind, &argv[xoptind]);
+		break;
+	    case INSERT:
+		array_insert_elements(array, argc - xoptind, &argv[xoptind]);
+		break;
+	    case SET:
+		array_set_element(
+			name, array, ARGV(xoptind), ARGV(xoptind + 1));
+		break;
+	    default:
+		assert(false);
 	}
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -2032,6 +2021,22 @@ int array_builtin(int argc, void **argv)
 # define LONG_LT_SIZE(longvalue,sizevalue) \
     ((longvalue) < (long) (sizevalue))
 #endif
+
+/* Prints all existing arrays.
+ * Returns an exit status to be returned by the array built-in. */
+int array_dump_all(const wchar_t *argv0)
+{
+    kvpair_T *kvs;
+    size_t count = make_array_of_all_variables(true, &kvs);
+    qsort(kvs, count, sizeof *kvs, keywcscoll);
+    for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
+	variable_T *var = kvs[i].value;
+	if ((var->v_type & VF_MASK) == VF_ARRAY)
+	    print_variable(kvs[i].key, var, argv0, false, false);
+    }
+    free(kvs);
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+}
 
 /* Removes elements from `array'.
  * `indexwcss' is an NULL-terminated array of pointers to wide strings,
