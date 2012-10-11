@@ -428,16 +428,17 @@ int bindkey_builtin(int argc, void **argv)
 	return Exit_ERROR;
     }
 
-    if (xoptind == argc) {
-	/* print all key bindings */
-	le_mode_T *m = le_id_to_mode(mode);
-	return trie_foreachw(m->keymap, print_binding_main, m);
-    } else if (xoptind + 1 == argc) {
-	return print_binding(mode, ARGV(xoptind));
-    } else if (xoptind + 2 == argc) {
-	return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
-    } else {
-	return too_many_operands_error(2);
+    switch (argc - xoptind) {
+	case 0:;
+	    /* print all key bindings */
+	    le_mode_T *m = le_id_to_mode(mode);
+	    return trie_foreachw(m->keymap, print_binding_main, m);
+	case 1:
+	    return print_binding(mode, ARGV(xoptind));
+	case 2:
+	    return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
+	default:
+	    return too_many_operands_error(2);
     }
 }
 
