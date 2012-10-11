@@ -1943,10 +1943,11 @@ const struct xgetopt_T array_options[] = {
 int array_builtin(int argc, void **argv)
 {
     enum {
+	NONE   = 0,
 	DELETE = 1 << 0,
 	INSERT = 1 << 1,
 	SET    = 1 << 2,
-    } options = 0;
+    } options = NONE;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
@@ -1965,13 +1966,13 @@ int array_builtin(int argc, void **argv)
     }
 
     /* error checks */
-    if (options != 0 && (options & (options - 1)) != 0) {
+    if (options != NONE && (options & (options - 1)) != 0) {
 	xerror(0, Ngt("more than one option cannot be used at once"));
 	return Exit_ERROR;
     }
     size_t min, max;
     switch (options) {
-	case 0:       min = 0;  max = SIZE_MAX;  break;
+	case NONE:    min = 0;  max = SIZE_MAX;  break;
 	case DELETE:  min = 1;  max = SIZE_MAX;  break;
 	case INSERT:  min = 2;  max = SIZE_MAX;  break;
 	case SET:     min = 3;  max = 3;         break;
