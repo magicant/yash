@@ -35,6 +35,14 @@ echo ===== 1 ===== >&2
 
 array --no-such-option
 echo array no-such-option $?
+array -d
+echo array insufficient-operands d 0 $?
+array -i foo
+echo array insufficient-operands i 1 $?
+array -s foo 0
+echo array insufficient-operands s 2 $?
+array -s foo 0 - X
+echo array too-many-operands s 4 $?
 (array >&- 2>/dev/null)
 echo array output error $?
 

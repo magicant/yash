@@ -1962,16 +1962,25 @@ int array_builtin(int argc, void **argv)
 		return Exit_ERROR;
 	}
     }
+
+    /* error checks */
     if (options != 0 && (options & (options - 1)) != 0) {
 	xerror(0, Ngt("more than one option cannot be used at once"));
 	return Exit_ERROR;
     }
+    size_t min, max;
+    switch (options) {
+	case 0:       min = 0;  max = SIZE_MAX;  break;
+	case DELETE:  min = 1;  max = SIZE_MAX;  break;
+	case INSERT:  min = 2;  max = SIZE_MAX;  break;
+	case SET:     min = 3;  max = 3;         break;
+	default:      assert(false);
+    }
+    if (!validate_operand_count(argc - xoptind, min, max))
+	return Exit_ERROR;
 
     if (xoptind == argc) {
 	/* print all arrays */
-	if (options != 0)
-	    return insufficient_operands_error(1);
-
 	kvpair_T *kvs;
 	size_t count = make_array_of_all_variables(true, &kvs);
 	qsort(kvs, count, sizeof *kvs, keywcscoll);
@@ -2001,14 +2010,10 @@ int array_builtin(int argc, void **argv)
 			    array, argc - xoptind, &argv[xoptind]);
 		    break;
 		case INSERT:
-		    if (xoptind == argc)
-			return insufficient_operands_error(2);
 		    array_insert_elements(
 			    array, argc - xoptind, &argv[xoptind]);
 		    break;
 		case SET:
-		    if (!validate_operand_count(argc - xoptind + 1, 3, 3))
-			return Exit_ERROR;
 		    array_set_element(
 			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
 		    break;
