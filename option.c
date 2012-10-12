@@ -332,10 +332,8 @@ int parse_shell_options(int argc, void *const *argv,
 		goto set_positional_parameters;
 	    }
 
-	    /* parse a long option */
 	    result = parse_long_option(argv, enable, shell_invocation);
 	} else {
-	    /* parse short options */
 	    result = parse_short_option(argv, enable, shell_invocation);
 	}
 	if (result != Exit_SUCCESS)
@@ -803,7 +801,9 @@ bool print_shopts_body(bool include_normal_options)
 
 const struct xgetopt_T all_help_options[] = {
     { L'a', L"all",  OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
     { L'-', L"help", OPTARG_NONE, false, NULL, },
+#endif
     { L'\0', NULL, 0, false, NULL, },
 };
 /* Note: `help_option' is defined as (&all_help_options[1]). */
