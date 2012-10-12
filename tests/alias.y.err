@@ -6,4 +6,6 @@ syntax error: a command is missing before `&'
 alias: `--no-such-option' is not a valid option
 alias: no such alias `alias'
 unalias: `--no-such-option' is not a valid option
+unalias: no operand is expected
+unalias: this command requires an operand
 unalias: no such alias `alias'

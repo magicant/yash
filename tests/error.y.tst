@@ -168,6 +168,8 @@ echo ===== cd ===== >&2
 
 cd --no-such-option
 echo cd no-such-option $?
+cd / /
+echo cd too-many-operands $?
 cd ./no/such/dir 2>/dev/null
 echo cd no-such-dir $?
 (
@@ -195,6 +197,8 @@ echo ===== hash ===== >&2
 
 hash --no-such-option
 echo hash no-such-option $?
+hash -a operand
+echo hash invalid operand $?
 hash ./no/such/command
 echo hash slash argument $?
 (PATH=; hash no_such_command)
@@ -208,6 +212,8 @@ echo ===== umask ===== >&2
 
 umask --no-such-option
 echo umask no-such-option $?
+umask too-many operands
+echo umask too-many-operands $?
 (umask >&- 2>/dev/null)
 echo umask output error $?
 

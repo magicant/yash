@@ -47,6 +47,7 @@ set no-such-option 2
 set output error 1
 ===== cd =====
 cd no-such-option 2
+cd too-many-operands 2
 cd no-such-dir 1
 cd no OLDPWD 1
 cd no HOME 1
@@ -57,11 +58,13 @@ pwd invalid operand 2
 pwd output error 1
 ===== hash =====
 hash no-such-option 2
+hash invalid operand 2
 hash slash argument 1
 hash command not found 1
 hash output error 1
 ===== umask =====
 umask no-such-option 2
+umask too-many-operands 2
 umask output error 1
 ===== typeset =====
 typeset no-such-option 2

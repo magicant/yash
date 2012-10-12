@@ -167,6 +167,10 @@ echo alias output error 2 $?
 echo alias output error 3 $?
 unalias --no-such-option
 echo unalias no-such-option $?
+unalias -a operand
+echo unalias too-many-operands $?
+unalias
+echo unalias insufficient-operand $?
 unalias alias
 unalias alias
 echo unalias no-such-alias $?

@@ -38,6 +38,7 @@ set: `--version' is not a valid option
 set: `--no-such-option' is not a valid option
 ===== cd =====
 cd: `--no-such-option' is not a valid option
+cd: too many operands are specified
 cd: $OLDPWD is not set
 cd: $HOME is not set
 ===== pwd =====
@@ -45,10 +46,12 @@ pwd: `--no-such-option' is not a valid option
 pwd: no operand is expected
 ===== hash =====
 hash: `--no-such-option' is not a valid option
+hash: no operand is expected
 hash: `./no/such/command': a command name must not contain `/'
 hash: command `no_such_command' was not found in $PATH
 ===== umask =====
 umask: `--no-such-option' is not a valid option
+umask: too many operands are specified
 ===== typeset =====
 typeset: `--no-such-option' is not a valid option
 typeset: $readonly is read-only
