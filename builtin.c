@@ -291,6 +291,21 @@ int too_many_operands_error(size_t max_accepted_operand_count)
     return Exit_ERROR;
 }
 
+/* This function is called when a syntax error occurred while executing a
+ * special built-in. If `posixly_correct' and `special_builtin_executed' are
+ * true and `is_interactive_now' is false, `exit_shell_with_status' is called
+ * with `exitstatus'. Otherwise, this function just returns `exitstatus'. */
+/* Even though this function is called only while executing a special built-in,
+ * checking `special_builtin_executed' is necessary because
+ * `exit_shell_with_status' should not be called if the special built-in is
+ * being executed indirectly by a non-special built-in. */
+int special_builtin_syntax_error(int exitstatus)
+{
+    if (posixly_correct && special_builtin_executed && !is_interactive_now)
+	exit_shell_with_status(exitstatus);
+    return exitstatus;
+}
+
 #if YASH_ENABLE_HELP
 
 static int print_builtin_helps(void *const *builtin_names)

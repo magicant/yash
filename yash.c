@@ -586,15 +586,12 @@ int exit_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
-    if (!validate_operand_count(argc - xoptind, 0, 1)) {
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
@@ -614,7 +611,7 @@ int exit_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    SPECIAL_BI_ERROR;
+	    special_builtin_syntax_error(status);
 	}
     } else {
 	status = -1;

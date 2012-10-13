@@ -1090,8 +1090,7 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1154,11 +1153,10 @@ int trap_builtin(int argc, void **argv)
 	    command = NULL;
 	} else {
 	    command = ARGV(xoptind++);
-	    if (xoptind == argc) {
-		insufficient_operands_error(2);
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
-	    }
+	    if (xoptind == argc)
+		return special_builtin_syntax_error(
+			insufficient_operands_error(2));
+
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;
 	}

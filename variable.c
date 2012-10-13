@@ -1627,8 +1627,7 @@ int typeset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1643,19 +1642,15 @@ int typeset_builtin(int argc, void **argv)
 	    || wcscmp(ARGV(0), L"set") == 0);
     }
 
-    if (function && export) {
-	mutually_exclusive_option_error(L'f', L'x');
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    } else if (function && unexport) {
-	mutually_exclusive_option_error(L'f', L'X');
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    } else if (export && unexport) {
-	mutually_exclusive_option_error(L'x', L'X');
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (function && export)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'f', L'x'));
+    if (function && unexport)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'f', L'X'));
+    if (export && unexport)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'x', L'X'));
 
     if (xoptind == argc) {
 	kvpair_T *kvs;
@@ -2230,8 +2225,7 @@ int unset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -2317,28 +2311,23 @@ int shift_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
-    if (!validate_operand_count(argc - xoptind, 0, 1)) {
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     size_t scount;
     if (xoptind < argc) {
 	long count;
 	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	} else if (count < 0) {
 	    xerror(0, Ngt("%ls: the operand value must not be negative"),
 		    ARGV(xoptind));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	}
 #if LONG_MAX > SIZE_MAX
 	if (count > (long) SIZE_MAX)

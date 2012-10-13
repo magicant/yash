@@ -47,6 +47,7 @@ extern int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2);
 extern bool validate_operand_count(size_t count, size_t min, size_t max);
 extern int insufficient_operands_error(size_t min_required_operand_count);
 extern int too_many_operands_error(size_t max_accepted_operand_count);
+extern int special_builtin_syntax_error(int exitstatus);
 
 extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
@@ -65,13 +66,6 @@ extern const char false_help[], false_syntax[];
 extern int help_builtin(int argc, void **argv)
     __attribute__((nonnull));
 extern const char help_help[], help_syntax[];
-
-
-#define SPECIAL_BI_ERROR                                                    \
-    if (posixly_correct && special_builtin_executed && !is_interactive_now) \
-	exit_shell_with_status(Exit_ERROR);                                 \
-    else                                                                    \
-	do { } while (0)
 
 
 #endif /* YASH_BUILTIN_H */

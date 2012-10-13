@@ -1627,14 +1627,12 @@ int return_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (!validate_operand_count(argc - xoptind, 0, 1)) {
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
@@ -1642,7 +1640,7 @@ int return_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    SPECIAL_BI_ERROR;
+	    special_builtin_syntax_error(status);
 	    /* return anyway */
 	}
     } else {
@@ -1685,14 +1683,12 @@ int break_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (!validate_operand_count(argc - xoptind, 0, iter ? 0 : 1)) {
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+
+    if (!validate_operand_count(argc - xoptind, 0, iter ? 0 : 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     if (iter) {
 	/* break/continue iteration */
@@ -1716,12 +1712,10 @@ int break_builtin(int argc, void **argv)
 	    unsigned long countl;
 	    if (!xwcstoul(countstr, 0, &countl)) {
 		xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	    } else if (countl == 0) {
 		xerror(0, Ngt("%u is not a positive integer"), 0u);
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	    } else if (countl > UINT_MAX) {
 		count = UINT_MAX;
 	    } else {
@@ -1731,8 +1725,7 @@ int break_builtin(int argc, void **argv)
 	assert(count > 0);
 	if (execstate.loopnest == 0) {
 	    xerror(0, Ngt("not in a loop"));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	}
 	if (count > execstate.loopnest)
 	    count = execstate.loopnest;
@@ -1785,8 +1778,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1841,24 +1833,17 @@ int dot_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
     const wchar_t *filename = ARGV(xoptind++);
-    if (filename == NULL) {
-	insufficient_operands_error(1);
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (filename == NULL)
+	return special_builtin_syntax_error(insufficient_operands_error(1));
 
     bool has_args = xoptind < argc;
-    if (has_args && posixly_correct) {
-	too_many_operands_error(1);
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (has_args && posixly_correct)
+	return special_builtin_syntax_error(too_many_operands_error(1));
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (mbsfilename == NULL) {
@@ -1961,8 +1946,7 @@ int exec_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -2357,16 +2341,12 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
-    if (xoptind < argc) {
-	too_many_operands_error(0);
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (xoptind < argc)
+	return special_builtin_syntax_error(too_many_operands_error(0));
 
     double clock;
     struct tms tms;
