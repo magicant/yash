@@ -49,6 +49,7 @@ extern int insufficient_operands_error(size_t min_required_operand_count);
 extern int too_many_operands_error(size_t max_accepted_operand_count);
 extern int special_builtin_syntax_error(int exitstatus);
 
+struct xgetopt_T;
 extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
 extern bool print_shopts(bool include_normal_options);
