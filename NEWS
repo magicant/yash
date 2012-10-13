@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.33
+
+  =  The "help" built-in now prints brief usage of built-ins.
+  =  Some error messages for command syntax error have been revised.
+  =  Some built-ins now check command syntax more strictly.
+
+----------------------------------------------------------------------
 Yash 2.32
 
   +  Man page and HTML manual in English and Japanese.
