@@ -2840,8 +2840,8 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     if (!validate_operand_count(argc - xoptind, 0, 1))
 	return Exit_ERROR;
 
-    const wchar_t *oldpwd = getvar(L VAR_PWD);
-    if (oldpwd == NULL) {
+    const wchar_t *origpwd = getvar(L VAR_PWD);
+    if (origpwd == NULL) {
 	xerror(0, Ngt("$PWD is not set"));
 	return Exit_FAILURE;
     }
@@ -2867,23 +2867,23 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     }
     assert(newpwd != NULL);
 
-    wchar_t *saveoldpwd = xwcsdup(oldpwd);
+    wchar_t *saveorigpwd = xwcsdup(origpwd);
     int result = change_directory(newpwd, useoldpwd, logical);
 #ifndef NDEBUG
     newpwd = NULL;  /* newpwd cannot be used anymore. */
 #endif
     if (result != Exit_SUCCESS) {
-	free(saveoldpwd);
+	free(saveorigpwd);
 	return result;
     }
 
     variable_T *var = get_dirstack();
     if (var == NULL) {
-	free(saveoldpwd);
+	free(saveorigpwd);
 	return Exit_FAILURE;
     }
 
-    push_dirstack(var, saveoldpwd);
+    push_dirstack(var, saveorigpwd);
     if (stackindex != SIZE_MAX)
 	remove_dirstack_entry_at(var, stackindex);
     if (remove_dups)
