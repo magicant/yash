@@ -35,15 +35,15 @@
 #if HAVE_GETTEXT
 # define gt(MSGID)  ((const char *) gettext(MSGID))
 # define Ngt(MSGID) MSGID
-# if HAVE_NGETTEXT
-#  define ngt(MSGS,MSGP,N) ((const char *) ngettext(MSGS, MSGP, N))
-# else
-#  define ngt(MSGS,MSGP,N) gt(MSGP)
-# endif
 #else
-# define gt(MSGID)        MSGID
-# define Ngt(MSGID)       MSGID
-# define ngt(MSGS,MSGP,N) MSGP
+# define gt(MSGID)  MSGID
+# define Ngt(MSGID) MSGID
+#endif
+
+#if HAVE_NGETTEXT
+# define ngt(MSGS,MSGP,N) ((const char *) ngettext(MSGS, MSGP, N))
+#else
+# define ngt(MSGS,MSGP,N) gt((N) == 1 ? (MSGS) : (MSGP))
 #endif
 
 #ifdef NDEBUG
