@@ -1365,50 +1365,51 @@ void quote(xwcsbuf_T *restrict buf,
 
 /********** Built-ins **********/
 
+/* Options for the "complete" built-in. */
+const struct xgetopt_T complete_options[] = {
+    { L'A', L"accept",               OPTARG_REQUIRED, true,  NULL, },
+    { L'a', L"alias",                OPTARG_NONE,     true,  NULL, },
+    { L'-', L"array-variable",       OPTARG_NONE,     true,  NULL, },
+    { L'-', L"bindkey",              OPTARG_NONE,     true,  NULL, },
+    { L'b', L"builtin-command",      OPTARG_NONE,     true,  NULL, },
+    { L'c', L"command",              OPTARG_NONE,     true,  NULL, },
+    { L'D', L"description",          OPTARG_REQUIRED, true,  NULL, },
+    { L'd', L"directory",            OPTARG_NONE,     true,  NULL, },
+    { L'-', L"dirstack-index",       OPTARG_NONE,     true,  NULL, },
+    { L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
+    { L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
+    { L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
+    { L'-', L"finished-job",         OPTARG_NONE,     true,  NULL, },
+    { L'-', L"function",             OPTARG_NONE,     true,  NULL, },
+    { L'-', L"global-alias",         OPTARG_NONE,     true,  NULL, },
+    { L'g', L"group",                OPTARG_NONE,     true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",                 OPTARG_NONE,     false, NULL, },
+#endif
+    { L'h', L"hostname",             OPTARG_NONE,     true,  NULL, },
+    { L'j', L"job",                  OPTARG_NONE,     true,  NULL, },
+    { L'k', L"keyword",              OPTARG_NONE,     true,  NULL, },
+    { L'T', L"no-termination",       OPTARG_NONE,     true,  NULL, },
+    { L'-', L"normal-alias",         OPTARG_NONE,     true,  NULL, },
+    { L'O', L"option",               OPTARG_NONE,     true,  NULL, },
+    { L'P', L"prefix",               OPTARG_REQUIRED, true,  NULL, },
+    { L'-', L"regular-builtin",      OPTARG_NONE,     true,  NULL, },
+    { L'R', L"reject",               OPTARG_REQUIRED, true,  NULL, },
+    { L'-', L"running-job",          OPTARG_NONE,     true,  NULL, },
+    { L'-', L"scalar-variable",      OPTARG_NONE,     true,  NULL, },
+    { L'-', L"semi-special-builtin", OPTARG_NONE,     true,  NULL, },
+    { L'-', L"signal",               OPTARG_NONE,     true,  NULL, },
+    { L'-', L"special-builtin",      OPTARG_NONE,     true,  NULL, },
+    { L'-', L"stopped-job",          OPTARG_NONE,     true,  NULL, },
+    { L'S', L"suffix",               OPTARG_REQUIRED, true,  NULL, },
+    { L'u', L"username",             OPTARG_NONE,     true,  NULL, },
+    { L'v', L"variable",             OPTARG_NONE,     true,  NULL, },
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "complete" built-in. */
 int complete_builtin(int argc __attribute__((unused)), void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'A', L"accept",               OPTARG_REQUIRED, true,  NULL, },
-	{ L'a', L"alias",                OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"array-variable",       OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"bindkey",              OPTARG_NONE,     true,  NULL, },
-	{ L'b', L"builtin-command",      OPTARG_NONE,     true,  NULL, },
-	{ L'c', L"command",              OPTARG_NONE,     true,  NULL, },
-	{ L'D', L"description",          OPTARG_REQUIRED, true,  NULL, },
-	{ L'd', L"directory",            OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"dirstack-index",       OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
-	{ L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"finished-job",         OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"function",             OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"global-alias",         OPTARG_NONE,     true,  NULL, },
-	{ L'g', L"group",                OPTARG_NONE,     true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",                 OPTARG_NONE,     false, NULL, },
-#endif
-	{ L'h', L"hostname",             OPTARG_NONE,     true,  NULL, },
-	{ L'j', L"job",                  OPTARG_NONE,     true,  NULL, },
-	{ L'k', L"keyword",              OPTARG_NONE,     true,  NULL, },
-	{ L'T', L"no-termination",       OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"normal-alias",         OPTARG_NONE,     true,  NULL, },
-	{ L'O', L"option",               OPTARG_NONE,     true,  NULL, },
-	{ L'P', L"prefix",               OPTARG_REQUIRED, true,  NULL, },
-	{ L'-', L"regular-builtin",      OPTARG_NONE,     true,  NULL, },
-	{ L'R', L"reject",               OPTARG_REQUIRED, true,  NULL, },
-	{ L'-', L"running-job",          OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"scalar-variable",      OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"semi-special-builtin", OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"signal",               OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"special-builtin",      OPTARG_NONE,     true,  NULL, },
-	{ L'-', L"stopped-job",          OPTARG_NONE,     true,  NULL, },
-	{ L'S', L"suffix",               OPTARG_REQUIRED, true,  NULL, },
-	{ L'u', L"username",             OPTARG_NONE,     true,  NULL, },
-	{ L'v', L"variable",             OPTARG_NONE,     true,  NULL, },
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     const wchar_t *prefix = NULL, *suffix = NULL;
     const wchar_t *description = NULL;
     le_candgentype_T cgtype = 0;
@@ -1429,7 +1430,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, complete_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'A':  NEWPATTERN(CPT_ACCEPT);    break;
 	    case L'a':  cgtype |= CGT_ALIAS;       break;
@@ -1509,15 +1510,11 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			assert(false);
 		}
 		break;
-	    default:
-		fprintf(stderr, gt(
-"Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
-"        [-abcdfghjkuv] [[-O] [-D description] words...]\n"));
-		exitstatus = Exit_ERROR;
-		goto finish;
 dupopterror:
 		xerror(0, Ngt("more than one -%lc option is specified"),
 			(wint_t) opt->shortopt);
+		/* falls thru */
+	    default:
 		exitstatus = Exit_ERROR;
 		goto finish;
 	}
@@ -1584,6 +1581,16 @@ finish:
     }
     return exitstatus;
 }
+
+#if YASH_ENABLE_HELP
+const char complete_help[] = Ngt(
+"generate completion candidates"
+);
+const char complete_syntax[] = Ngt(
+"\tcomplete [-T] [-P prefix] [-S suffix] \\\n"
+"\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

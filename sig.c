@@ -1064,22 +1064,23 @@ static bool print_signal(int signum, const wchar_t *name, bool verbose)
 static void signal_job(int signum, const wchar_t *jobname)
     __attribute__((nonnull));
 
+/* Options for the "trap" built-in. */
+const struct xgetopt_T trap_options[] = {
+    { L'p', L"print", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",  OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "trap" built-in. */
 int trap_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'p', L"print", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",  OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool print = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, trap_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'p':
 		print = true;
@@ -1089,7 +1090,7 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1153,7 +1154,9 @@ int trap_builtin(int argc, void **argv)
 	} else {
 	    command = ARGV(xoptind++);
 	    if (xoptind == argc)
-		goto print_usage;
+		return special_builtin_syntax_error(
+			insufficient_operands_error(2));
+
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;
 	}
@@ -1171,19 +1174,6 @@ int trap_builtin(int argc, void **argv)
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr,
-		Ngt("Usage:  trap [action signal...]\n"
-		    "        trap signum [signal...]\n"));
-    else
-	fprintf(stderr,
-		Ngt("Usage:  trap [action signal...]\n"
-		    "        trap signum [signal...]\n"
-		    "        trap -p [signal...]\n"));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
 
 /* Prints trap to the standard output in a format that can be used to restore
@@ -1202,6 +1192,17 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
     free(q);
     return ok;
 }
+
+#if YASH_ENABLE_HELP
+const char trap_help[] = Ngt(
+"set or print signal handlers"
+);
+const char trap_syntax[] = Ngt(
+"\ttrap [action signal...]\n"
+"\ttrap signal_number [signal...]\n"
+"\ttrap -p [signal...]\n"
+);
+#endif
 
 /* The "kill" built-in, which accepts the following options:
  *  -s sig: specifies the signal to send
@@ -1225,13 +1226,14 @@ int kill_builtin(int argc, void **argv)
 		case L'n':  case L's':
 		/* we don't make any differences between -n and -s options */
 		    if (list)
-			goto print_usage;
+			return mutually_exclusive_option_error(arg[i], L'l');
+
 		    arg = &arg[i + 1];
 		    if (arg[0] == L'\0') {
 			arg = ARGV(++optind);
 			if (arg == NULL) {
 			    xerror(0, Ngt("the signal name is not specified"));
-			    goto print_usage;
+			    return Exit_ERROR;
 			}
 		    }
 parse_signal_name:
@@ -1273,7 +1275,7 @@ parse_signal_name:
 			goto parse_signal_name;
 		    } else {
 			xerror(0, Ngt("`%ls' is not a valid option"), arg);
-			goto print_usage;
+			return Exit_ERROR;
 		    }
 	    }
 	}
@@ -1318,7 +1320,8 @@ main:
     } else {
 	/* send signal */
 	if (optind == argc)
-	    goto print_usage;
+	    return insufficient_operands_error(1);
+
 	do {
 	    wchar_t *proc = ARGV(optind);
 	    if (proc[0] == L'%') {
@@ -1339,17 +1342,6 @@ main:
 	} while (++optind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr, Ngt(
-		    "Usage:  kill [-s signal] process...\n"
-		    "        kill -l [number...]\n"));
-    else
-	fprintf(stderr, Ngt(
-		    "Usage:  kill [-s signal | -n signum] process...\n"
-		    "        kill -l [-v] [number...]\n"));
-    return Exit_ERROR;
 }
 
 /* Prints info about the specified signal.
@@ -1383,6 +1375,16 @@ void signal_job(int signum, const wchar_t *jobspec)
     if (kill(-jobpgid, signum) < 0)
 	xerror(errno, "%ls", jobspec);
 }
+
+#if YASH_ENABLE_HELP
+const char kill_help[] = Ngt(
+"send a signal to processes"
+);
+const char kill_syntax[] = Ngt(
+"\tkill [-signal|-s signal|-n number] process...\n"
+"\tkill -l [-v] [number...]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

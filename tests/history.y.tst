@@ -211,6 +211,20 @@ echo ===== error =====
 
 fc --no-such-option
 echo fc no-such-option $?
+fc -l -e X
+echo fc invalid-option-combination l e $?
+fc -s -e X
+echo fc invalid-option-combination s e $?
+fc -l -q
+echo fc invalid-option-combination l q $?
+fc -l -s
+echo fc invalid-option-combination l s $?
+fc -r -s
+echo fc invalid-option-combination r s $?
+fc -n
+echo fc invalid-option-combination n $?
+fc -v
+echo fc invalid-option-combination v $?
 #fc -l
 #echo fc history-empty 1 $?
 fc

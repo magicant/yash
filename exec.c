@@ -1592,8 +1592,17 @@ static void print_command_absolute_path(
     __attribute__((nonnull));
 
 /* Options for the "break", "continue" and "eval" built-ins. */
-static const struct xgetopt_T iter_options[] = {
+const struct xgetopt_T iter_options[] = {
     { L'i', L"iteration", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
+/* Options for the "return" built-in. */
+const struct xgetopt_T return_options[] = {
+    { L'n', L"no-return", OPTARG_NONE, false, NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help",      OPTARG_NONE, false, NULL, },
 #endif
@@ -1604,19 +1613,11 @@ static const struct xgetopt_T iter_options[] = {
  *  -n: don't return from a function. */
 int return_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'n', L"no-return", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool noreturn = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, return_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'n':
 		noreturn = true;
@@ -1626,11 +1627,12 @@ int return_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
@@ -1638,7 +1640,7 @@ int return_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    SPECIAL_BI_ERROR;
+	    special_builtin_syntax_error(status);
 	    /* return anyway */
 	}
     } else {
@@ -1652,15 +1654,16 @@ int return_builtin(int argc, void **argv)
 	execstate.exception = E_RETURN;
     }
     return status;
-
-print_usage:
-    fprintf(stderr,
-	    gt(posixly_correct ? Ngt("Usage:  %ls [n]\n")
-		: Ngt("Usage:  %ls [-n] [n]\n")),
-	    ARGV(0));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char return_help[] = Ngt(
+"return from a function or script"
+);
+const char return_syntax[] = Ngt(
+"\treturn [-n] [exit_status]\n"
+);
+#endif
 
 /* The "break"/"continue" built-in, which accepts the following option:
  *  -i: iterative execution */
@@ -1679,16 +1682,13 @@ int break_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr,
-			gt("Usage:  %ls [n]\n        %ls -i\n"),
-			ARGV(0), ARGV(0));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (argc - xoptind > (iter ? 0 : 1))
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, iter ? 0 : 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     if (iter) {
 	/* break/continue iteration */
@@ -1712,12 +1712,10 @@ int break_builtin(int argc, void **argv)
 	    unsigned long countl;
 	    if (!xwcstoul(countstr, 0, &countl)) {
 		xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	    } else if (countl == 0) {
 		xerror(0, Ngt("%u is not a positive integer"), 0u);
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	    } else if (countl > UINT_MAX) {
 		count = UINT_MAX;
 	    } else {
@@ -1727,8 +1725,7 @@ int break_builtin(int argc, void **argv)
 	assert(count > 0);
 	if (execstate.loopnest == 0) {
 	    xerror(0, Ngt("not in a loop"));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	}
 	if (count > execstate.loopnest)
 	    count = execstate.loopnest;
@@ -1742,6 +1739,26 @@ int break_builtin(int argc, void **argv)
 	return Exit_SUCCESS;
     }
 }
+
+#if YASH_ENABLE_HELP
+
+const char break_help[] = Ngt(
+"exit a loop"
+);
+const char break_syntax[] = Ngt(
+"\tbreak [count]\n"
+"\tbreak -i\n"
+);
+
+const char continue_help[] = Ngt(
+"continue a loop"
+);
+const char continue_syntax[] = Ngt(
+"\tcontinue [count]\n"
+"\tcontinue -i\n"
+);
+
+#endif
 
 /* The "eval" built-in, which accepts the following option:
  *  -i: iterative execution */
@@ -1761,11 +1778,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  eval [arg...]\n")
-			    : Ngt("Usage:  eval [-i] [arg...]\n")));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1779,25 +1792,35 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
     }
 }
 
+#if YASH_ENABLE_HELP
+const char eval_help[] = Ngt(
+"evaluate arguments as a command"
+);
+const char eval_syntax[] = Ngt(
+"\teval [-i] [argument...]\n"
+);
+#endif
+
+/* Options for the "." built-in. */
+const struct xgetopt_T dot_options[] = {
+    { L'A', L"no-alias", OPTARG_NONE, false, NULL, },
+    { L'L', L"autoload", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "." built-in, which accepts the following option:
  *  -A: disable aliases
  *  -L: autoload */
 int dot_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'A', L"no-alias", OPTARG_NONE, false, NULL, },
-	{ L'L', L"autoload", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool enable_alias = true, autoload = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, dot_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'A':
 		enable_alias = false;
@@ -1809,22 +1832,18 @@ int dot_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  . file\n")
-			    : Ngt("Usage:  . [-AL] file [arg...]\n")));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
     const wchar_t *filename = ARGV(xoptind++);
     if (filename == NULL)
-	goto print_usage;
+	return special_builtin_syntax_error(insufficient_operands_error(1));
 
     bool has_args = xoptind < argc;
     if (has_args && posixly_correct)
-	goto print_usage;
+	return special_builtin_syntax_error(too_many_operands_error(1));
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (mbsfilename == NULL) {
@@ -1886,28 +1905,38 @@ error:
     return Exit_FAILURE;
 }
 
+#if YASH_ENABLE_HELP
+const char dot_help[] = Ngt(
+"read a file and execute commands"
+);
+const char dot_syntax[] = Ngt(
+"\t. [-AL] file [argument...]\n"
+);
+#endif
+
+/* Options for the "exec" built-in. */
+const struct xgetopt_T exec_options[] = {
+    { L'a', L"as",    OPTARG_REQUIRED, false, NULL, },
+    { L'c', L"clear", OPTARG_NONE,     false, NULL, },
+    { L'f', L"force", OPTARG_NONE,     false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",  OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "exec" built-in, which accepts the following options:
  *  -a name: give <name> as argv[0] to the command
  *  -c: don't pass environment variables to the command
  *  -f: suppress error when we have stopped jobs */
 int exec_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"as",    OPTARG_REQUIRED, false, NULL, },
-	{ L'c', L"clear", OPTARG_NONE,     false, NULL, },
-	{ L'f', L"force", OPTARG_NONE,     false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",  OPTARG_NONE,     false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     const wchar_t *as = NULL;
     bool clear = false, force = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, exec_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  as = xoptarg;  break;
 	    case L'c':  clear = true;  break;
@@ -1917,11 +1946,7 @@ int exec_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-		    ? Ngt("Usage:  exec [command [arg...]]\n")
-		    : Ngt("Usage:  exec [-cf] [-a name] [command [arg...]]\n")));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -2025,6 +2050,31 @@ error1:
     return err;
 }
 
+#if YASH_ENABLE_HELP
+const char exec_help[] = Ngt(
+"replace the shell process with an external command"
+);
+const char exec_syntax[] = Ngt(
+"\texec [-cf] [-a name] [command [argument...]]\n"
+);
+#endif
+
+/* Options for the "command" built-in. */
+const struct xgetopt_T command_options[] = {
+    { L'a', L"alias",            OPTARG_NONE, false, NULL, },
+    { L'b', L"builtin-command",  OPTARG_NONE, false, NULL, },
+    { L'e', L"external-command", OPTARG_NONE, false, NULL, },
+    { L'f', L"function",         OPTARG_NONE, false, NULL, },
+    { L'k', L"keyword",          OPTARG_NONE, false, NULL, },
+    { L'p', L"standard-path",    OPTARG_NONE, true,  NULL, },
+    { L'v', L"identify",         OPTARG_NONE, true,  NULL, },
+    { L'V', L"verbose-identify", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",             OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "command"/"type" built-in, which accepts the following options:
  *  -a: search aliases
  *  -b: search built-ins
@@ -2036,21 +2086,6 @@ error1:
  *  -V: print info about the command in a human-friendly format */
 int command_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"alias",            OPTARG_NONE, false, NULL, },
-	{ L'b', L"builtin-command",  OPTARG_NONE, false, NULL, },
-	{ L'e', L"external-command", OPTARG_NONE, false, NULL, },
-	{ L'f', L"function",         OPTARG_NONE, false, NULL, },
-	{ L'k', L"keyword",          OPTARG_NONE, false, NULL, },
-	{ L'p', L"standard-path",    OPTARG_NONE, true,  NULL, },
-	{ L'v', L"identify",         OPTARG_NONE, true,  NULL, },
-	{ L'V', L"verbose-identify", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",             OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool argv0istype = wcscmp(ARGV(0), L"type") == 0;
     bool printinfo = argv0istype, humanfriendly = argv0istype;
     enum srchcmdtype_T type = 0;
@@ -2058,7 +2093,7 @@ int command_builtin(int argc, void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_POSIX)) != NULL) {
+    while ((opt = xgetopt(argv, command_options, XGETOPT_POSIX)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  aliases = true;        break;
 	    case L'b':  type |= SCT_BUILTIN;   break;
@@ -2073,19 +2108,24 @@ int command_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (!printinfo) {
-	if (aliases || keywords)
-	    goto print_usage;
+	if (aliases || keywords) {
+	    xerror(0,
+		Ngt("the -a or -k option must be used with the -v option"));
+	    return Exit_ERROR;
+	}
+
 	if (xoptind == argc) {
 	    if (posixly_correct)
-		goto print_usage;
+		return insufficient_operands_error(1);
 	    else
 		return Exit_SUCCESS;
 	}
+
 	if (type == 0)
 	    type = SCT_EXTERNAL | SCT_BUILTIN;
 	else
@@ -2095,8 +2135,10 @@ int command_builtin(int argc, void **argv)
 	return command_builtin_execute(
 		argc - xoptind, &argv[xoptind], type);
     } else {
-	if (!argv0istype && posixly_correct && argc - xoptind != 1)
-	    goto print_usage;
+	if (!argv0istype && posixly_correct
+		&& !validate_operand_count(argc - xoptind, 1, 1))
+	    return Exit_ERROR;
+
 	if (type == 0 && !aliases && !keywords) {
 	    type = SCT_EXTERNAL | SCT_BUILTIN | SCT_FUNCTION;
 	    aliases = keywords = true;
@@ -2118,17 +2160,6 @@ int command_builtin(int argc, void **argv)
 	return ok && yash_error_message_count == 0
 	    ? Exit_SUCCESS : Exit_FAILURE;
     }
-
-print_usage:
-    if (argv0istype)
-	fprintf(stderr, gt("Usage:  type command...\n"));
-    else if (posixly_correct)
-	fprintf(stderr, gt("Usage:  command [-p] command [arg...]\n"
-			   "        command -v|-V [-p] command\n"));
-    else
-	fprintf(stderr, gt("Usage:  command [-befp] command [arg...]\n"
-			   "        command -v|-V [-abefkp] command...\n"));
-    return Exit_ERROR;
 }
 
 /* Executes the specified simple command.
@@ -2279,6 +2310,25 @@ void print_command_absolute_path(
     free(pwd);
 }
 
+#if YASH_ENABLE_HELP
+
+const char command_help[] = Ngt(
+"execute or identify a command"
+);
+const char command_syntax[] = Ngt(
+"\tcommand [-befp] command [argument...]\n"
+"\tcommand -v|-V [-abefkp] command...\n"
+);
+
+const char type_help[] = Ngt(
+"identify a command"
+);
+const char type_syntax[] = Ngt(
+"\ttype command...\n"
+);
+
+#endif
+
 /* The "times" built-in. */
 int times_builtin(int argc __attribute__((unused)), void **argv)
 {
@@ -2291,12 +2341,12 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
     if (xoptind < argc)
-	goto print_usage;
+	return special_builtin_syntax_error(too_many_operands_error(0));
 
     double clock;
     struct tms tms;
@@ -2324,12 +2374,16 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
 	    sum, sus, ssm, sss, cum, cus, csm, css);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  times\n"));
-    SPECIAL_BI_ERROR;
-    return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char times_help[] = Ngt(
+"print CPU time usage"
+);
+const char times_syntax[] = Ngt(
+"\ttimes\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

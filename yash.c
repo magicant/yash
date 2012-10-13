@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	if (wargv[i] == NULL) {
 	    fprintf(stderr,
 		    gt("%s: cannot convert the argument `%s' "
-			"into a wide character string\n"),
+			"into a wide character string"),
 		    argv[0], argv[i]);
 	    fprintf(stderr,
 		    gt("%s: the argument is replaced with an empty string\n"),
@@ -167,10 +167,9 @@ int main(int argc, char **argv)
     } input;
     const char *inputname;
 
-    if (shopt_cmdline && shopt_stdin) {
-	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
-	exit(Exit_ERROR);
-    }
+    if (shopt_cmdline && shopt_stdin)
+	exit(mutually_exclusive_option_error(L'c', L's'));
+
     if (shopt_cmdline) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {
@@ -345,23 +344,18 @@ void exit_shell_with_status(int status)
 /* Prints the help message to the standard output. */
 void print_help(void)
 {
-    if (posixly_correct) {
-	xprintf(gt(
-	    "Usage:  sh [options] [filename [args...]]\n"
-	    "        sh [options] -c command [command_name [args...]]\n"
-	    "        sh [options] -s [args...]\n"));
-	xprintf(gt("Options: -abCefhilmnuvx\n"));
-    } else {
-	xprintf(gt(
-	    "Usage:  yash [options] [filename [args...]]\n"
-	    "        yash [options] -c command [command_name [args...]]\n"
-	    "        yash [options] -s [args...]\n"));
-	xprintf(gt(
-	    "Options: -abCefhilmnuVvx\n"
-	    "         --interactive --login --noprofile --norcfile \n"
-	    "         --profile=filename --rcfile=filename\n"));
-	xprintf(gt("Type `set --help' in the shell for other options.\n"));
-    }
+    const char *shell_name = posixly_correct ? "sh" : "yash";
+    xprintf(gt(
+	    "Usage:  %s [options] [filename [args...]]\n"
+	    "        %s [options] -c command [command_name [args...]]\n"
+	    "        %s [options] -s [args...]\n"),
+	    shell_name, shell_name, shell_name);
+
+    xprintf("\n");
+
+    print_shopts(true);
+
+    xprintf(gt("Try `man yash' for details.\n"));
 }
 
 /* Prints the version info to the standard output. */
@@ -566,7 +560,8 @@ bool input_is_interactive_terminal(const parseparam_T *pinfo)
 
 /********** Built-ins **********/
 
-static const struct xgetopt_T force_help_options[] = {
+/* Options for the "exit" and "suspend" built-ins. */
+const struct xgetopt_T force_help_options[] = {
     { L'f', L"force", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help",  OPTARG_NONE, false, NULL, },
@@ -590,14 +585,13 @@ int exit_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  exit [-f] [n]\n"));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
@@ -617,7 +611,7 @@ int exit_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    SPECIAL_BI_ERROR;
+	    special_builtin_syntax_error(status);
 	}
     } else {
 	status = -1;
@@ -625,6 +619,15 @@ int exit_builtin(int argc, void **argv)
     exit_shell_with_status(status);
     assert(false);
 }
+
+#if YASH_ENABLE_HELP
+const char exit_help[] = Ngt(
+"exit the shell"
+);
+const char exit_syntax[] = Ngt(
+"\texit [-f] [exit_status]\n"
+);
+#endif
 
 /* The "suspend" built-in, which accepts the following options:
  *  -f: suspend even if it may cause a deadlock. */
@@ -643,13 +646,14 @@ int suspend_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  suspend [-f]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
+
     if (argc != xoptind)
-	goto print_usage;
+	return too_many_operands_error(0);
+
     if (!force && is_interactive_now && getsid(0) == shell_pgid) {
 	xerror(0, Ngt("refusing to suspend because of a possible deadlock.\n"
 		    "Use the -f option to suspend anyway."));
@@ -662,6 +666,15 @@ int suspend_builtin(int argc, void **argv)
 	ensure_foreground();
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
+
+#if YASH_ENABLE_HELP
+const char suspend_help[] = Ngt(
+"suspend the shell"
+);
+const char suspend_syntax[] = Ngt(
+"\tsuspend [-f]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

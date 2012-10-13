@@ -1043,6 +1043,7 @@ static bool starts_with_root_parent(const wchar_t *path)
     __attribute__((nonnull,pure));
 static void print_command_paths(bool all);
 static void print_home_directories(void);
+static int print_umask(bool symbolic);
 static inline bool print_umask_octal(mode_t mode);
 static bool print_umask_symbolic(mode_t mode);
 static int set_umask(const wchar_t *newmask)
@@ -1076,7 +1077,7 @@ int cd_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
@@ -1104,13 +1105,9 @@ int cd_builtin(int argc, void **argv)
 	    }
 	    break;
 	default:
-	    goto print_usage;
+	    return too_many_operands_error(1);
     }
     return change_directory(newpwd, printnewdir, logical);
-
-print_usage:
-    fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"), L"cd");
-    return Exit_ERROR;
 }
 
 /* Changes the working directory to `newpwd'.
@@ -1314,6 +1311,15 @@ bool starts_with_root_parent(const wchar_t *path)
 	(path[3] == L'\0' || path[3] == L'/');
 }
 
+#if YASH_ENABLE_HELP
+const char cd_help[] = Ngt(
+"change the working directory"
+);
+const char cd_syntax[] = Ngt(
+"\tcd [-L|-P] [directory]\n"
+);
+#endif
+
 /* The "pwd" built-in, which accepts the following options:
  *  -L: don't resolve symbolic links (default)
  *  -P: resolve symbolic links
@@ -1333,12 +1339,12 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (xoptind != argc)
-	goto print_usage;
+	return too_many_operands_error(0);
 
     char *mbspwd;
 
@@ -1364,11 +1370,27 @@ print:
 	xerror(errno, Ngt("cannot print to the standard output"));
     free(mbspwd);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  pwd [-L|-P]\n"));
-    return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char pwd_help[] = Ngt(
+"print the working directory"
+);
+const char pwd_syntax[] = Ngt(
+"\tpwd [-L|-P]\n"
+);
+#endif
+
+/* Options for the "hash" built-in. */
+const struct xgetopt_T hash_options[] = {
+    { L'a', L"all",       OPTARG_NONE, false, NULL, },
+    { L'd', L"directory", OPTARG_NONE, false, NULL, },
+    { L'r', L"remove",    OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
 
 /* The "hash" built-in, which accepts the following options:
  *  -a: print all entries
@@ -1376,21 +1398,11 @@ print_usage:
  *  -r: remove cache entries */
 int hash_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'a', L"all",       OPTARG_NONE, false, NULL, },
-	{ L'd', L"directory", OPTARG_NONE, false, NULL, },
-	{ L'r', L"remove",    OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool remove = false, all = false, dir = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, hash_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  all    = true;  break;
 	    case L'd':  dir    = true;  break;
@@ -1400,11 +1412,11 @@ int hash_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
     if (all && xoptind != argc)
-	goto print_usage;
+	return too_many_operands_error(0);
 
     if (dir) {
 	if (remove) {
@@ -1459,13 +1471,6 @@ int hash_builtin(int argc, void **argv)
 	}
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt(posixly_correct
-		? Ngt("Usage:  hash [-r] [command...]\n")
-		: Ngt("Usage:  hash [-dr] [command/username...]\n"
-		      "        hash [-adr]\n")));
-    return Exit_ERROR;
 }
 
 /* Prints the entries of the command hashtable.
@@ -1501,23 +1506,38 @@ void print_home_directories(void)
     }
 }
 
+#if YASH_ENABLE_HELP
+const char hash_help[] = Ngt(
+"remember, forget, or report command locations"
+);
+const char hash_syntax[] = Ngt(
+"\thash command...\n"
+"\thash -r [command...]\n"
+"\thash [-a]  # print remembered paths\n"
+"\thash -d user...\n"
+"\thash -d -r [user...]\n"
+"\thash -d  # print remembered paths\n"
+);
+#endif
+
+/* Options for the "umask" built-in. */
+const struct xgetopt_T umask_options[] = {
+    { L'S', L"symbolic", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "umask" built-in, which accepts the following option:
  *  -S: symbolic output */
 int umask_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'S', L"symbolic", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool symbolic = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, umask_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'S':
 		symbolic = true;
@@ -1527,28 +1547,31 @@ int umask_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
-    if (xoptind == argc) {
-	mode_t mode = umask(0);
-	umask(mode);
-
-	bool success;
-	if (symbolic)
-	    success = print_umask_symbolic(mode);
-	else
-	    success = print_umask_octal(mode);
-	return success ? Exit_SUCCESS : Exit_FAILURE;
-    } else if (xoptind + 1 == argc) {
-	return set_umask(ARGV(xoptind));
+    switch (argc - xoptind) {
+	case 0:
+	    return print_umask(symbolic);
+	case 1:
+	    return set_umask(ARGV(xoptind));
+	default:
+	    return too_many_operands_error(1);
     }
-    /* falls thru! */
+}
 
-print_usage:
-    fprintf(stderr, gt("Usage:  umask [-S] [mask]\n"));
-    return Exit_ERROR;
+int print_umask(bool symbolic)
+{
+    mode_t mode = umask(0);
+    umask(mode);
+
+    bool success;
+    if (symbolic)
+	success = print_umask_symbolic(mode);
+    else
+	success = print_umask_octal(mode);
+    return success ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 bool print_umask_octal(mode_t mode)
@@ -1702,6 +1725,16 @@ mode_t copy_other_mask(mode_t mode)
          | ((mode & S_IWOTH) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
 	 | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
+
+#if YASH_ENABLE_HELP
+const char umask_help[] = Ngt(
+"print or set the file creation mask"
+);
+const char umask_syntax[] = Ngt(
+"\tumask mode\n"
+"\tumask [-S]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

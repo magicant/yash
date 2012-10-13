@@ -20,6 +20,7 @@
 #define YASH_OPTION_H
 
 #include <stddef.h>
+#include "util.h"
 
 
 enum shopt_lineedit_T {
@@ -69,11 +70,14 @@ extern int parse_shell_options(int argc, void *const *argv,
 extern void set_lineedit_option(enum shopt_lineedit_T v);
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
+extern bool print_shopts_body(bool include_normal_options);
 
-extern const struct xgetopt_T *const all_option, *const help_option;
+extern const struct xgetopt_T all_help_options[];
+#define help_option (&all_help_options[1])
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char set_help[], set_syntax[];
 
 
 #endif /* YASH_OPTION_H */

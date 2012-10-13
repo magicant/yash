@@ -766,19 +766,47 @@ wchar_t *get_hyphen_parameter(void)
     return wb_towcs(&buf);
 }
 
+/* Prints a list of all shell options to the standard output.
+ * Returns true iff successful. */
+bool print_shopts_body(bool include_normal_options)
+{
+    if (include_normal_options)
+	if (!print_option_list(normal_options))
+	    return false;
+
+    for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
+	if (!xprintf("\t"))
+	    return false;
+
+	if (o->shortopt_enable != L'\0') {
+	    if (!xprintf("-%lc", o->shortopt_enable))
+		return false;
+	} else if (o->shortopt_disable != L'\0') {
+	    if (!xprintf("+%lc", o->shortopt_disable))
+		return false;
+	} else {
+	    if (!xprintf("  "))
+		return false;
+	}
+
+	if (!xprintf("       -o %ls\n", o->longopt))
+	    return false;
+    }
+
+    return true;
+}
+
 
 /********** Built-in **********/
 
-static const struct xgetopt_T all_help_options[] = {
+const struct xgetopt_T all_help_options[] = {
     { L'a', L"all",  OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help", OPTARG_NONE, false, NULL, },
 #endif
     { L'\0', NULL, 0, false, NULL, },
 };
-
-const struct xgetopt_T *const all_option  = &all_help_options[0];
-const struct xgetopt_T *const help_option = &all_help_options[1];
+/* Note: `help_option' is defined as (&all_help_options[1]). */
 
 
 static int set_builtin_print_current_settings(void);
@@ -824,6 +852,16 @@ int set_builtin_print_restoring_commands(void)
 
     return Exit_SUCCESS;
 }
+
+#if YASH_ENABLE_HELP
+const char set_help[] = Ngt(
+"set shell options and positional parameters"
+);
+const char set_syntax[] = Ngt(
+"\tset [option...] [--] [new_positional_parameter...]\n"
+"\tset -o|+o  # print current settings\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

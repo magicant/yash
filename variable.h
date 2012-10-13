@@ -20,6 +20,7 @@
 #define YASH_VARIABLE_H
 
 #include <stddef.h>
+#include "util.h"
 
 
 extern char **environ;
@@ -137,27 +138,55 @@ extern _Bool parse_dirstack_index(
 	const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
 
-extern const struct xgetopt_T *const cd_options;
-extern const struct xgetopt_T *const pwd_options;
-
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char typeset_help[], typeset_syntax[], export_syntax[],
+	readonly_syntax[];
+extern const struct xgetopt_T typeset_options[];
+
 extern int array_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char array_help[], array_syntax[];
+extern const struct xgetopt_T array_options[];
+
 extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char unset_help[], unset_syntax[];
+extern const struct xgetopt_T unset_options[];
+
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char shift_help[], shift_syntax[];
+
 extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char getopts_help[], getopts_syntax[];
+
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char read_help[], read_syntax[];
+extern const struct xgetopt_T read_options[];
+
 extern int pushd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char pushd_help[], pushd_syntax[];
+extern const struct xgetopt_T pushd_options[];
+#if YASH_ENABLE_DIRSTACK
+# define cd_options  (&pushd_options[1])
+# define pwd_options (&pushd_options[2])
+#else
+# define cd_options  pushd_options
+# define pwd_options (&pushd_options[1])
+#endif
+
 extern int popd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char popd_help[], popd_syntax[];
+
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char dirs_help[], dirs_syntax[];
+extern const struct xgetopt_T dirs_options[];
 
 
 #endif /* YASH_VARIABLE_H */

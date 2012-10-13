@@ -152,6 +152,8 @@ END
 $INVOKE $TESTEE <<\END
 pushd --no-such-option
 echo pushd no-such-option $?
+pushd too-many operands
+echo pushd too-many-operands $?
 pushd ./no/such/dir 2>/dev/null
 echo pushd no-such-dir $?
 pushd /
@@ -164,6 +166,8 @@ $INVOKE $TESTEE <<\END
 pushd /
 popd --no-such-option
 echo popd no-such-option $?
+popd too-many operands
+echo popd too-many-operands $?
 popd +5
 echo popd index out of range $?
 (popd >&- 2>/dev/null)

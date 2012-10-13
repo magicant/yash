@@ -20,6 +20,7 @@
 #define YASH_SIG_H
 
 #include <stddef.h>
+#include "util.h"
 
 
 extern _Bool process_exists(pid_t pid);
@@ -57,8 +58,12 @@ extern void reset_sigwinch(void);
 
 extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char trap_help[], trap_syntax[];
+extern const struct xgetopt_T trap_options[];
+
 extern int kill_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char kill_help[], kill_syntax[];
 
 #if HAVE_STRSIGNAL && !defined(strsignal)
 extern char *strsignal(int signum);

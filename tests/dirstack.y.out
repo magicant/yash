@@ -91,10 +91,12 @@ popd dirstack readonly 1
 dirs dirstack readonly 0
 dirs -c dirstack readonly 1
 pushd no-such-option 2
+pushd too-many-operands 2
 pushd no-such-dir 1
 pushd index out of range 1
 pushd output error 0
 popd no-such-option 2
+popd too-many-operands 2
 popd index out of range 1
 popd output error 0
 popd dirstack empty 1

@@ -668,5 +668,15 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 	return FC_SAME;
 }
 
+#if YASH_ENABLE_HELP
+const char test_help[] = Ngt(
+"evaluate a conditional expression"
+);
+const char test_syntax[] = Ngt(
+"\ttest expression\n"
+"\t[ expression ]\n"
+);
+#endif
+
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

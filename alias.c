@@ -429,25 +429,26 @@ void generate_alias_candidates(const le_compopt_T *compopt)
 
 /********** Built-ins **********/
 
+/* Options for the "alias" built-in. */
+const struct xgetopt_T alias_options[] = {
+    { L'g', L"global", OPTARG_NONE, false, NULL, },
+    { L'p', L"prefix", OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",   OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "alias" built-in, which accepts the following options:
  *  -g: define global aliases
  *  -p: print aliases in the form of whole commands */
 int alias_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'g', L"global", OPTARG_NONE, false, NULL, },
-	{ L'p', L"prefix", OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",   OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool global = false, prefix = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, alias_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'g':  global = true;  break;
 	    case L'p':  prefix = true;  break;
@@ -456,9 +457,6 @@ int alias_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  alias [name[=value]...]\n")
-			    : Ngt("Usage:  alias [-gp] [name[=value]...]\n")));
 		return Exit_ERROR;
 	}
     }
@@ -502,6 +500,15 @@ int alias_builtin(int argc, void **argv)
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
 
+#if YASH_ENABLE_HELP
+const char alias_help[] = Ngt(
+"define or print aliases"
+);
+const char alias_syntax[] = Ngt(
+"\talias [-gp] [name[=value]...]\n"
+);
+#endif
+
 /* The "unalias" built-in, which accepts the following option:
  *  -a: remove all aliases */
 int unalias_builtin(int argc, void **argv)
@@ -510,7 +517,7 @@ int unalias_builtin(int argc, void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, all_option, 0)) != NULL) {
+    while ((opt = xgetopt(argv, all_help_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'a':  all = true;  break;
 #if YASH_ENABLE_HELP
@@ -518,17 +525,19 @@ int unalias_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
 
     if (all) {
 	if (xoptind != argc)
-	    goto print_usage;
+	    return too_many_operands_error(0);
+
 	remove_all_aliases();
     } else {
 	if (xoptind == argc)
-	    goto print_usage;
+	    return insufficient_operands_error(1);
+
 	do {
 	    const wchar_t *arg = ARGV(xoptind);
 	    if (!remove_alias(arg))
@@ -536,12 +545,17 @@ int unalias_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    fprintf(stderr, gt("Usage:  unalias name...\n"
-                       "        unalias -a\n"));
-    return Exit_ERROR;
 }
+
+#if YASH_ENABLE_HELP
+const char unalias_help[] = Ngt(
+"undefine aliases"
+);
+const char unalias_syntax[] = Ngt(
+"\tunalias name...\n"
+"\tunalias -a\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

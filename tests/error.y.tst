@@ -4,6 +4,7 @@
 # error tests for alias/unalias are in alias.y.tst
 # error tests for array are in array.y.tst
 # error tests for help are in help.y.tst
+# error tests for fg/bg are in job.y.tst
 # error tests for fc/history are in history.y.tst
 # error tests for pushd/popd/dirs are in dirstack.y.tst
 
@@ -168,6 +169,8 @@ echo ===== cd ===== >&2
 
 cd --no-such-option
 echo cd no-such-option $?
+cd / /
+echo cd too-many-operands $?
 cd ./no/such/dir 2>/dev/null
 echo cd no-such-dir $?
 (
@@ -195,6 +198,8 @@ echo ===== hash ===== >&2
 
 hash --no-such-option
 echo hash no-such-option $?
+hash -a operand
+echo hash invalid operand $?
 hash ./no/such/command
 echo hash slash argument $?
 (PATH=; hash no_such_command)
@@ -208,6 +213,8 @@ echo ===== umask ===== >&2
 
 umask --no-such-option
 echo umask no-such-option $?
+umask too-many operands
+echo umask too-many-operands $?
 (umask >&- 2>/dev/null)
 echo umask output error $?
 
@@ -216,6 +223,12 @@ echo ===== typeset ===== >&2
 
 typeset --no-such-option
 echo typeset no-such-option $?
+typeset -f -x foo
+echo typeset invalid-option-combination 1 $?
+typeset -f -X foo
+echo typeset invalid-option-combination 2 $?
+typeset -x -X foo
+echo typeset invalid-option-combination 3 $?
 (typeset >&- 2>/dev/null)
 echo typeset output error 1 $?
 (typeset -p >&- 2>/dev/null)
@@ -261,6 +274,10 @@ getopts
 echo getopts operands missing 1 $?
 getopts a
 echo getopts operands missing 2 $?
+getopts a:: var
+echo getopts invalid opt $?
+getopts abc var=iable
+echo getopts invalid var $?
 
 echo ===== read =====
 echo ===== read ===== >&2
@@ -271,6 +288,8 @@ read
 echo read operands missing $?
 read read <&- 2>/dev/null
 echo read input closed $?
+read foo b=r baz
+echo read invalid identifier $?
 
 echo ===== trap =====
 echo ===== trap ===== >&2
@@ -297,6 +316,10 @@ echo ===== kill ===== >&2
 
 kill --no-such-option
 echo kill no-such-option $?
+kill -l -n 0
+echo kill invalid-option-combination l n $?
+kill -l -s INT
+echo kill invalid-option-combination l s $?
 kill
 echo kill operands missing $?
 kill -l 0
@@ -367,6 +390,10 @@ echo ===== break ===== >&2
 break --no-such-option
 echo break no-such-option $?
 (
+break 1 foo
+echo break invalid operand 1 $?
+)
+(
 break
 echo break not in loop $?
 )
@@ -376,7 +403,7 @@ echo break not in iteration $?
 )
 (
 break -i foo
-echo break invalid operand $?
+echo break invalid operand 2 $?
 )
 
 echo ===== continue =====
@@ -384,6 +411,10 @@ echo ===== continue ===== >&2
 
 continue --no-such-option
 echo continue no-such-option $?
+(
+continue 1 foo
+echo continue invalid operand 1 $?
+)
 (
 continue
 echo continue not in loop $?
@@ -394,7 +425,7 @@ echo continue not in iteration $?
 )
 (
 continue -i foo
-echo continue invalid operand $?
+echo continue invalid operand 2 $?
 )
 
 echo ===== eval =====
@@ -442,7 +473,9 @@ echo ===== command ===== >&2
 command --no-such-option
 echo command no-such-option $?
 command -a foo
-echo command invalid-option $?
+echo command invalid-option 1 $?
+command -k foo
+echo command invalid-option 2 $?
 (command -v command >&- 2>/dev/null)
 echo command output error $?
 (PATH=; command no_such_command)
@@ -504,13 +537,17 @@ if type ulimit 2>/dev/null | grep -q '^ulimit: regular builtin'; then
     echo ulimit output error $?
     ulimit xxx
     echo ulimit invalid operand $?
+    ulimit 0 0
+    echo ulimit too many operands $?
 else
     cat <<\END
 ulimit no-such-option 2
 ulimit output error 1
 ulimit invalid operand 2
+ulimit too many operands 2
 END
     cat >&2 <<\END
 ulimit: `xxx' is not a valid integer
+ulimit: too many operands are specified
 END
 fi

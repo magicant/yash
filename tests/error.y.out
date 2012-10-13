@@ -47,6 +47,7 @@ set no-such-option 2
 set output error 1
 ===== cd =====
 cd no-such-option 2
+cd too-many-operands 2
 cd no-such-dir 1
 cd no OLDPWD 1
 cd no HOME 1
@@ -57,14 +58,19 @@ pwd invalid operand 2
 pwd output error 1
 ===== hash =====
 hash no-such-option 2
+hash invalid operand 2
 hash slash argument 1
 hash command not found 1
 hash output error 1
 ===== umask =====
 umask no-such-option 2
+umask too-many-operands 2
 umask output error 1
 ===== typeset =====
 typeset no-such-option 2
+typeset invalid-option-combination 1 2
+typeset invalid-option-combination 2 2
+typeset invalid-option-combination 3 2
 typeset output error 1 1
 typeset output error 2 1
 typeset output error 3 1
@@ -83,10 +89,13 @@ shift shifting too many 1
 getopts no-such-option 2
 getopts operands missing 1 2
 getopts operands missing 2 2
+getopts invalid opt 1
+getopts invalid var 1
 ===== read =====
 read no-such-option 2
 read operands missing 2
 read input closed 1
+read invalid identifier 1
 ===== trap =====
 trap no-such-option 2
 trap operands missing 2
@@ -98,6 +107,8 @@ trap output error 3 1
 trap no-such-signal 1
 ===== kill =====
 kill no-such-option 1
+kill invalid-option-combination l n 2
+kill invalid-option-combination l s 2
 kill operands missing 2
 kill no-such-signal 1
 kill no-such-job 1
@@ -120,14 +131,16 @@ return too many operands 2
 return reached
 ===== break =====
 break no-such-option 2
+break invalid operand 1 2
 break not in loop 2
 break not in iteration 2
-break invalid operand 2
+break invalid operand 2 2
 ===== continue =====
 continue no-such-option 2
+continue invalid operand 1 2
 continue not in loop 2
 continue not in iteration 2
-continue invalid operand 2
+continue invalid operand 2 2
 ===== eval =====
 eval no-such-option 2
 ===== dot =====
@@ -140,7 +153,8 @@ exec no-such-option 2
 exec command not found 127
 ===== command =====
 command no-such-option 2
-command invalid-option 2
+command invalid-option 1 2
+command invalid-option 2 2
 command output error 1
 command no-such-command 1 127
 command no-such-command 2 1
@@ -161,3 +175,4 @@ suspend invalid operand 2
 ulimit no-such-option 2
 ulimit output error 1
 ulimit invalid operand 2
+ulimit too many operands 2

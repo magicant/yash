@@ -1,16 +1,8 @@
 bindkey: `--no-such-option' is not a valid option
-Usage:  bindkey -aev [keyseq [command]]
-        bindkey -l
 bindkey: no option is specified
-Usage:  bindkey -aev [keyseq [command]]
-        bindkey -l
 bindkey: too many operands are specified
-Usage:  bindkey -aev [keyseq [command]]
-        bindkey -l
 bindkey: no such editing command `no-such-command'
 bindkey: cannot bind an empty key sequence
 bindkey: key sequence `~~~' is not bound
 complete: `--no-such-option' is not a valid option
-Usage:  complete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \
-        [-abcdfghjkuv] [[-O] [-D description] words...]
 complete: the complete built-in can be used during command line completion only

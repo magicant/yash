@@ -1553,6 +1553,7 @@ static void print_function(
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
 #if YASH_ENABLE_ARRAY
+static int array_dump_all(const wchar_t *argv0);
 static void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
     __attribute__((nonnull));
@@ -1581,6 +1582,20 @@ static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
     __attribute__((nonnull));
 
+/* Options for the "typeset" built-in. */
+const struct xgetopt_T typeset_options[] = {
+    { L'f', L"functions", OPTARG_NONE, false, NULL, },
+    { L'g', L"global",    OPTARG_NONE, false, NULL, },
+    { L'p', L"print",     OPTARG_NONE, true,  NULL, },
+    { L'r', L"readonly",  OPTARG_NONE, false, NULL, },
+    { L'x', L"export",    OPTARG_NONE, false, NULL, },
+    { L'X', L"unexport",  OPTARG_NONE, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "typeset" built-in, which accepts the following options:
  *  -f: affect functions rather than variables
  *  -g: global
@@ -1594,25 +1609,12 @@ static void split_and_assign_array(const wchar_t *name, wchar_t *values,
  * The "set" built-in without any arguments is redirected to this built-in. */
 int typeset_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'f', L"functions", OPTARG_NONE, false, NULL, },
-	{ L'g', L"global",    OPTARG_NONE, false, NULL, },
-	{ L'p', L"print",     OPTARG_NONE, true,  NULL, },
-	{ L'r', L"readonly",  OPTARG_NONE, false, NULL, },
-	{ L'x', L"export",    OPTARG_NONE, false, NULL, },
-	{ L'X', L"unexport",  OPTARG_NONE, false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool function = false, global = false, print = false;
     bool readonly = false, export = false, unexport = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, typeset_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'f':  function = true;  break;
 	    case L'g':  global   = true;  break;
@@ -1625,12 +1627,7 @@ int typeset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt(posixly_correct
-			    ? Ngt("Usage:  %ls [-p] [name[=value]...]\n")
-			    : Ngt("Usage:  %ls [-fgprxX] [name[=value]...]\n")),
-			ARGV(0));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -1645,15 +1642,15 @@ int typeset_builtin(int argc, void **argv)
 	    || wcscmp(ARGV(0), L"set") == 0);
     }
 
-    if (function && (export || unexport)) {
-	xerror(0, Ngt("the -f option cannot be used with the -x or -X option"));
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    } else if (export && unexport) {
-	xerror(0, Ngt("the -x and -X options cannot be used both at once"));
-	SPECIAL_BI_ERROR;
-	return Exit_ERROR;
-    }
+    if (function && export)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'f', L'x'));
+    if (function && unexport)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'f', L'X'));
+    if (export && unexport)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'x', L'X'));
 
     if (xoptind == argc) {
 	kvpair_T *kvs;
@@ -1910,7 +1907,33 @@ end:
     free(qname);
 }
 
+#if YASH_ENABLE_HELP
+const char typeset_help[] = Ngt(
+"set or print variables"
+);
+const char typeset_syntax[] = Ngt(
+"\ttypeset [-fgprxX] [name[=value]...]\n"
+);
+const char export_syntax[] = Ngt(
+"\texport [-prX] [name[=value]...]\n"
+);
+const char readonly_syntax[] = Ngt(
+"\treadonly [-fpxX] [name[=value]...]\n"
+);
+#endif
+
 #if YASH_ENABLE_ARRAY
+
+/* Options for the "array" built-in. */
+const struct xgetopt_T array_options[] = {
+    { L'd', L"delete", OPTARG_NONE, true,  NULL, },
+    { L'i', L"insert", OPTARG_NONE, true,  NULL, },
+    { L's', L"set",    OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",   OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
 
 /* The "array" built-in, which accepts the following options:
  *  -d: delete an array element
@@ -1918,25 +1941,16 @@ end:
  *  -s: set an array element value */
 int array_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T cmdoptions[] = {
-	{ L'd', L"delete", OPTARG_NONE, true,  NULL, },
-	{ L'i', L"insert", OPTARG_NONE, true,  NULL, },
-	{ L's', L"set",    OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",   OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     enum {
+	NONE   = 0,
 	DELETE = 1 << 0,
 	INSERT = 1 << 1,
 	SET    = 1 << 2,
-    } options = 0;
+    } options = NONE;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, cmdoptions, XGETOPT_DIGIT)) != NULL) {
+    while ((opt = xgetopt(argv, array_options, XGETOPT_DIGIT)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'd':  options |= DELETE;  break;
 	    case L'i':  options |= INSERT;  break;
@@ -1945,67 +1959,56 @@ int array_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  array [name [value...]]\n"
-		                   "        array -d name [index...]\n"
-				   "        array -i name index [value...]\n"
-				   "        array -s name index value\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
-    if (options != 0 && (options & (options - 1)) != 0) {
+
+    /* error checks */
+    if (options != NONE && (options & (options - 1)) != 0) {
 	xerror(0, Ngt("more than one option cannot be used at once"));
 	return Exit_ERROR;
     }
+    size_t min, max;
+    switch (options) {
+	case NONE:    min = 0;  max = SIZE_MAX;  break;
+	case DELETE:  min = 1;  max = SIZE_MAX;  break;
+	case INSERT:  min = 2;  max = SIZE_MAX;  break;
+	case SET:     min = 3;  max = 3;         break;
+	default:      assert(false);
+    }
+    if (!validate_operand_count(argc - xoptind, min, max))
+	return Exit_ERROR;
 
-    if (xoptind == argc) {
-	if (options != 0)
-	    goto print_usage;
+    if (xoptind == argc)
+	return array_dump_all(ARGV(0));
 
-	/* print all arrays */
-	kvpair_T *kvs;
-	size_t count = make_array_of_all_variables(true, &kvs);
-	qsort(kvs, count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
-	    variable_T *var = kvs[i].value;
-	    if ((var->v_type & VF_MASK) == VF_ARRAY)
-		print_variable(kvs[i].key, var, ARGV(0), false, false);
-	}
-	free(kvs);
+    const wchar_t *name = ARGV(xoptind++);
+    if (wcschr(name, L'=') != NULL) {
+	xerror(0, Ngt("`%ls' is not a valid array name"), name);
+	return Exit_FAILURE;
+    }
+
+    if (options == 0) {
+	set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
+		SCOPE_GLOBAL, false);
     } else {
-	const wchar_t *name = ARGV(xoptind++);
-	if (wcschr(name, L'=') != NULL) {
-	    xerror(0, Ngt("`%ls' is not a valid array name"), name);
+	variable_T *array = search_array_and_check_if_changeable(name);
+	if (array == NULL)
 	    return Exit_FAILURE;
-	}
-
-	if (options == 0) {
-	    set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
-		    SCOPE_GLOBAL, false);
-	} else {
-	    variable_T *array = search_array_and_check_if_changeable(name);
-	    if (array == NULL)
-		return Exit_FAILURE;
-	    switch (options) {
-		case DELETE:
-		    array_remove_elements(
-			    array, argc - xoptind, &argv[xoptind]);
-		    break;
-		case INSERT:
-		    if (xoptind == argc)
-			goto print_usage;
-		    array_insert_elements(
-			    array, argc - xoptind, &argv[xoptind]);
-		    break;
-		case SET:
-		    if (xoptind + 2 != argc)
-			goto print_usage;
-		    array_set_element(
-			    name, array, ARGV(xoptind), ARGV(xoptind + 1));
-		    break;
-		default:
-		    assert(false);
-	    }
+	switch (options) {
+	    case DELETE:
+		array_remove_elements(array, argc - xoptind, &argv[xoptind]);
+		break;
+	    case INSERT:
+		array_insert_elements(array, argc - xoptind, &argv[xoptind]);
+		break;
+	    case SET:
+		array_set_element(
+			name, array, ARGV(xoptind), ARGV(xoptind + 1));
+		break;
+	    default:
+		assert(false);
 	}
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -2018,6 +2021,22 @@ int array_builtin(int argc, void **argv)
 # define LONG_LT_SIZE(longvalue,sizevalue) \
     ((longvalue) < (long) (sizevalue))
 #endif
+
+/* Prints all existing arrays.
+ * Returns an exit status to be returned by the array built-in. */
+int array_dump_all(const wchar_t *argv0)
+{
+    kvpair_T *kvs;
+    size_t count = make_array_of_all_variables(true, &kvs);
+    qsort(kvs, count, sizeof *kvs, keywcscoll);
+    for (size_t i = 0; yash_error_message_count == 0 && i < count; i++) {
+	variable_T *var = kvs[i].value;
+	if ((var->v_type & VF_MASK) == VF_ARRAY)
+	    print_variable(kvs[i].key, var, argv0, false, false);
+    }
+    free(kvs);
+    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+}
 
 /* Removes elements from `array'.
  * `indexwcss' is an NULL-terminated array of pointers to wide strings,
@@ -2163,27 +2182,41 @@ invalid_index:
 	    indexword, name, array->v_valc);
 }
 
+#if YASH_ENABLE_HELP
+const char array_help[] = Ngt(
+"manipulate an array"
+);
+const char array_syntax[] = Ngt(
+"\tarray                  # print arrays\n"
+"\tarray name [value...]  # set array values\n"
+"\tarray -d name [index...]\n"
+"\tarray -i name index [value...]\n"
+"\tarray -s name index value\n"
+);
+#endif
+
 #endif /* YASH_ENABLE_ARRAY */
+
+/* Options for the "unset" built-in. */
+const struct xgetopt_T unset_options[] = {
+    { L'f', L"functions", OPTARG_NONE, true,  NULL, },
+    { L'v', L"variables", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",      OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
 
 /* The "unset" built-in, which accepts the following options:
  *  -f: deletes functions
  *  -v: deletes variables (default) */
 int unset_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'f', L"functions", OPTARG_NONE, true,  NULL, },
-	{ L'v', L"variables", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",      OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool function = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, unset_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'f':  function = true;   break;
 	    case L'v':  function = false;  break;
@@ -2192,9 +2225,7 @@ int unset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  unset [-fv] name...\n"));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
 
@@ -2259,6 +2290,15 @@ bool unset_variable(const wchar_t *name)
     return false;
 }
 
+#if YASH_ENABLE_HELP
+const char unset_help[] = Ngt(
+"remove variables or functions"
+);
+const char unset_syntax[] = Ngt(
+"\tunset [-fv] name...\n"
+);
+#endif
+
 /* The "shift" built-in */
 int shift_builtin(int argc, void **argv)
 {
@@ -2270,27 +2310,24 @@ int shift_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  shift [n]\n"));
-		SPECIAL_BI_ERROR;
-		return Exit_ERROR;
+	    default:
+		return special_builtin_syntax_error(Exit_ERROR);
 	}
     }
-    if (argc - xoptind > 1)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return special_builtin_syntax_error(Exit_ERROR);
 
     size_t scount;
     if (xoptind < argc) {
 	long count;
 	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	} else if (count < 0) {
 	    xerror(0, Ngt("%ls: the operand value must not be negative"),
 		    ARGV(xoptind));
-	    SPECIAL_BI_ERROR;
-	    return Exit_ERROR;
+	    return special_builtin_syntax_error(Exit_ERROR);
 	}
 #if LONG_MAX > SIZE_MAX
 	if (count > (long) SIZE_MAX)
@@ -2326,6 +2363,15 @@ int shift_builtin(int argc, void **argv)
     return Exit_SUCCESS;
 }
 
+#if YASH_ENABLE_HELP
+const char shift_help[] = Ngt(
+"remove some positional parameters"
+);
+const char shift_syntax[] = Ngt(
+"\tshift [count]\n"
+);
+#endif
+
 /* The "getopts" built-in */
 int getopts_builtin(int argc, void **argv)
 {
@@ -2338,11 +2384,12 @@ int getopts_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
-    if (xoptind + 2 > argc)
-	goto print_usage;
+
+    if (!validate_operand_count(argc - xoptind, 2, SIZE_MAX))
+	return Exit_ERROR;
 
     const wchar_t *options = ARGV(xoptind++);
     const wchar_t *varname = ARGV(xoptind++);
@@ -2461,9 +2508,6 @@ no_more_options:
 optind_invalid:
     xerror(0, Ngt("$OPTIND has an invalid value"));
     return Exit_FAILURE;
-print_usage:
-    fprintf(stderr, gt("Usage:  getopts options var [arg...]\n"));
-    return Exit_ERROR;
 }
 
 /* Checks if the `options' is valid. Returns true iff OK. */
@@ -2515,26 +2559,36 @@ bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
 }
 
+#if YASH_ENABLE_HELP
+const char getopts_help[] = Ngt(
+"parse command options"
+);
+const char getopts_syntax[] = Ngt(
+"\tgetopts options variable [argument...]\n"
+);
+#endif
+
+/* Options for the "read" built-in. */
+const struct xgetopt_T read_options[] = {
+    { L'A', L"array",    OPTARG_NONE, false, NULL, },
+    { L'r', L"raw-mode", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
  *  -r: don't treat backslashes specially
  */
 int read_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'A', L"array",    OPTARG_NONE, false, NULL, },
-	{ L'r', L"raw-mode", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",     OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool array = false, raw = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, read_options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'A':  array = true;  break;
 	    case L'r':  raw   = true;  break;
@@ -2543,11 +2597,12 @@ int read_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		goto print_usage;
+		return Exit_ERROR;
 	}
     }
+
     if (xoptind == argc)
-	goto print_usage;
+	return insufficient_operands_error(1);
 
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
@@ -2600,13 +2655,6 @@ int read_builtin(int argc, void **argv)
     pl_destroy(&list);
     return (!eof && yash_error_message_count == 0)
 	    ? Exit_SUCCESS : Exit_FAILURE;
-
-print_usage:
-    if (posixly_correct)
-	fprintf(stderr, gt("Usage:  read [-r] var...\n"));
-    else
-	fprintf(stderr, gt("Usage:  read [-Ar] var...\n"));
-    return Exit_ERROR;
 }
 
 /* Reads input from the standard input and, if `noescape' is false, remove line
@@ -2717,8 +2765,17 @@ void split_and_assign_array(const wchar_t *name, wchar_t *values,
     free(values);
 }
 
+#if YASH_ENABLE_HELP
+const char read_help[] = Ngt(
+"read a line from the standard input"
+);
+const char read_syntax[] = Ngt(
+"\tread [-Ar] variable...\n"
+);
+#endif
+
 /* options for the "pushd" built-in */
-static const struct xgetopt_T pushd_options[] = {
+const struct xgetopt_T pushd_options[] = {
 #if YASH_ENABLE_DIRSTACK
     { L'D', L"remove-duplicates", OPTARG_NONE,     true,  NULL, },
 #endif
@@ -2730,18 +2787,10 @@ static const struct xgetopt_T pushd_options[] = {
 #endif
     { L'\0', NULL, 0, false, NULL, },
 };
+/* Note: `cd_options' and `pwd_options' are defined as part of `pushd_options'.
+ */
 
-#if !YASH_ENABLE_DIRSTACK
-
-/* options for the "cd" and "pwd" built-ins */
-const struct xgetopt_T *const cd_options  = pushd_options;
-const struct xgetopt_T *const pwd_options = pushd_options + 1;
-
-#else /* YASH_ENABLE_DIRSTACK */
-
-/* options for the "cd" and "pwd" built-ins */
-const struct xgetopt_T *const cd_options  = pushd_options + 1;
-const struct xgetopt_T *const pwd_options = pushd_options + 2;
+#if YASH_ENABLE_DIRSTACK
 
 static variable_T *get_dirstack(void);
 static void push_dirstack(variable_T *var, wchar_t *value)
@@ -2777,9 +2826,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  %ls [-L|-P] [directory]\n"),
-			L"pushd");
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -2811,7 +2858,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 		return Exit_FAILURE;
 	    break;
 	default:
-	    goto print_usage;
+	    return too_many_operands_error(1);
     }
     assert(newpwd != NULL);
 
@@ -2902,6 +2949,15 @@ void remove_dirstack_dups(variable_T *var)
 	    remove_dirstack_entry_at(var, index);
 }
 
+#if YASH_ENABLE_HELP
+const char pushd_help[] = Ngt(
+"push a directory into the directory stack"
+);
+const char pushd_syntax[] = Ngt(
+"\tpushd [-L|-P] [directory]\n"
+);
+#endif
+
 /* The "popd" built-in. */
 int popd_builtin(int argc, void **argv)
 {
@@ -2913,8 +2969,7 @@ int popd_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  popd [index]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
@@ -2931,7 +2986,7 @@ int popd_builtin(int argc, void **argv)
     switch (argc - xoptind) {
 	case 0:   arg = L"+0";          break;
 	case 1:   arg = ARGV(xoptind);  break;
-	default:  goto print_usage;
+	default:  return too_many_operands_error(1);
     }
 
     size_t stackindex;
@@ -2960,25 +3015,35 @@ int popd_builtin(int argc, void **argv)
     return result;
 }
 
+#if YASH_ENABLE_HELP
+const char popd_help[] = Ngt(
+"pop a directory from the directory stack"
+);
+const char popd_syntax[] = Ngt(
+"\tpopd [index]\n"
+);
+#endif
+
+/* Options for the "dirs" built-in. */
+const struct xgetopt_T dirs_options[] = {
+    { L'c', L"clear",   OPTARG_NONE, true,  NULL, },
+    { L'v', L"verbose", OPTARG_NONE, true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",    OPTARG_NONE, false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "dirs" built-in, which accepts the following options:
  *  -c: clear the stack
  *  -v: verbose */
 int dirs_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'c', L"clear",   OPTARG_NONE, true,  NULL, },
-	{ L'v', L"verbose", OPTARG_NONE, true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",    OPTARG_NONE, false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     bool clear = false, verbose = false;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_DIGIT)) != NULL) {
+    while ((opt = xgetopt(argv, dirs_options, XGETOPT_DIGIT)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'c':  clear   = true;  break;
 	    case L'v':  verbose = true;  break;
@@ -2987,7 +3052,6 @@ int dirs_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		fprintf(stderr, gt("Usage:  dirs [-cv] [index...]\n"));
 		return Exit_ERROR;
 	}
     }
@@ -3041,6 +3105,15 @@ bool print_dirstack_entry(
     else
 	return xprintf("%ls\n", dir);
 }
+
+#if YASH_ENABLE_HELP
+const char dirs_help[] = Ngt(
+"print the directory stack"
+);
+const char dirs_syntax[] = Ngt(
+"\tdirs [-cv] [index...]\n"
+);
+#endif
 
 #endif /* YASH_ENABLE_DIRSTACK */
 

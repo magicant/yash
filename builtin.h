@@ -33,7 +33,8 @@ typedef struct builtin_T {
     main_T *body;
     builtintype_T type;
 #if YASH_ENABLE_HELP
-    const char *manpage_header_regex;
+    const char *help_text, *syntax_text;
+    const struct xgetopt_T *options;
 #endif
 } builtin_T;
 
@@ -41,22 +42,30 @@ typedef struct builtin_T {
 extern void init_builtin(void);
 extern const builtin_T *get_builtin(const char *name)
     __attribute__((pure));
+
+extern int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2);
+extern bool validate_operand_count(size_t count, size_t min, size_t max);
+extern int insufficient_operands_error(size_t min_required_operand_count);
+extern int too_many_operands_error(size_t max_accepted_operand_count);
+extern int special_builtin_syntax_error(int exitstatus);
+
 extern int print_builtin_help(const wchar_t *name)
+    __attribute__((nonnull));
+extern bool print_shopts(bool include_normal_options);
+extern bool print_option_list(const struct xgetopt_T *options)
     __attribute__((nonnull));
 
 extern int true_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char colon_help[], colon_syntax[], true_help[], true_syntax[];
+
 extern int false_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char false_help[], false_syntax[];
+
 extern int help_builtin(int argc, void **argv)
     __attribute__((nonnull));
-
-
-#define SPECIAL_BI_ERROR                                                    \
-    if (posixly_correct && special_builtin_executed && !is_interactive_now) \
-	exit_shell_with_status(Exit_ERROR);                                 \
-    else                                                                    \
-	do { } while (0)
+extern const char help_help[], help_syntax[];
 
 
 #endif /* YASH_BUILTIN_H */

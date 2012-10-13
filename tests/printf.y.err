@@ -1,3 +1,2 @@
 printf: `--no-such-option' is not a valid option
-Usage:  printf format [value...]
-Usage:  printf format [value...]
+printf: this command requires an operand

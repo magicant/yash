@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+#include "util.h"
 
 
 /* The structure type of doubly-linked list node. */
@@ -82,8 +83,13 @@ extern void end_using_history(void);
 
 extern int fc_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char fc_help[], fc_syntax[];
+extern const struct xgetopt_T fc_options[];
+
 extern int history_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char history_help[], history_syntax[];
+extern const struct xgetopt_T history_options[];
 
 
 #endif /* YASH_HISTORY_H */

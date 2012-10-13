@@ -1130,7 +1130,6 @@ enum fcprinttype_T {
 
 static struct search_result_T fc_search_entry(const wchar_t *name, int number)
     __attribute__((nonnull));
-static int fc_builtin_error(void);
 static void fc_update_history(void);
 static void fc_remove_last_entry(void);
 static histlink_T *fc_search_entry_by_prefix(const wchar_t *prefix)
@@ -1150,7 +1149,6 @@ static int fc_edit_and_exec_entries(
     __attribute__((nonnull(1,2)));
 static void fc_read_history(FILE *f, bool quiet)
     __attribute__((nonnull));
-static int history_builtin_error(void);
 static void history_clear_all(void);
 static int history_delete(const wchar_t *s)
     __attribute__((nonnull));
@@ -1159,6 +1157,20 @@ static int history_read(const wchar_t *s)
 static int history_write(const wchar_t *s)
     __attribute__((nonnull));
 static void history_refresh_file(void);
+
+const struct xgetopt_T fc_options[] = {
+    { L'e', L"editor",     OPTARG_REQUIRED, true,  NULL, },
+    { L'l', L"list",       OPTARG_NONE,     true,  NULL, },
+    { L'n', L"no-numbers", OPTARG_NONE,     true,  NULL, },
+    { L'q', L"quiet",      OPTARG_NONE,     false, NULL, },
+    { L'r', L"reverse",    OPTARG_NONE,     true,  NULL, },
+    { L's', L"silent",     OPTARG_NONE,     true,  NULL, },
+    { L'v', L"verbose",    OPTARG_NONE,     false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",       OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
 
 /* The "fc" built-in, which accepts the following options:
  *  -e: specify the editor to edit history
@@ -1169,27 +1181,13 @@ static void history_refresh_file(void);
  *  -v: print time for each entry */
 int fc_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'e', L"editor",     OPTARG_REQUIRED, true,  NULL, },
-	{ L'l', L"list",       OPTARG_NONE,     true,  NULL, },
-	{ L'n', L"no-numbers", OPTARG_NONE,     true,  NULL, },
-	{ L'q', L"quiet",      OPTARG_NONE,     false, NULL, },
-	{ L'r', L"reverse",    OPTARG_NONE,     true,  NULL, },
-	{ L's', L"silent",     OPTARG_NONE,     true,  NULL, },
-	{ L'v', L"verbose",    OPTARG_NONE,     false, NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",       OPTARG_NONE,     false, NULL, },
-#endif
-	{ L'\0', NULL, 0, false, NULL, },
-    };
-
     const wchar_t *editor = NULL;
     bool list = false, quiet = false, rev = false, silent = false;
     enum fcprinttype_T ptype = FC_NUMBERED;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, XGETOPT_DIGIT))) {
+    while ((opt = xgetopt(argv, fc_options, XGETOPT_DIGIT))) {
 	switch (opt->shortopt) {
 	    case L'e':  editor = xoptarg;        break;
 	    case L'l':  list   = true;           break;
@@ -1203,16 +1201,27 @@ int fc_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return fc_builtin_error();
+		return Exit_ERROR;
 	}
     }
-    if ((editor && (list || silent))
-	    || (list && (quiet || silent))
-	    || (rev && silent)
-	    || (ptype != FC_NUMBERED && !list)
-	    || (argc - xoptind > 2)
-	    || (silent && argc - xoptind > 1))
-	return fc_builtin_error();
+
+    /* error checks */
+    if (editor && list)
+	return mutually_exclusive_option_error(L'e', L'l');
+    if (editor && silent)
+	return mutually_exclusive_option_error(L'e', L's');
+    if (list && quiet)
+	return mutually_exclusive_option_error(L'l', L'q');
+    if (list && silent)
+	return mutually_exclusive_option_error(L'l', L's');
+    if (rev && silent)
+	return mutually_exclusive_option_error(L'r', L's');
+    if (ptype != FC_NUMBERED && !list) {
+	xerror(0, Ngt("the -n or -v option must be used with the -l option"));
+	return Exit_ERROR;
+    }
+    if (!validate_operand_count(argc - xoptind, 0, silent ? 1 : 2))
+	return Exit_ERROR;
     if (hist_lock) {
 	xerror(0, Ngt("cannot be used during line-editing"));
 	return Exit_FAILURE;
@@ -1326,19 +1335,6 @@ struct search_result_T fc_search_entry(const wchar_t *name, int number)
 	assert(result.prev != Histlist || result.next != Histlist);
     }
     return result;
-}
-
-int fc_builtin_error(void)
-{
-    if (posixly_correct)
-	fprintf(stderr, gt("Usage:  fc [-r] [-e editor] [first [last]]\n"
-	                   "        fc -s [old=new] [first]\n"
-	                   "        fc -l [-nr] [first [last]]\n"));
-    else
-	fprintf(stderr, gt("Usage:  fc [-qr] [-e editor] [first [last]]\n"
-	                   "        fc -s [-q] [old=new] [first]\n"
-	                   "        fc -l [-nrv] [first [last]]\n"));
-    return Exit_ERROR;
 }
 
 void fc_update_history(void)
@@ -1583,6 +1579,31 @@ void fc_read_history(FILE *f, bool quiet)
     }
 }
 
+#if YASH_ENABLE_HELP
+const char fc_help[] = Ngt(
+"list or re-execute command history"
+);
+const char fc_syntax[] = Ngt(
+"\tfc [-qr] [-e editor] [first [last]]\n"
+"\tfc -s [-q] [old=new] [first]\n"
+"\tfc -l [-nrv] [first [last]]\n"
+);
+#endif
+
+/* Options for the "history" built-in. */
+const struct xgetopt_T history_options[] = {
+    { L'c', L"clear",      OPTARG_NONE,     true,  NULL, },
+    { L'd', L"delete",     OPTARG_REQUIRED, true,  NULL, },
+    { L'r', L"read",       OPTARG_REQUIRED, true,  NULL, },
+    { L's', L"set",        OPTARG_REQUIRED, true,  NULL, },
+    { L'w', L"write",      OPTARG_REQUIRED, true,  NULL, },
+    { L'F', L"flush-file", OPTARG_NONE,     true,  NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",       OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "history" built-in, which accepts the following options:
  *  -c: clear whole history
  *  -d: remove history entry
@@ -1592,19 +1613,6 @@ void fc_read_history(FILE *f, bool quiet)
  *  -F: flush history file */
 int history_builtin(int argc, void **argv)
 {
-    static const struct xgetopt_T options[] = {
-	{ L'c', L"clear",      OPTARG_NONE,     true,  NULL, },
-	{ L'd', L"delete",     OPTARG_REQUIRED, true,  NULL, },
-	{ L'r', L"read",       OPTARG_REQUIRED, true,  NULL, },
-	{ L's', L"set",        OPTARG_REQUIRED, true,  NULL, },
-	{ L'w', L"write",      OPTARG_REQUIRED, true,  NULL, },
-	{ L'F', L"flush-file", OPTARG_NONE,     true,  NULL, },
-#if YASH_ENABLE_HELP
-	{ L'-', L"help",       OPTARG_NONE,     false, NULL, },
-#endif
-        { L'\0', NULL, 0, false, NULL, },
-    };
-
     if (hist_lock) {
 	xerror(0, Ngt("cannot be used during line-editing"));
 	return Exit_FAILURE;
@@ -1617,7 +1625,7 @@ int history_builtin(int argc, void **argv)
     /* process options */
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, history_options, 0)) != NULL) {
 	hasoption = true;
 	switch (opt->shortopt) {
 	    case L'c':
@@ -1648,7 +1656,7 @@ int history_builtin(int argc, void **argv)
 		break;
 #endif
 	    default:
-		return history_builtin_error();
+		return Exit_ERROR;
 	}
 	if (result != Exit_SUCCESS)
 	    return result;
@@ -1657,10 +1665,8 @@ int history_builtin(int argc, void **argv)
     /* print history */
     int count;
     if (xoptind < argc) {
-	if (xoptind + 1 != argc) {
-	    xerror(0, Ngt("too many operands are specified"));
-	    return history_builtin_error();
-	}
+	if (!validate_operand_count(argc - xoptind, 0, 1))
+	    return Exit_ERROR;
 
 	if (!xwcstoi(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
@@ -1681,13 +1687,6 @@ int history_builtin(int argc, void **argv)
     return fc_print_entries(stdout,
 	    ashistentry(start), ashistentry(histlist.Newest),
 	    false, FC_NUMBERED);
-}
-
-int history_builtin_error(void)
-{
-    fprintf(stderr, gt("Usage:  history [-cF] [-d entry] "
-		"[-s command] [-r file] [-w file] [n]\n"));
-    return Exit_ERROR;
 }
 
 /* Clears all the history. */
@@ -1828,6 +1827,15 @@ void history_refresh_file(void)
 	}
     }
 }
+
+#if YASH_ENABLE_HELP
+const char history_help[] = Ngt(
+"manage command history"
+);
+const char history_syntax[] = Ngt(
+"\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [count]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

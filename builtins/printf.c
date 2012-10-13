@@ -262,6 +262,15 @@ print_char:
     return PR_OK;
 }
 
+#if YASH_ENABLE_HELP
+const char echo_help[] = Ngt(
+"print arguments"
+);
+const char echo_syntax[] = Ngt(
+"\techo [string...]\n"
+);
+#endif
+
 
 /* The "printf" built-in. */
 int printf_builtin(int argc, void **argv)
@@ -274,13 +283,12 @@ int printf_builtin(int argc, void **argv)
 	    case L'-':
 		return print_builtin_help(ARGV(0));
 #endif
-	    default:  print_usage:
-		fprintf(stderr, gt("Usage:  printf format [value...]\n"));
+	    default:
 		return Exit_ERROR;
 	}
     }
     if (xoptind == argc)
-	goto print_usage;
+	return insufficient_operands_error(1);
 
     /* parse the format string */
     struct format_T *format = NULL;
@@ -745,6 +753,15 @@ void freeformat(struct format_T *f)
 	f = next;
     }
 }
+
+#if YASH_ENABLE_HELP
+const char printf_help[] = Ngt(
+"print a formatted string"
+);
+const char printf_syntax[] = Ngt(
+"\tprintf format [value...]\n"
+);
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

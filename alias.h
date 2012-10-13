@@ -20,6 +20,8 @@
 #define YASH_ALIAS_H
 
 #include <stddef.h>
+#include "util.h"
+
 
 struct xwcsbuf_T;
 struct aliaslist_T;
@@ -45,8 +47,13 @@ extern _Bool print_alias_if_defined(
 
 extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char alias_help[], alias_syntax[];
+extern const struct xgetopt_T alias_options[];
+
 extern int unalias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+extern const char unalias_help[], unalias_syntax[];
+extern const struct xgetopt_T unalias_options[];
 
 
 #endif /* YASH_ALIAS_H */

@@ -40,4 +40,6 @@ alias output error 1 1
 alias output error 2 1
 alias output error 3 1
 unalias no-such-option 2
+unalias too-many-operands 2
+unalias insufficient-operand 2
 unalias no-such-alias 1
