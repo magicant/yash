@@ -1914,8 +1914,14 @@ const char typeset_help[] = Ngt(
 const char typeset_syntax[] = Ngt(
 "\ttypeset [-fgprxX] [name[=value]...]\n"
 );
+const char export_help[] = Ngt(
+"export variables as environment variables"
+);
 const char export_syntax[] = Ngt(
 "\texport [-prX] [name[=value]...]\n"
+);
+const char readonly_help[] = Ngt(
+"make variables read-only"
 );
 const char readonly_syntax[] = Ngt(
 "\treadonly [-fpxX] [name[=value]...]\n"

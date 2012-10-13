@@ -140,8 +140,8 @@ extern _Bool parse_dirstack_index(
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
-extern const char typeset_help[], typeset_syntax[], export_syntax[],
-	readonly_syntax[];
+extern const char typeset_help[], typeset_syntax[], export_help[],
+	export_syntax[], readonly_help[], readonly_syntax[];
 extern const struct xgetopt_T typeset_options[];
 
 extern int array_builtin(int argc, void **argv)

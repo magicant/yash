@@ -127,9 +127,9 @@ void init_builtin(void)
     /* defined in "variable.c" */
     DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help,
 	    typeset_syntax, typeset_options);
-    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, typeset_help,
+    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
 	    export_syntax, typeset_options);
-    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, typeset_help,
+    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
 	    readonly_syntax, typeset_options);
 #if YASH_ENABLE_ARRAY
     DEFBUILTIN("array", array_builtin, BI_REGULAR, array_help, array_syntax,
