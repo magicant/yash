@@ -52,9 +52,11 @@ extern int special_builtin_syntax_error(int exitstatus);
 struct xgetopt_T;
 extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern bool print_shopts(bool include_normal_options);
 extern bool print_option_list(const struct xgetopt_T *options)
     __attribute__((nonnull));
+#endif
 
 extern int true_builtin(int argc, void **argv)
     __attribute__((nonnull));

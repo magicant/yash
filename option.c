@@ -766,6 +766,8 @@ wchar_t *get_hyphen_parameter(void)
     return wb_towcs(&buf);
 }
 
+#if YASH_ENABLE_HELP
+
 /* Prints a list of all shell options to the standard output.
  * Returns true iff successful. */
 bool print_shopts_body(bool include_normal_options)
@@ -795,6 +797,8 @@ bool print_shopts_body(bool include_normal_options)
 
     return true;
 }
+
+#endif /* YASH_ENABLE_HELP */
 
 
 /********** Built-in **********/

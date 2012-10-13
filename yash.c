@@ -344,6 +344,7 @@ void exit_shell_with_status(int status)
 /* Prints the help message to the standard output. */
 void print_help(void)
 {
+#if YASH_ENABLE_HELP
     const char *shell_name = posixly_correct ? "sh" : "yash";
     xprintf(gt(
 	    "Usage:  %s [options] [filename [args...]]\n"
@@ -356,6 +357,7 @@ void print_help(void)
     print_shopts(true);
 
     xprintf(gt("Try `man yash' for details.\n"));
+#endif /* YASH_ENABLE_HELP */
 }
 
 /* Prints the version info to the standard output. */
