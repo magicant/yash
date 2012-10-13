@@ -2979,19 +2979,19 @@ int popd_builtin(int argc, void **argv)
 	}
     }
 
+    const wchar_t *arg;
+    switch (argc - xoptind) {
+	case 0:   arg = L"+0";          break;
+	case 1:   arg = ARGV(xoptind);  break;
+	default:  return too_many_operands_error(1);
+    }
+
     variable_T *var = get_dirstack();
     if (var == NULL)
 	return Exit_FAILURE;
     if (var->v_valc == 0) {
 	xerror(0, Ngt("the directory stack is empty"));
 	return Exit_FAILURE;
-    }
-
-    const wchar_t *arg;
-    switch (argc - xoptind) {
-	case 0:   arg = L"+0";          break;
-	case 1:   arg = ARGV(xoptind);  break;
-	default:  return too_many_operands_error(1);
     }
 
     size_t stackindex;
