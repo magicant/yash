@@ -68,6 +68,9 @@ umask too-many-operands 2
 umask output error 1
 ===== typeset =====
 typeset no-such-option 2
+typeset invalid-option-combination 1 2
+typeset invalid-option-combination 2 2
+typeset invalid-option-combination 3 2
 typeset output error 1 1
 typeset output error 2 1
 typeset output error 3 1
@@ -86,10 +89,13 @@ shift shifting too many 1
 getopts no-such-option 2
 getopts operands missing 1 2
 getopts operands missing 2 2
+getopts invalid opt 1
+getopts invalid var 1
 ===== read =====
 read no-such-option 2
 read operands missing 2
 read input closed 1
+read invalid identifier 1
 ===== trap =====
 trap no-such-option 2
 trap operands missing 2
@@ -125,14 +131,16 @@ return too many operands 2
 return reached
 ===== break =====
 break no-such-option 2
+break invalid operand 1 2
 break not in loop 2
 break not in iteration 2
-break invalid operand 2
+break invalid operand 2 2
 ===== continue =====
 continue no-such-option 2
+continue invalid operand 1 2
 continue not in loop 2
 continue not in iteration 2
-continue invalid operand 2
+continue invalid operand 2 2
 ===== eval =====
 eval no-such-option 2
 ===== dot =====

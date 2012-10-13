@@ -167,10 +167,9 @@ int main(int argc, char **argv)
     } input;
     const char *inputname;
 
-    if (shopt_cmdline && shopt_stdin) {
-	xerror(0, Ngt("the -c and -s options cannot be used both at once"));
-	exit(Exit_ERROR);
-    }
+    if (shopt_cmdline && shopt_stdin)
+	exit(mutually_exclusive_option_error(L'c', L's'));
+
     if (shopt_cmdline) {
 	input.command = wargv[xoptind++];
 	if (input.command == NULL) {

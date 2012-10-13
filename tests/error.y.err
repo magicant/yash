@@ -8,10 +8,10 @@ getopts: this command requires 2 operands
 ../yash: parameter `var' is not set
 ===== invocation =====
 ../yash: the -c option is specified but no command is given
-../yash: the -c and -s options cannot be used both at once
-../yash: the -c and -s options cannot be used both at once
-../yash: the -c and -s options cannot be used both at once
-../yash: the -c and -s options cannot be used both at once
+../yash: the -c option cannot be used with the -s option
+../yash: the -c option cannot be used with the -s option
+../yash: the -c option cannot be used with the -s option
+../yash: the -c option cannot be used with the -s option
 ../yash: --norc=file: the --norcfile option does not take an argument
 ../yash: the --profile option requires an argument
 ../yash: the --rcfile option requires an argument
@@ -54,6 +54,9 @@ umask: `--no-such-option' is not a valid option
 umask: too many operands are specified
 ===== typeset =====
 typeset: `--no-such-option' is not a valid option
+typeset: the -f option cannot be used with the -x option
+typeset: the -f option cannot be used with the -X option
+typeset: the -x option cannot be used with the -X option
 typeset: $readonly is read-only
 ===== unset =====
 unset: `--no-such-option' is not a valid option
@@ -66,9 +69,12 @@ shift: 10000: cannot shift so many (there are only 0 positional parameters)
 getopts: `--no-such-option' is not a valid option
 getopts: this command requires 2 operands
 getopts: this command requires 2 operands
+getopts: `a::' is not a valid option specification
+getopts: `var=iable' is not a valid variable name
 ===== read =====
 read: `--no-such-option' is not a valid option
 read: this command requires an operand
+read: `b=r' is not a valid variable name
 ===== trap =====
 trap: `--no-such-option' is not a valid option
 trap: this command requires 2 operands
@@ -97,11 +103,13 @@ return: too many operands are specified
 return: cannot be used in the interactive mode
 ===== break =====
 break: `--no-such-option' is not a valid option
+break: too many operands are specified
 break: not in a loop
 break: not in an iteration
 break: no operand is expected
 ===== continue =====
 continue: `--no-such-option' is not a valid option
+continue: too many operands are specified
 continue: not in a loop
 continue: not in an iteration
 continue: no operand is expected

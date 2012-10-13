@@ -1643,12 +1643,16 @@ int typeset_builtin(int argc, void **argv)
 	    || wcscmp(ARGV(0), L"set") == 0);
     }
 
-    if (function && (export || unexport)) {
-	xerror(0, Ngt("the -f option cannot be used with the -x or -X option"));
+    if (function && export) {
+	mutually_exclusive_option_error(L'f', L'x');
+	SPECIAL_BI_ERROR;
+	return Exit_ERROR;
+    } else if (function && unexport) {
+	mutually_exclusive_option_error(L'f', L'X');
 	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     } else if (export && unexport) {
-	xerror(0, Ngt("the -x and -X options cannot be used both at once"));
+	mutually_exclusive_option_error(L'x', L'X');
 	SPECIAL_BI_ERROR;
 	return Exit_ERROR;
     }

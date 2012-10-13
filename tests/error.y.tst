@@ -4,6 +4,7 @@
 # error tests for alias/unalias are in alias.y.tst
 # error tests for array are in array.y.tst
 # error tests for help are in help.y.tst
+# error tests for fg/bg are in job.y.tst
 # error tests for fc/history are in history.y.tst
 # error tests for pushd/popd/dirs are in dirstack.y.tst
 
@@ -222,6 +223,12 @@ echo ===== typeset ===== >&2
 
 typeset --no-such-option
 echo typeset no-such-option $?
+typeset -f -x foo
+echo typeset invalid-option-combination 1 $?
+typeset -f -X foo
+echo typeset invalid-option-combination 2 $?
+typeset -x -X foo
+echo typeset invalid-option-combination 3 $?
 (typeset >&- 2>/dev/null)
 echo typeset output error 1 $?
 (typeset -p >&- 2>/dev/null)
@@ -267,6 +274,10 @@ getopts
 echo getopts operands missing 1 $?
 getopts a
 echo getopts operands missing 2 $?
+getopts a:: var
+echo getopts invalid opt $?
+getopts abc var=iable
+echo getopts invalid var $?
 
 echo ===== read =====
 echo ===== read ===== >&2
@@ -277,6 +288,8 @@ read
 echo read operands missing $?
 read read <&- 2>/dev/null
 echo read input closed $?
+read foo b=r baz
+echo read invalid identifier $?
 
 echo ===== trap =====
 echo ===== trap ===== >&2
@@ -377,6 +390,10 @@ echo ===== break ===== >&2
 break --no-such-option
 echo break no-such-option $?
 (
+break 1 foo
+echo break invalid operand 1 $?
+)
+(
 break
 echo break not in loop $?
 )
@@ -386,7 +403,7 @@ echo break not in iteration $?
 )
 (
 break -i foo
-echo break invalid operand $?
+echo break invalid operand 2 $?
 )
 
 echo ===== continue =====
@@ -394,6 +411,10 @@ echo ===== continue ===== >&2
 
 continue --no-such-option
 echo continue no-such-option $?
+(
+continue 1 foo
+echo continue invalid operand 1 $?
+)
 (
 continue
 echo continue not in loop $?
@@ -404,7 +425,7 @@ echo continue not in iteration $?
 )
 (
 continue -i foo
-echo continue invalid operand $?
+echo continue invalid operand 2 $?
 )
 
 echo ===== eval =====
