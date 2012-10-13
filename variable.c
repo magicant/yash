@@ -2837,39 +2837,38 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	}
     }
 
+    if (!validate_operand_count(argc - xoptind, 0, 1))
+	return Exit_ERROR;
+
     const wchar_t *oldpwd = getvar(L VAR_PWD);
     if (oldpwd == NULL) {
 	xerror(0, Ngt("$PWD is not set"));
 	return Exit_FAILURE;
     }
 
-    bool printnewdir = false;
+    bool useoldpwd = false;
+    if (xoptind < argc) {
+	newpwd = ARGV(xoptind);
+	if (wcscmp(newpwd, L"-") == 0)
+	    useoldpwd = true;
+    }
+
     size_t stackindex;
-    switch (argc - xoptind) {
-	case 1:
-	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
-		newpwd = getvar(L VAR_OLDPWD);
-		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$OLDPWD is not set"));
-		    return Exit_FAILURE;
-		}
-		printnewdir = true;
-		stackindex = SIZE_MAX;
-		break;
-	    }
-	    newpwd = ARGV(xoptind);
-	    /* falls thru! */
-	case 0:
-	    if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
-		return Exit_FAILURE;
-	    break;
-	default:
-	    return too_many_operands_error(1);
+    if (useoldpwd) {
+	newpwd = getvar(L VAR_OLDPWD);
+	stackindex = SIZE_MAX;
+	if (newpwd == NULL || newpwd[0] == L'\0') {
+	    xerror(0, Ngt("$OLDPWD is not set"));
+	    return Exit_FAILURE;
+	}
+    } else {
+	if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
+	    return Exit_FAILURE;
     }
     assert(newpwd != NULL);
 
     wchar_t *saveoldpwd = xwcsdup(oldpwd);
-    int result = change_directory(newpwd, printnewdir, logical);
+    int result = change_directory(newpwd, useoldpwd, logical);
 #ifndef NDEBUG
     newpwd = NULL;  /* newpwd cannot be used anymore. */
 #endif
