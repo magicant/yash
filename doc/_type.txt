@@ -8,7 +8,7 @@ The dfn:[type built-in] identifies a command.
 [[syntax]]
 == Syntax
 
-- +type [-abefkp] {{command}}...+
+- +type [-abefkp] [{{command}}...]+
 
 [[description]]
 == Description
@@ -22,5 +22,8 @@ with the +-V+ option.
 The POSIX standard does not define the relation between the type and command
 built-ins.
 The standard does not define options for the type built-in.
+
+At least one {{command}} operand must be specified in the
+link:posix.html[POSIXly-correct mode].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

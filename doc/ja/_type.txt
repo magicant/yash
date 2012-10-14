@@ -8,7 +8,7 @@ dfn:[Type 組込みコマンド]はコマンドの種類を特定します。
 [[syntax]]
 == 構文
 
-- +type [-abefkp] {{コマンド}}...+
+- +type [-abefkp] [{{コマンド}}...]+
 
 [[description]]
 == 説明
@@ -19,5 +19,7 @@ Type コマンドは link:_command.html[command コマンド]に +-V+ オプシ�
 == 補足
 
 POSIX では、type コマンドと command コマンドとの関係について規定していません。従って他のシェルの type コマンドは command コマンドに +-V+ オプションを付けたものとは異なる動作をすることがあります。また POSIX は type コマンドのオプションを規定していません。
+
+link:posix.html[POSIX 準拠モード]では少なくとも一つ{{コマンド}}を指定する必要があります。
 
 // vim: set filetype=asciidoc expandtab:

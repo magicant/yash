@@ -55,4 +55,7 @@ Although yash does not do so, the POSIX standard allows removing a function if
 neither of the +-f+ and +-v+ options is specified and the specified variable
 does not exist.
 
+At least one {{name}} operand must be specified in the
+link:posix.html[POSIXly-correct mode].
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

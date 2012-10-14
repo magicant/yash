@@ -48,4 +48,6 @@ Unset コマンドはlink:builtin.html#types[特殊組込みコマンド]です�
 
 POSIX では、+-f+ と +-v+ のどちらのオプションも指定されていない場合、指定した名前の変数がない場合はかわりにその名前の関数を削除してよいと規定しています。
 
+link:posix.html[POSIX 準拠モード]では少なくとも一つ{{名前}}を指定する必要があります。
+
 // vim: set filetype=asciidoc expandtab:
