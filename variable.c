@@ -2235,6 +2235,9 @@ int unset_builtin(int argc, void **argv)
 	}
     }
 
+    if (posixly_correct && xoptind == argc)
+	return insufficient_operands_error(1);
+
     for (; xoptind < argc; xoptind++) {
 	const wchar_t *name = ARGV(xoptind);
 	if (function) {
