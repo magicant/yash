@@ -2135,8 +2135,8 @@ int command_builtin(int argc, void **argv)
 	return command_builtin_execute(
 		argc - xoptind, &argv[xoptind], type);
     } else {
-	if (!argv0istype && posixly_correct
-		&& !validate_operand_count(argc - xoptind, 1, 1))
+	if (posixly_correct && !validate_operand_count(argc - xoptind, 1,
+		    argv0istype ? SIZE_MAX : 1))
 	    return Exit_ERROR;
 
 	if (type == 0 && !aliases && !keywords) {
