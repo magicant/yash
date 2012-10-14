@@ -1093,6 +1093,9 @@ int fg_builtin(int argc, void **argv)
 	}
     }
 
+    if (fg && posixly_correct && !validate_operand_count(argc - xoptind, 0, 1))
+	return Exit_ERROR;
+
     if (!doing_job_control_now) {
 	xerror(0, Ngt("job control is disabled"));
 	return Exit_FAILURE;
@@ -1102,10 +1105,6 @@ int fg_builtin(int argc, void **argv)
     job_T *job;
 
     if (xoptind < argc) {
-	if (fg && posixly_correct
-		&& !validate_operand_count(argc - xoptind, 0, 1))
-	    return Exit_ERROR;
-
 	do {
 	    const wchar_t *jobspec = ARGV(xoptind);
 	    if (jobspec[0] == L'%') {
