@@ -416,6 +416,8 @@ int bindkey_builtin(int argc, void **argv)
     le_keymap_init();
 
     if (list) {
+	if (!validate_operand_count(argc - xoptind, 0, 0))
+	    return Exit_ERROR;
 	if (mode != LE_MODE_N) {
 	    xerror(0, Ngt("option combination is invalid"));
 	    return Exit_ERROR;

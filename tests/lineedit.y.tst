@@ -453,7 +453,9 @@ echo bindkey no-such-option $?
 bindkey
 echo bindkey operand missing $?
 bindkey -v x y z
-echo bindkey too many operands $?
+echo bindkey too many operands 1 $?
+bindkey -l x
+echo bindkey too many operands 2 $?
 bindkey -v '\\' no-such-command
 echo bindkey invalid operand 1 $?
 bindkey -v '' abort-line
