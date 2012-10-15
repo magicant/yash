@@ -54,6 +54,9 @@ struct resource {
 };
 
 static int print_all_limits(bool soft);
+static void print_limit_value(bool soft, const struct rlimit *rlimit,
+	const struct resource *resource)
+    __attribute__((nonnull));
 
 #define RES(type,factor,desc) \
     (struct resource) { type, factor, desc, }
@@ -169,13 +172,9 @@ int ulimit_builtin(int argc, void **argv)
 			gt(resource->description));
 	return Exit_FAILURE;
     }
+
     if (xoptind == argc) {
-	/* print value */
-	rlim_t value = (type & SOFT) ? rlimit.rlim_cur : rlimit.rlim_max;
-	if (value == RLIM_INFINITY)
-	    xprintf("%s\n", gt("unlimited"));
-	else
-	    xprintf("%ju\n", (uintmax_t) (value / resource->factor));
+	print_limit_value(type & SOFT, &rlimit, resource);
 	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
     } else {
 	/* set value */
@@ -248,15 +247,21 @@ int print_all_limits(bool soft)
 	    continue;
 	}
 
-	rlim_t value = soft ? rlimit.rlim_cur : rlimit.rlim_max;
 	xprintf(gt("-%lc: %-30s "),
 		(wint_t) opt->shortopt, gt(resource->description));
-	if (value == RLIM_INFINITY)
-	    xprintf("%s\n", gt("unlimited"));
-	else
-	    xprintf("%ju\n", (uintmax_t) (value / resource->factor));
+	print_limit_value(soft, &rlimit, resource);
     }
     return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
+}
+
+void print_limit_value(bool soft, const struct rlimit *rlimit,
+	const struct resource *resource)
+{
+    rlim_t value = soft ? rlimit->rlim_cur : rlimit->rlim_max;
+    if (value == RLIM_INFINITY)
+	xprintf("%s\n", gt("unlimited"));
+    else
+	xprintf("%ju\n", (uintmax_t) (value / resource->factor));
 }
 
 #if YASH_ENABLE_HELP
