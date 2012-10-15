@@ -121,6 +121,7 @@ const struct xgetopt_T ulimit_options[] = {
 int ulimit_builtin(int argc, void **argv)
 {
     enum { HARD = 1 << 0, SOFT = 1 << 1, } type = HARD | SOFT;
+    wchar_t resourceoption = L'\0';
     const struct resource *resource = &res_fsize;
     bool print_all = false;
 
@@ -137,6 +138,7 @@ int ulimit_builtin(int argc, void **argv)
 #endif
 	    default:
 		if (opt->ptr != NULL) {
+		    resourceoption = opt->shortopt;
 		    resource = opt->ptr;
 		    break;
 		} else {
@@ -149,6 +151,8 @@ int ulimit_builtin(int argc, void **argv)
 
     assert(type & (HARD | SOFT));
     if (print_all) {
+	if (resourceoption != L'\0')
+	    return mutually_exclusive_option_error(L'a', resourceoption);
 	if (!validate_operand_count(argc - xoptind, 0, 0))
 	    return Exit_ERROR;
 
