@@ -53,6 +53,8 @@ struct resource {
     const char *description;
 };
 
+static int print_all_limits(bool soft);
+
 #define RES(type,factor,desc) \
     (struct resource) { type, factor, desc, }
 
@@ -147,8 +149,6 @@ int ulimit_builtin(int argc, void **argv)
 	}
     }
 
-    struct rlimit rlimit;
-
     assert(type & (HARD | SOFT));
     if (print_all) {
 	if (resourceoption != L'\0')
@@ -156,32 +156,13 @@ int ulimit_builtin(int argc, void **argv)
 	if (!validate_operand_count(argc - xoptind, 0, 0))
 	    return Exit_ERROR;
 
-	for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
-	    resource = opt->ptr;
-	    if (resource == NULL)
-		continue;
-
-	    if (getrlimit(resource->type, &rlimit) < 0) {
-		xerror(errno, Ngt("cannot get the current limit "
-				"for the resource type of `%s'"),
-				gt(resource->description));
-		continue;
-	    }
-
-	    rlim_t value = (type & SOFT) ? rlimit.rlim_cur : rlimit.rlim_max;
-	    xprintf(gt("-%lc: %-30s "),
-		    (wint_t) opt->shortopt, gt(resource->description));
-	    if (value == RLIM_INFINITY)
-		xprintf("%s\n", gt("unlimited"));
-	    else
-		xprintf("%ju\n", (uintmax_t) (value / resource->factor));
-	}
-	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
+	return print_all_limits(type & SOFT);
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
 	return Exit_ERROR;
 
+    struct rlimit rlimit;
     if (getrlimit(resource->type, &rlimit) < 0) {
 	xerror(errno, Ngt("cannot get the current limit "
 			"for the resource type of `%s'"),
@@ -247,6 +228,35 @@ int ulimit_builtin(int argc, void **argv)
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
     return Exit_ERROR;
+}
+
+/* Prints all current ulimit values to the standard output.
+ * Returns the exit status of the ulimit built-in. */
+int print_all_limits(bool soft)
+{
+    const struct xgetopt_T *opt;
+    for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
+	const struct resource *resource = opt->ptr;
+	if (resource == NULL)
+	    continue;
+
+	struct rlimit rlimit;
+	if (getrlimit(resource->type, &rlimit) < 0) {
+	    xerror(errno, Ngt("cannot get the current limit "
+			    "for the resource type of `%s'"),
+			    gt(resource->description));
+	    continue;
+	}
+
+	rlim_t value = soft ? rlimit.rlim_cur : rlimit.rlim_max;
+	xprintf(gt("-%lc: %-30s "),
+		(wint_t) opt->shortopt, gt(resource->description));
+	if (value == RLIM_INFINITY)
+	    xprintf("%s\n", gt("unlimited"));
+	else
+	    xprintf("%ju\n", (uintmax_t) (value / resource->factor));
+    }
+    return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 #if YASH_ENABLE_HELP
