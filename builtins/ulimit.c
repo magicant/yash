@@ -149,6 +149,9 @@ int ulimit_builtin(int argc, void **argv)
 
     assert(type & (HARD | SOFT));
     if (print_all) {
+	if (!validate_operand_count(argc - xoptind, 0, 0))
+	    return Exit_ERROR;
+
 	for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
 	    resource = opt->ptr;
 	    if (resource == NULL)

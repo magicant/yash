@@ -8,7 +8,8 @@ dfn:[Ulimit 組込みコマンド]はシェルプロセスのリソース制限�
 [[syntax]]
 == 構文
 
-- +ulimit [-HSaefilnqrstuvx] [{{値}}]+
+- +ulimit -a [-H|-S]+
+- +ulimit [-H|-S] [-efilnqrstuvx] [{{値}}]+
 
 [[description]]
 == 説明

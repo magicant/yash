@@ -142,3 +142,4 @@ suspend: no operand is expected
 ===== ulimit =====
 ulimit: `xxx' is not a valid integer
 ulimit: too many operands are specified
+ulimit: no operand is expected

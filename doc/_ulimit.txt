@@ -8,7 +8,8 @@ The dfn:[ulimit built-in] sets or prints a resource limit.
 [[syntax]]
 == Syntax
 
-- +ulimit [-HSaefilnqrstuvx] [{{limit}}]+
+- +ulimit -a [-H|-S]+
+- +ulimit [-H|-S] [-efilnqrstuvx] [{{limit}}]+
 
 [[description]]
 == Description
