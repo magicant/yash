@@ -176,53 +176,54 @@ int ulimit_builtin(int argc, void **argv)
     if (xoptind == argc) {
 	print_limit_value(type & SOFT, &rlimit, resource);
 	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
-    } else {
-	/* set value */
-	rlim_t value;
-	if (wcscmp(ARGV(xoptind), L"hard") == 0) {
-	    value = rlimit.rlim_max;
-	} else if (wcscmp(ARGV(xoptind), L"soft") == 0) {
-	    value = rlimit.rlim_cur;
-	} else if (wcscmp(ARGV(xoptind), L"unlimited") == 0) {
-	    value = RLIM_INFINITY;
-	} else if (iswdigit(ARGV(xoptind)[0])) {
-	    unsigned long v;
-
-	    if (!xwcstoul(ARGV(xoptind), 10, &v))
-		goto err_format;
-	    value = (rlim_t) v * resource->factor;
-	    if (value / resource->factor != v || value == RLIM_INFINITY
-		    || value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
-		xerror(ERANGE, NULL);
-		return Exit_FAILURE;
-	    }
-	} else {
-	    goto err_format;
-	}
-	if (type & HARD)
-	    rlimit.rlim_max = value;
-	if (type & SOFT)
-	    rlimit.rlim_cur = value;
-	
-	/* check if soft limit exceeds hard limit */
-	if (rlimit.rlim_max != RLIM_INFINITY
-		&& rlimit.rlim_max != RLIM_SAVED_MAX
-		&& rlimit.rlim_max != RLIM_SAVED_CUR
-		&& (rlimit.rlim_cur == RLIM_INFINITY
-		    || (rlimit.rlim_cur != RLIM_SAVED_MAX
-			&& rlimit.rlim_cur != RLIM_SAVED_CUR
-			&& rlimit.rlim_cur > rlimit.rlim_max))) {
-	    xerror(0, Ngt("the soft limit cannot exceed the hard limit"));
-	    return Exit_FAILURE;
-	}
-
-	if (setrlimit(resource->type, &rlimit) < 0) {
-	    xerror(errno, Ngt("failed to set the limit"));
-	    return Exit_FAILURE;
-	}
-
-	return Exit_SUCCESS;
     }
+
+    /* parse the operand */
+    rlim_t value;
+    if (wcscmp(ARGV(xoptind), L"hard") == 0) {
+	value = rlimit.rlim_max;
+    } else if (wcscmp(ARGV(xoptind), L"soft") == 0) {
+	value = rlimit.rlim_cur;
+    } else if (wcscmp(ARGV(xoptind), L"unlimited") == 0) {
+	value = RLIM_INFINITY;
+    } else if (iswdigit(ARGV(xoptind)[0])) {
+	unsigned long v;
+
+	if (!xwcstoul(ARGV(xoptind), 10, &v))
+	    goto err_format;
+	value = (rlim_t) v * resource->factor;
+	if (value / resource->factor != v || value == RLIM_INFINITY
+		|| value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
+	    xerror(ERANGE, NULL);
+	    return Exit_FAILURE;
+	}
+    } else {
+	goto err_format;
+    }
+
+    if (type & HARD)
+	rlimit.rlim_max = value;
+    if (type & SOFT)
+	rlimit.rlim_cur = value;
+    
+    /* check if soft limit does not exceed hard limit */
+    if (rlimit.rlim_max != RLIM_INFINITY
+	    && rlimit.rlim_max != RLIM_SAVED_MAX
+	    && rlimit.rlim_max != RLIM_SAVED_CUR
+	    && (rlimit.rlim_cur == RLIM_INFINITY
+		|| (rlimit.rlim_cur != RLIM_SAVED_MAX
+		    && rlimit.rlim_cur != RLIM_SAVED_CUR
+		    && rlimit.rlim_cur > rlimit.rlim_max))) {
+	xerror(0, Ngt("the soft limit cannot exceed the hard limit"));
+	return Exit_FAILURE;
+    }
+
+    if (setrlimit(resource->type, &rlimit) < 0) {
+	xerror(errno, Ngt("failed to set the limit"));
+	return Exit_FAILURE;
+    }
+
+    return Exit_SUCCESS;
 
 err_format:
     xerror(0, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
