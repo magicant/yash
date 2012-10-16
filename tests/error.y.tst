@@ -530,7 +530,7 @@ echo suspend invalid operand $?
 echo ===== ulimit =====
 echo ===== ulimit ===== >&2
 
-if type ulimit 2>/dev/null | grep -q '^ulimit: regular builtin'; then
+if type ulimit 2>/dev/null | grep -q '^ulimit: a regular built-in'; then
     ulimit --no-such-option 2>/dev/null
     echo ulimit no-such-option $?
     ulimit -a -f
