@@ -586,7 +586,7 @@ const char help_help[] = Ngt(
 "print usage of built-in commands"
 );
 const char help_syntax[] = Ngt(
-"\thelp built-in\n"
+"\thelp [built-in...]\n"
 );
 
 #endif /* YASH_ENABLE_HELP */

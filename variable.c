@@ -2304,7 +2304,7 @@ const char unset_help[] = Ngt(
 "remove variables or functions"
 );
 const char unset_syntax[] = Ngt(
-"\tunset [-fv] name...\n"
+"\tunset [-fv] [name...]\n"
 );
 #endif
 
