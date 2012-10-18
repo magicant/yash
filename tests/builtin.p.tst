@@ -200,50 +200,43 @@ PATH=
 command -p echo PATH=
 PATH=$savepath
 
-if command -v echo >/dev/null 2>&1; then
-    commandv='command -v'
-    case "$(command -v echo)" in
-	/*/echo | /echo ) ;;
-	*               ) echo "\$(command -v echo) = $(command -v echo)"
-    esac
-    case "$(command -v ./invoke)" in
-	/*/invoke ) ;;
-	*         ) echo "\$(command -v ./invoke) = $(command -v ./invoke)"
-    esac
-    if PATH= command -v _no_such_command_; then
-	echo "\"command -v _no_such_command_\" returned zero status" >&2
-    fi
-else
-    commandv='echo'
+case "$(command -v echo)" in
+    /*/echo | /echo ) ;;
+    *               ) echo "\$(command -v echo) = $(command -v echo)"
+esac
+case "$(command -v ./invoke)" in
+    /*/invoke ) ;;
+    *         ) echo "\$(command -v ./invoke) = $(command -v ./invoke)"
+esac
+if PATH= command -v _no_such_command_; then
+    echo "\"command -v _no_such_command_\" returned zero status" >&2
 fi
-$($commandv echo) command -v
-$commandv retfunc
-$commandv if
-$commandv then
-$commandv else
-$commandv elif
-$commandv fi
-$commandv do
-$commandv done
-$commandv case
-$commandv esac
-$commandv while
-$commandv until
-$commandv for
-$commandv {
-$commandv }
-$commandv !
-$commandv in
-[ x"$($commandv cat)" = x"$($commandv $($commandv cat))" ] ||
+$(command -v echo) command -v
+command -v retfunc
+command -v if
+command -v then
+command -v else
+command -v elif
+command -v fi
+command -v do
+command -v done
+command -v case
+command -v esac
+command -v while
+command -v until
+command -v for
+command -v {
+command -v }
+command -v !
+command -v in
+[ x"$(command -v cat)" = x"$(command -v $(command -v cat))" ] ||
 echo "\"command -v\" not idempotent" >&2
 
-if command -V echo >/dev/null 2>&1; then
-    # output from "command -V echo" must include path for "echo"
-    case "$(command -V echo)" in
-	*$(command -v echo)*) ;;
-	*) echo "\$(command -V echo) = $(command -V echo)" ;;
-    esac
-fi
+# output from "command -V echo" must include path for "echo"
+case "$(command -V echo)" in
+    *$(command -v echo)*) ;;
+    *) echo "\$(command -V echo) = $(command -V echo)" ;;
+esac
 
 (
 command command exec >/dev/null
