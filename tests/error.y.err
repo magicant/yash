@@ -16,14 +16,12 @@ getopts: this command requires 2 operands
 ../yash: the --profile option requires an argument
 ../yash: the --rcfile option requires an argument
 ===== option =====
-set: the -o option requires an argument
-set: `-' is not a valid option
-set: `X' is not a valid option
-set: `no-such-option' is not a valid option
-set: --hel=1: the --help option does not take an argument
-set: --hel=: the --help option does not take an argument
-set: --help=1: the --help option does not take an argument
-set: --help=: the --help option does not take an argument
+exec: the -a option requires an argument
+exec: the --as option requires an argument
+exec: `-c-' is not a valid option
+exec: `-cXaY' is not a valid option
+exec: `--no-such-option' is not a valid option
+exec: --cle=1: the --clear option does not take an argument
 ===== set =====
 set: the cmdline option cannot be changed once the shell has been initialized
 set: the interactive option cannot be changed once the shell has been initialized

@@ -450,6 +450,8 @@ echo ===== error =====
 
 bindkey --no-such-option
 echo bindkey no-such-option $?
+bindkey --vi
+echo bindkey ambiguous-option $?
 bindkey
 echo bindkey operand missing $?
 bindkey -v x y z

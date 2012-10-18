@@ -100,41 +100,20 @@ echo ambiguous option $?
 echo ===== option =====
 echo ===== option ===== >&2
 
-set --cu 2>/dev/null
-echo ambiguous option 1 $?
-set --noh 2>/dev/null
-echo ambiguous option 2 $?
-set -o nolog +o nolog -o
-echo missing argument $?
-set -C-
-echo invalid option 1 $?
-set -aXb
-echo invalid option 2 $?
-set -o no-such-option
-echo invalid option 3 $?
-if command -vb help >/dev/null 2>&1; then
-    set --hel=1
-    echo invalid option argument 1 $?
-    set --hel=
-    echo invalid option argument 2 $?
-    set --help=1
-    echo invalid option argument 3 $?
-    set --help=
-    echo invalid option argument 4 $?
-else
-    cat <<\END
-invalid option argument 1 2
-invalid option argument 2 2
-invalid option argument 3 2
-invalid option argument 4 2
-END
-    cat >&2 <<\END
-set: --hel=1: the --help option does not take an argument
-set: --hel=: the --help option does not take an argument
-set: --help=1: the --help option does not take an argument
-set: --help=: the --help option does not take an argument
-END
-fi
+# Tests of option ambiguity are in lineedit.y.tst
+# because option ambiguity occurs in the complete and bindkey built-ins only.
+exec -a
+echo option missing argument short $?
+exec --as
+echo option missing argument long $?
+exec -c-
+echo option no-such-option 1 $?
+exec -cXaY
+echo option no-such-option 2 $?
+exec --no-such-option
+echo option no-such-option 3 $?
+exec --cle=1
+echo option invalid option argument $?
 
 echo ===== set =====
 echo ===== set ===== >&2

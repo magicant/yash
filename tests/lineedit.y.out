@@ -15,6 +15,7 @@ no bindings 0
 4 0
 ===== error =====
 bindkey no-such-option 2
+bindkey ambiguous-option 2
 bindkey operand missing 2
 bindkey too many operands 1 2
 bindkey too many operands 2 2

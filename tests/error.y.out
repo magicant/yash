@@ -22,16 +22,12 @@ missing argument profile 2
 missing argument rcfile 2
 ambiguous option 2
 ===== option =====
-ambiguous option 1 2
-ambiguous option 2 2
-missing argument 2
-invalid option 1 2
-invalid option 2 2
-invalid option 3 2
-invalid option argument 1 2
-invalid option argument 2 2
-invalid option argument 3 2
-invalid option argument 4 2
+option missing argument short 2
+option missing argument long 2
+option no-such-option 1 2
+option no-such-option 2 2
+option no-such-option 3 2
+option invalid option argument 2
 ===== set =====
 set -c 2
 set -i 2
