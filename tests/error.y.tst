@@ -160,9 +160,23 @@ echo set --stdin $?
 set --version
 echo set --version $?
 set --no-such-option
-echo set no-such-option $?
+echo set no-such-option 1 $?
+set -o no-such-option
+echo set no-such-option 2 $?
 (set >&- 2>/dev/null)
 echo set output error $?
+set --cu 2>/dev/null
+echo set ambiguous option 1 $?
+set --noh 2>/dev/null
+echo set ambiguous option 2 $?
+set -o nolog +o nolog -o
+echo set missing argument $?
+set -C-
+echo set invalid option 1 $?
+set -aXb
+echo set invalid option 2 $?
+$INVOKE $TESTEE --version=X
+echo set unexpected option argument $?
 
 echo ===== cd =====
 echo ===== cd ===== >&2
