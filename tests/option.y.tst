@@ -72,7 +72,7 @@ echo n*ll f[o/b]r f?o/b*r 1
 set +o nullglob
 echo n*ll f[o/b]r f?o/b*r 2
 
-# test of braceexpand is in "expand.tst"
+# test of braceexpand is in "expand.y.tst"
 
 cd - >/dev/null
 
