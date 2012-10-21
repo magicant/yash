@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* mail.c: mail checking */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "mail.h"
 #include <errno.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
@@ -30,7 +31,6 @@
 #include <wchar.h>
 #include "expand.h"
 #include "hashtable.h"
-#include "mail.h"
 #include "option.h"
 #include "parser.h"
 #include "plist.h"

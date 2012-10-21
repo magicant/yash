@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "sig.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -40,7 +41,6 @@
 #include "option.h"
 #include "parser.h"
 #include "redir.h"
-#include "sig.h"
 #include "siglist.h"
 #include "signum.h"
 #include "strbuf.h"

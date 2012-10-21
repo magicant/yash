@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* hashtable.c: hashtable library */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,11 @@
 
 
 #include "common.h"
+#include "hashtable.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "hashtable.h"
 #include "util.h"
 
 

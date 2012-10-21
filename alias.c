@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "alias.h"
 #include <assert.h>
 #include <errno.h>
 #if HAVE_GETTEXT
@@ -29,7 +30,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-#include "alias.h"
 #include "builtin.h"
 #include "exec.h"
 #include "expand.h"

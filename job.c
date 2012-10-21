@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "job.h"
 #include <assert.h>
 #include <errno.h>
 #if HAVE_GETTEXT
@@ -33,7 +34,6 @@
 #include <wctype.h>
 #include "builtin.h"
 #include "exec.h"
-#include "job.h"
 #include "option.h"
 #include "plist.h"
 #include "redir.h"

@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "ulimit.h"
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -33,7 +34,6 @@
 #include "../builtin.h"
 #include "../exec.h"
 #include "../util.h"
-#include "ulimit.h"
 /* Including <stdint.h> is required before including <sys/resource.h> on
  * FreeBSD, but <stdint.h> is automatically included in <inttypes.h>. */
 /* On old Mac OS X, <sys/resource.h> depends on but does not include

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* trie.c: trie library for lineedit */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "trie.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,7 +25,6 @@
 #include <sys/types.h>
 #include "../strbuf.h"
 #include "../util.h"
-#include "trie.h"
 
 
 typedef union triekey_T {

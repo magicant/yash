@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "arith.h"
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
@@ -29,7 +30,6 @@
 #include <wchar.h>
 #include <sys/types.h>
 /* #include <wctype.h> */
-#include "arith.h"
 #include "option.h"
 #include "strbuf.h"
 #include "util.h"

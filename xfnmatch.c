@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "xfnmatch.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -25,7 +26,6 @@
 #include <regex.h>
 #include "strbuf.h"
 #include "util.h"
-#include "xfnmatch.h"
 /* On old Mac OS X, <regex.h> requires `size_t' be already defined, hence it is
  * included after <stdlib.h>. */
 

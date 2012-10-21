@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "variable.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -47,7 +48,6 @@
 #include "sig.h"
 #include "strbuf.h"
 #include "util.h"
-#include "variable.h"
 #include "xfnmatch.h"
 #include "yash.h"
 #if YASH_ENABLE_LINEEDIT

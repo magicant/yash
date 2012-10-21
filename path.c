@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "path.h"
 #include <assert.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -44,7 +45,6 @@
 #include "expand.h"
 #include "hashtable.h"
 #include "option.h"
-#include "path.h"
 #include "plist.h"
 #include "redir.h"
 #include "sig.h"

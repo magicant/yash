@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* lineedit.c: command line editing */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "lineedit.h"
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -34,7 +35,6 @@
 #include "editing.h"
 #include "key.h"
 #include "keymap.h"
-#include "lineedit.h"
 #include "terminfo.h"
 #include "trie.h"
 

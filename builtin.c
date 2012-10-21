@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "builtin.h"
 #include <assert.h>
 #include <errno.h>
 #if HAVE_GETTEXT
@@ -29,7 +30,6 @@
 #if YASH_ENABLE_ALIAS
 # include "alias.h"
 #endif
-#include "builtin.h"
 #include "exec.h"
 #include "hashtable.h"
 #if YASH_ENABLE_HISTORY

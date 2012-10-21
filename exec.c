@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "exec.h"
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -41,7 +42,6 @@
 # include "alias.h"
 #endif
 #include "builtin.h"
-#include "exec.h"
 #include "expand.h"
 #if YASH_ENABLE_HISTORY
 # include "history.h"

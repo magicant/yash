@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "complete.h"
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -57,7 +58,6 @@
 #include "../variable.h"
 #include "../xfnmatch.h"
 #include "../yash.h"
-#include "complete.h"
 #include "compparse.h"
 #include "display.h"
 #include "editing.h"

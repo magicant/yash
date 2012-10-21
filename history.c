@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "history.h"
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -37,7 +38,6 @@
 #include <wctype.h>
 #include "builtin.h"
 #include "exec.h"
-#include "history.h"
 #include "job.h"
 #include "option.h"
 #include "path.h"

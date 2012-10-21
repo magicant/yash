@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "keymap.h"
 #include <assert.h>
 #include <errno.h>
 #if HAVE_GETTEXT
@@ -33,7 +34,6 @@
 #include "complete.h"
 #include "editing.h"
 #include "key.h"
-#include "keymap.h"
 #include "trie.h"
 
 

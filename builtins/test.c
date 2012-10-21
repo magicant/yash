@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "test.h"
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -30,7 +31,6 @@
 #include "../plist.h"
 #include "../strbuf.h"
 #include "../util.h"
-#include "test.h"
 
 
 #define Exit_TRUE      0  /* Exit_SUCCESS */

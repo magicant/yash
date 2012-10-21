@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "printf.h"
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -36,7 +37,6 @@
 #include "../strbuf.h"
 #include "../util.h"
 #include "../variable.h"
-#include "printf.h"
 
 #if HAVE_WCSTOLD && !defined(wcstold)
 extern long double wcstold(const wchar_t *restrict s, wchar_t **restrict endp)

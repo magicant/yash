@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "yash.h"
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -50,7 +51,6 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-#include "yash.h"
 
 
 extern int main(int argc, char **argv)

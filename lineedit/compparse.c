@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 #include "../common.h"
+#include "compparse.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,7 +35,6 @@
 #include "../variable.h"
 #include "../xfnmatch.h"
 #include "complete.h"
-#include "compparse.h"
 #include "editing.h"
 #include "lineedit.h"
 

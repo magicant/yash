@@ -17,6 +17,7 @@
 
 
 #include "common.h"
+#include "option.h"
 #include <assert.h>
 #if HAVE_GETTEXT
 # include <libintl.h>
@@ -29,7 +30,6 @@
 #include "builtin.h"
 #include "exec.h"
 #include "job.h"
-#include "option.h"
 #include "plist.h"
 #include "redir.h"
 #include "sig.h"
