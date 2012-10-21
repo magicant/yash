@@ -1,3 +1,2 @@
 help: `--no-such-option' is not a valid option
-Usage:  help command...
 help: no such built-in `XXX'

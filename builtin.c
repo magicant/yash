@@ -570,7 +570,6 @@ int help_builtin(int argc, void **argv)
 	    case L'-':
 		goto print_help;
 	    default:
-		fprintf(stderr, gt("Usage:  help command...\n"));
 		return Exit_ERROR;
 	}
     }
