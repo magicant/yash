@@ -347,9 +347,10 @@ void print_help(void)
 #if YASH_ENABLE_HELP
     const char *shell_name = posixly_correct ? "sh" : "yash";
     xprintf(gt(
-	    "Usage:  %s [options] [filename [args...]]\n"
-	    "        %s [options] -c command [command_name [args...]]\n"
-	    "        %s [options] -s [args...]\n"),
+	    "Syntax:\n"
+	    "\t%s [option...] [filename [argument...]]\n"
+	    "\t%s [option...] -c command [command_name [argument...]]\n"
+	    "\t%s [option...] -s [argument...]\n"),
 	    shell_name, shell_name, shell_name);
 
     xprintf("\n");
