@@ -71,7 +71,7 @@ extern void set_lineedit_option(enum shopt_lineedit_T v);
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
 #if YASH_ENABLE_HELP
-extern bool print_shopts_body(bool include_normal_options);
+extern _Bool print_shopts_body(_Bool include_normal_options);
 #endif
 
 extern const struct xgetopt_T all_help_options[];

@@ -44,7 +44,7 @@ extern const builtin_T *get_builtin(const char *name)
     __attribute__((pure));
 
 extern int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2);
-extern bool validate_operand_count(size_t count, size_t min, size_t max);
+extern _Bool validate_operand_count(size_t count, size_t min, size_t max);
 extern int insufficient_operands_error(size_t min_required_operand_count);
 extern int too_many_operands_error(size_t max_accepted_operand_count);
 extern int special_builtin_syntax_error(int exitstatus);
@@ -53,8 +53,8 @@ struct xgetopt_T;
 extern int print_builtin_help(const wchar_t *name)
     __attribute__((nonnull));
 #if YASH_ENABLE_HELP
-extern bool print_shopts(bool include_normal_options);
-extern bool print_option_list(const struct xgetopt_T *options)
+extern _Bool print_shopts(_Bool include_normal_options);
+extern _Bool print_option_list(const struct xgetopt_T *options)
     __attribute__((nonnull));
 #endif
 

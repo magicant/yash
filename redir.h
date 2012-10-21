@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.h: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 #ifndef YASH_REDIR_H
 #define YASH_REDIR_H
+
+#include <stddef.h>
 
 
 extern int xclose(int fd);
