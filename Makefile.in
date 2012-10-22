@@ -150,7 +150,7 @@ uninstall-data:
 	@+(cd doc && $(MAKE) $@-rec)
 
 DISTDIR = $(TARGET)-$(VERSION)
-DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar.gz $(DISTDIR).zip
 $(DISTDIR): _PHONY
 	@+(cd po && $(MAKE) update-po)  # must be done first
 	rm -fr $@
@@ -171,6 +171,8 @@ dist dist-gzip: $(DISTDIR).tar.gz
 	-rm -rf $(DISTDIR) $(DISTDIR).tar
 dist-bzip2: $(DISTDIR).tar.bz2
 	-rm -rf $(DISTDIR) $(DISTDIR).tar
+dist-xz: $(DISTDIR).tar.xz
+	-rm -rf $(DISTDIR) $(DISTDIR).tar
 dist-shar: $(DISTDIR).shar.gz
 	-rm -rf $(DISTDIR)
 dist-zip: $(DISTDIR).zip
@@ -186,6 +188,9 @@ $(DISTDIR).tar.gz: $(DISTDIR).tar
 $(DISTDIR).tar.bz2: $(DISTDIR).tar
 	rm -rf $@
 	bzip2 -9 $(DISTDIR).tar
+$(DISTDIR).tar.xz: $(DISTDIR).tar
+	rm -rf $@
+	xz $(DISTDIR).tar
 $(DISTDIR).shar.gz: $(DISTDIR)
 	shar $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
@@ -258,7 +263,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
