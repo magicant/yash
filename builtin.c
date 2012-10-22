@@ -285,8 +285,12 @@ int insufficient_operands_error(size_t min_required_operand_count)
 int too_many_operands_error(size_t max_accepted_operand_count)
 {
     if (max_accepted_operand_count == 0)
+	/* TRANSLATORS: This message is printed when a command that takes no
+	 * operand was invoked with some operands. */
 	xerror(0, Ngt("no operand is expected"));
     else
+	/* TRANSLATORS: This message is printed when a command was invoked with
+	 * the wrong number of operands. */
 	xerror(0, Ngt("too many operands are specified"));
     return Exit_ERROR;
 }
