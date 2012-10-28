@@ -20,6 +20,7 @@
 #define YASH_SIG_H
 
 #include <stddef.h>
+#include <sys/types.h>
 #include "util.h"
 
 
