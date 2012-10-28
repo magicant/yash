@@ -19,6 +19,7 @@
 #ifndef YASH_JOB_H
 #define YASH_JOB_H
 
+#include <stddef.h>
 #include <sys/types.h>
 #include "util.h"
 
