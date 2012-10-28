@@ -52,7 +52,7 @@ static inline int xunsetenv(const char *name)
 void *xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
-    if (result == NULL)
+    if (result == NULL && nmemb > 0 && size > 0)
 	alloc_failed();
     return result;
 }
