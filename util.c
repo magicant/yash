@@ -39,8 +39,8 @@
 
 /********** Miscellaneous Utilities **********/
 
-/* Computes `xmalloc(mainsize + count * elemsize)', but aborts the program if
- * the size is too large. `elemsize' must not be zero. */
+/* Computes `mainsize + count * elemsize', but aborts the program if the size is
+ * too large. `elemsize' must not be zero. */
 size_t addmul(size_t mainsize, size_t count, size_t elemsize)
 {
     assert(elemsize > 0);
@@ -64,7 +64,7 @@ void alloc_failed(void)
 }
 
 
-/********** String utilities **********/
+/********** String Utilities **********/
 
 #if !HAVE_STRNLEN
 /* Returns min(maxlen, strlen(s)). */
