@@ -214,33 +214,6 @@ extern _Bool xprintf(const char *restrict format, ...)
     __attribute__((format(printf,1,2)));
 
 
-/********** xgetopt **********/
-
-extern wchar_t *xoptarg;
-extern int xoptind;
-
-enum xgetoptopt_T {
-    XGETOPT_POSIX = 1 << 0,
-    XGETOPT_DIGIT = 1 << 1,
-};
-enum optarg_T {
-    OPTARG_NONE, OPTARG_REQUIRED, OPTARG_OPTIONAL,
-};
-struct xgetopt_T {
-    wchar_t shortopt;
-    const wchar_t *longopt;
-    enum optarg_T optarg;
-    _Bool posix;
-    void *ptr;
-};
-
-extern struct xgetopt_T *xgetopt(
-	void **restrict argv,
-	const struct xgetopt_T *restrict opts,
-	enum xgetoptopt_T opt)
-    __attribute__((nonnull));
-
-
 #undef Size_max
 
 #endif /* YASH_UTIL_H */

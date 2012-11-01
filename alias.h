@@ -20,7 +20,7 @@
 #define YASH_ALIAS_H
 
 #include <stddef.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 struct xwcsbuf_T;

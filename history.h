@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 /* The structure type of doubly-linked list node. */

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
-/* ulimit.h: ulimit builtin */
-/* (C) 2007-2012 magicant */
+/* xgetopt.h: command option parser */
+/* (C) 2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef YASH_ULIMIT_H
-#define YASH_ULIMIT_H
+#ifndef YASH_XGETOPT_H
+#define YASH_XGETOPT_H
 
-#include "../xgetopt.h"
+#include <stddef.h>
 
 
-extern int ulimit_builtin(int argc, void **argv)
+extern wchar_t *xoptarg;
+extern int xoptind;
+
+enum xgetoptopt_T {
+    XGETOPT_POSIX = 1 << 0,
+    XGETOPT_DIGIT = 1 << 1,
+};
+enum optarg_T {
+    OPTARG_NONE, OPTARG_REQUIRED, OPTARG_OPTIONAL,
+};
+struct xgetopt_T {
+    wchar_t shortopt;
+    const wchar_t *longopt;
+    enum optarg_T optarg;
+    _Bool posix;
+    void *ptr;
+};
+
+extern struct xgetopt_T *xgetopt(
+	void **restrict argv,
+	const struct xgetopt_T *restrict opts,
+	enum xgetoptopt_T opt)
     __attribute__((nonnull));
-extern const char ulimit_help[], ulimit_syntax[];
-extern const struct xgetopt_T ulimit_options[];
 
 
-#endif /* YASH_ULIMIT_H */
+#endif
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

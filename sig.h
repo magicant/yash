@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 extern _Bool process_exists(pid_t pid);

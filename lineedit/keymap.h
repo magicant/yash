@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include "key.h"
-#include "../util.h"
+#include "../xgetopt.h"
 
 
 /* This structure describes an editing mode. */

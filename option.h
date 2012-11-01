@@ -20,7 +20,7 @@
 #define YASH_OPTION_H
 
 #include <stddef.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 enum shopt_lineedit_T {

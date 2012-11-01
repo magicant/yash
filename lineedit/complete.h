@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include "../plist.h"
-#include "../util.h"
+#include "../xgetopt.h"
 
 
 typedef enum le_candtype_T {

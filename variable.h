@@ -20,7 +20,7 @@
 #define YASH_VARIABLE_H
 
 #include <stddef.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 extern char **environ;

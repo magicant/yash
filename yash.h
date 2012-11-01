@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
-#include "util.h"
+#include "xgetopt.h"
 
 
 extern pid_t shell_pid, shell_pgid;
