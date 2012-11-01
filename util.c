@@ -37,7 +37,7 @@
 #include "plist.h"
 
 
-/********** General functions **********/
+/********** Miscellaneous Utilities **********/
 
 /* Computes `xmalloc(mainsize + count * elemsize)', but aborts the program if
  * the size is too large. `elemsize' must not be zero. */
@@ -51,6 +51,9 @@ size_t addmul(size_t mainsize, size_t count, size_t elemsize)
 	alloc_failed();
     return totalsize;
 }
+
+
+/********** Memory Utilities **********/
 
 /* This function is called on memory allocation failure and
  * aborts the program after printing an error message. */

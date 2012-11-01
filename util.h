@@ -24,7 +24,28 @@
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
 
-/********** General Functions **********/
+/********** Miscellaneous Functions **********/
+
+extern size_t addmul(size_t mainsize, size_t count, size_t elemsize)
+    __attribute__((pure));
+static inline int xunsetenv(const char *name)
+    __attribute__((nonnull));
+
+/* Removes the environment variable of the specified name.
+ * This function wraps the `unsetenv' function, which has an incompatible
+ * prototype on some old environments. */
+int xunsetenv(const char *name)
+{
+#if UNSETENV_RETURNS_INT
+    return unsetenv(name);
+#else
+    unsetenv(name);
+    return 0;
+#endif
+}
+
+
+/********** Memory Functions **********/
 
 static inline void *xcalloc(size_t nmemb, size_t size)
     __attribute__((malloc,warn_unused_result));
@@ -41,12 +62,8 @@ static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
 static inline void *xreallocs(void *ptr,
 	size_t mainsize, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
-extern size_t addmul(size_t mainsize, size_t count, size_t elemsize)
-    __attribute__((pure));
 extern void alloc_failed(void)
     __attribute__((noreturn));
-static inline int xunsetenv(const char *name)
-    __attribute__((nonnull));
 
 /* Attempts `calloc' and aborts the program on failure. */
 void *xcalloc(size_t nmemb, size_t size)
@@ -101,19 +118,6 @@ void *xreallocn(void *ptr, size_t count, size_t elemsize)
 void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
 {
     return xrealloc(ptr, addmul(mainsize, count, elemsize));
-}
-
-/* Removes the environment variable of the specified name.
- * This function wraps the `unsetenv' function, which has an incompatible
- * prototype on some old environments. */
-int xunsetenv(const char *name)
-{
-#if UNSETENV_RETURNS_INT
-    return unsetenv(name);
-#else
-    unsetenv(name);
-    return 0;
-#endif
 }
 
 
