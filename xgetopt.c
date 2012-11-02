@@ -30,7 +30,7 @@
 static struct xgetopt_T *parse_short_option(int saveoptind,
 	void **restrict argv, const struct xgetopt_T *restrict opts)
     __attribute__((nonnull));
-static struct xgetopt_T *found_short_option(const wchar_t *arg, int saveoptind,
+static struct xgetopt_T *found_short_option(int saveoptind,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static struct xgetopt_T *parse_long_option(int saveoptind,
@@ -158,18 +158,19 @@ struct xgetopt_T *parse_short_option(int saveoptind,
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
 	if (opt->posix || !posixly_correct)
 	    if (opt->shortopt == arg[secondindex])
-		return found_short_option(arg, saveoptind, argv, opt);
+		return found_short_option(saveoptind, argv, opt);
 
     return no_such_option(arg, opts);
 }
 
 /* This function is called when a single-character option was found.
- * `arg' is the argument string in which the option was found.
  * `opt' is a pointer to the option in the xgetopt_T array, which is returned by
  * this function unless an option argument is expected but missing. */
-struct xgetopt_T *found_short_option(const wchar_t *arg, int saveoptind,
+struct xgetopt_T *found_short_option(int saveoptind,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
 {
+    const wchar_t *arg = ARGV(xoptind);
+
     if (opt->optarg == OPTARG_NONE) {
 	/* the option doesn't take an argument */
 	if (arg[secondindex + 1] != L'\0') {
