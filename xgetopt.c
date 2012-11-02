@@ -39,6 +39,9 @@ static struct xgetopt_T *found_short_option(int saveoptind,
 static struct xgetopt_T *parse_long_option(int saveoptind,
 	void **restrict argv, const struct xgetopt_T *restrict opts)
     __attribute__((nonnull));
+static struct xgetopt_T *found_long_option(int saveoptind, const wchar_t *eq,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+    __attribute__((nonnull));
 static struct xgetopt_T *finish_parsing_current_argument(int moveto,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
@@ -210,6 +213,7 @@ struct xgetopt_T *parse_long_option(int saveoptind,
 	xoptind = saveoptind + 1;
 	return NULL;
     }
+
     if (posixly_correct)
 	return no_such_option(arg, opts);
 
@@ -238,39 +242,8 @@ struct xgetopt_T *parse_long_option(int saveoptind,
     }
     if (match == NULL)
 	return no_such_option(arg, opts);
-    opts = match;
 
-    /* a long option was identified */
-    const wchar_t *eq = &arg[2 + namelen];
-    if (opts->optarg != OPTARG_NONE) {
-	/* the option takes an argument */
-	if (*eq == L'\0') {
-	    /* no option argument in `arg' */
-	    switch (opts->optarg) {
-		case OPTARG_OPTIONAL:
-		    /* the optional argument is not given */
-		    return finish_parsing_current_argument(
-			    saveoptind, argv, opts);
-		case OPTARG_REQUIRED:
-		    /* the argument is split from the option
-		     * like "--option argument" */
-		    return parse_separate_option_argument(
-			    false, saveoptind, argv, opts);
-		default:
-		    assert(false);
-	    }
-	} else {
-	    /* the argument is specified after L'=' like "--option=argument" */
-	    xoptarg = (wchar_t *) &eq[1];
-	    return finish_parsing_current_argument(saveoptind, argv, opts);
-	}
-    } else {
-	/* the option doesn't take an argument */
-	if (*eq != L'\0')
-	    return unwanted_long_option_argument(arg, opts);
-	return finish_parsing_current_argument(saveoptind, argv, opts);
-    }
-    assert(false);
+    return found_long_option(saveoptind, &arg[namelen + 2], argv, match);
 
 ambiguous_long_option:
     xerror(0, Ngt("option `%ls' is ambiguous"), arg);
@@ -282,6 +255,41 @@ ambiguous_long_option:
 	    fprintf(stderr, "\t--%ls\n", opts->longopt);
 #endif
     return sentinel(opts);
+}
+
+/* This function is called when a long option was found.
+ * `eq' is a pointer to the first L'=' in `argv[xoptind]' (or the terminating
+ * null character if there is no L'=').
+ * `opt' is a pointer to the option in the xgetopt_T array, which is returned by
+ * this function unless an option argument is expected but missing. */
+struct xgetopt_T *found_long_option(int saveoptind, const wchar_t *eq,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+{
+    if (opt->optarg == OPTARG_NONE) {
+	/* the option doesn't take an argument */
+	if (*eq != L'\0')
+	    return unwanted_long_option_argument(ARGV(xoptind), opt);
+	return finish_parsing_current_argument(saveoptind, argv, opt);
+    }
+
+    /* the option takes an argument */
+    if (*eq != L'\0') {
+	/* the argument is specified after L'=' like "--option=argument" */
+	xoptarg = (wchar_t *) &eq[1];
+	return finish_parsing_current_argument(saveoptind, argv, opt);
+    }
+
+    /* no option argument in `argv[xoptind]' */
+    switch (opt->optarg) {
+	case OPTARG_OPTIONAL:
+	    /* the optional argument is not given */
+	    return finish_parsing_current_argument(saveoptind, argv, opt);
+	case OPTARG_REQUIRED:
+	    /* the argument is split from the option like "--option argument" */
+	    return parse_separate_option_argument(false, saveoptind, argv, opt);
+	default:
+	    assert(false);
+    }
 }
 
 /* This function is called when an option was parsed in an argument string and
