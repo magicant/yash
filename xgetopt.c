@@ -65,7 +65,10 @@ static struct xgetopt_T *unwanted_long_option_argument(
 static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
     __attribute__((nonnull,pure));
 
+/* When an option that takes an argument was parsed, a pointer to the argument
+ * is assigned to this variable. */
 wchar_t *xoptarg;
+
 int xoptind = 0;
 
 /* The index of the character in the currently parsed argument string that
