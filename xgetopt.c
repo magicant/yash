@@ -139,7 +139,7 @@ struct xgetopt_T *xgetopt(
 	xoptind = argvindex = secondindex = 1;
 
     const wchar_t *arg;
-    for (; (arg = ARGV(argvindex)) != NULL; argvindex++) {
+    for (; (arg = argv[argvindex]) != NULL; argvindex++) {
 	if (arg[0] == L'-') {
 	    if (arg[1] == L'-')  /* `arg' starts with "--" */
 		return parse_long_option(argv, opts);
@@ -161,7 +161,7 @@ struct xgetopt_T *xgetopt(
 struct xgetopt_T *parse_short_option(
 	void **restrict argv, const struct xgetopt_T *restrict opts)
 {
-    const wchar_t *arg = ARGV(argvindex);
+    const wchar_t *arg = argv[argvindex];
 
     assert((size_t) secondindex < wcslen(arg));
 
@@ -185,7 +185,7 @@ struct xgetopt_T *parse_short_option(
 struct xgetopt_T *found_short_option(
 	void **restrict argv, const struct xgetopt_T *restrict opt)
 {
-    const wchar_t *arg = ARGV(argvindex);
+    const wchar_t *arg = argv[argvindex];
 
     if (opt->optarg == OPTARG_NONE) {
 	/* the option doesn't take an argument */
@@ -214,7 +214,7 @@ struct xgetopt_T *found_short_option(
 struct xgetopt_T *parse_long_option(
 	void **restrict argv, const struct xgetopt_T *restrict opts)
 {
-    const wchar_t *arg = ARGV(argvindex);
+    const wchar_t *arg = argv[argvindex];
 
     if (arg[2] == L'\0') {  /* `arg' is "--" */
 	argshift(argv);
@@ -266,7 +266,7 @@ struct xgetopt_T *found_long_option(const wchar_t *eq,
     if (opt->optarg == OPTARG_NONE) {
 	/* the option doesn't take an argument */
 	if (*eq != L'\0')
-	    return unwanted_long_option_argument(ARGV(argvindex), opt);
+	    return unwanted_long_option_argument(argv[argvindex], opt);
 	return finish_parsing_current_argument(argv, opt);
     }
 
@@ -318,7 +318,7 @@ struct xgetopt_T *finish_parsing_current_argument(
 struct xgetopt_T *parse_separate_option_argument(bool shortopt,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
 {
-    xoptarg = ARGV(argvindex + 1);
+    xoptarg = argv[argvindex + 1];
     if (xoptarg == NULL)
 	return option_argument_is_missing(shortopt, opt);
     argshift(argv);
