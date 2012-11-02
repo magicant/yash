@@ -53,6 +53,9 @@ static void argshift(void **argv, int from, int to)
 static struct xgetopt_T *no_such_option(
 	const wchar_t *s, const struct xgetopt_T *opts)
     __attribute__((nonnull));
+static struct xgetopt_T *ambiguous_long_option(
+	const wchar_t *s, size_t namelen, const struct xgetopt_T *opts)
+    __attribute__((nonnull));
 static struct xgetopt_T *option_argument_is_missing(
 	bool shortopt, const struct xgetopt_T *opt)
     __attribute__((nonnull));
@@ -220,23 +223,23 @@ struct xgetopt_T *parse_long_option(int saveoptind,
     /* identify the long option */
     const struct xgetopt_T *match = NULL;
     size_t namelen = wcscspn(&arg[2], L"=");
-    for (; opts->shortopt != L'\0'; opts++) {
-	if (!opts->posix && posixly_correct)
+    for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++) {
+	if (!opt->posix && posixly_correct)
 	    continue;
-	if (opts->longopt != NULL
-		&& wcsncmp(opts->longopt, &arg[2], namelen) == 0) {
-	    if (opts->longopt[namelen] == L'\0') {
+	if (opt->longopt != NULL
+		&& wcsncmp(opt->longopt, &arg[2], namelen) == 0) {
+	    if (opt->longopt[namelen] == L'\0') {
 		/* exact match */
-		match = opts;
+		match = opt;
 		break;
 	    } else {
-		/* partial match: `&arg[2]' starts with `opts->longopt' */
+		/* partial match: `&arg[2]' starts with `opt->longopt' */
 		if (match == NULL)
 		    /* first partial match */
-		    match = opts;
+		    match = opt;
 		else
 		    /* more than one partial match */
-		    goto ambiguous_long_option;
+		    return ambiguous_long_option(arg, namelen, opts);
 	    }
 	}
     }
@@ -244,17 +247,6 @@ struct xgetopt_T *parse_long_option(int saveoptind,
 	return no_such_option(arg, opts);
 
     return found_long_option(saveoptind, &arg[namelen + 2], argv, match);
-
-ambiguous_long_option:
-    xerror(0, Ngt("option `%ls' is ambiguous"), arg);
-#if LIST_AMBIGUOUS_OPTIONS
-    fprintf(stderr, "\t--%ls\n", match->longopt);
-    for (; opts->shortopt != L'\0'; opts++)
-	if (opts->longopt != NULL
-		&& wcsncmp(opts->longopt, &arg[2], namelen) == 0)
-	    fprintf(stderr, "\t--%ls\n", opts->longopt);
-#endif
-    return sentinel(opts);
 }
 
 /* This function is called when a long option was found.
@@ -351,6 +343,23 @@ void argshift(void **argv, int from, int to)
 struct xgetopt_T *no_such_option(const wchar_t *s, const struct xgetopt_T *opts)
 {
     xerror(0, Ngt("`%ls' is not a valid option"), s);
+    return sentinel(opts);
+}
+
+/* Prints an error message that says that string `s' is an ambiguous option.
+ * `namelen' is the length of the long option name in `s', not including the
+ * beginning "--", up to (but not including) L'=' or the end of the string.
+ * Returns the sentinel value that indicates an error. */
+struct xgetopt_T *ambiguous_long_option(
+	const wchar_t *s, size_t namelen, const struct xgetopt_T *opts)
+{
+    xerror(0, Ngt("option `%ls' is ambiguous"), s);
+#if LIST_AMBIGUOUS_OPTIONS
+    for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
+	if (opt->longopt != NULL
+		&& wcsncmp(opt->longopt, &s[2], namelen) == 0)
+	    fprintf(stderr, "\t--%ls\n", opt->longopt);
+#endif
     return sentinel(opts);
 }
 
