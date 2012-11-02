@@ -48,7 +48,7 @@ static struct xgetopt_T *finish_parsing_current_argument(
 static struct xgetopt_T *parse_separate_option_argument(bool shortopt,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
-static void argshift(void **argv, int from, int to)
+static void argshift(void **argv)
     __attribute__((nonnull));
 static struct xgetopt_T *no_such_option(
 	const wchar_t *s, const struct xgetopt_T *opts)
@@ -217,8 +217,7 @@ struct xgetopt_T *parse_long_option(
     const wchar_t *arg = ARGV(argvindex);
 
     if (arg[2] == L'\0') {  /* `arg' is "--" */
-	argshift(argv, argvindex, xoptind);
-	xoptind++;  /* make `xoptind' point to the first operand */
+	argshift(argv);
 	return NULL;
     }
 
@@ -302,8 +301,7 @@ struct xgetopt_T *found_long_option(const wchar_t *eq,
 struct xgetopt_T *finish_parsing_current_argument(
 	void **restrict argv, const struct xgetopt_T *restrict opt)
 {
-    argshift(argv, argvindex, xoptind);
-    argvindex++, xoptind++;
+    argshift(argv);
     secondindex = 1;
     return (struct xgetopt_T *) opt;
 }
@@ -323,26 +321,27 @@ struct xgetopt_T *parse_separate_option_argument(bool shortopt,
     xoptarg = ARGV(argvindex + 1);
     if (xoptarg == NULL)
 	return option_argument_is_missing(shortopt, opt);
-    argshift(argv, argvindex, xoptind);
-    argvindex++, xoptind++;
-    argshift(argv, argvindex, xoptind);
-    argvindex++, xoptind++;
+    argshift(argv);
+    argshift(argv);
     secondindex = 1;
     return (struct xgetopt_T *) opt;
 }
 
-/* Reorders array elements. The `argv[from]' is moved to `argv[to]'.
- * Elements `argv[from+1]', `argv[from+2]', ..., `argv[to]' are moved to
- * `argv[from]', `argv[from+1]', ..., `argv[to-1]', respectively.
- * `from' must be equal to or less than `to'. */
-void argshift(void **argv, int from, int to)
+/* Reorders array elements. The `argv[argvindex]' is moved to `argv[xoptind]'.
+ * Elements `argv[argvindex+1]', `argv[argvindex+2]', ..., `argv[xoptind]' are
+ * moved to `argv[argvindex]', `argv[argvindex+1]', ..., `argv[xoptind-1]',
+ * respectively. After reordering, `argvindex' and `xoptind' are each
+ * incremented by 1. */
+void argshift(void **argv)
 {
-    void *s = argv[from];
+    void *s = argv[argvindex];
 
-    assert(from >= to);
-    for (int i = from; i > to; i--)
+    assert(argvindex >= xoptind);
+    for (int i = argvindex; i > xoptind; i--)
 	argv[i] = argv[i - 1];
-    argv[to] = s;
+    argv[xoptind] = s;
+
+    argvindex++, xoptind++;
 }
 
 /* Prints an error message that says that string `s' is not a valid option.
