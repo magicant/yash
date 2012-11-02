@@ -211,7 +211,7 @@ struct xgetopt_T *parse_long_option(int saveoptind,
 	return NULL;
     }
     if (posixly_correct)
-	return no_such_option(ARGV(xoptind), opts);
+	return no_such_option(arg, opts);
 
     /* identify the long option */
     const struct xgetopt_T *match = NULL;
@@ -237,7 +237,7 @@ struct xgetopt_T *parse_long_option(int saveoptind,
 	}
     }
     if (match == NULL)
-	return no_such_option(ARGV(xoptind), opts);
+	return no_such_option(arg, opts);
     opts = match;
 
     /* a long option was identified */
@@ -267,13 +267,13 @@ struct xgetopt_T *parse_long_option(int saveoptind,
     } else {
 	/* the option doesn't take an argument */
 	if (*eq != L'\0')
-	    return unwanted_long_option_argument(ARGV(xoptind), opts);
+	    return unwanted_long_option_argument(arg, opts);
 	return finish_parsing_current_argument(saveoptind, argv, opts);
     }
     assert(false);
 
 ambiguous_long_option:
-    xerror(0, Ngt("option `%ls' is ambiguous"), ARGV(xoptind));
+    xerror(0, Ngt("option `%ls' is ambiguous"), arg);
 #if LIST_AMBIGUOUS_OPTIONS
     fprintf(stderr, "\t--%ls\n", match->longopt);
     for (; opts->shortopt != L'\0'; opts++)
