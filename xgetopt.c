@@ -394,6 +394,8 @@ struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
 	if (opt->longopt != NULL
 		&& wcsncmp(opt->longopt, &s[2], namelen) == 0)
 	    fprintf(stderr, "\t--%ls\n", opt->longopt);
+#else
+    (void) namelen;
 #endif
     return sentinel();
 }
