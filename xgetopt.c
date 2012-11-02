@@ -27,6 +27,9 @@
 #include "util.h"
 
 
+static struct xgetopt_T *finish_parsing_current_argument(int moveto,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+    __attribute__((nonnull));
 static void argshift(void **argv, int from, int to)
     __attribute__((nonnull));
 static struct xgetopt_T *no_such_option(
@@ -43,6 +46,10 @@ static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
 
 wchar_t *xoptarg;
 int xoptind = 0;
+
+/* The index of the character in the currently parsed argument string that
+ * should be parsed next. */
+static int secondindex;
 
 /* Parses options for a command.
  *
@@ -95,8 +102,6 @@ struct xgetopt_T *xgetopt(
 	const struct xgetopt_T *restrict opts,
 	enum xgetoptopt_T opt)
 {
-    static int secondindex;
-
     bool shortopt;
 
     if (posixly_correct)
@@ -139,7 +144,6 @@ short_option_found:
     if (opts->optarg != OPTARG_NONE) {
 	/* the option takes an argument */
 	xoptarg = (wchar_t *) &arg[secondindex + 1];
-	secondindex = 1;
 	if (*xoptarg == L'\0' && opts->optarg == OPTARG_REQUIRED) {
 	    /* the option argument is split from the option like "-x arg" */
 split_option_argument:
@@ -149,9 +153,10 @@ split_option_argument:
 	    argshift(argv, xoptind, saveoptind);
 	    argshift(argv, xoptind + 1, saveoptind + 1);
 	    xoptind = saveoptind + 2;
+	    secondindex = 1;
 	} else {
 	    /* the option argument is in the same string like "-xarg" */
-	    goto next_arg;
+	    return finish_parsing_current_argument(saveoptind, argv, opts);
 	}
     } else {
 	/* the option doesn't take an argument */
@@ -162,10 +167,7 @@ split_option_argument:
 	    xoptind = saveoptind;
 	} else {
 	    /* no options are remaining in this argument string */
-	    secondindex = 1;
-next_arg:
-	    argshift(argv, xoptind, saveoptind);
-	    xoptind = saveoptind + 1;
+	    return finish_parsing_current_argument(saveoptind, argv, opts);
 	}
     }
     return (struct xgetopt_T *) opts;
@@ -216,7 +218,8 @@ parse_long_option:
 	    switch (opts->optarg) {
 		case OPTARG_OPTIONAL:
 		    /* the optional argument is not given */
-		    goto next_arg;
+		    return finish_parsing_current_argument(
+			    saveoptind, argv, opts);
 		case OPTARG_REQUIRED:
 		    /* the argument is split from the option
 		     * like "--option argument" */
@@ -227,13 +230,13 @@ parse_long_option:
 	} else {
 	    /* the argument is specified after L'=' like "--option=argument" */
 	    xoptarg = (wchar_t *) &eq[1];
-	    goto next_arg;
+	    return finish_parsing_current_argument(saveoptind, argv, opts);
 	}
     } else {
 	/* the option doesn't take an argument */
 	if (*eq != L'\0')
 	    return unwanted_long_option_argument(ARGV(xoptind), opts);
-	goto next_arg;
+	return finish_parsing_current_argument(saveoptind, argv, opts);
     }
     assert(false);
 
@@ -247,6 +250,23 @@ ambiguous_long_option:
 	    fprintf(stderr, "\t--%ls\n", opts->longopt);
 #endif
     return sentinel(opts);
+}
+
+/* This function is called when an option was parsed in an argument string and
+ * the argument has no more options to be parsed.
+ * Before calling this function, `xoptind' must be set to the index of the
+ * argument in `argv' that was just parsed. This function moves `argv[xoptind]'
+ * to `argv[moveto]' using the `argshift' function.
+ * `xoptind' is updated to `moveto + 1'.
+ * `secondindex' is reset to 1.
+ * `opt' is the option that was parsed, which is returned by this function. */
+struct xgetopt_T *finish_parsing_current_argument(int moveto,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+{
+    argshift(argv, xoptind, moveto);
+    xoptind = moveto + 1;
+    secondindex = 1;
+    return (struct xgetopt_T *) opt;
 }
 
 /* Reorders array elements. The `argv[from]' is moved to `argv[to]'.
