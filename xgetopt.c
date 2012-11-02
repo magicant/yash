@@ -32,8 +32,11 @@ static void argshift(void **argv, int from, int to);
 wchar_t *xoptarg;
 int xoptind = 0;
 
-/* Moves `argv[from]' to `argv[to]'. */
-void argshift(void **argv, int from, int to /* <= from */)
+/* Reorders array elements. The `argv[from]' is moved to `argv[to]'.
+ * Elements `argv[from+1]', `argv[from+2]', ..., `argv[to]' are moved to
+ * `argv[from]', `argv[from+1]', ..., `argv[to-1]', respectively.
+ * `from' must be equal to or less than `to'. */
+void argshift(void **argv, int from, int to)
 {
     void *s = argv[from];
 
