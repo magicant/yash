@@ -78,7 +78,7 @@ static int argvindex;
 
 /* The index of the character in the currently parsed argument string that
  * should be parsed next. */
-static int secondindex;
+static int charindex;
 
 /* An array of xgetopt_T's that specifies the set of options accepted by the
  * parser. */
@@ -144,7 +144,7 @@ struct xgetopt_T *xgetopt(
 	argv = argv_;
 	opts = opts_;
 	getoptopt = getoptopt_;
-	xoptind = argvindex = secondindex = 1;
+	xoptind = argvindex = charindex = 1;
     }
 
     /* sanity check */
@@ -185,17 +185,17 @@ struct xgetopt_T *parse_short_option(void)
 {
     const wchar_t *arg = argv[argvindex];
 
-    assert((size_t) secondindex < wcslen(arg));
+    assert((size_t) charindex < wcslen(arg));
 
     /* A hyphen should not be regarded as an option because the hyphen character
      * is used as a sentinel in the xgetopt_T structure to indicate that a
      * single-character option is not available. */
-    if (arg[secondindex] == L'-')
+    if (arg[charindex] == L'-')
 	return no_such_option(arg);
 
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
 	if (opt->posix || !posixly_correct)
-	    if (opt->shortopt == arg[secondindex])
+	    if (opt->shortopt == arg[charindex])
 		return found_short_option(opt);
 
     return no_such_option(arg);
@@ -210,9 +210,9 @@ struct xgetopt_T *found_short_option(const struct xgetopt_T *restrict opt)
 
     if (opt->optarg == OPTARG_NONE) {
 	/* the option doesn't take an argument */
-	if (arg[secondindex + 1] != L'\0') {
+	if (arg[charindex + 1] != L'\0') {
 	    /* we have a next option in the same argument string */
-	    secondindex++;
+	    charindex++;
 	    return (struct xgetopt_T *) opt;
 	} else {
 	    /* no options are remaining in this argument string */
@@ -220,7 +220,7 @@ struct xgetopt_T *found_short_option(const struct xgetopt_T *restrict opt)
 	}
     } else {
 	/* the option takes an argument */
-	xoptarg = (wchar_t *) &arg[secondindex + 1];
+	xoptarg = (wchar_t *) &arg[charindex + 1];
 	if (*xoptarg == L'\0' && opt->optarg == OPTARG_REQUIRED) {
 	    /* the option argument is split from the option like "-x arg" */
 	    return parse_separate_option_argument(true, opt);
@@ -316,13 +316,13 @@ struct xgetopt_T *found_long_option(const wchar_t *eq,
  * argument in `argv' that was just parsed. This function moves
  * `argv[argvindex]' to `argv[xoptind]' using the `argshift' function and then
  * increments `argvindex' and `xoptind'.
- * `secondindex' is reset to 1.
+ * `charindex' is reset to 1.
  * `opt' is the option that was parsed, which is returned by this function. */
 struct xgetopt_T *finish_parsing_current_argument(
 	const struct xgetopt_T *restrict opt)
 {
     argshift();
-    secondindex = 1;
+    charindex = 1;
     return (struct xgetopt_T *) opt;
 }
 
@@ -332,7 +332,7 @@ struct xgetopt_T *finish_parsing_current_argument(
  * `xoptarg' is set to `argv[argvindex+1]', which is supposed to be the option
  * argument. `argv[argvindex]' and `argv[argvindex+1]' are moved to
  * `argv[xoptind]' and `argv[xoptind+1]', respectively, and then `argvindex' and `xoptind' are each incremented by 2.
- * `secondindex' is reset to 1.
+ * `charindex' is reset to 1.
  * `opt' is the option that was parsed, which is returned by this function
  * unless the argument is missing. */
 struct xgetopt_T *parse_separate_option_argument(bool shortopt,
@@ -343,7 +343,7 @@ struct xgetopt_T *parse_separate_option_argument(bool shortopt,
 	return option_argument_is_missing(shortopt, opt);
     argshift();
     argshift();
-    secondindex = 1;
+    charindex = 1;
     return (struct xgetopt_T *) opt;
 }
 
