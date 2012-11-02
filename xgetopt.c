@@ -28,6 +28,8 @@
 
 
 static void argshift(void **argv, int from, int to);
+static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
+    __attribute__((nonnull,pure));
 
 wchar_t *xoptarg;
 int xoptind = 0;
@@ -241,7 +243,7 @@ parse_long_option:
 
 no_such_option:
     xerror(0, Ngt("`%ls' is not a valid option"), (wchar_t *) argv[xoptind]);
-    goto error;
+    return sentinel(opts);
 argument_missing:
     if (shortopt)
 	xerror(0, Ngt("the -%lc option requires an argument"),
@@ -249,7 +251,7 @@ argument_missing:
     else
 	xerror(0, Ngt("the --%ls option requires an argument"),
 		opts->longopt);
-    goto error;
+    return sentinel(opts);
 ambiguous_long_option:
     xerror(0, Ngt("option `%ls' is ambiguous"), ARGV(xoptind));
 #if LIST_AMBIGUOUS_OPTIONS
@@ -259,12 +261,18 @@ ambiguous_long_option:
 		&& wcsncmp(opts->longopt, &arg[2], namelen) == 0)
 	    fprintf(stderr, "\t--%ls\n", opts->longopt);
 #endif
-    goto error;
+    return sentinel(opts);
 invalid_option_argument:
     xerror(0, Ngt("%ls: the --%ls option does not take an argument"),
 	    ARGV(xoptind), opts->longopt);
-    goto error;
-error:
+    return sentinel(opts);
+}
+
+/* Returns a pointer to the sentinel element of the specified xgetopt_T array.
+ * A sentinel element is the first element whose `shortopt' is L'\0', which
+ * indicates the end of the array. */
+struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
+{
     while (opts->shortopt != L'\0')
 	opts++;
     return (struct xgetopt_T *) opts;
