@@ -27,26 +27,13 @@
 #include "util.h"
 
 
-static void argshift(void **argv, int from, int to);
+static void argshift(void **argv, int from, int to)
+    __attribute__((nonnull));
 static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
     __attribute__((nonnull,pure));
 
 wchar_t *xoptarg;
 int xoptind = 0;
-
-/* Reorders array elements. The `argv[from]' is moved to `argv[to]'.
- * Elements `argv[from+1]', `argv[from+2]', ..., `argv[to]' are moved to
- * `argv[from]', `argv[from+1]', ..., `argv[to-1]', respectively.
- * `from' must be equal to or less than `to'. */
-void argshift(void **argv, int from, int to)
-{
-    void *s = argv[from];
-
-    assert(from >= to);
-    for (int i = from; i > to; i--)
-	argv[i] = argv[i - 1];
-    argv[to] = s;
-}
 
 /* Parses options for a command.
  *
@@ -266,6 +253,20 @@ invalid_option_argument:
     xerror(0, Ngt("%ls: the --%ls option does not take an argument"),
 	    ARGV(xoptind), opts->longopt);
     return sentinel(opts);
+}
+
+/* Reorders array elements. The `argv[from]' is moved to `argv[to]'.
+ * Elements `argv[from+1]', `argv[from+2]', ..., `argv[to]' are moved to
+ * `argv[from]', `argv[from+1]', ..., `argv[to-1]', respectively.
+ * `from' must be equal to or less than `to'. */
+void argshift(void **argv, int from, int to)
+{
+    void *s = argv[from];
+
+    assert(from >= to);
+    for (int i = from; i > to; i--)
+	argv[i] = argv[i - 1];
+    argv[to] = s;
 }
 
 /* Returns a pointer to the sentinel element of the specified xgetopt_T array.
