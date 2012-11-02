@@ -21,6 +21,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
+#if LIST_AMBIGUOUS_OPTIONS
+# include <stdio.h>
+#endif
 #include <wchar.h>
 #include <wctype.h>
 #include "option.h"
