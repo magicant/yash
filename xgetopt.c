@@ -226,22 +226,24 @@ struct xgetopt_T *parse_long_option(int saveoptind,
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++) {
 	if (!opt->posix && posixly_correct)
 	    continue;
-	if (opt->longopt != NULL
-		&& wcsncmp(opt->longopt, &arg[2], namelen) == 0) {
-	    if (opt->longopt[namelen] == L'\0') {
-		/* exact match */
-		match = opt;
-		break;
-	    } else {
-		/* partial match: `&arg[2]' starts with `opt->longopt' */
-		if (match == NULL)
-		    /* first partial match */
-		    match = opt;
-		else
-		    /* more than one partial match */
-		    return ambiguous_long_option(arg, namelen, opts);
-	    }
+	if (opt->longopt == NULL)
+	    continue;
+	if (wcsncmp(opt->longopt, &arg[2], namelen) != 0)
+	    continue;
+
+	if (opt->longopt[namelen] == L'\0') {
+	    /* exact match */
+	    match = opt;
+	    break;
 	}
+
+	/* partial match: `&arg[2]' starts with `opt->longopt' */
+	if (match == NULL)
+	    /* first partial match */
+	    match = opt;
+	else
+	    /* more than one partial match */
+	    return ambiguous_long_option(arg, namelen, opts);
     }
     if (match == NULL)
 	return no_such_option(arg, opts);
