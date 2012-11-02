@@ -41,9 +41,9 @@ struct xgetopt_T {
 };
 
 extern struct xgetopt_T *xgetopt(
-	void **restrict argv,
-	const struct xgetopt_T *restrict opts,
-	enum xgetoptopt_T opt)
+	void **restrict argv_,
+	const struct xgetopt_T *restrict opts_,
+	enum xgetoptopt_T getoptopt_)
     __attribute__((nonnull));
 
 
