@@ -30,6 +30,9 @@
 static struct xgetopt_T *finish_parsing_current_argument(int moveto,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
+static struct xgetopt_T *parse_separate_option_argument(bool shortopt,
+	int moveto, void **restrict argv, const struct xgetopt_T *restrict opt)
+    __attribute__((nonnull));
 static void argshift(void **argv, int from, int to)
     __attribute__((nonnull));
 static struct xgetopt_T *no_such_option(
@@ -102,8 +105,6 @@ struct xgetopt_T *xgetopt(
 	const struct xgetopt_T *restrict opts,
 	enum xgetoptopt_T opt)
 {
-    bool shortopt;
-
     if (posixly_correct)
 	opt = XGETOPT_POSIX;
 
@@ -131,7 +132,6 @@ struct xgetopt_T *xgetopt(
     return NULL;
 
 parse_short_option:
-    shortopt = true;
     assert((size_t) secondindex < wcslen(arg));
     if (arg[secondindex] != L'-')
 	for (; opts->shortopt != L'\0'; opts++)
@@ -146,14 +146,7 @@ short_option_found:
 	xoptarg = (wchar_t *) &arg[secondindex + 1];
 	if (*xoptarg == L'\0' && opts->optarg == OPTARG_REQUIRED) {
 	    /* the option argument is split from the option like "-x arg" */
-split_option_argument:
-	    xoptarg = ARGV(xoptind + 1);
-	    if (xoptarg == NULL)
-		return option_argument_is_missing(shortopt, opts);
-	    argshift(argv, xoptind, saveoptind);
-	    argshift(argv, xoptind + 1, saveoptind + 1);
-	    xoptind = saveoptind + 2;
-	    secondindex = 1;
+	    return parse_separate_option_argument(true, saveoptind, argv, opts);
 	} else {
 	    /* the option argument is in the same string like "-xarg" */
 	    return finish_parsing_current_argument(saveoptind, argv, opts);
@@ -173,7 +166,6 @@ split_option_argument:
     return (struct xgetopt_T *) opts;
 
 parse_long_option:
-    shortopt = false;
     if (arg[2] == L'\0') {  /* `arg' is "--" */
 	argshift(argv, xoptind, saveoptind);
 	xoptind = saveoptind + 1;
@@ -223,7 +215,8 @@ parse_long_option:
 		case OPTARG_REQUIRED:
 		    /* the argument is split from the option
 		     * like "--option argument" */
-		    goto split_option_argument;
+		    return parse_separate_option_argument(
+			    false, saveoptind, argv, opts);
 		default:
 		    assert(false);
 	    }
@@ -265,6 +258,29 @@ struct xgetopt_T *finish_parsing_current_argument(int moveto,
 {
     argshift(argv, xoptind, moveto);
     xoptind = moveto + 1;
+    secondindex = 1;
+    return (struct xgetopt_T *) opt;
+}
+
+/* This function is called when an option that takes an argument was found and
+ * the argument is separate from the option string.
+ * `shortopt' must be true iff the option is a short option. 
+ * `xoptarg' is set to `argv[xoptind+1]', which is supposed to be the option
+ * argument. `argv[xoptind]' and `argv[xoptind+1]' are moved to `argv[moveto]'
+ * and `argv[moveto+1]', respectively.
+ * `xoptind' is updated to `moveto + 2'.
+ * `secondindex' is reset to 1.
+ * `opt' is the option that was parsed, which is returned by this function
+ * unless the argument is missing. */
+struct xgetopt_T *parse_separate_option_argument(bool shortopt, int moveto,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+{
+    xoptarg = ARGV(xoptind + 1);
+    if (xoptarg == NULL)
+	return option_argument_is_missing(shortopt, opt);
+    argshift(argv, xoptind, moveto);
+    argshift(argv, xoptind + 1, moveto + 1);
+    xoptind = moveto + 2;
     secondindex = 1;
     return (struct xgetopt_T *) opt;
 }
