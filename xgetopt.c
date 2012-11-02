@@ -29,6 +29,12 @@
 
 static void argshift(void **argv, int from, int to)
     __attribute__((nonnull));
+static struct xgetopt_T *no_such_option(
+	const wchar_t *s, const struct xgetopt_T *opts)
+    __attribute__((nonnull));
+static struct xgetopt_T *option_argument_is_missing(
+	bool shortopt, const struct xgetopt_T *opt)
+    __attribute__((nonnull));
 static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
     __attribute__((nonnull,pure));
 
@@ -124,7 +130,7 @@ parse_short_option:
 	    if (opts->posix || !posixly_correct)
 		if (opts->shortopt == arg[secondindex])
 		    goto short_option_found;
-    goto no_such_option;
+    return no_such_option(ARGV(xoptind), opts);
 
 short_option_found:
     if (opts->optarg != OPTARG_NONE) {
@@ -136,7 +142,7 @@ short_option_found:
 split_option_argument:
 	    xoptarg = ARGV(xoptind + 1);
 	    if (xoptarg == NULL)
-		goto argument_missing;
+		return option_argument_is_missing(shortopt, opts);
 	    argshift(argv, xoptind, saveoptind);
 	    argshift(argv, xoptind + 1, saveoptind + 1);
 	    xoptind = saveoptind + 2;
@@ -169,7 +175,7 @@ parse_long_option:
 	return NULL;
     }
     if (posixly_correct)
-	goto no_such_option;
+	return no_such_option(ARGV(xoptind), opts);
 
     /* identify the long option */
     const struct xgetopt_T *match = NULL;
@@ -195,7 +201,7 @@ parse_long_option:
 	}
     }
     if (match == NULL)
-	goto no_such_option;
+	return no_such_option(ARGV(xoptind), opts);
     opts = match;
 
     /* a long option was identified */
@@ -228,17 +234,6 @@ parse_long_option:
     }
     assert(false);
 
-no_such_option:
-    xerror(0, Ngt("`%ls' is not a valid option"), (wchar_t *) argv[xoptind]);
-    return sentinel(opts);
-argument_missing:
-    if (shortopt)
-	xerror(0, Ngt("the -%lc option requires an argument"),
-		(wint_t) opts->shortopt);
-    else
-	xerror(0, Ngt("the --%ls option requires an argument"),
-		opts->longopt);
-    return sentinel(opts);
 ambiguous_long_option:
     xerror(0, Ngt("option `%ls' is ambiguous"), ARGV(xoptind));
 #if LIST_AMBIGUOUS_OPTIONS
@@ -267,6 +262,31 @@ void argshift(void **argv, int from, int to)
     for (int i = from; i > to; i--)
 	argv[i] = argv[i - 1];
     argv[to] = s;
+}
+
+/* Prints an error message that says that string `s' is not a valid option.
+ * Returns the sentinel value that indicates an error. */
+struct xgetopt_T *no_such_option(const wchar_t *s, const struct xgetopt_T *opts)
+{
+    xerror(0, Ngt("`%ls' is not a valid option"), s);
+    return sentinel(opts);
+}
+
+/* Prints an error message that says that an option argument is missing.
+ * `shortopt' must be true iff the erroneous option is a short option. 
+ * `opt' is a pointer to the erroneous option in the array given to the
+ * `xgetopt' function.
+ * Returns the sentinel value that indicates an error. */
+struct xgetopt_T *option_argument_is_missing(
+	bool shortopt, const struct xgetopt_T *opt)
+{
+    if (shortopt)
+	xerror(0, Ngt("the -%lc option requires an argument"),
+		(wint_t) opt->shortopt);
+    else
+	xerror(0, Ngt("the --%ls option requires an argument"),
+		opt->longopt);
+    return sentinel(opt);
 }
 
 /* Returns a pointer to the sentinel element of the specified xgetopt_T array.
