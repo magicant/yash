@@ -153,14 +153,14 @@ struct xgetopt_T *parse_short_option(int saveoptind,
      * is used as a sentinel in the xgetopt_T structure to indicate that a
      * single-character option is not available. */
     if (arg[secondindex] == L'-')
-	return no_such_option(ARGV(xoptind), opts);
+	return no_such_option(arg, opts);
 
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
 	if (opt->posix || !posixly_correct)
 	    if (opt->shortopt == arg[secondindex])
 		return found_short_option(arg, saveoptind, argv, opt);
 
-    return no_such_option(ARGV(xoptind), opts);
+    return no_such_option(arg, opts);
 }
 
 /* This function is called when a single-character option was found.
