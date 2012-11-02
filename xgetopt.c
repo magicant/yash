@@ -35,6 +35,9 @@ static struct xgetopt_T *no_such_option(
 static struct xgetopt_T *option_argument_is_missing(
 	bool shortopt, const struct xgetopt_T *opt)
     __attribute__((nonnull));
+static struct xgetopt_T *unwanted_long_option_argument(
+	const wchar_t *s, const struct xgetopt_T *opt)
+    __attribute__((nonnull));
 static struct xgetopt_T *sentinel(const struct xgetopt_T *opts)
     __attribute__((nonnull,pure));
 
@@ -229,7 +232,7 @@ parse_long_option:
     } else {
 	/* the option doesn't take an argument */
 	if (*eq != L'\0')
-	    goto invalid_option_argument;
+	    return unwanted_long_option_argument(ARGV(xoptind), opts);
 	goto next_arg;
     }
     assert(false);
@@ -243,10 +246,6 @@ ambiguous_long_option:
 		&& wcsncmp(opts->longopt, &arg[2], namelen) == 0)
 	    fprintf(stderr, "\t--%ls\n", opts->longopt);
 #endif
-    return sentinel(opts);
-invalid_option_argument:
-    xerror(0, Ngt("%ls: the --%ls option does not take an argument"),
-	    ARGV(xoptind), opts->longopt);
     return sentinel(opts);
 }
 
@@ -286,6 +285,20 @@ struct xgetopt_T *option_argument_is_missing(
     else
 	xerror(0, Ngt("the --%ls option requires an argument"),
 		opt->longopt);
+    return sentinel(opt);
+}
+
+/* Prints an error message that says that a long option that does not take an
+ * argument was specified with an argument.
+ * `s' is a pointer to the erroneous argument string.
+ * `opt' is a pointer to the erroneous option in the array given to the
+ * `xgetopt' function.
+ * Returns the sentinel value that indicates an error. */
+struct xgetopt_T *unwanted_long_option_argument(
+	const wchar_t *s, const struct xgetopt_T *opt)
+{
+    xerror(0, Ngt("%ls: the --%ls option does not take an argument"),
+	    s, opt->longopt);
     return sentinel(opt);
 }
 
