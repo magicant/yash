@@ -140,11 +140,10 @@ struct xgetopt_T *xgetopt(
 	enum xgetoptopt_T getoptopt_)
 {
     if (xoptind == 0) {
-	/* reset the state */
 	argv = argv_;
 	opts = opts_;
 	getoptopt = getoptopt_;
-	xoptind = argvindex = charindex = 1;
+	xoptind = argvindex = charindex = 1;  /* reset the state */
     }
 
     /* sanity check */
