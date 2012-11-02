@@ -45,8 +45,7 @@ static struct xgetopt_T *finish_parsing_current_argument(
 static struct xgetopt_T *parse_separate_option_argument(bool shortopt,
 	const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
-static void argshift(void)
-    __attribute__((nonnull));
+static void argshift(void);
 static struct xgetopt_T *no_such_option(const wchar_t *s)
     __attribute__((nonnull));
 static struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
