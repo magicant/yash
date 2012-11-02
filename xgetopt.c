@@ -264,7 +264,7 @@ struct xgetopt_T *finish_parsing_current_argument(int moveto,
 
 /* This function is called when an option that takes an argument was found and
  * the argument is separate from the option string.
- * `shortopt' must be true iff the option is a short option. 
+ * `shortopt' must be true iff the option is a single-character option. 
  * `xoptarg' is set to `argv[xoptind+1]', which is supposed to be the option
  * argument. `argv[xoptind]' and `argv[xoptind+1]' are moved to `argv[moveto]'
  * and `argv[moveto+1]', respectively.
@@ -308,7 +308,8 @@ struct xgetopt_T *no_such_option(const wchar_t *s, const struct xgetopt_T *opts)
 }
 
 /* Prints an error message that says that an option argument is missing.
- * `shortopt' must be true iff the erroneous option is a short option. 
+ * `shortopt' must be true iff the erroneous option is a single-character
+ * option. 
  * `opt' is a pointer to the erroneous option in the array given to the
  * `xgetopt' function.
  * Returns the sentinel value that indicates an error. */
