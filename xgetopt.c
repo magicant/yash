@@ -33,6 +33,9 @@ static struct xgetopt_T *parse_short_option(int saveoptind,
 static struct xgetopt_T *found_short_option(const wchar_t *arg, int saveoptind,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
+static struct xgetopt_T *parse_long_option(int saveoptind,
+	void **restrict argv, const struct xgetopt_T *restrict opts)
+    __attribute__((nonnull));
 static struct xgetopt_T *finish_parsing_current_argument(int moveto,
 	void **restrict argv, const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
@@ -119,10 +122,10 @@ struct xgetopt_T *xgetopt(
 
     int saveoptind = xoptind;
     const wchar_t *arg;
-    while ((arg = ARGV(xoptind)) != NULL) {
+    for (; (arg = ARGV(xoptind)) != NULL; xoptind++) {
 	if (arg[0] == L'-') {
 	    if (arg[1] == L'-')  /* `arg' starts with "--" */
-		goto parse_long_option;
+		return parse_long_option(saveoptind, argv, opts);
 	    if (arg[1] != L'\0')
 		if (!(opt & XGETOPT_DIGIT) || !iswdigit(arg[1]))
 		    return parse_short_option(saveoptind, argv, opts);
@@ -131,14 +134,73 @@ struct xgetopt_T *xgetopt(
 	/* `arg' is not a option */
 	if (opt & XGETOPT_POSIX)
 	    break;
-	xoptind++;
     }
 
     /* no more options! */
     xoptind = saveoptind;
     return NULL;
+}
 
-parse_long_option:
+/* Parses `argv[xoptind]' as single-character options. */
+struct xgetopt_T *parse_short_option(int saveoptind,
+	void **restrict argv, const struct xgetopt_T *restrict opts)
+{
+    const wchar_t *arg = ARGV(xoptind);
+
+    assert((size_t) secondindex < wcslen(arg));
+
+    /* A hyphen should not be regarded as an option because the hyphen character
+     * is used as a sentinel in the xgetopt_T structure to indicate that a
+     * single-character option is not available. */
+    if (arg[secondindex] == L'-')
+	return no_such_option(ARGV(xoptind), opts);
+
+    for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
+	if (opt->posix || !posixly_correct)
+	    if (opt->shortopt == arg[secondindex])
+		return found_short_option(arg, saveoptind, argv, opt);
+
+    return no_such_option(ARGV(xoptind), opts);
+}
+
+/* This function is called when a single-character option was found.
+ * `arg' is the argument string in which the option was found.
+ * `opt' is a pointer to the option in the xgetopt_T array, which is returned by
+ * this function unless an option argument is expected but missing. */
+struct xgetopt_T *found_short_option(const wchar_t *arg, int saveoptind,
+	void **restrict argv, const struct xgetopt_T *restrict opt)
+{
+    if (opt->optarg == OPTARG_NONE) {
+	/* the option doesn't take an argument */
+	if (arg[secondindex + 1] != L'\0') {
+	    /* we have a next option in the same argument string */
+	    secondindex++;
+	    argshift(argv, xoptind, saveoptind);
+	    xoptind = saveoptind;
+	    return (struct xgetopt_T *) opt;
+	} else {
+	    /* no options are remaining in this argument string */
+	    return finish_parsing_current_argument(saveoptind, argv, opt);
+	}
+    } else {
+	/* the option takes an argument */
+	xoptarg = (wchar_t *) &arg[secondindex + 1];
+	if (*xoptarg == L'\0' && opt->optarg == OPTARG_REQUIRED) {
+	    /* the option argument is split from the option like "-x arg" */
+	    return parse_separate_option_argument(true, saveoptind, argv, opt);
+	} else {
+	    /* the option argument is in the same string like "-xarg" */
+	    return finish_parsing_current_argument(saveoptind, argv, opt);
+	}
+    }
+}
+
+/* Parses `argv[xoptind]' as a long option. */
+struct xgetopt_T *parse_long_option(int saveoptind,
+	void **restrict argv, const struct xgetopt_T *restrict opts)
+{
+    const wchar_t *arg = ARGV(xoptind);
+
     if (arg[2] == L'\0') {  /* `arg' is "--" */
 	argshift(argv, xoptind, saveoptind);
 	xoptind = saveoptind + 1;
@@ -216,60 +278,6 @@ ambiguous_long_option:
 	    fprintf(stderr, "\t--%ls\n", opts->longopt);
 #endif
     return sentinel(opts);
-}
-
-/* Parses `argv[xoptind]' as single-character options. */
-struct xgetopt_T *parse_short_option(int saveoptind,
-	void **restrict argv, const struct xgetopt_T *restrict opts)
-{
-    const wchar_t *arg = ARGV(xoptind);
-
-    assert((size_t) secondindex < wcslen(arg));
-
-    /* A hyphen should not be regarded as an option because the hyphen character
-     * is used as a sentinel in the xgetopt_T structure to indicate that a
-     * single-character option is not available. */
-    if (arg[secondindex] == L'-')
-	return no_such_option(ARGV(xoptind), opts);
-
-    for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
-	if (opt->posix || !posixly_correct)
-	    if (opt->shortopt == arg[secondindex])
-		return found_short_option(arg, saveoptind, argv, opt);
-
-    return no_such_option(ARGV(xoptind), opts);
-}
-
-/* This function is called when a single-character option was found.
- * `arg' is the argument string in which the option was found.
- * `opt' is a pointer to the option in the xgetopt_T array, which is returned by
- * this function unless an option argument is expected but missing. */
-struct xgetopt_T *found_short_option(const wchar_t *arg, int saveoptind,
-	void **restrict argv, const struct xgetopt_T *restrict opt)
-{
-    if (opt->optarg == OPTARG_NONE) {
-	/* the option doesn't take an argument */
-	if (arg[secondindex + 1] != L'\0') {
-	    /* we have a next option in the same argument string */
-	    secondindex++;
-	    argshift(argv, xoptind, saveoptind);
-	    xoptind = saveoptind;
-	    return (struct xgetopt_T *) opt;
-	} else {
-	    /* no options are remaining in this argument string */
-	    return finish_parsing_current_argument(saveoptind, argv, opt);
-	}
-    } else {
-	/* the option takes an argument */
-	xoptarg = (wchar_t *) &arg[secondindex + 1];
-	if (*xoptarg == L'\0' && opt->optarg == OPTARG_REQUIRED) {
-	    /* the option argument is split from the option like "-x arg" */
-	    return parse_separate_option_argument(true, saveoptind, argv, opt);
-	} else {
-	    /* the option argument is in the same string like "-xarg" */
-	    return finish_parsing_current_argument(saveoptind, argv, opt);
-	}
-    }
 }
 
 /* This function is called when an option was parsed in an argument string and
