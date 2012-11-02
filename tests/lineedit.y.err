@@ -1,5 +1,4 @@
 bindkey: `--no-such-option' is not a valid option
-bindkey: option `--vi' is ambiguous
 bindkey: no option is specified
 bindkey: too many operands are specified
 bindkey: no operand is expected

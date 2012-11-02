@@ -450,8 +450,10 @@ echo ===== error =====
 
 bindkey --no-such-option
 echo bindkey no-such-option $?
-bindkey --vi
-echo bindkey ambiguous-option $?
+bindkey --vi 2>/dev/null
+echo bindkey ambiguous-option 1 $?
+bindkey --vi 2>&1 | grep '^[^[:space:]]' # mind LIST_AMBIGUOUS_OPTIONS
+echo bindkey ambiguous-option 2
 bindkey
 echo bindkey operand missing $?
 bindkey -v x y z

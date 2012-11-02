@@ -15,6 +15,8 @@ no bindings 0
 4 0
 ===== error =====
 bindkey no-such-option 2
+bindkey ambiguous-option 1 2
+bindkey: option `--vi' is ambiguous
 bindkey ambiguous-option 2
 bindkey operand missing 2
 bindkey too many operands 1 2
