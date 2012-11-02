@@ -46,6 +46,7 @@ static struct xgetopt_T *parse_separate_option_argument(bool shortopt,
 	const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static void argshift(void);
+static struct xgetopt_T *done(void);
 static struct xgetopt_T *no_such_option(const wchar_t *s)
     __attribute__((nonnull));
 static struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
@@ -176,7 +177,7 @@ struct xgetopt_T *search_argv(void)
     }
 
     /* no more options! */
-    return NULL;
+    return done();
 }
 
 /* Parses `argv[argvindex]' as single-character options. */
@@ -237,7 +238,7 @@ struct xgetopt_T *parse_long_option(void)
 
     if (arg[2] == L'\0') {  /* `arg' is "--" */
 	argshift();
-	return NULL;
+	return done();
     }
 
     if (posixly_correct)
@@ -361,6 +362,17 @@ void argshift(void)
     argv[xoptind] = s;
 
     argvindex++, xoptind++;
+}
+
+/* This function is called when there is no more option to be parsed.
+ * Returns NULL. */
+struct xgetopt_T *done(void)
+{
+#ifndef NDEBUG
+    argv = NULL;
+    opts = NULL;
+#endif
+    return NULL;
 }
 
 /* Prints an error message that says that string `s' is not a valid option.
