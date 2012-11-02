@@ -30,6 +30,11 @@
 #include "util.h"
 
 
+static struct xgetopt_T *search_argv(
+	void **restrict argv,
+	const struct xgetopt_T *restrict opts,
+	enum xgetoptopt_T opt)
+    __attribute__((nonnull));
 static struct xgetopt_T *parse_short_option(
 	void **restrict argv, const struct xgetopt_T *restrict opts)
     __attribute__((nonnull));
@@ -138,6 +143,14 @@ struct xgetopt_T *xgetopt(
     if (xoptind == 0)  /* reset the state */
 	xoptind = argvindex = secondindex = 1;
 
+    return search_argv(argv, opts, opt);
+}
+
+struct xgetopt_T *search_argv(
+	void **restrict argv,
+	const struct xgetopt_T *restrict opts,
+	enum xgetoptopt_T opt)
+{
     const wchar_t *arg;
     for (; (arg = argv[argvindex]) != NULL; argvindex++) {
 	if (arg[0] == L'-') {
