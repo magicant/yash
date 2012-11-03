@@ -96,34 +96,34 @@ test of array
 ===== function typeset/unset =====
 func()
 {
-   echo ok ${?}
+echo ok ${?}
 }
 function 'x=1'()
 {
-   echo equal
+echo equal
 }
 echol()
 {
-   typeset i
-   for i do
-      printf "%s\n" "${i}"
-   done
+typeset i
+for i do
+printf "%s\n" "${i}"
+done
 }
 func()
 {
-   echo ok ${?}
+echo ok ${?}
 }
 func1()
 {
-   echo re-defined func1
+echo re-defined func1
 }
 func2()
 {
-   echo re-defined func2
+echo re-defined func2
 }
 function 'x=1'()
 {
-   echo equal
+echo equal
 }
 ok 2
 ok 1

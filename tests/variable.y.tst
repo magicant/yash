@@ -219,9 +219,11 @@ func () {
 function x=1 {
     echo equal
 }
-typeset -fp func
-typeset -fp x=1
-typeset -fp
+{
+    typeset -fp func
+    typeset -fp x=1
+    typeset -fp
+} | sed 's/^ *//'
 
 readonly -f func
 {

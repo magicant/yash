@@ -26,12 +26,12 @@ func 5
 XYZ()
 for i in func
 do
-   unset -f ${i}
-   echo func 5
+unset -f ${i}
+echo func 5
 done
 function 'X:Z'()
 {
-   echo non-portable name
+echo non-portable name
 }
 func 6
 ===== error =====

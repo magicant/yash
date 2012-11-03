@@ -100,14 +100,14 @@ done
 func
 XYZ
 
-typeset -fp
+typeset -fp | sed 's/^ *//'
 
 function X:Z
 {
     echo non-portable name
 }
 
-typeset -fp X:Z
+typeset -fp X:Z | sed 's/^ *//'
 
 f\
 u\
