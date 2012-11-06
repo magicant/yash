@@ -34,7 +34,7 @@ function completion/git::diff-tree:arg {
 }
 
 function completion/git::diff-tree:getopt {
-	OPTIONS=("$OPTIONS" ###
+	OPTIONS=("$OPTIONS" #>#
 	"--always; show commit even if the diff is empty"
 	"c; use the alternate format when printing a merge"
 	"m; don't suppress showing diffs of merge commits"
