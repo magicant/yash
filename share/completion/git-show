@@ -11,9 +11,9 @@ function completion/git-show {
 function completion/git::show:arg {
 
 	OPTIONS=()
-	{ command -vf completion/git::diff-tree:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-diff-tree; } &&
-		command -f completion/git::diff-tree:getopt
+	{ command -vf completion/git::log:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-log; } &&
+		command -f completion/git::log:getopt
 
 	command -f completion//parseoptions
 	case $ARGOPT in
@@ -24,9 +24,9 @@ function completion/git::show:arg {
 			command -f completion/git::completeobject
 			;;
 		(*)
-			{ command -vf completion/git::diff-tree:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-diff-tree; } &&
-				command -f completion/git::diff-tree:compopt
+			{ command -vf completion/git::log:compopt >/dev/null 2>&1 ||
+					. -AL completion/git-log; } &&
+				command -f completion/git::log:compopt
 			;;
 	esac
 

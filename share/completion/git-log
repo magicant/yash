@@ -42,9 +42,9 @@ function completion/git::log:getopt {
 			. -AL completion/git-rev-list; then
 		command -f completion/git::rev-list:getopt
 	fi
-	if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-diff; then
-		command -f completion/git::diff:getopt
+	if command -vf completion/git::diff-tree:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff-tree; then
+		command -f completion/git::diff-tree:getopt
 	fi
 }
 

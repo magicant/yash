@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.34
+
+  *  Fixes in completion scripts for "git".
+
+----------------------------------------------------------------------
 Yash 2.33
 
   =  The "help" built-in now prints brief usage of built-ins.
