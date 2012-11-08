@@ -7,6 +7,7 @@ function completion/gitx {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
+	"--bisect; show commits between good and bad only"
 	"c --commit; start in the commit mode"
 	"h --help; print help"
 	) #<#
