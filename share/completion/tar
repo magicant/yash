@@ -503,12 +503,7 @@ function completion/tar {
 			if $in; then
 				complete -P "$PREFIX" -f
 			else
-				if [ "$file" ]; then
-					typeset afile
-					while read -r afile; do
-						complete -P "$PREFIX" -- "$afile"
-					done 2>/dev/null <("${SAVEWORDS[1]}" -t -f "$file" "$compressopts" </dev/null)
-				fi
+				command -f completion/tar::completecontainedfiles
 			fi
 			;;
 		(*)
@@ -517,6 +512,29 @@ function completion/tar {
 		esac
 	fi
 
+}
+
+function completion/tar::completecontainedfiles {
+	if ! [ "$file" ]; then
+		return
+	fi
+
+	typeset targetpath="${TARGETWORD#"$PREFIX"}"
+	typeset targetfile="${targetpath##*/}"
+	typeset targetdir="${targetpath%"$targetfile"}"
+	typeset path opt
+	while read -r path; do
+		path="${path#"$targetdir"}" opt=
+		if [ "$path" ]; then
+			case $path in (*/*)
+				path=${path%%/*}
+				opt='-S / -T'
+			esac
+			complete -P "$PREFIX$targetdir" $opt -- "$path"
+		fi
+	done 2>/dev/null \
+		<("${SAVEWORDS[1]}" -t -f "$file" "$compressopts" -- \
+			${targetdir:+"$targetdir"} </dev/null)
 }
 
 
