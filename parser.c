@@ -650,7 +650,6 @@ void ensure_buffer(parsestate_T *ps, size_t n)
 	case L'\\':
 	    if (ps->src.contents[index + 1] != L'\n')
 		return;
-	    assert(ps->src.contents[index + 2] == L'\0');
 	    line_continuation(ps, index);
 	    if (ps->info->lastinputresult != INPUT_OK)
 		return;
