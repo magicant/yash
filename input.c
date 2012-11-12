@@ -58,29 +58,22 @@ static inline wchar_t get_euid_marker(void)
 
 /* An input function that inputs from a wide string.
  * `inputinfo' must be a pointer to a `struct input_wcs_info_T'.
- * Reads one line from `inputinfo->src' and appends it to the buffer `buf'.
- * If more string is available after reading the line, `inputinfo->src' is
- * updated so that it points to the character that should be read next. If no
- * more is available, `inputinfo->src' is assigned NULL. */
+ * Reads all characters from `inputinfo->src' and appends it to buffer `buf'.
+ * `inputinfo->src' is assigned NULL. */
 inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_wcs_info_T *info = inputinfo;
     const wchar_t *src = info->src;
-    size_t count = 0;
 
     if (src == NULL)
 	return INPUT_EOF;
 
-    while (src[count] != L'\0' && src[count++] != L'\n');
+    bool isempty = (src[0] == L'\0');
 
-    if (count == 0) {
-	info->src = NULL;
-	return INPUT_EOF;
-    } else {
-	wb_ncat(buf, src, count);
-	info->src = &src[count];
-	return INPUT_OK;
-    }
+    wb_cat(buf, src);
+    info->src = NULL;
+
+    return isempty ? INPUT_EOF : INPUT_OK;
 }
 
 /* An input function that reads input from a file stream.
