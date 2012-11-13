@@ -1,18 +1,13 @@
 // This is a test tool, not part of yash
 //   make trie.o 
 //   (cd .. && make strbuf.o)
-//   c99 -o trietestw trietestw.c trie.o ../strbuf.o
+//   c99 -o trietestw trietestw.c trie.o ../strbuf.o ../util.o
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "trie.h"
-
-void alloc_failed(void)
-{
-    abort();
-}
 
 void print(const trie_T *t, const wchar_t *key)
 {
