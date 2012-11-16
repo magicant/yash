@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xfnmatch.h: regex matching wrapper as a replacement for fnmatch */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2012 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,9 @@ extern wchar_t *xfnm_subst(
 	const wchar_t *restrict repl, _Bool substall)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern void xfnm_free(xfnmatch_T *xfnm);
+
+extern _Bool match_regex(const wchar_t *s, const wchar_t *regex)
+    __attribute__((nonnull));
 
 
 #endif /* YASH_XFNMATCH_H */

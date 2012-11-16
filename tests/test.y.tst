@@ -187,6 +187,10 @@ tt a '<' a
 tt a '<=' a
 tt a '>' a
 tt a '>=' a
+tt abc123xyz     =~ 'c[[:digit:]]*x'
+tt -axyzxyzaxyz- =~ 'c[[:digit:]]*x'
+tt -axyzxyzaxyz- =~ '-(a|xyz)*-'
+tt abc123xyz     =~ '-(a|xyz)*-'
 tt ! -n ""
 tt ! -n 0
 tt ! -n 1

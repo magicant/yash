@@ -86,6 +86,11 @@ in the current locale:
 +{{string1}} >= {{string2}}+::
 {{string1}} is greater than or equal to {{string2}}
 
+The binary operator below performs pattern matching:
+
++{{string}} =~ {{pattern}}+::
+extended regular expression {{pattern}} matches {{string}}
+
 The binary operators below compare integers:
 
 +{{v1}} -eq {{v2}}+:: {{v1}} is equal to {{v2}}

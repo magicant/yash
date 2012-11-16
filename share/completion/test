@@ -40,6 +40,7 @@ function completion/test {
 		complete -D "check if a file is a hard link to another" -- -ef
 		complete -D "check if a string is the same as another" -- =
 		complete -D "check if a string is the same as another" -- ==
+		complete -D "check if a string is matched by a regex" -- =~
 		complete -D "check if a string is different from another" -- !=
 		complete -D "check if a string is the same as another according to the current locale" -- ===
 		complete -D "check if a string is different from another according to the current locale" -- !==

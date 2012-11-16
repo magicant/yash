@@ -96,6 +96,10 @@ a < a: 1 1
 a <= a: 0 0
 a > a: 1 1
 a >= a: 0 0
+abc123xyz =~ c[[:digit:]]*x: 0 0
+-axyzxyzaxyz- =~ c[[:digit:]]*x: 1 1
+-axyzxyzaxyz- =~ -(a|xyz)*-: 0 0
+abc123xyz =~ -(a|xyz)*-: 1 1
 ! -n : 0 0
 ! -n 0: 1 1
 ! -n 1: 1 1

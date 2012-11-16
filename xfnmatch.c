@@ -728,4 +728,29 @@ void xfnm_free(xfnmatch_T *xfnm)
 }
 
 
+#if YASH_ENABLE_TEST
+
+/* Tests if extended regular expression `regex' matches string `s'. */
+bool match_regex(const wchar_t *s, const wchar_t *regex)
+{
+    regex_t compiled_regex;
+    char *mbs_regex = malloc_wcstombs(regex);
+    int err = regcomp(&compiled_regex, mbs_regex, REG_EXTENDED | REG_NOSUB);
+    free(mbs_regex);
+
+    if (err != 0)
+	return false;
+
+    char *mbs_s = malloc_wcstombs(s);
+    err = regexec(&compiled_regex, mbs_s, 0, NULL, 0);
+    free(mbs_s);
+
+    regfree(&compiled_regex);
+
+    return err == 0;
+}
+
+#endif /* YASH_ENABLE_TEST */
+
+
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

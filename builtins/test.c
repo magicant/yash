@@ -31,6 +31,7 @@
 #include "../plist.h"
 #include "../strbuf.h"
 #include "../util.h"
+#include "../xfnmatch.h"
 
 
 #define Exit_TRUE      0  /* Exit_SUCCESS */
@@ -237,6 +238,8 @@ bool test_triple(void *args[static 3])
 		return wcscmp(left, right) == 0;
 	    if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
 		return wcscoll(left, right) == 0;
+	    if (op[1] == L'~' && op[2] == L'\0')
+		return match_regex(left, right);
 	    goto not_binary;
 	case L'!':
 	    if (op[1] == L'=' && op[2] == L'\0')
@@ -459,7 +462,7 @@ bool is_binary_primary(const wchar_t *word)
 {
     switch (word[0]) {
 	case L'=':
-	    if (word[1] == L'\0')
+	    if (word[1] == L'\0' || (word[1] == L'~' && word[2] == L'\0'))
 		return true;
 	    /* falls thru! */
 	case L'!':
