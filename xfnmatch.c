@@ -19,15 +19,13 @@
 #include "common.h"
 #include "xfnmatch.h"
 #include <assert.h>
+#include <regex.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include <regex.h>
 #include "strbuf.h"
 #include "util.h"
-/* On old Mac OS X, <regex.h> requires `size_t' be already defined, hence it is
- * included after <stdlib.h>. */
 
 
 struct xfnmatch_T {
