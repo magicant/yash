@@ -152,7 +152,7 @@ For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
 The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
-+-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +-veq+,
-+-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
++-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
++-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
