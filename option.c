@@ -275,6 +275,9 @@ static int parse_option_character(
 static int parse_long_option(void *const *argv, bool enable,
 	struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
+static size_t collect_matching_shell_options(
+	const wchar_t *optstr, plist_T *options)
+    __attribute__((nonnull));
 static void search_shell_options(const wchar_t *optname, plist_T *resultlist)
     __attribute__((nonnull));
 static void search_normal_options(const wchar_t *optname, plist_T *resultlist,
@@ -386,15 +389,10 @@ int parse_short_option(void *const *argv, bool enable,
 	    }
 
 	    plist_T options;
-	    size_t shelloptindex;
-
-	    wchar_t *normoptname = normalize_option_name(optname);
 	    pl_init(&options);
-	    search_shell_options(normoptname, &options);
-	    shelloptindex = options.length;
-	    if (matchwcsprefix(normoptname, L"no"))
-		search_shell_options(&normoptname[2], &options);
-	    free(normoptname);
+
+	    size_t shelloptindex =
+		collect_matching_shell_options(optname, &options);
 
 	    return handle_search_result(&options, argv, enable,
 		    shelloptindex, options.length, shell_invocation);
@@ -453,16 +451,8 @@ int parse_long_option(void *const *argv, bool enable,
 	goto end;
     }
 
-    wchar_t *optname = normalize_option_name(optstr);
-
-    search_shell_options(optname, &options);
-    shelloptindex = options.length;
-
-    if (matchwcsprefix(optname, L"no"))
-	search_shell_options(&optname[2], &options);
+    shelloptindex = collect_matching_shell_options(optstr, &options);
     noshelloptindex = options.length;
-
-    free(optname);
 
     if (enable) {
 	assert(matchwcsprefix(optstr, L"--"));
@@ -472,6 +462,25 @@ int parse_long_option(void *const *argv, bool enable,
 end:
     return handle_search_result(&options, argv, enable,
 	    shelloptindex, noshelloptindex, shell_invocation);
+}
+
+/* Collects shell options that match the specified name.
+ * This function adds to `options' pointers to shell options (struct option_T)
+ * whose names start with `optname'.
+ * If `optname' starts with "no", options whose names start with `optname'
+ * without "no" are also added. The index of the first such option is returned.
+ */
+size_t collect_matching_shell_options(const wchar_t *optname, plist_T *options)
+{
+    wchar_t *normoptname = normalize_option_name(optname);
+    search_shell_options(normoptname, options);
+
+    size_t nooptindex = options->length;
+    if (matchwcsprefix(normoptname, L"no"))
+	search_shell_options(&normoptname[2], options);
+
+    free(normoptname);
+    return nooptindex;
 }
 
 /* Adds pointers to shell options (struct option_T) whose names match `optname'
