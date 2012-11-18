@@ -445,21 +445,19 @@ int parse_long_option(void *const *argv, bool enable,
 
     pl_init(&options);
 
-    /* No long options are available in the POSIXly correct mode. */
     if (posixly_correct) {
+	/* No long options are available in the POSIXly correct mode. */
 	shelloptindex = noshelloptindex = 0;
-	goto end;
+    } else {
+	shelloptindex = collect_matching_shell_options(optstr, &options);
+	noshelloptindex = options.length;
+
+	if (enable) {
+	    assert(matchwcsprefix(optstr, L"--"));
+	    search_normal_options(&optstr[2], &options, shell_invocation);
+	}
     }
 
-    shelloptindex = collect_matching_shell_options(optstr, &options);
-    noshelloptindex = options.length;
-
-    if (enable) {
-	assert(matchwcsprefix(optstr, L"--"));
-	search_normal_options(&optstr[2], &options, shell_invocation);
-    }
-
-end:
     return handle_search_result(&options, argv, enable,
 	    shelloptindex, noshelloptindex, shell_invocation);
 }
