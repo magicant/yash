@@ -99,20 +99,28 @@ extern void notify_signaled_job(size_t jobnumber);
 
 extern int jobs_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char jobs_help[], jobs_syntax[];
+#endif
 extern const struct xgetopt_T jobs_options[];
 
 extern int fg_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char fg_help[], fg_syntax[], bg_help[], bg_syntax[];
+#endif
 
 extern int wait_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char wait_help[], wait_syntax[];
+#endif
 
 extern int disown_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char disown_help[], disown_syntax[];
+#endif
 
 
 #endif /* YASH_JOB_H */

@@ -55,16 +55,22 @@ extern _Bool is_interrupted(void);
 extern void set_laststatus_if_interrupted(void);
 extern void set_interrupted(void);
 extern void reset_sigint(void);
+#if YASH_ENABLE_LINEEDIT
 extern void reset_sigwinch(void);
+#endif
 
 extern int trap_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char trap_help[], trap_syntax[];
+#endif
 extern const struct xgetopt_T trap_options[];
 
 extern int kill_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char kill_help[], kill_syntax[];
+#endif
 
 #if HAVE_STRSIGNAL && !defined(strsignal)
 extern char *strsignal(int signum);

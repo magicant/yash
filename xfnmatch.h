@@ -55,8 +55,10 @@ extern wchar_t *xfnm_subst(
     __attribute__((malloc,warn_unused_result,nonnull));
 extern void xfnm_free(xfnmatch_T *xfnm);
 
+#if YASH_ENABLE_TEST
 extern _Bool match_regex(const wchar_t *s, const wchar_t *regex)
     __attribute__((nonnull));
+#endif
 
 
 #endif /* YASH_XFNMATCH_H */

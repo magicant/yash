@@ -47,11 +47,15 @@ extern const struct xgetopt_T force_help_options[];
 
 extern int exit_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char exit_help[], exit_syntax[];
+#endif
 
 extern int suspend_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char suspend_help[], suspend_syntax[];
+#endif
 
 
 /* Exits the shell with the last exit status.

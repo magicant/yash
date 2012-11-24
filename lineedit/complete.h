@@ -213,7 +213,9 @@ extern _Bool le_wmatch_comppatterns(
 
 extern int complete_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char complete_help[], complete_syntax[];
+#endif
 extern const struct xgetopt_T complete_options[];
 
 

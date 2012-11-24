@@ -78,17 +78,23 @@ extern void add_history(const wchar_t *line)
     __attribute__((nonnull));
 const histlink_T *get_history_entry(unsigned number)
     __attribute__((pure));
+#if YASH_ENABLE_LINEEDIT
 extern void start_using_history(void);
 extern void end_using_history(void);
+#endif
 
 extern int fc_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char fc_help[], fc_syntax[];
+#endif
 extern const struct xgetopt_T fc_options[];
 
 extern int history_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char history_help[], history_syntax[];
+#endif
 extern const struct xgetopt_T history_options[];
 
 

@@ -55,7 +55,9 @@ extern void le_set_mode(le_mode_id_T id);
 
 extern int bindkey_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char bindkey_help[], bindkey_syntax[];
+#endif
 extern const struct xgetopt_T bindkey_options[];
 
 

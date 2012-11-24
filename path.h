@@ -109,20 +109,28 @@ extern _Bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 
 extern int cd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char cd_help[], cd_syntax[];
+#endif
 
 extern int pwd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char pwd_help[], pwd_syntax[];
+#endif
 
 extern int hash_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char hash_help[], hash_syntax[];
+#endif
 extern const struct xgetopt_T hash_options[];
 
 extern int umask_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char umask_help[], umask_syntax[];
+#endif
 extern const struct xgetopt_T umask_options[];
 
 extern int change_directory(

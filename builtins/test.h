@@ -22,7 +22,9 @@
 
 extern int test_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char test_help[], test_syntax[];
+#endif
 
 
 #endif /* YASH_TEST_H */

@@ -133,43 +133,59 @@ extern _Bool define_function(const wchar_t *name, struct command_T *body)
 extern struct command_T *get_function(const wchar_t *name)
     __attribute__((nonnull));
 
+#if YASH_ENABLE_DIRSTACK
 extern _Bool parse_dirstack_index(
 	const wchar_t *restrict indexstr, size_t *restrict indexp,
 	const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
+#endif
 
 extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char typeset_help[], typeset_syntax[], export_help[],
 	export_syntax[], readonly_help[], readonly_syntax[];
+#endif
 extern const struct xgetopt_T typeset_options[];
 
 extern int array_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char array_help[], array_syntax[];
+#endif
 extern const struct xgetopt_T array_options[];
 
 extern int unset_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char unset_help[], unset_syntax[];
+#endif
 extern const struct xgetopt_T unset_options[];
 
 extern int shift_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char shift_help[], shift_syntax[];
+#endif
 
 extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char getopts_help[], getopts_syntax[];
+#endif
 
 extern int read_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char read_help[], read_syntax[];
+#endif
 extern const struct xgetopt_T read_options[];
 
 extern int pushd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char pushd_help[], pushd_syntax[];
+#endif
 extern const struct xgetopt_T pushd_options[];
 #if YASH_ENABLE_DIRSTACK
 # define cd_options  (&pushd_options[1])
@@ -181,11 +197,15 @@ extern const struct xgetopt_T pushd_options[];
 
 extern int popd_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char popd_help[], popd_syntax[];
+#endif
 
 extern int dirs_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char dirs_help[], dirs_syntax[];
+#endif
 extern const struct xgetopt_T dirs_options[];
 
 

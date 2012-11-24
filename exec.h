@@ -67,46 +67,62 @@ extern int exec_variable_as_commands(
 	const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
 
+#if YASH_ENABLE_LINEEDIT
 extern _Bool autoload_completion_function_file(
 	const wchar_t *filename, const wchar_t *cmdname)
     __attribute__((nonnull(1)));
 extern _Bool call_completion_function(const wchar_t *funcname)
     __attribute__((nonnull));
+#endif
 
 extern const struct xgetopt_T iter_options[];
 
 extern int return_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char return_help[], return_syntax[];
+#endif
 extern const struct xgetopt_T return_options[];
 
 extern int break_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char break_help[], break_syntax[], continue_help[],
 	continue_syntax[];
+#endif
 
 extern int eval_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char eval_help[], eval_syntax[];
+#endif
 
 extern int dot_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char dot_help[], dot_syntax[];
+#endif
 extern const struct xgetopt_T dot_options[];
 
 extern int exec_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char exec_help[], exec_syntax[];
+#endif
 extern const struct xgetopt_T exec_options[];
 
 extern int command_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char command_help[], command_syntax[], type_help[], type_syntax[];
+#endif
 extern const struct xgetopt_T command_options[];
 
 extern int times_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char times_help[], times_syntax[];
+#endif
 
 
 #endif /* YASH_EXEC_H */

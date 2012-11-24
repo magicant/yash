@@ -24,7 +24,9 @@
 
 extern int ulimit_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char ulimit_help[], ulimit_syntax[];
+#endif
 extern const struct xgetopt_T ulimit_options[];
 
 

@@ -49,10 +49,12 @@ extern _Bool shopt_glob, shopt_caseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;
 extern _Bool shopt_clobber;
+#if YASH_ENABLE_LINEEDIT
 extern enum shopt_lineedit_T shopt_lineedit;
 extern enum shopt_yesnoauto_T shopt_le_convmeta;
 extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
        shopt_le_compdebug;
+#endif
 
 /* Whether or not this shell process is doing job control right now. */
 #define doing_job_control_now  (do_job_control && ttyfd >= 0)
@@ -67,7 +69,9 @@ struct shell_invocation_T {
 extern int parse_shell_options(int argc, void *const *argv,
 	struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(2),warn_unused_result));
+#if YASH_ENABLE_LINEEDIT
 extern void set_lineedit_option(enum shopt_lineedit_T v);
+#endif
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
 #if YASH_ENABLE_TEST
@@ -85,7 +89,9 @@ extern const struct xgetopt_T all_help_options[];
 
 extern int set_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char set_help[], set_syntax[];
+#endif
 
 
 #endif /* YASH_OPTION_H */

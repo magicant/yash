@@ -60,15 +60,21 @@ extern _Bool print_option_list(const struct xgetopt_T *options)
 
 extern int true_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char colon_help[], colon_syntax[], true_help[], true_syntax[];
+#endif
 
 extern int false_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char false_help[], false_syntax[];
+#endif
 
 extern int help_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char help_help[], help_syntax[];
+#endif
 
 
 #endif /* YASH_BUILTIN_H */

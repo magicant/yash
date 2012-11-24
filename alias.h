@@ -47,12 +47,16 @@ extern _Bool print_alias_if_defined(
 
 extern int alias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char alias_help[], alias_syntax[];
+#endif
 extern const struct xgetopt_T alias_options[];
 
 extern int unalias_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char unalias_help[], unalias_syntax[];
+#endif
 extern const struct xgetopt_T unalias_options[];
 
 

@@ -22,11 +22,15 @@
 
 extern int echo_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char echo_help[], echo_syntax[];
+#endif
 
 extern int printf_builtin(int argc, void **argv)
     __attribute__((nonnull));
+#if YASH_ENABLE_HELP
 extern const char printf_help[], printf_syntax[];
+#endif
 
 
 #endif /* YASH_PRINTF_H */
