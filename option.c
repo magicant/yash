@@ -297,6 +297,10 @@ static void update_le_convmeta_option(void);
 static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
 	struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
+#if YASH_ENABLE_TEST
+static struct option_T *find_option_unique(const wchar_t *s)
+    __attribute__((nonnull,pure));
+#endif
 
 /* Parses the specified command line arguments and accordingly sets the shell
  * options and positional parameters.
@@ -756,6 +760,41 @@ void set_lineedit_option(enum shopt_lineedit_T v)
 }
 
 #endif
+
+#if YASH_ENABLE_TEST
+
+/* Returns true iff the specified string is a valid option name that can be used
+ * as the argument to the "-o" option. */
+bool is_valid_option_name(const wchar_t *s)
+{
+    return find_option_unique(s) != NULL;
+}
+
+/* Returns true iff the specified string is a valid option name that can be used
+ * as the argument to the "-o" option and the option is enabled. */
+bool option_is_enabled(const wchar_t *s)
+{
+    struct option_T *opt = find_option_unique(s);
+    return opt != NULL && *opt->optp;
+}
+
+/* If the specified string is a valid option name that can be used as the
+ * argument to the "-o" option, then returns the option. Otherwise, NULL is
+ * returned. */
+struct option_T *find_option_unique(const wchar_t *s)
+{
+    plist_T options;
+    pl_init(&options);
+
+    collect_matching_shell_options(s, &options);
+
+    struct option_T *opt = (options.length == 1) ? options.contents[0] : NULL;
+
+    pl_destroy(&options);
+    return opt;
+}
+
+#endif /* YASH_ENABLE_TEST */
 
 /* Returns the current value of special parameter $- as a newly malloced string.
  */

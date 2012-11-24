@@ -21,6 +21,7 @@ function completion/test {
 		complete -D "check if a file is a symbolic link" -- -L
 		complete -D "check if a file hasn't been accessed since last modified" -- -N
 		complete -D "check if a file is owned by the current user" -- -O
+		complete -D "check if a shell option is enabled" -- -o
 		complete -D "check if a file is a FIFO (named pipe)" -- -p
 		complete -D "check if a file is readable" -- -r
 		complete -D "check if a file is a socket" -- -S
@@ -59,7 +60,29 @@ function completion/test {
 		complete -D "check if a version number is less than or equal to another" -- -vle
 	esac #<<#
 
-	# complete operand
+	# complete operand of the "-o" unary operator
+	case ${WORDS[-2]} in ('('|!|-[ao])
+		case ${WORDS[-1]} in (-o)
+			if command -fv completion/set::completelongoption >/dev/null 2>&1 ||
+					. -AL completion/set; then
+				typeset SOPTIONS LOPTIONS PREFIX prog=set
+				SOPTIONS=() LOPTIONS=()
+				case $TARGETWORD in
+				(\?*)
+					TARGETWORD=${TARGETWORD#\?} PREFIX=\?
+					;;
+				(*)
+					PREFIX=
+					;;
+				esac
+				command -f completion/set::getopt set
+				command -f completion/set::completelongoption
+			fi
+			return
+		esac
+	esac
+
+	# complete operand of other operators
 	complete -f
 
 }

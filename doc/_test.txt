@@ -56,6 +56,11 @@ The unary operators below test a string:
 +-n {{string}}+:: {{string}} is not empty
 +-z {{string}}+:: {{string}} is empty
 
+The unary operator below tests a link:_set.html[shell option]:
+
++-o ?{{option}}+:: {{option}} is a valid shell option name
++-o {{option}}+:: {{option}} is a valid shell option name that is enabled
+
 The binary operators below compare files.
 Non-existing files are considered older than any existing files.
 
@@ -154,5 +159,6 @@ error.
 The POSIX standard does not define the following operators:
 +-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
 +-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
+POSIX neither specifies +-o+ as a unary operator.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

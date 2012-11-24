@@ -324,6 +324,29 @@ tt "(" ! "" ")" -a ""
 tt -n = -o -o -n = -n  # ( -n = -o ) -o ( -n = -n ) => true
 tt -n = -a -n = -n     # ( -n = ) -a ( -n = -n )    => true
 
+echo =====
+
+(
+set -o allexport
+tt -o allexpor
+tt -o allexport
+tt -o allexportttttttttttttt
+tt -o \?allexpor
+tt -o \?allexport
+tt -o \?allexportttttttttttttt
+)
+(
+set +o allexport
+tt -o allexpor
+tt -o allexport
+tt -o allexportttttttttttttt
+tt -o \?allexpor
+tt -o \?allexport
+tt -o \?allexportttttttttttttt
+)
+
+echo =====
+
 test 1 2 3  2>/dev/null  # invalid expression
 echo "1 2 3: $?"
 

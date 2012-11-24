@@ -70,6 +70,12 @@ extern int parse_shell_options(int argc, void *const *argv,
 extern void set_lineedit_option(enum shopt_lineedit_T v);
 extern wchar_t *get_hyphen_parameter(void)
     __attribute__((malloc,warn_unused_result));
+#if YASH_ENABLE_TEST
+extern _Bool is_valid_option_name(const wchar_t *s)
+    __attribute__((nonnull,pure));
+extern _Bool option_is_enabled(const wchar_t *s)
+    __attribute__((nonnull,pure));
+#endif
 #if YASH_ENABLE_HELP
 extern _Bool print_shopts_body(_Bool include_normal_options);
 #endif

@@ -226,4 +226,18 @@ gid -ef reglink: 0 0
 ( !  ) -a : 1 1
 -n = -o -o -n = -n: 0 0
 -n = -a -n = -n: 0 0
+=====
+-o allexpor: 0 0
+-o allexport: 0 0
+-o allexportttttttttttttt: 1 1
+-o ?allexpor: 0 0
+-o ?allexport: 0 0
+-o ?allexportttttttttttttt: 1 1
+-o allexpor: 1 1
+-o allexport: 1 1
+-o allexportttttttttttttt: 1 1
+-o ?allexpor: 0 0
+-o ?allexport: 0 0
+-o ?allexportttttttttttttt: 1 1
+=====
 1 2 3: 2

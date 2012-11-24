@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
+#include "../option.h"
 #include "../path.h"
 #include "../plist.h"
 #include "../strbuf.h"
@@ -146,6 +147,11 @@ bool test_double(void *args[static 2])
 		int fd;
 		return xwcstoi(arg, 10, &fd) && isatty(fd);
 	    }
+	case L'o':
+	    if (arg[0] == L'?')
+		return is_valid_option_name(&arg[1]);
+	    else
+		return option_is_enabled(arg);
     }
 
     char *mbsarg = malloc_wcstombs(arg);
@@ -448,8 +454,8 @@ bool is_unary_primary(const wchar_t *word)
     switch (word[1]) {
 	case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'G':
 	case L'g':  case L'h':  case L'k':  case L'L':  case L'N':  case L'n':
-	case L'O':  case L'p':  case L'r':  case L'S':  case L's':  case L't':
-	case L'u':  case L'w':  case L'x':  case L'z':
+	case L'O':  case L'o':  case L'p':  case L'r':  case L'S':  case L's':
+	case L't':  case L'u':  case L'w':  case L'x':  case L'z':
 	    return true;
 	default:
 	    return false;

@@ -13,127 +13,28 @@ function completion/set {
 	"o:; specify an option"
 	"--help"
 	) #<#
-	SOPTIONS=( #>#
-	"a; export all variables when assigned"
-	"b; print job status immediately when done"
-	"C; disallow >-redirection to overwrite an existing file"
-	"e; exit immediately when a command's exit status is non-zero"
-	"f; disable pathname expansion (globbing)"
-	"m; enable job control"
-	"n; don't execute any commands"
-	"u; disallow expansion of undefined variables"
-	"v; echo commands entered to the shell"
-	"x; print a command line before executing it"
-	) #<#
-	LOPTIONS=( #>#
-	"allexport; export all variables when assigned"
-	"braceexpand; enable brace expansion"
-	"clobber; allow >-redirection to overwrite an existing file"
-	"emacs; emacs-like line-editing"
-	"errexit; exit immediately when a command's exit status is non-zero"
-	"exec; actually execute commands"
-	"glob; enable pathname expansion (globbing)"
-	"ignoreeof; don't exit when an end-of-file is entered"
-	"markdirs; append a slash to directory names after pathname expansion"
-	"monitor; enable job control"
-	"notify; print job status immediately when done"
-	"unset; allow expansion of undefined variables"
-	"verbose; echo commands entered to the shell"
-	"vi; vi-like line-editing"
-	"xtrace; print a command line before executing it"
-	) #<#
+	SOPTIONS=() LOPTIONS=()
 
 	case $prog in
-	(set|yash)
-		SOPTIONS=("$SOPTIONS" #>#
-		"h; cache full paths of commands in a function when defined"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"caseglob; make pathname expansion case-sensitive"
-		"curasync; a newly-executed background job becomes the current job"
-		"curbg; a background job becomes the current job when resumed"
-		"curstop; a background job becomes the current job when stopped"
-		"dotglob; don't treat a period at the beginning of a filename specially"
-		"extendedglob; enable recursive pathname expansion"
-		"hashondef; cache full paths of commands in a function when defined"
-		"histspace; don't save a command starting with a space in the history"
-		"leconvmeta; always treat meta-key flags in line-editing"
-		"lenoconvmeta; never treat meta-key flags in line-editing"
-		"levisiblebell; alert with a flash, not a bell"
-		"lepromptsp; ensure the prompt is printed at the beginning of a line"
-		"lealwaysrp; always show the right prompt during line-editing"
-		"lecompdebug; print debugging info during command line completion"
-		"notifyle; print job status immediately when done while line-editing"
-		"nullglob; remove words that matched nothing in pathname expansion"
-		"posix; force strict POSIX conformance"
+	(yash)
+		OPTIONS=("$OPTIONS" #>#
+		"--noprofile; don't read the profile file"
+		"--norcfile; don't read the yashrc file"
+		"--profile:; specify the profile file"
+		"--rcfile:; specify the yashrc file"
+		"V --version; print version info"
 		) #<#
 		;;
 	(ksh)
-		SOPTIONS=("$SOPTIONS" #>#
-		"G; enable recursive pathname expansion"
-		"H; enable !-expansion on the command line"
-		"h; cache full paths of commands when entered"
-		"k; allow assignments in the middle of command arguments"
-		"p; work in the privileged mode"
-		"r; work in the restricted mode"
-		"t; execute one command only"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"bgnice; run background jobs at lower priorities"
-		"gmacs; gmacs-like line-editing"
-		"globstar; enable recursive pathname expansion"
-		"histexpand; enable !-expansion on the command line"
-		"keyword; allow assignments in the middle of command arguments"
-		"multiline; allow multiple line editing"
-		"pipefail; return last non-zero exit status of commands in a pipe"
-		"privileged; work in the privileged mode"
-		"restricted; work in the restricted mode"
-		"showme; trace commands preceded by a semicolon"
-		"trackall; cache full paths of commands when entered"
-		"viraw; vi-like line-editing without canonical input handling"
+		OPTIONS=("$OPTIONS" #>#
+		"D --dump-strings; extract translatable strings"
+		"R:; create a cross reference database in the specified file"
+		"--version"
 		) #<#
 		;;
 	esac
-	case $prog in (yash|ksh)
-		SOPTIONS=("$SOPTIONS" #>#
-		"c; execute the first operand as a shell script"
-		"i; work in the interactive mode"
-		"l; work as a login shell"
-		"s; read commands from the standard input"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"interactive; work in the interactive mode"
-		"login; work as a login shell"
-		) #<#
-		case $prog in
-		(yash)
-			OPTIONS=("$OPTIONS" #>#
-			"--noprofile; don't read the profile file"
-			"--norcfile; don't read the yashrc file"
-			"--profile:; specify the profile file"
-			"--rcfile:; specify the yashrc file"
-			"V --version; print version info"
-			) #<#
-			LOPTIONS=("$LOPTIONS" #>#
-			"cmdline; execute the command specified on the command line"
-			"stdin; read commands from the standard input"
-			) #<#
-			;;
-		(ksh)
-			OPTIONS=("$OPTIONS" #>#
-			"D --dump-strings; extract translatable strings"
-			"R:; create a cross reference database in the specified file"
-			"--version"
-			) #<#
-			SOPTIONS=("$SOPTIONS" #>#
-			"E; read the \$ENV file on shell invocation"
-			) #<#
-			LOPTIONS=("$LOPTIONS" #>#
-			"rc; read the \$ENV file on shell invocation"
-			) #<#
-			;;
-		esac
-	esac
+
+	command -f completion/set::getopt "$prog"
 
 	typeset i=2 ARGOPT PREFIX
 	while [ $i -le ${WORDS[#]} ]; do
@@ -310,6 +211,120 @@ function completion/set::checklongoption {
 	else
 		ARGOPT= PREFIX=
 	fi
+
+}
+
+function completion/set::getopt {
+
+	SOPTIONS=( #>#
+	"a; export all variables when assigned"
+	"b; print job status immediately when done"
+	"C; disallow >-redirection to overwrite an existing file"
+	"e; exit immediately when a command's exit status is non-zero"
+	"f; disable pathname expansion (globbing)"
+	"m; enable job control"
+	"n; don't execute any commands"
+	"u; disallow expansion of undefined variables"
+	"v; echo commands entered to the shell"
+	"x; print a command line before executing it"
+	) #<#
+	LOPTIONS=( #>#
+	"allexport; export all variables when assigned"
+	"braceexpand; enable brace expansion"
+	"clobber; allow >-redirection to overwrite an existing file"
+	"emacs; emacs-like line-editing"
+	"errexit; exit immediately when a command's exit status is non-zero"
+	"exec; actually execute commands"
+	"glob; enable pathname expansion (globbing)"
+	"ignoreeof; don't exit when an end-of-file is entered"
+	"markdirs; append a slash to directory names after pathname expansion"
+	"monitor; enable job control"
+	"notify; print job status immediately when done"
+	"unset; allow expansion of undefined variables"
+	"verbose; echo commands entered to the shell"
+	"vi; vi-like line-editing"
+	"xtrace; print a command line before executing it"
+	) #<#
+
+	case $prog in
+	(set|yash)
+		SOPTIONS=("$SOPTIONS" #>#
+		"h; cache full paths of commands in a function when defined"
+		) #<#
+		LOPTIONS=("$LOPTIONS" #>#
+		"caseglob; make pathname expansion case-sensitive"
+		"curasync; a newly-executed background job becomes the current job"
+		"curbg; a background job becomes the current job when resumed"
+		"curstop; a background job becomes the current job when stopped"
+		"dotglob; don't treat a period at the beginning of a filename specially"
+		"extendedglob; enable recursive pathname expansion"
+		"hashondef; cache full paths of commands in a function when defined"
+		"histspace; don't save a command starting with a space in the history"
+		"leconvmeta; always treat meta-key flags in line-editing"
+		"lenoconvmeta; never treat meta-key flags in line-editing"
+		"levisiblebell; alert with a flash, not a bell"
+		"lepromptsp; ensure the prompt is printed at the beginning of a line"
+		"lealwaysrp; always show the right prompt during line-editing"
+		"lecompdebug; print debugging info during command line completion"
+		"notifyle; print job status immediately when done while line-editing"
+		"nullglob; remove words that matched nothing in pathname expansion"
+		"posix; force strict POSIX conformance"
+		) #<#
+		;;
+	(ksh)
+		SOPTIONS=("$SOPTIONS" #>#
+		"G; enable recursive pathname expansion"
+		"H; enable !-expansion on the command line"
+		"h; cache full paths of commands when entered"
+		"k; allow assignments in the middle of command arguments"
+		"p; work in the privileged mode"
+		"r; work in the restricted mode"
+		"t; execute one command only"
+		) #<#
+		LOPTIONS=("$LOPTIONS" #>#
+		"bgnice; run background jobs at lower priorities"
+		"gmacs; gmacs-like line-editing"
+		"globstar; enable recursive pathname expansion"
+		"histexpand; enable !-expansion on the command line"
+		"keyword; allow assignments in the middle of command arguments"
+		"multiline; allow multiple line editing"
+		"pipefail; return last non-zero exit status of commands in a pipe"
+		"privileged; work in the privileged mode"
+		"restricted; work in the restricted mode"
+		"showme; trace commands preceded by a semicolon"
+		"trackall; cache full paths of commands when entered"
+		"viraw; vi-like line-editing without canonical input handling"
+		) #<#
+		;;
+	esac
+	case $prog in (yash|ksh)
+		SOPTIONS=("$SOPTIONS" #>#
+		"c; execute the first operand as a shell script"
+		"i; work in the interactive mode"
+		"l; work as a login shell"
+		"s; read commands from the standard input"
+		) #<#
+		LOPTIONS=("$LOPTIONS" #>#
+		"interactive; work in the interactive mode"
+		"login; work as a login shell"
+		) #<#
+		case $prog in
+		(yash)
+			LOPTIONS=("$LOPTIONS" #>#
+			"cmdline; execute the command specified on the command line"
+			"stdin; read commands from the standard input"
+			) #<#
+			;;
+		(ksh)
+			SOPTIONS=("$SOPTIONS" #>#
+			"E; read the \$ENV file on shell invocation"
+			) #<#
+			LOPTIONS=("$LOPTIONS" #>#
+			"rc; read the \$ENV file on shell invocation"
+			) #<#
+			;;
+		esac
+	esac
 
 }
 

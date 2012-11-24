@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.34
 
-  +  New "test" built-in operator: =~
+  +  New "test" built-in operator: =~, -o (unary)
   *  Fixes in completion scripts for "git".
 
 ----------------------------------------------------------------------
