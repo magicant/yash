@@ -194,6 +194,7 @@ static bool next_reset_completion;
 
 
 static void reset_state(void);
+static void reset_count(void);
 static int get_count(int default_value)
     __attribute__((pure));
 static void save_current_edit_command(void);
@@ -381,11 +382,17 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 /* Resets `state'. */
 void reset_state(void)
 {
+    reset_count();
+    state.pending_command_motion = MEC_MOVE;
+    state.pending_command_char = 0;
+}
+
+/* Resets `state.count'. */
+void reset_count(void)
+{
     state.count.sign = 0;
     state.count.abs = 0;
     state.count.multiplier = 1;
-    state.pending_command_motion = MEC_MOVE;
-    state.pending_command_char = 0;
 }
 
 /* Returns the count value.
@@ -2348,31 +2355,22 @@ void vi_replace_char(wchar_t c)
  * "vi insert". */
 void cmd_vi_insert_beginning(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    le_main_index = 0;
-    cmd_setmode_viinsert(L'\0');
+    exec_motion_expect_command_line(MEC_INSERT | MEC_TOSTART);
 }
 
 /* Moves the cursor forward one character and sets the editing mode to "vi
  * insert". */
 void cmd_vi_append(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    if (le_main_index < le_main_buffer.length)
-	le_main_index++;
-    cmd_setmode_viinsert(L'\0');
+    reset_count();
+    exec_motion_expect_command(MEC_INSERT | MEC_MOVE, cmd_forward_char);
 }
 
 /* Moves the cursor to the end of the line and sets the editing mode to "vi
  * insert".*/
 void cmd_vi_append_to_eol(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    le_main_index = le_main_buffer.length;
-    cmd_setmode_viinsert(L'\0');
+    exec_motion_expect_command_line(MEC_INSERT | MEC_TOEND);
 }
 
 /* Sets the editing mode to "vi insert" and starts the overwrite mode. */
