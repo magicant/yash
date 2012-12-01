@@ -151,8 +151,14 @@ static struct le_command_T last_find_command;
  * this mode. */
 static le_mode_id_T savemode;
 
-/* If true, characters are overwritten rather than inserted. */
-static bool overwrite;
+/* When starting the overwrite mode, the then `le_main_buffer' contents and
+ * length are saved in this structure. The values are kept so that the original
+ * contents can be restored when the user hits backspace. When the user leaves
+ * the overwrite mode, `contents' is freed and set to NULL. */
+static struct {
+    wchar_t *contents;
+    size_t length;
+} overwrite_save_buffer;
 
 /* History of the edit line between editing commands. */
 static plist_T undo_history;
@@ -204,6 +210,9 @@ static void add_to_kill_ring(const wchar_t *s, size_t n)
     __attribute__((nonnull));
 static void set_char_expect_command(le_command_func_T cmd)
     __attribute__((nonnull));
+static void set_overwriting(bool overwriting);
+static inline bool is_overwriting(void)
+    __attribute__((pure));
 static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir);
 static void to_upper_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -330,7 +339,7 @@ void le_editing_init(void)
     reset_completion = true;
 
     reset_state();
-    overwrite = false;
+    set_overwriting(false);
 }
 
 /* Finalizes the editing module when editing is finished.
@@ -527,13 +536,13 @@ void exec_motion_command(size_t new_index, bool inclusive)
     }
     if (mec & MEC_DELETE) {
 	save_current_edit_command();
-	if (!overwrite || old_index <= new_index)
+	if (!is_overwriting() || old_index <= new_index)
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	le_main_index = start_index;
     }
     if (mec & MEC_INSERT) {
 	le_set_mode(LE_MODE_VI_INSERT);
-	overwrite = false;
+	set_overwriting(false);
     }
     reset_state();
 }
@@ -610,6 +619,24 @@ void set_char_expect_command(le_command_func_T cmd)
     state.pending_command_char = cmd;
 }
 
+/* Enables or disables the overwrite mode. */
+void set_overwriting(bool overwrite)
+{
+    free(overwrite_save_buffer.contents);
+    if (overwrite) {
+	overwrite_save_buffer.contents = xwcsdup(le_main_buffer.contents);
+	overwrite_save_buffer.length = le_main_buffer.length;
+    } else {
+	overwrite_save_buffer.contents = NULL;
+    }
+}
+
+/* Returns true iff the overwrite mode is active. */
+bool is_overwriting(void)
+{
+    return overwrite_save_buffer.contents != NULL;
+}
+
 /* Starts command history search by setting the editing mode to `mode' with
  * the specified direction `dir'. `mode' must be either LE_MODE_VI_SEARCH or
  * LE_MODE_EMACS_SEARCH.
@@ -675,7 +702,8 @@ void cmd_alert(wchar_t c __attribute__((unused)))
 
 /* Inserts the character argument into the buffer.
  * If the count is set, inserts `count' times.
- * If `overwrite' is true, overwrites the character instead of inserting. */
+ * If `is_overwriting()' is true, overwrites the character instead of inserting.
+ */
 void cmd_self_insert(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
@@ -686,7 +714,7 @@ void cmd_self_insert(wchar_t c)
 
     int count = get_count(1);
     while (--count >= 0)
-	if (overwrite && le_main_index < le_main_buffer.length)
+	if (is_overwriting() && le_main_index < le_main_buffer.length)
 	    le_main_buffer.contents[le_main_index++] = c;
 	else
 	    wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
@@ -821,8 +849,8 @@ void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
     maybe_save_undo_history();
 
     le_set_mode(LE_MODE_VI_INSERT);
+    set_overwriting(false);
     reset_state();
-    overwrite = false;
 }
 
 /* Changes the editing mode to "vi command". */
@@ -835,8 +863,8 @@ void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 	if (le_main_index > 0)
 	    le_main_index--;
     le_set_mode(LE_MODE_VI_COMMAND);
+    set_overwriting(false);
     reset_state();
-    overwrite = false;
 }
 
 /* Changes the editing mode to "emacs". */
@@ -846,8 +874,8 @@ void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
     maybe_save_undo_history();
 
     le_set_mode(LE_MODE_EMACS);
+    set_overwriting(false);
     reset_state();
-    overwrite = false;
 }
 
 /* Executes the currently pending char-expecting command. */
@@ -2349,13 +2377,13 @@ void cmd_vi_append_to_eol(wchar_t c __attribute__((unused)))
     cmd_setmode_viinsert(L'\0');
 }
 
-/* Sets the editing mode to "vi insert" with the `overwrite' flag true. */
+/* Sets the editing mode to "vi insert" and starts the overwrite mode. */
 void cmd_vi_replace(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
     cmd_setmode_viinsert(L'\0');
-    overwrite = true;
+    set_overwriting(true);
 }
 
 /* Sets the pending command to MEC_SWITCHCASE.
