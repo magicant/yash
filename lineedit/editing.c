@@ -527,7 +527,7 @@ void exec_motion_command(size_t new_index, bool inclusive)
     }
     if (mec & MEC_DELETE) {
 	save_current_edit_command();
-	if (!overwrite || le_main_index <= new_index)
+	if (!overwrite || old_index <= new_index)
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	le_main_index = start_index;
     }
