@@ -194,7 +194,7 @@ static void save_current_edit_command(void);
 static void save_current_find_command(void);
 static void save_undo_history(void);
 static void maybe_save_undo_history(void);
-static void exec_motion_command(size_t index, bool inclusive);
+static void exec_motion_command(size_t new_index, bool inclusive);
 static void set_motion_expect_command(enum motion_expect_command_T cmd);
 static void exec_motion_expect_command(
 	enum motion_expect_command_T cmd, le_command_func_T motion);
@@ -485,18 +485,19 @@ void maybe_save_undo_history(void)
  * pending, simply moves the cursor to the specified index. */
 /* This function is used for all cursor-moving commands, even when not in the
  * vi mode. */
-void exec_motion_command(size_t index, bool inclusive)
+void exec_motion_command(size_t new_index, bool inclusive)
 {
     assert(le_main_index <= le_main_buffer.length);
-    assert(index <= le_main_buffer.length);
+    assert(new_index <= le_main_buffer.length);
 
     maybe_save_undo_history();
 
+    size_t old_index = le_main_index;
     size_t start_index, end_index;
-    if (le_main_index <= index)
-	start_index = le_main_index, end_index = index;
+    if (old_index <= new_index)
+	start_index = old_index, end_index = new_index;
     else
-	start_index = index, end_index = le_main_index;
+	start_index = new_index, end_index = old_index;
     if (inclusive && end_index < le_main_buffer.length)
 	end_index++;
 
@@ -522,17 +523,13 @@ void exec_motion_command(size_t index, bool inclusive)
     switch (mec & MEC_CURSORMASK) {
 	case MEC_TOSTART:  le_main_index = start_index;  break;
 	case MEC_TOEND:    le_main_index = end_index;    break;
-	case MEC_MOVE:     le_main_index = index;        break;
+	case MEC_MOVE:     le_main_index = new_index;    break;
     }
     if (mec & MEC_DELETE) {
-	if (overwrite && index < le_main_index) {
-	    le_main_index = index;
-	} else {
-	    save_current_edit_command();
-	    wb_remove(&le_main_buffer,
-		    start_index, end_index - start_index);
-	    le_main_index = start_index;
-	}
+	save_current_edit_command();
+	if (!overwrite || le_main_index <= new_index)
+	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
+	le_main_index = start_index;
     }
     if (mec & MEC_INSERT) {
 	le_set_mode(LE_MODE_VI_INSERT);
