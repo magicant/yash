@@ -501,6 +501,10 @@ void exec_motion_command(size_t index, bool inclusive)
 	end_index++;
 
     enum motion_expect_command_T mec = state.pending_command_motion;
+    if (mec & MEC_COPY) {
+	add_to_kill_ring(&le_main_buffer.contents[start_index],
+		end_index - start_index);
+    }
     switch (mec & MEC_CASEMASK) {
 	case MEC_UPPERCASE:
 	    to_upper_case(&le_main_buffer.contents[start_index],
@@ -514,10 +518,6 @@ void exec_motion_command(size_t index, bool inclusive)
 	    switch_case(&le_main_buffer.contents[start_index],
 		    end_index - start_index);
 	    break;
-    }
-    if (mec & MEC_COPY) {
-	add_to_kill_ring(&le_main_buffer.contents[start_index],
-		end_index - start_index);
     }
     switch (mec & MEC_CURSORMASK) {
 	case MEC_TOSTART:  le_main_index = start_index;  break;
