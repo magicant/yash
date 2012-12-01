@@ -509,8 +509,6 @@ void exec_motion_command(size_t new_index, bool inclusive)
     assert(le_main_index <= le_main_buffer.length);
     assert(new_index <= le_main_buffer.length);
 
-    maybe_save_undo_history();
-
     size_t old_index = le_main_index;
     size_t start_index, end_index;
     if (old_index <= new_index)
@@ -521,6 +519,15 @@ void exec_motion_command(size_t new_index, bool inclusive)
 	end_index++;
 
     enum motion_expect_command_T mec = state.pending_command_motion;
+
+    /* don't save undo history when repeating backspace */
+    bool repeated_backspace = (mec & MEC_DELETE)
+	&& (new_index + 1 == old_index)
+	&& current_command.func == cmd_backward_delete_char
+	&& last_command.func == cmd_backward_delete_char;
+    if (!repeated_backspace)
+	maybe_save_undo_history();
+
     if (mec & MEC_COPY) {
 	add_to_kill_ring(&le_main_buffer.contents[start_index],
 		end_index - start_index);
