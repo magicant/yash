@@ -214,6 +214,8 @@ static void set_char_expect_command(le_command_func_T cmd)
 static void set_overwriting(bool overwriting);
 static inline bool is_overwriting(void)
     __attribute__((pure));
+static void restore_overwritten_buffer_contents(
+	size_t start_index, size_t end_index);
 static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir);
 static void to_upper_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -546,6 +548,8 @@ void exec_motion_command(size_t new_index, bool inclusive)
 	save_current_edit_command();
 	if (!is_overwriting() || old_index <= new_index)
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
+	else
+	    restore_overwritten_buffer_contents(start_index, end_index);
 	le_main_index = start_index;
     }
     if (mec & MEC_INSERT) {
@@ -643,6 +647,29 @@ void set_overwriting(bool overwrite)
 bool is_overwriting(void)
 {
     return overwrite_save_buffer.contents != NULL;
+}
+
+/* Restores the main buffer contents that were overwritten in the current
+ * overwrite mode. The caller must adjust `le_main_index' because this function
+ * may remove some characters from `le_main_buffer'. */
+void restore_overwritten_buffer_contents(size_t start_index, size_t end_index)
+{
+    size_t mid_index;
+    if (overwrite_save_buffer.length < start_index)
+	mid_index = start_index;
+    else if (overwrite_save_buffer.length > end_index)
+	mid_index = end_index;
+    else
+	mid_index = overwrite_save_buffer.length;
+
+    /* Restore contents from `start_index' to `mid_index' */
+    wmemcpy(&le_main_buffer.contents[start_index],
+	    &overwrite_save_buffer.contents[start_index],
+	    mid_index - start_index);
+
+    /* Contents from `mid_index' to `end_index' were actually not overwritten
+     * but appended, so they should be removed. */
+    wb_remove(&le_main_buffer, mid_index, end_index - mid_index);
 }
 
 /* Starts command history search by setting the editing mode to `mode' with

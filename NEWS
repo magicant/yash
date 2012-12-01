@@ -11,6 +11,8 @@ History of Yash
 Yash 2.34
 
   +  New "test" built-in operator: =~, -o (unary)
+  =  In line-editing, overwritten characters are now restored when you
+     hit the backspace key.
   *  Fixes in completion scripts for "git".
 
 ----------------------------------------------------------------------
