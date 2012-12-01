@@ -596,7 +596,7 @@ void exec_motion_expect_command_all(void)
 
     le_main_index = 0;
     cmd_end_of_line(L'\0');
-    if (!(save_pending & (MEC_DELETE | MEC_MOVE)))
+    if (!(save_pending & (MEC_DELETE | MEC_CURSORMASK)))
 	le_main_index = save_index;
 }
 
