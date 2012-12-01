@@ -221,6 +221,7 @@ static void to_lower_case(wchar_t *s, size_t n)
 static void switch_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
 
+static void set_mode(le_mode_id_T newmode, bool overwrite);
 static void redraw_all(bool clear);
 
 static bool alert_if_first(void);
@@ -845,36 +846,33 @@ void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
 /* Changes the editing mode to "vi insert". */
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-
-    le_set_mode(LE_MODE_VI_INSERT);
-    set_overwriting(false);
-    reset_state();
+    set_mode(LE_MODE_VI_INSERT, false);
 }
 
 /* Changes the editing mode to "vi command". */
 void cmd_setmode_vicommand(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-
-    if (LE_CURRENT_MODE == LE_MODE_VI_INSERT)
-	if (le_main_index > 0)
-	    le_main_index--;
-    le_set_mode(LE_MODE_VI_COMMAND);
-    set_overwriting(false);
-    reset_state();
+    set_mode(LE_MODE_VI_COMMAND, false);
 }
 
 /* Changes the editing mode to "emacs". */
 void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
 {
+    set_mode(LE_MODE_EMACS, false);
+}
+
+/* Changes the editing mode to the specified one. */
+void set_mode(le_mode_id_T newmode, bool overwrite)
+{
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
 
-    le_set_mode(LE_MODE_EMACS);
-    set_overwriting(false);
+    if (LE_CURRENT_MODE == LE_MODE_VI_INSERT && newmode == LE_MODE_VI_COMMAND)
+	if (le_main_index > 0)
+	    le_main_index--;
+
+    le_set_mode(newmode);
+    set_overwriting(overwrite);
     reset_state();
 }
 
@@ -2380,10 +2378,7 @@ void cmd_vi_append_to_eol(wchar_t c __attribute__((unused)))
 /* Sets the editing mode to "vi insert" and starts the overwrite mode. */
 void cmd_vi_replace(wchar_t c __attribute__((unused)))
 {
-    ALERT_AND_RETURN_IF_PENDING;
-
-    cmd_setmode_viinsert(L'\0');
-    set_overwriting(true);
+    set_mode(LE_MODE_VI_INSERT, true);
 }
 
 /* Sets the pending command to MEC_SWITCHCASE.
