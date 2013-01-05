@@ -1,0 +1,47 @@
+# (C) 2012 magicant
+
+# Completion script for the "git" command.
+# Supports Git 1.8.0.2.
+
+function completion/git-request-pull {
+	WORDS=(git request-pull "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::request-pull:arg {
+
+	OPTIONS=( #>#
+	"p; print a patch"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			case ${WORDS[#]} in
+				(1)
+					command -f completion/git::request-pull:compurl
+					;;
+				(*)
+					command -f completion/git::completeref
+					;;
+			esac
+			;;
+	esac
+
+}
+
+function completion/git::request-pull:compurl {
+
+	typeset name url type
+	while read -r name url type; do
+		complete -P "$PREFIX" -D "$name $type" -- "$url"
+	done 2>/dev/null <(git remote -v)
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

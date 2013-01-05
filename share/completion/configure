@@ -1,0 +1,46 @@
+# (C) 2012 magicant
+
+# Completion script for the "configure" script.
+
+function completion/configure {
+
+	case $TARGETWORD in
+		(*=*)
+			complete -P "${TARGETWORD%%=*}=" -f
+			return
+			;;
+		(-*)
+			;;
+		(*)
+			return
+			;;
+	esac
+
+	typeset words option desc i IFS=' 	
+'
+	while read -A words; do
+		i=1
+		while true; do
+			case ${words[i]} in
+				(-*) i=$((i+1)) ;;
+				(*)  break ;;
+			esac
+		done
+
+		desc=${words[i,-1]}
+		for option in "${words[1,i-1]%,}"; do
+			case $option in
+				(--*=*)
+					complete -OT -D "$desc" -- "${option%=*}="
+					;;
+				(-*)
+					complete -O -D "$desc" -- "${option}"
+					;;
+			esac
+		done
+	done <("${WORDS[1]}" --help 2>&1)
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

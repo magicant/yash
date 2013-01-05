@@ -1,0 +1,39 @@
+# (C) 2012 magicant
+
+# Completion script for the "git" command.
+# Supports Git 1.8.0.2.
+
+function completion/git-name-rev {
+	WORDS=(git name-rev "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::name-rev:arg {
+
+	OPTIONS=( #>#
+	"--all; print all commits reachable from any refs"
+	"--always; show uniquely abbreviated commit object as fallback"
+	"--name-only; don't print SHA-1 before each name"
+	"--no-undefined; exit with non-zero status for an undefined reference"
+	"--refs:; specify refs that should be used by a pattern"
+	"--stdin; filter the standard input, appending a name to each SHA-1"
+	"--tags; use tag names only"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--refs)
+			command -f completion/git::completeref
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
