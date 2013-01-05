@@ -40,7 +40,7 @@ In this section we explain common rules about command arguments.
 The built-in commands of yash follow the rules unless otherwise stated. 
 
 There are two types of command arguments. One is options and the other is
-operands. An option is an argument that is started with a hyphen (+-+) and
+operands. An option is an argument that starts with a hyphen (+-+) and
 changes the way the command behaves. Some options take arguments. An operand
 is an argument that is not an option and specifies objects the command
 operates on.
@@ -50,12 +50,12 @@ normally not significant. The order of operands, however, affects the command
 behavior.
 
 An option is either a single-character option or a long option.
-A single-character option is identified by one alphabet character. A long
-option is identified by multiple alphabet characters. The POSIX standard only
+A single-character option is identified by one alphabetic character. A long
+option is identified by multiple alphabetic characters. The POSIX standard only
 prescribes single-character options, so in the link:posix.html[POSIXly-correct
 mode] you cannot use long options.
 
-A single-character option is composed of a hyphen followed by an alphabet. For
+A single-character option is composed of a hyphen followed by a letter. For
 example, +-a+ is a single-character option. A single-character option that
 takes an argument requires the argument to be just after the option name.
 
@@ -80,7 +80,7 @@ You can combine single-character options that do not take arguments into a
 single command line argument. For example, the three options +-a+, +-b+ and
 +-c+ can be combined into +-abc+.
 
-A long option is composed of two hyphens followed by a option name.
+A long option is composed of two hyphens followed by an option name.
 For example, +--long-option+ is a long option.
 You can omit some last characters of a long option name as long as it is not ambiguous.
 For example, you can use +--long+ instead of +--long-option+

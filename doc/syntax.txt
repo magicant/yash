@@ -296,7 +296,7 @@ executed until the exit status of the {{condition}} commands is non-zero.
 The {{body}} commands are not executed at all if the first execution of the
 {{condition}} commands yields a non-zero exit status.
 
-An until loop is executed in the same manner as an while loop except that the
+An until loop is executed in the same manner as a while loop except that the
 condition to repeat the loop is reversed: the {{body}} commands are executed
 when the exit status of the {{condition}} commands is non-zero.
 
@@ -411,7 +411,7 @@ When a function definition command is executed, a function whose name is
 
 A function definition command cannot be directly link:redir.html[redirected].
 Any redirections that follow a function definition are associated with
-{{compound_command}} rather than the whose function definition command.
+{{compound_command}} rather than its function definition command.
 
 The exit status of a function definition is zero if the function was defined
 without errors, and non-zero otherwise.

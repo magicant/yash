@@ -3,7 +3,7 @@
 :lang: en
 //:title: Yash manual - Export built-in
 
-The dfn:[export built-in] marks variables for exportation.
+The dfn:[export built-in] marks variables for export to child processes.
 
 [[syntax]]
 == Syntax

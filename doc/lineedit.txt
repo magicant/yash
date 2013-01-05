@@ -99,8 +99,8 @@ key bindings depending on the active editing mode.
 [[commands]]
 == Line-editing commands
 
-All characters that are input during line-editing are treated as line-editing
-commands listed below.
+All characters that user enters while line-editing is active are treated as
+line-editing commands listed below.
 The link:_bindkey.html[bindkey built-in] allows customizing the key bindings
 of each mode (except for the search mode).
 
@@ -153,7 +153,7 @@ ifndef::basebackend-html[`\^[\^I`]
 --
 
 expect-verbatim::
-Insert a character that is input just after this command
+Insert a character that is entered just after this command
 at the current cursor position.
 This command can input a character that cannot be input by the self-insert
 command.
@@ -527,7 +527,7 @@ ifndef::basebackend-html[`^`]
 --
 
 find-char::
-Move the cursor to the first position where a character that is input just
+Move the cursor to the first position where a character that is entered just
 after this command appears after the current cursor position.
 +
 --
@@ -540,7 +540,7 @@ ifndef::basebackend-html[`\^\]`]
 --
 
 find-char-rev::
-Move the cursor to the last position where a character that is input just
+Move the cursor to the last position where a character that is entered just
 after this command appears before the current cursor position.
 +
 --
@@ -553,7 +553,7 @@ ifndef::basebackend-html[`\^[\^\]`]
 --
 
 till-char::
-Move the cursor to the first position just before a character that is input
+Move the cursor to the first position just before a character that is entered
 just after this command appears after the current cursor position.
 +
 --
@@ -563,7 +563,7 @@ ifndef::basebackend-html[`t`]
 --
 
 till-char-rev::
-Move the cursor to the last position just after a character that is input
+Move the cursor to the last position just after a character that is entered
 just after this command appears before the current cursor position.
 +
 --
@@ -965,7 +965,7 @@ Clear the list of completion candidates.
 === Vi-specific commands
 
 vi-replace-char::
-Replace the character at the cursor position with a character that is input
+Replace the character at the cursor position with a character that is entered
 just after this command.
 +
 --

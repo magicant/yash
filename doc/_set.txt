@@ -69,7 +69,7 @@ This option enables link:expand.html#brace[brace expansion].
 
 [[so-caseglob]]case-glob::
 (Enabled by default)
-When enabled, pattern matching is case-insensitive in
+When enabled, pattern matching is case-sensitive in
 link:expand.html#glob[pathname expansion].
 
 [[so-clobber]]clobber (`+C`)::
@@ -212,7 +212,7 @@ The standard does not define:
 
 - long options such as +--allexport+,
 - prepending +no+ to negate an option,
-- using uppercase alphabets and/or non-alphanumeric characters in option names
+- using uppercase letters and/or non-alphanumeric characters in option names
 
 The options defined in the standard are:
 

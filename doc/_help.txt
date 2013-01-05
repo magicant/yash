@@ -38,7 +38,7 @@ The exit status of the help built-in is zero unless there is any error.
 
 The help built-in is not defined in the POSIX standard.
 
-Many built-in of yash accepts the +--help+ option that prints the same
+Many built-ins of yash accept the +--help+ option that prints the same
 description.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

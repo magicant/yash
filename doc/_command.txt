@@ -77,7 +77,7 @@ Identify {{command}}s and print in a human-friendly format.
 
 If none of the +-a+ (+--alias+), +-b+ (+--builtin-command+), +-e+
 (+--external-command+), +-f+ (+--function+), and +-k+ (+--keyword+) options
-is specified, the followings are assumed:
+is specified, the following defaults are assumed:
 
 Without the +-v+ (+--identify+) or +-V+ (+--verbose-identify+) option::
 +-b -e+
@@ -112,7 +112,7 @@ The command built-in is a link:builtin.html#types[semi-special built-in].
 
 In the link:posix.html[POSIXly-correct mode], options other than +-p+, +-v+,
 and +-V+ cannot be used and at most one {{command}} can be specified.
-The POSIX standard does not allow specifying +-v+ and +-V+ at a time, but yash
-do (only the last specified one is effective).
+The POSIX standard does not allow specifying both +-v+ and +-V+ together, but
+yash does (only the last specified one is effective).
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

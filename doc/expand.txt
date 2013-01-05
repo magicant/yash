@@ -24,9 +24,9 @@ expansion are called the dfn:[four expansions].
 [[tilde]]
 == Tilde expansion
 
-In dfn:[tilde expansion], part of words that start with a tilde (+~+) are
+In dfn:[tilde expansion], parts of words that start with a tilde (+~+) are
 substituted with particular pathnames.
-The part of words that are substituted is from the beginning of each word,
+The part of each word that gets substituted is from the beginning of the word,
 which is a tilde, up to (but not including) the first slash (+/+) in the word.
 If the word does not contain a slash, the whole word is substituted.
 If any character in the substituted part is link:syntax.html#quotes[quoted],
@@ -118,7 +118,7 @@ a parameter.
 Parameter expansion::
 +$&#x7B; {{prefix}} {{parameter}} {{index}} {{modifier}} }+
 
-The spaces in the syntax definition above is for readability only and must be
+The spaces in the syntax definition above are for readability only and must be
 omitted.
 You can omit {{prefix}}, {{index}}, and/or {{modifier}}.
 
@@ -362,7 +362,7 @@ when (and only when) they are used.
 
 If {{parameter}} is an array variable or the link:params.html#sp-at[+@+]
 or link:params.html#sp-asterisk[+*+] special parameter, modifiers affect each
-values of the array or the positional parameters.
+value of the array or all positional parameters.
 
 [[cmdsub]]
 == Command substitution
@@ -396,14 +396,14 @@ the {{commands}} are not parsed when the command substitution is parsed.
 The end of {{commands}} is detected by the first backquote character (+`+)
 after the beginning of {{commands}} that is not
 link:syntax.html#quotes[quoted] by a backslash.
-Backquotes that is part of {{commands}} (typically used for nested command
+Backquotes that are part of {{commands}} (typically used for nested command
 substitution) must be quoted by backslashes.
 The {{commands}} are parsed each time the command substitution is expanded.
 
 [[arith]]
 == Arithmetic expansion
 
-dfn:[Arithmetic expansion] evaluated an arithmetic expression and expands to
+dfn:[Arithmetic expansion] evaluates an arithmetic expression and expands to
 the value of the expression.
 
 Arithmetic expansion::
@@ -439,7 +439,7 @@ The following operators are available (in the order of precedence):
 . +? :+
 . +=+ +*=+ +/=+ +%=+ `+=` +-=+ +&lt;&lt;=+ +>>=+ +&=+ +^=+ +|=+
 
-An atomic expression can be one of an integer literal, an floating-point
+An atomic expression can be one of an integer literal, a floating-point
 number literal, and a variable.
 Literals are parsed in the same manner as in C.
 An octal integer literal starts with +0+, and hexadecimal with +0x+.
@@ -582,7 +582,7 @@ for +foo+.
 === Extension in pathname expansion
 
 The following patterns can be used when the <<opt-extendedglob,extended-glob>>
-options is enabled.
+option is enabled.
 
 +**+::
 The directory is searched recursively and the pattern matches any number of

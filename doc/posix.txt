@@ -11,7 +11,7 @@ usability.
 When full POSIX-conformance is needed, you can enable the dfn:[POSIXly-correct
 mode] to make yash obey POSIX as mush as possible.
 
-If yash is started in the name of ``sh'', the POSIXly-correct mode is
+If yash is started with the name ``sh'', the POSIXly-correct mode is
 automatically enabled.
 The +-o posixly-correct+ command-line option also enables the POSIXly-correct
 mode.
@@ -67,7 +67,7 @@ When the POSIXly-correct mode is enabled:
   be found.
 - link:syntax.html#async[asynchronous commands] ignore the SIGINT and SIGQUIT
   signals even when link:job.html[job control] is active.
-  The standard input of asynchronous commands are redirected to /dev/null if
+  The standard input of asynchronous commands is redirected to /dev/null if
   the shell is not link:interact.html[interactive], regardless of whether job
   control is active or not.
 - Some link:builtin.html[built-ins] behave differently.

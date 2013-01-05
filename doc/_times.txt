@@ -17,8 +17,8 @@ The times built-in prints the CPU times consumed by the shell process and its
 child processes to the standard output.
 
 The built-in prints two lines:
-the first line shows the CPU time of the shell process and the second of its
-child processes (not including those which have not terminated).
+the first line shows the CPU time of the shell process and the second one that
+of its child processes (not including those which have not terminated).
 Each line shows the CPU times consumed in the user and system mode.
 
 [[exitstatus]]

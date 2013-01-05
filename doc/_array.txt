@@ -29,7 +29,7 @@ The number of values in the array will be decreased by the number of the
 {{index}}es specified.
 If the {{index}}th value does not exist, it is silently ignored.
 
-With the +-i+ (+--insert+) option, the built-in inserts {{value}}s to the
+With the +-i+ (+--insert+) option, the built-in inserts {{value}}s into the
 array named {{name}}.
 The number of values in the array will be increased by the number of the
 {{value}}s specified.

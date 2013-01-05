@@ -3,7 +3,7 @@
 :lang: en
 //:title: Yash manual - Printf built-in
 
-The dfn:[printf built-in] prints a formatted values.
+The dfn:[printf built-in] prints formatted values.
 
 [[syntax]]
 == Syntax

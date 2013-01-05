@@ -3,7 +3,7 @@
 :lang: en
 //:title: Yash manual - Echo built-in
 
-The dfn:[echo built-in] prints arguments.
+The dfn:[echo built-in] prints its arguments.
 
 [[syntax]]
 == Syntax

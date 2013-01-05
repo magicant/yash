@@ -146,7 +146,7 @@ If the exit status of the last command is 256 or larger, the exit status
 the shell will be the remainder of the exit status divided by 256.
 
 If an exit handler has been registered by the link:_trap.html[trap built-in],
-The handler is executed just before the shell exits.
+the handler is executed just before the shell exits.
 The exit status of the commands executed in the handler does not affect the
 exit status of the shell.
 
@@ -188,7 +188,7 @@ finishes.
 === Local variables
 
 dfn:[Local variables] are temporary variables that are defined in a function
-and existent during the function execution only.
+and exist during the function execution only.
 They can be defined by the link:_typeset.html[typeset built-in].
 They are removed when the function execution finishes.
 
@@ -235,7 +235,7 @@ Notable exceptions are:
   reset in subshells except for ones whose action is set to ``ignore''.
 - The link:interact.html[interactive] mode and link:job.html[job control] are
   disabled in subshells.
-  Jobs are not inherited to subshells.
+  Jobs are not inherited by subshells.
 
 Subshells are executed independently of the original shell, so changes of
 any properties above do not affect those of the original shell.

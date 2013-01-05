@@ -17,7 +17,7 @@ The dfn:[ulimit built-in] sets or prints a resource limit.
 The ulimit built-in sets or prints a resource limit.
 
 If executed with the +-a+ (+--all+) option, the built-in prints the current
-limit for all resource types.
+limits for all resource types.
 Otherwise, it sets or prints the limit of a single resource type.
 The resource type can be specified by the options listed below.
 The resource limits will affect the current shell process and all commands

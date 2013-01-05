@@ -48,15 +48,15 @@ uncontrolled job.
 
 You can use the following built-ins to manipulate jobs:
 
-link:_jobs.html[Jobs]::
+link:_jobs.html[jobs]::
 prints existing jobs
-link:_fg.html[Fg] and link:_bg.html[bg]::
+link:_fg.html[fg] and link:_bg.html[bg]::
 run jobs in the foreground or background
-link:_wait.html[Wait]::
+link:_wait.html[wait]::
 waits for jobs to be finished (or suspended)
-link:_disown.html[Disown]::
+link:_disown.html[disown]::
 forgets jobs
-link:_kill.html[Kill]::
+link:_kill.html[kill]::
 sends a signal to jobs
 
 An interactive job-controlling shell reports jobs status before every prompt
@@ -83,7 +83,7 @@ The word ``stop'' is synonymous to ``suspend'' in the context of job control.
 [[jobid]]
 == Job ID
 
-Some link:builtin.html[built-in] uses the following notations, which is called
+Some link:builtin.html[built-in]s use the following notation, which is called
 dfn:[job ID], to specify a job to operate on:
 
 +%+::
@@ -116,7 +116,7 @@ according to the following rules:
 
 Yash has some options
 to modify the rules of the current/previous job selection.
-(The rules above have priority to the options below.)
+(The rules above have priority over the options below.)
 
 link:_set.html#so-curasync[cur-async]::
 When a new link:syntax.html#async[asynchronous command] is started, it becomes

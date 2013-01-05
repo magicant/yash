@@ -5,7 +5,7 @@
 :description: This page describes the interactive mode of the yash shell.
 
 The dfn:[interactive mode] is a mode of the shell intended for direct
-interaction to the user.
+interaction with user.
 If yash is in the interactive mode, it is called an dfn:[interactive shell].
 
 Whether a shell runs in the interactive mode or not is determined in the
@@ -77,7 +77,7 @@ When the prompt is printed, the variable value is subjected to
 link:expand.html#params[parameter expansion], link:expand.html#cmdsub[command
 substitution], and link:expand.html#arith[arithmetic expansion]
 (but note that the POSIX standard requires parameter expansion only).
-The results of the expansion is parsed as the rules below to make the actual
+The result of the expansion is parsed as the rules below to make the actual
 prompt string, which is printed to the standard error.
 
 In the link:posix.html[POSIXly-correct mode], each exclamation mark (+!+) in
@@ -225,8 +225,8 @@ when the history feature is first used after the shell was started.
 Therefore, the variables should be set in
 link:invoke.html#init[initialization] scripts.
 
-When more than one instance of yash shares a single history file, the shells
-the same history data.
+When more than one instance of yash shares a single history file, all the
+shells use the same history data.
 As a result, commands that have been executed by a shell instance can be
 recalled on another shell instance.
 Shells sharing the same history should have the same +HISTSIZE+ value so that
@@ -248,7 +248,7 @@ If the file has been modified since the previous check, the shell prints a
 notification message (except when the shell is not in the
 link:posix.html[POSIXly-correct mode] and the file is empty).
 By specifying a mailbox file to be checked, the shell will print a message
-when the file has been modified, that is, some mail has received.
+when the file has been modified, that is, some mail has been received.
 
 Check is done just before the shell prints a command line prompt.
 The interval of checks can be specified by the

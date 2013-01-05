@@ -141,7 +141,7 @@ duplicated by the +&gt;&amp;+ operator.
 [[here]]
 == Here documents and here strings
 
-dfn:[Here documents] and dfn:[here string] allow redirection to file
+dfn:[Here document] and dfn:[here string] allow redirection to file
 descriptors that reads strings directly specified in shell commands.
 
 Here document::

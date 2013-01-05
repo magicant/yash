@@ -107,8 +107,8 @@ Precisely, a bracket expression pattern represents a set of collating elements
 and a bracket expression matches a collating element rather than a character,
 but we do not differentiate them for brevity here.
 
-For example, the characters ``ch'' was treated as a single character in the
-traditional Spanish language.
+For example, the character combination ``ch'' was treated as a single
+character in the traditional Spanish language.
 If this character combination is registered as a collating element in the
 locale data, the bracket expression +[[.ch.]df]+ matches one of +ch+, +d+, and
 +f+.
@@ -147,13 +147,13 @@ set of lower case characters
 +[:upper:]+::
 set of upper case characters
 +[:alpha:]+::
-set of alphabets, including the +[:lower:]+ and +[:upper:]+ classes.
+set of letters, including the +[:lower:]+ and +[:upper:]+ classes.
 +[:digit:]+::
 set of decimal digits
 +[:xdigit:]+::
 set of hexadecimal digits
 +[:alnum:]+::
-set of alphabets and digits, including the +[:alpha:]+ and +[:digit:]+
+set of letters and digits, including the +[:alpha:]+ and +[:digit:]+
 classes.
 +[:blank:]+::
 set of blank characters, not including the newline character

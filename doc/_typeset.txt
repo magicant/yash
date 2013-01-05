@@ -56,7 +56,7 @@ only.
 
 +-x+::
 +--export+::
-When setting variables, link:params.html#variables[mark them for exportation],
+When setting variables, link:params.html#variables[mark them for export],
 so that they will be exported to external commands.
 +
 When printing variables, print exported variables only.

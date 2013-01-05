@@ -13,7 +13,7 @@ The dfn:[test built-in] evaluates an expression.
 
 The test built-in does not distinguish options and operands;
 all command line arguments are interpreted as {{expression}}.
-If the built-in is executed in the name of +[+, {{expression}} must be
+If the built-in is executed with the name +[+, {{expression}} must be
 followed by +]+.
 
 [[description]]
@@ -24,7 +24,7 @@ made up of operators and operands described below.
 The exit status is 0 if the condition is true and 1 otherwise.
 
 The unary operators below test a file.
-If the operand file is a symbolic link, the file referred to by the link is
+If the operand {{file}} is a symbolic link, the file referred to by the link is
 tested (except for the +-h+ and +-L+ operators).
 
 +-b {{file}}+:: {{file}} is a block special file
@@ -84,7 +84,7 @@ in the current locale:
 {{string1}} is not equal to {{string2}}
 +{{string1}} < {{string2}}+::
 {{string1}} is less than {{string2}}
-+{{string1}} &lt;= {{string2}}+::
++{{string1}} \<= {{string2}}+::
 {{string1}} is less than or equal to {{string2}}
 +{{string1}} > {{string2}}+::
 {{string1}} is greater than {{string2}}
@@ -157,7 +157,7 @@ For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
 The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
-+-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
++-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +\<=+, +>+, +>=+, +=~+,
 +-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
 POSIX neither specifies +-o+ as a unary operator.
 
