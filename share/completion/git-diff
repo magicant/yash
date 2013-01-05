@@ -39,6 +39,7 @@ function completion/git::diff:getopt {
 	"--abbrev::; abbreviate commit IDs"
 	"--binary; print diffs for binary files"
 	"B:: --break-rewrites::; treat a way different file as a new file"
+	"--cc; show diffs for resolved merge conflicts only"
 	"--check; check for whitespace errors"
 	"--color::; show symbols in color"
 	"--color-words::; like --word-diff=color --word-diff-regex=..."
