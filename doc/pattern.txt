@@ -143,9 +143,9 @@ The shell consults the locale data for which class a character belongs to.
 The following character classes can be used in all locales:
 
 +[:lower:]+::
-set of lower case characters
+set of lowercase letters
 +[:upper:]+::
-set of upper case characters
+set of uppercase letters
 +[:alpha:]+::
 set of letters, including the +[:lower:]+ and +[:upper:]+ classes.
 +[:digit:]+::
@@ -153,8 +153,7 @@ set of decimal digits
 +[:xdigit:]+::
 set of hexadecimal digits
 +[:alnum:]+::
-set of letters and digits, including the +[:alpha:]+ and +[:digit:]+
-classes.
+set of letters and digits, including the +[:alpha:]+ and +[:digit:]+ classes.
 +[:blank:]+::
 set of blank characters, not including the newline character
 +[:space:]+::

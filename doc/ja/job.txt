@@ -22,15 +22,15 @@ dfn:[ジョブ制御]とは、複数のコマンドを同時に実行し、必�
 
 ここでジョブ制御に関連する組込みコマンドを簡単に紹介します。
 
-link:_jobs.html[Jobs]::
+link:_jobs.html[jobs]::
 現在シェルが管理しているジョブを表示します。
-link:_fg.html[Fg] および link:_bg.html[bg]::
+link:_fg.html[fg] および link:_bg.html[bg]::
 ジョブをフォアグラウンドまたはバックグラウンドで実行します。主に停止したジョブを再開させるのに使います。
-link:_wait.html[Wait]::
+link:_wait.html[wait]::
 ジョブが終了 (または停止) するまで待ちます。
-link:_disown.html[Disown]::
+link:_disown.html[disown]::
 ジョブの存在を忘れます。
-link:_kill.html[Kill]::
+link:_kill.html[kill]::
 プロセスにシグナルを送ります。
 
 対話モードでジョブ制御が有効な時、シェルはプロンプトを出す直前にジョブの状態変化を報告します。これ以外のタイミングで状態変化を報告してほしい場合は、以下のlink:_set.html#options[オプション]を指定することができます。

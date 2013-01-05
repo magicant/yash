@@ -39,8 +39,8 @@ A non-negative integer that will be the exit status of the exiting shell.
 +
 If this operand is omitted, the exit status of the shell will be that of the
 last command executed before the exit built-in (but, if the built-in is
-executed during a link:_trap.html[trap], the exit status of the last command
-before the trap is entered).
+executed during a link:_trap.html[trap], the exit status will be that of the
+last command before the trap is entered).
 +
 If {{exit_status}} is 256 or larger, the actual exit status will be
 the remainder of {{exit_status}} divided by 256.

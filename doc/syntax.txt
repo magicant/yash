@@ -359,7 +359,7 @@ The {{word}} between the +case+ and +in+ tokens must be exactly one word. The
 separator characters (such as +&+ and +|+) to include them as part of the
 {{word}}. Between the +in+ and +esac+ tokens you can put any number of case
 items (may be none). You can omit the first +(+ token of a case item and the
-last +;;+ token before the +case+ token. If the last {{command}} of a case
+last +;;+ token before the +esac+ token. If the last {{command}} of a case
 item is terminated by a semicolon, you can omit the semicolon as well. The
 {{command}}s in a case item may be empty.
 
@@ -411,7 +411,9 @@ When a function definition command is executed, a function whose name is
 
 A function definition command cannot be directly link:redir.html[redirected].
 Any redirections that follow a function definition are associated with
-{{compound_command}} rather than its function definition command.
+{{compound_command}} rather than the whole function definition command.
+In +func() { cat; } >/dev/null+, for example, it is not +func() { cat; }+ but
++{ cat; }+ that is redirected.
 
 The exit status of a function definition is zero if the function was defined
 without errors, and non-zero otherwise.

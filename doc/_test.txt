@@ -84,7 +84,7 @@ in the current locale:
 {{string1}} is not equal to {{string2}}
 +{{string1}} < {{string2}}+::
 {{string1}} is less than {{string2}}
-+{{string1}} \<= {{string2}}+::
++{{string1}} &lt;= {{string2}}+::
 {{string1}} is less than or equal to {{string2}}
 +{{string1}} > {{string2}}+::
 {{string1}} is greater than {{string2}}
@@ -157,7 +157,7 @@ For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
 The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
-+-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +\<=+, +>+, +>=+, +=~+,
++-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
 +-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
 POSIX neither specifies +-o+ as a unary operator.
 

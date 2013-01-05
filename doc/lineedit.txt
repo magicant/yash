@@ -99,7 +99,7 @@ key bindings depending on the active editing mode.
 [[commands]]
 == Line-editing commands
 
-All characters that user enters while line-editing is active are treated as
+All characters the user enters while line-editing is active are treated as
 line-editing commands listed below.
 The link:_bindkey.html[bindkey built-in] allows customizing the key bindings
 of each mode (except for the search mode).
