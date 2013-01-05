@@ -12,7 +12,7 @@ Yash 2.34
 
   +  New "test" built-in operator: =~, -o (unary)
   +  New completion scripts for:
-     configure, git-name-rev, git-request-pull
+     configure, git-name-rev, git-request-pull, rsync
   =  In line-editing, overwritten characters are now restored when you
      hit the backspace key.
   =  In line-editing, the undo history is no longer saved for each

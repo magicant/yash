@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2013 magicant
 
 # Completion script for the "iconv" command.
 # Supports POSIX 2008, GNU libc 2.12.1, GNU libiconv 1.13, NetBSD 5.0,
@@ -49,15 +49,29 @@ function completion/iconv {
 		command -f completion//completeoptions
 		;;
 	([ft]|--from-code|--to-code)
-		# POSIX does not specify the format of `iconv -l' output.
-		# We support GNU libc and libiconv for now.
-		case $type in (glibc|glibiconv)
-			complete -P "$PREFIX" -- $(iconv -l 2>/dev/null)
-		esac
+		command -f completion/iconv::compenc "${WORDS[1]}"
 		;;
 	(*)
 		complete -P "$PREFIX" -f
 		;;
+	esac
+
+}
+
+function completion/iconv::compenc {
+
+	typeset iconv="${1-iconv}"
+
+	case $("$iconv" --version 2>/dev/null) in
+		(*'GNU libc'*)     typeset type=glibc ;;
+		(*'GNU libiconv'*) typeset type=glibiconv ;;
+		(*)                typeset type="$(uname 2>/dev/null)" ;;
+	esac
+
+	# POSIX does not specify the format of `iconv -l' output.
+	# We support GNU libc and libiconv for now.
+	case $type in (glibc|glibiconv)
+		complete -P "$PREFIX" -- $("$iconv" -l 2>/dev/null)
 	esac
 
 }

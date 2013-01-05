@@ -1,0 +1,226 @@
+# (C) 2013 magicant
+
+# Completion script for the "rsync" command.
+# Supports rsync 3.0.9.
+
+function completion/rsync {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"0 --from0; treat filename list files as null-separated"
+	"4 --ipv4; prefer IPv4"
+	"6 --ipv6; prefer IPv6"
+	"8 --8-bit-output; don't escape non-ASCII characters"
+	"A --acls; like -P but preserve ACL as well"
+	"--address:; specify an address to bind to"
+	"--append; copy files by appending only"
+	"--append-verify; like --append but verify whole files"
+	"a --archive; like -Dgloprt"
+	"b --backup; make a backup of existing destination files"
+	"--backup-dir:; specify where to make a backup"
+	"--blocking-io; use blocking IO"
+	"B: --block-size:; specify the block size used in delta-transfer"
+	"--bwlimit:; specify a speed limit in kilobytes/second"
+	"c --checksum; use checksum to decide if a file needs to be sent"
+	"--checksum-seed:; specify a seed for checksum"
+	"--chmod:; specify permissions of copied files"
+	"--compare-dest:; specify a directory to compare with as destination"
+	"--compress-level:; specify the compression level"
+	"--config:; specify a config file for daemon"
+	"--contimeout:; specify timeout for rsync connection daemon"
+	"--copy-dest:; like --compare-dest but copy from if possible"
+	"--copy-unsafe-links; follow symbolic links to outside of source tree"
+	"C --cvs-exclude; exclude files like CVS does"
+	"D; like --devices --specials"
+	"--daemon; run as a daemon"
+	"--delay-updates; replace destination files after all transfer"
+	"--devices; copy character and block device files"
+	"d --dirs; copy directories but not their contents"
+	"--exclude:; skip files whose names match the specified pattern"
+	"--exclude-from:; skip files whose names match a pattern in the specified file"
+	"E --executability; preserve file executability"
+	"--existing --ignore-non-existing; copy only files existing on destination"
+	"e: --rsh:; specify a program for remote connection"
+	"F; like --filter='dir-merge /.rsync-filter'"
+	"--fake-super; use extended attributes to preserve various attributes"
+	"--files-from:; specify a file containing filenames to transfer"
+	"f: --filter:; specify an exclusion rule"
+	"--force; allow replacing non-empty directories with non-directories"
+	"g --group; preserve file owner groups"
+	"H --hard-links; preserve hard links"
+	"h --human-readable; print size using K, M, etc."
+	"--iconv:; specify filename encodings"
+	"--ignore-existing; don't copy files existing on destination"
+	"I --ignore-times; don't skip files that match size and time"
+	"--include:; copy only files whose names match the specified pattern"
+	"--include-from:; copy only files whose names match a pattern in the specified file"
+	"--inplace; modify destination files in-place"
+	"i --itemize-changes; print a summarized list of changes"
+	"K --keep-dirlinks; follow symbolic links to directories on destination side"
+	"k --copy-dirlinks; follow symbolic links to directories on source side"
+	"L --copy-links; follow all symbolic links in source files"
+	"--link-dest:; specify a directory to search for hard-linkable files"
+	"l --links; copy symbolic links as symbolic links"
+	"--list-only; list files without actual transfer"
+	"--log-file:; specify a file to print log to"
+	"--log-file-format:; specify a format used in logging with --log-file"
+	"m --prune-empty-dirs; don't copy empty directories"
+	"--max-delete:; specify the maximum number of files deleted"
+	"--max-size:; specify the maximum size of files copied"
+	"--min-size:; specify the minimum size of files copied"
+	"--modify-window:; specify max time difference treated as same"
+	"n --dry-run; don't actually copy files"
+	"--no-detach; don't run in the background (with --daemon)"
+	"--no-motd; don't print the message of the day sent from daemon"
+	"--no-implied-dirs; don't copy intermediate directory paths (with -R)"
+	"--no-inc-recursive --no-i-r; disable incremental recursion"
+	"--numeric-ids; match numeric owner/group IDs rather than names"
+	"O --omit-dir-times; don't preserve modification times for directories"
+	"--only-write-batch:; like --write-batch, but no actual transfer"
+	"--out-format:; specify a format printed for each file update"
+	"o --owner; preserve file owners"
+	"P; like --partial --progress"
+	"--partial; leave partially copied files if interrupted"
+	"--partial-dir:; specify a directory where intermediate files are kept"
+	"--password-file:; specify a file containing a password"
+	"p --perms; preserve file permissions"
+	"--port:; specify a port for daemon connection"
+	"--progress; show progress during transfer"
+	"--protocol:; specify a protocol version"
+	"q --quiet; print error messages only"
+	"--read-batch:; specify a batch file containing transfer recipe"
+	"R --relative; preserve all pathname components from source"
+	"r --recursive; copy directories recursively"
+	"--rsync-path:; specify a program executed on the remote host"
+	"s --protect-args; protect filenames from word splitting by the remote shell"
+	"--safe-links; ignore symbolic links to outside of source tree"
+	"--size-only; skip files that match in size"
+	"--skip-compress:; specify a list of suffixes that are not compressed"
+	"--sockopts:; specify socket options"
+	"S --sparse; handle sparse files efficiently"
+	"--specials; copy named sockets, pipes, etc."
+	"--stats; print transfer statistics"
+	"--suffix:; specify a suffix to append to backup file names"
+	"--super; exercise superuser rights to preserve various attributes"
+	"T: --temp-dir:; specify a directory for temporary files on destination side"
+	"--timeout:; specify timeout in seconds"
+	"t --times; preserve file modification times"
+	"u --update; don't copy if destination is newer than source"
+	"v --verbose; print detail during execution"
+	"W --whole-file; send whole files rather than just different parts"
+	"--write-batch:; specify a file where transfer recipe is recorded"
+	"X --xattrs; preserve extended attributes"
+	"x --one-file-system; skip subdirectories on different file systems"
+	"y --fuzzy; look for similar files to optimize transfer"
+	"z --compress; enable compression"
+	"--help"
+	"--version"
+	) #<#
+	# TODO --no-xxx option
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--*-batch|--config|--exclude*|--files-from|--include*|--log-file|--password-file)
+		complete -P "$PREFIX" -f
+		;;
+	(--address)
+		complete -P "$PREFIX" -h
+		;;
+#	(--backup-dir)
+#		;;
+	(B|--block-size)
+		#TODO
+		;;
+#	(--bwlimit)
+#		;;
+#	(--checksum-seed)
+#		;;
+	(--chmod)
+		if command -vf completion/chmod::mode >/dev/null 2>&1 ||
+				. -AL completion/chmod; then
+			command -f completion/chmod::mode rsync
+		fi
+		;;
+#	(--*-dest)
+#		# How can we complete remote directory names before the remote
+#		# host name is entered on the command line?
+#		;;
+#	(--compress-level)
+#		;;
+#	(--contimeout)
+#		;;
+	(e|--rsh)
+		complete -P "$PREFIX" --external-command
+		;;
+	(f|--filter)
+		#TODO
+		;;
+	(--*-format)
+		#TODO
+		;;
+	(--iconv)
+		typeset word="${TARGETWORD#"$PREFIX"}"
+		word=${word#*,}
+		PREFIX="${TARGETWORD%"$word"}"
+		if command -vf completion/iconv::compenc >/dev/null 2>&1 ||
+				. -AL completion/iconv; then
+			command -f completion/iconv::compenc
+		fi
+		;;
+#	(--max-delete)
+#		;;
+	(--max-size|--min-size)
+		if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+				. -AL completion/_blocksize; then
+			if command -f completion//prefixdigits; then
+				command -f completion//completesizesuffix KMGB
+			fi
+		fi
+		;;
+#	(--modify-window)
+#		;;
+#	(--partial-dir)
+#		# How can we complete remote directory names before the remote
+#		# host name is entered on the command line?
+#		;;
+#	(--port)
+#		;;
+#	(--protocol)
+#		;;
+#	(--rsync-path)
+#		;;
+#	(--skip-compress)
+#		;;
+#	(--sockopts)
+#		;;
+#	(--suffix)
+#		;;
+#	(T|--temp-dir)
+#		# How can we complete remote directory names before the remote
+#		# host name is entered on the command line?
+#		;;
+#	(--timeout)
+#		;;
+	('')
+		command -f completion/rsync::operand
+		;;
+	esac
+
+}
+
+function completion/rsync::operand {
+
+	#TODO support rsync daemon protocol
+
+	if command -vf completion/scp::operand >/dev/null 2>&1 ||
+			. -AL completion/ssh; then
+		command -f completion/scp::operand
+	fi
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

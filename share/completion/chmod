@@ -1,4 +1,4 @@
-# (C) 2010-2012 magicant
+# (C) 2010-2013 magicant
 
 # Completion script for the "chmod" command.
 # Supports POSIX 2008, GNU coreutils 8.4, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0,
@@ -118,6 +118,13 @@ function completion/chmod::mode {
 			complete -P "$TARGETWORD" -D "sticky bit" t
 		esac #<<#
 		return
+	esac
+
+	case $word in ('')
+		case ${1-} in (rsync) #>>#
+			complete -T -P "$TARGETWORD" -D "affect directories only" D
+			complete -T -P "$TARGETWORD" -D "affect non-directories only" F
+		esac #<<#
 	esac
 
 	case $word in

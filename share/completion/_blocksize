@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2013 magicant
 
 # This file contains functions that help completion of file size suffixes.
 
@@ -41,13 +41,16 @@ function completion//completesizesuffix {
 		(g) #>>#
 			complete -P "$PREFIX" -D "1024^3 bytes" g
 			;; #<<#
-		(GNU*) #>>#
+		(KMGB) #>>#
 			complete -P "$PREFIX" -D "1024 bytes"   K
 			complete -P "$PREFIX" -D "1000 bytes"   KB
 			complete -P "$PREFIX" -D "1024^2 bytes" M
 			complete -P "$PREFIX" -D "1000^2 bytes" MB
 			complete -P "$PREFIX" -D "1024^3 bytes" G
 			complete -P "$PREFIX" -D "1000^3 bytes" GB
+			;; #<<#
+		(GNU*) #>>#
+			command -f completion//completesizesuffix KMGB
 			complete -P "$PREFIX" -D "1024^4 bytes" T
 			complete -P "$PREFIX" -D "1000^4 bytes" TB
 			complete -P "$PREFIX" -D "1024^5 bytes" P
