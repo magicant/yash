@@ -231,11 +231,11 @@ int main(int argc, char **argv)
 	if (getuid() == geteuid() && getgid() == getegid())
 	    execute_rcfile(options.rcfile);
 
-    if (shopt_cmdline) {
+    if (shopt_cmdline)
 	exec_wcs(input.command, inputname, true);
-    } else {
+    else
 	exec_input(input.fd, inputname, is_interactive, true, true);
-    }
+
     assert(false);
 }
 
