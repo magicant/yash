@@ -59,6 +59,7 @@ static struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
 static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
+static void execute_file(const wchar_t *path);
 static void print_help(void);
 static void print_version(void);
 
@@ -253,65 +254,61 @@ struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
 /* Executes "$HOME/.yash_profile". */
 void execute_profile(const wchar_t *profile)
 {
-    char *path;
-
     if (profile != NULL) {
-	path = malloc_wcstombs(profile);
-    } else {
-	wchar_t *wpath =
-	    parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
-	if (wpath == NULL)
-	    return;
-	path = realloc_wcstombs(wpath);
-    }
-    if (path == NULL)
+	execute_file(profile);
 	return;
-
-    int fd = move_to_shellfd(open(path, O_RDONLY));
-    if (fd >= 0) {
-	exec_input(fd, path, false, true, false);
-	remove_shellfd(fd);
-	xclose(fd);
     }
+
+    wchar_t *path =
+	parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
+    execute_file(path);
     free(path);
 }
 
 /* Executes the initialization file.
  * `rcfile' is the filename to source.
- * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" or "$ENV". */
+ * If `rcfile' is NULL, it defaults to "$HOME/.yashrc".
+ * In the POSIXly-correct mode, `rcfile' is ignored and "$ENV" is used. */
 void execute_rcfile(const wchar_t *rcfile)
 {
-    char *path;
-
     if (posixly_correct) {
 	const wchar_t *env = getvar(L VAR_ENV);
 	if (env == NULL)
 	    return;
-	wchar_t *wpath = parse_and_expand_string(env, "$ENV", false);
-	if (wpath == NULL)
-	    return;
-	path = realloc_wcstombs(wpath);
-    } else {
-	if (rcfile != NULL) {
-	    path = malloc_wcstombs(rcfile);
-	} else {
-	    wchar_t *wpath =
-		parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
-	    if (wpath == NULL)
-		return;
-	    path = realloc_wcstombs(wpath);
-	}
+	wchar_t *path = parse_and_expand_string(env, "$ENV", false);
+	execute_file(path);
+	free(path);
+	return;
     }
+
+    if (rcfile != NULL) {
+	execute_file(rcfile);
+	return;
+    }
+
+    wchar_t *path = parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
+    execute_file(path);
+    free(path);
+}
+
+/* Executes the specified file if `path' is non-NULL. */
+void execute_file(const wchar_t *path)
+{
     if (path == NULL)
 	return;
 
-    int fd = move_to_shellfd(open(path, O_RDONLY));
+    char *mbspath = malloc_wcstombs(path);
+    if (mbspath == NULL)
+	return;
+
+    int fd = move_to_shellfd(open(mbspath, O_RDONLY));
     if (fd >= 0) {
-	exec_input(fd, path, false, true, false);
+	exec_input(fd, mbspath, false, true, false);
 	remove_shellfd(fd);
 	xclose(fd);
     }
-    free(path);
+
+    free(mbspath);
 }
 
 /* Exits the shell with the specified exit status.
