@@ -93,7 +93,8 @@ $(POFILES_MAN): $(DOMAIN).pot
 	$(MSGMERGE) -FU $(MSGMERGEFLAGS) $@ $(DOMAIN).pot
 
 # This target creates PO files that are automatically created from the
-# $(DOMAIN).pot file.
+# $(DOMAIN).pot file. This requires GNU sed (or a compatible one) that doesn't
+# automatically append a missing newline at the end of input.
 en@quot.po: $(DOMAIN).pot en@quot.ih en@quot.hd
 	$(MSGINIT) -i $(DOMAIN).pot --no-translator -l en@quot -o - 2>/dev/null | \
 	sed -f en@quot.ih | \
