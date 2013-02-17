@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3306,7 +3306,7 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
 	    case SEARCH_EMACS:
 		cmd_alert(L'\0');
 		return;
-	    default:
+	    case SEARCH_PREFIX:
 		assert(false);
 	}
     }

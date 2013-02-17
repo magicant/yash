@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -513,7 +513,7 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
 	    case BI_SPECIAL:      type = CGT_SBUILTIN;   break;
 	    case BI_SEMISPECIAL:  type = CGT_SSBUILTIN;  break;
 	    case BI_REGULAR:      type = CGT_RBUILTIN;   break;
-	    default:          assert(false);
+	    default:              assert(false);
 	}
 	if (!(compopt->type & type))
 	    continue;

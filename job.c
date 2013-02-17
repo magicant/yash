@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1178,7 +1178,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
     int status;
     if (fg) {
 	wait_for_job(jobnumber, true, false, false);
-	put_foreground(shell_pgid);  /* put the shell in the foreground */
+	put_foreground(shell_pgid);
 #if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
 	if (termsave)
 	    le_restore_terminal();
@@ -1211,8 +1211,8 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
      * invoked in the background, they may save the state that is being used by
      * another program (typically the shell's line-editing), so the state that
      * they restore is not the normal state.
-     * The shell tackles this problem by saving and restoring the terminal state
-     * for the continued programs. */
+     * We try to work around this problem by saving and restoring the terminal
+     * state for the continued programs. */
 }
 
 #if YASH_ENABLE_HELP

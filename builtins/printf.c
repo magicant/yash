@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.c: the echo/printf built-ins */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -667,9 +667,8 @@ enum printf_result_T printf_printf(
 	    else
 		arg = L"";
 	    return printf_print_escape(format, arg, buf);
-	default:
-	    assert(false);
     }
+    assert(false);
 }
 
 /* Parses the specified string as an integer. */

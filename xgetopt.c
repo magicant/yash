@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xgetopt.c: command option parser */
-/* (C) 2012 magicant */
+/* (C) 2012-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -304,9 +304,10 @@ struct xgetopt_T *found_long_option(const wchar_t *eq,
 	case OPTARG_REQUIRED:
 	    /* the argument is split from the option like "--option argument" */
 	    return parse_separate_option_argument(false, opt);
-	default:
+	case OPTARG_NONE:
 	    assert(false);
     }
+    assert(false);
 }
 
 /* This function is called when an option was parsed in an argument string and

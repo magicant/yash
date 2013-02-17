@@ -1068,9 +1068,8 @@ bool assignment_is_temporary(enum cmdtype_T type)
 	case CT_REGULARBUILTIN:
 	case CT_EXTERNALPROGRAM:
 	    return true;
-	default:
-	    assert(false);
     }
+    assert(false);
 }
 
 /* Executes $COMMAND_NOT_FOUND_HANDLER if any.

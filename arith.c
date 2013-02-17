@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -681,7 +681,8 @@ void parse_relational(evalinfo_T *info, value_T *result)
 		    case VT_INVALID:
 			result->type = VT_INVALID;
 			break;
-		    case VT_VAR:     assert(false);
+		    case VT_VAR:
+			assert(false);
 		}
 		break;
 	    default:
