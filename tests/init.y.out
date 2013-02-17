@@ -68,12 +68,16 @@ main
 ===== error 1 =====
 error 1
 error 2
-error $?=258
+error 2 expansion error $?=2
+error 1 syntax error $?=258
+error 1 expansion error $?=2
 main
 ===== error 2 =====
 error 1
 error 2
-error $?=258
+error 2 expansion error $?=2
+error 1 syntax error $?=258
+error 1 expansion error $?=2
 main
 ===== non-existing 1 =====
 main

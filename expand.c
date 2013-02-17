@@ -1789,7 +1789,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
  * The shell exits if it is non-interactive. */
 void maybe_exit_on_error(void)
 {
-    if (!is_interactive_now)
+    if (shell_initialized && !is_interactive_now)
 	exit_shell_with_status(Exit_EXPERROR);
 }
 

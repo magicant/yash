@@ -31,12 +31,18 @@ END
 cat >"${TESTTMP}/error1" <<\END
 echo error 1
 . "${TESTTMP}/error2"
-echo error \$\?=$?
+echo error 1 syntax error \$\?=$?
+unset var
+echo ${var?}
+echo error 1 expansion error \$\?=$?
 fi
 echo not reached
 END
 cat >"${TESTTMP}/error2" <<\END
 echo error 2
+unset var
+echo ${var?}
+echo error 2 expansion error \$\?=$?
 fi
 echo not reached
 END
