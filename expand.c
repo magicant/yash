@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,6 +125,8 @@ static void glob_all(void **restrict patterns, plist_T *restrict list)
 static enum wglobflags_T get_wglobflags(void)
     __attribute__((pure));
 
+static void maybe_exit_on_error(void);
+
 
 /********** Entry Points **********/
 
@@ -167,8 +169,7 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 
     /* four expansions, brace expansions and field splitting */
     if (!expand_and_split_words(w, pl_init(&templist))) {
-	if (!is_interactive)
-	    exit_shell_with_status(Exit_EXPERROR);
+	maybe_exit_on_error();
 	plfree(pl_toary(&templist), free);
 	return false;
     }
@@ -237,8 +238,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     pl_init(&list);
 
     if (!expand_word(arg, tilde, false, &list, NULL)) {
-	if (!is_interactive)
-	    exit_shell_with_status(Exit_EXPERROR);
+	maybe_exit_on_error();
 	plfree(pl_toary(&list), free);
 	return NULL;
     }
@@ -364,8 +364,7 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 	return wb_towcs(&buf);
     } else {
 	wb_destroy(&buf);
-	if (!is_interactive)
-	    exit_shell_with_status(Exit_EXPERROR);
+	maybe_exit_on_error();
 	return NULL;
     }
 }
@@ -1784,6 +1783,14 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
     result = expand_string(word, esc);
     wordfree(word);
     return result;
+}
+
+/* This function is called when an expansion error occurred.
+ * The shell exits if it is non-interactive. */
+void maybe_exit_on_error(void)
+{
+    if (!is_interactive)
+	exit_shell_with_status(Exit_EXPERROR);
 }
 
 
