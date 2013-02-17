@@ -808,7 +808,7 @@ pid_t exec_process(
 	/* On assignment error, the command is not executed. */
 	print_xtrace(NULL);
 	laststatus = Exit_ASSGNERR;
-	if (posixly_correct && !is_interactive &&
+	if (posixly_correct && !is_interactive_now &&
 		cmdinfo.type == CT_SPECIALBUILTIN)
 	    finally_exit = true;
 	goto done3;
@@ -1900,7 +1900,7 @@ int dot_builtin(int argc, void **argv)
 
 error:
     free(mbsfilename);
-    if (!is_interactive)
+    if (!is_interactive_now)
 	exit_shell_with_status(Exit_FAILURE);
     return Exit_FAILURE;
 }

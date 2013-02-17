@@ -78,8 +78,9 @@ eval ${var?}
 echo special builtin expansion error interactive mainshell $?
 (
 eval ${var?}
-echo special builtin expansion error interactive subshell $?
+echo not reached
 )
+echo special builtin expansion error interactive subshell $?
 END
 
 $INVOKE $TESTEE <<\END
@@ -95,8 +96,9 @@ cd ${var?}
 echo non-special builtin expansion error interactive mainshell $?
 (
 cd ${var?}
-echo non-special builtin expansion error interactive subshell $?
+echo not reached
 )
+echo non-special builtin expansion error interactive subshell $?
 END
 
 $INVOKE $TESTEE <<\END
