@@ -36,7 +36,7 @@ h3 {
 	/*margin: 0 3%;*/
 }
 #footer {
-	margin: 0 -3%;
+	margin: 1em -3% 0;
 	font-size: small;
 	border: none;
 	border-top: 2px solid silver;
