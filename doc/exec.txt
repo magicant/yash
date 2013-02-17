@@ -32,13 +32,20 @@ link:syntax.html#simple[A simple command] is executed as follows:
   If an error occurs during assignments (including when expanding the values
   to be assigned), the execution of this simple command is aborted with a
   non-zero exit status.
-  - If there is no command name or the name denotes a
-    link:builtin.html#types[special built-in] or <<function,function>>, the
-    assignments are permanent: the assigned values remain after the command
-    has finished (until the variable is reassigned).
-  - Otherwise, the assignments are temporary: the assigned values only last
-    during the execution of this simple command.
-    The assigned variables are automatically exported.
++
+--
+- If there is no command name or the name denotes a
+link:builtin.html#types[special built-in] or <<function,function>>, the
+assignments are permanent: the assigned values remain after the command
+has finished (until the variable is reassigned).
+- Otherwise, the assignments are temporary: the assigned values only last
+during the execution of this simple command.
+--
++
+The assigned variables are automatically link:params.html#variables[exported]
+when the command name is specified or the
+link:_set.html#so-allexport[all-export option] is enabled.
+
 . If there is no command name, the command execution ends with the exit status
   of zero (unless there are any link:expand.html#cmdsub[command substitutions]
   in the command, in which case the exit status of the simple command is that
