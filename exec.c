@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1531,7 +1531,7 @@ bool autoload_completion_function_file(
     set_positional_parameters((void *[]) { (void *) cmdname, NULL });
 
     le_compdebug("executing file \"%s\" (autoload)", path);
-    exec_input(fd, mbsfilename, false, false, false);
+    exec_input(fd, mbsfilename, 0);
     le_compdebug("finished executing file \"%s\"", path);
 
     close_current_environment();
@@ -1887,7 +1887,7 @@ int dot_builtin(int argc, void **argv)
 	goto error;
     }
 
-    exec_input(fd, mbsfilename, false, enable_alias, false);
+    exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
     remove_shellfd(fd);
     xclose(fd);
     free(mbsfilename);

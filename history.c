@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2013 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1536,7 +1536,7 @@ error1:
 	fc_read_history(f, quiet);
 	lseek(fd, 0, SEEK_SET);
 	laststatus = savelaststatus;
-	exec_input(fd, "fc", false, true, false);
+	exec_input(fd, "fc", XIO_SUBST_ALIAS);
 	remove_shellfd(fd);
 	fclose(f);
 	return laststatus;

@@ -235,7 +235,8 @@ int main(int argc, char **argv)
     if (shopt_cmdline)
 	exec_wcs(input.command, inputname, true);
     else
-	exec_input(input.fd, inputname, is_interactive, true, true);
+	exec_input(input.fd, inputname, XIO_SUBST_ALIAS | XIO_FINALLY_EXIT |
+		(is_interactive ? XIO_INTERACTIVE : 0));
 
     assert(false);
 }
@@ -303,7 +304,7 @@ void execute_file(const wchar_t *path)
 
     int fd = move_to_shellfd(open(mbspath, O_RDONLY));
     if (fd >= 0) {
-	exec_input(fd, mbspath, false, true, false);
+	exec_input(fd, mbspath, XIO_SUBST_ALIAS);
 	remove_shellfd(fd);
 	xclose(fd);
     }
@@ -438,22 +439,21 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
 
 /* Parses the input from the specified file descriptor and executes commands.
  * The file descriptor must be either STDIN_FILENO or a shell FD. If the file
- * descriptor is STDIN_FILENO, `finally_exit' must be true.
+ * descriptor is STDIN_FILENO, XIO_FINALLY_EXIT must be specified in `options'.
  * If `name' is non-NULL, it is printed in an error message on syntax error.
- * If `interactive' is true, the input is considered interactive.
+ * If XIO_INTERACTIVE is specified, the input is considered interactive.
  * If there are no commands in the input, `laststatus' is set to zero. */
-void exec_input(int fd, const char *name,
-	bool interactive, bool enable_alias, bool finally_exit)
+void exec_input(int fd, const char *name, exec_input_options_T options)
 {
     struct parseparam_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
 #if YASH_ENABLE_ALIAS
-	.enable_alias = enable_alias,
+	.enable_alias = options & XIO_SUBST_ALIAS,
 #endif
 	.filename = name,
 	.lineno = 1,
-	.interactive = interactive,
+	.interactive = options & XIO_INTERACTIVE,
     };
     struct input_interactive_info_T intrinfo;
     struct input_file_info_T *inputinfo;
@@ -463,7 +463,7 @@ void exec_input(int fd, const char *name,
     else
 	inputinfo = new_input_file_info(fd, BUFSIZ);
 
-    if (interactive) {
+    if (pinfo.interactive) {
 	intrinfo.fileinfo = inputinfo;
 	intrinfo.prompttype = 1;
 	pinfo.input = input_interactive;
@@ -472,14 +472,10 @@ void exec_input(int fd, const char *name,
 	pinfo.input = input_file;
 	pinfo.inputinfo = inputinfo;
     }
-    parse_and_exec(&pinfo, finally_exit);
+    parse_and_exec(&pinfo, options & XIO_FINALLY_EXIT);
 
     assert(inputinfo != stdin_input_file_info);
     free(inputinfo);
-
-#if !YASH_ENABLE_ALIAS
-    (void) enable_alias;  // suppress compiler warning
-#endif
 }
 
 /* Parses the input using the specified `parseparam_T' and executes commands.
