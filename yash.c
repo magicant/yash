@@ -512,17 +512,15 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
 		}
 		break;
 	    case PR_EOF:
-		if (shopt_ignoreeof && input_is_interactive_terminal(pinfo)) {
-		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
-		    break;
-		}
 		if (!executed)
 		    laststatus = Exit_SUCCESS;
-		if (finally_exit) {
+		if (!finally_exit)
+		    goto out;
+		if (shopt_ignoreeof && input_is_interactive_terminal(pinfo)) {
+		    fprintf(stderr, gt("Use `exit' to leave the shell.\n"));
+		} else {
 		    wchar_t argv0[] = L"EOF";
 		    exit_builtin(1, (void *[]) { argv0, NULL });
-		} else {
-		    goto out;
 		}
 		break;
 	    case PR_SYNTAX_ERROR:
