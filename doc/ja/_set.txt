@@ -41,7 +41,7 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 利用可能なオプションは以下のとおりです:
 
 [[so-allexport]]all-export (+-a+)::
-このオプションが有効な時、link:params.html#variables[変数]に代入をするとその変数は自動的にエクスポート対象になります。
+このオプションが有効な時、link:params.html#variables[変数]に代入をするとその変数は自動的にlink:params.html#variables[エクスポート]対象になります。
 
 [[so-braceexpand]]brace-expand::
 このオプションはlink:expand.html#brace[ブレース展開]を有効にします。

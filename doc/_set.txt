@@ -62,7 +62,7 @@ The available options are:
 
 [[so-allexport]]all-export (+-a+)::
 When enabled, all link:params.html#variables[variables] are automatically
-link:_export.html[exported] when assigned.
+link:params.html#variables[exported] when assigned.
 
 [[so-braceexpand]]brace-expand::
 This option enables link:expand.html#brace[brace expansion].
