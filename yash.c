@@ -482,8 +482,8 @@ void exec_input(int fd, const char *name,
 #endif
 }
 
-/* Parses the input using the specified `parseinfo_T' and executes commands.
- * If no commands were executed, `laststatus' is set to zero. */
+/* Parses the input using the specified `parseparam_T' and executes commands.
+ * If no commands were executed, `laststatus' is set to Exit_SUCCESS. */
 void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
 {
     bool executed = false;
