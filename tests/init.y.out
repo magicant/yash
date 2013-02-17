@@ -65,6 +65,16 @@ main
 ===== 14 =====
 file 3
 main
+===== error 1 =====
+error 1
+error 2
+error $?=258
+main
+===== error 2 =====
+error 1
+error 2
+error $?=258
+main
 ===== non-existing 1 =====
 main
 ===== non-existing 2 =====

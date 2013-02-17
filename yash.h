@@ -26,6 +26,8 @@
 
 extern pid_t shell_pid, shell_pgid;
 
+extern _Bool shell_initialized;
+
 static inline void exit_shell(void)
     __attribute__((noreturn));
 extern void exit_shell_with_status(int status)

@@ -75,6 +75,9 @@ pid_t shell_pid;
  * In a job-controlled subshell, this value is set to the subshell's pgid. */
 pid_t shell_pgid;
 
+/* Set to true when the shell has been initialized. */
+bool shell_initialized;
+
 /* If this flag is true when the "exit" built-in is invoked, the -f option is
  * assumed to be specified. */
 static bool forceexit;
@@ -231,6 +234,8 @@ int main(int argc, char **argv)
     if (is_interactive && !options.norcfile)
 	if (getuid() == geteuid() && getgid() == getegid())
 	    execute_rcfile(options.rcfile);
+
+    shell_initialized = true;
 
     if (shopt_cmdline)
 	exec_wcs(input.command, inputname, true);
@@ -524,7 +529,7 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
 		}
 		break;
 	    case PR_SYNTAX_ERROR:
-		if (!is_interactive_now)
+		if (shell_initialized && !is_interactive_now)
 		    exit_shell_with_status(Exit_SYNERROR);
 		if (!pinfo->interactive) {
 		    laststatus = Exit_SYNERROR;

@@ -28,6 +28,18 @@ END
 cat >"${TESTTMP}/file3" <<\END
 echo file 3
 END
+cat >"${TESTTMP}/error1" <<\END
+echo error 1
+. "${TESTTMP}/error2"
+echo error \$\?=$?
+fi
+echo not reached
+END
+cat >"${TESTTMP}/error2" <<\END
+echo error 2
+fi
+echo not reached
+END
 
 export HOME= ENV=
 
@@ -100,6 +112,18 @@ echo ===== 14 =====
 echo ===== 14 ===== >&2
 
 HOME="${TESTTMP}" ENV='${HOME}/file3' $INVOKE $TESTEE --posix -ci 'echo main'
+
+: =========================================================================== :
+
+echo ===== error 1 =====
+echo ===== error 1 ===== >&2
+
+$INVOKE $TESTEE -l --profile="${TESTTMP}/error1" -c 'echo main' 2>/dev/null
+
+echo ===== error 2 =====
+echo ===== error 2 ===== >&2
+
+$INVOKE $TESTEE -i --rcfile="${TESTTMP}/error1" -c 'echo main' 2>/dev/null
 
 : =========================================================================== :
 

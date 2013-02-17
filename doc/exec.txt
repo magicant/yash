@@ -153,7 +153,8 @@ exit status of the shell.
 If a non-link:interact.html[interactive] shell encountered one of the
 following errors, the shell immediately exits with a non-zero exit status:
 
-- A command cannot be parsed due to an syntax error.
+- A command cannot be parsed due to an syntax error (except during
+  link:invoke.html#init[shell initialization]).
 - A link:builtin.html#types[special built-in] is executed in the
   link:posix.html[POSIXly-correct mode] and the command arguments do not meet
   the syntax of the built-in's arguments.
