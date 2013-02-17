@@ -1,13 +1,19 @@
 ===== consequences of shell errors =====
-syntax error 2
+syntax error non-interactive 2
+syntax error interactive mainshell 1000
+syntax error interactive subshell 2 [ok]
 special builtin syntax error 2
 non-special builtin syntax error 2
 special builtin redirection error 2
 non-special builtin redirection error 2
 special builtin assignment error 2
 non-special builtin assignment error 2
-special builtin expansion error 2
-non-special builtin expansion error 2
+special builtin expansion error non-interactive 2
+special builtin expansion error interactive mainshell 2
+special builtin expansion error interactive subshell 2
+non-special builtin expansion error non-interactive 2
+non-special builtin expansion error interactive mainshell 2
+non-special builtin expansion error interactive subshell 2
 command not found error 127
 ===== invocation =====
 -c 2

@@ -15,7 +15,21 @@ $INVOKE $TESTEE <<\END
 fi
 echo not printed
 END
-echo syntax error $?
+echo syntax error non-interactive $?
+
+cat >"${TESTTMP}/error.y.tmp" <<\END
+echo ok
+fi
+echo not reached
+END
+$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+return -n 1000
+fi
+echo syntax error interactive mainshell $?
+x=$(. "${TESTTMP}/error.y.tmp")
+echo syntax error interactive subshell $? "[$x]"
+END
+rm -- "${TESTTMP}/error.y.tmp"
 
 $INVOKE $TESTEE <<\END
 .
@@ -56,14 +70,34 @@ unset var
 eval ${var?}
 echo not printed
 END
-echo special builtin expansion error $?
+echo special builtin expansion error non-interactive $?
+
+$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+unset var
+eval ${var?}
+echo special builtin expansion error interactive mainshell $?
+(
+eval ${var?}
+echo special builtin expansion error interactive subshell $?
+)
+END
 
 $INVOKE $TESTEE <<\END
 unset var
 cd ${var?}
 echo not printed
 END
-echo non-special builtin expansion error $?
+echo non-special builtin expansion error non-interactive $?
+
+$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+unset var
+cd ${var?}
+echo non-special builtin expansion error interactive mainshell $?
+(
+cd ${var?}
+echo non-special builtin expansion error interactive subshell $?
+)
+END
 
 $INVOKE $TESTEE <<\END
 { ./no/such/command; } 2>/dev/null
