@@ -51,8 +51,8 @@ done
 printf 'No memory errors detected\n'
 
 
-# redir.p fails because of file descriptors opened by valgrind
-# variable.p fails because $0 is not set to 'sh'
 # builtin.y fails because $0 is not set to 'sh' and valgrind's signal handling
 # history.y fails for unknown reasons
 # job.y fails because of valgrind's signal handling
+# redir.p fails because of file descriptors opened by valgrind
+# variable.p fails because $0 is not set to 'sh'
