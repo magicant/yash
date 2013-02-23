@@ -22,7 +22,7 @@ echo ok
 fi
 echo not reached
 END
-$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+$INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
 return -n 1000
 fi
 echo syntax error interactive mainshell $?
@@ -72,7 +72,7 @@ echo not printed
 END
 echo special builtin expansion error non-interactive $?
 
-$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+$INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
 unset var
 eval ${var?}
 echo special builtin expansion error interactive mainshell $?
@@ -90,7 +90,7 @@ echo not printed
 END
 echo non-special builtin expansion error non-interactive $?
 
-$INVOKE $TESTEE -i --norcfile 2>/dev/null <<\END
+$INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
 unset var
 cd ${var?}
 echo non-special builtin expansion error interactive mainshell $?

@@ -67,32 +67,32 @@ $INVOKE $TESTEE -l --profile="${TESTTMP}/file1" -c 'echo main'
 echo ===== 4 =====
 echo ===== 4 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -i -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -i +m -c 'echo main'
 
 echo ===== 5 =====
 echo ===== 5 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE --interactive -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE --interactive --nomonitor -c 'echo main'
 
 echo ===== 6 =====
 echo ===== 6 ===== >&2
 
-$INVOKE $TESTEE -i --rcfile="${TESTTMP}/file1" -c 'echo main'
+$INVOKE $TESTEE -i --rcfile="${TESTTMP}/file1" +m -c 'echo main'
 
 echo ===== 7 =====
 echo ===== 7 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" +m -c 'echo main'
 
 echo ===== 8 =====
 echo ===== 8 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -il --rcfile="${TESTTMP}/file2" -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -il --rcfile="${TESTTMP}/file2" +m -c 'echo main'
 
 echo ===== 9 =====
 echo ===== 9 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" --rcfile="${TESTTMP}/file2" -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" +m --rcfile="${TESTTMP}/file2" -c 'echo main'
 
 echo ===== 10 =====
 echo ===== 10 ===== >&2
@@ -102,12 +102,12 @@ HOME="${TESTTMP}" $INVOKE $TESTEE -c 'echo main'
 echo ===== 11 =====
 echo ===== 11 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" --norcfile -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -il --profile="${TESTTMP}/file1" --norcfile +m -c 'echo main'
 
 echo ===== 12 =====
 echo ===== 12 ===== >&2
 
-HOME="${TESTTMP}" $INVOKE $TESTEE -il --noprofile --rcfile="${TESTTMP}/file2" -c 'echo main'
+HOME="${TESTTMP}" $INVOKE $TESTEE -il --noprofile --rcfile="${TESTTMP}/file2" +m -c 'echo main'
 
 echo ===== 13 =====
 echo ===== 13 ===== >&2
@@ -117,7 +117,7 @@ HOME="${TESTTMP}" ENV='${HOME}/file3' $INVOKE $TESTEE --posix -c 'echo main'
 echo ===== 14 =====
 echo ===== 14 ===== >&2
 
-HOME="${TESTTMP}" ENV='${HOME}/file3' $INVOKE $TESTEE --posix -ci 'echo main'
+HOME="${TESTTMP}" ENV='${HOME}/file3' $INVOKE $TESTEE --posix -ci +m 'echo main'
 
 : =========================================================================== :
 
@@ -129,7 +129,7 @@ $INVOKE $TESTEE -l --profile="${TESTTMP}/error1" -c 'echo main' 2>/dev/null
 echo ===== error 2 =====
 echo ===== error 2 ===== >&2
 
-$INVOKE $TESTEE -i --rcfile="${TESTTMP}/error1" -c 'echo main' 2>/dev/null
+$INVOKE $TESTEE -i --rcfile="${TESTTMP}/error1" +m -c 'echo main' 2>/dev/null
 
 : =========================================================================== :
 
@@ -139,16 +139,16 @@ unset ENV
 echo ===== non-existing 1 =====
 echo ===== non-existing 1 ===== >&2
 
-$INVOKE $TESTEE --posix -ci 'echo main'
+$INVOKE $TESTEE --posix -ci +m 'echo main'
 
 echo ===== non-existing 2 =====
 echo ===== non-existing 2 ===== >&2
 
-$INVOKE $TESTEE -cil 'echo main'
+$INVOKE $TESTEE -cil +m 'echo main'
 
 echo ===== non-existing 3 =====
 echo ===== non-existing 3 ===== >&2
 
-(unset HOME && $INVOKE $TESTEE -cil 'echo main')
+(unset HOME && $INVOKE $TESTEE -cil +m 'echo main')
 
 rm -fr "$TESTTMP"
