@@ -1,4 +1,4 @@
-# (C) 2010-2011 magicant
+# (C) 2010-2013 magicant
 
 # Completion script for the "ssh" command.
 # Completion function "completion/ssh" is used for the "scp" and "sftp" commands
@@ -127,9 +127,9 @@ function completion/ssh {
 		#TODO
 		;;
 	(O) #>>#
-		complete -D "check that the master process is running" check
-		complete -D "request the master process to exit" exit
-		complete -D "request forwarding without command execution" forward
+		complete -P "$PREFIX" -D "check that the master process is running" check
+		complete -P "$PREFIX" -D "request the master process to exit" exit
+		complete -P "$PREFIX" -D "request forwarding without command execution" forward
 		;; #<<#
 	(o)
 		#TODO
