@@ -83,7 +83,8 @@ function completion/git::add:opr {
 				;;
 		esac
 	done 2>/dev/null <(
-		git status --porcelain ${force:+--ignored} -- "$dir/" |
+		git status --porcelain --ignore-submodules=dirty \
+			${force:+--ignored} -- "$dir/" |
 		grep '^.[^ ]' |
 		cut -c 4-
 	)
