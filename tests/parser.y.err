@@ -187,6 +187,8 @@ yash -c:1: syntax error: encountered `}' without a matching `{'
 yash -c:1: syntax error: (maybe you missed `esac'?)
 syntax error: a word is required after `('
 syntax error: `esac' is missing
+syntax error: a word is required after `|'
+syntax error: `esac' is missing
 yash -c:1: syntax error: encountered an invalid character `>' in the case pattern
 yash -c:1: syntax error: `esac' is missing
 yash -c:1: syntax error: `)' is missing

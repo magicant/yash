@@ -2330,11 +2330,14 @@ void **parse_case_patterns(parsestate_T *ps)
 		    "an unquoted `esac' cannot be the first case pattern"));
 	}
     }
+
+    const wchar_t *predecessor = L"(";
     do {
 	if (is_token_delimiter_char(ps->src.contents[ps->index])) {
 	    if (ps->src.contents[ps->index] != L'\0') {
 		if (ps->src.contents[ps->index] == L'\n')
-		    serror(ps, Ngt("a word is required after `%ls'"), L"(");
+		    serror(ps, Ngt("a word is required after `%ls'"),
+			    predecessor);
 		else
 		    serror(ps, Ngt("encountered an invalid character `%lc' "
 				"in the case pattern"),
@@ -2346,6 +2349,7 @@ void **parse_case_patterns(parsestate_T *ps)
 	skip_blanks_and_comment(ps);
 	ensure_buffer(ps, 1);
 	if (ps->src.contents[ps->index] == L'|') {
+	    predecessor = L"|";
 	    ps->index++;
 	} else if (ps->src.contents[ps->index] == L')') {
 	    ps->index++;

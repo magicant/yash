@@ -406,6 +406,9 @@ $INVOKE $TESTEE -c '{ case "" in *) }'
 $INVOKE $TESTEE <<\END
 case "" in (
 END
+$INVOKE $TESTEE <<\END
+case "" in (x|y|
+END
 $INVOKE $TESTEE -c 'case "" in >/dev/null'
 $INVOKE $TESTEE -c 'case "" in "" esac'
 $INVOKE $TESTEE -c 'case "" in "" | "" esac'
