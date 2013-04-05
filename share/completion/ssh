@@ -266,7 +266,7 @@ function completion/ssh::completehostname {
 		fi
 		while read -Ar words; do
 			case ${words[1]} in (@*)
-				array -d words 1
+				words=("${words[2,-1]}")
 			esac
 			for host in ${words[1]//,/ }; do
 				case $host in
