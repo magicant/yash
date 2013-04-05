@@ -151,6 +151,8 @@ static FILE *open_histfile(void);
 static bool lock_histfile(short type);
 static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
     __attribute__((nonnull));
+static bool try_read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
+    __attribute__((nonnull));
 static long read_signature(void);
 static void read_history_raw(void);
 static void read_history(void);
@@ -572,8 +574,43 @@ bool lock_histfile(short type)
  * The terminating newline is not left in `buf'.
  * On failure, false is returned, in which case the contents of `buf' is
  * unspecified.
- * If there is no more line in the file, false is returned. */
+ * If there is no more line in the file, false is returned.
+ * This function may ignore lines longer than LINE_MAX. */
 bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
+{
+    bool accept_current_line = true;
+    size_t initial_length = buf->length;
+
+    for (;;) {
+	if (try_read_line(f, buf)) {
+	    if (accept_current_line)
+		return true;
+
+	    /* Read one more line and accept it. */
+	    accept_current_line = true;
+	} else {
+	    if (feof(f) || ferror(f))
+		return false;
+
+	    /* Now, the position of `f' is in the middle of a very long line
+	     * that should be ignored. */
+	    accept_current_line = false;
+	}
+	wb_truncate(buf, initial_length);
+    }
+}
+
+/* Reads one line from file `f'.
+ * The line is appended to buffer `buf', which must have been initialized.
+ * If a line was read successfully, true is returned. The terminating newline is
+ * not left in `buf'.
+ * The return value is false if:
+ *  * an error occurred (ferror()),
+ *  * the end of the input was reached (feof()), or
+ *  * the current line is too long (at least LINE_MAX characters), in which case
+ *  the position of `f' is left in the middle of the current line.
+ * The contents of `buf' is unspecified if the return value is false. */
+bool try_read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
 {
 #if FGETWS_BROKEN
     wb_ensuremax(buf, LINE_MAX);
