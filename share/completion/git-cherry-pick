@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "git-cherry-pick" command.
-# Supports Git 1.7.7.
+# Supports Git 1.8.1.4.
 
 function completion/git-cherry-pick {
 	WORDS=(git cherry-pick "${WORDS[2,-1]}")
@@ -11,10 +11,16 @@ function completion/git-cherry-pick {
 function completion/git::cherry-pick:arg {
 
 	OPTIONS=( #>#
+	"--abort; end suspended cherry-picking and restore the original state"
+	"--allow-empty; allow commits that make no change"
+	"--allow-empty-message"
+	"--continue; resume suspended cherry-picking"
 	"e --edit; reedit the message"
 	"--ff; fast-forward if possible"
+	"--keep-redundant-commits; don't omit already-merged commits"
 	"m: --mainline:; apply diffs from the nth parent"
 	"n --no-commit; don't commit the result automatically"
+	"--quit; end suspended cherry-picking and keep the current state"
 	"r; don't include the original commit ID in the message"
 	"s --signoff; add a \"signed-off-by\" line to the message"
 	"--strategy:; specify the merge strategy"
