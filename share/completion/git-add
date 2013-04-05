@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "git-add" command.
 # Supports Git 1.7.7.
@@ -41,6 +41,15 @@ function completion/git::add:arg {
 function completion/git::add:opr {
 
 	typeset dir="$(dirname -- "${TARGETWORD}X")"
+
+	if ! (  d1=$(                git rev-parse --show-toplevel) &&
+		d2=$(cd -- "$dir" && git rev-parse --show-toplevel) &&
+		test "$d1" = "$d2")
+	then
+		# don't complete paths in submodule
+		return
+	fi
+
 	typeset pathprefix="$({
 		cd -- "$dir" && git rev-parse --show-prefix
 	} 2>/dev/null)"
