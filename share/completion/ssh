@@ -265,8 +265,13 @@ function completion/ssh::completehostname {
 			continue
 		fi
 		while read -Ar words; do
-			case ${words[1]} in (@*)
+			case ${words[1]} in
+			(\#*)
+				continue
+				;;
+			(@*)
 				words=("${words[2,-1]}")
+				;;
 			esac
 			for host in ${words[1]//,/ }; do
 				case $host in

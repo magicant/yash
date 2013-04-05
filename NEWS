@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.35
+
+  *  Minor fix in completion script for "ssh".
+
+----------------------------------------------------------------------
 Yash 2.34
 
   +  New "test" built-in operator: =~, -o (unary)
