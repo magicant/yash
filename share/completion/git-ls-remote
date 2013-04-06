@@ -1,0 +1,45 @@
+# (C) 2013 magicant
+
+# Completion script for the "git-ls-remote" command.
+# Supports Git 1.8.1.4.
+
+function completion/git-ls-remote {
+	WORDS=(git ls-remote "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::ls-remote:arg {
+
+	OPTIONS=( #>#
+	"--exit-code; return a non-zero exit status if no refs were printed"
+	"--get-url; just print remote URL"
+	"--heads; print branches only"
+	"--tags; print tags only"
+	"u: --upload-pack:; specify a path for git-upload-pack on the remote host"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(u|--upload-pack)
+			command -f completion/git::--upload-pack:arg
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				complete -P "$PREFIX" -- \
+					$( (ls -- "$(git rev-parse --git-dir)/branches") 2>/dev/null)
+
+				command -f completion/git::completeremote
+			else
+				command -f completion/git::completeref
+			fi
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
