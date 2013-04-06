@@ -50,13 +50,17 @@ function completion/git::clone:arg {
 			;;
 		('')
 			command -f completion//getoperands
-			if [ ${WORDS[#]} -eq 0 ]; then
-				#TODO complete remote URI
-			fi
-			complete -P "$PREFIX" -S / -T -d
+			command -f completion/git::clone:opr
 			;;
 	esac
 
+}
+
+function completion/git::clone:opr {
+	if [ ${WORDS[#]} -eq 0 ]; then
+		#TODO complete remote URI
+	fi
+	complete -P "$PREFIX" -S / -T -d
 }
 
 
