@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "git-remote" command.
 # Supports Git 1.7.7.
@@ -10,9 +10,9 @@ function completion/git-remote {
 
 function completion/git::remote:arg {
 
-	case ${WORDS[2]} in (-v|--verbose)
+	while [ x"${WORDS[2]}" = x"-v" ] || [ x"${WORDS[2]}" = x"--verbose" ]; do
 		WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
-	esac
+	done
 
 	if [ ${WORDS[#]} -le 1 ]; then #>>#
 		case ${TARGETWORD#"$PREFIX"} in
