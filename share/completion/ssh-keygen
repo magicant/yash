@@ -1,12 +1,13 @@
-# (C) 2011 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "ssh-keygen" command.
-# Supports OpenSSH 5.6.
+# Supports OpenSSH 6.2.
 
 function completion/ssh-keygen {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
+	"A; create all types of host keys"
 	"a:; specify the number of primality tests performed (with -T)"
 	"B; print the bubblebabble digest"
 	"b:; specify the number of bits of the key being created"

@@ -3,7 +3,7 @@
 # Completion script for the "ssh" command.
 # Completion function "completion/ssh" is used for the "scp" and "sftp" commands
 # as well.
-# Supports OpenSSH 5.6.
+# Supports OpenSSH 6.2.
 
 function completion/ssh {
 
@@ -59,6 +59,7 @@ function completion/ssh {
 		;;
 	(scp)
 		OPTIONS=("$OPTIONS" #>#
+		"3; copy via local host between remote source and destination"
 		"B; batch mode: don't ask for passwords/phrases"
 		"l:; specify the max bandwidth in Kbps"
 		) #<#
@@ -127,9 +128,11 @@ function completion/ssh {
 		#TODO
 		;;
 	(O) #>>#
+		complete -P "$PREFIX" -D "request the master process to stop port forwarding" cancel
 		complete -P "$PREFIX" -D "check that the master process is running" check
 		complete -P "$PREFIX" -D "request the master process to exit" exit
 		complete -P "$PREFIX" -D "request forwarding without command execution" forward
+		complete -P "$PREFIX" -D "request the master process to accept no more connections" stop
 		;; #<<#
 	(o)
 		#TODO

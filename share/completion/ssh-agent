@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "ssh-agent" command.
-# Supports OpenSSH 5.6.
+# Supports OpenSSH 6.2.
 
 function completion/ssh-agent {
 
