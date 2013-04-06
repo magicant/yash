@@ -14,7 +14,7 @@ function completion/git::remote:arg {
 		WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
 	done
 
-	if [ ${WORDS[#]} -le 1 ]; then #>>#
+	if [ ${WORDS[#]} -le 1 ]; then
 		case ${TARGETWORD#"$PREFIX"} in
 			(-v)  # avoid completing "-v" to "-vv"
 				complete -P "$PREFIX" -- -v
@@ -26,7 +26,7 @@ function completion/git::remote:arg {
 				command -f completion//parseoptions
 				command -f completion//completeoptions
 				;;
-			(*)
+			(*) #>>#
 				complete -P "$PREFIX" -D "add a remote" add
 				complete -P "$PREFIX" -D "rename a remote" rename
 				complete -P "$PREFIX" -D "remove a remote" rm
@@ -36,9 +36,9 @@ function completion/git::remote:arg {
 				complete -P "$PREFIX" -D "show a remote" show
 				complete -P "$PREFIX" -D "delete remote-tracking branches that no longer exist on a remote" prune
 				complete -P "$PREFIX" -D "fetch remotes" update
-				;;
+				;; #<<#
 		esac
-	else #<<#
+	else
 		WORDS=("${WORDS[2,-1]}")
 		if command -vf "completion/git::remote:${WORDS[1]}:arg" >/dev/null 2>&1; then
 			command -f "completion/git::remote:${WORDS[1]}:arg"
@@ -89,15 +89,15 @@ function completion/git::remote:set-head:arg {
 
 	case ${WORDS[1]} in
 		(set-head)
-			OPTIONS=(
+			OPTIONS=( #>#
 			"a --auto; query the remote default branch"
 			"d --delete; remove the remote default branch"
-			)
+			) #<#
 			;;
 		(set-branches)
-			OPTIONS=(
+			OPTIONS=( #>#
 			"a --add; add branch; don't remove existing settings"
-			)
+			) #<#
 			;;
 	esac
 
