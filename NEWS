@@ -18,6 +18,7 @@ Yash 2.35
   =  If yash encounters a too long line that cannot be handled while
      reading a history file, it now tries to keep reading the rest of
      the file rather than stopping reading.
+  =  Very long command lines are no longer saved in the history file.
   *  Minor fix in a syntax error message.
   *  Minor fix in completion script for "ssh".
 

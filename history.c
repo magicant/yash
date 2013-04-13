@@ -907,6 +907,11 @@ void write_signature(void)
 void write_history_entry(const histentry_T *entry)
 {
     assert(histfile != NULL);
+
+    /* don't print very long line */
+    if (xstrnlen(entry->value, LINE_MAX) >= LINE_MAX)
+	return;
+
     if (entry->time >= 0)
 	wprintf_histfile(L"%X:%lX %s\n",
 		entry->number, (unsigned long) entry->time, entry->value);
