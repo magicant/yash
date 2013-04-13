@@ -93,13 +93,15 @@ dd p {
 pre {
 	border: dashed 1px gray;
 	padding: 0.3em;
-	background: #f8f8f8;
 }
 code, kbd, samp {
 	border: dotted 1px gray;
 	padding: 1px;
 	text-decoration: none;
 	white-space: pre-wrap;
+}
+pre > code:only-child, pre > kbd:only-child, pre > samp:only-child {
+	display: block;
 }
 pre code, pre kbd, pre samp {
 	white-space: inherit;
