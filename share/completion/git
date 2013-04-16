@@ -1,4 +1,4 @@
-# (C) 2011-2012 magicant
+# (C) 2011-2013 magicant
 
 # Completion script for the "git" command.
 # Supports Git 1.7.7.
@@ -447,6 +447,46 @@ function completion/git::completerefpath {
 		treeish=HEAD
 	fi
 	command -f completion/git::completepath -r "$treeish"
+
+}
+
+# $1 = regex to select paths
+# $2... = options for "git status"
+# not supporting $PREFIX
+function completion/git::completeuntrackedpath {
+
+	typeset dir="$(dirname -- "${TARGETWORD}X")"
+
+	if ! (  d1=$(                git rev-parse --show-toplevel) &&
+		d2=$(cd -- "$dir" && git rev-parse --show-toplevel) &&
+		test "$d1" = "$d2") 2>/dev/null
+	then
+		# don't complete paths in submodule
+		return
+	fi
+
+	typeset pathprefix="$({
+		cd -- "$dir" && git rev-parse --show-prefix
+	} 2>/dev/null)"
+
+	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
+
+	typeset file
+	while read -r file; do
+		file=${file#"$pathprefix"}
+		case $file in
+			(*/*)
+				complete -P "$prefix" -S / -T -- "${file%%/*}"
+				;;
+			(*)
+				complete -P "$prefix" -- "$file"
+				;;
+		esac
+	done 2>/dev/null <(
+		git status --porcelain "${@[2,-1]}" -- "$dir/" |
+		grep "${1-}" |
+		cut -c 4-
+	)
 
 }
 

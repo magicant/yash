@@ -40,20 +40,6 @@ function completion/git::add:arg {
 # only complete files that can be added
 function completion/git::add:opr {
 
-	typeset dir="$(dirname -- "${TARGETWORD}X")"
-
-	if ! (  d1=$(                git rev-parse --show-toplevel) &&
-		d2=$(cd -- "$dir" && git rev-parse --show-toplevel) &&
-		test "$d1" = "$d2") 2>/dev/null
-	then
-		# don't complete paths in submodule
-		return
-	fi
-
-	typeset pathprefix="$({
-		cd -- "$dir" && git rev-parse --show-prefix
-	} 2>/dev/null)"
-
 	typeset force= i=2
 	while [ $i -le ${WORDS[#]} ]; do
 		case ${WORDS[i]} in
@@ -69,25 +55,8 @@ function completion/git::add:opr {
 		i=$((i+1))
 	done
 
-	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
-
-	typeset file
-	while read -r file; do
-		file=${file#"$pathprefix"}
-		case $file in
-			(*/*)
-				complete -P "$prefix" -S / -T -- "${file%%/*}"
-				;;
-			(*)
-				complete -P "$prefix" -- "$file"
-				;;
-		esac
-	done 2>/dev/null <(
-		git status --porcelain --ignore-submodules=dirty \
-			${force:+--ignored} -- "$dir/" |
-		grep '^.[^ ]' |
-		cut -c 4-
-	)
+	command -f completion/git::completeuntrackedpath '^.[^ ]' \
+		--ignore-submodules=dirty ${force:+--ignored}
 
 }
 
