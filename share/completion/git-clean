@@ -1,0 +1,62 @@
+# (C) 2013 magicant
+
+# Completion script for the "git-clean" command.
+# Supports Git 1.8.1.4.
+
+function completion/git-clean {
+	WORDS=(git clean "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::clean:arg {
+
+	OPTIONS=( #>#
+	"d; remove untracked directories"
+	"f --force; really remove untracked files"
+	"n --dry-run; don't actually remove files, but show what would be removed"
+	"q --quiet; print error messages only"
+	"e: --exclude:; skip files whose names match the specified pattern"
+	"X; remove ignored files only"
+	"x; remove ignored files too"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(e|--exclude)
+			complete -P "$PREFIX" -f
+			;;
+		('')
+			: DEBUG "${WORDS}"
+			command -f completion/git::clean:opr
+			;;
+	esac
+
+}
+
+# only complete untracked files
+function completion/git::clean:opr {
+
+	typeset arg filter='^?'
+	for arg in "${WORDS[2,-1]}"; do
+		case $arg in
+			(-X)
+				filter='^!';;
+			(-x)
+				filter='^[?!]';;
+			(--)
+				break;;
+		esac
+	done
+
+	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
+
+	command -f completion/git::completeuntrackedpath "$filter" \
+		--ignore-submodules=all --ignored --untracked-files=all
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
