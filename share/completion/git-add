@@ -44,7 +44,7 @@ function completion/git::add:opr {
 
 	if ! (  d1=$(                git rev-parse --show-toplevel) &&
 		d2=$(cd -- "$dir" && git rev-parse --show-toplevel) &&
-		test "$d1" = "$d2")
+		test "$d1" = "$d2") 2>/dev/null
 	then
 		# don't complete paths in submodule
 		return
