@@ -20,7 +20,7 @@ Yash 2.35
      the file rather than stopping reading.
   =  Very long command lines are no longer saved in the history file.
   *  Minor fix in a syntax error message.
-  *  Minor fix in completion script for "ssh".
+  *  Minor fix in completion script for "ssh" and "rsync".
 
 ----------------------------------------------------------------------
 Yash 2.34
