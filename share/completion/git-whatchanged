@@ -1,0 +1,41 @@
+# (C) 2013 magicant
+
+# Completion script for the "git-whatchanged" command.
+# Supports Git 1.8.1.4.
+
+function completion/git-whatchanged {
+	WORDS=(git whatchanged "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::whatchanged:arg {
+
+	OPTIONS=()
+
+	if command -vf completion/git::diff-tree:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-diff-tree; then
+		command -f completion/git::diff-tree:getopt
+	fi
+	if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
+			. -AL completion/git-rev-list; then
+		command -f completion/git::rev-list:getopt
+	fi
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completerefpath range=true
+			;;
+		(*)
+			command -f completion/git::diff-tree:compopt ||
+			command -f completion/git::rev-list:compopt
+			;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
