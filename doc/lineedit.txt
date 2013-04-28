@@ -156,8 +156,7 @@ expect-verbatim::
 Insert a character that is entered just after this command
 at the current cursor position.
 This command can input a character that cannot be input by the self-insert
-command.
-You cannot a null character (`'\0'`) even using this command.
+command, except a null character (`'\0'`).
 +
 --
 vi-insert::
