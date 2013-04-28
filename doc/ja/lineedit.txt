@@ -112,12 +112,14 @@ ifdef::basebackend-html[]
 +++<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>+++
 endif::basebackend-html[]
 ifndef::basebackend-html[`\^Q`, `\^V`]
+--
 
 digit-argument::
 このコマンドは数字またはハイフンの入力に対してのみ有効です。入力した数字を次のコマンドへの引数として受け付けます (ハイフンの場合は符号を反転します)。
 +
 Digit-argument コマンドを連続して使うことで複数桁の引数を指定できます。例えば vi 風編集モードのコマンドモードで +12l+ と入力すると、forward-char コマンドに引数 12 を与えたことになります (すなわちカーソルが左に 12 文字分移動します)。
 +
+--
 vi-command::
 ifdef::basebackend-html[]
 +++<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,

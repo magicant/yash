@@ -169,6 +169,7 @@ ifdef::basebackend-html[]
 +++<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>+++
 endif::basebackend-html[]
 ifndef::basebackend-html[`\^Q`, `\^V`]
+--
 
 digit-argument::
 Pass the input digit to the next command as an argument.
@@ -177,6 +178,7 @@ This command can be bound to a digit or hyphen.
 To pass ``12'' as an argument to the forward-char command in the vi mode,
 for example, enter `12l`.
 +
+--
 vi-command::
 ifdef::basebackend-html[]
 +++<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,
