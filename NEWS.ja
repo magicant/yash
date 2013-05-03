@@ -11,7 +11,8 @@ Yash 更新履歴
 Yash 2.35
 
   +  下記コマンドの補完スクリプトを追加:
-     git-clean, git-ls-remote, git-submodule, git-whatchanged
+     git-clean, git-grep, git-ls-remote, git-submodule,
+     git-whatchanged
   +  下記コマンドの補完スクリプトを更新:
      git-cherry-pick, git-rebase (Git 1.8.1.4),
      ssh, ssh-add, ssh-keygen (OpenSSH 6.2)
