@@ -269,9 +269,15 @@ function completion/git::completecmd { #>>#
 }
 
 function completion/git::completealias {
+	typeset usesuffix= suffix
+	if [ $# -gt 0 ]; then
+		usesuffix=true suffix=$1
+	fi
+
 	typeset name value
 	while read -r name value; do
-		complete -P "$PREFIX" -D "= $value" -- "${name#alias.}"
+		complete -P "$PREFIX" -D "= $value" ${usesuffix:+-S "$suffix" -T} \
+			-- "${name#alias.}"
 	done 2>/dev/null <(git config --get-regexp 'alias\..*')
 }
 

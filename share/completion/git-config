@@ -70,7 +70,8 @@ function completion//git::completeoptionname {
 				complete -P "$prefix2" -S . -T -- "$name"
 				;;
 			(*)
-				complete -P "$prefix2" -- "$name"
+				complete -P "$prefix2" ${usesuffix:+-S "$suffix" -T} -- \
+					"$name"
 				;;
 		esac
 	done 2>/dev/null <(git config --get-regexp "${word//./'\.'}.*")
@@ -89,7 +90,7 @@ function completion//git::completeoptionname {
 			;; #<<#
 		(alias.*)
 			PREFIX=${PREFIX}alias. #>>#
-			command -f completion/git::completealias
+			command -f completion/git::completealias ${usesuffix+"$suffix"}
 			;;
 		(am.*)
 			PREFIX=${PREFIX}am. #>>#
