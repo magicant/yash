@@ -47,7 +47,10 @@ function completion/git {
 			command -f completion//completeoptions
 			;;
 		(c)
-			# TODO complete config
+			if command -vf completion//git::completeoptionname >/dev/null 2>&1 ||
+					. -AL completion/git-config; then
+				command -f completion//git::completeoptionname =
+			fi
 			;;
 		(--exec-path|--git-dir|--work-tree)
 			complete -P "$PREFIX" -S / -T -d
