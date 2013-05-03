@@ -39,7 +39,10 @@ function completion/git::clone:arg {
 #		(b|--branch)
 #			;;
 		(c|--config)
-			# TODO config
+			if command -vf completion//git::completeoptionname >/dev/null 2>&1 ||
+					. -AL completion/git-config; then
+				command -f completion//git::completeoptionname =
+			fi
 			;;
 #		(--depth)
 #			;;
