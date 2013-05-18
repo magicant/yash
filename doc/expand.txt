@@ -439,6 +439,8 @@ The following operators are available (in the order of precedence):
 . +? :+
 . +=+ +*=+ +/=+ +%=+ `+=` +-=+ +&lt;&lt;=+ +>>=+ +&=+ +^=+ +|=+
 
+The `++` and `--` operators cannot be used in the POSIXly-correct mode.
+
 An atomic expression can be one of an integer literal, a floating-point
 number literal, and a variable.
 Literals are parsed in the same manner as in C.

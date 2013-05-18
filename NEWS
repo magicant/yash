@@ -16,6 +16,8 @@ Yash 2.35
   +  Updated completion scripts for:
      git-cherry-pick, git-rebase (Git 1.8.1.4),
      ssh, ssh-add, ssh-keygen (OpenSSH 6.2)
+  =  The "++" and "--" operators are no longer supported in the
+     POSIXly-correct mode.
   =  If yash encounters a too long line that cannot be handled while
      reading a history file, it now tries to keep reading the rest of
      the file rather than stopping reading.

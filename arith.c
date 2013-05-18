@@ -823,7 +823,12 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 	case TT_MINUSMINUS:
 	    next_token(info);
 	    parse_prefix(info, result);
-	    if (result->type == VT_VAR) {
+	    if (posixly_correct) {
+		xerror(0, Ngt("arithmetic: operator `%ls' is not supported"),
+			(ttype == TT_PLUSPLUS) ? L"++" : L"--");
+		info->error = true;
+		result->type = VT_INVALID;
+	    } else if (result->type == VT_VAR) {
 		word_T saveword = result->v_var;
 		coerce_number(info, result);
 		do_increment_or_decrement(ttype, result);
@@ -893,7 +898,13 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 	switch (info->token.type) {
 	    case TT_PLUSPLUS:
 	    case TT_MINUSMINUS:
-		if (result->type == VT_VAR) {
+		if (posixly_correct) {
+		    xerror(0,
+			    Ngt("arithmetic: operator `%ls' is not supported"),
+			    (info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
+		    info->error = true;
+		    result->type = VT_INVALID;
+		} else if (result->type == VT_VAR) {
 		    word_T saveword = result->v_var;
 		    coerce_number(info, result);
 		    value_T value = *result;
