@@ -66,7 +66,7 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static int print_job_status(
-	size_t jobnumber, _Bool changedonly, _Bool verbose, FILE *f)
+	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
     __attribute__((nonnull));
 static size_t get_jobnumber_from_name(const wchar_t *name)
     __attribute__((nonnull,pure));
