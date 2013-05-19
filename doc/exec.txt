@@ -54,15 +54,6 @@ link:_set.html#so-allexport[all-export option] is enabled.
   algorithm>> and the command is executed.
 +
 --
-If the command was executed, the exit status of this simple command is that
-of the executed command.
-If the algorithm failed to determine a command, no command is executed and
-the exit status is 127.
-If the shell failed to execute the determined command, the exit status is
-126.
-If the executed command was killed by a signal, the exit status is the
-unique number that corresponds to the signal and is larger than 128.
-
 - If the command is an external command, the command is executed by creating
   a new <<subshell,subshell>> and calling the ``exec'' system call in the
   subshell.
@@ -73,6 +64,20 @@ unique number that corresponds to the signal and is larger than 128.
   with the command arguments passed to the built-in.
 - If the command is a <<function,function>>, the contents of the function
   are executed with the command arguments as function arguments.
+
+If the command was executed, the exit status of this simple command is that
+of the executed command.
+If the algorithm failed to determine a command, no command is executed and
+the exit status is 127.
+If the shell failed to execute the determined command, the exit status is
+126.
+If the executed command was killed by a signal, the exit status is the signal
+number plus 384.
+
+[NOTE]
+In shells other than yash, the exit status may be different when the command
+was killed by a signal, because the POSIX standard only requires that the exit
+status be "greater than 128."
 
 If the shell is not in the link:posix.html[POSIXly-correct mode] and the
 algorithm failed to determine a command, the command
