@@ -360,8 +360,10 @@ is expanded.
 +
 You can set the ``seed'' of random numbers by assigning a non-negative integer
 to the variable.
++
 If you remove this variable, it will no longer work as a random number
-generator.
+generator. If the shell was invoked in the link:posix.html[POSIXly-correct
+mode], this variable does not work as a random number generator.
 
 [[sv-term]]+TERM+::
 This variable specifies the type of the terminal in which the shell is
