@@ -323,7 +323,7 @@ void init_variables(void)
     set_variable(L VAR_OPTIND, xwcsdup(L"1"), SCOPE_GLOBAL, false);
 
     /* set $RANDOM */
-    if (!posixly_correct && !getvar(L VAR_RANDOM)) {
+    if (!posixly_correct) {
 	variable_T *v = new_variable(L VAR_RANDOM, SCOPE_GLOBAL);
 	assert(v != NULL);
 	v->v_type = VF_SCALAR;
