@@ -662,14 +662,14 @@ bool should_exit(const command_T *c)
     if (c->next == NULL) {
 	switch (c->c_type) {
 	    case CT_SIMPLE:
+	    case CT_SUBSHELL:
+	    case CT_FUNCDEF:
 		break;
 	    case CT_GROUP:
-	    case CT_SUBSHELL:
 	    case CT_IF:
 	    case CT_FOR:
 	    case CT_WHILE:
 	    case CT_CASE:
-	    case CT_FUNCDEF:
 		return false;
 	}
     }

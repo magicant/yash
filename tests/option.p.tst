@@ -18,11 +18,75 @@ env | grep ^bar=
 echo ===== -e =====
 set -e
 echo "$-" | grep -Fq e || echo 'no e in $-' >&2
-(echo ok group; false; echo ng group)
-if false; then echo ng if; else false || echo ok if; fi
+false | (echo ok group; false; echo not reached) | cat
+! false
+if false; then echo if error
+elif false; then echo elif error
+else false || echo ok if
+fi
+i=0
+while [ x"$i" != x"1" ]; do echo "$i"; i=1; done
 i=0
 until [ x"$i" = x"1" ]; do echo "$i"; i=1; done
 set +o errexit
+false
+test $? -eq 0; echo 1-$?
+$INVOKE $TESTEE -ce 'false; echo not reached'
+test $? -eq 0; echo 2-$?
+$INVOKE $TESTEE -ce '{ false; }; echo not reached'
+test $? -eq 0; echo 3-$?
+$INVOKE $TESTEE -ce '( false; ); echo not reached'
+test $? -eq 0; echo 4-$?
+$INVOKE $TESTEE -ce 'if true; then false; fi; echo not reached'
+test $? -eq 0; echo 5-$?
+$INVOKE $TESTEE -e <<\END
+for i in 1 2 3
+do
+    echo a $i
+    test $i -ne 2
+    echo b $i
+done
+echo not reached
+END
+test $? -eq 0; echo 6-$?
+$INVOKE $TESTEE -e <<\END
+case i in (i)
+    echo 7
+    false
+    echo not reached
+esac
+echo not reached
+END
+test $? -eq 0; echo 7-$?
+$INVOKE $TESTEE -e <<\END
+while true; do
+    echo 8
+    false
+    echo not reached
+done
+echo not reached
+END
+test $? -eq 0; echo 8-$?
+$INVOKE $TESTEE -e <<\END
+until false; do
+    echo 9
+    false
+    echo not reached
+done
+echo not reached
+END
+test $? -eq 0; echo 9-$?
+$INVOKE $TESTEE -ce 'true && false; echo not reached'
+test $? -eq 0; echo 10-$?
+$INVOKE $TESTEE -ce 'false || false; echo not reached'
+test $? -eq 0; echo 11-$?
+$INVOKE $TESTEE -e <<\END
+for i in i; do
+    ! echo 12 # this should not exit
+done
+test $? -ne 0
+echo 12-$?
+END
 
 echo ===== -f =====
 set -f

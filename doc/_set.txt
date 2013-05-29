@@ -94,9 +94,13 @@ link:lineedit.html#modes[emacs mode].
 
 [[so-errexit]]err-exit (+-e+)::
 When enabled, if a link:syntax.html#pipelines[pipeline] ends with a non-zero
-exit status, the shell immediately exits unless the pipeline is a condition of
-an link:syntax.html#if[if command] or link:syntax.html#while-until[while or
-until loop] or is prefixed by +!+.
+exit status, the shell immediately exits unless:
+
+- the pipeline is a condition of an link:syntax.html#if[if command] or
+  link:syntax.html#while-until[while or until loop];
+- the pipeline is prefixed by +!+; or
+- the pipeline is a single link:syntax.html#compound[compound command] other
+  than a subshell link:syntax.html#grouping[grouping].
 
 [[so-exec]]exec (`+n`)::
 (Enabled by default)

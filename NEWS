@@ -16,6 +16,9 @@ Yash 2.35
   +  Updated completion scripts for:
      git-cherry-pick, git-rebase (Git 1.8.1.4),
      ssh, ssh-add, ssh-keygen (OpenSSH 6.2)
+  =  The condition for exiting the shell when the -e option is enabled
+     has been changed in accordance with the 2013 edition of
+     POSIX.1-2008.
   =  The "++" and "--" operators are no longer supported in the
      POSIXly-correct mode.
   =  The $RANDOM variable now always returns random numbers, ignoring
