@@ -125,12 +125,12 @@ A dfn:[pipeline] is a sequence of one or more <<simple,simple commands>>,
 <<compound,compound commands>>, and/or <<funcdef,function definitions>> that
 are separated by +|+.
 
-A pipeline is executed by executing each subcommand of the pipeline in a
-subshell simultaneously. The standard output of each subcommand except the
-last one is redirected to the standard input of the next subcommand. The
-standard input of the first subcommand and the standard output of the last
-subcommand are not redirected. The exit status of the pipeline is that of the
-last subcommand.
+A pipeline that has more than one subcommand is executed by executing each
+subcommand of the pipeline in a subshell simultaneously. The standard output
+of each subcommand except the last one is redirected to the standard input of
+the next subcommand. The standard input of the first subcommand and the
+standard output of the last subcommand are not redirected. The exit status of
+the pipeline is that of the last subcommand.
 
 A pipeline can be prefixed by +!+, in which case the exit status of the
 pipeline is _reversed_: the exit status of the pipeline is 1 if that of the
