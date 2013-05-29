@@ -145,6 +145,8 @@ static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
 static void exec_commands(command_T *c, exec_T type);
+static inline bool should_exit(const command_T *c)
+    __attribute__((nonnull));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static pid_t exec_process(
@@ -565,7 +567,6 @@ void exec_commands(command_T *c, exec_T type)
     job_T *job;
     process_T *ps, *pp;
     pipeinfo_T pinfo = PIPEINFO_INIT;
-    commandtype_T lasttype;
 
     /* increment the reference count of `c' to prevent `c' from being freed
      * during execution. */
@@ -585,7 +586,6 @@ void exec_commands(command_T *c, exec_T type)
     do {
 	pid_t pid;
 
-	lasttype = cc->c_type;
 	next_pipe(&pinfo, cc->next != NULL);
 	pid = exec_process(cc,
 		(type == E_SELF && cc->next != NULL) ? E_NORMAL : type,
@@ -641,17 +641,45 @@ void exec_commands(command_T *c, exec_T type)
 	}
     }
 
-    comsfree(c);
-
     handle_signals();
 
-    if (shopt_errexit && !supresserrexit
-	    && laststatus != Exit_SUCCESS && lasttype == CT_SIMPLE
-#if YASH_ENABLE_LINEEDIT
-	    && !(le_state & LE_STATE_COMPLETING)
-#endif
-	    )
+    if (shopt_errexit && should_exit(c))
 	exit_shell_with_status(laststatus);
+
+    comsfree(c);
+}
+
+/* Returns true if the shell should exit because of the `errexit' option. */
+bool should_exit(const command_T *c)
+{
+    if (supresserrexit)
+	return false;
+    if (laststatus == Exit_SUCCESS)
+	return false;
+
+    /* If this is a multi-command pipeline, the commands are executed in
+     * subshells. Otherwise, we need to check the type of the command. */
+    if (c->next == NULL) {
+	switch (c->c_type) {
+	    case CT_SIMPLE:
+		break;
+	    case CT_GROUP:
+	    case CT_SUBSHELL:
+	    case CT_IF:
+	    case CT_FOR:
+	    case CT_WHILE:
+	    case CT_CASE:
+	    case CT_FUNCDEF:
+		return false;
+	}
+    }
+
+#if YASH_ENABLE_LINEEDIT
+    if (le_state & LE_STATE_COMPLETING)
+	return false;
+#endif
+
+    return true;
 }
 
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
