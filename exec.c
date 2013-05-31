@@ -199,7 +199,7 @@ pid_t lastasyncpid;
 /* This flag is set to true while the shell is executing the condition of an if-
  * statement, an and-or list, etc. to suppress the effect of the "errexit"
  * option. */
-static bool supresserrexit = false;
+static bool suppresserrexit = false;
 
 /* state of currently executed loop */
 static execstate_T execstate;
@@ -294,8 +294,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	if (!first && p->pl_cond == (laststatus != Exit_SUCCESS))
 	    continue;
 
-	bool savesee = supresserrexit;
-	supresserrexit |= p->pl_neg || p->next != NULL;
+	bool savesee = suppresserrexit;
+	suppresserrexit |= p->pl_neg || p->next != NULL;
 
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set;
@@ -307,7 +307,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 		laststatus = Exit_SUCCESS;
 	}
 
-	supresserrexit = savesee;
+	suppresserrexit = savesee;
     }
     if (finally_exit)
 	exit_shell();
@@ -383,10 +383,10 @@ bool exec_condition(const and_or_T *c)
     if (c == NULL)
 	return true;
 
-    bool savesee = supresserrexit;
-    supresserrexit = true;
+    bool savesee = suppresserrexit;
+    suppresserrexit = true;
     exec_and_or_lists(c, false);
-    supresserrexit = savesee;
+    suppresserrexit = savesee;
     return laststatus == Exit_SUCCESS;
 }
 
@@ -652,7 +652,7 @@ void exec_commands(command_T *c, exec_T type)
 /* Returns true if the shell should exit because of the `errexit' option. */
 bool should_exit(const command_T *c)
 {
-    if (supresserrexit)
+    if (suppresserrexit)
 	return false;
     if (laststatus == Exit_SUCCESS)
 	return false;
