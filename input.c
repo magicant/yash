@@ -173,11 +173,11 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     struct input_interactive_info_T *info = inputinfo;
     struct promptset_T prompt;
 
-    if (info->prompttype == 1)
+    if (info->prompttype == 1) {
 	if (!posixly_correct)
 	    exec_variable(VAR_PROMPT_COMMAND);
-    if (info->prompttype == 1)
 	check_mail();
+    }
     prompt = get_prompt(info->prompttype);
     if (do_job_control)
 	print_job_status_all();
