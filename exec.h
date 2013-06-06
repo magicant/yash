@@ -44,6 +44,7 @@ typedef enum sigtype_T {
 extern int laststatus, savelaststatus;
 extern pid_t lastasyncpid;
 extern _Bool special_builtin_executed;
+extern _Bool is_executing_auxiliary;
 
 struct execstate_T;
 extern void reset_execstate(void);
@@ -66,8 +67,11 @@ extern wchar_t *exec_command_substitution(const struct embedcmd_T *cmdsub)
 extern int exec_variable_as_commands(
 	const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
-#define exec_variable(varname) \
-	exec_variable_as_commands(L varname, "$" varname)
+extern int exec_variable_as_auxiliary(
+	const wchar_t *varname, const char *codename)
+    __attribute__((nonnull));
+#define exec_variable_as_auxiliary_(varname) \
+	exec_variable_as_auxiliary(L varname, "$" varname)
 
 #if YASH_ENABLE_LINEEDIT
 extern _Bool autoload_completion_function_file(

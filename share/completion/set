@@ -269,6 +269,7 @@ function completion/set::getopt {
 		"notifyle; print job status immediately when done while line-editing"
 		"nullglob; remove words that matched nothing in pathname expansion"
 		"posix; force strict POSIX conformance"
+		"traceall; print trace of auxiliary commands"
 		) #<#
 		;;
 	(ksh)

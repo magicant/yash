@@ -10,6 +10,7 @@ Yash 更新履歴
 ----------------------------------------------------------------------
 Yash 2.35
 
+  +  '--traceall' オプション
   +  下記コマンドの補完スクリプトを追加:
      git-clean, git-grep, git-ls-remote, git-submodule,
      git-whatchanged

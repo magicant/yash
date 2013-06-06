@@ -76,6 +76,17 @@ echo n*ll f[o/b]r f?o/b*r 2
 
 cd - >/dev/null
 
+echo ===== traceall =====
+$INVOKE $TESTEE 2>&1 >/dev/null <<\END
+COMMAND_NOT_FOUND_HANDLER='echo not found $@ >&2; HANDLED=1'
+set -xv
+no/such/command 1
+set +o traceall
+no/such/command 2
+set -o traceall
+no/such/command 3
+END
+
 echo ===== posix =====
 $INVOKE $TESTEE                   -c 'echo "$PS1"'
 $INVOKE $TESTEE --posixly-correct -c 'echo "$PS1"'

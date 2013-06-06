@@ -211,6 +211,10 @@ bool special_builtin_executed;
 /* This flag is set while the "exec" built-in is executed. */
 static bool exec_builtin_executed = false;
 
+/* True while executing auxiliary commands such as $PROMPT_COMMAND and
+ * $COMMAND_NOT_FOUND_HANDLER. */
+bool is_executing_auxiliary = false;
+
 /* the last assignment. */
 static const assign_T *last_assign;
 
@@ -1118,7 +1122,7 @@ bool command_not_found_handler(void *const *argv)
     set_positional_parameters(argv);
     set_variable(L VAR_HANDLED, xwcsdup(L""), SCOPE_LOCAL, false);
 
-    result = exec_variable(VAR_COMMAND_NOT_FOUND_HANDLER);
+    result = exec_variable_as_auxiliary_(VAR_COMMAND_NOT_FOUND_HANDLER);
     if (result >= 0) {
 	const wchar_t *handledv = getvar(L VAR_HANDLED);
 	handled = (handledv != NULL && handledv[0] != L'\0');
@@ -1261,7 +1265,9 @@ void print_xtrace(void *const *argv)
     bool tracevars = xtrace_buffer.contents != NULL
 		  && xtrace_buffer.length > 0;
 
-    if (shopt_xtrace && (tracevars || argv != NULL)
+    if (shopt_xtrace
+	    && (!is_executing_auxiliary || shopt_traceall)
+	    && (tracevars || argv != NULL)
 #if YASH_ENABLE_LINEEDIT
 	    && !(le_state & LE_STATE_ACTIVE)
 #endif
@@ -1517,6 +1523,17 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
     int result = exec_iteration(gv.values, codename);
     plfree(gv.values, free);
+    return result;
+}
+
+/* Calls `exec_variable_as_commands' with `is_executing_auxiliary' set to true.
+ */
+int exec_variable_as_auxiliary(const wchar_t *varname, const char *codename)
+{
+    bool save_executing_auxiliary = is_executing_auxiliary;
+    is_executing_auxiliary = true;
+    int result = exec_variable_as_commands(varname, codename);
+    is_executing_auxiliary = save_executing_auxiliary;
     return result;
 }
 

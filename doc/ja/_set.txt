@@ -115,6 +115,14 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 [[so-posixlycorrect]]posixly-correct::
 このオプションは link:posix.html[POSIX 準拠モード]を有効にします。
 
+[[so-traceall]]trace-all::
+このオプションは、補助コマンド実行中も <<so-xtrace,x-trace オプション>>を機能させるかどうかを指定します。補助コマンドとは、
+link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+]、
+link:params.html#sv-prompt_command[+PROMPT_COMMAND+]、および
+link:params.html#sv-yash_after_cd[+YASH_AFTER_CD+]
+変数の値として定義され、特定のタイミングで解釈・実行されるコマンドです。
+このオプションはシェルの起動時に最初から有効になっています。
+
 [[so-unset]]unset (`+u`)::
 このオプションが有効な時、link:expand.html#params[パラメータ展開]で存在しない変数を展開するとエラーにはならず空文字列に展開されます。このオプションはシェルの起動時に最初から有効になっています。
 
@@ -126,6 +134,7 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 
 [[so-xtrace]]x-trace (+-x+)::
 このオプションが有効な時、コマンドを実行する前にlink:expand.html[展開]の結果を標準エラーに出力します。この出力は、各行頭に link:params.html#sv-ps4[+PS4+ 変数]の値をlink:expand.html[展開]した結果を付けて示されます。
+<<so-traceall,Trace-all オプション>>も参照してください。
 
 [[operands]]
 == オペランド

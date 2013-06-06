@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.35
 
+  +  '--traceall' option.
   +  New completion scripts for:
      git-clean, git-grep, git-ls-remote, git-submodule,
      git-whatchanged

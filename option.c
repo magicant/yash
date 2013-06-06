@@ -109,6 +109,10 @@ bool shopt_verbose = false;
  * Corresponds to the -x/--xtrace option. */
 bool shopt_xtrace = false;
 
+/* If set, the "xtrace" option is not ignored while executing auxiliary
+ * commands. */
+bool shopt_traceall = true;
+
 /* If set, lines that start with a space are not saved in the history.
  * Corresponds to the --histspace option. */
 bool shopt_histspace = false;
@@ -222,6 +226,7 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"nullglob",       &shopt_nullglob,       true, },
     { 0,    0,    L"posixlycorrect", &posixly_correct,      true, },
     { L's', 0,    L"stdin",          &shopt_stdin,          false, },
+    { 0,    0,    L"traceall",       &shopt_traceall,       true, },
     { 0,    L'u', L"unset",          &shopt_unset,          true, },
     { L'v', 0,    L"verbose",        &shopt_verbose,        true, },
 #if YASH_ENABLE_LINEEDIT

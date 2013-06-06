@@ -168,6 +168,14 @@ is.
 [[so-posixlycorrect]]posixly-correct::
 This option enables the link:posix.html[POSIXly-correct mode].
 
+[[so-traceall]]trace-all::
+(Enabled by default)
+When this option is disabled, the <<so-xtrace,x-trace option>> is temporarily
+disabled while the shell is executing commands defined in the
+link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+],
+link:params.html#sv-prompt_command[+PROMPT_COMMAND+], or
+link:params.html#sv-yash_after_cd[+YASH_AFTER_CD+] variable.
+
 [[so-unset]]unset (`+u`)::
 (Enabled by default)
 When enabled, undefined parameters are expanded to empty strings in
@@ -190,6 +198,7 @@ standard error for each link:syntax.html#simple[simple command] being
 executed.
 When printed, each line is prepended with an expansion result of the
 link:params.html#sv-ps4[+PS4+ variable].
+See also the <<so-traceall,trace-all option>>.
 
 [[operands]]
 == Operands

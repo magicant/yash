@@ -27,6 +27,24 @@ dir/.dir2/file
 ===== nullglob =====
 f[o/b]r 1
 n*ll f[o/b]r f?o/b*r 2
+===== traceall =====
+no/such/command 1
++ no/such/command 1
++ echo not found no/such/command 1
+not found no/such/command 1
++ HANDLED=1
+set +o traceall
++ set +o traceall
+no/such/command 2
++ no/such/command 2
+not found no/such/command 2
+set -o traceall
++ set -o traceall
+no/such/command 3
++ no/such/command 3
++ echo not found no/such/command 3
+not found no/such/command 3
++ HANDLED=1
 ===== posix =====
 \$ 
 $ 
