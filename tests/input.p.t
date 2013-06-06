@@ -1,3 +1,5 @@
+PS1='% '
+exec 2>&3
 echo \
 ok
 cat <<END

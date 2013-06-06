@@ -46,8 +46,9 @@ no/such/command 3
 not found no/such/command 3
 + HANDLED=1
 ===== posix =====
-\$ 
-$ 
+1
+0
+0
 ===== -o +o =====
 ok
 ===== abbr ====

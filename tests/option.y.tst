@@ -88,8 +88,9 @@ no/such/command 3
 END
 
 echo ===== posix =====
-$INVOKE $TESTEE                   -c 'echo "$PS1"'
-$INVOKE $TESTEE --posixly-correct -c 'echo "$PS1"'
+RANDOM=1 $INVOKE $TESTEE --posixly-correct -c 'echo "$((RANDOM))"'
+RANDOM=X $INVOKE $TESTEE ++posixly-correct -c 'echo "$((RANDOM % 1))"'
+RANDOM=X $INVOKE $TESTEE                   -c 'echo "$((RANDOM % 1))"'
 
 rm -fr "$tmp"
 

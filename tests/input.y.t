@@ -1,3 +1,5 @@
+PS1='% '
+exec 2>&3
 PROMPT_COMMAND='echo prompt_command >&2'
 (exit \
 1)
