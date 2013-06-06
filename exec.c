@@ -1118,8 +1118,7 @@ bool command_not_found_handler(void *const *argv)
     set_positional_parameters(argv);
     set_variable(L VAR_HANDLED, xwcsdup(L""), SCOPE_LOCAL, false);
 
-    result = exec_variable_as_commands(
-	    L VAR_COMMAND_NOT_FOUND_HANDLER, VAR_COMMAND_NOT_FOUND_HANDLER);
+    result = exec_variable(VAR_COMMAND_NOT_FOUND_HANDLER);
     if (result >= 0) {
 	const wchar_t *handledv = getvar(L VAR_HANDLED);
 	handled = (handledv != NULL && handledv[0] != L'\0');

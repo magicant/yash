@@ -175,7 +175,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 
     if (info->prompttype == 1)
 	if (!posixly_correct)
-	    exec_variable_as_commands(L VAR_PROMPT_COMMAND, VAR_PROMPT_COMMAND);
+	    exec_variable(VAR_PROMPT_COMMAND);
     if (info->prompttype == 1)
 	check_mail();
     prompt = get_prompt(info->prompttype);

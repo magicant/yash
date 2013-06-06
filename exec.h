@@ -66,6 +66,8 @@ extern wchar_t *exec_command_substitution(const struct embedcmd_T *cmdsub)
 extern int exec_variable_as_commands(
 	const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
+#define exec_variable(varname) \
+	exec_variable_as_commands(L varname, varname)
 
 #if YASH_ENABLE_LINEEDIT
 extern _Bool autoload_completion_function_file(
