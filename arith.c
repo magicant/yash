@@ -104,12 +104,9 @@ static bool do_assignment(const word_T *word, const value_T *value)
     __attribute__((nonnull));
 static wchar_t *value_to_string(const value_T *value)
     __attribute__((nonnull));
-static long do_long_calculation(tokentype_T ttype, long v1, long v2)
-    __attribute__((nonnull));
-static double do_double_calculation(tokentype_T ttype, double v1, double v2)
-    __attribute__((nonnull));
-static long do_double_comparison(tokentype_T ttype, double v1, double v2)
-    __attribute__((nonnull));
+static long do_long_calculation(tokentype_T ttype, long v1, long v2);
+static double do_double_calculation(tokentype_T ttype, double v1, double v2);
+static long do_double_comparison(tokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_logical_or(evalinfo_T *info, value_T *result)
