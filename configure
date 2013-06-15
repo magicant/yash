@@ -390,21 +390,11 @@ case "${ostype}" in
 esac
 
 
-# check if gcc is available if the debug option is enabled
+# define options for debugging
 if ${debug}
 then
-    checking 'whether GCC is available'
-    if
-	checkby eval "${CC-gcc -std=c99} --version | grep -i gcc"
-    then
-	checked "yes"
-	cc="${CC-gcc -std=c99}"
-	cflags="-pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb"
-    else
-	checked "no"
-	echo "--debug option specified but GCC is not available" >&2
-	fail
-    fi
+    cc="${CC-gcc -std=c99}"
+    cflags="${CFLAGS--pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb}"
 else
     defconfigh "NDEBUG"
 fi
@@ -430,6 +420,8 @@ then
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
+    printf 'The compiler is expected to accept these options: %s\n' \
+	"${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
     fail
 fi
 
