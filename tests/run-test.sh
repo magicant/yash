@@ -37,7 +37,8 @@ case "$TMPDIR" in
     */) TESTTMP=${TMPDIR}test.$$ ;;
     *)  TESTTMP=${TMPDIR}/test.$$ ;;
 esac
-trap 'rm -rf "$TESTTMP"; exit' EXIT HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
+trap 'rm -rf "$TESTTMP"' EXIT
+trap 'rm -rf "$TESTTMP"; exit 1' HUP INT QUIT ABRT ALRM TERM PIPE USR1 USR2
 printf 'Test directory is: %s\n' "$TESTTMP"
 if ! mkdir -m u=rwx,go= "$TESTTMP"; then
     echo Cannot create temporary directory
