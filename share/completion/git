@@ -1,4 +1,4 @@
-# (C) 2011-2013 magicant
+# (C) 2011-2014 magicant
 
 # Completion script for the "git" command.
 # Supports Git 1.7.7.
@@ -578,6 +578,17 @@ function completion/git::--color:arg { #>>#
 	complete -P "$PREFIX" -D "always print in color" always
 	complete -P "$PREFIX" -D "print in color if output is terminal" auto
 	complete -P "$PREFIX" -D "don't print in color" never
+} #<<#
+
+function completion/git::--column:arg { #>>#
+	complete -P "$PREFIX" -D "always print in columns" always
+	complete -P "$PREFIX" -D "print in columns if output is terminal" auto
+	complete -P "$PREFIX" -D "fill columns before rows" column
+	complete -P "$PREFIX" -D "make columns as narrow as possible" dense
+	complete -P "$PREFIX" -D "don't print in columns" never
+	complete -P "$PREFIX" -D "keep all columns same-sized" nodense
+	complete -P "$PREFIX" -D "print in one column" plain
+	complete -P "$PREFIX" -D "fill rows before columns" row
 } #<<#
 
 function completion/git::--date:arg { #>>#

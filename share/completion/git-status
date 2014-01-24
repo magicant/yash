@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2014 magicant
 
 # Completion script for the "git-status" command.
-# Supports Git 1.7.7.
+# Supports Git 1.8.5.3.
 
 function completion/git-status {
 	WORDS=(git status "${WORDS[2,-1]}")
@@ -12,8 +12,11 @@ function completion/git::status:arg {
 
 	OPTIONS=( #>#
 	"b --branch; print the current branch"
+	"--column::; columnize output"
 	"--ignored; print ignored files as well"
 	"--ignore-submodules::; ignore changes to submodules"
+	"--long --no-short; print in the long format"
+	"--no-column; print files line by line"
 	"--porcelain; print in the machine-friendly format"
 	"s --short; print in the short format"
 	"u:: --untracked-files::; print untracked files"
@@ -24,6 +27,9 @@ function completion/git::status:arg {
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
+			;;
+		(--column)
+			command -f completion/git::--column:arg
 			;;
 		(--ignore-submodules)
 			command -f completion/git::--ignore-submodules:arg
