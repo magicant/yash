@@ -61,7 +61,7 @@ v{yashversion},
 - link:_return.html[+return+] *
 - link:_set.html[+set+] *
 - link:_shift.html[+shift+] *
-- link:_suspend.html[+suspend+] *
+- link:_suspend.html[+suspend+]
 - link:_test.html[+test+]
 - link:_times.html[+times+] *
 - link:_trap.html[+trap+] *
@@ -89,7 +89,7 @@ v{yashversion},
 - link:_break.html[+break+] *
 - link:_continue.html[+continue+] *
 - link:_return.html[+return+] *
-- link:_suspend.html[+suspend+] *
+- link:_suspend.html[+suspend+]
 - link:_exit.html[+exit+] *
 
 [[g-environ]]
