@@ -1,0 +1,21 @@
+# (C) 2014 magicant
+
+# Completion script for the "tig" command.
+# Supports Git 1.7.7.
+
+function completion/tig {
+	if [ "${WORDS[#]}" -eq 1 ]; then
+		complete -D "show a file with commit info" blame
+		complete -D "search files using regular expressions" grep
+		complete -D "show commit logs" log
+		complete -D "show objects" show
+		complete -D "manipulate stashes" stash
+		complete -D "show the status of the working tree" status
+	fi
+
+	WORDS=(git log "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
