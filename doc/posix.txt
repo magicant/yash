@@ -49,8 +49,8 @@ When the POSIXly-correct mode is enabled:
   No link:expand.html#param-index[indexes] are allowed.
 - The commands in a link:expand.html#cmdsub[command substitution] of the form
   +$({{commands}})+ are parsed every time the substitution is executed.
-- Fractional numbers and the `++` and `--` operators cannot be used in
-  link:expand.html#arith[arithmetic expansion].
+- In link:expand.html#arith[arithmetic expansion], fractional numbers and the
+  `++` and `--` operators cannot be used. All variables must be numeric.
 - In a link:redir.html#file[redirection to a file], if the
   link:expand.html#glob[pathname expansion] yielded more than one or no
   pathname, it is not immediately treated as an error. Instead, the shell

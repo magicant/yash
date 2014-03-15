@@ -446,7 +446,19 @@ number literal, and a variable.
 Literals are parsed in the same manner as in C.
 An octal integer literal starts with +0+, and hexadecimal with +0x+.
 A floating-point number literal may have an exponent (i.e. `1.23e+6`).
-A variable with a non-numeric value will result in an error.
+A variable with a non-numeric value will result in an error when parsed as a
+number.
+
+In the POSIXly-correct mode, variables are always parsed as numbers.
+Otherwise, variables are parsed only when they are used as numbers in
+computation. Unparsed variables are left intact.
+
+----
+set +o posixly-correct
+foo=bar
+echo $((0 ? foo : foo)) # prints "bar"
+echo $((foo + 0))       # error
+----
 
 [[brace]]
 == Brace expansion
