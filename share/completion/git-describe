@@ -1,0 +1,43 @@
+# (C) 2014 magicant
+
+# Completion script for the "git-describe" command.
+# Supports Git 1.9.0.
+
+function completion/git-describe {
+	WORDS=(git describe "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::describe:arg {
+
+	OPTIONS=( #>#
+	"--all; use any ref, not only an annotated tag"
+	"--always; show uniquely abbreviated commit object as fallback"
+	"--candidates:; specify the number of candidate tags"
+	"--contains; use a tag that contains the described commit"
+	"--debug; print debugging information"
+	"--dirty::; describe HEAD with the specified suffix"
+	"--exact-match; like --candidate=0"
+	"--first-parent; only follow first parents of merges"
+	"--long; always print in the long format"
+	"--match:; specify a pattern to restrict candidate tags"
+	"--tags; use any tag, not only an annotated tag"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+#		(--dirty)
+#			;;
+#		(--match)
+#			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

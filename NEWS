@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.36
 
-  +  Completion script for: tig.
+  +  Completion script for: git-describe, tig.
 
 ----------------------------------------------------------------------
 Yash 2.35
