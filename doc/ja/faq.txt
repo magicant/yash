@@ -1,0 +1,60 @@
+= よくある質問 / 困ったときは
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - よくある質問 / 困ったときは
+:description: Yash についてのよくある質問とその答え
+
+[[yashrc]]
+== デフォルトのプロンプトが簡素過ぎる
+
+Yashrc ファイルが無いと、yash はほとんどただの POSIX と変わりません。
+link:https://github.com/magicant/yash/blob/trunk/misc/yashrc[サンプル yashrc] を自分のホームディレクトリ内 (~/.yashrc) に置いてカスタマイズしてください。
+
+[[unicode]]
+== Unicode (非 ASCII) 文字を使うには?
+
+Unicode 文字を使えるようにするにはロケール環境変数の設定が必要です。
+
+既に環境変数があなたの使用したいロケールに合わせて設定されている場合は、特に何もする必要はありません。現在の設定を確認するには、+locale+ コマンドを使用してください。
+
+----
+$ locale
+LANG=ja_JP.utf8
+LC_CTYPE="ja_JP.utf8"
+LC_NUMERIC="ja_JP.utf8"
+LC_TIME="ja_JP.utf8"
+LC_COLLATE="ja_JP.utf8"
+LC_MONETARY="ja_JP.utf8"
+LC_MESSAGES="ja_JP.utf8"
+LC_PAPER="ja_JP.utf8"
+LC_NAME="ja_JP.utf8"
+LC_ADDRESS="ja_JP.utf8"
+LC_TELEPHONE="ja_JP.utf8"
+LC_MEASUREMENT="ja_JP.utf8"
+LC_IDENTIFICATION="ja_JP.utf8"
+LC_ALL=
+----
+
+この例の +locale+ コマンドの出力結果は、各ロケール設定カテゴリーについて、言語が日本語、地域が日本、エンコーディングが UTF-8 に設定されていることを示しています。
+
+現在の設定が自分の使いたいロケール設定に合っていない場合は、+LC_ALL+ 変数を以下の様に設定してください。
+
+----
+export LC_ALL=ja_JP.utf8
+----
+
+この例とは異なる言語・地域・エンコーディングの設定を使いたい場合は、設定値を変える必要があります。詳しくは、お使いのオペレーティングシステムの説明書を参照してください。
+
+Yash を起動する度に同じ設定を自動的に適用するには、上記のコマンドを ~/.yashrc か ~/.yash_profile に書いてください。
+
+上記の設定をしてもなお Unicode 文字が正しく入力できない場合は、以下の行編集に関する項目を読んでください。
+
+[[lineediting]]
+== 行編集が動かない
+
+まず、+echo $TERM+ を実行して出力される値が正常かどうか調べてください。値が +xterm+ なら、おそらくどんな環境でも最低限の機能は使えるはずです。 +xterm-16color+ などの色が使えるバージョンや、+rxvt+ や +vt100+ などの他の端末機種も大概は動きます。利用可能な全ての値を列挙するには +toe+ コマンドを使用してください。
+お使いの端末機種に合った値を設定するのが理想ですが、yash を実行しようとしている環境がその端末機種に対応していない場合はうまく動かないかもしれません。その場合は、+export TERM=xterm+ などを実行して +TERM+ の値を変えてみてください。
+
+行編集自体は動いているが Unicode (非 ASCII) 文字の入力に問題がある場合は、+set -o le-no-conv-meta+ を実行して link:lineedit.html#options[le-no-conv-meta] オプションを有効にしてみてください。
+
+// vim: set filetype=asciidoc expandtab:

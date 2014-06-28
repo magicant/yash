@@ -1,0 +1,79 @@
+= Frequently asked questions and troubleshooting
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - FAQ and troubleshooting
+:description: Frequently asked questions and troubleshooting for yash.
+
+[[yashrc]]
+== The default prompt is too simple...
+
+Without a yashrc file, yash is almost the same as a raw POSIX shell. Put the
+link:https://github.com/magicant/yash/blob/trunk/misc/yashrc[sample yashrc] in
+your home directory (~/.yashrc) and customize it as you like.
+
+[[unicode]]
+== How can I use Unicode (non-ASCII) characters?
+
+You need to set locale environment variables to enable Unicode character
+support.
+
+If the variables have already been configured for your preference, you
+probably don't have to do anything. To check the current locale
+configurations, you can use the +locale+ command:
+
+----
+$ locale
+LANG=
+LC_CTYPE="en_US.utf8"
+LC_NUMERIC="en_US.utf8"
+LC_TIME="en_US.utf8"
+LC_COLLATE="en_US.utf8"
+LC_MONETARY="en_US.utf8"
+LC_MESSAGES="en_US.utf8"
+LC_PAPER="en_US.utf8"
+LC_NAME="en_US.utf8"
+LC_ADDRESS="en_US.utf8"
+LC_TELEPHONE="en_US.utf8"
+LC_MEASUREMENT="en_US.utf8"
+LC_IDENTIFICATION="en_US.utf8"
+LC_ALL=en_US.utf8
+----
+
+In this example, the +locale+ command shows that all the locale setting
+categories are configured for the English language, the United States region,
+and the UTF-8 encoding.
+
+If the current configuration does not seem to match your preference, set the
++LC_ALL+ variable like this:
+
+----
+export LC_ALL=en_US.utf8
+----
+
+If you want to use other languages, regions, or encodings, you have to set the
+variable to a different value. Please consult your OS's documentation to learn
+how to configure these variables in detail.
+
+If you want to apply the same configuration every time you start yash, write
+the command in ~/.yashrc or ~/.yash_profile.
+
+If yash still rejects Unicode characters being entered, see the section below
+regarding line-editing.
+
+[[lineediting]]
+== Line-editing does not work
+
+First, type +echo $TERM+ and see if it prints a _sane_ value. +xterm+ is the
+safest value that should work on any existing environment. Colored versions
+like +xterm-16color+ and other terminal types like +rxvt+ and +vt100+ may also
+work. All possible values can be listed by the +toe+ command. It's most
+desirable to choose a value that matches the actual terminal type you are
+using, but it might not work if the terminal type you chose is not supported
+on the system on which yash is running. If so, try changing the +TERM+ value
+by +export TERM=xterm+, for example, to find a value that works.
+
+If line-editing works but you have trouble entering Unicode (non-ASCII)
+characters, try enabling the link:lineedit.html#options[le-no-conv-meta]
+option by +set -o le-no-conv-meta+.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:
