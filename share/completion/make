@@ -1,4 +1,4 @@
-# (C) 2013 magicant
+# (C) 2013-2014 magicant
 
 # Completion script for the "make" command.
 # Supports POSIX 2008, GNU Make 3.82, FreeBSD 9.0, OpenBSD 5.0, NetBSD 3.0,
@@ -235,7 +235,7 @@ function completion/make::target {
 					;;
 			esac
 		done
-	done 2>/dev/null <(make -pq | sed -n '
+	done 2>/dev/null <(make -pq MAKE=: | sed -n '
 		/^[[:space:]]*#/d
 		/^	/d
 		/=/d
