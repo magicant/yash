@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2014 magicant
 
 # Completion script for the "git-push" command.
-# Supports Git 1.7.7.
+# Supports Git 2.0.1.
 
 function completion/git-push {
 	WORDS=(git push "${WORDS[2,-1]}")
@@ -14,18 +14,25 @@ function completion/git::push:arg {
 	"--all; push all local branches"
 	"--delete; delete remote refs specified as operands"
 	"n --dry-run; don't actually push anything"
+	"--follow-tags; push reachable annotated tags as well"
 	"f --force; allow non-fast-forward update"
+	"--force-with-lease::; like --force, but prevent unexpected history loss"
 	"--mirror; push all local refs"
+	"--no-force-with-lease; cancel the --force-with-lease option"
 	"--no-thin; cancel the --thin option"
+	"--no-verify; disable the pre-push hook"
 	"--porcelain; print in the machine-friendly format"
 	"--progress; report progress"
+	"--prune; delete remote branches that have no local counterparts"
 	"q --quiet; don't report progress"
 	"--repo:; specify the default repository to push to"
 	"--receive-pack: --exec:; specify a path for git-receive-pack on the remote host"
+	"--recurse-submodules:; ensure submodule commits are available on the remote"
 	"u --set-upstream; make pushed branches remote-tracking"
 	"--tags; push all local tags"
 	"--thin; send a thin pack to reduce traffic"
 	"v --verbose" # TODO description
+	"--verify; enable the pre-push hook"
 	) #<#
 
 	command -f completion//parseoptions
@@ -33,9 +40,19 @@ function completion/git::push:arg {
 		(-)
 			command -f completion//completeoptions
 			;;
+		(--force-with-lease)
+			typeset word="${TARGETWORD#"$PREFIX"}"
+			word=${word#*:}
+			PREFIX=${TARGETWORD%"$word"}
+			command -f completion/git::completeref
+			;;
 		(--receive-pack|--exec)
 			command -f completion/git::--receive-pack:arg
 			;;
+		(--recurse-submodules) #>>#
+			complete -P "$PREFIX" -D "check if submodules have been pushed" check
+			complete -P "$PREFIX" -D "push submodules as necessary" on-demand
+			;; #<<#
 		(--repo|'')
 			command -f completion//getoperands
 			if [ ${WORDS[#]} -eq 0 ]; then
@@ -62,6 +79,5 @@ function completion/git::push:arg {
 	esac
 
 }
-
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
