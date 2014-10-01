@@ -1,4 +1,4 @@
-# (C) 2013 magicant
+# (C) 2013-2014 magicant
 
 # Completion script for the "git-submodule" command.
 # Supports Git 1.8.1.4.
@@ -29,6 +29,7 @@ function completion/git::submodule:arg {
 				;;
 			(*) #>>#
 				complete -P "$PREFIX" -D "add a submodule" add
+				complete -P "$PREFIX" -D "unregister submodules" deinit
 				complete -P "$PREFIX" -D "execute a shell command in each submodule" foreach
 				complete -P "$PREFIX" -D "configure submodules according to .gitmodules" init
 				complete -P "$PREFIX" -D "show status of submodules" status
@@ -50,6 +51,7 @@ function completion/git::submodule:add:arg {
 
 	OPTIONS=("$OPTIONS" #>#
 	"b: --branch:; specify a branch of the submodule to clone"
+	"--depth:; specify the max number of history to clone"
 	"f --force; add an ignored path"
 	"--name:; specify the name of the submodule"
 	"--reference:; specify a reference repository to share objects (possibly dangerous operation)"
@@ -73,6 +75,24 @@ function completion/git::submodule:add:arg {
 					. -AL completion/git-clone; then
 				command -f completion/git::clone:opr
 			fi
+			;;
+	esac
+
+}
+
+function completion/git::submodule:deinit:arg {
+
+	OPTIONS=("$OPTIONS" #>#
+	"f --force; overwrite local changes or ignore unmerged files"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			complete -P "$PREFIX" -S / -T -d
 			;;
 	esac
 
@@ -150,19 +170,34 @@ function completion/git::submodule:summary:arg {
 
 function completion/git::submodule:sync:arg {
 
-	complete -P "$PREFIX" -S / -T -d
+	OPTIONS=("$OPTIONS" #>#
+	"--recursive; operate on all submodules recursively"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			complete -P "$PREFIX" -S / -T -d
+			;;
+	esac
 
 }
 
 function completion/git::submodule:update:arg {
 
 	OPTIONS=("$OPTIONS" #>#
+	"--depth:; specify the max number of history to clone"
+	"f --force; overwrite local changes or ignore unmerged files"
 	"--init; do \"git submodule init\" before updating"
 	"--merge; merge in submodules"
 	"N --no-fetch; don't fetch from submodule remotes"
 	"--rebase; rebase in submodules"
 	"--recursive; operate on all submodules recursively"
 	"--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+	"--remote; update submodules to their remote's latest commit"
 	) #<#
 
 	command -f completion//parseoptions
