@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2014 magicant
 
 # Completion script for the "git-checkout" command.
-# Supports Git 1.7.7.
+# Supports Git 2.1.2.
 
 function completion/git-checkout {
 	WORDS=(git checkout "${WORDS[2,-1]}")
@@ -11,15 +11,16 @@ function completion/git-checkout {
 function completion/git::checkout:arg {
 
 	OPTIONS=( #>#
-	"B; create or reset a new branch and check it out"
-	"b; create a new branch and check it out"
+	"B:; create or reset a new branch and check it out"
+	"b:; create a new branch and check it out"
 	"--conflict:; like --merge, but specify format of unmerged files"
 	"--detach; leave HEAD in detached head state"
 	"f --force; overwrite local changes or ignore unmerged files"
+	"--ignore-skip-worktree-bits; ignore sparse patterns"
 	"l; enable reflog for the new branch"
 	"m --merge; do 3-way merge for destination branch"
 	"--no-track; create a non-tracking branch"
-	"--orphan; create a new branch with no parent"
+	"--orphan:; create a new branch with no parent"
 	"--ours; checkout local version for unmerged files"
 	"p --patch; interactively choose hunks to check out"
 	"q --quiet; print error and warning messages only"
@@ -31,6 +32,9 @@ function completion/git::checkout:arg {
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
+			;;
+		([Bb]|--orphan)
+			command -f completion/git::completeref --branches
 			;;
 		(--conflict) #>>#
 			complete -P "$PREFIX" -D "ours and theirs" merge
