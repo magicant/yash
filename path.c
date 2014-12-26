@@ -389,13 +389,16 @@ char *which(
 
 /* Creates a new temporary file under "/tmp".
  * `mode' is the access permission bits of the file.
+ * The name of the temporary file ends with `suffix`, which should be as short
+ * as possible and must not exceed 8 bytes.
  * On successful completion, a file descriptor is returned, which is both
  * readable and writeable regardless of `mode', and a pointer to a string
  * containing the filename is assigned to `*filename', which should be freed by
  * the caller. The filename consists only of portable filename characters.
  * On failure, -1 is returned with `**filename' left unchanged and `errno' is
  * set to the error value. */
-int create_temporary_file(char **filename, mode_t mode)
+int create_temporary_file(
+	char **restrict filename, const char *restrict suffix, mode_t mode)
 {
     static uintmax_t num = 0;
     uintmax_t n;
@@ -410,9 +413,10 @@ int create_temporary_file(char **filename, mode_t mode)
 	num = (num ^ n) * 16777619;
 	sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
 
-	size_t maxlen = _POSIX_NAME_MAX + 5;
+	size_t maxlen = _POSIX_NAME_MAX + 5 - strlen(suffix);
 	if (buf.length > maxlen)
 	    sb_truncate(&buf, maxlen);
+	sb_cat(&buf, suffix);
 
 	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
 	if (fd >= 0) {

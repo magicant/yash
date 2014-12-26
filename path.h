@@ -65,7 +65,8 @@ extern char *which(
 	_Bool cond(const char *path))
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
-extern int create_temporary_file(char **filename, mode_t mode)
+extern int create_temporary_file(
+	char **restrict filename, const char *restrict suffix, mode_t mode)
     __attribute__((nonnull));
 
 

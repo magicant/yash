@@ -2666,7 +2666,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     le_complete_cleanup();
     le_suspend_readline();
 
-    fd = create_temporary_file(&tempfile, S_IRUSR | S_IWUSR);
+    fd = create_temporary_file(&tempfile, "", S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create a temporary file to edit history"));
 	goto error1;

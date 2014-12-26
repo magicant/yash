@@ -782,7 +782,7 @@ int open_herestring(char *s, bool appendnewline)
 #endif /* defined(PIPE_BUF) */
 
     char *tempfile;
-    fd = create_temporary_file(&tempfile, 0);
+    fd = create_temporary_file(&tempfile, "", 0);
     if (fd < 0) {
 	xerror(errno,
 		Ngt("cannot create a temporary file for the here-document"));
