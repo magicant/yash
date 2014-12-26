@@ -27,6 +27,7 @@
 #if HAVE_GETTEXT
 # include <libintl.h>
 #endif
+#include <limits.h>
 #if HAVE_PATHS_H
 # include <paths.h>
 #endif
@@ -407,8 +408,12 @@ int create_temporary_file(char **filename, mode_t mode)
     sb_init(&buf);
     for (int i = 0; i < 100; i++) {
 	num = (num ^ n) * 16777619;
-	sb_printf(&buf, "/tmp/yash-%X", (unsigned) (num >> 30));
-	/* The filename must be 14 bytes long at most. */
+	sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
+
+	size_t maxlen = _POSIX_NAME_MAX + 5;
+	if (buf.length > maxlen)
+	    sb_truncate(&buf, maxlen);
+
 	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
 	if (fd >= 0) {
 	    *filename = sb_tostr(&buf);
