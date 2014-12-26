@@ -1524,7 +1524,7 @@ int fc_edit_and_exec_entries(
     pid_t cpid;
     int savelaststatus;
 
-    fd = create_temporary_file(&temp, "", S_IRUSR | S_IWUSR);
+    fd = create_temporary_file(&temp, ".sh", S_IRUSR | S_IWUSR);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot create a temporary file to edit history"));
 	goto error1;
