@@ -152,7 +152,7 @@ uninstall-data:
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
 ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip
-DIST_TARGETS = dist-gzip
+DIST_TARGETS = dist-gzip dist-xz
 RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar
 $(DISTDIR): _PHONY
 	@+(cd po && $(MAKE) update-po)  # must be done first
