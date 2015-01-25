@@ -151,6 +151,9 @@ uninstall-data:
 
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar.gz $(DISTDIR).zip
+ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip
+DIST_TARGETS = dist-gzip
+RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar
 $(DISTDIR): _PHONY
 	@+(cd po && $(MAKE) update-po)  # must be done first
 	rm -fr $@
@@ -165,32 +168,37 @@ $(DISTDIR): _PHONY
 	for file in share/completion/*; do cp $$file $@/share/completion; done
 	find $@ | xargs touch -c -r $@
 # Only pax and compress conform to POSIX.
+dist:
+	@+$(MAKE) RM_DISTDIR=: $(DIST_TARGETS)
+	$(RM_DISTDIR)
+dist-all:
+	@+$(MAKE) DIST_TARGETS='$(ALL_DIST_TARGETS)' dist
 dist-tarZ: $(DISTDIR).tar.Z
-	-rm -rf $(DISTDIR) $(DISTDIR).tar
-dist dist-gzip: $(DISTDIR).tar.gz
-	-rm -rf $(DISTDIR) $(DISTDIR).tar
+	$(RM_DISTDIR)
+dist-gzip: $(DISTDIR).tar.gz
+	$(RM_DISTDIR)
 dist-bzip2: $(DISTDIR).tar.bz2
-	-rm -rf $(DISTDIR) $(DISTDIR).tar
+	$(RM_DISTDIR)
 dist-xz: $(DISTDIR).tar.xz
-	-rm -rf $(DISTDIR) $(DISTDIR).tar
+	$(RM_DISTDIR)
 dist-shar: $(DISTDIR).shar.gz
-	-rm -rf $(DISTDIR)
+	$(RM_DISTDIR)
 dist-zip: $(DISTDIR).zip
-	-rm -rf $(DISTDIR)
+	$(RM_DISTDIR)
 $(DISTDIR).tar: $(DISTDIR)
 	$(ARCHIVER) $@ $(DISTDIR)
 $(DISTDIR).tar.Z: $(DISTDIR).tar
 	rm -rf $@
-	compress $(DISTDIR).tar
+	compress -c $(DISTDIR).tar > $@
 $(DISTDIR).tar.gz: $(DISTDIR).tar
 	rm -rf $@
-	gzip -9 $(DISTDIR).tar
+	gzip -c -9 $(DISTDIR).tar > $@
 $(DISTDIR).tar.bz2: $(DISTDIR).tar
 	rm -rf $@
-	bzip2 -9 $(DISTDIR).tar
+	bzip2 -k -9 $(DISTDIR).tar
 $(DISTDIR).tar.xz: $(DISTDIR).tar
 	rm -rf $@
-	xz $(DISTDIR).tar
+	xz -k $(DISTDIR).tar
 $(DISTDIR).shar.gz: $(DISTDIR)
 	shar $(DISTDIR) | gzip -c > $@
 $(DISTDIR).zip: $(DISTDIR)
