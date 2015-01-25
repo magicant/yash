@@ -150,7 +150,7 @@ uninstall-data:
 	@+(cd doc && $(MAKE) $@-rec)
 
 DISTDIR = $(TARGET)-$(VERSION)
-DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
 ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip
 DIST_TARGETS = dist-gzip
 RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar
@@ -199,8 +199,10 @@ $(DISTDIR).tar.bz2: $(DISTDIR).tar
 $(DISTDIR).tar.xz: $(DISTDIR).tar
 	rm -rf $@
 	xz -k $(DISTDIR).tar
-$(DISTDIR).shar.gz: $(DISTDIR)
-	shar $(DISTDIR) | gzip -c > $@
+$(DISTDIR).shar: $(DISTDIR)
+	shar $(DISTDIR) > $@
+$(DISTDIR).shar.gz: $(DISTDIR).shar
+	gzip -9 $(DISTDIR).shar
 $(DISTDIR).zip: $(DISTDIR)
 	rm -rf $@
 	zip -rq $@ $(DISTDIR)
