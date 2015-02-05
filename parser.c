@@ -3202,8 +3202,11 @@ void print_word(struct print *restrict pr, const wordunit_T *restrict wu,
 		break;
 	    case WT_CMDSUB:
 		wb_cat(&pr->buffer, L"$(");
+		size_t startindex = pr->buffer.length;
 		print_embedded_command(pr, wu->wu_cmdsub, indent + 1);
 		wb_wccat(&pr->buffer, L')');
+		if (pr->buffer.contents[startindex] == L'(')
+		    wb_insert(&pr->buffer, startindex, L" ");
 		break;
 	    case WT_ARITH:
 		wb_cat(&pr->buffer, L"$((");

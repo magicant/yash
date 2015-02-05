@@ -237,6 +237,12 @@ unset -f x=1
 typeset -fp x=1 2>/dev/null
 func
 
+func2() {
+    echo $((echo func2) )
+}
+eval "$(typeset -fp func2)"
+func2
+
 echo ===== read =====
 
 unset a
