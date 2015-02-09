@@ -12,6 +12,7 @@ Yash 2.38
 
   *  Completion error on moved or copied tracked files for git-add and
      git-commit.
+  *  Completion error on untracked file for git-commit.
 
 ----------------------------------------------------------------------
 Yash 2.37

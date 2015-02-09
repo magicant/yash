@@ -492,10 +492,14 @@ function completion/git::completefilteredpath {
 				;;
 		esac
 	done 2>/dev/null <(
-		git status --porcelain "${@[2,-1]}" -- "$dir/" |
-		grep "${1-}" |
-		cut -c 4- |
-		sed 's/^.* -> //'
+		if [ "$#" -eq 0 ]; then
+			git diff --name-only HEAD
+		else
+			git status --porcelain "${@[2,-1]}" -- "$dir/" |
+			grep "${1-}" |
+			cut -c 4- |
+			sed 's/^.* -> //'
+		fi
 	)
 
 }

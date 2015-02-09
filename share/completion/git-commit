@@ -71,10 +71,7 @@ function completion/git::commit:arg {
 			command -f completion/git::--untracked-files:arg
 			;;
 		('')
-			if command -vf completion/git::add:opr >/dev/null 2>&1 ||
-					. -AL completion/git-add; then
-				command -f completion/git::add:opr
-			fi
+			command -f completion/git::completefilteredpath
 			;;
 	esac
 
