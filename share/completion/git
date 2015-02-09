@@ -462,7 +462,7 @@ function completion/git::completerefpath {
 # $1 = regex to select paths
 # $2... = options for "git status"
 # not supporting $PREFIX
-function completion/git::completeuntrackedpath {
+function completion/git::completefilteredpath {
 
 	typeset dir="$(dirname -- "${TARGETWORD}X")"
 

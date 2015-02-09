@@ -53,7 +53,7 @@ function completion/git::clean:opr {
 
 	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
 
-	command -f completion/git::completeuntrackedpath "$filter" \
+	command -f completion/git::completefilteredpath "$filter" \
 		--ignore-submodules=all --ignored --untracked-files=all
 
 }

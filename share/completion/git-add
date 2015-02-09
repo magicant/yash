@@ -55,7 +55,7 @@ function completion/git::add:opr {
 		i=$((i+1))
 	done
 
-	command -f completion/git::completeuntrackedpath '^.[^ ]' \
+	command -f completion/git::completefilteredpath '^.[^ ]' \
 		--ignore-submodules=dirty ${force:+--ignored}
 
 }
