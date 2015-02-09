@@ -494,7 +494,8 @@ function completion/git::completeuntrackedpath {
 	done 2>/dev/null <(
 		git status --porcelain "${@[2,-1]}" -- "$dir/" |
 		grep "${1-}" |
-		cut -c 4-
+		cut -c 4- |
+		sed 's/^.* -> //'
 	)
 
 }

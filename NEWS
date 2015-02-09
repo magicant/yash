@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.38
+
+  *  Completion error on moved or copied tracked files for git-add and
+     git-commit.
+
+----------------------------------------------------------------------
 Yash 2.37
 
   +  Updated completion scripts for:
