@@ -39,7 +39,7 @@ POSIX ではコマンドがシグナルによって中断された場合の終�
 
 非 link:posix.html[POSIX 準拠モード]においてコマンドが見つからなかったとき、コマンド
 ifdef::basebackend-html[]
-pass:[+link:_eval.html[eval] -i -- "${COMMAND_NOT_FOUND_HANDLER-}"+]
+pass:[<code><a href="_eval.html">eval</a> -i -- "${COMMAND_NOT_FOUND_HANDLER-}"</code>]
 endif::basebackend-html[]
 ifndef::basebackend-html[`eval -i -- "${COMMAND_NOT_FOUND_HANDLER-}"`]
 が実行されます。ただしこのときlink:params.html#positional[位置パラメータ]はコマンド名とコマンド引数に一時的に置き換えられます。またこのコマンドの実行中に定義された<<localvar,ローカル変数>>はこのコマンドの終了時に削除されます。このコマンドの実行時には link:params.html#sv-handled[++HANDLED++ ローカル変数]が空文字列を値としてあらかじめ定義されます。このコマンドの実行後にこの変数の値が空文字列でなくなっていれば、このコマンドの終了ステータスがこの単純コマンドの終了ステータスとなり、コマンドが見つからなかったことはエラーとはみなされません。
