@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -768,13 +768,16 @@ bool ctryparse_tilde(void)
     do {
 	index++;
 	switch (BUF[index]) {
-	    case L'\n':  case L';':   case L'&':  case L'|':
+	    case L' ':   case L'\t':  case L'\n':
+	    case L';':   case L'&':   case L'|':
 	    case L'<':   case L'>':   case L'(':  case L')':
 	    case L'$':   case L'`':   case L'/':  case L':':
 	    case L'\\':  case L'\'':  case L'"':
 	    case L'?':   case L'*':   case L'[':
 		return false;
 	}
+	if (iswblank(BUF[index]))
+	    return false;
     } while (BUF[index] != L'\0');
 
     pi->ctxt->quote = QUOTE_NONE;

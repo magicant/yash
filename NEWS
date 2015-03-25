@@ -11,6 +11,7 @@ History of Yash
 Yash 2.38
 
   +  New completion scripts for: git-rm
+  *  Completion error on words following a tilde expansion.
   *  Completion error on moved or copied tracked files for git-add and
      git-commit.
   *  Completion error on untracked file for git-commit.
