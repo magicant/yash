@@ -153,6 +153,8 @@ echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
 set $foo bar '' xyz ''$foo'' abc
 for i do echo "-$i-"; done
 
+echol '<<' ${foo-\a \b \c} ${bar-\\d \\e \\f} '>>'
+
 IFS=/
 echo ~
 echo ${foo-~}

@@ -93,6 +93,14 @@ unset-var 0 0
 -xyz-
 --
 -abc-
+<<
+a
+b
+c
+\d
+\e
+\f
+>>
 /tmp/home
 /tmp/home
 1\\2\3\4

@@ -1429,6 +1429,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	    splitatnonspace = true;
 
 	/* skip IFS characters */
+	size_t oldindex;
 	do {
 	    if (!iswspace(s[index])) {
 		if (splitatnonspace)
@@ -1437,6 +1438,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 		nonspace = true;
 	    }
 	    index++;
+	    oldindex = index;
 	    if (s[index] == L'\\')
 		index++;
 	    if (s[index] == L'\0') {
@@ -1445,7 +1447,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 		break;
 	    }
 	} while (split[index] && wcschr(ifs, s[index]) != NULL);
-	lwstart = index;
+	lwstart = index = oldindex;
     }
     if (lwstart < lwend || lwend == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
