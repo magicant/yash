@@ -1410,38 +1410,42 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     size_t lwstart = 0, lwend;  /* start/end index of last word */
 
     for (;;) {
+	/* slip non-IFS characters */
 	lwend = index;
 	if (s[index] == L'\\')
 	    index++;
 	if (s[index] == L'\0')
 	    break;
-	if (split[index] && wcschr(ifs, s[index]) != NULL) {
-	    /* the character is in `ifs', so do splitting */
-	    bool splitatnonspace = false, nonspace = false;
-	    if (lwstart < lwend)
-		pl_add(dest, xwcsndup(s + lwstart, lwend - lwstart));
-	    else
-		splitatnonspace = true;
-	    do {
-		if (!iswspace(s[index])) {
-		    if (splitatnonspace)
-			pl_add(dest, xwcsdup(L""));
-		    splitatnonspace = true;
-		    nonspace = true;
-		}
-		index++;
-		if (s[index] == L'\\')
-		    index++;
-		if (s[index] == L'\0') {
-		    if (nonspace)
-			pl_add(dest, xwcsdup(L""));
-		    break;
-		}
-	    } while (split[index] && wcschr(ifs, s[index]) != NULL);
-	    lwstart = index;
-	} else {
+	if (!split[index] || wcschr(ifs, s[index]) == NULL) {
 	    index++;
+	    continue;
 	}
+
+	/* the character is in `ifs', so do splitting */
+	bool splitatnonspace = false, nonspace = false;
+	if (lwstart < lwend)
+	    pl_add(dest, xwcsndup(s + lwstart, lwend - lwstart));
+	else
+	    splitatnonspace = true;
+
+	/* skip IFS characters */
+	do {
+	    if (!iswspace(s[index])) {
+		if (splitatnonspace)
+		    pl_add(dest, xwcsdup(L""));
+		splitatnonspace = true;
+		nonspace = true;
+	    }
+	    index++;
+	    if (s[index] == L'\\')
+		index++;
+	    if (s[index] == L'\0') {
+		if (nonspace)
+		    pl_add(dest, xwcsdup(L""));
+		break;
+	    }
+	} while (split[index] && wcschr(ifs, s[index]) != NULL);
+	lwstart = index;
     }
     if (lwstart < lwend || lwend == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
