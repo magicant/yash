@@ -32,11 +32,11 @@ Yash is intended to be the most POSIX-compliant shell in the world.
 href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>
 (Version 2) but the use of this program is
 <strong>without any warranty</strong>.
-<p><a href="http://sourceforge.jp/"><img id="sfbanner"
-src="http://sourceforge.jp/sflogo.php?group_id=3863&amp;type=2"
-alt="SourceForge.JP"></a>:
-Yash is a SourceForge.jp project. See also the
-<a href="http://sourceforge.jp/projects/yash/">project summary page</a>.
+<p><a href="http://osdn.jp/"><img id="sfbanner"
+src="http://osdn.jp/sflogo.php?group_id=3863&amp;type=2"
+alt="OSDN"></a>:
+Yash is an OSDN-hosted project. See also the
+<a href="http://osdn.jp/projects/yash/">project summary page</a>.
 
 <h2 id="requirements">Requirements</h2>
 <p>Yash is supposed to build and run on any POSIX.1-2001 environment
@@ -52,12 +52,12 @@ more usable.
 
 <h2 id="downloads">Downloads</h2>
 <p>The source tarball can be downloaded from the
-<a href="http://sourceforge.jp/projects/yash/releases/">release page</a>
+<a href="http://osdn.jp/projects/yash/releases/">release page</a>
 (or the <a href="releases">release list</a>).
 <p>The <a href="doc/">manual</a> is available online.
 
 <address id="about_this_document">
-© 2009-2012 magicant / Last modified: 2012-09-22
+© 2009-2015 magicant / Last modified: 2015-05-31
 </address>
 
 </body>

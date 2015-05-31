@@ -3,8 +3,8 @@
 /* default.css 0.2.16 (2008-05-09) */
 /* © 2006-2007 Magicant */
 
-/* Modified for sourceforge.jp 2009-12-27 */
-/* © 2009 Magicant */
+/* Modified for OSDN 2015-05-31 */
+/* © 2009, 2015 Magicant */
 
 
 * {
@@ -214,7 +214,7 @@ a:link, a:visited {
 	height: 14px;
 	width:  14px;
 	display: inline;
-	content: url(//static.sourceforge.jp/ic/feed-14x14.png);
+	content: url(//static.osdn.jp/ic/feed-14x14.png);
 	border: none;
 }
 .sfjp-widget-frame .feedicon-custom {
