@@ -83,7 +83,7 @@ $(DOMAIN).pot-update:
 	(cd $(topdir) && find . -name '*.[ch]') | \
 	$(XGETTEXT) -d $(DOMAIN) -D $(topdir) -cTRANSLATORS: -f - -F --no-wrap \
 		--package-name=$(DOMAIN) --package-version=$(VERSION) \
-		--msgid-bugs-address=http://sourceforge.jp/projects/yash/forums/ \
+		--msgid-bugs-address=http://osdn.jp/projects/yash/forums/ \
 		--copyright-holder='$(COPYRIGHT_HOLDER)' $(XGETTEXTFLAGS)
 	mv $(DOMAIN).po $(DOMAIN).pot
 
