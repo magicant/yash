@@ -34,6 +34,7 @@ When the POSIXly-correct mode is enabled:
   empty.
 - Words expanded in a link:syntax.html#for[for loop] are assigned as a global
   variable rather than a local. The variable must have a portable (ASCII-only)
+  name. A semicolon before +do+ cannot appear without +in+ after the variable
   name.
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
 - The +function+ keyword cannot be used for link:syntax.html#funcdef[function
