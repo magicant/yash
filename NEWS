@@ -13,6 +13,8 @@ Yash 2.38
   +  New completion scripts for: git-rm
   *  Backslashes following IFS characters were wrongly being dropped
      in field splitting.
+  *  In the POSIXly-correct mode, non-portable variable names are no
+     longer allowed in for loops.
   *  Completion error on words following a tilde expansion.
   *  Completion error on moved or copied tracked files for git-add and
      git-commit.

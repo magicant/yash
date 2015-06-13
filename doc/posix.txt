@@ -33,7 +33,8 @@ When the POSIXly-correct mode is enabled:
 - Nested commands in a link:syntax.html#compound[compound command] must not be
   empty.
 - Words expanded in a link:syntax.html#for[for loop] are assigned as a global
-  variable rather than a local.
+  variable rather than a local. The variable must have a portable (ASCII-only)
+  name.
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
 - The +function+ keyword cannot be used for link:syntax.html#funcdef[function
   definition].

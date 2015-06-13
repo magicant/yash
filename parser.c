@@ -245,7 +245,11 @@ void embedcmdfree(embedcmd_T c)
 
 /********** Auxiliary Functions for Parser **********/
 
-static wchar_t *skip_name(const wchar_t *s)
+static wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
+    __attribute__((pure,nonnull));
+static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
+    __attribute__((pure,nonnull));
+static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
 
 
@@ -281,19 +285,33 @@ bool is_name_char(wchar_t c)
 
 /* Skips an identifier at the head of the specified string and returns a
  * pointer to the character right after the identifier in the string.
- * If there is no identifier, the argument `s' is simply returned. */
-wchar_t *skip_name(const wchar_t *s)
+ * If there is no identifier, the argument `s' is simply returned. `predicate`
+ * determines if a character is valid. */
+wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
 {
     if (!iswdigit(*s))
-	while (is_name_char(*s))
+	while (predicate(*s))
 	    s++;
     return (wchar_t *) s;
+}
+
+/* Returns true iff the specified string constitutes a valid identifier that
+ * is made up of characters accepted by `predicate'. */
+bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
+{
+    return s[0] != L'\0' && skip_name(s, predicate)[0] == L'\0';
+}
+
+/* Returns true iff the specified string constitutes a valid portable name. */
+bool is_portable_name(const wchar_t *s)
+{
+    return is_name_by_predicate(s, is_portable_name_char);
 }
 
 /* Returns true iff the specified string constitutes a valid identifier. */
 bool is_name(const wchar_t *s)
 {
-    return s[0] != L'\0' && skip_name(s)[0] == L'\0';
+    return is_name_by_predicate(s, is_name_char);
 }
 
 /* Returns true iff the string is a reserved word. */
@@ -2161,7 +2179,7 @@ command_T *parse_for(parsestate_T *ps)
     result->c_redirs = NULL;
 
     wchar_t *name = parse_word_as_wcs(ps);
-    if (!is_name(name)) {
+    if (!(posixly_correct ? is_portable_name : is_name)(name)) {
 	if (name[0] == L'\0')
 	    serror(ps, Ngt("an identifier is required after `for'"));
 	else

@@ -13,7 +13,7 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - シェルの起動時のlink:invoke.html#init[初期化]で読み込むスクリプトファイルが異なります。
 - グローバルlink:syntax.html#aliases[エイリアス]の置換を行いません。
 - link:syntax.html#compound[複合コマンド]のlink:syntax.html#grouping[グルーピング]や link:syntax.html#if[if 文]の内容が空の場合エラーになります。
-- link:syntax.html#for[For ループ]で展開した単語はグローバル変数として代入します。
+- link:syntax.html#for[For ループ]で展開した単語はグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
 - link:syntax.html#case[Case 文]の最初のパターンを +esac+ にすることはできません。
 - 予約語 +function+ を用いる形式のlink:syntax.html#funcdef[関数定義]構文は使えません。
 - link:syntax.html#simple[単純コマンド]でのlink:params.html#arrays[配列]の代入はできません。

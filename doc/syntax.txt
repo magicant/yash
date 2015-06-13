@@ -324,6 +324,9 @@ semicolon before the +do+ token. However, the shell does not complain about
 the existence of the semicolon if not in the link:posix.html[POSIXly-correct
 mode]. The {{command}} list may be empty if not in the POSIXly-correct mode.
 
+The {{varname}} must be a portable (ASCII-only) name in the POSIXly-correct
+mode.
+
 The execution of a for loop is started by expanding the {{word}}s in the same
 manner as in the execution of a <<simple,simple command>>. If the +in+
 and {{word}} tokens are omitted, the shell assumes the {{word}} tokens to be
