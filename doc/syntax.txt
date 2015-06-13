@@ -407,7 +407,8 @@ In the first syntax without the +function+ keyword, {{funcname}} cannot
 contain any special characters such as semicolons and quotation marks. In the
 second and third syntax, which cannot be used in the
 link:posix.html[POSIXly-correct mode], {{funcname}} is subjected to
-link:expand.html[the four expansions] when executed.
+link:expand.html[the four expansions] when executed. In the POSIXly-correct
+mode, {{funcname}} is limited to a portable (ASCII-only) name.
 
 When a function definition command is executed, a function whose name is
 {{funcname}} is defined with its body being {{compound_command}}.

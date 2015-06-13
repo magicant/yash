@@ -38,7 +38,7 @@ When the POSIXly-correct mode is enabled:
   name.
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
 - The +function+ keyword cannot be used for link:syntax.html#funcdef[function
-  definition].
+  definition]. The function must have a portable (ASCII-only) name.
 - link:syntax.html#simple[Simple commands] cannot assign to
   link:params.html#arrays[arrays].
 - Changing the value of the link:params.html#sv-lc_ctype[+LC_CTYPE+ variable]

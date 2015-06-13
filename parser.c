@@ -2437,7 +2437,8 @@ command_T *tryparse_function(parsestate_T *ps)
     if (iswdigit(ps->src.contents[ps->index]))
 	goto fail;
 
-    size_t namelen = count_name_length(ps, is_name_char);
+    size_t namelen = count_name_length(ps,
+	    posixly_correct ? is_portable_name_char : is_name_char);
     ps->index += namelen;
     if (namelen == 0 || !is_token_delimiter_char(ps->src.contents[ps->index]))
 	goto fail;
