@@ -92,8 +92,8 @@ $(MANTXT): ../makeyash.sh $(MANTXT).in
 	$(SHELL) ../makeyash.sh $(CONTENTSTXTS) <$@.in >$@
 $(INDEXTXT): ../makeindex.sh $(INDEXTXT).in $(MAINTXTS)
 	$(SHELL) ../makeindex.sh $(MAINTXTS) <$@.in >$@
-$(MANFILE): $(MANTXT) $(CONTENTSTXTS) $(CONFFILE) Makefile
-$(HTMLFILES): $(CONFFILE) Makefile
+$(MANFILE): $(MANTXT) $(CONTENTSTXTS) $(CONFFILE)
+$(HTMLFILES): $(CONFFILE)
 # update date in index.html when any contents file has been modified
 $(INDEXHTML): $(CONTENTSTXTS)
 
