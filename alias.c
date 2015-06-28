@@ -37,6 +37,7 @@
 #include "option.h"
 #include "parser.h"
 #include "plist.h"
+#include "refcount.h"
 #include "strbuf.h"
 #include "util.h"
 #if YASH_ENABLE_LINEEDIT
@@ -52,7 +53,7 @@ typedef enum {
 
 typedef struct alias_T {
     aliasflags_T flags;
-    unsigned refcount;   /* reference count */
+    refcount_T refcount;
     size_t valuelen;     /* length of `value' */
     wchar_t value[];
 } alias_T;
@@ -112,11 +113,9 @@ inline bool is_alias_name_char(wchar_t c)
  * frees it. This function does nothing if `alias' is a null pointer. */
 void free_alias(alias_T *alias)
 {
-    if (alias != NULL) {
-	alias->refcount--;
-	if (alias->refcount == 0)
+    if (alias != NULL)
+	if (refcount_decrement(&alias->refcount))
 	    free(alias);
-    }
 }
 
 /* Applies `free_alias' to the value of key-value pair `kv'. */
@@ -197,7 +196,7 @@ aliaslist_T *clone_aliaslist(const aliaslist_T *list)
 
 	copy->next = NULL;
 	copy->alias = list->alias;
-	copy->alias->refcount++;
+	refcount_increment(&copy->alias->refcount);
 	copy->limitindex = list->limitindex;
 
 	*lastp = copy;
@@ -234,7 +233,7 @@ void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
     assert(oldhead == NULL || limitindex <= oldhead->limitindex);
     newelem->next = oldhead;
     newelem->alias = alias;
-    newelem->alias->refcount++;
+    refcount_increment(&newelem->alias->refcount);
     newelem->limitindex = limitindex;
     *list = newelem;
 }

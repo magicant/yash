@@ -25,6 +25,7 @@
 
 #include <stddef.h>
 #include "input.h"
+#include "refcount.h"
 
 
 /********** Parse Tree Structures **********/
@@ -67,7 +68,7 @@ typedef enum {
 /* command in a pipeline */
 typedef struct command_T {
     struct command_T *next;
-    unsigned          refcount;   /* reference count */
+    refcount_T        refcount;
     commandtype_T     c_type;
     unsigned long     c_lineno;   /* line number */
     struct redir_T   *c_redirs;   /* redirections */
@@ -360,7 +361,7 @@ extern void paramfree(paramexp_T *p);
 /* Duplicates the specified command (virtually). */
 command_T *comsdup(command_T *c)
 {
-    c->refcount++;
+    refcount_increment(&c->refcount);
     return c;
 }
 

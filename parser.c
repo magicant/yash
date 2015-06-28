@@ -81,8 +81,7 @@ void pipesfree(pipeline_T *p)
 void comsfree(command_T *c)
 {
     while (c != NULL) {
-	c->refcount--;
-	if (c->refcount > 0)
+	if (!refcount_decrement(&c->refcount))
 	    break;
 
 	redirsfree(c->c_redirs);
