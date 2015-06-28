@@ -635,7 +635,7 @@ Yash 2.0
 
   +  "history" built-in
   +  Command redirection
-  *  A POSIXly-correct non-interactive shell exits when a paticular
+  *  A POSIXly-correct non-interactive shell exits when a particular
      error occurred on a special built-in according to POSIX.
   *  Alias substitution routines were improved.
   *  Other bug fixes
@@ -647,7 +647,7 @@ Yash 2.0 beta2
   +  "type", "hash" and "fc" built-ins
   =  If the "command" built-in with the -V option fails to find a
      command, an message is printed.
-  *  Invocation of an external command with an assignent to the $PATH
+  *  Invocation of an external command with an assignment to the $PATH
      variable caused an invalid memory access.
   *  Single quote not parsed properly in some circumstances.
   *  Other bug fixes
