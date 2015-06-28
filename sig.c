@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -89,6 +89,7 @@ static void sig_handler(int signum);
 static void handle_sigchld(void);
 static void set_trap(int signum, const wchar_t *command);
 static bool is_ignored(int signum);
+static void banish_phantoms(void);
 #if YASH_ENABLE_LINEEDIT
 # ifdef SIGWINCH
 static inline void handle_sigwinch(void);
@@ -254,6 +255,13 @@ static volatile sig_atomic_t rtsignal_received[RTSIZE];
 static wchar_t *rttrap_command[RTSIZE];
 #endif
 
+/* If true, the contents of `trap_command` and `rttrap_command` are all
+ * phantom; that is, non-empty trap commands in those arrays should be treated
+ * as "default". Phantoms are used to remember previous trap commands after
+ * they were actually reset to "default".
+ * If false, trap commands are real. */
+static bool is_phantom = false;
+
 /* The signal mask the shell inherited on invocation.
  * This mask is inherited by commands the shell invokes.
  * When a signal's trap is set, the signal is removed from this mask. */
@@ -386,7 +394,7 @@ void reset_job_signals(void)
 void set_special_handler(int signum, void (*handler)(int signum))
 {
     const wchar_t *trap = trap_command[sigindex(signum)];
-    if (trap != NULL && trap[0] != L'\0')
+    if (!is_phantom && trap != NULL && trap[0] != L'\0')
 	return;  /* The signal handler has already been set. */
 
     struct sigaction action, oldaction;
@@ -696,7 +704,7 @@ int handle_traps(void)
 	    if (signal_received[i]) {
 		signal_received[i] = false;
 		wchar_t *command = trap_command[i];
-		if (command != NULL && command[0] != L'\0') {
+		if (!is_phantom && command != NULL && command[0] != L'\0') {
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
@@ -718,7 +726,7 @@ int handle_traps(void)
 	    if (rtsignal_received[i]) {
 		rtsignal_received[i] = false;
 		wchar_t *command = rttrap_command[i];
-		if (command != NULL && command[0] != L'\0') {
+		if (!is_phantom && command != NULL && command[0] != L'\0') {
 #if YASH_ENABLE_LINEEDIT
 		    le_suspend_readline();
 #endif
@@ -753,6 +761,9 @@ int handle_traps(void)
  * This function calls `reset_execstate' without saving `execstate'. */
 void execute_exit_trap(void)
 {
+    if (is_phantom)
+	return;
+
     wchar_t *command = trap_command[sigindex(0)];
     if (command != NULL) {
 #ifndef NDEBUG
@@ -773,6 +784,7 @@ void execute_exit_trap(void)
  * If `command' is NULL, the trap is reset to the default.
  * If `command' is an empty string, the trap is set to SIG_IGN.
  * This function may call `get_signal_name'.
+ * If `is_phantom` is true, `(rt)trap_command' is not modified.
  * An error message is printed to the standard error on error. */
 void set_trap(int signum, const wchar_t *command)
 {
@@ -813,15 +825,17 @@ void set_trap(int signum, const wchar_t *command)
 	return;
     }
 
-    free(*commandp);
-    if (command != NULL) {
-	if (command[0] != L'\0')
-	    any_trap_set = true;
-	*commandp = xwcsdup(command);
-    } else {
-	*commandp = NULL;
+    if (!is_phantom) {
+	free(*commandp);
+	if (command != NULL) {
+	    if (command[0] != L'\0')
+		any_trap_set = true;
+	    *commandp = xwcsdup(command);
+	} else {
+	    *commandp = NULL;
+	}
+	*receivedp = false;
     }
-    *receivedp = false;
     if (signum == 0)
 	return;
 
@@ -909,11 +923,13 @@ void clear_exit_trap(void)
     set_trap(0, NULL);
 }
 
-/* Clears all traps except that are set to SIG_IGN. */
-void clear_traps(void)
+/* Change all traps into phantom except that are set to SIG_IGN. */
+void phantomize_traps(void)
 {
     if (!any_trap_set && !any_signal_received)
 	return;
+
+    is_phantom = true;
 
     {
 	size_t index = sigindex(0);
@@ -938,6 +954,40 @@ void clear_traps(void)
     }
 #endif
     any_trap_set = false, any_signal_received = false;
+}
+
+/* Remove all phantoms from `trap_command` and `rttrap_command`. */
+void banish_phantoms(void)
+{
+    if (!is_phantom)
+	return;
+    is_phantom = false;
+
+    {
+	size_t index = sigindex(0);
+	wchar_t *command = trap_command[index];
+	if (command != NULL && command[0] != L'\0') {
+	    free(command);
+	    trap_command[index] = NULL;
+	}
+    }
+    for (const signal_T *s = signals; s->no != 0; s++) {
+	size_t index = sigindex(s->no);
+	wchar_t *command = trap_command[index];
+	if (command != NULL && command[0] != L'\0') {
+	    free(command);
+	    trap_command[index] = NULL;
+	}
+    }
+#if defined SIGRTMIN && defined SIGRTMAX
+    for (int i = 0; i < RTSIZE; i++) {
+	wchar_t *command = rttrap_command[i];
+	if (command != NULL && command[0] != L'\0') {
+	    free(command);
+	    rttrap_command[i] = NULL;
+	}
+    }
+#endif
 }
 
 /* Tests the `sigint_received' flag. Returns true only if interactive. */
@@ -1162,6 +1212,7 @@ int trap_builtin(int argc, void **argv)
 	}
 
 	/* set traps */
+	banish_phantoms();
 	do {
 	    wchar_t *name = ARGV(xoptind);
 	    int signum = get_signal_number_toupper(name);

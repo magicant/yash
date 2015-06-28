@@ -110,6 +110,25 @@ echo trap 4 $?
     $INVOKE $TESTEE -ce 'trap "echo EXIT 11" EXIT;  ./_no_such_command_ ; (:)'
     $INVOKE $TESTEE -ce 'trap "echo EXIT 12" EXIT; (./_no_such_command_); (:)'
 } 2>/dev/null
+echo trap 5
+
+# In subshell traps other than ignore are cleared.
+# Output of the trap built-in reflects it after first trap modification.
+(
+    trap '' USR1
+    trap 'echo USR2' USR2
+    (trap 'echo INT' INT && trap) | sort
+
+    ($INVOKE $TESTEE -c 'kill -USR1 $PPID'; echo USR1 sent 1)
+    (trap 'echo INT' INT
+	$INVOKE $TESTEE -c 'kill -USR1 $PPID'; echo USR1 sent 2)
+    ($INVOKE $TESTEE -c 'kill -USR2 $PPID' && echo not reached 1)
+    kill -l $?
+    (trap 'echo INT' INT
+	$INVOKE $TESTEE -c 'kill -USR2 $PPID'; echo not reached 2)
+    kill -l $?
+    (trap 'echo INT' INT; $INVOKE $TESTEE -c 'kill -INT $PPID'; :)
+)
 
 echo ===== signals =====
 

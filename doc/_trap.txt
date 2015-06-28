@@ -33,6 +33,8 @@ built-in prints currently set traps to the standard output in a format that
 can be executed as commands that restore the current traps.
 If one or more {{signal}}s are specified, only those signals are printed.
 Otherwise, all signals with non-default actions are printed.
+(In some situations, however, the built-in may print previous trap settings
+instead of the current. See notes below.)
 
 [[options]]
 == Options
@@ -79,5 +81,36 @@ The POSIX standard requires that signal names must be specified without the
 +SIG+-prefix, like +INT+ and +QUIT+.
 As an extension, yash accepts +SIG+-prefixed names like +SIGINT+ and +SIGQUIT+
 and treats signal names case-insensitively.
+
+=== Reusing output of the built-in
+
+Output of the trap built-in can be saved in a variable, which can be later
+executed by the link:_eval.html[eval built-in] to restore the traps.
+
+----
+saved_traps=$(trap)
+trap '...' INT
+eval "$saved_traps"
+----
+
+There are some tricks behind the scenes to allow this idiom. You use a
+link:expand.html#cmdsub[command substitution] to save the output of the trap
+built-in in the variable. The command substitution is executed in a
+link:exec.html#subshell[subshell]. The subshell resets all traps (except
+ignored ones) at the beginning of itself. This seemingly would result in
+(almost) empty output from the built-in that would fail to restore the traps
+as expected.
+
+To avoid that pitfall, POSIX requires the shell to follow one of the two
+options below:
+
+- If a command substitution just contains a single trap built-in, traps should
+  not be reset when the subshell is started to execute the built-in; or
+- A subshell always resets the traps but remembers the previous traps. If the
+  trap built-in is executed in the subshell but no other trap built-in has
+  been executed to modify traps in the subshell, then the built-in should
+  print the remembered traps.
+
+Yash obeys the second.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

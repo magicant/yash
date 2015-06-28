@@ -57,7 +57,8 @@ echo ok 6
 # in subshell traps other than ignore are cleared
 trap '' USR1
 trap 'echo trapped' USR2
-(trap | grep -v USR1)
+($INVOKE $TESTEE -c 'kill -USR1 $PPID'; echo USR1 sent)
+($INVOKE $TESTEE -c 'kill -USR2 $PPID'; echo not reached)
 echo ok 7
 
 # signals that were ignored on entry to a non-interactive shell cannot be
@@ -74,3 +75,13 @@ trap '' USR1
 trap 2 USR1
 $INVOKE $TESTEE -c 'kill -s USR1 $$; echo "not printed"'
 kill -l $?  # prints USR1
+echo ok 9
+
+# trap in command substitution
+trap '' USR1
+trap 'echo trapped' USR2
+save_trap=$(trap)
+trap - USR1 USR2
+eval "${save_trap}"
+kill -s USR1 $$
+kill -s USR2 $$

@@ -58,6 +58,14 @@ EXIT 9
 EXIT 10
 EXIT 11
 EXIT 12
+trap 5
+trap -- '' USR1
+trap -- 'echo INT' INT
+USR1 sent 1
+USR1 sent 2
+USR2
+USR2
+INT
 ===== signals =====
 INT ignored
 TERM ignored

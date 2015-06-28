@@ -245,13 +245,17 @@ Subshells inherit functions, aliases, etc. defined in the shell as well as the
 properties above since subshells are copies of the shell process.
 Notable exceptions are:
 
-- Signal handlers registered by the link:_trap.html[trap built-in] are all
-  reset in subshells except for ones whose action is set to ``ignore''.
+- Traps registered by the link:_trap.html[trap built-in] are all reset in
+  subshells except for ones whose action is set to ``ignore''. (See below)
 - The link:interact.html[interactive] mode and link:job.html[job control] are
   disabled in subshells.
   Jobs are not inherited by subshells.
 
 Subshells are executed independently of the original shell, so changes of
 any properties above do not affect those of the original shell.
+
+[NOTE]
+If the subshell contains a single trap built-in, some shells (but not yash)
+may not reset the traps on entry to the subshell.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

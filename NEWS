@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.39
+
+  =  The behavior of the "trap" built-in now conforms to POSIX.1-2013.
+     The built-in prints the traps for the calling shell rather than
+     the subshell when it is executed in a command substitution.
+
+----------------------------------------------------------------------
 Yash 2.38
 
   +  New completion scripts for: git-rm

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -985,7 +985,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_leave) {
 	    clear_exit_trap();
 	} else {
-	    clear_traps();
+	    phantomize_traps();
 	    neglect_all_jobs();
 #if YASH_ENABLE_HISTORY
 	    close_history_file();

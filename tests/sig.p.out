@@ -14,8 +14,11 @@ ok 5
 trapped
 trapped
 ok 6
+USR1 sent
 ok 7
 USR2
 USR2
 ok 8
 USR1
+ok 9
+trapped
