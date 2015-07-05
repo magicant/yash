@@ -1,6 +1,9 @@
 ===== return break continue =====
 return 10
 return 11
+--
+returning --
+return from rcfile
 break ok 2
 break ok
 continue 1
@@ -29,17 +32,15 @@ status2=3
 0
 2
 0
-3
-4
-0
 5
 0
 6
 0
 7
+eval return ok
 7-2
 8
-8-2
+eval -i return ok
 0
 ===== . =====
 -1 2 3-

@@ -130,6 +130,13 @@ echo trap 5
     (trap 'echo INT' INT; $INVOKE $TESTEE -c 'kill -INT $PPID'; :)
 )
 
+# "return" in traps are ignored
+$INVOKE $TESTEE <<\END
+trap 'return; echo not reached' USR1
+kill -USR1 $$
+echo return ignored
+END
+
 echo ===== signals =====
 
 export SIG

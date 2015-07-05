@@ -310,6 +310,7 @@ void execute_file(const wchar_t *path)
     int fd = move_to_shellfd(open(mbspath, O_RDONLY));
     if (fd >= 0) {
 	exec_input(fd, mbspath, XIO_SUBST_ALIAS);
+	cancel_return();
 	remove_shellfd(fd);
 	xclose(fd);
     }
@@ -542,7 +543,6 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
 	}
     }
 out:
-    cancel_return();
     if (finally_exit)
 	exit_shell();
 }

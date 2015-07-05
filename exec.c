@@ -1930,6 +1930,7 @@ int dot_builtin(int argc, void **argv)
     }
 
     exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
+    cancel_return();
     remove_shellfd(fd);
     xclose(fd);
     free(mbsfilename);

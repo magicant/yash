@@ -20,8 +20,11 @@ happens:
   of the function is terminated.
 - If the link:_dot.html[dot built-in] is executing a script, the execution of
   the script is terminated.
-- If the link:_eval.html[eval built-in] is executing a command string, the
-  execution of the command is terminated.
+- If the shell is executing a script during
+  link:invoke.html#init[initialization], the execution of the script is
+  terminated.
+- If the shell is executing a link:_trap.html[trap], the execution of the
+  trap is terminated for the currently handled signal.
 - Otherwise, the shell exits unless it is link:interact.html[interactive].
 
 When executed with the +-n+ (+--no-return+) option, the built-in does nothing
@@ -32,7 +35,7 @@ but return the specified {{exit_status}}.
 
 +-n+::
 +--no-return+::
-Do not terminate a function, script, evaluated command, or the shell.
+Do not terminate a function, script, trap, or the shell.
 
 [[operands]]
 == Operands
@@ -52,7 +55,7 @@ the last command before the trap is used.)
 The exit status of the return built-in is defined by the {{exit_status}}
 operand.
 The exit status is used also as the exit status of the terminated function,
-script, evaluated script, or the shell.
+script, or the shell.
 
 [[notes]]
 == Notes

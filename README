@@ -57,6 +57,11 @@ See the "INSTALL" file to see how to build and install yash.
  * According to POSIX, the command `printf %c foo' should print the
    first byte of string `foo'. Yash prints the first character of
    `foo', which may be more than one byte.
+ * The "break", "continue", and "return" built-ins, if executed in a
+   trap, can operate only on a function, script, or loop that has been
+   executed within the trap. This limitation is not strictly POSIX-
+   compliant, but needed for consistent and predictable behavior of
+   the shell.
 
 
 ======================

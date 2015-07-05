@@ -20,6 +20,9 @@ echo not reached
 END
 echo return $?
 
+# The "return" built-in can return from rcfile
+$INVOKE $TESTEE -i --rcfile=dot.t -c 'echo return from rcfile'
+
 breakfunc ()
 while true; do
     echo break ok
@@ -71,8 +74,8 @@ echo status2=$?
 
 eval 'echo 1; returnfunc; echo $?'
 eval -i 'echo 2' 'returnfunc' 'echo $?'
-eval 'echo 3; return; echo not reached'
-eval -i 'echo 4' 'return; echo not reached' 'echo $?'
+#eval 'echo 3; return; echo not reached'
+#eval -i 'echo 4' 'return; echo not reached' 'echo $?'
 
 $INVOKE $TESTEE -i +m --norcfile 2>/dev/null <<\END
 returnfunc ()
@@ -80,10 +83,19 @@ while do
     return -n
     return
 done
+evalreturnfunc() {
+    echo eval return ok
+    eval return
+    echo eval return ng
+}
+evalireturnfunc() {
+    eval -i 'echo eval -i return ok' return 'echo eval -i return ng'
+}
+
 eval 'echo 5; returnfunc; echo $?'
 eval -i 'echo 6' 'returnfunc' 'echo $?'
-eval 'echo 7; return; echo 7-2'
-eval -i 'echo 8' 'return; echo 8-2' 'echo $?'
+eval 'echo 7; evalreturnfunc; echo 7-2'
+eval -i 'echo 8' 'evalireturnfunc' 'echo $?'
 END
 
 

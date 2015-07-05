@@ -66,6 +66,7 @@ USR1 sent 2
 USR2
 USR2
 INT
+return ignored
 ===== signals =====
 INT ignored
 TERM ignored

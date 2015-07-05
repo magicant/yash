@@ -13,6 +13,10 @@ Yash 2.39
   =  The behavior of the "trap" built-in now conforms to POSIX.1-2013.
      The built-in prints the traps for the calling shell rather than
      the subshell when it is executed in a command substitution.
+  =  The manual for the "return" built-in has been clarified as to
+     what the built-in can return from. The behavior of the built-in
+     has been modified accordingly. It no longer interrupts the "eval"
+     and "fc" built-ins.
 
 ----------------------------------------------------------------------
 Yash 2.38
