@@ -1361,8 +1361,7 @@ void exec_function_body(
     (void) complete;
 #endif
     exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
-    if (execstate.exception == E_RETURN)
-	execstate.exception = E_NONE;
+    cancel_return();
     close_current_environment();
 
     execstate.noreturn = save_noreturn;
