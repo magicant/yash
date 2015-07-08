@@ -256,7 +256,7 @@ enum normal_option_index_T {
 static const struct xgetopt_T normal_options[] = {
 #if YASH_ENABLE_HELP
     [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     false,
-			&normal_options, },
+			(void *) &normal_options, },
 #endif
     [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     false, NULL, },
     [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     false, NULL, },
