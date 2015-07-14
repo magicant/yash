@@ -27,7 +27,8 @@ are treated as link:syntax.html#quotes[quotations].
 If a backslash is at the end of the line, it is treated as a line
 continuation.
 When the built-in reads the next line, the link:params.html#sv-ps2[+PS2+
-variable] is used as a prompt if the standard input is a terminal.
+variable] is used as a prompt if the shell is link:interact.html[interactive]
+and the standard input is a terminal.
 
 The input line is subject to link:expand.html#split[field splitting].
 The resulting words are assigned to {{variable}}s in order.
@@ -59,6 +60,9 @@ Names of variables to which input words are assigned.
 == Exit status
 
 The exit status of the read built-in is zero unless there is any error.
+
+Note that the exit status is non-zero if an end of input is encountered before
+reading the entire line.
 
 [[notes]]
 == Notes
