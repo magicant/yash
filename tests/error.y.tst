@@ -313,6 +313,8 @@ echo ===== read ===== >&2
 
 read --no-such-option
 echo read no-such-option $?
+read -P -p -
+echo read mutually exclusive P/p $?
 read
 echo read operands missing $?
 read read <&- 2>/dev/null

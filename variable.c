@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1538,6 +1538,8 @@ void generate_dirstack_candidates(const le_compopt_T *compopt)
 
 /********** Built-ins **********/
 
+struct reading_option_T;
+
 static void print_variable(
 	const wchar_t *name, const variable_T *var,
 	const wchar_t *argv0, bool readonly, bool export)
@@ -1576,7 +1578,7 @@ static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
-static bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
+static bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
     __attribute__((nonnull));
 static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
@@ -2579,28 +2581,42 @@ const char getopts_syntax[] = Ngt(
 
 /* Options for the "read" built-in. */
 const struct xgetopt_T read_options[] = {
-    { L'A', L"array",    OPTARG_NONE, false, NULL, },
-    { L'r', L"raw-mode", OPTARG_NONE, true,  NULL, },
+    { L'A', L"array",        OPTARG_NONE,     false, NULL, },
+    { L'e', L"line-editing", OPTARG_NONE,     false, NULL, },
+    { L'P', L"ps1",          OPTARG_NONE,     false, NULL, },
+    { L'p', L"prompt",       OPTARG_REQUIRED, false, NULL, },
+    { L'r', L"raw-mode",     OPTARG_NONE,     true,  NULL, },
 #if YASH_ENABLE_HELP
-    { L'-', L"help",     OPTARG_NONE, false, NULL, },
+    { L'-', L"help",         OPTARG_NONE,     false, NULL, },
 #endif
     { L'\0', NULL, 0, false, NULL, },
 };
 
+struct reading_option_T {
+    bool array, lineedit, ps1, raw;
+    const wchar_t *prompt;
+};
+
 /* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
+ *  -e: use line-editing
+ *  -P: use $PS1
+ *  -p: specify prompt
  *  -r: don't treat backslashes specially
  */
 int read_builtin(int argc, void **argv)
 {
-    bool array = false, raw = false;
+    struct reading_option_T ro = { 0 };
 
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, read_options, 0)) != NULL) {
 	switch (opt->shortopt) {
-	    case L'A':  array = true;  break;
-	    case L'r':  raw   = true;  break;
+	    case L'A':  ro.array    = true;     break;
+	    case L'e':  ro.lineedit = true;     break;
+	    case L'P':  ro.ps1      = true;     break;
+	    case L'p':  ro.prompt   = xoptarg;  break;
+	    case L'r':  ro.raw      = true;     break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -2610,6 +2626,8 @@ int read_builtin(int argc, void **argv)
 	}
     }
 
+    if (ro.ps1 && ro.prompt != NULL)
+	return mutually_exclusive_option_error(L'P', L'p');
     if (xoptind == argc)
 	return insufficient_operands_error(1);
 
@@ -2626,7 +2644,7 @@ int read_builtin(int argc, void **argv)
 
     /* read input and remove trailing newline */
     wb_init(&buf);
-    if (!read_with_prompt(&buf, raw)) {
+    if (!read_with_prompt(&buf, &ro)) {
 	wb_destroy(&buf);
 	return Exit_FAILURE;
     }
@@ -2645,8 +2663,8 @@ int read_builtin(int argc, void **argv)
     /* split fields */
     pl_init(&list);
     for (int i = xoptind; i < argc - 1; i++)
-	pl_add(&list, split_next_field(&s, ifs, raw));
-    pl_add(&list, (raw || array) ? xwcsdup(s) : unescape(s));
+	pl_add(&list, split_next_field(&s, ifs, ro.raw));
+    pl_add(&list, (ro.raw || ro.array) ? xwcsdup(s) : unescape(s));
     wb_destroy(&buf);
 
     /* assign variables */
@@ -2655,8 +2673,8 @@ int read_builtin(int argc, void **argv)
 	const wchar_t *name = ARGV(xoptind + i);
 	if (i + 1 == list.length)
 	    trim_trailing_spaces(list.contents[i], ifs);
-	if (array && i + 1 == list.length)
-	    split_and_assign_array(name, list.contents[i], ifs, raw);
+	if (ro.array && i + 1 == list.length)
+	    split_and_assign_array(name, list.contents[i], ifs, ro.raw);
 	else
 	    set_variable(name, list.contents[i], SCOPE_GLOBAL, shopt_allexport);
     }
@@ -2669,7 +2687,7 @@ int read_builtin(int argc, void **argv)
 /* Reads input from the standard input and, if `noescape' is false, remove line
  * continuations.
  * The trailing newline and all other backslashes are not removed. */
-bool read_with_prompt(xwcsbuf_T *buf, bool noescape)
+bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
 {
     bool first = true;
     size_t index;
@@ -2680,15 +2698,20 @@ read_input:
     index = buf->length;
     if (use_prompt) {
 	if (first) {
-	    prompt.main   = xwcsdup(L"");
-	    prompt.right  = xwcsdup(L"");
-	    prompt.styler = xwcsdup(L"");
+	    if (ro->ps1) {
+		prompt = get_prompt(1);
+	    } else {
+		prompt.main = escape(
+			ro->prompt != NULL ? ro->prompt : L"", L"\\");
+		prompt.right = xwcsdup(L"");
+		prompt.styler = xwcsdup(L"");
+	    }
 	} else {
 	    prompt = get_prompt(2);
 	}
 
 #if YASH_ENABLE_LINEEDIT
-	if (shopt_lineedit != SHOPT_NOLINEEDIT) {
+	if (ro->lineedit && shopt_lineedit != SHOPT_NOLINEEDIT) {
 	    wchar_t *line;
 	    inputresult_T result = le_readline(prompt, &line);
 
@@ -2727,7 +2750,7 @@ read_input:
 done:
 #endif
     first = false;
-    if (!noescape) {
+    if (!ro->raw) {
 	/* treat escapes */
 	while (index < buf->length) {
 	    if (buf->contents[index] == L'\\') {

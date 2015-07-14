@@ -8,12 +8,12 @@ dfn:[Read 組込みコマンド]は標準入力から行を読み込み変数に
 [[syntax]]
 == 構文
 
-- +read [-Ar] {{変数名}}...+
+- +read [-Aer] [-P|-p] {{変数名}}...+
 
 [[description]]
 == 説明
 
-Read コマンドは標準入力から一行の文字列を読み込み、それをlink:params.html#variables[変数]に代入します。シェルがlink:interact.html[対話モード]で、link:lineedit.html[行編集]を利用するオプションが有効ならば、読み込みに行編集を使用します。
+Read コマンドは標準入力から一行の文字列を読み込み、それをlink:params.html#variables[変数]に代入します。
 
 +-r+ (+--raw-mode+) オプションを付けると、行内のバックスラッシュは通常の文字と同様に扱われます。
 
@@ -27,6 +27,24 @@ Read コマンドは標準入力から一行の文字列を読み込み、それ
 +-A+::
 +--array+::
 最後に指定した変数をlink:params.html#arrays[配列]にします。分割後の各文字列が配列の要素として設定されます。
+
++-e+::
++--line-editing+::
+読み込みにlink:lineedit.html[行編集]を使用します。
++
+行編集が有効になるには以下の条件が全て満たされている必要があります:
++
+- シェルがlink:interact.html[対話モード]である。
+- link:_set.html#so-vi[vi] または link:_set.html#so-emacs[emacs] オプションが有効になっている。
+- 標準入力と標準エラーが端末である。
+
++-P+::
++--ps1+::
+シェルが対話モードで標準入力が端末ならば、(最初の) 行を読み込む前に link:params.html#sv-ps1[+PS1+ 変数]をプロンプトとしてを表示します。
+
++-p {{プロンプト}}+::
++--prompt={{プロンプト}}+::
+シェルが対話モードで標準入力が端末ならば、(最初の) 行を読み込む前に{{プロンプト}}を表示します。
 
 +-r+::
 +--raw-mode+::
@@ -51,5 +69,7 @@ Read コマンドは標準入力から一行の文字列を読み込み、それ
 Read コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
 
 POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
+
++PS1+ 変数をプロンプトとして表示する際、link:params.html#sv-ps1r[+PS1R+] および link:params.html#sv-ps1s[+PS1S+] 変数も使用されます。 +PS2+ についても同様です。
 
 // vim: set filetype=asciidoc expandtab:

@@ -76,6 +76,7 @@ getopts: `a::' is not a valid option specification
 getopts: `var=iable' is not a valid variable name
 ===== read =====
 read: `--no-such-option' is not a valid option
+read: the -P option cannot be used with the -p option
 read: this command requires an operand
 read: `b=r' is not a valid variable name
 ===== trap =====

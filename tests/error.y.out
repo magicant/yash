@@ -102,6 +102,7 @@ getopts invalid opt 1
 getopts invalid var 1
 ===== read =====
 read no-such-option 2
+read mutually exclusive P/p 2
 read operands missing 2
 read input closed 1
 read invalid identifier 1

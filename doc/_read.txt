@@ -8,16 +8,13 @@ The dfn:[read built-in] reads a line from the standard input.
 [[syntax]]
 == Syntax
 
-- +read [-Ar] {{variable}}...+
+- +read [-Aer] [-P|-p] {{variable}}...+
 
 [[description]]
 == Description
 
 The read built-in reads a line of string from the standard input and assigns
 it to the specified link:params.html#variables[variables].
-If the shell is link:interact.html[interactive] and
-link:lineedit.html[line-editing] is enabled, you can use line-editing when
-inputting a line.
 
 If the +-r+ (+--raw-mode+) option is specified, all characters in the line are
 treated literally.
@@ -46,6 +43,28 @@ Make the last {{variable}} an link:params.html#arrays[array].
 Instead of assigning a concatenation of the remaining words to a normal
 variable, the words are assigned to an array.
 
++-e+::
++--line-editing+::
+Use link:lineedit.html[line-editing] to read the line.
++
+To use line-editing, all of the following conditions must also be met:
++
+- The shell is link:interact.html[interactive].
+- The link:_set.html#so-vi[vi] or link:_set.html#so-emacs[emacs] option is
+  enabled.
+- The standard input and standard error are connected to a terminal.
+
++-P+::
++--ps1+::
+Print the link:params.html#sv-ps1[+PS1+ variable] as a prompt before reading
+the (first) line if the shell is interactive and the standard input is a
+terminal.
+
++-p {{prompt}}+::
++--prompt={{prompt}}+::
+Print the specified {{prompt}} before reading the (first) line if the shell
+is interactive and the standard input is a terminal.
+
 +-r+::
 +--raw-mode+::
 Don't treat backslashes as quotations.
@@ -71,5 +90,9 @@ The read built-in is a link:builtin.html#types[semi-special built-in].
 
 The POSIX standard defines the +-r+  option only:
 other options cannot be used in the link:posix.html[POSIXly-correct mode].
+
+The link:params.html#sv-ps1r[+PS1R+] and link:params.html#sv-ps1s[+PS1S+]
+variables affect the behavior of line-editing if the +PS1+ prompt is used. The
+same for +PS2+.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
