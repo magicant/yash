@@ -2684,7 +2684,7 @@ int read_builtin(int argc, void **argv)
 	    ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-/* Reads input from the standard input and, if `noescape' is false, remove line
+/* Reads input from the standard input and, if `ro->raw' is false, remove line
  * continuations.
  * The trailing newline and all other backslashes are not removed. */
 bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
