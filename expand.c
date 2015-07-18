@@ -1396,6 +1396,7 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 /* Field are split at characters that are contained in `ifs'. If an empty field
  * is split by white spaces, the field is ignored.
  * Split examples (assuming `ifs' = L" -")
+ *   ""                  ->   ""
  *   " abc 123 "         ->   "abc" "123"
  *   "  abc  123  "      ->   "abc" "123"
  *   "-abc-123-"         ->   "" "abc" "123" ""
