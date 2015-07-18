@@ -51,6 +51,11 @@ extern char *expand_single_with_glob(
 extern wchar_t *expand_string(const struct wordunit_T *w, _Bool esc)
     __attribute__((malloc,warn_unused_result));
 
+extern void extract_fields(
+	const wchar_t *restrict s, const char *restrict split,
+	_Bool escaped, const wchar_t *restrict ifs,
+	struct plist_T *restrict dest)
+    __attribute__((nonnull));
 extern wchar_t *split_next_field(
 	const wchar_t **sp, const wchar_t *ifs, _Bool noescape)
     __attribute__((nonnull(1),malloc,warn_unused_result));

@@ -110,6 +110,8 @@ static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
+static void add_empty_field(plist_T *dest, const wchar_t *p)
+    __attribute__((nonnull));
 static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 	plist_T *restrict dest)
     __attribute__((nonnull));
@@ -1390,9 +1392,45 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
  * `s' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `s' and also freed.
  * The results are added to `dest' as newly-malloced wide strings.
+ * `ifs' must not be NULL. */
+void fieldsplit(wchar_t *restrict s, char *restrict split,
+	const wchar_t *restrict ifs, plist_T *restrict dest)
+{
+    plist_T fields;
+
+    pl_init(&fields);
+    extract_fields(s, split, true, ifs, &fields);
+    assert(fields.length % 2 == 0);
+
+    for (size_t i = 0; i < fields.length; i += 2) {
+	const wchar_t *start = fields.contents[i], *end = fields.contents[i+1];
+	pl_add(dest, xwcsndup(start, end - start));
+    }
+
+    pl_destroy(&fields);
+    free(s);
+    free(split);
+}
+
+/* Extracts fields from a string.
+ * `s' is the word to split.
+ * `split' is the splittability string corresponding to `s'. It must be at least
+ * as long as `wcslen(s)'.
+ * If `escaped' is true, backslashes in `s' are treated as escapes. But
+ * backslashes do not prevent splitting.
  * `ifs' must not be NULL.
+ *
+ * The results are appended to `dest'. If n fields are found, 2n pointers are
+ * appended to `dest'. The first pointer points to the first character of the
+ * first field in `s'. The second to the character past the last character of
+ * the first field. The third to the first character of the second field. And so
+ * on.
+ *
  * The word is split at characters that are contained in `ifs' and whose
- * corresponding character in the splittability string is non-zero. */
+ * corresponding character in the splittability string is non-zero.
+ *
+ * If the last field is empty, the index is taken just after the last character
+ * that is not an IFS-whitespace. */
 /* Field are split at characters that are contained in `ifs'. If an empty field
  * is split by white spaces, the field is ignored.
  * Split examples (assuming `ifs' = L" -")
@@ -1404,8 +1442,8 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
  *   "abc--123"          ->   "abc" "" "123"
  *   "abc - - 123"       ->   "abc" "" "123"
  */
-void fieldsplit(wchar_t *restrict s, char *restrict split,
-	const wchar_t *restrict ifs, plist_T *restrict dest)
+void extract_fields(const wchar_t *restrict s, const char *restrict split,
+	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0;
     size_t lwstart = 0, lwend;  /* start/end index of last word */
@@ -1413,7 +1451,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     for (;;) {
 	/* slip non-IFS characters */
 	lwend = index;
-	if (s[index] == L'\\')
+	if (escaped && s[index] == L'\\')
 	    index++;
 	if (s[index] == L'\0')
 	    break;
@@ -1423,9 +1461,10 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	}
 
 	/* the character is in `ifs', so do splitting */
-	bool splitatnonspace = false, nonspace = false;
+	bool splitatnonspace = false;
+	size_t nonspaceindex = 0;
 	if (lwstart < lwend)
-	    pl_add(dest, xwcsndup(s + lwstart, lwend - lwstart));
+	    pl_add(pl_add(dest, &s[lwstart]), &s[lwend]);
 	else
 	    splitatnonspace = true;
 
@@ -1434,17 +1473,17 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 	do {
 	    if (!iswspace(s[index])) {
 		if (splitatnonspace)
-		    pl_add(dest, xwcsdup(L""));
+		    add_empty_field(dest, &s[index]);
 		splitatnonspace = true;
-		nonspace = true;
+		nonspaceindex = index + 1;
 	    }
 	    index++;
 	    oldindex = index;
-	    if (s[index] == L'\\')
+	    if (escaped && s[index] == L'\\')
 		index++;
 	    if (s[index] == L'\0') {
-		if (nonspace)
-		    pl_add(dest, xwcsdup(L""));
+		if (nonspaceindex > 0)
+		    add_empty_field(dest, &s[nonspaceindex]);
 		break;
 	    }
 	} while (split[index] && wcschr(ifs, s[index]) != NULL);
@@ -1452,15 +1491,14 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     }
     if (lwstart < lwend || lwend == 0) {
 	/* if we have some leftover or the string is empty at all, add it. */
-	if (lwstart > 0) {
-	    xwcsbuf_T buf;
-	    s = wb_towcs(wb_remove(wb_initwith(&buf, s), 0, lwstart));
-	}
-	pl_add(dest, s);
-    } else {
-	free(s);
+	pl_add(pl_add(dest, &s[lwstart]), &s[lwend]);
     }
-    free(split);
+}
+
+void add_empty_field(plist_T *dest, const wchar_t *p)
+{
+    pl_add(dest, p);
+    pl_add(dest, p);
 }
 
 /* Performs field splitting.
