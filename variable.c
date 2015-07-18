@@ -1580,6 +1580,9 @@ static bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
 static bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
     __attribute__((nonnull));
+static struct promptset_T promptset_for_read(
+	bool firstline, const struct reading_option_T *ro)
+    __attribute__((nonnull,warn_unused_result));
 static void split_and_assign_array(const wchar_t *name, wchar_t *values,
 	const wchar_t *ifs, bool raw)
     __attribute__((nonnull));
@@ -2697,18 +2700,7 @@ bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
 read_input:
     index = buf->length;
     if (use_prompt) {
-	if (first) {
-	    if (ro->ps1) {
-		prompt = get_prompt(1);
-	    } else {
-		prompt.main = escape(
-			ro->prompt != NULL ? ro->prompt : L"", L"\\");
-		prompt.right = xwcsdup(L"");
-		prompt.styler = xwcsdup(L"");
-	    }
-	} else {
-	    prompt = get_prompt(2);
-	}
+	prompt = promptset_for_read(first, ro);
 
 #if YASH_ENABLE_LINEEDIT
 	if (ro->lineedit && shopt_lineedit != SHOPT_NOLINEEDIT) {
@@ -2735,14 +2727,13 @@ read_input:
 
 	print_prompt(prompt.main);
 	print_prompt(prompt.styler);
+	free_prompt(prompt);
     }
 
     inputresult_T result2 = read_input(buf, stdin_input_file_info, false);
 
-    if (use_prompt) {
+    if (use_prompt)
 	print_prompt(PROMPT_RESET);
-	free_prompt(prompt);
-    }
     if (result2 == INPUT_ERROR)
 	return false;
 
@@ -2770,6 +2761,22 @@ done:
     }
 
     return true;
+}
+
+/* Returns a prompt set for reading in the "read" built-in. */
+struct promptset_T promptset_for_read(
+	bool firstline, const struct reading_option_T *ro)
+{
+    if (!firstline)
+	return get_prompt(2);
+    if (ro->ps1)
+	return get_prompt(1);
+
+    struct promptset_T ps;
+    ps.main = escape(ro->prompt != NULL ? ro->prompt : L"", L"\\");
+    ps.right = xwcsdup(L"");
+    ps.styler = xwcsdup(L"");
+    return ps;
 }
 
 /* Word-splits `values' and assigns them to the array named `name'.
