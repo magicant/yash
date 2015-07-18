@@ -1,0 +1,55 @@
+- single operand - without IFS
+0 [A]
+- single operand - with IFS whitespace
+0 [A]
+- single operand - with IFS non-whitespace
+0 [- A -]
+- EOF fails read
+0 []
+- read do not read more than needed
+B
+C
+- set -o allexport
+[A] [B]
+- line continuation - followed by normal line
+0 [AA] [BB]
+- line continuation - followed by EOF
+0 [A] []
+- field splitting - 1
+0 [AA] [B] [CC]
+- field splitting - 2-1
+0 [] [BB] [C] [DD] []
+- field splitting - 2-2
+0 [] [BB] [C] [DD] []
+- field splitting - 2-3
+0 [] [BB] [C] [DD] []
+- field splitting - 2-4
+0 [] [BB] [C] [DD] []
+- field splitting - 3-1
+0 [] [] [CC] [] []
+- field splitting - 3-2
+0 [] [] [CC] [] []
+- field splitting - 3-3
+0 [] [] [CC] [] []
+- field splitting - 3-4
+0 [] [] [CC] [] []
+- backslash prevents field splitting - backslash not in IFS
+0 [A A] [ B ] [C\C-C\] [D]
+- backslash prevents field splitting - backslash in IFS
+0 [A A] [ B ] [C\C-C\] [D]
+- variables are assigned empty string for missing fields
+0 [A] [B] [] []
+- too many fields are joined with trailing whitespaces removed
+0 [A] [B] [C-C C\CC]
+- the same, with non-whitespace delimiter
+0 [A] [B] [C-C C\CC -]
+- no field splitting with empty IFS
+0 [ A B  C  D\E-F\-G ] [] [] []
+- raw mode - backslash not in IFS
+0 [A\A\\] [B] [C\] [D\]
+- raw mode - backslash in IFS
+0 [A] [B] [] [D] [E] [- F\]
+- in subshell
+0 [unset]
+- failure by readonly variable
+0

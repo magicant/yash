@@ -56,12 +56,6 @@ extern void extract_fields(
 	_Bool escaped, const wchar_t *restrict ifs,
 	struct plist_T *restrict dest)
     __attribute__((nonnull));
-extern wchar_t *split_next_field(
-	const wchar_t **sp, const wchar_t *ifs, _Bool noescape)
-    __attribute__((nonnull(1),malloc,warn_unused_result));
-extern void trim_trailing_spaces(
-	wchar_t *restrict s, const wchar_t *restrict ifs)
-    __attribute__((nonnull(1)));
 
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));

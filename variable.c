@@ -1578,13 +1578,20 @@ static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
-static bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
+static bool read_with_prompt(xwcsbuf_T *buf, xstrbuf_T *split,
+	const struct reading_option_T *ro)
     __attribute__((nonnull));
 static struct promptset_T promptset_for_read(
 	bool firstline, const struct reading_option_T *ro)
     __attribute__((nonnull,warn_unused_result));
-static void split_and_assign_array(const wchar_t *name, wchar_t *values,
-	const wchar_t *ifs, bool raw)
+static wchar_t *read_one_line_with_prompt(
+	struct promptset_T prompt, bool lineedit)
+    __attribute__((malloc,warn_unused_result));
+static wchar_t *read_one_line(void)
+    __attribute__((malloc,warn_unused_result));
+static bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *split)
+    __attribute__((nonnull));
+static void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
     __attribute__((nonnull));
 
 /* Options for the "typeset" built-in. */
@@ -2642,15 +2649,19 @@ int read_builtin(int argc, void **argv)
 	}
     }
 
-    bool eof;
     xwcsbuf_T buf;
+    xstrbuf_T split;
 
-    /* read input and remove trailing newline */
     wb_init(&buf);
-    if (!read_with_prompt(&buf, &ro)) {
+    sb_init(&split);
+    if (!read_with_prompt(&buf, &split, &ro)) {
+	sb_destroy(&split);
 	wb_destroy(&buf);
 	return Exit_FAILURE;
     }
+
+    /* remove trailing newline */
+    bool eof;
     if (buf.length > 0 && buf.contents[buf.length - 1] == L'\n') {
 	wb_truncate(&buf, buf.length - 1);
 	eof = false;
@@ -2659,107 +2670,91 @@ int read_builtin(int argc, void **argv)
 	eof = true;
     }
 
-    const wchar_t *s = buf.contents;
-    const wchar_t *ifs = getvar(L VAR_IFS);
-    plist_T list;
-
     /* split fields */
+    plist_T list;
     pl_init(&list);
-    for (int i = xoptind; i < argc - 1; i++)
-	pl_add(&list, split_next_field(&s, ifs, ro.raw));
-    pl_add(&list, (ro.raw || ro.array) ? xwcsdup(s) : unescape(s));
-    wb_destroy(&buf);
+    {
+	const wchar_t *ifs = getvar(L VAR_IFS);
+	if (ifs == NULL)
+	    ifs = DEFAULT_IFS;
 
-    /* assign variables */
-    assert(xoptind + list.length == (size_t) argc);
-    for (size_t i = 0; i < list.length; i++) {
-	const wchar_t *name = ARGV(xoptind + i);
-	if (i + 1 == list.length)
-	    trim_trailing_spaces(list.contents[i], ifs);
-	if (ro.array && i + 1 == list.length)
-	    split_and_assign_array(name, list.contents[i], ifs, ro.raw);
-	else
-	    set_variable(name, list.contents[i], SCOPE_GLOBAL, shopt_allexport);
+	extract_fields(buf.contents, split.contents, false, ifs, &list);
+	assert(list.length % 2 == 0);
+    }
+
+    /* Add missing empty fields */
+    size_t count = (size_t) argc - xoptind;
+    for (size_t i = list.length / 2; i < count; i++)
+	pl_add(pl_add(&list, buf.contents), buf.contents);
+    assert(list.length % 2 == 0);
+    assert(list.length > 0);
+
+    /* assign variables except last */
+    const wchar_t *name;
+    for (size_t i = 0; i < count - 1; i++) {
+	const wchar_t *start = list.contents[2 * i];
+	const wchar_t *end = list.contents[2 * i + 1];
+	wchar_t *field = xwcsndup(start, end - start);
+	name = ARGV(xoptind + i);
+	set_variable(name, field, SCOPE_GLOBAL, shopt_allexport);
+    }
+
+    /* assign last variable */
+    name = ARGV(xoptind + count - 1);
+    if (ro.array) {
+	assign_array(name, &list, 2 * (count - 1));
+    } else {
+	const wchar_t *start = list.contents[2 * (count - 1)];
+	const wchar_t *end = list.contents[list.length - 1];
+	wchar_t *field = xwcsndup(start, end - start);
+	set_variable(name, field, SCOPE_GLOBAL, shopt_allexport);
     }
 
     pl_destroy(&list);
+    sb_destroy(&split);
+    wb_destroy(&buf);
     return (!eof && yash_error_message_count == 0)
 	    ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-/* Reads input from the standard input and, if `ro->raw' is false, remove line
- * continuations.
- * The trailing newline and all other backslashes are not removed. */
-bool read_with_prompt(xwcsbuf_T *buf, const struct reading_option_T *ro)
+/* Reads one line from the standard input. The result is appended to `buf' and
+ * `split'. `buf' will contain no escapes or other special characters. `split'
+ * is the splittability string for `buf'. The string is splittable at characters
+ * that were not backslash-escaped.
+ * If `ro->raw' is true, exactly one line is read and backslashes are not
+ * treated as escapes. Otherwise, line continuations cause this function to read
+ * more and backslash escapes are recognized.
+ * Returns false on error while reading. */
+bool read_with_prompt(xwcsbuf_T *buf, xstrbuf_T *split,
+	const struct reading_option_T *ro)
 {
-    bool first = true;
-    size_t index;
+    bool firstline = true;
+    bool completed = false;
     bool use_prompt = is_interactive_now && isatty(STDIN_FILENO);
-    struct promptset_T prompt;
 
-read_input:
-    index = buf->length;
-    if (use_prompt) {
-	prompt = promptset_for_read(first, ro);
-
-#if YASH_ENABLE_LINEEDIT
-	if (ro->lineedit && shopt_lineedit != SHOPT_NOLINEEDIT) {
-	    wchar_t *line;
-	    inputresult_T result = le_readline(prompt, &line);
-
-	    if (result != INPUT_ERROR) {
-		free_prompt(prompt);
-		switch (result) {
-		    case INPUT_OK:
-			wb_catfree(buf, line);
-			/* falls thru! */
-		    case INPUT_EOF:
-			goto done;
-		    case INPUT_INTERRUPTED:
-			set_interrupted();
-			return false;
-		    case INPUT_ERROR:
-			assert(false);
-		}
-	    }
+    while (!completed) {
+	wchar_t *line;
+	if (use_prompt) {
+	    struct promptset_T prompt = promptset_for_read(firstline, ro);
+	    line = read_one_line_with_prompt(prompt, ro->lineedit);
+	    free_prompt(prompt);
+	} else {
+	    line = read_one_line();
 	}
-#endif /* YASH_ENABLE_LINEEDIT */
+	if (line == NULL)
+	    return false;
 
-	print_prompt(prompt.main);
-	print_prompt(prompt.styler);
-	free_prompt(prompt);
-    }
-
-    inputresult_T result2 = read_input(buf, stdin_input_file_info, false);
-
-    if (use_prompt)
-	print_prompt(PROMPT_RESET);
-    if (result2 == INPUT_ERROR)
-	return false;
-
-#if YASH_ENABLE_LINEEDIT
-done:
-#endif
-    first = false;
-    if (!ro->raw) {
-	/* treat escapes */
-	while (index < buf->length) {
-	    if (buf->contents[index] == L'\\') {
-		if (buf->contents[index + 1] == L'\n') {
-		    wb_remove(buf, index, 2);
-		    if (index >= buf->length)
-			goto read_input;
-		    else
-			continue;
-		} else {
-		    index += 2;
-		    continue;
-		}
-	    }
-	    index++;
+	if (ro->raw) {
+	    wb_cat(buf, line);
+	    sb_ccat_repeat(split, true, wcslen(line));
+	    completed = true;
+	} else {
+	    completed = unescape_line(line, buf, split);
 	}
-    }
+	free(line);
 
+	firstline = false;
+    }
     return true;
 }
 
@@ -2779,29 +2774,110 @@ struct promptset_T promptset_for_read(
     return ps;
 }
 
-/* Word-splits `values' and assigns them to the array named `name'.
- * `values' is freed in this function. */
-void split_and_assign_array(const wchar_t *name, wchar_t *values,
-	const wchar_t *ifs, bool raw)
+/* Reads one line from the standard input with the specified prompt.
+ * If `lineedit' is true, use line-editing if possible.
+ * The result is returned as a newly-malloced wide string. The result is null
+ * iff an error occurs. */
+wchar_t *read_one_line_with_prompt(struct promptset_T prompt, bool lineedit)
 {
-    plist_T list;
+    wchar_t *line;
 
-    pl_init(&list);
-    if (values[0] != L'\0') {
-	const wchar_t *v = values;
-	while (*v != L'\0')
-	    pl_add(&list, split_next_field(&v, ifs, raw));
-
-	if (list.length > 0
-		&& ((wchar_t *) list.contents[list.length - 1])[0] == L'\0') {
-	    free(list.contents[list.length - 1]);
-	    pl_remove(&list, list.length - 1, 1);
+    if (lineedit) {
+#if YASH_ENABLE_LINEEDIT
+	if (shopt_lineedit != SHOPT_NOLINEEDIT) {
+	    switch (le_readline(prompt, &line)) {
+		case INPUT_OK:
+		    return line;
+		case INPUT_EOF:
+		    return xwcsdup(L"");
+		case INPUT_INTERRUPTED:
+		    set_interrupted();
+		    return NULL;
+		case INPUT_ERROR:
+		    break;
+	    }
 	}
+#endif // YASH_ENABLE_LINEEDIT
     }
 
-    set_array(name, list.length, pl_toary(&list), SCOPE_GLOBAL, false);
+    print_prompt(prompt.main);
+    print_prompt(prompt.styler);
 
-    free(values);
+    line = read_one_line();
+
+    print_prompt(PROMPT_RESET);
+
+    return line;
+}
+
+/* Reads one line from the standard input without printing any prompt or using
+ * line-editing.
+ * The result is returned as a newly-malloced wide string. The result is null
+ * iff an error occurs. */
+wchar_t *read_one_line(void)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+    if (read_input(&buf, stdin_input_file_info, false) != INPUT_ERROR)
+	return wb_towcs(&buf);
+    wb_destroy(&buf);
+    return NULL;
+}
+
+/* Parses a string that may contain backslash escapes.
+ * Unescaped `line' is appended to `buf' with a corresponding splittability
+ * string appended to `split'. Characters are splittable iff not escaped.
+ * The result is false iff `line' ends with a line continuation.
+ * The line continuation is not appended to `buf'. */
+bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *split)
+{
+    for (;;) {
+	bool splitchar;
+
+	switch (*line) {
+	    case L'\0':
+		return true;
+	    case L'\\':
+		line++;
+		switch (*line) {
+		    case L'\0':
+			return true;
+		    case L'\n':
+			return false;
+		}
+		splitchar = false;
+		break;
+	    default:
+		splitchar = true;
+		break;
+	}
+	wb_wccat(buf, *line);
+	sb_ccat(split, splitchar);
+	line++;
+    }
+}
+
+/* Assigns a result of field-splitting contained in `ranges' to an array named
+ * `name'. Fields are assigned starting from index `i' in `ranges'. */
+void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
+{
+    assert((ranges->length - i) % 2 == 0);
+
+    plist_T fields;
+    pl_init(&fields);
+    while (i < ranges->length) {
+	const wchar_t *start = ranges->contents[i++];
+	const wchar_t *end = ranges->contents[i++];
+	wchar_t *field = xwcsndup(start, end - start);
+	pl_add(&fields, field);
+    }
+
+    if (fields.length == 1 && ((wchar_t *) fields.contents[0])[0] == L'\0') {
+	free(fields.contents[0]);
+	pl_remove(&fields, 0, 1);
+    }
+
+    set_array(name, fields.length, pl_toary(&fields), SCOPE_GLOBAL, false);
 }
 
 #if YASH_ENABLE_HELP

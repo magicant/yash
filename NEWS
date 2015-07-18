@@ -20,6 +20,10 @@ Yash 2.39
      what the built-in can return from. The behavior of the built-in
      has been modified accordingly. It no longer interrupts the "eval"
      and "fc" built-ins.
+  *  The "read" built-in with a single operand was failing to trim
+     initial IFS whitespaces in field splitting.
+  *  The "read" built-in was not handling backslashes correctly in
+     field splitting if $IFS contained a backslash.
 
 ----------------------------------------------------------------------
 Yash 2.38
