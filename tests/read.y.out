@@ -45,3 +45,5 @@ typeset a='A'
 typeset b='B'
 c=('C')
 typeset c
+- array - set -o allexport
+[A] [B:C:D]

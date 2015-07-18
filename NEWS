@@ -24,6 +24,8 @@ Yash 2.39
      initial IFS whitespaces in field splitting.
   *  The "read" built-in was not handling backslashes correctly in
      field splitting if $IFS contained a backslash.
+  *  The "-o allexport" option was being ignored when an array is
+     assigned by the "read" built-in with the -A option.
 
 ----------------------------------------------------------------------
 Yash 2.38

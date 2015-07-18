@@ -82,3 +82,13 @@ END
 echo $?
 typeset -p a b c
 
+echo - array - set -o allexport
+(
+unset a b
+set -a
+read -A a b <<\END
+A B C D
+END
+$INVOKE $TESTEE -u -c 'echo "[$a]" "[$b]"'
+)
+
