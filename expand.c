@@ -107,13 +107,13 @@ static bool try_expand_brace_sequence(
 static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
     __attribute__((nonnull));
 
+static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
+    __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
 static void add_empty_field(plist_T *dest, const wchar_t *p)
-    __attribute__((nonnull));
-static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
-	plist_T *restrict dest)
     __attribute__((nonnull));
 
 static inline void add_sq(
@@ -1389,6 +1389,28 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 /********** Field Splitting **********/
 
 /* Performs field splitting.
+ * `valuelist' is a NULL-terminated array of pointers to wide strings to split.
+ * `splitlist' is an array of pointers to corresponding splittability strings.
+ * `valuelist' and `splitlist' are `plfree'ed in this function.
+ * The results are added to `dest'. */
+void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
+	plist_T *restrict dest)
+{
+    void **restrict s;
+    void **restrict t;
+    const wchar_t *ifs;
+
+    ifs = getvar(L VAR_IFS);
+    if (ifs == NULL)
+	ifs = DEFAULT_IFS;
+
+    for (s = valuelist, t = splitlist; *s != NULL; s++, t++)
+	fieldsplit(*s, *t, ifs, dest);
+    free(valuelist);
+    free(splitlist);
+}
+
+/* Performs field splitting.
  * `s' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `s' and also freed.
  * The results are added to `dest' as newly-malloced wide strings.
@@ -1499,28 +1521,6 @@ void add_empty_field(plist_T *dest, const wchar_t *p)
 {
     pl_add(dest, p);
     pl_add(dest, p);
-}
-
-/* Performs field splitting.
- * `valuelist' is a NULL-terminated array of pointers to wide strings to split.
- * `splitlist' is an array of pointers to corresponding splittability strings.
- * `valuelist' and `splitlist' are `plfree'ed in this function.
- * The results are added to `dest'. */
-void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
-	plist_T *restrict dest)
-{
-    void **restrict s;
-    void **restrict t;
-    const wchar_t *ifs;
-
-    ifs = getvar(L VAR_IFS);
-    if (ifs == NULL)
-	ifs = DEFAULT_IFS;
-
-    for (s = valuelist, t = splitlist; *s != NULL; s++, t++)
-	fieldsplit(*s, *t, ifs, dest);
-    free(valuelist);
-    free(splitlist);
 }
 
 
