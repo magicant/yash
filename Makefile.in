@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2012 magicant
+# (C) 2007-2015 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -207,7 +207,7 @@ $(DISTDIR).zip: $(DISTDIR)
 	rm -rf $@
 	zip -rq $@ $(DISTDIR)
 
-DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja configure Makefile.in install-sh makedeps.yash
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash
 distfiles: makedeps $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
