@@ -1449,14 +1449,14 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
  * on.
  *
  * The word is split at characters that are contained in `ifs' and whose
- * corresponding character in the splittability string is non-zero.
+ * corresponding character in the splittability string is non-zero. Refer to
+ * POSIX for how whitespaces are treated in field splitting.
  *
  * If the last field is empty, the index is taken just after the last character
  * that is not an IFS-whitespace. */
-/* Field are split at characters that are contained in `ifs'. If an empty field
- * is split by white spaces, the field is ignored.
- * Split examples (assuming `ifs' = L" -")
+/* Split examples (assuming `ifs' = L" -")
  *   ""                  ->   ""
+ *   "  "                ->   (no fields)
  *   " abc 123 "         ->   "abc" "123"
  *   "  abc  123  "      ->   "abc" "123"
  *   "-abc-123-"         ->   "" "abc" "123" ""
