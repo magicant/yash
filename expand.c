@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -113,6 +113,15 @@ static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
+static size_t skip_ifs(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+    __attribute__((nonnull,pure));
+static size_t skip_ifs_whitespaces(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+    __attribute__((nonnull,pure));
+static size_t skip_field(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+    __attribute__((nonnull,pure));
 static void add_empty_field(plist_T *dest, const wchar_t *p)
     __attribute__((nonnull));
 
@@ -1467,53 +1476,97 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 void extract_fields(const wchar_t *restrict s, const char *restrict split,
 	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
 {
+    if (s[0] == L'\0') {
+	add_empty_field(dest, s);
+	return;
+    }
+
+    size_t olddestlength = dest->length;
+
     size_t index = 0;
-    size_t lwstart = 0, lwend;  /* start/end index of last word */
+
+    /* true when the currently skipping IFS whitespaces immediately follow a
+     * previously split field. */
+    bool afterfield = false;
 
     for (;;) {
-	/* slip non-IFS characters */
-	lwend = index;
-	if (escaped && s[index] == L'\\')
-	    index++;
-	if (s[index] == L'\0')
-	    break;
-	if (!split[index] || wcschr(ifs, s[index]) == NULL) {
-	    index++;
+	size_t ifswhitestartindex = index;
+	index += skip_ifs_whitespaces(&s[index], &split[index], escaped, ifs);
+
+	/* extract next field, if any */
+	size_t fieldstartindex = index;
+	index += skip_field(&s[index], &split[index], escaped, ifs);
+	if (index != fieldstartindex) {
+	    pl_add(pl_add(dest, &s[fieldstartindex]), &s[index]);
+	    afterfield = true;
 	    continue;
 	}
 
-	/* the character is in `ifs', so do splitting */
-	bool splitatnonspace = false;
-	size_t nonspaceindex = 0;
-	if (lwstart < lwend)
-	    pl_add(pl_add(dest, &s[lwstart]), &s[lwend]);
-	else
-	    splitatnonspace = true;
+	/* Now the current char is either null or a IFS non-whitespace. */
 
-	/* skip IFS characters */
-	size_t oldindex;
-	do {
-	    if (!iswspace(s[index])) {
-		if (splitatnonspace)
-		    add_empty_field(dest, &s[index]);
-		splitatnonspace = true;
-		nonspaceindex = index + 1;
-	    }
-	    index++;
-	    oldindex = index;
-	    if (escaped && s[index] == L'\\')
-		index++;
-	    if (s[index] == L'\0') {
-		if (nonspaceindex > 0)
-		    add_empty_field(dest, &s[nonspaceindex]);
-		break;
-	    }
-	} while (split[index] && wcschr(ifs, s[index]) != NULL);
-	lwstart = index = oldindex;
+	if (!afterfield)
+	    add_empty_field(dest, &s[ifswhitestartindex]);
+
+	/* skip (only one) IFS non-whitespace */
+	size_t ifsstartindex = index;
+	index += skip_ifs(&s[index], &split[index], escaped, ifs);
+	if (index != ifsstartindex) {
+	    afterfield = false;
+	    continue;
+	}
+
+	/* Now the current char is null. We're done. */
+	break;
     }
-    if (lwstart < lwend || lwend == 0) {
-	/* if we have some leftover or the string is empty at all, add it. */
-	pl_add(pl_add(dest, &s[lwstart]), &s[lwend]);
+
+    if (dest->length == olddestlength + 2 &&
+	    dest->contents[olddestlength] == dest->contents[olddestlength+1])
+	dest->contents[dest->length = olddestlength] = NULL;
+}
+
+/* If `*s' is a (possibly escaped if `escaped') IFS character, returns the
+ * number of characters to skip it. Otherwise returns zero. */
+size_t skip_ifs(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+{
+    size_t i = 0;
+    if (escaped && s[i] == L'\\')
+	i++;
+    if (s[i] == L'\0')
+	return 0;
+    if (split[i] && wcschr(ifs, s[i]) != NULL)
+	return i + 1;
+    else
+	return 0;
+}
+
+/* Returns the length of IFS whitespace sequence starting at `*s'. */
+size_t skip_ifs_whitespaces(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+{
+    size_t total = 0;
+    for (;;) {
+	size_t current = skip_ifs(&s[total], &split[total], escaped, ifs);
+	if (current == 0 || !iswspace(s[total + current - 1]))
+	    return total;
+	total += current;
+    }
+}
+
+/* Returns the length of a field starting at `*s'. */
+size_t skip_field(const wchar_t *s, const char *split,
+	bool escaped, const wchar_t *ifs)
+{
+    size_t index = 0;
+    for (;;) {
+	size_t saveindex = index;
+	if (escaped && s[index] == L'\\')
+	    index++;
+	if (s[index] == L'\0')
+	    return saveindex;
+	if (split[index] && wcschr(ifs, s[index]) != NULL)
+	    return saveindex;
+	index++;
     }
 }
 
