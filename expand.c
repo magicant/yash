@@ -1423,7 +1423,9 @@ void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
  * `s' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `s' and also freed.
  * The results are added to `dest' as newly-malloced wide strings.
- * `ifs' must not be NULL. */
+ * `ifs' must not be NULL.
+ * As a special case, if `s' is non-empty but only contains whitespaces from
+ * `ifs', then no field is produced. */
 void fieldsplit(wchar_t *restrict s, char *restrict split,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
@@ -1432,6 +1434,10 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     pl_init(&fields);
     extract_fields(s, split, true, ifs, &fields);
     assert(fields.length % 2 == 0);
+
+    if (s[0] != L'\0' && fields.length == 2 &&
+	    fields.contents[0] == fields.contents[1])
+	pl_clear(&fields, 0);
 
     for (size_t i = 0; i < fields.length; i += 2) {
 	const wchar_t *start = fields.contents[i], *end = fields.contents[i+1];
@@ -1465,7 +1471,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
  * that is not an IFS-whitespace. */
 /* Split examples (assuming `ifs' = L" -")
  *   ""                  ->   ""
- *   "  "                ->   (no fields)
+ *   "  "                ->   ""
  *   " abc 123 "         ->   "abc" "123"
  *   "  abc  123  "      ->   "abc" "123"
  *   "-abc-123-"         ->   "" "abc" "123" ""
@@ -1476,13 +1482,6 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
 void extract_fields(const wchar_t *restrict s, const char *restrict split,
 	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
 {
-    if (s[0] == L'\0') {
-	add_empty_field(dest, s);
-	return;
-    }
-
-    size_t olddestlength = dest->length;
-
     size_t index = 0;
 
     /* true when the currently skipping IFS whitespaces immediately follow a
@@ -1516,12 +1515,8 @@ void extract_fields(const wchar_t *restrict s, const char *restrict split,
 	}
 
 	/* Now the current char is null. We're done. */
-	break;
+	return;
     }
-
-    if (dest->length == olddestlength + 2 &&
-	    dest->contents[olddestlength] == dest->contents[olddestlength+1])
-	dest->contents[dest->length = olddestlength] = NULL;
 }
 
 /* If `*s' is a (possibly escaped if `escaped') IFS character, returns the
