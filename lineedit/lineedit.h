@@ -44,7 +44,8 @@ enum le_editstate_T {
 extern enum le_state_T le_state;
 extern enum le_editstate_T le_editstate;
 
-extern inputresult_T le_readline(struct promptset_T prompt, wchar_t **resultp)
+extern inputresult_T le_readline(
+	struct promptset_T prompt, _Bool trap, wchar_t **resultp)
     __attribute__((nonnull,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);

@@ -39,7 +39,7 @@
 #include "trie.h"
 
 
-static void reader_init(void);
+static void reader_init(bool trap);
 static void reader_finalize(void);
 static void read_next(void);
 static int get_read_timeout(void)
@@ -60,10 +60,12 @@ enum le_editstate_T le_editstate;
 
 /* Do line-editing using the specified prompts.
  * The prompts may contain backslash escapes specified in "input.c".
+ * If `trap' is true, traps are handled while waiting for input.
  * The result is returned as a newly malloced wide string, including the
  * trailing newline. It is assigned to `*resultp' iff the return value is
  * INPUT_OK. Returns INPUT_ERROR iff failed to set up the terminal. */
-inputresult_T le_readline(struct promptset_T prompt, wchar_t **resultp)
+inputresult_T le_readline(
+	struct promptset_T prompt, bool trap, wchar_t **resultp)
 {
     assert(is_interactive_now);
     assert(le_state == LE_STATE_INACTIVE);
@@ -76,7 +78,7 @@ inputresult_T le_readline(struct promptset_T prompt, wchar_t **resultp)
     le_keymap_init();
     le_editing_init();
     le_display_init(prompt);
-    reader_init();
+    reader_init(trap);
     le_editstate = LE_EDITSTATE_EDITING;
 
     do
@@ -145,6 +147,8 @@ void le_display_size_changed(void)
 
 /********** Input Reading **********/
 
+/* True if traps should be handled while reading. */
+static bool reader_trap;
 /* Temporary buffer that contains bytes that are treated as input. */
 static xstrbuf_T reader_prebuffer;
 /* Temporary buffer that contains input bytes. */
@@ -157,8 +161,9 @@ static xwcsbuf_T reader_second_buffer;
 bool le_next_verbatim;
 
 /* Initializes the state of the reader. */
-void reader_init(void)
+void reader_init(bool trap)
 {
+    reader_trap = trap;
     sb_init(&reader_first_buffer);
     memset(&reader_state, 0, sizeof reader_state);
     wb_init(&reader_second_buffer);
@@ -195,9 +200,10 @@ void read_next(void)
 
     /* wait for and read the next byte */
     if (keycode_ambiguous)
-	timeout = !wait_for_input(STDIN_FILENO, true, get_read_timeout());
+	timeout = !wait_for_input(
+		STDIN_FILENO, reader_trap, get_read_timeout());
     else
-	wait_for_input(STDIN_FILENO, true, -1);
+	wait_for_input(STDIN_FILENO, reader_trap, -1);
     if (!timeout) {
 	switch (read(STDIN_FILENO, &c, 1)) {
 	    case 0:

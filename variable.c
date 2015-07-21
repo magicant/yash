@@ -2785,7 +2785,7 @@ wchar_t *read_one_line_with_prompt(struct promptset_T prompt, bool lineedit)
     if (lineedit) {
 #if YASH_ENABLE_LINEEDIT
 	if (shopt_lineedit != SHOPT_NOLINEEDIT) {
-	    switch (le_readline(prompt, &line)) {
+	    switch (le_readline(prompt, false, &line)) {
 		case INPUT_OK:
 		    return line;
 		case INPUT_EOF:

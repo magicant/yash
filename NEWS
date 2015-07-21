@@ -27,6 +27,8 @@ Yash 2.39
      field splitting if $IFS contained a backslash.
   *  The "-o allexport" option was being ignored when an array is
      assigned by the "read" built-in with the -A option.
+  *  Traps are no longer handled while waiting for input with line-
+     editing in the "read" built-in.
 
 ----------------------------------------------------------------------
 Yash 2.38

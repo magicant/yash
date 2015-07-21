@@ -193,7 +193,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 	wchar_t *line;
 	inputresult_T result;
 
-	result = le_readline(prompt, &line);
+	result = le_readline(prompt, true, &line);
 	if (result != INPUT_ERROR) {
 	    free_prompt(prompt);
 	    if (result == INPUT_OK) {
