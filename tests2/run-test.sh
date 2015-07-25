@@ -149,6 +149,9 @@ $1"
 # The first argument is treated as the line number where the test case appears
 # in the test file. As remaining arguments, options and operands may follow.
 #
+# If the "-d" option is specified, the test case fails unless the actual output
+# to the standard error is non-empty. File descriptor 5 is ignored.
+#
 # If the "-e <expected_exit_status>" option is specified, the exit status of
 # the testee is also checked. If the actual exit status differs from the
 # expected, the test case fails. If <expected_exit_status> is "n", the expected
@@ -162,9 +165,12 @@ testcase() {
     test_lineno="${1:?line number unspecified}"
     shift 1
     OPTIND=1
+    diagnostic_required="false"
     expected_exit_status=""
-    while getopts e: opt; do
+    while getopts de: opt; do
 	case $opt in
+	    (d)
+		diagnostic_required="true";;
 	    (e)
 		expected_exit_status="$OPTARG";;
 	    (*)
@@ -238,7 +244,16 @@ testcase() {
     fi
 
     # check standard error
-    if { exec <&5; } 2>/dev/null; then
+    if "$diagnostic_required"; then
+	printf '%% standard error (expecting non-empty output):\n'
+	cat "$err_file"
+	if ! [ -s "$err_file" ]; then
+	    failed="true"
+	    eprintf '%s:%d: %s: standard error mismatch\n' \
+		"$test_file" "$test_lineno" "$test_case_name"
+	fi
+	echo
+    elif { exec <&5; } 2>/dev/null; then
 	printf '%% standard error diff:\n'
 	if ! diff $diff_opt - "$err_file"; then
 	    failed="true"
@@ -273,6 +288,9 @@ alias test_OE='testcase "$LINENO" 3<<\__IN__ 4</dev/null 5</dev/null'
 (
 abs_test_file="$(absolute "$test_file")"
 cd "$work_dir"
+
+export TESTEE="$testee"
+
 . "$abs_test_file"
 )
 

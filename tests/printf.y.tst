@@ -1,39 +1,5 @@
-# printf.y.tst: yash-specific test of the echo and printf builtins
+# printf.y.tst: yash-specific test of the printf builtin
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
-
-echo ===== echo =====
-
-unset ECHO_STYLE
-
-echo 123 456 789
-echo 1 22 '3  3' "4
-4" 5\
-5
-
-testecho() {
-    echo ===== ${ECHO_STYLE-unset}
-    echo -n new
-    echo line
-    echo -n new line
-    echo '1\a2\b3\c4' 5
-    echo '6\f7\n8\r9\t0\v!'
-    echo '\0123\012\01x' '\123\12\1x' '\00411'
-    echo -e '1\c2'
-    echo -e -E '1\c2'
-    echo -eE '1\c2'
-    echo -ne 123 '-\c-' 456
-    echo
-}
-
-testecho
-ECHO_STYLE=SYSV testecho
-ECHO_STYLE=XSI  testecho
-ECHO_STYLE=BSD  testecho
-ECHO_STYLE=GNU  testecho
-ECHO_STYLE=ZSH  testecho
-ECHO_STYLE=DASH testecho
-ECHO_STYLE=RAW  testecho
-
 
 echo ===== printf =====
 
