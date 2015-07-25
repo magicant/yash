@@ -139,6 +139,12 @@ $1"
     esac
 }
 
+# Invokes the testee.
+# If the "posix" variable is defined non-empty, the testee is invoked as "sh".
+testee() (
+    exec ${posix:+-a sh} "$testee" "$@"
+)
+
 # The test case runner.
 #
 # Contents of file descriptor 3 are executed in a newly invoked testee.
@@ -159,8 +165,6 @@ $1"
 #
 # The first operand is used as the name of the test case.
 # The remaining operands are passed as arguments to the testee.
-#
-# If the "posix" variable is defined non-empty, the testee is invoked as "sh".
 testcase() {
     test_lineno="${1:?line number unspecified}"
     shift 1
@@ -193,7 +197,7 @@ testcase() {
     # prepare input file
     {
 	if [ "$setup_script" ]; then
-	    printf 'set -e\n%s\nset +e\n' "$setup_script"
+	    printf '%s\n' "$setup_script"
 	fi
 	cat <&3
     } >"$in_file"
@@ -201,10 +205,7 @@ testcase() {
     # run the testee
     log_stdout START
     set +e
-    (
-    exec ${posix:+-a sh} "$testee" "$@" \
-	<"$in_file" >"$out_file" 2>"$err_file" 3>&- 4>&- 5>&-
-    )
+    testee "$@" <"$in_file" >"$out_file" 2>"$err_file" 3>&- 4>&- 5>&-
     actual_exit_status="$?"
     set -e
 

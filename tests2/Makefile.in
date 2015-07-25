@@ -27,7 +27,7 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = checkfg.c invoke.c resetsig.c
-POSIX_TEST_SOURCES = read-p.tst
+POSIX_TEST_SOURCES = alias-p.tst read-p.tst
 YASH_TEST_SOURCES = echo-y.tst printf-y.tst read-y.tst
 TEST_SOURCES = $(POSIX_TEST_SOURCES) $(YASH_TEST_SOURCES)
 TEST_RESULTS = $(TEST_SOURCES:.tst=.trs)
