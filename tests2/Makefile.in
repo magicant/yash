@@ -56,15 +56,15 @@ test-yash:
 
 $(SUMMARY): $(TEST_RESULTS)
 	$(SHELL) ./summarize.sh $(TEST_RESULTS) >| $@
-$(TEST_RESULTS): tester
+$(TEST_RESULTS): tester $(YASH)
 .tst.trs:
 	./resetsig $(YASH) ./run-test.sh $(TESTEE) $< >| $@
 
-tester: $(TESTERS) $(YASH)
+tester: $(TESTERS)
 $(TESTERS):
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
-$(YASH): _PHONY
-	@+(cd $(topdir) && $(MAKE) $(TARGET))
+$(YASH):
+	@echo Make $(TARGET) in $(topdir) first >&2; false
 
 .c.o:
 	@rm -f $@
