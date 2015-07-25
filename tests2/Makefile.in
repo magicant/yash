@@ -1,0 +1,99 @@
+# Makefile.in for test of yash
+# (C) 2007-2015 magicant
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.POSIX:
+.SUFFIXES: .c .h .d .o .tst .trs
+
+@MAKE_SHELL@
+topdir = ..
+subdir = tests2
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LDLIBS = @LDLIBS@
+SOURCES = checkfg.c invoke.c resetsig.c
+POSIX_TEST_SOURCES = read-p.tst
+YASH_TEST_SOURCES =
+TEST_SOURCES = $(POSIX_TEST_SOURCES) $(YASH_TEST_SOURCES)
+TEST_RESULTS = $(TEST_SOURCES:.tst=.trs)
+RECHECK_LOGS = $(TEST_RESULTS)
+TARGET = @TARGET@
+YASH = $(topdir)/$(TARGET)
+TESTERS = checkfg invoke resetsig
+TESTEE = $(YASH)
+SUMMARY = summary.log
+BYPRODUCTS = $(SOURCES:.c=.o) $(TESTERS) $(TEST_RESULTS) $(SUMMARY) *.dSYM
+
+test:
+	rm -rf $(RECHECK_LOGS)
+	@$(MAKE) $(SUMMARY)
+	@tail -n 5 $(SUMMARY)
+	@tail -n 5 $(SUMMARY) | grep ^FAILED | \
+		(read _ fail_count && \
+		if [ "$$fail_count" -ne 0 ]; then \
+			echo See $(SUMMARY) for details; \
+			exit 1; \
+		fi)
+test-posix:
+	@$(MAKE) TEST_SOURCES='$$(POSIX_TEST_SOURCES)' test
+test-yash:
+	@$(MAKE) TEST_SOURCES='$$(YASH_TEST_SOURCES)' test
+
+$(SUMMARY): $(TEST_RESULTS)
+	$(SHELL) ./summarize.sh $(TEST_RESULTS) >| $@
+$(TEST_RESULTS): tester
+.tst.trs:
+	./resetsig $(YASH) ./run-test.sh $(TESTEE) $< >| $@
+
+tester: $(TESTERS) $(YASH)
+$(TESTERS):
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
+$(YASH): _PHONY
+	@+(cd $(topdir) && $(MAKE) $(TARGET))
+
+.c.o:
+	@rm -f $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in run-test.sh summarize.sh
+distfiles: makedeps $(DISTFILES)
+copy-distfiles: distfiles
+	mkdir -p $(topdir)/$(DISTTARGETDIR)
+	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
+makedeps: _PHONY
+	@(cd $(topdir) && $(MAKE) $(TARGET))
+	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
+
+mostlyclean:
+	rm -fr $(BYPRODUCTS)
+clean: mostlyclean
+distclean: clean
+	rm -fr Makefile
+maintainer-clean: distclean
+	rm -fr $(SOURCES:.c=.d)
+
+Makefile: Makefile.in $(topdir)/config.status
+	@+(cd $(topdir) && $(MAKE) config.status)
+	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
+
+.PHONY: test test-posix test-yash tester distfiles copy-distfiles makedeps mostlyclean clean distclean maintainer-clean
+_PHONY:
+
+@MAKE_INCLUDE@ checkfg.d
+@MAKE_INCLUDE@ invoke.d
+@MAKE_INCLUDE@ resetsig.d

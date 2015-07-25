@@ -98,9 +98,9 @@ configm.h: Makefile
 	-@echo done
 
 test tests check: _PHONY
-	@+(cd tests && $(MAKE))
+	@+(cd tests2 && $(MAKE))
 tester: _PHONY
-	@+(cd tests && $(MAKE) $@)
+	@+(cd tests2 && $(MAKE) $@)
 mofiles: _PHONY
 	@+(cd po && $(MAKE))
 
@@ -235,7 +235,7 @@ mostlyclean: _mostlyclean
 	-@+(cd doc      && $(MAKE) mostlyclean)
 	-@+(cd lineedit && $(MAKE) mostlyclean)
 	-@+(cd po       && $(MAKE) mostlyclean)
-	-@+(cd tests    && $(MAKE) mostlyclean)
+	-@+(cd tests2   && $(MAKE) mostlyclean)
 _mostlyclean:
 	-rm -rf $(OBJS) $(BYPRODUCTS) $(DISTDIR)
 clean: _clean
@@ -243,7 +243,7 @@ clean: _clean
 	-@+(cd doc      && $(MAKE) clean)
 	-@+(cd lineedit && $(MAKE) clean)
 	-@+(cd po       && $(MAKE) clean)
-	-@+(cd tests    && $(MAKE) clean)
+	-@+(cd tests2   && $(MAKE) clean)
 _clean: _mostlyclean
 	-rm -rf $(TARGET) $(DISTS)
 distclean:
@@ -251,7 +251,7 @@ distclean:
 	-@+(cd doc      && $(MAKE) distclean)
 	-@+(cd lineedit && $(MAKE) distclean)
 	-@+(cd po       && $(MAKE) distclean)
-	-@+(cd tests    && $(MAKE) distclean)
+	-@+(cd tests2   && $(MAKE) distclean)
 	-@+$(MAKE) _distclean
 _distclean: _clean
 	-rm -rf Makefile config.log config.status config.h tags TAGS cscope.out
@@ -262,7 +262,7 @@ maintainer-clean:
 	-@+(cd doc      && $(MAKE) maintainer-clean)
 	-@+(cd lineedit && $(MAKE) maintainer-clean)
 	-@+(cd po       && $(MAKE) maintainer-clean)
-	-@+(cd tests    && $(MAKE) maintainer-clean)
+	-@+(cd tests2   && $(MAKE) maintainer-clean)
 	-@+$(MAKE) _distclean
 	-rm -rf $(SOURCES:.c=.d)
 
