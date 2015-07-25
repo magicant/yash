@@ -257,6 +257,8 @@ __IN__
 0 [unset]
 __OUT__
 
-# TODO: test_oE 'failure by readonly variable'
+test_O -e n 'failure by readonly variable'
+echo B | (readonly a=A; read a)
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

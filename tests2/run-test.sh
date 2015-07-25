@@ -151,7 +151,8 @@ $1"
 #
 # If the "-e <expected_exit_status>" option is specified, the exit status of
 # the testee is also checked. If the actual exit status differs from the
-# expected, the test case fails.
+# expected, the test case fails. If <expected_exit_status> is "n", the expected
+# is any non-zero exit status.
 #
 # The first operand is used as the name of the test case.
 # The remaining operands are passed as arguments to the testee.
@@ -204,13 +205,24 @@ testcase() {
     failed="false"
 
     # check exit status
+    exit_status_fail() {
+	failed="true"
+	eprintf '%s:%d: %s: exit status mismatch\n' \
+	    "$test_file" "$test_lineno" "$test_case_name"
+    }
     if [ "$expected_exit_status" ]; then
-	printf '%% exit status: expected=%d actual=%d\n\n' \
-	    "$expected_exit_status" "$actual_exit_status"
-	if [ "$actual_exit_status" -ne "$expected_exit_status" ]; then
-	    failed="true"
-	    eprintf '%s:%d: %s: exit status mismatch\n' \
-		"$test_file" "$test_lineno" "$test_case_name"
+	if [ "$expected_exit_status" = n ]; then
+	    printf '%% exit status: expected=non-zero actual=%d\n\n' \
+		"$actual_exit_status"
+	    if [ "$actual_exit_status" -eq 0 ]; then
+		exit_status_fail
+	    fi
+	else
+	    printf '%% exit status: expected=%d actual=%d\n\n' \
+		"$expected_exit_status" "$actual_exit_status"
+	    if [ "$actual_exit_status" -ne "$expected_exit_status" ]; then
+		exit_status_fail
+	    fi
 	fi
     fi
 
