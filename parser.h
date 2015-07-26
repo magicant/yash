@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -300,9 +300,7 @@ typedef struct redir_T {
 typedef struct parseparam_T {
     _Bool print_errmsg;   /* print error messages? */
     _Bool enable_verbose; /* echo input if `shopt_verbose' is true? */
-#if YASH_ENABLE_ALIAS
     _Bool enable_alias;   /* perform alias substitution? */
-#endif
     const char *filename; /* the input filename, which may be NULL */
     unsigned long lineno; /* line number, which should be initialized to 1 */
     inputfunc_T *input;   /* input function */

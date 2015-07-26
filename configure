@@ -40,7 +40,6 @@ null=""
 help="false"
 nocreate="false"
 debug="false"
-enable_alias="true"
 enable_array="true"
 enable_dirstack="true"
 enable_nls="true"
@@ -94,7 +93,6 @@ parseenable() {
     opt="${1#--*able-}"
     opt="${opt%%=*}"
     case "$opt" in
-	alias)        enable_alias=$val ;;
 	array)        enable_array=$val ;;
 	dirstack)     enable_dirstack=$val ;;
 	help)         enable_help=$val ;;
@@ -186,7 +184,6 @@ Installation options:
 Optional features:
   --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
   --disable-FEATURE       disable FEATURE (same as --enable-FEATURE=no)
-  --enable-alias          enable aliases
   --enable-array          enable the array builtin
   --enable-dirstack       enable the directory stack (pushd, popd, dirs)
   --enable-help           enable the help builtin
@@ -1446,13 +1443,6 @@ then
 fi
 
 echo >&5
-
-# enable/disable aliases
-if ${enable_alias}
-then
-    defconfigh "YASH_ENABLE_ALIAS"
-    objs="$objs "'$(ALIAS_OBJS)'
-fi
 
 # enable/disable the array builtin
 if ${enable_array}

@@ -80,9 +80,6 @@ be specified.
 The following options can be specified to enable or disable specific
 features of yash. By default, yash is built with all features enabled.
 
-  --enable-alias  --disable-alias
-    If disabled, you cannot use aliases in the shell and the `alias'
-    and `unalias' built-in commands are not available.
   --enable-array  --disable-array
     If disabled, the `array' built-in command is not available. Note
     that array variables are available regardless of this option.

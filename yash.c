@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#if YASH_ENABLE_ALIAS
-# include "alias.h"
-#endif
+#include "alias.h"
 #include "builtin.h"
 #include "configm.h"
 #include "exec.h"
@@ -145,9 +143,7 @@ int main(int argc, char **argv)
     init_shellfds();
     init_job();
     init_builtin();
-#if YASH_ENABLE_ALIAS
     init_alias();
-#endif
 
     struct shell_invocation_T options = {
 	.profile = NULL, .rcfile = NULL,
@@ -379,9 +375,6 @@ void print_version(void)
 #ifndef NDEBUG
 		" * DEBUG\n"
 #endif
-#if YASH_ENABLE_ALIAS
-		" * alias\n"
-#endif
 #if YASH_ENABLE_ARRAY
 		" * array\n"
 #endif
@@ -430,9 +423,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
     struct parseparam_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = false,
-#if YASH_ENABLE_ALIAS
 	.enable_alias = true,
-#endif
 	.filename = name,
 	.lineno = 1,
 	.input = input_wcs,
@@ -454,9 +445,7 @@ void exec_input(int fd, const char *name, exec_input_options_T options)
     struct parseparam_T pinfo = {
 	.print_errmsg = true,
 	.enable_verbose = true,
-#if YASH_ENABLE_ALIAS
 	.enable_alias = options & XIO_SUBST_ALIAS,
-#endif
 	.filename = name,
 	.lineno = 1,
 	.interactive = options & XIO_INTERACTIVE,

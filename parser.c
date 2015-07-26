@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#if YASH_ENABLE_ALIAS
-# include "alias.h"
-#endif
+#include "alias.h"
 #include "expand.h"
 #include "input.h"
 #include "option.h"
@@ -368,10 +366,8 @@ typedef struct parsestate_T {
     struct xwcsbuf_T src;
     size_t index;
     struct plist_T pending_heredocs;
-#if YASH_ENABLE_ALIAS
     bool enable_alias, reparse;
     struct aliaslist_T *aliases;
-#endif
 } parsestate_T;
 /* info: contains parameter that affect the behavior of parsing.
  * error: set to true when an parsing error occurs.
@@ -460,10 +456,8 @@ static wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static embedcmd_T extract_command_in_paren(parsestate_T *ps)
     __attribute__((nonnull,warn_unused_result));
-#if YASH_ENABLE_ALIAS
 static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-#endif
 static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(parsestate_T *ps)
@@ -541,11 +535,9 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
-#if YASH_ENABLE_ALIAS
 	.enable_alias = info->enable_alias,
 	.reparse = false,
 	.aliases = NULL,
-#endif
     };
 
     if (ps.info->interactive) {
@@ -561,9 +553,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
-#if YASH_ENABLE_ALIAS
     destroy_aliaslist(ps.aliases);
-#endif
 
     switch (ps.info->lastinputresult) {
 	case INPUT_OK:
@@ -900,12 +890,10 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    *lastp = ao;
 	    lastp = &ao->next;
 	}
-#if YASH_ENABLE_ALIAS
 	if (ps->reparse) {
 	    assert(ao == NULL);
 	    continue;
 	}
-#endif
 
 	need_separator = true;
 	ensure_buffer(ps, 2);
@@ -918,9 +906,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     }
     if (!toeol)
 	ps->error |= saveerror;
-#if YASH_ENABLE_ALIAS
     ps->reparse = false;
-#endif
     return first;
 }
 
@@ -939,12 +925,10 @@ and_or_T *parse_compound_list(parsestate_T *ps)
 and_or_T *parse_and_or_list(parsestate_T *ps)
 {
     pipeline_T *p = parse_pipelines_in_and_or(ps);
-#if YASH_ENABLE_ALIAS
     if (ps->reparse) {
 	assert(p == NULL);
 	return NULL;
     }
-#endif
 
     and_or_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -968,7 +952,6 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 	    *lastp = p;
 	    lastp = &p->next;
 	}
-#if YASH_ENABLE_ALIAS
 	if (ps->reparse) {
 	    assert(p == NULL);
 	    if (first != NULL)
@@ -976,7 +959,6 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 	    else
 		break;
 	}
-#endif
 
 	ensure_buffer(ps, 2);
 	if (ps->src.contents[ps->index] == L'&'
@@ -989,9 +971,7 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 	    break;
 	}
 	ps->index += 2;
-#if YASH_ENABLE_ALIAS
 next:
-#endif
 	skip_to_next_token(ps);
     }
     return first;
@@ -1009,25 +989,19 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
     if (has_token(ps, L"!")) {
 	neg = true;
 	ps->index += 1;
-#if YASH_ENABLE_ALIAS
 	do {
-#endif
 	    skip_blanks_and_comment(ps);
 	    c = parse_commands_in_pipeline(ps);
-#if YASH_ENABLE_ALIAS
 	    if (ps->reparse)
 		assert(c == NULL);
 	} while (ps->reparse);
-#endif
     } else {
 	neg = false;
 	c = parse_commands_in_pipeline(ps);
-#if YASH_ENABLE_ALIAS
 	if (ps->reparse) {
 	    assert(c == NULL);
 	    return NULL;
 	}
-#endif
     }
 
     pipeline_T *result = xmalloc(sizeof *result);
@@ -1051,7 +1025,6 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 	    *lastp = c;
 	    lastp = &c->next;
 	}
-#if YASH_ENABLE_ALIAS
 	if (ps->reparse) {
 	    assert(c == NULL);
 	    if (first != NULL)
@@ -1059,7 +1032,6 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 	    else
 		break;
 	}
-#endif
 
 	ensure_buffer(ps, 2);
 	if (ps->src.contents[ps->index] == L'|' &&
@@ -1068,9 +1040,7 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 	} else {
 	    break;
 	}
-#if YASH_ENABLE_ALIAS
 next:
-#endif
 	skip_to_next_token(ps);
     }
     return first;
@@ -1081,9 +1051,7 @@ next:
  * NULL is returned. */
 command_T *parse_command(parsestate_T *ps)
 {
-#if YASH_ENABLE_ALIAS
     ps->reparse = false;
-#endif
 
     /* Note: `check_closing_token' calls `ensure_buffer(ps, 5)'. */
     const wchar_t *t = check_closing_token(ps);
@@ -1112,7 +1080,6 @@ command_T *parse_command(parsestate_T *ps)
     if (t != NULL)
 	return parse_compound_command(ps, t);
 
-#if YASH_ENABLE_ALIAS
     if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
 	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
 	if (substitute_alias(&ps->src, ps->index, &ps->aliases, flags)) {
@@ -1120,7 +1087,6 @@ command_T *parse_command(parsestate_T *ps)
 	    return NULL;
 	}
     }
-#endif
 
     command_T *result = tryparse_function(ps);
     if (result != NULL)
@@ -1169,13 +1135,11 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 	} else {
 	    break;
 	}
-#if YASH_ENABLE_ALIAS
 	if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
 	    substitute_alias(
 		    &ps->src, ps->index, &ps->aliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment(ps);
 	}
-#endif
     }
     return redirlastp;
 }
@@ -1198,16 +1162,12 @@ void **parse_words_and_redirects(
     pl_init(&wordlist);
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
-#if YASH_ENABLE_ALIAS
 	if (!first && ps->enable_alias) {
 	    if (count_name_length(ps, is_alias_name_char) > 0) {
 		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
 		skip_blanks_and_comment(ps);
 	    }
 	}
-#else
-	(void) first;
-#endif
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1228,11 +1188,9 @@ void **parse_words_and_redirects(
 void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
 {
     for (;;) {
-#if YASH_ENABLE_ALIAS
 	if (!posixly_correct && ps->enable_alias)
 	    if (count_name_length(ps, is_alias_name_char) > 0)
 		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
-#endif
 
 	redir_T *redir = tryparse_redirect(ps);
 	if (redir == NULL)
@@ -1427,7 +1385,6 @@ parse_command:
  * `type' specifies the type of aliases to be expanded.  */
 wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 {
-#if YASH_ENABLE_ALIAS
     if (ps->enable_alias) {
 	switch (type) {
 	case AT_NONE:
@@ -1443,9 +1400,6 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 	    break;
 	}
     }
-#else /* !YASH_ENABLE_ALIAS */
-    (void) type;
-#endif
 
     return parse_word_to(ps, is_token_delimiter_char);
 }
@@ -1844,13 +1798,10 @@ embedcmd_T extract_command_in_paren(parsestate_T *ps)
     save_pending_heredocs = ps->pending_heredocs;
     pl_init(&ps->pending_heredocs);
 
-#if YASH_ENABLE_ALIAS
     if (posixly_correct && ps->info->enable_alias) {
 	result.is_preparsed = false;
 	result.value.unparsed = extract_command_in_paren_unparsed(ps);
-    } else
-#endif
-    {
+    } else {
 	ps->index++;
 	result.is_preparsed = true;
 	result.value.preparsed = parse_compound_list(ps);
@@ -1862,7 +1813,6 @@ embedcmd_T extract_command_in_paren(parsestate_T *ps)
     return result;
 }
 
-#if YASH_ENABLE_ALIAS
 /* Parses commands between '(' and ')'.
  * The current position must be at the opening parenthesis L'(' when this
  * function is called. The position is advanced to the closing parenthesis
@@ -1882,7 +1832,6 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
     ps->enable_alias = save_enable_alias;
     return result;
 }
-#endif
 
 /* Parses a command substitution enclosed by backquotes.
  * When this function is called, the current position must be at the character
@@ -2657,11 +2606,9 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
-#if YASH_ENABLE_ALIAS
 	.enable_alias = false,
 	.reparse = false,
 	.aliases = NULL,
-#endif
     };
     wb_init(&ps.src);
 
@@ -2674,10 +2621,8 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
-#if YASH_ENABLE_ALIAS
     assert(ps.aliases == NULL);
     //destroy_aliaslist(ps.aliases);
-#endif
     if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
 	wordfree(*resultp);
 	return false;

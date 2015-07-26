@@ -38,9 +38,7 @@
 #include <sys/times.h>
 #include <unistd.h>
 #include <wchar.h>
-#if YASH_ENABLE_ALIAS
-# include "alias.h"
-#endif
+#include "alias.h"
 #include "builtin.h"
 #include "expand.h"
 #if YASH_ENABLE_HISTORY
@@ -2257,7 +2255,6 @@ bool print_command_info(
 	return true;
     }
 
-#if YASH_ENABLE_ALIAS
     if (aliases) {
 	if (print_alias_if_defined(commandname, humanfriendly)) {
 	    return true;
@@ -2266,9 +2263,6 @@ bool print_command_info(
 		return false;
 	}
     }
-#else
-    (void) aliases;
-#endif
 
     name = malloc_wcstombs(commandname);
     if (name == NULL)

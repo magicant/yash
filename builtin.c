@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if YASH_ENABLE_ALIAS
-# include "alias.h"
-#endif
+#include "alias.h"
 #include "exec.h"
 #include "hashtable.h"
 #if YASH_ENABLE_HISTORY
@@ -117,12 +115,10 @@ void init_builtin(void)
 	    umask_options);
 
     /* defined in "alias.c" */
-#if YASH_ENABLE_ALIAS
     DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help, alias_syntax,
 	    alias_options);
     DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help,
 	    unalias_syntax, all_help_options);
-#endif
 
     /* defined in "variable.c" */
     DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help,

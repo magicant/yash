@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -682,9 +682,7 @@ void generate_candidates(const le_compopt_T *compopt)
     generate_external_command_candidates(compopt);
     generate_function_candidates(compopt);
     generate_keyword_candidates(compopt);
-#if YASH_ENABLE_ALIAS
     generate_alias_candidates(compopt);
-#endif
     generate_variable_candidates(compopt);
     generate_job_candidates(compopt);
     generate_signal_candidates(compopt);

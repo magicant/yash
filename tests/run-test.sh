@@ -1,5 +1,5 @@
 # run-test.sh: runs tests specified by $TESTEE and $TEST_ITEMS
-# (C) 2007-2011 magicant
+# (C) 2007-2015 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,9 +65,6 @@ umask u=rwx,go=
 
 checkskip()
 case "$1" in
-    alias.y|alias.p)
-	$INVOKE $TESTEE -c 'PATH=; alias' >/dev/null 2>&1
-	;;
     array.y)
 	$INVOKE $TESTEE -c 'type array' 2>/dev/null | \
 	    grep '^array: a regular built-in' >/dev/null

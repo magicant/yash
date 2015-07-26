@@ -12,6 +12,7 @@ Yash 2.39
 
   +  New options for the "read" built-in: -e, -P, -p
   +  New completion script for: passwd
+  -  The configuration option '--disable-alias' has been dropped.
   =  The "read" built-in now requires the -e (--line-editing) option
      to enable line-editing.
   =  The behavior of the "trap" built-in now conforms to POSIX.1-2013.
