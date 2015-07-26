@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2015 magicant
 
 # Completion script for the "set" built-in command.
 # Completion function "completion/set" is used for the "ksh" and "yash"
@@ -73,7 +73,7 @@ function completion/set {
 			esac
 			;;
 		(*)
-			complete -P "$PREFIX" -f
+			complete -f
 			return
 			;;
 		esac

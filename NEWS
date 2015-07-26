@@ -30,6 +30,7 @@ Yash 2.39
      assigned by the "read" built-in with the -A option.
   *  Traps are no longer handled while waiting for input with line-
      editing in the "read" built-in.
+  *  Operands to the "set" built-in are now correctly completed.
 
 ----------------------------------------------------------------------
 Yash 2.38
