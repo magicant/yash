@@ -129,6 +129,18 @@ unalias true
 unalias true
 __IN__
 
+test_oE 'using alias after assignment'
+alias s=sh
+a=A s -c 'echo $a'
+__IN__
+A
+__OUT__
+
+test_OE 'using alias after redirection'
+alias e=echo
+>/dev/null e not_printed
+__IN__
+
 test_oE 'using alias in pipeline'
 alias c=cat
 ! a | c | c
@@ -143,6 +155,135 @@ __IN__
 ABC
 __OUT__
 
+(
+setup 'alias b=" "'
+
+test_oE 'alias substitution to blank before if'
+b if true; then echo ok; fi
+__IN__
+ok
+__OUT__
+
+test_OE -e n 'alias substitution to blank should not change exit status'
+set +e
+false
+b
+__IN__
+
+test_oE 'alias substitution to blank before newline'
+(
+echo ok | b
+cat
+) </dev/null
+__IN__
+ok
+__OUT__
+
+)
+
+test_oE 'alias substitution to assignment'
+alias a='a=A'
+a b=B sh -c 'echo $a $b'
+__IN__
+A B
+__OUT__
+
+test_oE 'alias substitution to redirection'
+alias r='>/dev/null'
+r echo not_printed
+echo ok
+__IN__
+ok
+__OUT__
+
+test_oE 'alias substitution to here-document'
+alias c='cat <<\END' d='c
+here-document
+END'
+d
+__IN__
+here-document
+__OUT__
+
+test_oE 'alias substitution to !'
+alias e='! echo'
+if e if; then echo then; else echo else; fi
+__IN__
+if
+else
+__OUT__
+
+test_oE 'alias substitution to parenthesis'
+alias l='(' r=')'
+a=A
+l echo subshell; a=B; r
+echo $a
+__IN__
+subshell
+A
+__OUT__
+
+test_oE 'alias substitution to if/then/elif/else/fi keywords'
+alias i='if echo' t='then echo' ei='elif echo' es='else echo' f='fi </dev/null'
+i if; then echo then1; elif echo elif; then echo then2; else echo else; fi
+if echo if; t then1; elif echo elif; then echo then2; else echo else; fi
+if false; then echo then1; ei elif; then echo then2; else echo else; fi
+if false; then echo then1; elif false; then echo then2; es else; fi
+if false; then echo then1; elif false; then echo then2; else echo else; f
+__IN__
+if
+then1
+if
+then1
+elif
+then2
+else
+else
+__OUT__
+
+test_oE 'alias substitution to while/until/do/done keywords'
+alias w='while :' u='until :' d='do echo' dn='done | cat -'
+w X; true; d while; break; dn
+u X; false; d until; break; dn
+__IN__
+while
+until
+__OUT__
+
+test_oE 'alias substitution to for'
+alias f='for i in 1 2; do'
+f echo $i; done
+__IN__
+1
+2
+__OUT__
+
+test_oE 'alias substitution to case/esac keywords'
+alias c='case a in a) :' e='esac </dev/null | cat -'
+c X; echo A; e
+__IN__
+A
+__OUT__
+
+test_oE 'alias substitution to ;;'
+alias s=';;'
+case a in
+    (b) s
+    (a) echo A
+esac
+__IN__
+A
+__OUT__
+
+test_oE 'alias substitution to function definition'
+alias def='f()' f='func'
+def
+{ echo f; }
+func
+__IN__
+f
+__OUT__
+
 test_oE 'IO_NUMBER cannot be aliased'
 alias 3=:
 3>/dev/null echo \>
@@ -150,6 +291,13 @@ alias 3=:
 __IN__
 >
 <
+__OUT__
+
+test_oE 'alias starting with blank'
+alias e=' echo'
+e A
+__IN__
+A
 __OUT__
 
 test_oE 'alias ending with blank'
@@ -188,6 +336,15 @@ partial double-quotation
 full double-quotation
 __OUT__
 
+test_oE 'line continuation in alias name'
+alias eeee=echo
+ee\
+e\
+e ok
+__IN__
+ok
+__OUT__
+
 test_oE 'characters allowed in alias name'
 alias Aa0_!%,@=echo
 Aa0_!%,@ ok
@@ -203,6 +360,17 @@ e !
 # echo %  echo %  !
 __IN__
 % echo % !
+__OUT__
+
+test_oE 'alias in command substitution'
+alias e=:
+func() {
+    alias e=echo
+    echo "$(e ok)"
+}
+func
+__IN__
+ok
 __OUT__
 
 )
