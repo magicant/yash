@@ -9,13 +9,24 @@ Volume 3: Shell & Utilities
 2.3.1 Alias Substitution
  * alias-p.tst
 
+2.14 Special Built-In Utilities
+
+colon
+ * nop-p.tst
+
 4 Utilities
 
 alias
  * alias-p.tst
 
+false
+ * nop-p.tst
+
 read
  * read-p.tst
+
+true
+ * nop-p.tst
 
 unalias
  * alias-p.tst

@@ -5,13 +5,6 @@ savepath=$PATH
 
 echo ===== : true false =====
 
-:
-echo $?
-true
-echo $?
-! false # "false" may return any non-zero status
-echo $?
-
 (
 # a function may override a non-special builtin
 false () { true; }
