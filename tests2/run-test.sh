@@ -125,10 +125,14 @@ setup() {
 	    ;;
 	(-d)
 	    setup <<\END
-_sp=' ' _tab='	' _nl='
+_empty= _sp=' ' _tab='	' _nl='
 '
 echoraw() {
     printf '%s\n' "$*"
+}
+bracket() {
+    if [ $# -gt 0 ]; then printf '[%s]' "$@"; fi
+    echo
 }
 END
 	    ;;
