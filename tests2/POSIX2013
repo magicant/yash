@@ -1,0 +1,24 @@
+This document indicates which part of IEEE Std 1003.1, 2013 edition, which is
+informally referred to as POSIX 2013 in this document, is covered by which
+test file.
+
+
+Volume 3: Shell & Utilities
+===========================
+
+2.3.1 Alias Substitution
+ * alias-p.tst
+
+4 Utilities
+
+alias
+ * alias-p.tst
+
+read
+ * read-p.tst
+
+unalias
+ * alias-p.tst
+
+
+vim: set tw=78:
