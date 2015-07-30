@@ -31,6 +31,7 @@ Yash 2.39
   *  Traps are no longer handled while waiting for input with line-
      editing in the "read" built-in.
   *  Operands to the "set" built-in are now correctly completed.
+  *  Minor fix in completion script for "git-svn".
 
 ----------------------------------------------------------------------
 Yash 2.38
