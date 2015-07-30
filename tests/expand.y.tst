@@ -229,3 +229,14 @@ echo ===== 10 =====
 
 x=1
 echo pre/postfix $((x++)) $((++x)) $((x--)) $((--x)) $((x))
+
+echo ===== 11 ===== >&2
+
+$INVOKE $TESTEE -c ': $((0/0))'
+$INVOKE $TESTEE -c ': $((1/0))'
+$INVOKE $TESTEE -c ': $((0%0))'
+$INVOKE $TESTEE -c ': $((1%0))'
+$INVOKE $TESTEE -c 'x=0 && : $((x/=0))'
+$INVOKE $TESTEE -c 'x=1 && : $((x/=0))'
+$INVOKE $TESTEE -c 'x=0 && : $((x%=0))'
+$INVOKE $TESTEE -c 'x=1 && : $((x%=0))'
