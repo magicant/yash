@@ -4,7 +4,7 @@
 tmp="${TESTTMP}/test.y.tmp"
 mkdir "$tmp"
 
-echo ===== return break continue =====
+echo ===== return continue =====
 
 returnfunc ()
 while do
@@ -23,18 +23,6 @@ echo return $?
 # The "return" built-in can return from rcfile
 $INVOKE $TESTEE -i --rcfile=dot.t -c 'echo return from rcfile'
 
-breakfunc ()
-while true; do
-    echo break ok
-    break 999
-    echo break ng
-done
-while true; do
-    echo break ok 2
-    breakfunc
-    echo break ng 2
-done
-
 contfunc ()
 while true; do
     echo continue ok
@@ -49,13 +37,6 @@ done
 
 echo ===== eval =====
 
-breakfunc2 ()
-while true; do
-    echo break ok
-    break -i
-    echo break ng
-done
-
 contfunc2 ()
 while true; do
     echo continue ok
@@ -65,12 +46,9 @@ done
 
 eval echo -i
 eval -i -- 'echo 1' 'echo 2'
-eval -i 'echo 1' 'echo 2; break -i; echo 3' 'echo 4'
 eval -i 'echo 1' 'echo 2; continue -i; echo 3' 'echo 4'
-eval -i 'echo 1' 'while true; do echo 2; breakfunc2; echo 3; done' 'echo 4'
 eval -i 'echo 1' 'while true; do echo 2; contfunc2; echo 3; done' 'echo 4'
-eval -i '(exit 2)' 'echo status1=$?; (exit 3); break -i'
-echo status2=$?
+eval -i '(exit 2)' 'echo status1=$?'
 
 eval 'echo 1; returnfunc; echo $?'
 eval -i 'echo 2' 'returnfunc' 'echo $?'

@@ -1,11 +1,9 @@
-===== return break continue =====
+===== return continue =====
 return 10
 return 11
 --
 returning --
 return from rcfile
-break ok 2
-break ok
 continue 1
 continue ok
 continue 2
@@ -16,18 +14,12 @@ continue ok
 2
 1
 2
-1
-2
 4
-1
-2
-break ok
 1
 2
 continue ok
 4
 status1=0
-status2=3
 1
 0
 2
