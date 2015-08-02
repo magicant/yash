@@ -1,24 +1,13 @@
-===== return continue =====
+===== return =====
 return 10
 return 11
 --
 returning --
 return from rcfile
-continue 1
-continue ok
-continue 2
-continue ok
 ===== eval =====
 -i
 1
 2
-1
-2
-4
-1
-2
-continue ok
-4
 status1=0
 1
 0
