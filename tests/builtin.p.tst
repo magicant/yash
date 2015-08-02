@@ -49,22 +49,6 @@ retfunc () {
 retfunc
 echo $?
 
-while true; do
-    echo while ok
-    break
-    echo while ng
-done
-until false; do
-    echo until ok
-    break
-    echo until ng
-done
-for i in 1 2 3 4; do
-    echo for $i
-    break
-    echo for ng
-done
-
 i=0
 while [ $i -eq 0 ]; do
     echo while $i

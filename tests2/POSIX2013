@@ -11,6 +11,9 @@ Volume 3: Shell & Utilities
 
 2.14 Special Built-In Utilities
 
+break
+ * break-p.tst
+
 colon
  * nop-p.tst
 

@@ -6,9 +6,6 @@ false true
 4
 retfunc
 5
-while ok
-until ok
-for 1
 while 0
 until 0
 for 1
