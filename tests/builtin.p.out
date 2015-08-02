@@ -1,29 +1,11 @@
 ===== : true false =====
 false true
 : true false
-===== return break continue =====
+===== return =====
 3
 4
 retfunc
 5
-while 0
-until 0
-for 1
-for 2
-for 3
-for 4
-1 7
-1 8
-2 7
-2 8
-3 7
-1 7 0
-1 8 1
-!
-i=2
-!
-i=3
-done
 ===== exit =====
 exit 1 0
 exit 2 20

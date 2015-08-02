@@ -17,6 +17,9 @@ break
 colon
  * nop-p.tst
 
+continue
+ * continue-p.tst
+
 4 Utilities
 
 alias
