@@ -12,6 +12,7 @@ Yash 2.39
 
   +  New options for the "read" built-in: -e, -P, -p
   +  New completion script for: passwd
+  -  The configuration option '--disable-alias' has been dropped.
   =  The "read" built-in now requires the -e (--line-editing) option
      to enable line-editing.
   =  The behavior of the "trap" built-in now conforms to POSIX.1-2013.
@@ -21,6 +22,8 @@ Yash 2.39
      what the built-in can return from. The behavior of the built-in
      has been modified accordingly. It no longer interrupts the "eval"
      and "fc" built-ins.
+  *  Crash on division by zero with the "/=" or "%=" operator
+     in arithmetic expansion.
   *  The "read" built-in with a single operand was failing to trim
      initial IFS whitespaces in field splitting.
   *  The "read" built-in was not handling backslashes correctly in
@@ -29,6 +32,8 @@ Yash 2.39
      assigned by the "read" built-in with the -A option.
   *  Traps are no longer handled while waiting for input with line-
      editing in the "read" built-in.
+  *  Operands to the "set" built-in are now correctly completed.
+  *  Minor fix in completion script for "git-svn".
 
 ----------------------------------------------------------------------
 Yash 2.38

@@ -1,5 +1,5 @@
 # fulltest.sh: runs tests for many combinations of configuration options
-# (C) 2010-2011 magicant
+# (C) 2010-2015 magicant
 
 do_test () {
 	if [ -r Makefile ]; then
@@ -16,16 +16,16 @@ cd -- "$(dirname -- "$0")/.."
 echo "$0: using '${MAKE:=make}' as make"
 
 a0='' a1='--disable-lineedit' a2='--disable-history --disable-lineedit' a3=''
-b0='' b1='--disable-alias'
-c0='' c1='--disable-array'
-d0='' d1='--disable-dirstack'
-e0='' e1='--disable-help'
-f0='' f1='--disable-nls'
-g0='' g1='--disable-printf' 
-h0='' h1='--disable-socket' 
-i0='' i1='--disable-test'   
-j0='' j1='--disable-ulimit' 
-k0='' k1='--debug'          
+b0='' b1='--disable-array'    
+c0='' c1='--disable-dirstack' 
+d0='' d1='--disable-help'     
+e0='' e1='--disable-nls'      
+f0='' f1='--disable-printf'   
+g0='' g1='--disable-socket'   
+h0='' h1='--disable-test'     
+i0='' i1='--disable-ulimit'   
+j0='' j1='--debug'            
+k0='' k1=''
 l0='' l1=''                 
 m0='' m1=''                 
 

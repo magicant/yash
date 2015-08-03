@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -148,6 +148,9 @@ static valuetype_T coerce_type(evalinfo_T *info,
     __attribute__((nonnull));
 static void next_token(evalinfo_T *info)
     __attribute__((nonnull));
+static bool fail_if_will_divide_by_zero(
+	tokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
+    __attribute__((nonnull));
 
 
 /* Evaluates the specified string as an arithmetic expression.
@@ -256,12 +259,16 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 		    word_T saveword = result->v_var;
 		    switch (coerce_type(info, result, &rhs)) {
 			case VT_LONG:
-			    result->v_long = do_long_calculation(ttype,
-				    result->v_long, rhs.v_long);
+			    if (!fail_if_will_divide_by_zero(
+					ttype, &rhs, info, result))
+				result->v_long = do_long_calculation(ttype,
+					result->v_long, rhs.v_long);
 			    break;
 			case VT_DOUBLE:
-			    result->v_double = do_double_calculation(ttype,
-				    result->v_double, rhs.v_double);
+			    if (!fail_if_will_divide_by_zero(
+					ttype, &rhs, info, result))
+				result->v_double = do_double_calculation(ttype,
+					result->v_double, rhs.v_double);
 			    break;
 			case VT_INVALID:
 			    result->type = VT_INVALID;
@@ -773,26 +780,16 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
 		parse_prefix(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			if (ttype != TT_ASTER && rhs.v_long == 0) {
-			    xerror(0, Ngt("arithmetic: division by zero"));
-			    info->error = true;
-			    result->type = VT_INVALID;
-			    break;
-			}
-			result->v_long = do_long_calculation(ttype,
-				result->v_long, rhs.v_long);
+			if (!fail_if_will_divide_by_zero(
+				    ttype, &rhs, info, result))
+			    result->v_long = do_long_calculation(ttype,
+				    result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
-#if DOUBLE_DIVISION_BY_ZERO_ERROR
-			if (ttype != TT_ASTER && rhs.v_double == 0.0) {
-			    xerror(0, Ngt("arithmetic: division by zero"));
-			    info->error = true;
-			    result->type = VT_INVALID;
-			    break;
-			}
-#endif
-			result->v_double = do_double_calculation(ttype,
-				result->v_double, rhs.v_double);
+			if (!fail_if_will_divide_by_zero(
+				    ttype, &rhs, info, result))
+			    result->v_double = do_double_calculation(ttype,
+				    result->v_double, rhs.v_double);
 			break;
 		    case VT_INVALID:
 			result->type = VT_INVALID;
@@ -1333,5 +1330,44 @@ parse_identifier:;
     }
 }
 
+/* If `op' is a division operator and `rhs' is zero, then prints an error
+ * message, sets `info->error' to true, sets `result->type' to VT_INVALID, and
+ * returns true. Otherwise, just returns false.
+ * `rhs->type' must not be VT_VAR. */
+bool fail_if_will_divide_by_zero(
+	tokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
+{
+    switch (op) {
+    case TT_SLASH:
+    case TT_SLASHEQUAL:
+    case TT_PERCENT:
+    case TT_PERCENTEQUAL:
+	switch (rhs->type) {
+	case VT_LONG:
+	    if (rhs->v_long == 0)
+		goto fail;
+	    break;
+	case VT_DOUBLE:
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+	    if (rhs->v_double == 0.0)
+		goto fail;
+#endif
+	    break;
+	case VT_VAR:
+	    assert(false);
+	case VT_INVALID:
+	    break;
+	}
+	/* falls through */
+    default:
+	return false;
+    }
+
+fail:
+    xerror(0, Ngt("arithmetic: division by zero"));
+    info->error = true;
+    result->type = VT_INVALID;
+    return true;
+}
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

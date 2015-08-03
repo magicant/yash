@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#if YASH_ENABLE_ALIAS
-# include "../alias.h"
-#endif
+#include "../alias.h"
 #include "../exec.h"
 #include "../expand.h"
 #include "../history.h"
@@ -2624,7 +2622,6 @@ void vi_exec_alias(wchar_t c)
     le_set_mode(savemode);
     state.pending_command_char = 0;
 
-#if YASH_ENABLE_ALIAS
     wchar_t aliasname[3] = { L'_', c, L'\0', };
     const wchar_t *aliasvalue = get_alias_value(aliasname);
     if (aliasvalue != NULL) {
@@ -2634,9 +2631,6 @@ void vi_exec_alias(wchar_t c)
 	    return;
 	}
     }
-#else
-    (void) c;
-#endif
     cmd_alert(L'\0');
 }
 

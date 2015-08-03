@@ -23,9 +23,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
-#if YASH_ENABLE_ALIAS
-# include "../alias.h"
-#endif
+#include "../alias.h"
 #include "../expand.h"
 #include "../option.h"
 #include "../parser.h"
@@ -43,9 +41,7 @@
 typedef struct cparseinfo_T {
     xwcsbuf_T buf;
     size_t bufindex;
-#if YASH_ENABLE_ALIAS
     struct aliaslist_T *aliaslist;
-#endif
     le_context_T *ctxt;
 } cparseinfo_T;
 /* The `buf' buffer contains the first `le_main_index' characters of the edit
@@ -68,11 +64,7 @@ static void set_pwords(plist_T *pwords)
 static bool cparse_commands(void);
 static void skip_blanks(void);
 static void skip_blanks_and_newlines(void);
-#if YASH_ENABLE_ALIAS
 static bool csubstitute_alias(substaliasflags_T flags);
-#else
-# define csubstitute_alias(flags) false
-#endif
 static bool cparse_command(void);
 static bool has_token(const wchar_t *token)
     __attribute__((nonnull,pure));
@@ -130,9 +122,7 @@ le_context_T *le_get_context(void)
     wb_init(&parseinfo.buf);
     wb_ncat_force(&parseinfo.buf, le_main_buffer.contents, le_main_index);
     parseinfo.bufindex = 0;
-#if YASH_ENABLE_ALIAS
     parseinfo.aliaslist = NULL;
-#endif
     parseinfo.ctxt = ctxt;
 
     pi = &parseinfo;
@@ -143,9 +133,7 @@ le_context_T *le_get_context(void)
 #endif
 
     wb_destroy(&parseinfo.buf);
-#if YASH_ENABLE_ALIAS
     destroy_aliaslist(parseinfo.aliaslist);
-#endif
 
     if (shopt_braceexpand)
 	if (remove_braceexpand(ctxt->pattern))
@@ -225,8 +213,6 @@ void skip_blanks_and_newlines(void)
 	INDEX++;
 }
 
-#if YASH_ENABLE_ALIAS
-
 /* Performs alias substitution at the current position.
  * See the description of `substitute_alias' for the usage of `flags'.
  * Returns true iff any alias is substituted.
@@ -241,8 +227,6 @@ bool csubstitute_alias(substaliasflags_T flags)
 	return false;
     return substitute_alias(&pi->buf, INDEX, &pi->aliaslist, flags);
 }
-
-#endif
 
 /* Parses a command from the current position. */
 bool cparse_command(void)
