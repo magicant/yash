@@ -9,7 +9,17 @@ Volume 3: Shell & Utilities
 2.3.1 Alias Substitution
  * alias-p.tst
 
+2.8.1 Consequences of Shell Errors
+  Utility syntax error, redirection error, variable assignment error
+   * builtins-p.tst
+
+2.9.1 Simple Commands
+
+Command Search and Execution
+ * builtins-p.tst
+
 2.14 Special Built-In Utilities
+ * builtins-p.tst
 
 break
  * break-p.tst

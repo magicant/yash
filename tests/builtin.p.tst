@@ -3,24 +3,6 @@
 
 savepath=$PATH
 
-echo ===== : true false =====
-
-(
-# a function may override a non-special builtin
-false () { true; }
-if false; then echo false true; fi
-
-# a non-regular builtin should be executed if not in PATH
-PATH=
-if : && true && false; then
-    PATH=$savepath
-    echo : true false
-else
-    PATH=$savepath
-fi
-)
-
-
 echo ===== exit =====
 
 $INVOKE $TESTEE <<\END
