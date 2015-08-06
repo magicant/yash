@@ -20,35 +20,6 @@ else
 fi
 )
 
-echo ===== return =====
-
-retfunc () {
-    return 3
-    echo retfunc ng
-}
-retfunc
-echo $?
-
-retfunc () {
-    (exit 4)
-    return
-    echo retfunc ng 2
-}
-retfunc
-echo $?
-
-retfunc () {
-    retfunc_inner () {
-	return $1
-    }
-    retfunc_inner 5
-    retfunc_inner=$?
-    echo retfunc
-    return $retfunc_inner
-}
-retfunc
-echo $?
-
 
 echo ===== exit =====
 
@@ -111,6 +82,8 @@ PATH=
 command -p echo PATH=
 PATH=$savepath
 
+func() { :; }
+
 case "$(command -v echo)" in
     /*/echo | /echo ) ;;
     *               ) echo "\$(command -v echo) = $(command -v echo)"
@@ -123,7 +96,7 @@ if PATH= command -v _no_such_command_; then
     echo "\"command -v _no_such_command_\" returned zero status" >&2
 fi
 $(command -v echo) command -v
-command -v retfunc
+command -v func
 command -v if
 command -v then
 command -v else

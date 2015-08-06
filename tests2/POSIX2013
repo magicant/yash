@@ -20,6 +20,9 @@ colon
 continue
  * continue-p.tst
 
+return
+ * return-p.tst
+
 4 Utilities
 
 alias

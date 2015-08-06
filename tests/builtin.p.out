@@ -1,11 +1,6 @@
 ===== : true false =====
 false true
 : true false
-===== return =====
-3
-4
-retfunc
-5
 ===== exit =====
 exit 1 0
 exit 2 20
@@ -21,7 +16,7 @@ returning --
 ok
 PATH=
 command -v
-retfunc
+func
 if
 then
 else
