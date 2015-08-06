@@ -64,13 +64,8 @@ while getopts r opt; do
 done
 shift "$((OPTIND-1))"
 
-#testee="${1:?testee not specified}"
 testee="$(command -v "${1:?testee not specified}")"
 test_file="${2:?test file not specified}"
-#result_file="${3:?result file not specified}"
-#testee="$(absolute "${1:?testee not specified}")"
-#test_file="$(absolute "${2:?test file not specified}")"
-#result_file="$(absolute "${3:?result file not specified}")"
 
 unset -v CDPATH COLUMNS COMMAND_NOT_FOUND_HANDLER DIRSTACK ECHO_STYLE ENV
 unset -v FCEDIT HANDLED HISTFILE HISTRMDUP HISTSIZE HOME IFS LINES MAIL
@@ -86,7 +81,6 @@ export -X LINENO OPTIND
 ##### Prepare temporary directory
 
 work_dir="tmp.$$"
-#work_dir="$(absolute "tmp.$$")"
 
 rm_work_dir()
 if "$remove_work_dir"; then
