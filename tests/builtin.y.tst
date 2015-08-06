@@ -4,25 +4,11 @@
 tmp="${TESTTMP}/test.y.tmp"
 mkdir "$tmp"
 
-echo ===== return =====
-
 returnfunc ()
 while do
     return -n
     return
 done
-return --no-return 10
-returnfunc
-echo return $?
-$INVOKE $TESTEE <<\END
-return 11
-echo not reached
-END
-echo return $?
-
-# The "return" built-in can return from rcfile
-$INVOKE $TESTEE -i --rcfile=dot.t -c 'echo return from rcfile'
-
 
 echo ===== eval =====
 

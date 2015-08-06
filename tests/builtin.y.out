@@ -1,9 +1,3 @@
-===== return =====
-return 10
-return 11
---
-returning --
-return from rcfile
 ===== eval =====
 -i
 1
