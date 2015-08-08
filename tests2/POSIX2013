@@ -30,6 +30,9 @@ colon
 continue
  * continue-p.tst
 
+exit
+ * exit-p.tst
+
 return
  * return-p.tst
 
