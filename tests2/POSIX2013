@@ -12,6 +12,8 @@ Volume 3: Shell & Utilities
 2.8.1 Consequences of Shell Errors
   Utility syntax error, redirection error, variable assignment error
    * builtins-p.tst
+  Dot script not found
+   * dot-p.tst
 
 2.9.1 Simple Commands
 
@@ -29,6 +31,9 @@ colon
 
 continue
  * continue-p.tst
+
+dot
+ * dot-p.tst
 
 exit
  * exit-p.tst

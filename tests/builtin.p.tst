@@ -3,12 +3,6 @@
 
 savepath=$PATH
 
-echo ===== . =====
-
-. ./dot.t
-echo $count
-
-
 echo ===== command =====
 
 echo () { :; }
