@@ -178,6 +178,125 @@ test_special_builtin_redirect_i "$LINENO" unset
 # not portably cause syntax error since any syntax can be accepted as an
 # extension.
 
+test_o 'assignment on special built-in colon is persistent'
+a=a
+a=b :
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in dot is persistent'
+a=a
+a=b . /dev/null
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in break is persistent'
+a=a
+for i in 1; do
+    a=b break
+done
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in continue is persistent'
+a=a
+for i in 1; do
+    a=b continue
+done
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in eval is persistent'
+a=a
+a=b eval ''
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in exec is persistent'
+a=a
+a=b exec
+echo $a
+__IN__
+b
+__OUT__
+
+#test_o 'assignment on special built-in exit is persistent'
+
+test_o 'assignment on special built-in export is persistent'
+a=a
+a=b export c=c
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in readonly is persistent'
+a=a
+a=b readonly c=c
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in return is persistent'
+f() { a=b return; }
+a=a
+f
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in set is persistent'
+a=a
+a=b set ''
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in shift is persistent'
+a=a
+a=b shift 0
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in times is persistent'
+a=a
+a=b times >/dev/null
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in trap is persistent'
+a=a
+a=b trap - TERM
+echo $a
+__IN__
+b
+__OUT__
+
+test_o 'assignment on special built-in unset is persistent'
+a=a
+a=b unset b
+echo $a
+__IN__
+b
+__OUT__
+
 test_O 'function cannot override special built-in colon'
 :() { echo not reached; }
 :
