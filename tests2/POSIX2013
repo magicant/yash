@@ -12,6 +12,9 @@ Volume 3: Shell & Utilities
 2.8.1 Consequences of Shell Errors
   Utility syntax error, redirection error, variable assignment error
    * builtins-p.tst
+   * error-p.tst
+  Expansion error
+   * error-p.tst
   Dot script not found
    * dot-p.tst
 
