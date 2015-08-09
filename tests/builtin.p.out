@@ -1,25 +1,3 @@
-===== command =====
-ok
-PATH=
-command -v
-func
-if
-then
-else
-elif
-fi
-do
-done
-case
-esac
-while
-until
-for
-{
-}
-!
-in
-ok
 ===== special builtins =====
 ===== exec =====
 exec

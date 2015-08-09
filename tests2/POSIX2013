@@ -46,6 +46,9 @@ return
 alias
  * alias-p.tst
 
+command
+ * command-p.tst
+
 false
  * nop-p.tst
 
