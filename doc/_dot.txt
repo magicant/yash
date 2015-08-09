@@ -70,8 +70,7 @@ non-zero if a file was not found or could not be opened.
 
 The dot built-in is a link:builtin.html#types[special built-in].
 
-A link:interact.html[non-interactive] shell that is not in the
-link:posix.html[POSIXly-correct mode] will immediately exit with a non-zero
+A link:interact.html[non-interactive] shell immediately exits with a non-zero
 exit status if the dot built-in fails to find or open a file to execute.
 
 The POSIX standard defines no options for the dot built-in;
