@@ -1,13 +1,3 @@
-===== . =====
--1 2 3-
---
-returning --
-returning --
-0
--a b c-
-script1
-dir/script1
-dir/script2
 ===== command =====
 if: a shell keyword
 then: a shell keyword

@@ -4,30 +4,6 @@
 tmp="${TESTTMP}/test.y.tmp"
 mkdir "$tmp"
 
-echo ===== . =====
-
-set a b c
-. ./dot.t 1 2 3
-echo $count
-echo -"$@"-
-
-# test of autoload
-mkdir "$tmp/dir"
-cat >"$tmp/script1" <<\EOF
-echo script1
-EOF
-cat >"$tmp/dir/script1" <<\EOF
-echo dir/script1
-EOF
-cat >"$tmp/dir/script2" <<\EOF
-echo dir/script2
-EOF
-YASH_LOADPATH=("$tmp/dummy" "$tmp" "$tmp/dir" "$tmp/dummy")
-. -L script1
-. -L dir/script1
-. --autoload script2
-
-
 echo ===== command =====
 
 command -V if then else elif fi do done case esac while until for function \
