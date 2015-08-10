@@ -67,6 +67,16 @@ __OUT__
 
 #####
 
+test_OE -e 7 'returning out of eval (iteration)'
+fn() {
+    eval -i 'return 7' 'echo not reached 1'
+    echo not reached 2
+}
+fn
+__IN__
+
+#####
+
 test_oE 'using -n option'
 return -n 7
 echo $?

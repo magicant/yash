@@ -38,6 +38,9 @@ continue
 dot
  * dot-p.tst
 
+eval
+ * eval-p.tst
+
 exit
  * exit-p.tst
 
