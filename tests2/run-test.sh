@@ -74,7 +74,7 @@ unset -v PS1 PS1R PS1S PS2 PS2R PS2S PS3 PS3R PS3S PS4 PS4R PS4S
 unset -v RANDOM TERM YASH_AFTER_CD YASH_LOADPATH YASH_LE_TIMEOUT YASH_VERSION
 unset -v A B C D E F G H I J K L M N O P Q R S T U V W X Y Z _
 unset -v a b c d e f g h i j k l m n o p q r s t u v w x y z
-unset -v posix
+unset -v posix skip
 export LC_ALL=C
 export -X LINENO OPTIND
 
@@ -163,6 +163,8 @@ testee() (
 #
 # The first operand is used as the name of the test case.
 # The remaining operands are passed as arguments to the testee.
+#
+# If the "skip" variable is defined non-empty, the test case is skipped.
 testcase() {
     test_lineno="${1:?line number unspecified}"
     shift 1
@@ -199,6 +201,12 @@ testcase() {
 	fi
 	cat <&3
     } >"$in_file"
+
+    if [ "${skip-}" ]; then
+	log_stdout SKIPPED
+	echo
+	return
+    fi
 
     # run the testee
     log_stdout START

@@ -16,7 +16,7 @@
 
 set -Ceu
 
-passed=0 failed=0
+passed=0 failed=0 skipped=0
 
 for result_file do
     log=''
@@ -34,14 +34,19 @@ $line"
 		printf '%s\n\n' "$log"
 		failed="$((failed + 1))"
 		;;
+	    ('%%% SKIPPED:'*)
+		printf '%s\n\n' "$line"
+		skipped="$((skipped + 1))"
+		;;
 	esac
     done <"$result_file"
 done
 
-printf '============\n'
-printf 'TOTAL:  %4d\n' "$((passed + failed))"
-printf 'PASSED: %4d\n' "$passed"
-printf 'FAILED: %4d\n' "$failed"
-printf '============\n'
+printf '=============\n'
+printf 'TOTAL:   %4d\n' "$((passed + failed + skipped))"
+printf 'PASSED:  %4d\n' "$passed"
+printf 'FAILED:  %4d\n' "$failed"
+printf 'SKIPPED: %4d\n' "$skipped"
+printf '=============\n'
 
 # vim: set ts=8 sts=4 sw=4 noet:

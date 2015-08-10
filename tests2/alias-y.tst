@@ -7,8 +7,7 @@ if testee <<\END
     true
 END
 then
-    printf '# Skipping tests of aliases (POSIX)\n'
-    return
+    skip="true"
 fi
 
 test_OE -e 0 'yash has no predefined aliases'

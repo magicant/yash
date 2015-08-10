@@ -40,8 +40,7 @@ __OUT__
 (
 # Ensure $PWD is safe to assign to $PATH
 case $PWD in (*[:%]*)
-    printf '# Skipping some tests of dot\n'
-    exit
+    skip="true"
 esac
 
 setup 'savepath=$PATH; PATH=$PWD'

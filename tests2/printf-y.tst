@@ -11,8 +11,7 @@ __IN__
 __OUT__
 
 if ! "$TESTEE" -c 'type printf' | grep -Fq 'built-in'; then
-    printf '# Skipping tests of printf\n'
-    return
+    skip="true"
 fi
 
 test_oE 'normal characters'

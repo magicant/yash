@@ -42,8 +42,8 @@ BYPRODUCTS = $(SOURCES:.c=.o) $(TESTERS) $(TEST_RESULTS) $(SUMMARY) *.dSYM
 test:
 	rm -rf $(RECHECK_LOGS)
 	@$(MAKE) $(SUMMARY)
-	@tail -n 5 $(SUMMARY)
-	@tail -n 5 $(SUMMARY) | grep ^FAILED | \
+	@tail -n 6 $(SUMMARY)
+	@tail -n 6 $(SUMMARY) | grep ^FAILED | \
 		(read _ fail_count && \
 		if [ "$$fail_count" -ne 0 ]; then \
 			echo See $(SUMMARY) for details; \

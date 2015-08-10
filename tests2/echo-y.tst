@@ -13,8 +13,7 @@ __IN__
 __OUT__
 
 if ! "$TESTEE" -c 'type echo' | grep -Fq 'built-in'; then
-    printf '# Skipping tests of echo\n'
-    return
+    skip="true"
 fi
 
 test_n_ignored() {

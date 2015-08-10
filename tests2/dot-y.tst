@@ -62,8 +62,7 @@ __IN__
 (
 # Ensure $PWD is safe to assign to $YASH_LOADPATH
 case $PWD in (*[:%]*)
-    printf '# Skipping some tests of dot\n'
-    exit
+    skip="true"
 esac
 
 mkdir testpath
