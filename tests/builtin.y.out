@@ -1,9 +1,0 @@
-===== exec =====
-sh
-sh
-bar=456
-baz=7:8:9
-foo=123
-bar=456
-baz=7:8:9
-foo=123
