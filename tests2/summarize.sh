@@ -16,6 +16,12 @@
 
 set -Ceu
 
+export LC_ALL=C
+
+uname -a
+date
+printf '=============\n\n'
+
 passed=0 failed=0 skipped=0
 
 for result_file do
