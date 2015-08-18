@@ -57,6 +57,15 @@ __IN__
 here
 __OUT__
 
+test_oE 'effect on environment'
+command read a <<\__END__
+foo
+__END__
+echo $a
+__IN__
+foo
+__OUT__
+
 test_o -e 0 'executing with standard path'
 PATH=
 command -p echo foo bar | command -p cat
