@@ -10,9 +10,10 @@ Volume 3: Shell & Utilities
  * alias-p.tst
 
 2.8.1 Consequences of Shell Errors
+  Shell language syntax error
+   * error-p.tst
   Utility syntax error, redirection error, variable assignment error
    * builtins-p.tst
-   * error-p.tst
   Expansion error
    * error-p.tst
   Dot script not found
