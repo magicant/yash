@@ -23,7 +23,7 @@ test_special_builtin_assign_s() {
 	"assignment error on special built-in $2 in subshell" \
 	3<<__IN__ 4<<\__OUT__
 readonly a=a
-(a=b $2)
+(a=b $2; echo not reached)
 [ \$? -ne 0 ]
 echo \$?
 __IN__
@@ -62,7 +62,7 @@ test_special_builtin_redirect_s() {
     testcase "$1" -d \
 	"redirection error on special built-in $2 in subshell" \
 	3<<__IN__ 4<<\__OUT__
-($2 <_no_such_file_)
+($2 <_no_such_file_; echo not reached)
 [ \$? -ne 0 ]
 echo \$?
 __IN__

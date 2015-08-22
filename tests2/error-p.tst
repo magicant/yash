@@ -13,7 +13,7 @@ echo not reached
 __IN__
 
 test_o -d 'syntax error in subshell'
-(eval fi)
+(eval fi; echo not reached)
 [ $? -ne 0 ]
 echo $?
 __IN__
@@ -35,7 +35,7 @@ __IN__
 
 test_o -d 'expansion error in subshell'
 unset a
-(echo ${a?})
+(echo ${a?}; echo not reached)
 [ $? -ne 0 ]
 echo $?
 __IN__
