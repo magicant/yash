@@ -12,7 +12,7 @@ __IN__
 4 5	5
 __OUT__
 
-if ! "$TESTEE" -c 'type echo' | grep -Fq 'built-in'; then
+if ! testee -c 'command -bv echo' >/dev/null; then
     skip="true"
 fi
 

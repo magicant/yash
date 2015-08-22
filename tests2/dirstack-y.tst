@@ -1,6 +1,6 @@
 # dirstack-y.tst: yash-specific test of directory stack
 
-if ! testee -c 'type pushd' | grep -q '^pushd: a regular built-in'; then
+if ! testee -c 'command -bv pushd' >/dev/null; then
     skip="true"
 fi
 

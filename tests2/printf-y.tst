@@ -10,7 +10,7 @@ __IN__
 
 __OUT__
 
-if ! "$TESTEE" -c 'type printf' | grep -Fq 'built-in'; then
+if ! testee -c 'command -bv printf' >/dev/null; then
     skip="true"
 fi
 
