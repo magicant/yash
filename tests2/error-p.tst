@@ -51,4 +51,8 @@ __IN__
 0
 __OUT__
 
+test_O -d -e 127 'command not found'
+./_no_such_command_
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -49,13 +49,13 @@ test_OE -e 11 'dot script in $PATH'
 . file3
 __IN__
 
-test_O -d -e n 'dot script not found, non-interactive shell'
+test_O -d -e n 'dot script not found, in $PATH, non-interactive shell'
 . _no_such_file_
 PATH=$savepath
 echo not reached
 __IN__
 
-test_o -d 'dot script not found, subshell, exiting'
+test_o -d 'dot script not found, in $PATH, subshell, exiting'
 (. _no_such_file_)
 PATH=$savepath
 echo reached
@@ -63,11 +63,11 @@ __IN__
 reached
 __OUT__
 
-test_O -d -e n 'dot script not found, subshell, exit status'
+test_O -d -e n 'dot script not found, in $PATH, subshell, exit status'
 (. _no_such_file_)
 __IN__
 
-test_o -d 'dot script not found, interactive shell, no exiting' -i +m
+test_o -d 'dot script not found, in $PATH, interactive shell, no exiting' -i +m
 . _no_such_file_
 PATH=$savepath
 echo reached
@@ -75,10 +75,37 @@ __IN__
 reached
 __OUT__
 
-test_O -d -e n 'dot script not found, interactive shell, exit status' -i +m
+test_O -d -e n 'dot script not found, in $PATH, interactive shell, exit status' -i +m
 . _no_such_file_
 __IN__
 
 )
+
+test_O -d -e n 'dot script not found, relative, non-interactive shell'
+. ./_no_such_file_
+echo not reached
+__IN__
+
+test_o -d 'dot script not found, relative, subshell, exiting'
+(. ./_no_such_file_)
+echo reached
+__IN__
+reached
+__OUT__
+
+test_O -d -e n 'dot script not found, relative, subshell, exit status'
+(. ./_no_such_file_)
+__IN__
+
+test_o -d 'dot script not found, relative, interactive shell, no exiting' -i +m
+. ./_no_such_file_
+echo reached
+__IN__
+reached
+__OUT__
+
+test_O -d -e n 'dot script not found, relative, interactive shell, exit status' -i +m
+. ./_no_such_file_
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

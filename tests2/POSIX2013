@@ -14,10 +14,14 @@ Volume 3: Shell & Utilities
    * error-p.tst
   Utility syntax error, redirection error, variable assignment error
    * builtins-p.tst
+   * builtins-y.tst
   Expansion error
    * error-p.tst
   Dot script not found
    * dot-p.tst
+
+2.8.2 Exit Status for Commands
+ * error-p.tst
 
 2.9.1 Simple Commands
 
