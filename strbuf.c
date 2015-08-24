@@ -586,7 +586,7 @@ wchar_t *malloc_wprintf(const wchar_t *format, ...)
 
 /* Joins the wide-character strings in the specified NULL-terminated array. The
  * array elements are considered pointers to wide strings.
- * If `padding' is non-NULL, `padding' is padded between each joined element.
+ * `padding' is padded between each joined element.
  * Returns a newly malloced string. */
 wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 {
@@ -595,7 +595,7 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     /* count the full length of the resulting string */
     for (elemcount = 0; array[elemcount] != NULL; elemcount++)
 	ccount += wcslen(array[elemcount]);
-    if (padding != NULL && elemcount > 0)
+    if (elemcount > 0)
 	ccount += wcslen(padding) * (elemcount - 1);
 
     /* do copying */
