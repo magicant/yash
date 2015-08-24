@@ -144,7 +144,7 @@ static void generate_host_candidates(const le_compopt_T *compopt)
 static void generate_candidates_from_words(
 	le_candtype_T type, void *const *words, const wchar_t *description,
 	const le_compopt_T *compopt)
-    __attribute__((nonnull));
+    __attribute__((nonnull(2,4)));
 static void word_completion(size_t count, ...)
     __attribute__((nonnull));
 

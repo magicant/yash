@@ -24,6 +24,7 @@ Yash 2.39
      and "fc" built-ins.
   *  Crash on division by zero with the "/=" or "%=" operator
      in arithmetic expansion.
+  *  Crash in the "complete" built-in called without the -D option.
   *  Yash no longer tries to find the profile and rcfile scripts in
      the root directory when $HOME is not set.
   *  The "read" built-in with a single operand was failing to trim
