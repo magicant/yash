@@ -11,7 +11,7 @@ History of Yash
 Yash 2.39
 
   +  New options for the "read" built-in: -e, -P, -p
-  +  New completion script for: passwd
+  +  New completion script for: passwd, valgrind
   -  The configuration option '--disable-alias' has been dropped.
   =  The "read" built-in now requires the -e (--line-editing) option
      to enable line-editing.
