@@ -21,7 +21,7 @@ END
 echo return $?
 
 # The "return" built-in can return from rcfile
-$INVOKE $TESTEE -i --rcfile=dot.t -c 'echo return from rcfile'
+$INVOKE $TESTEE -i +m --rcfile=dot.t -c 'echo return from rcfile'
 
 breakfunc ()
 while true; do
