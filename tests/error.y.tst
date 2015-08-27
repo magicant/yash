@@ -8,24 +8,6 @@
 # error tests for fc/history are in history.y.tst
 # error tests for pushd/popd/dirs are in dirstack.y.tst
 
-echo ===== option =====
-echo ===== option ===== >&2
-
-# Tests of option ambiguity are in lineedit.y.tst
-# because option ambiguity occurs in the complete and bindkey built-ins only.
-exec -a
-echo option missing argument short $?
-exec --as
-echo option missing argument long $?
-exec -c-
-echo option no-such-option 1 $?
-exec -cXaY
-echo option no-such-option 2 $?
-exec --no-such-option
-echo option no-such-option 3 $?
-exec --cle=1
-echo option invalid option argument $?
-
 echo ===== set =====
 echo ===== set ===== >&2
 

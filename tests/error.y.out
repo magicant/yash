@@ -1,10 +1,3 @@
-===== option =====
-option missing argument short 2
-option missing argument long 2
-option no-such-option 1 2
-option no-such-option 2 2
-option no-such-option 3 2
-option invalid option argument 2
 ===== set =====
 set -c 2
 set -i 2
