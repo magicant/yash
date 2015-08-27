@@ -1,12 +1,3 @@
-===== invocation =====
-../yash: the -c option is specified but no command is given
-../yash: the -c option cannot be used with the -s option
-../yash: the -c option cannot be used with the -s option
-../yash: the -c option cannot be used with the -s option
-../yash: the -c option cannot be used with the -s option
-../yash: --norc=file: the --norcfile option does not take an argument
-../yash: the --profile option requires an argument
-../yash: the --rcfile option requires an argument
 ===== option =====
 exec: the -a option requires an argument
 exec: the --as option requires an argument

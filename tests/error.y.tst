@@ -8,32 +8,6 @@
 # error tests for fc/history are in history.y.tst
 # error tests for pushd/popd/dirs are in dirstack.y.tst
 
-echo ===== invocation =====
-echo ===== invocation ===== >&2
-
-$INVOKE $TESTEE -c
-echo -c $?
-$INVOKE $TESTEE -c -s
-echo -c and -s 1 $?
-$INVOKE $TESTEE -cs
-echo -c and -s 2 $?
-$INVOKE $TESTEE --cmdlin --stdi
-echo -c and -s 3 $?
-$INVOKE $TESTEE -o cmdlin -o stdi
-echo -c and -s 4 $?
-$INVOKE $TESTEE -c ++cmd-lin -o std_i <<\END
-echo this is not an error
-END
-echo -c and -s 5 $?
-$INVOKE $TESTEE --norc=file
-echo invalid option argument 1 $?
-$INVOKE $TESTEE --profile
-echo missing argument profile $?
-$INVOKE $TESTEE --rcfile
-echo missing argument rcfile $?
-$INVOKE $TESTEE --p 2>/dev/null
-echo ambiguous option $?
-
 echo ===== option =====
 echo ===== option ===== >&2
 
