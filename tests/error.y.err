@@ -1,11 +1,3 @@
-===== consequences of shell errors =====
-syntax error: encountered `fi' without a matching `if' and/or `then'
-.: this command requires an operand
-getopts: this command requires 2 operands
-../yash: $ro is read-only
-../yash: $ro is read-only
-../yash: parameter `var' is not set
-../yash: parameter `var' is not set
 ===== invocation =====
 ../yash: the -c option is specified but no command is given
 ../yash: the -c option cannot be used with the -s option
