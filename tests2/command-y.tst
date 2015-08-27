@@ -233,4 +233,27 @@ if: a shell keyword
 bg: a semi-special built-in
 __OUT__
 
+test_O -d -e 1 'printing to closed stream'
+command -v command >&-
+__IN__
+
+test_Oe -e n 'using -a without -v'
+command -a :
+__IN__
+command: the -a or -k option must be used with the -v option
+__ERR__
+
+test_Oe -e n 'using -k without -v'
+command -k :
+__IN__
+command: the -a or -k option must be used with the -v option
+__ERR__
+
+test_Oe -e n 'invalid option'
+command --no-such-option
+__IN__
+command: `--no-such-option' is not a valid option
+__ERR__
+#`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

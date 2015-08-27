@@ -138,5 +138,39 @@ __IN__
 [A] [B:C:D]
 __OUT__
 
+test_O -d -e 1 'reading from closed stream'
+read foo <&-
+__IN__
+
+test_Oe -e 2 'specifying -P and -p both'
+read -P -p X foo
+__IN__
+read: the -P option cannot be used with the -p option
+__ERR__
+
+test_Oe -e 2 'missing operand'
+read
+__IN__
+read: this command requires an operand
+__ERR__
+
+test_Oe -e 1 'invalid variable name'
+read a=b
+__IN__
+read: `a=b' is not a valid variable name
+__ERR__
+
+# TODO: yash is broken
+#test_Oe -e 1 'empty variable name'
+#echo | read ''
+#__IN__
+#read: `' is not a valid variable name
+#__ERR__
+
+test_Oe -e 2 'invalid option'
+read --no-such-option foo
+__IN__
+read: `--no-such-option' is not a valid option
+__ERR__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

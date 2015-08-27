@@ -165,20 +165,6 @@ echo getopts invalid opt $?
 getopts abc var=iable
 echo getopts invalid var $?
 
-echo ===== read =====
-echo ===== read ===== >&2
-
-read --no-such-option
-echo read no-such-option $?
-read -P -p -
-echo read mutually exclusive P/p $?
-read
-echo read operands missing $?
-read read <&- 2>/dev/null
-echo read input closed $?
-read foo b=r baz
-echo read invalid identifier $?
-
 echo ===== trap =====
 echo ===== trap ===== >&2
 
@@ -243,138 +229,6 @@ echo wait no-such-job 1 $?
 wait %no_such_job
 echo wait no-such-job 2 $?
 
-echo ===== return =====
-echo ===== return ===== >&2
-
-(
-return --no-such-option
-echo return no-such-option $?
-)
-(
-return foo
-echo not printed
-)
-echo return invalid operand 1 $?
-(
-return -- -3
-echo not printed
-)
-echo return invalid operand 2 $?
-(
-return 1 2
-echo return too many operands $?
-)
-
-$INVOKE $TESTEE -i +m --norcfile 3>&2 2>/dev/null <<\END
-PS1=
-exec 2>&3
-return
-echo return reached
-END
-
-echo ===== break =====
-echo ===== break ===== >&2
-
-break --no-such-option
-echo break no-such-option $?
-(
-break 1 foo
-echo break invalid operand 1 $?
-)
-(
-break
-echo break not in loop $?
-)
-(
-break -i
-echo break not in iteration $?
-)
-(
-break -i foo
-echo break invalid operand 2 $?
-)
-
-echo ===== continue =====
-echo ===== continue ===== >&2
-
-continue --no-such-option
-echo continue no-such-option $?
-(
-continue 1 foo
-echo continue invalid operand 1 $?
-)
-(
-continue
-echo continue not in loop $?
-)
-(
-continue -i
-echo continue not in iteration $?
-)
-(
-continue -i foo
-echo continue invalid operand 2 $?
-)
-
-echo ===== eval =====
-echo ===== eval ===== >&2
-
-eval --no-such-option
-echo eval no-such-option $?
-
-echo ===== dot =====
-echo ===== dot ===== >&2
-
-. --no-such-option
-echo dot no-such-option $?
-.
-echo dot operand missing $?
-(
-PATH=
-. no_such_command 2>/dev/null
-echo not printed
-)
-echo dot script not found in PATH $?
-(
-. "$TESTTMP/no/such/file" 2>/dev/null
-echo not printed
-)
-echo dot file-not-found $?
-
-echo ===== exec =====
-echo ===== exec ===== >&2
-
-(
-exec --no-such-option
-echo exec no-such-option $?
-)
-(
-PATH=
-exec no_such_command
-echo not printed
-) 2>/dev/null
-echo exec command not found $?
-
-echo ===== command =====
-echo ===== command ===== >&2
-
-command --no-such-option
-echo command no-such-option $?
-command -a foo
-echo command invalid-option 1 $?
-command -k foo
-echo command invalid-option 2 $?
-(command -v command >&- 2>/dev/null)
-echo command output error $?
-(PATH=; command no_such_command)
-echo command no-such-command 1 $?
-echo =1= >&2
-(PATH=; command -v no_such_command)
-echo command no-such-command 2 $?
-echo =2= >&2
-(PATH=; command -V no_such_command)
-echo command no-such-command 3 $?
-
 echo ===== times =====
 echo ===== times ===== >&2
 
@@ -384,28 +238,6 @@ times foo
 echo times invalid operand $?
 (times >&- 2>/dev/null)
 echo times output error $?
-
-echo ===== exit =====
-echo ===== exit ===== >&2
-
-(
-exit --no-such-option
-echo exit no-such-option $?
-)
-(
-exit foo
-echo not printed
-)
-echo exit invalid operand 1 $?
-(
-exit -- -3
-echo not printed
-)
-echo exit invalid operand 2 $?
-(
-exit 1 2
-echo exit too many operands $?
-)
 
 echo ===== suspend =====
 echo ===== suspend ===== >&2

@@ -110,12 +110,14 @@ __ERR__
 
 test_Oe -e n 'invalid operand: not a integer'
 return x
+echo not reached
 __IN__
 return: `x' is not a valid integer
 __ERR__
 
 test_Oe -e n 'invalid operand: negative integer'
 return -- -100
+echo not reached
 __IN__
 return: `-100' is not a valid integer
 __ERR__

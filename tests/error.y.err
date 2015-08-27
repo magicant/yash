@@ -50,11 +50,6 @@ getopts: this command requires 2 operands
 getopts: this command requires 2 operands
 getopts: `a::' is not a valid option specification
 getopts: `var=iable' is not a valid variable name
-===== read =====
-read: `--no-such-option' is not a valid option
-read: the -P option cannot be used with the -p option
-read: this command requires an operand
-read: `b=r' is not a valid variable name
 ===== trap =====
 trap: `--no-such-option' is not a valid option
 trap: this command requires 2 operands
@@ -75,47 +70,9 @@ jobs: no such job `%no_such_job'
 kill: `%while' is not a job-controlled job
 ===== wait =====
 wait: `--no-such-option' is not a valid option
-===== return =====
-return: `--no-such-option' is not a valid option
-return: `foo' is not a valid integer
-return: `-3' is not a valid integer
-return: too many operands are specified
-return: cannot be used in the interactive mode
-===== break =====
-break: `--no-such-option' is not a valid option
-break: too many operands are specified
-break: not in a loop
-break: not in an iteration
-break: no operand is expected
-===== continue =====
-continue: `--no-such-option' is not a valid option
-continue: too many operands are specified
-continue: not in a loop
-continue: not in an iteration
-continue: no operand is expected
-===== eval =====
-eval: `--no-such-option' is not a valid option
-===== dot =====
-.: `--no-such-option' is not a valid option
-.: this command requires an operand
-===== exec =====
-exec: `--no-such-option' is not a valid option
-===== command =====
-command: `--no-such-option' is not a valid option
-command: the -a or -k option must be used with the -v option
-command: the -a or -k option must be used with the -v option
-command: no such command `no_such_command'
-=1=
-=2=
-command: no such command `no_such_command'
 ===== times =====
 times: `--no-such-option' is not a valid option
 times: no operand is expected
-===== exit =====
-exit: `--no-such-option' is not a valid option
-exit: `foo' is not a valid integer
-exit: `-3' is not a valid integer
-exit: too many operands are specified
 ===== suspend =====
 suspend: `--no-such-option' is not a valid option
 suspend: no operand is expected

@@ -64,12 +64,6 @@ getopts operands missing 1 2
 getopts operands missing 2 2
 getopts invalid opt 1
 getopts invalid var 1
-===== read =====
-read no-such-option 2
-read mutually exclusive P/p 2
-read operands missing 2
-read input closed 1
-read invalid identifier 1
 ===== trap =====
 trap no-such-option 2
 trap operands missing 2
@@ -97,51 +91,10 @@ jobs no-such-job 2 1
 wait no-such-option 2
 wait no-such-job 1 127
 wait no-such-job 2 127
-===== return =====
-return no-such-option 2
-return invalid operand 1 2
-return invalid operand 2 2
-return too many operands 2
-return reached
-===== break =====
-break no-such-option 2
-break invalid operand 1 2
-break not in loop 2
-break not in iteration 2
-break invalid operand 2 2
-===== continue =====
-continue no-such-option 2
-continue invalid operand 1 2
-continue not in loop 2
-continue not in iteration 2
-continue invalid operand 2 2
-===== eval =====
-eval no-such-option 2
-===== dot =====
-dot no-such-option 2
-dot operand missing 2
-dot script not found in PATH 1
-dot file-not-found 1
-===== exec =====
-exec no-such-option 2
-exec command not found 127
-===== command =====
-command no-such-option 2
-command invalid-option 1 2
-command invalid-option 2 2
-command output error 1
-command no-such-command 1 127
-command no-such-command 2 1
-command no-such-command 3 1
 ===== times =====
 times no-such-option 2
 times invalid operand 2
 times output error 1
-===== exit =====
-exit no-such-option 2
-exit invalid operand 1 2
-exit invalid operand 2 2
-exit too many operands 2
 ===== suspend =====
 suspend no-such-option 2
 suspend invalid operand 2

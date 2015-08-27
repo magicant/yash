@@ -57,4 +57,10 @@ foo
 foobar
 __OUT__
 
+test_Oe -e n 'invalid option'
+eval --no-such-option
+__IN__
+eval: `--no-such-option' is not a valid option
+__ERR__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
