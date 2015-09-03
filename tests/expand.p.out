@@ -27,14 +27,6 @@ unset  variable and set  variable
 1  2  3
 1 set var 2 set  var 3
 1 set  var 2
-===== command substitution =====
-\$x
-$x
-\$x
-)
-abc
-a here-doc with )
-another here-doc
 ===== arithmetic expansion =====
 5 3
 prefix 5 10 1 0 0

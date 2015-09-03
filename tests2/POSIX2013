@@ -15,6 +15,9 @@ Volume 3: Shell & Utilities
 2.6.2 Parameter Expansion
  * param-p.tst
 
+2.6.3 Command Substitution
+ * cmdsub-p.tst
+
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
    * error-p.tst

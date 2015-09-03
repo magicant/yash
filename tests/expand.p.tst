@@ -29,34 +29,6 @@ echo 1 ${var+""} 2 "${var+""}" 3
 echo 1 ${var+set  var} 2 "${var+set  var}" 3
 echo 1 ${var+"set  var"} 2
 
-echo ===== command substitution =====
-
-echo '\$x'
-echo `echo '\$x'`
-echo $(echo '\$x')
-
-echo $(
-echo ')'
-)
-
-echo $(
-echo abc # a comment with )
-)
-
-echo $(
-cat <<\eof
-a here-doc with )
-eof
-)
-
-cat <<\eof - $(
-cat <<-\end
-	/dev/null
-	end
-)
-another here-doc
-eof
-
 echo ===== arithmetic expansion =====
 
 x=1
