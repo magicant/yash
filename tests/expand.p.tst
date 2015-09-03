@@ -29,33 +29,6 @@ echo 1 ${var+""} 2 "${var+""}" 3
 echo 1 ${var+set  var} 2 "${var+set  var}" 3
 echo 1 ${var+"set  var"} 2
 
-(: ${unset?"unset variable error"}) 2>&1 |
-grep "unset variable error" >/dev/null &&
-echo "unset variable error"
-(: ${null:?"null variable error"}) 2>&1 |
-grep "null variable error" >/dev/null &&
-echo "null variable error"
-echo ${var?} "${null?}" ${var:?}
-(: ${unset?}) 2>/dev/null || echo unset
-
-echo ${var=var} ${var:=VAR}
-echo ${null=null} ${null:=NULL}
-echo ${unset=UNSET}
-echo $var $null $unset
-
-echo ${var#*/} ${var##*/} ${var%/*} ${var%%/*}
-echo ${var#*/*} ${var##*/*} ${var%*/*} ${var%%*/*}
-echo ${var#x} ${var##x} ${var%x} ${var%%x}
-echo ${asterisks##*} "${asterisks#\*}"
-echo '${#var}='${#var}
-
-set 1 '2  2' 3
-:&
-echo "$@"   "$*"   $#   $?   $-   $!   $0   >"${TESTTMP}/expand-1"
-echo "${@}" "${*}" ${#} ${?} ${-} ${!} ${0} >"${TESTTMP}/expand-2"
-diff "${TESTTMP}/expand-1" "${TESTTMP}/expand-2"
-rm -f "${TESTTMP}/expand-1" "${TESTTMP}/expand-2"
-
 echo ===== command substitution =====
 
 echo '\$x'

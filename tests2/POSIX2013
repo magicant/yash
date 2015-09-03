@@ -12,6 +12,9 @@ Volume 3: Shell & Utilities
 2.6.1 Tilde Expansion
  * tilde-p.tst
 
+2.6.2 Parameter Expansion
+ * param-p.tst
+
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
    * error-p.tst
