@@ -1,7 +1,3 @@
-===== tilde expansion =====
-$HOME
-path=~:~
-~home ~home ~/dir /tmp/home/dir
 ===== parameter expansion =====
 123/456/789 123/456/789 123/456/789 123/456/789
 1 2

@@ -27,8 +27,8 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = checkfg.c invoke.c resetsig.c
-POSIX_TEST_SOURCES = alias-p.tst break-p.tst builtins-p.tst command-p.tst continue-p.tst dot-p.tst error-p.tst eval-p.tst exec-p.tst exit-p.tst nop-p.tst read-p.tst return-p.tst
-YASH_TEST_SOURCES = alias-y.tst array-y.tst break-y.tst builtins-y.tst command-y.tst continue-y.tst dirstack-y.tst dot-y.tst echo-y.tst error-y.tst eval-y.tst exec-y.tst exit-y.tst invoke-y.tst printf-y.tst read-y.tst return-y.tst
+POSIX_TEST_SOURCES = alias-p.tst break-p.tst builtins-p.tst command-p.tst continue-p.tst dot-p.tst error-p.tst eval-p.tst exec-p.tst exit-p.tst nop-p.tst read-p.tst return-p.tst tilde-p.tst
+YASH_TEST_SOURCES = alias-y.tst array-y.tst break-y.tst builtins-y.tst command-y.tst continue-y.tst dirstack-y.tst dot-y.tst echo-y.tst error-y.tst eval-y.tst exec-y.tst exit-y.tst invoke-y.tst printf-y.tst read-y.tst return-y.tst tilde-y.tst
 TEST_SOURCES = $(POSIX_TEST_SOURCES) $(YASH_TEST_SOURCES)
 TEST_RESULTS = $(TEST_SOURCES:.tst=.trs)
 RECHECK_LOGS = $(TEST_RESULTS)

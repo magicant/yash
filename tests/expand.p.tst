@@ -3,13 +3,7 @@
 
 echol () for i do printf "%s\n" "$i"; done
 
-echo ===== tilde expansion =====
-
 HOME=/tmp/home
-[ ~ = $HOME ] && echo \$HOME
-path=~:~
-[ $path = $HOME:$HOME ] && echo path=~:~
-echo \~home ~h\ome ~\/dir ~/\dir
 
 echo ===== parameter expansion =====
 
