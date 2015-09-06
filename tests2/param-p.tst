@@ -64,14 +64,18 @@ __OUT__
 test_oE 'double-quoted expansion is not subject to pathname expansion'
 a='*'
 bracket "${a}"
+bracket ${a+"${a}"}
 __IN__
+[*]
 [*]
 __OUT__
 
 test_oE 'double-quoted expansion is not subject to field splitting'
 a='a b  c'
 bracket "${a}"
+bracket ${a+"${a}"}
 __IN__
+[a b  c]
 [a b  c]
 __OUT__
 
@@ -280,6 +284,186 @@ x=$HOME/src/cmd
 echo ${x#$HOME}
 __IN__
 /src/cmd
+__OUT__
+
+test_oE 'special parameter #'
+echo $#
+set x
+echo $#
+set x 'y  y' z
+echo $#
+set a b c d e f g h i j k
+echo $#
+__IN__
+0
+1
+3
+11
+__OUT__
+
+test_oE 'special parameter ?'
+true
+echo $?
+(exit 1)
+echo $?
+(exit 123)
+echo $?
+__IN__
+0
+1
+123
+__OUT__
+
+test_OE -e 0 'special parameter -' -eu
+set +C
+v=$-
+[ "$(echo $v | grep e | grep u | grep -v C)" ]
+__IN__
+
+test_OE 'special parameter $'
+[ $$ -eq "$(echo $$)" ] || echo [ $$ -eq "$(echo $$)" ]
+kill $$
+echo not reached
+__IN__
+
+test_oE 'special parameter !'
+mkfifo fifo
+echo foo | {
+    trap 'echo trapped; exit 0' USR1
+    cat
+    cat fifo
+}&
+exec 3>fifo
+echo bar >&3
+kill -s USR1 $! # should kill the last process of the background pipeline
+__IN__
+foo
+bar
+trapped
+__OUT__
+
+# Special parameter 0 is tested in sh-p.tst
+#test_oE 'special parameter !'
+
+test_oE 'special parameter *, quoted, unset IFS'
+unset IFS
+bracket "$*"
+set a
+bracket "$*"
+set a 'b  b' cc
+bracket "$*"
+set ''
+bracket "$*"
+set '' ''
+bracket "$*"
+__IN__
+[]
+[a]
+[a b  b cc]
+[]
+[ ]
+__OUT__
+
+test_oE 'special parameter *, quoted, non-default IFS'
+IFS=xyz
+bracket "$*"
+set a
+bracket "$*"
+set a 'b  b' cc
+bracket "$*"
+set ''
+bracket "$*"
+set '' ''
+bracket "$*"
+__IN__
+[]
+[a]
+[axb  bxcc]
+[]
+[x]
+__OUT__
+
+test_oE 'special parameter *, quoted, empty IFS'
+IFS=
+bracket "$*"
+set a
+bracket "$*"
+set a 'b  b' cc
+bracket "$*"
+set ''
+bracket "$*"
+set '' ''
+bracket "$*"
+__IN__
+[]
+[a]
+[ab  bcc]
+[]
+[]
+__OUT__
+
+test_oE 'special parameter *, unquoted'
+bracket $*
+set a
+bracket $*
+# POSIX is silent on how multiple positional parameters are concatenated
+# when the $* parameter expansion is not quoted.
+__IN__
+
+[a]
+__OUT__
+
+test_oE 'special parameter @, quoted'
+bracket "$@"
+bracket "=$@="
+set a
+bracket "$@"
+bracket "=$@="
+set a 'b  b' cc
+bracket "$@"
+bracket "=$@="
+bracket "$@$@"
+set ''
+bracket "$@"
+set '' ''
+bracket "$@"
+bracket "=$@="
+bracket "$@$@"
+__IN__
+
+[==]
+[a]
+[=a=]
+[a][b  b][cc]
+[=a][b  b][cc=]
+[a][b  b][cca][b  b][cc]
+[]
+[][]
+[=][=]
+[][][]
+__OUT__
+
+test_oE 'special parameter @, unquoted'
+bracket $@
+set a
+bracket $@
+# POSIX is silent on how multiple positional parameters are concatenated
+# when the $@ parameter expansion is not quoted.
+__IN__
+
+[a]
+__OUT__
+
+test_oE '${1+"$@"}'
+bracket ${1+"$@"}
+set a
+bracket ${1+"$@"}
+set a 'b  b' cc
+bracket ${1+"$@"}
+__IN__
+
+[a]
+[a][b  b][cc]
 __OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

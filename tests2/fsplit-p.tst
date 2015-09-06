@@ -156,10 +156,11 @@ __OUT__
 #bracket 8 ''$b''
 #bracket 9 ''$c''
 #bracket 10 ${a:-""}
-#bracket 11 "$a"
-#bracket 12 "$b"
-#bracket 13 ""
-#bracket 14 ''
+#bracket 11 "${a:-""}"
+#bracket 12 "$a"
+#bracket 13 "$b"
+#bracket 14 "" """"""
+#bracket 15 '' ''''''
 #__IN__
 #[1]
 #[2]
@@ -172,9 +173,10 @@ __OUT__
 #[9][-]
 #[10][]
 #[11][]
-#[12][ ]
-#[13][]
-#[14][]
+#[12][]
+#[13][ ]
+#[14][][]
+#[15][][]
 #__OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

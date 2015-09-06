@@ -222,6 +222,27 @@ __IN__
 [/path/with  space]
 __OUT__
 
+test_oE 'result of tilde expansion is not subject to parameter expansion'
+HOME='$x' x='X'
+bracket ~
+__IN__
+[$x]
+__OUT__
+
+test_oE 'result of tilde expansion is not subject to command substitution'
+HOME='$(echo X)`echo Y`'
+bracket ~
+__IN__
+[$(echo X)`echo Y`]
+__OUT__
+
+test_oE 'result of tilde expansion is not subject to arithmetic expansion'
+HOME='$((1+1))'
+bracket ~
+__IN__
+[$((1+1))]
+__OUT__
+
 test_oE 'result of tilde expansion is not subject to pathname expansion'
 HOME='*'
 bracket ~
