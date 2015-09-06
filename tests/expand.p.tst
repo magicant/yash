@@ -29,39 +29,6 @@ echo 1 ${var+""} 2 "${var+""}" 3
 echo 1 ${var+set  var} 2 "${var+set  var}" 3
 echo 1 ${var+"set  var"} 2
 
-echo ===== field splitting =====
-
-unset foo bar IFS
-echo +${foo-1+2}+${bar-3+4}+
-echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
-
-IFS=" +"
-echo +${foo-1+2}+${bar-3+4}+
-echo +${foo-1 2 +3}+${bar-4+ 5+ +6}+
-
-set $foo bar '' xyz ''$foo'' abc
-for i do echo "-$i-"; done
-
-echol '<<' ${foo-\a \b \c} ${bar-\\d \\e \\f} '>>'
-
-IFS=/
-echo ~
-echo ${foo-~}
-
-IFS='\'
-bar='1\2\3'
-echol ${foo-1\\\\2'\'3"\\"4}
-echol "${foo-1\\2}"
-echol [ $bar ]
-
-IFS=,
-echol ${foo-4,5\,6}
-echol "${foo-4,5\,6}"
-
-IFS=0
-echol $(echo 'command0subst')
-echol $((99+2))
-
 echo =====
 
 IFS=" "

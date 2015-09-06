@@ -27,40 +27,6 @@ unset  variable and set  variable
 1  2  3
 1 set var 2 set  var 3
 1 set  var 2
-===== field splitting =====
-+1+2+3+4+
-+1 2 +3+4+ 5+ +6+
-+1 2+3 4+
-+1 2 3+4 5  6+
--bar-
---
--xyz-
---
--abc-
-<<
-a
-b
-c
-\d
-\e
-\f
->>
-/tmp/home
-/tmp/home
-1\\2\3\4
-1\2
-[
-1
-2
-3
-]
-4
-5,6
-4,5,6
-command
-subst
-1
-1
 =====
 [
 

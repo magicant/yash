@@ -13,6 +13,10 @@ Volume 3: Shell & Utilities
 2.3.1 Alias Substitution
  * alias-p.tst
 
+2.6 Word Expansions
+  Empty field removal
+    * fsplit-p.tst
+
 2.6.1 Tilde Expansion
  * tilde-p.tst
 
@@ -24,6 +28,9 @@ Volume 3: Shell & Utilities
 
 2.6.4 Arithmetic Expansion
  * arith-p.tst
+
+2.6.5 Field Splitting
+ * fsplit-p.tst
 
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
