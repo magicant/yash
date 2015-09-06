@@ -24,6 +24,7 @@
 # does not cause the script to return non-zero.
 
 set -Ceu
+umask u+rwx
 
 ##### Some utility functions and aliases
 
