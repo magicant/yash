@@ -27,4 +27,38 @@ __OUT__
 
 )
 
+test_oE '~+'
+PWD=/pwd
+echoraw ~+
+__IN__
+/pwd
+__OUT__
+
+test_oE '~-'
+OLDPWD=/old-pwd
+echoraw ~-
+__IN__
+/old-pwd
+__OUT__
+
+(
+if ! testee -c 'command -bv pushd' >/dev/null; then
+    skip="true"
+fi
+
+test_oE -e 0 'tilde expansion for directory stack entry'
+PWD=/pwd
+unset DIRSTACK
+echoraw ~+0 ~-0
+DIRSTACK=(/foo /bar/baz)
+echoraw ~+0 ~+1 ~+2 ~+3
+echoraw ~-0 ~-1 ~-2 ~-3
+__IN__
+/pwd /pwd
+/pwd /bar/baz /foo ~+3
+/foo /bar/baz /pwd ~-3
+__OUT__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

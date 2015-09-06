@@ -230,6 +230,18 @@ unset u
 echoraw ${#u}
 __IN__
 
+test_oE 'disambiguation of ${#...'
+bracket ${#-""}
+bracket ${#?X}
+bracket ${#+""} "${#:+}"
+bracket ${#=""} "${#:=}"
+__IN__
+[0]
+[0]
+[][]
+[0][0]
+__OUT__
+
 test_oE 'removing shortest matching prefix'
 a=1-2-3-4 s='***' h='###'
 bracket "${a#1}" "${a#2}" "${a#*-}" "${a#*}" "${s#'*'}" "${h#'#'}"
