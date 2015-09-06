@@ -6,6 +6,10 @@ test file.
 Volume 3: Shell & Utilities
 ===========================
 
+1.1.2 Concepts Derived from the ISO C Standard
+  Arithmetic Precision and Operations
+    * arith-p.tst
+
 2.3.1 Alias Substitution
  * alias-p.tst
 
@@ -17,6 +21,9 @@ Volume 3: Shell & Utilities
 
 2.6.3 Command Substitution
  * cmdsub-p.tst
+
+2.6.4 Arithmetic Expansion
+ * arith-p.tst
 
 2.8.1 Consequences of Shell Errors
   Shell language syntax error

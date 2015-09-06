@@ -27,37 +27,6 @@ unset  variable and set  variable
 1  2  3
 1 set var 2 set  var 3
 1 set  var 2
-===== arithmetic expansion =====
-5 3
-prefix 5 10 1 0 0
-multiplicatives 2
-additives 9
-shifts 20
-comparisons 0 1 1 0 0 1 0 0 0
-comparisons 1 1 1 0 1 1 0 0 1
-comparisons 0 0 0 1 0 0 1 1 0
-comparisons 1 0 0 1 1 0 1 1 1
-equalities 1 0 0 0 1 0 0 0 1
-equalities 0 1 1 1 0 1 1 1 0
-logicals 0 0 0 1
-logicals 0 1 1 1
-logicals 1 0 2
-logicals 1 1 1
-conditionals 2 2 9 9 1
-assignments 0 5 3 24 4 16 8 15 10 2 2
-parentheses 2 -2 9
-mul-add 1
-add-shift 80 3
-shift-comp 1 0
-comp-equal 1 0
-equal-and 1 1
-and-xor 15 15
-xor-or 1 1
-or-land 1 1
-land-lor 1 1
-lor-cond-assign 1 0 3 3 1 1 3 3
-10
-unset-var 0 0
 ===== field splitting =====
 +1+2+3+4+
 +1 2 +3+4+ 5+ +6+
