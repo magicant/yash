@@ -26,7 +26,7 @@ dfn:[Fc 組込みコマンド]はlink:interact.html#history[コマンド履歴]�
 +--editor={{エディタ}}+::
 コマンドの編集に用いるエディタ。
 +
-このオプションを指定しない場合、link:params.html#sv-fcedit[+FCEDIT+ 変数]の値をエディタとして使用します。+FCEDIT+ 変数も設定されていない場合は、vi をエディタとして使用します。
+このオプションを指定しない場合、link:params.html#sv-fcedit[+FCEDIT+ 変数]の値をエディタとして使用します。+FCEDIT+ 変数も設定されていない場合は、ed をエディタとして使用します。
 
 +-l+::
 +--list+::

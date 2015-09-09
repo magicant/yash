@@ -42,7 +42,7 @@ Specify an editor that is used to edit commands.
 +
 If this option is not specified, the value of the
 link:params.html#sv-fcedit[+FCEDIT+ variable] is used.
-If the variable is not set either, +vi+ is used.
+If the variable is not set either, +ed+ is used.
 
 +-l+::
 +--list+::
