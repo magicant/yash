@@ -146,7 +146,8 @@ testee() (
 
 # The test case runner.
 #
-# Contents of file descriptor 3 are executed in a newly invoked testee.
+# Contents of file descriptor 3 are passed to the standard input of a newly
+# invoked testee using a temporary file.
 # Contents of file descriptor 4 and 5 are compared to the actual output from
 # the standard output and error of the testee, respectively, if those file
 # descriptors are open. If they differ from the expected, the test case fails.

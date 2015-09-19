@@ -13,6 +13,10 @@ Volume 3: Shell & Utilities
 2.3.1 Alias Substitution
  * alias-p.tst
 
+2.5.3 Shell Variables
+  PS1, PS2, PS4
+    * prompt-y.tst
+
 2.6 Word Expansions
   Empty field removal
     * fsplit-p.tst
@@ -88,6 +92,10 @@ false
 
 read
  * read-p.tst
+
+sh
+  Stdin, Input files
+    * input-p.tst
 
 true
  * nop-p.tst
