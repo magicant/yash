@@ -348,6 +348,8 @@ echo foo | {
 exec 3>fifo
 echo bar >&3
 kill -s USR1 $! # should kill the last process of the background pipeline
+exec 3>&-
+wait $!
 __IN__
 foo
 bar
