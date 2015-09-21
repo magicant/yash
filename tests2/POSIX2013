@@ -103,5 +103,8 @@ true
 unalias
  * alias-p.tst
 
+wait
+ * wait-p.tst
+
 
 vim: set tw=78:
