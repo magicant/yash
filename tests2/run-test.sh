@@ -17,7 +17,8 @@
 # This script expects two operands.
 # The first is the pathname to the testee, the shell that is to be tested.
 # The second is the pathname to the test file that defines test cases.
-# The result is printed to the standard output.
+# The result is output to a result file whose name is given by replacing the
+# extension of the test file with ".trs".
 # If any test case fails, it is also reported to the standard error.
 # If the -r option is specified, intermediate files are not removed.
 # The exit status is zero unless a critical error occurs. Failure of test cases
@@ -67,6 +68,8 @@ shift "$((OPTIND-1))"
 
 testee="$(command -v "${1:?testee not specified}")"
 test_file="${2:?test file not specified}"
+
+exec >|"${test_file%.*}.trs"
 
 unset -v CDPATH COLUMNS COMMAND_NOT_FOUND_HANDLER DIRSTACK ECHO_STYLE ENV
 unset -v FCEDIT HANDLED HISTFILE HISTRMDUP HISTSIZE HOME IFS LINES MAIL

@@ -58,7 +58,7 @@ $(SUMMARY): $(TEST_RESULTS)
 	$(SHELL) ./summarize.sh $(TEST_RESULTS) >| $@
 $(TEST_RESULTS): $(TESTERS) $(YASH)
 .tst.trs:
-	./resetsig $(YASH) ./run-test.sh $(TESTEE) $< >| $@
+	./resetsig $(YASH) ./run-test.sh $(TESTEE) $<
 
 tester: $(TESTERS)
 $(TESTERS):
