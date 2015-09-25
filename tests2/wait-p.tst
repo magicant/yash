@@ -1,5 +1,5 @@
 # wait-p.tst: test of the wait built-in for any POSIX-compliant shell
-# %SEQUENTIAL%
+../checkfg || skip="true" # %SEQUENTIAL%
 
 posix="true"
 

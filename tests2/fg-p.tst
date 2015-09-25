@@ -1,5 +1,5 @@
 # fg-p.tst: test of the fg built-in for any POSIX-compliant shell
-# %SEQUENTIAL%
+../checkfg || skip="true" # %SEQUENTIAL%
 
 posix="true"
 

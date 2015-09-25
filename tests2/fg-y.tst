@@ -1,5 +1,5 @@
 # fg-y.tst: yash-specific test of the fg built-in
-# %SEQUENTIAL%
+../checkfg || skip="true" # %SEQUENTIAL%
 
 # POSIX requires that "fg" should return 0 on success. Yash, however, returns
 # the exit status of the resumed job, which is not always 0. Many other shells
