@@ -90,6 +90,9 @@ command
 false
  * nop-p.tst
 
+fg
+ * fg-p.tst
+
 read
  * read-p.tst
 
