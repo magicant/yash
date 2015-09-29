@@ -102,6 +102,12 @@ read
 sh
   Stdin, Input files
     * input-p.tst
+  Asynchronous events
+    * signal-p.tst
+    * signal-y.tst
+
+test
+ * testtty-p.tst
 
 true
  * nop-p.tst

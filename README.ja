@@ -41,6 +41,9 @@ Yash をビルドしインストールする方法については INSTALL.ja フ
  * いくつかのシグナルは特定の番号を持っていると仮定しています:
      SIGHUP=1 SIGINT=2 SIGQUIT=3 SIGABRT=6
      SIGKILL=9 SIGALRM=14 SIGTERM=15
+ * POSIX は対話的でないシェルが SIGTTIN, SIGTTOU, SIGTSTP をデフォルト
+   で無視・キャッチすることを禁じています。しかし yash はジョブ制御が
+   有効な時は対話的でなくてもこれらのシグナルを無視します。
  * ファイルアクセス権フラグは特定の値を持っていると仮定しています:
      0400=user read    0200=user write   0100=user execute
      0040=group read   0020=group write  0010=group execute
