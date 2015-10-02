@@ -2886,7 +2886,7 @@ const char read_help[] = Ngt(
 "read a line from the standard input"
 );
 const char read_syntax[] = Ngt(
-"\tread [-Ar] variable...\n"
+"\tread [-Aer] [-P|-p] variable...\n"
 );
 #endif
 

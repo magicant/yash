@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.35\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2015-10-02 23:56+0900\n"
+"POT-Creation-Date: 2015-10-02 23:59+0900\n"
 "PO-Revision-Date: 2013-06-08 16:30+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
@@ -1573,9 +1573,8 @@ msgid "read a line from the standard input"
 msgstr "標準入力から行を読み込む"
 
 #: variable.c:2889
-#, fuzzy
-msgid "\tread [-Ar] variable...\n"
-msgstr "\tread [-Ar] 変数名...\n"
+msgid "\tread [-Aer] [-P|-p] variable...\n"
+msgstr "\tread [-Aer] [-P|-p] 変数名...\n"
 
 #: variable.c:3014
 msgid "$DIRSTACK is not an array"
