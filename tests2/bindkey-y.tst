@@ -1,13 +1,6 @@
-# lineedit.y.tst: yash-specific test of the bindkey/complete builtin
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# bindkey-y.tst: yash-specific test of the bindkey built-in
 
-tmp=$TESTTMP/lineedit.y.tmp
-mkdir "$tmp"
-
-echo ===== bindkey =====
-
-bindkey -l | sort >"$tmp/l"
-sort <<\END | diff - "$tmp/l"
+sort -k 1 >commands <<\__END__
 noop
 alert
 self-insert
@@ -160,10 +153,14 @@ search-again-forward
 search-again-backward
 beginning-search-forward
 beginning-search-backward
-END
+__END__
 
-bindkey -v | sort >"$tmp/v"
-sort <<\END | diff - "$tmp/v"
+testcase "$LINENO" -e 0 'printing commands' \
+    4<commands 5</dev/null 3<<\__IN__
+bindkey -l
+__IN__
+
+sort >vi_insert <<\__END__
 bindkey -v '\\' self-insert
 bindkey -v '\^V' expect-verbatim
 bindkey -v '\^J' accept-line
@@ -191,59 +188,41 @@ bindkey -v '\U' prev-history-eol
 bindkey -v '\^P' prev-history-eol
 bindkey -v '\^I' complete-next-candidate
 bindkey -v '\bt' complete-prev-candidate
-END
-bindkey -v '\#'
+__END__
+
+testcase "$LINENO" 'printing default vi-insert bindings: output' \
+    4<vi_insert 5</dev/null 3<<\__IN__
+bindkey -v | sort
+__IN__
+
+test_x -e 0 'printing default vi-insert bindings: exit status'
+bindkey -v
+__IN__
+
+test_OE -e 0 'binding key (vi-insert)'
+bindkey -v 'a' self-insert
+__IN__
+
+test_oE -e 0 'printing bound key (vi-insert)'
 bindkey -v 'a' self-insert
 bindkey -v 'a'
-bindkey -v '\#' noop
-bindkey -v '\#'
-bindkey -v 'a' -
-bindkey -v 'a' 2>/dev/null; echo unbound 1 $?
-bindkey -v '\#' -
-bindkey -v '\#' 2>/dev/null; echo unbound 2 $?
-bindkey -v '\X' -
-bindkey -v '\X' 2>/dev/null; echo unbound 3 $?
-bindkey -v 'a' noop
-bindkey -v '\#' eof
-bindkey -v '\X' emacs-transpose-chars
-bindkey -v 'a'
-bindkey -v '\#'
-bindkey -v '\X'
-bindkey -v 'a' -
-bindkey -v '\\' -
-bindkey -v '\^V' -
-bindkey -v '\^J' -
-bindkey -v '\^M' -
-bindkey -v '\!' -
-bindkey -v '\^C' -
-bindkey -v '\#' -
-bindkey -v '\^D' -
-bindkey -v '\^[' -
-bindkey -v '\^L' -
-bindkey -v '\R' -
-bindkey -v '\L' -
-bindkey -v '\H' -
-bindkey -v '\E' -
-bindkey -v '\X' -
-bindkey -v '\B' -
-bindkey -v '\?' -
-bindkey -v '\^H' -
-bindkey -v '\^W' -
-bindkey -v '\$' -
-bindkey -v '\^U' -
-bindkey -v '\D' -
-bindkey -v '\^N' -
-bindkey -v '\U' -
-bindkey -v '\^P' -
-bindkey -v '\^I' -
-bindkey -v '\bt' -
-bindkey -v
-echo no bindings $?
-. "$tmp/v"
-bindkey --vi-insert | sort | diff - "$tmp/v"
+__IN__
+bindkey -v 'a' self-insert
+__OUT__
 
-bindkey -a | sort >"$tmp/a"
-sort <<\END | diff - "$tmp/a"
+test_OE -e 0 'unbinding key (vi-insert)'
+bindkey -v '\!' -
+__IN__
+
+test_Oe -e 1 'printing unbound key (vi-insert)'
+bindkey -v '\!' -
+bindkey -v '\!'
+__IN__
+bindkey: key sequence `\!' is not bound
+__ERR__
+#`
+
+sort >vi_command <<\__END__
 bindkey -a '\^[' noop
 bindkey -a '1' digit-argument
 bindkey -a '2' digit-argument
@@ -333,12 +312,41 @@ bindkey -a '\U' prev-history-bol
 bindkey -a '\^P' prev-history-bol
 bindkey -a 'n' search-again
 bindkey -a 'N' search-again-rev
-END
-. "$tmp/a"
-bindkey --vi-command | sort | diff - "$tmp/a"
+__END__
 
-bindkey -e | sort >"$tmp/e"
-sort <<\END | diff - "$tmp/e"
+testcase "$LINENO" 'printing default vi-command bindings: output' \
+    4<vi_command 5</dev/null 3<<\__IN__
+bindkey -a | sort
+__IN__
+
+test_x -e 0 'printing default vi-command bindings: exit status'
+bindkey -a
+__IN__
+
+test_OE -e 0 'binding key (vi-command)'
+bindkey -a 'a' self-insert
+__IN__
+
+test_oE -e 0 'printing bound key (vi-command)'
+bindkey -a 'a' self-insert
+bindkey -a 'a'
+__IN__
+bindkey -a 'a' self-insert
+__OUT__
+
+test_OE -e 0 'unbinding key (vi-command)'
+bindkey -a f -
+__IN__
+
+test_Oe -e 1 'printing unbound key (vi-command)'
+bindkey -a f -
+bindkey -a f
+__IN__
+bindkey: key sequence `f' is not bound
+__ERR__
+#`
+
+sort >emacs <<\__END__
 bindkey -e '\\' self-insert
 bindkey -e '\^[\^I' insert-tab
 bindkey -e '\^Q' expect-verbatim
@@ -424,54 +432,131 @@ bindkey -e '\D' next-history-eol
 bindkey -e '\^N' next-history-eol
 bindkey -e '\U' prev-history-eol
 bindkey -e '\^P' prev-history-eol
-END
-. "$tmp/e"
-bindkey --emacs | sort | diff - "$tmp/e"
+__END__
 
-bindkey -l >/dev/null; echo 1 $?
-bindkey -v >/dev/null; echo 2 $?
-bindkey -v '\^[' >/dev/null; echo 3 $?
-bindkey -v '\^[' setmode-viinsert; echo 4 $?
+testcase "$LINENO" 'printing default emacs bindings: output' \
+    4<emacs 5</dev/null 3<<\__IN__
+bindkey -e | sort
+__IN__
 
+test_x -e 0 'printing default emacs bindings: exit status'
+bindkey -e
+__IN__
+
+test_OE -e 0 'binding key (emacs)'
+bindkey -e '\^N' search-again
+__IN__
+
+test_oE -e 0 'printing bound key (emacs)'
+bindkey -e '\^N' search-again
+bindkey -e '\^N'
+__IN__
+bindkey -e '\^N' search-again
+__OUT__
+
+test_OE -e 0 'unbinding key (emacs)'
+bindkey -e '\D' -
+__IN__
+
+test_Oe -e 1 'printing unbound key (emacs)'
+bindkey -e '\D' -
+bindkey -e '\D'
+__IN__
+bindkey: key sequence `\D' is not bound
+__ERR__
+#`
+
+while read -r _ _ key _; do
+    printf 'bindkey -v %s -\n' "$key"
+done <vi_insert >vi_insert_x
+
+test_OE -e 0 'removing all default vi-insert bindings'
+. ./vi_insert_x
+bindkey -v
+__IN__
+
+testcase "$LINENO" 'restoring bindings from previous output' \
+    4<vi_insert 5</dev/null 3<<\__IN__
+default=$(bindkey -v)
+. ./vi_insert_x
+eval "$default"
+bindkey -v | sort
+__IN__
+
+test_OE 'all commands are bindable' -e
 for cmd in $(bindkey -l)
 do
-    bindkey -v '!!!' $cmd || echo bindkey -v !!! $cmd $?
-    bindkey -a '!!!' $cmd || echo bindkey -a !!! $cmd $?
-    bindkey -e '!!!' $cmd || echo bindkey -e !!! $cmd $?
+    bindkey -v !!! $cmd
+    bindkey -a !!! $cmd
+    bindkey -e !!! $cmd
 done
-bindkey -v '!!!' -
-bindkey -a '!!!' -
-bindkey -e '!!!' -
+bindkey -v !!! -
+bindkey -a !!! -
+bindkey -e !!! -
+__IN__
 
-rm -fr "$tmp"
+test_Oe -e 1 'binding empty sequence'
+bindkey -v '' self-insert
+__IN__
+bindkey: cannot bind an empty key sequence
+__ERR__
 
+test_Oe -e 1 'printing empty sequence'
+bindkey -v ''
+__IN__
+bindkey: key sequence `' is not bound
+__ERR__
+#`
 
-echo ===== error =====
+test_Oe -e 1 'binding to non-existing command'
+bindkey -a '\\' no-such-command
+__IN__
+bindkey: no such editing command `no-such-command'
+__ERR__
+#`
 
+test_Oe -e 2 'invalid option'
 bindkey --no-such-option
-echo bindkey no-such-option $?
-bindkey --vi 2>/dev/null
-echo bindkey ambiguous-option 1 $?
-bindkey --vi 2>&1 | grep '^[^[:space:]]' # mind LIST_AMBIGUOUS_OPTIONS
-echo bindkey ambiguous-option 2
-bindkey
-echo bindkey operand missing $?
-bindkey -v x y z
-echo bindkey too many operands 1 $?
-bindkey -l x
-echo bindkey too many operands 2 $?
-bindkey -v '\\' no-such-command
-echo bindkey invalid operand 1 $?
-bindkey -v '' abort-line
-echo bindkey invalid operand 2 $?
-bindkey -v '~~~'
-echo bindkey unbound sequence $?
-(bindkey -l >&- 2>/dev/null)
-echo bindkey output error 1 $?
-(bindkey -v >&- 2>/dev/null)
-echo bindkey output error 2 $?
+__IN__
+bindkey: `--no-such-option' is not a valid option
+__ERR__
+#`
 
-complete --no-such-option
-echo complete no-such-option $?
-complete
-echo complete not-completing $?
+test_O -e 2 'ambiguous long option, exit status and standard output'
+bindkey --vi-
+__IN__
+
+test_o 'ambiguous long option, standard error'
+bindkey --vi- 2>&1 | head -n 1
+__IN__
+bindkey: option `--vi-' is ambiguous
+__OUT__
+#`
+
+test_Oe -e 2 'missing argument'
+bindkey
+__IN__
+bindkey: no option is specified
+__ERR__
+
+test_Oe -e 2 'too many operands with -a'
+bindkey -a X Y Z
+__IN__
+bindkey: too many operands are specified
+__ERR__
+
+test_Oe -e 2 'operand with -l'
+bindkey -l X
+__IN__
+bindkey: no operand is expected
+__ERR__
+
+test_O -d -e 1 'printing to closed stream (-l)'
+bindkey -l >&-
+__IN__
+
+test_O -d -e 1 'printing to closed stream (-a)'
+bindkey -a >&-
+__IN__
+
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:
