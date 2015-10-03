@@ -336,7 +336,14 @@ __OUT__
 (
 export histfile=/dev/null histsize=1
 
-# TODO: can we make this test faster?
+# If the /dev/stdin special file is available, use it to speed up the test.
+# The shell enables buffering if it reads from a file.
+if [ "$(echo ok | cat /dev/stdin)" = ok ]; then
+    export STDIN=/dev/stdin
+else
+    unset STDIN
+fi
+
 test_OE -e 0 'history entry number wraps'
 {
 echo :
@@ -344,7 +351,7 @@ while :; do
     echo fc -l
 done
 } |
-"$TESTEE" -i +m --rcfile="rcfile1" |
+"$TESTEE" -i +m --rcfile="rcfile1" ${STDIN-} |
 grep -Fqx '1	fc -l'
 __IN__
 
