@@ -99,6 +99,10 @@ fg
 read
  * read-p.tst
 
+set
+  * option-p.tst
+  * set-p.tst
+
 sh
   Stdin, Input files
     * input-p.tst

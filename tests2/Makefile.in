@@ -27,7 +27,7 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = checkfg.c invoke.c resetsig.c
-POSIX_TEST_SOURCES = alias-p.tst arith-p.tst bg-p.tst break-p.tst builtins-p.tst cmdsub-p.tst command-p.tst continue-p.tst dot-p.tst error-p.tst eval-p.tst exec-p.tst exit-p.tst fg-p.tst fnmatch-p.tst fsplit-p.tst input-p.tst nop-p.tst param-p.tst read-p.tst return-p.tst signal-p.tst testtty-p.tst tilde-p.tst wait-p.tst
+POSIX_TEST_SOURCES = alias-p.tst arith-p.tst bg-p.tst break-p.tst builtins-p.tst cmdsub-p.tst command-p.tst continue-p.tst dot-p.tst error-p.tst eval-p.tst exec-p.tst exit-p.tst fg-p.tst fnmatch-p.tst fsplit-p.tst input-p.tst nop-p.tst option-p.tst param-p.tst read-p.tst return-p.tst set-p.tst signal-p.tst testtty-p.tst tilde-p.tst wait-p.tst
 YASH_TEST_SOURCES = alias-y.tst arith-y.tst array-y.tst bg-y.tst bindkey-y.tst brace-y.tst break-y.tst builtins-y.tst cmdsub-y.tst command-y.tst complete-y.tst continue-y.tst dirstack-y.tst dot-y.tst echo-y.tst error-y.tst eval-y.tst exec-y.tst exit-y.tst fc-y.tst fg-y.tst help-y.tst history-y.tst historyx-y.tst invoke-y.tst jobs-y.tst param-y.tst printf-y.tst prompt-y.tst read-y.tst return-y.tst signal-y.tst simple-y.tst startup-y.tst tilde-y.tst
 TEST_SOURCES = $(POSIX_TEST_SOURCES) $(YASH_TEST_SOURCES)
 TEST_RESULTS = $(TEST_SOURCES:.tst=.trs)
