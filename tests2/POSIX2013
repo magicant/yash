@@ -10,6 +10,9 @@ Volume 3: Shell & Utilities
   Arithmetic Precision and Operations
     * arith-p.tst
 
+2.2 Quoting
+ * quote-p.tst
+
 2.3.1 Alias Substitution
  * alias-p.tst
 
