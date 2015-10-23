@@ -64,6 +64,9 @@ Command Search and Execution
 2.9.2 Pipelines
  * pipeline-p.tst
 
+2.9.3 Lists
+ * andor-p.tst
+
 2.14 Special Built-In Utilities
  * builtins-p.tst
 
