@@ -61,6 +61,9 @@ Command Search and Execution
  * builtins-p.tst
  * simple-p.tst
 
+2.9.2 Pipelines
+ * pipeline-p.tst
+
 2.14 Special Built-In Utilities
  * builtins-p.tst
 
