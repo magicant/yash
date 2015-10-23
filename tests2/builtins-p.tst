@@ -377,6 +377,39 @@ unset() { echo not reached; }
 unset unset
 __IN__
 
+# $1 = line no.
+# $2 = built-in name
+test_nonspecial_builtin_function_override() {
+    testcase "$1" "function overrides non-special command $2" \
+	3<<__IN__ 4<<__OUT__
+$2() { echo function overrides $2; }
+$2 XXX
+__IN__
+function overrides $2
+__OUT__
+}
+
+test_nonspecial_builtin_function_override "$LINENO" alias
+test_nonspecial_builtin_function_override "$LINENO" bg
+test_nonspecial_builtin_function_override "$LINENO" cd
+test_nonspecial_builtin_function_override "$LINENO" command
+test_nonspecial_builtin_function_override "$LINENO" false
+test_nonspecial_builtin_function_override "$LINENO" fc
+test_nonspecial_builtin_function_override "$LINENO" fg
+test_nonspecial_builtin_function_override "$LINENO" getopts
+test_nonspecial_builtin_function_override "$LINENO" jobs
+test_nonspecial_builtin_function_override "$LINENO" kill
+test_nonspecial_builtin_function_override "$LINENO" newgrp
+test_nonspecial_builtin_function_override "$LINENO" pwd
+test_nonspecial_builtin_function_override "$LINENO" read
+test_nonspecial_builtin_function_override "$LINENO" true
+test_nonspecial_builtin_function_override "$LINENO" umask
+test_nonspecial_builtin_function_override "$LINENO" unaliass
+test_nonspecial_builtin_function_override "$LINENO" wait
+
+test_nonspecial_builtin_function_override "$LINENO" grep
+test_nonspecial_builtin_function_override "$LINENO" sed
+
 (
 setup 'PATH=; unset PATH'
 
