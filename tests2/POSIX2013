@@ -68,6 +68,9 @@ Command Search and Execution
  * andor-p.tst
  * async-p.tst
 
+2.9.4 Compound Commands
+ * grouping-p.tst
+
 2.14 Special Built-In Utilities
  * builtins-p.tst
 
