@@ -69,6 +69,7 @@ Command Search and Execution
  * async-p.tst
 
 2.9.4 Compound Commands
+ * case-p.tst
  * for-p.tst
  * grouping-p.tst
 
