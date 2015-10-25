@@ -74,6 +74,13 @@ foo
 bar
 __OUT__
 
+test_oE 'words are not treated as assignments'
+v=foo
+for i in v=bar; do echo $i $v; done
+__IN__
+v=bar foo
+__OUT__
+
 test_oE 'semicolon-separated commands'
 for v in 1 2; do echo $v; done
 __IN__
@@ -87,6 +94,24 @@ wait
 __IN__
 
 
+__OUT__
+
+test_oE 'for as variable name' -s foo
+for for do echo $for; done
+__IN__
+foo
+__OUT__
+
+test_oE 'do as variable name' -s foo
+for do do echo $do; done
+__IN__
+foo
+__OUT__
+
+test_oE 'in as variable name'
+for in in foo; do echo $in; done
+__IN__
+foo
 __OUT__
 
 test_x -e 0 'exit status with no words'
