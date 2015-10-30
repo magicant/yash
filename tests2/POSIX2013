@@ -72,6 +72,7 @@ Command Search and Execution
  * case-p.tst
  * for-p.tst
  * grouping-p.tst
+ * if-p.tst
 
 2.14 Special Built-In Utilities
  * builtins-p.tst
