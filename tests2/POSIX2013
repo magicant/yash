@@ -73,6 +73,8 @@ Command Search and Execution
  * for-p.tst
  * grouping-p.tst
  * if-p.tst
+ * until-p.tst
+ * while-p.tst
 
 2.14 Special Built-In Utilities
  * builtins-p.tst
