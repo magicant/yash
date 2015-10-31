@@ -28,4 +28,46 @@ test_x -e 0 'exit status of input containing blank lines and comments only'
 # bar
 __IN__
 
+test_oE 'long line'
+echo 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        2
+__IN__
+1 2
+__OUT__
+
+test_oE 'line continuation and long line'
+echo \
+1                                                                             \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              \
+                                                                              2
+__IN__
+1 2
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

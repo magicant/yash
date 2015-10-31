@@ -114,6 +114,12 @@ __IN__
 foo
 __OUT__
 
+test_oE 'in as word'
+for i in in; do echo $i; done
+__IN__
+in
+__OUT__
+
 test_x -e 0 'exit status with no words'
 false
 for i do
