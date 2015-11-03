@@ -83,7 +83,10 @@ function
 __OUT__
 
 test_OE 'redirections apply to function body'
-func() { echo foo; } </dev/null >/dev/null
+func() { echo foo; cat; } >/dev/null <<END
+bar
+END
+func
 __IN__
 
 test_oE '$# in function'
