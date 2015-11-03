@@ -116,4 +116,87 @@ __IN__
 foo
 __OUT__
 
+test_Oe -e 2 'simple command as function body'
+foo() echo >/dev/null
+__IN__
+syntax error: a function body must be a compound command
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'function definition as function body'
+foo() bar() { :; }
+__IN__
+syntax error: a function body must be a compound command
+syntax error: invalid use of `('
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'function followed by EOF'
+function
+__IN__
+syntax error: a word is required after `function'
+syntax error: a function body must be a compound command
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'function followed by symbol'
+function |
+__IN__
+syntax error: a word is required after `function'
+syntax error: a function body must be a compound command
+syntax error: a command is missing at the end of input
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'function followed by newline'
+function
+foo() { :; }
+__IN__
+syntax error: a word is required after `function'
+syntax error: a function body must be a compound command
+__ERR__
+#'
+#`
+
+test_oE 'function as function name'
+function function () {
+    echo foo
+}
+\function
+__IN__
+foo
+__OUT__
+
+test_Oe -e 2 'function name followed by EOF (w/ function keyword)'
+function foo
+__IN__
+syntax error: a function body must be a compound command
+__ERR__
+
+test_Oe -e 2 'parentheses followed by EOF (w/ function keyword)'
+function foo()
+__IN__
+syntax error: a function body must be a compound command
+__ERR__
+
+test_Oe -e 2 'parentheses followed by EOF (w/o function keyword)'
+foo()
+__IN__
+syntax error: a function body must be a compound command
+__ERR__
+
+test_Oe -e 2 'unpaired parenthesis (w/o function keyword)'
+foo(
+__IN__
+syntax error: `(' must be followed by `)' in a function definition
+__ERR__
+#'
+#`
+#'
+#`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
