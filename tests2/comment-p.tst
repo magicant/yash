@@ -165,12 +165,12 @@ __IN__
 foo
 __OUT__
 
-test_oE 'comment in function definition'
+test_OE 'comment in function definition'
 func()###
+###
 { ###
     :
 } ###
 __IN__
-__OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -79,6 +79,9 @@ Command Search and Execution
  * until-p.tst
  * while-p.tst
 
+2.9.5 Function Definition Command
+ * function-p.tst
+
 2.14 Special Built-In Utilities
  * builtins-p.tst
 
