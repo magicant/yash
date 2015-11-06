@@ -128,13 +128,18 @@ input=input$LINENO
 >"$input"
 chmod a-r "$input"
 
+# Skip if we're root.
+if { <"$input"; } 2>/dev/null; then
+    skip="true"
+fi
+
 test_O -d -e n 'reading non-readable file' "$input"
 __IN__
 
+)
+
 test_O -d -e 127 'reading non-existing file' ./_no_such_file_
 __IN__
-
-)
 
 (
 export HOME="${PWD%/}/home$LINENO"

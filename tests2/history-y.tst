@@ -406,6 +406,11 @@ __END__
 >"$out"
 chmod a-w "$out"
 
+# Skip if we're root.
+if { echo >>"$out"; } 2>/dev/null; then
+    skip="true"
+fi
+
 test_O -d -e 1 'writing entries to protected file (-w)' -i +m --rcfile="rcfile1"
 history -w "$out"
 __IN__
