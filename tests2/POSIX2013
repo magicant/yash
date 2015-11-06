@@ -42,6 +42,9 @@ Volume 3: Shell & Utilities
 2.6.5 Field Splitting
  * fsplit-p.tst
 
+2.6.6 Pathname Expansion
+ * path-p.tst
+
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
    * error-p.tst
@@ -81,6 +84,17 @@ Command Search and Execution
 
 2.9.5 Function Definition Command
  * function-p.tst
+
+2.13 Pattern Matching Notation
+
+2.13.1 Patterns Matching a Single Character
+ * fnmatch-p.tst
+
+2.13.2 Patterns Matching Multiple Characters
+ * fnmatch-p.tst
+
+2.13.3 Patterns Used for Filename Expansion
+ * path-p.tst
 
 2.14 Special Built-In Utilities
  * builtins-p.tst

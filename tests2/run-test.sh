@@ -88,6 +88,7 @@ work_dir="tmp.$$"
 
 rm_work_dir()
 if "$remove_work_dir"; then
+    if [ -d "$work_dir" ]; then chmod -R a+rX "$work_dir"; fi
     rm -fr "$work_dir"
 fi
 
