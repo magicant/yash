@@ -50,7 +50,17 @@ __ERR__
 #'
 #`
 
-test_Oe -e 2 ';; outside case'
+test_Oe -e 2 ';; outside case (at beginning of line)'
+;;
+__IN__
+syntax error: `;;' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';; outside case (after simple command)'
 echo foo;;
 __IN__
 syntax error: `;' or `&' is missing
@@ -146,6 +156,7 @@ syntax error: `esac' is missing
 __ERR__
 #'
 #`
+#) esac
 
 test_Oe -e 2 'in followed by invalid symbol'
 case 1 in </dev.null
@@ -157,6 +168,19 @@ __ERR__
 #`
 #'
 #`
+#) esac
+
+test_Oe -e 2 '( followed by EOF'
+case 1 in (
+__IN__
+syntax error: a word is required after `('
+syntax error: `esac' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#) esac
 
 test_Oe -e 2 'invalid symbol in pattern'
 case 1 in a</dev.null
@@ -168,6 +192,7 @@ __ERR__
 #`
 #'
 #`
+#) esac
 
 test_Oe -e 2 'missing pattern (separated by |)'
 case 1 in |foo) esac
@@ -204,7 +229,49 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 'separator followed by EOF'
+case 1 in (1|
+__IN__
+syntax error: a word is required after `|'
+syntax error: `esac' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#) esac
+
 test_Oe -e 2 'pattern followed by EOF'
+case 1 in 1
+__IN__
+syntax error: `)' is missing
+syntax error: `esac' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#) esac
+
+test_Oe -e 2 'pattern followed by esac (after one pattern)'
+case 1 in 1 esac
+__IN__
+syntax error: `)' is missing
+__ERR__
+#'
+#`
+#) esac
+
+test_Oe -e 2 'pattern followed by esac (after two patterns)'
+case 1 in 1|2 esac
+__IN__
+syntax error: `)' is missing
+__ERR__
+#'
+#`
+#) esac
+
+test_Oe -e 2 ') followed by EOF'
 case 1 in 1)
 __IN__
 syntax error: `esac' is missing
@@ -217,6 +284,35 @@ case 1 in 1) echo not reached
 __IN__
 syntax error: `esac' is missing
 __ERR__
+#'
+#`
+
+test_Oe -e 2 'missing in-esac (in grouping)'
+{ case 1 }
+__IN__
+syntax error: `in' is missing
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `esac'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing esac (in grouping)'
+{ case 1 in *) }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `esac'?)
+__ERR__
+#'
+#`
+#'
+#`
 #'
 #`
 

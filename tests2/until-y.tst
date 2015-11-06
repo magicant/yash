@@ -19,7 +19,8 @@ __IN__
 __OUT__
 
 test_OE -e 0 'exit status with empty condition'
-until do break; done
+false
+until do echo not reached; break; done
 __IN__
 
 test_OE -e 0 'exit status with empty body (0-round loop)'
@@ -109,6 +110,40 @@ until echo not reached 1; do echo not reached 2
 __IN__
 syntax error: `done' is missing
 __ERR__
+#'
+#`
+
+test_Oe -e 2 'missing do and done (in grouping)'
+{ until }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `do'?)
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing done (in grouping)'
+{ until do }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
 #'
 #`
 

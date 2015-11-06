@@ -93,4 +93,28 @@ syntax error: `}' is missing
 __ERR__
 #'`
 
+test_Oe -e 2 'unclosed subshell in brace grouping'
+{ ( }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `)'?)
+__ERR__
+#'`'`'`
+
+test_Oe -e 2 'unclosed brace grouping in subshell'
+( { )
+__IN__
+syntax error: encountered `)' without a matching `('
+syntax error: (maybe you missed `}'?)
+__ERR__
+#'`'`'`
+
+test_Oe -e 2 'simple command followed by ('
+echo foo (
+:)
+__IN__
+syntax error: invalid use of `('
+__ERR__
+#'`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

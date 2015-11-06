@@ -177,6 +177,99 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 '{ for }'
+{ for }
+__IN__
+syntax error: `}' is not a valid identifier
+syntax error: `do' is missing
+syntax error: `done' is missing
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 '{ for _ }'
+{ for _ }
+__IN__
+syntax error: `do' is missing
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 '{ for _ in }'
+{ for _ in }
+__IN__
+syntax error: `do' is missing
+syntax error: `done' is missing
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 '{ for _ in; }'
+{ for _ in; }
+__IN__
+syntax error: `do' is missing
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 '{ for _ do }'
+{ for _ do }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 '{ for _ in; do }'
+{ for _ in; do }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'invalid variable name'
+for = do echo not reached; done
+__IN__
+syntax error: `=' is not a valid identifier
+__ERR__
+#'
+#`
+
 test_Oe -e 2 'invalid word separator'
 for i in 1 2& do echo $i; done
 __IN__

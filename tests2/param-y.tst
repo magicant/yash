@@ -89,6 +89,235 @@ __IN__
 [$]
 __OUT__
 
+test_Oe -e 2 '${}'
+bracket ${}
+__IN__
+syntax error: the parameter name is missing or invalid
+__ERR__
+
+test_Oe -e 2 '${}}'
+bracket ${}}
+__IN__
+syntax error: the parameter name is missing or invalid
+__ERR__
+
+test_Oe -e 2 '${&}'
+bracket ${&}
+__IN__
+syntax error: the parameter name is missing or invalid
+__ERR__
+
+test_Oe -e 2 'missing index'
+bracket ${foo[]}
+__IN__
+syntax error: the index is missing
+__ERR__
+
+test_Oe -e 2 'missing start index'
+bracket ${foo[,2]}
+__IN__
+syntax error: the index is missing
+__ERR__
+
+test_Oe -e 2 'missing end index'
+bracket ${foo[1,]}
+__IN__
+syntax error: the index is missing
+__ERR__
+
+test_Oe -e 2 'missing index and closing bracket'
+bracket ${foo[}
+__IN__
+syntax error: `]' is missing
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#]
+#}
+
+test_Oe -e 2 'missing end index and closing bracket'
+bracket ${foo[1}
+__IN__
+syntax error: `]' is missing
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#]
+#}
+
+test_Oe -e 2 'missing closing bracket'
+bracket ${foo[1,2}
+__IN__
+syntax error: `]' is missing
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#'
+#`
+#]
+#}
+
+test_Oe -e 2 'missing closing brace'
+bracket ${foo
+__IN__
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 'unexpected colon in parameter expansion'
+bracket ${foo:}
+__IN__
+syntax error: invalid use of `:' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'unexpected colon in unclosed parameter expansion'
+bracket ${foo:
+__IN__
+syntax error: invalid use of `:' in parameter expansion
+syntax error: `}' is missing
+__ERR__
+#'
+#}
+#`
+#'
+#`
+
+test_Oe -e 2 'colon followed by hash in parameter expansion'
+bracket ${foo:#bar}
+__IN__
+syntax error: invalid use of `:' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'colon followed by percent in parameter expansion'
+bracket ${foo:%bar}
+__IN__
+syntax error: invalid use of `:' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'unexpected exclamation in unclosed parameter expansion'
+bracket ${foo!
+__IN__
+syntax error: invalid character `!' in parameter expansion
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 'missing closing brace after hash'
+bracket ${foo#bar
+__IN__
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 'missing closing brace after percent'
+bracket ${foo%bar
+__IN__
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 'missing closing brace after one slash'
+bracket ${foo/bar
+__IN__
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 'missing closing brace after two slashes'
+bracket ${foo/bar/baz
+__IN__
+syntax error: `}' is missing
+__ERR__
+#'
+#`
+#}
+
+test_Oe -e 2 '${#foo-bar}'
+bracket ${#foo-bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo+bar}'
+bracket ${#foo+bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo?bar}'
+bracket ${#foo?bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo=bar}'
+bracket ${#foo=bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo#bar}'
+bracket ${#foo#bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo%bar}'
+bracket ${#foo%bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo/bar}'
+bracket ${#foo/bar}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 '${#foo/bar/baz}'
+bracket ${#foo/bar/baz}
+__IN__
+syntax error: invalid use of `#' in parameter expansion
+__ERR__
+#'
+#`
+
 test_oE '${#+}'
 bracket "${#+}" # substitute empty string if # is set
 __IN__

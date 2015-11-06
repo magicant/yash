@@ -116,6 +116,40 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 'missing do and done (in grouping)'
+{ while }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `do'?)
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing done (in grouping)'
+{ while do }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `done'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
 # `do' and `done' without `while` are tested in for-y.tst.
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

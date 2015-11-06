@@ -22,10 +22,12 @@ true
 __OUT__
 
 test_E -e 0 'exit status of empty body (if, true)'
+false
 if true; then fi
 __IN__
 
 test_E -e 0 'exit status of empty body (if-else, true)'
+false
 if true; then else fi
 __IN__
 
@@ -39,6 +41,12 @@ __IN__
 
 test_E -e 19 'exit status of empty body (if-elif-else, false-false)'
 if false; then elif(exit 19)then else fi
+__IN__
+
+# TODO: this behavior seems contradictory to the results of above tests
+test_E -e 23 'exit status of empty condition and body'
+(exit 23)
+if then elif then else fi
 __IN__
 
 (
@@ -130,12 +138,28 @@ __ERR__
 
 )
 
-test_Oe -e 2 'unpaired then'
+test_Oe -e 2 'unpaired then (direct)'
 then
     :; fi
 __IN__
 syntax error: encountered `then' without a matching `if' or `elif'
 __ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'unpaired then (after then)'
+if echo not reached 1; then echo not reached 2; then
+    :; fi
+__IN__
+syntax error: encountered `then' without a matching `if' or `elif'
+syntax error: (maybe you missed `fi'?)
+__ERR__
+#'
+#`
 #'
 #`
 #'
@@ -157,6 +181,21 @@ __ERR__
 
 test_Oe -e 2 'unpaired fi (after if)'
 if echo not reached; fi
+__IN__
+syntax error: encountered `fi' without a matching `if' and/or `then'
+syntax error: (maybe you missed `then'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'unpaired fi (after elif)'
+if echo not reached 1; then echo not reached 2; elif echo not reached 3; fi
 __IN__
 syntax error: encountered `fi' without a matching `if' and/or `then'
 syntax error: (maybe you missed `then'?)
@@ -292,6 +331,74 @@ elif echo not reached 2; then echo not reached 3
 __IN__
 syntax error: `fi' is missing
 __ERR__
+#'
+#`
+
+test_Oe -e 2 'missing then (after if, in grouping)'
+{ if }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `then'?)
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `fi'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing then (after elif, in grouping)'
+{ if :; then :; elif }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `then'?)
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `fi'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing fi (after then, in grouping)'
+{ if :; then }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `fi'?)
+__ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'missing fi (after else, in grouping)'
+{ if :; then :; else }
+__IN__
+syntax error: encountered `}' without a matching `{'
+syntax error: (maybe you missed `fi'?)
+__ERR__
+#'
+#`
+#'
+#`
 #'
 #`
 

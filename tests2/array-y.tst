@@ -1,4 +1,4 @@
-# array-y.tst: yash-specific test of the array builtin
+# array-y.tst: yash-specific test of arrays
 
 setup -d
 setup - <<\__END__
@@ -47,6 +47,18 @@ bracket "$a"
 __IN__
 [)(]
 __OUT__
+
+test_Oe -e 2 'unclosed array assignment'
+a=(
+__IN__
+syntax error: `)' is missing
+__ERR__
+
+test_Oe -e 2 'unquoted symbol in array assignment'
+a=(1;)
+__IN__
+syntax error: `)' is missing
+__ERR__
 
 test_oE -e 0 'reassigning array'
 a=(a)

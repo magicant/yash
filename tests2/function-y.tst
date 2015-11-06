@@ -116,8 +116,31 @@ __IN__
 foo
 __OUT__
 
-test_Oe -e 2 'simple command as function body'
+test_o 'effect of redefining read-only function'
+func() { echo foo; }
+readonly -f func
+func() { echo not reached; }
+func
+__IN__
+foo
+__OUT__
+
+test_x -d -e 2 'error message and exit status of redefining read-only function'
+func() { echo foo; }
+readonly -f func
+func() { :; }
+__IN__
+
+test_Oe -e 2 'simple command as function body (w/o function keyword)'
 foo() echo >/dev/null
+__IN__
+syntax error: a function body must be a compound command
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'simple command as function body (w/ function keyword)'
+function foo() echo >/dev/null
 __IN__
 syntax error: a function body must be a compound command
 __ERR__
@@ -153,7 +176,7 @@ __ERR__
 #`
 
 test_Oe -e 2 'function followed by newline'
-function
+function ###
 foo() { :; }
 __IN__
 syntax error: a word is required after `function'
