@@ -1,13 +1,3 @@
-===== cd builtin =====
-cd $HOME
-cd $OLDPWD
-cd $PWD
-cd -P
-cd -L
-cd -L default
-cd $CDPATH 1
-cd $CDPATH 2
-cd canonicalization /dev
 ===== umask builtin =====
 u=,g=,o=
 ok
