@@ -33,7 +33,7 @@ __OUT__
 
 test_oE '[...] does not match slash'
 echo foo[/]dir[/]file
-echo bar/?[b/c]?
+echo bar/a[b/c]d
 __IN__
 foo[/]dir[/]file
 bar/a[b/c]d
