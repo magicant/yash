@@ -64,6 +64,9 @@ static inline void *xrealloc(void *ptr, size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
+static inline void *xrealloce(void *ptr,
+	size_t count1, size_t count2, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
 static inline void *xreallocs(void *ptr,
 	size_t mainsize, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
@@ -145,8 +148,15 @@ void *xreallocn(void *ptr, size_t count, size_t elemsize)
     return xrealloc(ptr, mul(count, elemsize));
 }
 
-/* Like `xrealloc(mainsize + count * elemsize)', but aborts the program if the
- * size is too large. */
+/* Like `xrealloc(ptr, (count1 + count2) * elemsize)', but aborts the program if
+ * the size is too large. */
+void *xrealloce(void *ptr, size_t count1, size_t count2, size_t elemsize)
+{
+    return xreallocn(ptr, add(count1, count2), elemsize);
+}
+
+/* Like `xrealloc(ptr, mainsize + count * elemsize)', but aborts the program if
+ * the size is too large. */
 void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
 {
     return xrealloc(ptr, add(mainsize, mul(count, elemsize)));

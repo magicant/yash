@@ -3033,7 +3033,7 @@ variable_T *get_dirstack(void)
 void push_dirstack(variable_T *var, wchar_t *value)
 {
     size_t index = var->v_valc++;
-    var->v_vals = xreallocn(var->v_vals, index + 2, sizeof *var->v_vals);
+    var->v_vals = xrealloce(var->v_vals, index, 2, sizeof *var->v_vals);
     var->v_vals[index] = value;
     var->v_vals[index + 1] = NULL;
 }

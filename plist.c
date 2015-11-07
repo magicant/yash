@@ -102,7 +102,7 @@ plist_T *pl_initwithmax(plist_T *list, size_t max)
  * the pointer list is truncated. */
 plist_T *pl_setmax(plist_T *list, size_t newmax)
 {
-    list->contents = xreallocn(list->contents, newmax + 1, sizeof (void *));
+    list->contents = xrealloce(list->contents, newmax, 1, sizeof (void *));
     list->maxlength = newmax;
     list->contents[newmax] = NULL;
     if (newmax < list->length)

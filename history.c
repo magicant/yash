@@ -422,8 +422,8 @@ void add_histfile_pid(pid_t pid)
 	if (histfilepids.pids[i] == pid)
 	    return;  /* don't add if already added */
 
-    histfilepids.pids = xreallocn(histfilepids.pids,
-	    histfilepids.count + 1, sizeof *histfilepids.pids);
+    histfilepids.pids = xrealloce(histfilepids.pids,
+	    histfilepids.count, 1, sizeof *histfilepids.pids);
     histfilepids.pids[histfilepids.count++] = pid;
 }
 

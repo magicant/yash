@@ -75,8 +75,8 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
  * the buffer contents is truncated. */
 xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 {
-    // buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (char));
-    buf->contents = xrealloc(buf->contents, newmax + 1);
+    // buf->contents = xrealloce(buf->contents, newmax, 1, sizeof (char));
+    buf->contents = xrealloc(buf->contents, add(newmax, 1));
     buf->maxlength = newmax;
     buf->contents[newmax] = '\0';
     if (newmax < buf->length)
@@ -330,7 +330,7 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
  * the buffer contents is truncated. */
 xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 {
-    buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (wchar_t));
+    buf->contents = xrealloce(buf->contents, newmax, 1, sizeof (wchar_t));
     buf->maxlength = newmax;
     buf->contents[newmax] = L'\0';
     if (newmax < buf->length)

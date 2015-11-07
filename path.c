@@ -316,13 +316,13 @@ char *xgetcwd(void)
 {
 #if GETCWD_AUTO_MALLOC
     char *pwd = getcwd(NULL, 0);
-    return (pwd != NULL) ? xrealloc(pwd, strlen(pwd) + 1) : NULL;
+    return (pwd != NULL) ? xrealloc(pwd, add(strlen(pwd), 1)) : NULL;
 #else
     size_t pwdlen = 40;
     char *pwd = xmalloc(pwdlen);
     while (getcwd(pwd, pwdlen) == NULL) {
 	if (errno == ERANGE) {
-	    pwdlen *= 2;
+	    pwdlen = mul(pwdlen, 2);
 	    pwd = xrealloc(pwd, pwdlen);
 	} else {
 	    int saveerrno = errno;
