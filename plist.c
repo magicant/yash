@@ -53,7 +53,7 @@ void **plndup(void *const *array, size_t count, void *copy(const void *p))
     while (array[realcount] != NULL && realcount < count)
 	realcount++;
 
-    void **result = xmallocn(realcount + 1, sizeof *result);
+    void **result = xmalloce(realcount, 1, sizeof *result);
     for (size_t i = 0; i < realcount; i++)
 	result[i] = copy(array[i]);
     result[realcount] = NULL;
@@ -90,7 +90,7 @@ void plfree(void **ary, void freer(void *elem))
  * capacity. */
 plist_T *pl_initwithmax(plist_T *list, size_t max)
 {
-    list->contents = xmallocn(max + 1, sizeof (void *));
+    list->contents = xmalloce(max, 1, sizeof (void *));
     list->contents[0] = NULL;
     list->length = 0;
     list->maxlength = max;

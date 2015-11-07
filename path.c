@@ -219,7 +219,7 @@ bool is_same_file(const char *path1, const char *path2)
  * error. */
 wchar_t *canonicalize_path(const wchar_t *path)
 {
-    wchar_t *const result = xmallocn(wcslen(path) + 1, sizeof *result);
+    wchar_t *const result = xmalloce(wcslen(path), 1, sizeof *result);
     wchar_t *rp = result;
     plist_T clist;
 

@@ -213,7 +213,7 @@ histentry_T *new_entry(unsigned number, time_t time, const char *line)
 	remove_entry(ashistentry(histlist.Oldest));
 
     histentry_T *new = xmallocs(sizeof *new,
-	    strlen(line) + 1, sizeof *new->value);
+	    add(strlen(line), 1), sizeof *new->value);
     new->Prev = histlist.Newest;
     new->Next = Histlist;
     histlist.Newest = new->Prev->next = &new->link;

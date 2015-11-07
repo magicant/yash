@@ -448,7 +448,7 @@ void save_undo_history(void)
     pl_remove(&undo_history, undo_index, SIZE_MAX);
 
     struct undo_history *e =
-	xmallocs(sizeof *e, le_main_buffer.length + 1, sizeof *e->contents);
+	xmallocs(sizeof *e, add(le_main_buffer.length, 1), sizeof *e->contents);
     e->index = le_main_index;
     wcscpy(e->contents, le_main_buffer.contents);
     pl_add(&undo_history, e);
@@ -487,7 +487,7 @@ void maybe_save_undo_history(void)
 	struct undo_history *h;
 	pl_clear(&undo_history, free);
 	h = xmallocs(sizeof *h,
-		wcslen(main_history_value) + 1, sizeof *h->contents);
+		add(wcslen(main_history_value), 1), sizeof *h->contents);
 	assert(save_undo_save_index <= wcslen(main_history_value));
 	h->index = save_undo_save_index;
 	wcscpy(h->contents, main_history_value);

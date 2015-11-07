@@ -56,6 +56,8 @@ static inline void *xmalloc(size_t size)
     __attribute__((malloc,warn_unused_result));
 static inline void *xmallocn(size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
+static inline void *xmalloce(size_t count1, size_t count2, size_t elemsize)
+    __attribute__((malloc,warn_unused_result));
 static inline void *xmallocs(size_t mainsize, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 static inline void *xrealloc(void *ptr, size_t size)
@@ -111,6 +113,13 @@ void *xmalloc(size_t size)
 void *xmallocn(size_t count, size_t elemsize)
 {
     return xmalloc(mul(count, elemsize));
+}
+
+/* Like `xmalloc((count1 + count2) * elemsize)', but aborts the program if the
+ * size is too large. */
+void *xmalloce(size_t count1, size_t count2, size_t elemsize)
+{
+    return xmallocn(add(count1, count2), elemsize);
 }
 
 /* Like `xmalloc(mainsize + count * elemsize)', but aborts the program if the

@@ -594,12 +594,12 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 
     /* count the full length of the resulting string */
     for (elemcount = 0; array[elemcount] != NULL; elemcount++)
-	ccount += wcslen(array[elemcount]);
+	ccount = add(ccount, wcslen(array[elemcount]));
     if (elemcount > 0)
-	ccount += wcslen(padding) * (elemcount - 1);
+	ccount = add(ccount, mul(wcslen(padding), elemcount - 1));
 
     /* do copying */
-    wchar_t *const result = xmallocn(ccount + 1, sizeof *result);
+    wchar_t *const result = xmalloce(ccount, 1, sizeof *result);
     wchar_t *s = result;
     for (size_t i = 0; i < elemcount; i++) {
 	wchar_t *elem = array[i];

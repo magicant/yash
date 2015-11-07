@@ -68,7 +68,8 @@ char *xstrndup(const char *s, size_t len)
 {
     len = xstrnlen(s, len);
 
-    char *result = xmalloc(len + 1);
+    // char *result = xmalloce(len, 1, sizeof (char));
+    char *result = xmalloc(add(len, 1));
     result[len] = '\0';
     return memcpy(result, s, len);
 }
@@ -92,7 +93,7 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
     len = xwcsnlen(s, len);
 
-    wchar_t *result = xmallocn(len + 1, sizeof (wchar_t));
+    wchar_t *result = xmalloce(len, 1, sizeof (wchar_t));
     result[len] = L'\0';
     return wmemcpy(result, s, len);
 }
