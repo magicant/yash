@@ -827,7 +827,7 @@ wordunit_T *cparse_paramexp_raw(le_contexttype_T ctxttype)
 		    pi->ctxt->quote = QUOTE_NONE;
 		    pi->ctxt->type = CTXT_VAR | (ctxttype & CTXT_QUOTED);
 		    pi->ctxt->pwordc = 0;
-		    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
+		    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 		    pi->ctxt->pwords[0] = NULL;
 		    pi->ctxt->pattern = xwcsndup(&BUF[INDEX + 1], namelen);
 		    pi->ctxt->srcindex = le_main_index - namelen;
@@ -921,7 +921,7 @@ wordunit_T *cparse_paramexp_in_brace(le_contexttype_T ctxttype)
 	    pi->ctxt->quote = QUOTE_NORMAL;
 	    pi->ctxt->type = CTXT_VAR | CTXT_VBRACED | (ctxttype & CTXT_QUOTED);
 	    pi->ctxt->pwordc = 0;
-	    pi->ctxt->pwords = malloc(1 * sizeof *pi->ctxt->pwords);
+	    pi->ctxt->pwords = xmalloc(1 * sizeof *pi->ctxt->pwords);
 	    pi->ctxt->pwords[0] = NULL;
 	    pi->ctxt->pattern = xwcsndup(&BUF[INDEX], namelen);
 	    pi->ctxt->srcindex = le_main_index - namelen;
