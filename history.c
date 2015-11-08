@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -627,7 +627,7 @@ bool try_read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
 	}
 	if (buf->length > LINE_MAX)
 	    return false;  /* Too long line. Give up. */
-	wb_ensuremax(buf, buf->length + 80);
+	wb_ensuremax(buf, add(buf->length, 80));
     }
     return false;
 }

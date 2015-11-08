@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* plist.c: modifiable list of pointers */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -153,7 +153,7 @@ plist_T *pl_replace(
     if (ln > list->length - i)
 	ln = list->length - i;
 
-    size_t newlength = list->length - ln + an;
+    size_t newlength = add(list->length - ln, an);
     pl_ensuremax(list, newlength);
     memmove(list->contents + i + an, list->contents + i + ln,
 	    (list->length - (i + ln) + 1) * sizeof (void *));
@@ -166,7 +166,7 @@ plist_T *pl_replace(
  * `p' may be NULL or a pointer to the list itself. */
 plist_T *pl_add(plist_T *list, const void *p)
 {
-    pl_ensuremax(list, list->length + 1);
+    pl_ensuremax(list, add(list->length, 1));
     list->contents[list->length++] = (void *) p;
     list->contents[list->length] = NULL;
     return list;

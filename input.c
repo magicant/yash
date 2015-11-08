@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,7 +128,7 @@ read_input:  /* if there's nothing in the buffer, read the next input */
 
 	/* convert bytes in `info->buf' into a wide character and
 	 * append it to `buf' */
-	wb_ensuremax(buf, buf->length + 1);
+	wb_ensuremax(buf, add(buf->length, 1));
 	assert(info->bufpos < info->bufmax);
 	size_t convcount = mbrtowc(&buf->contents[buf->length],
 		&info->buf[info->bufpos], info->bufmax - info->bufpos,
