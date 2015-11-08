@@ -687,6 +687,8 @@ void update_editline(void)
 
     update_styler();
 
+    // No need to check for overflow in `le_main_buffer.length + 1' here. Should
+    // overflow occur, the buffer would not have been allocated successfully.
     current_editline = xreallocn(current_editline,
 	    le_main_buffer.length + 1, sizeof *current_editline);
     cursor_positions = xreallocn(cursor_positions,

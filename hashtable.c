@@ -342,7 +342,7 @@ kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
  * The returned array is terminated by the { NULL, NULL } element. */
 kvpair_T *ht_tokvarray(const hashtable_T *ht)
 {
-    kvpair_T *array = xmallocn(ht->count + 1, sizeof *array);
+    kvpair_T *array = xmalloce(ht->count, 1, sizeof *array);
     size_t index = 0;
 
     for (size_t i = 0; i < ht->capacity; i++) {

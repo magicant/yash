@@ -479,7 +479,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
  * The exit status is assigned to `laststatus' in any case. */
 wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
 {
-    job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+    job_T *job = xmalloc(add(sizeof *job, sizeof *job->j_procs));
     job->j_pgid = cpgid;
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;

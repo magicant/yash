@@ -1,0 +1,202 @@
+# (C) 2015 magicant
+
+# Completion script for the "valgrind" command.
+# Supports Valgrind 3.10.0.
+
+function completion/valgrind {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"--alignment:"
+	"--allow-mismatched-debuginfo:"
+	"--aspace-minaddr:; specify min address to allocate for Valgrind"
+	"--child-silent-after-fork:"
+	"--db-attach:; ask whether to invoke debugger on error"
+	"--db-command:; specify debugger to use with --db-attach"
+	"--debuginfo-server:; specify address/port pair to connect to valgrind-di-server"
+	"--demangle:"
+	"--dsymutil:; run dsymutil automatically"
+	"--error-exitcode:; specify exit status to return on error"
+	"--error-limit:; limit number of errors to report"
+	"--extra-debuginfo-path:; specify location of debug info"
+	"--fair-sched:; use fair internal scheduling policy"
+	"--fullpath-after:; show path after specified string"
+	"--gen-suppressions:; generate suppressions for reported errors"
+	"h --help; show help"
+	"--help-debug; show help with debugging info"
+	"--input-fd:; specify file descriptor to read reply"
+	"--kernel-variant:"
+	"--log-fd:; specify file descriptor to print messages"
+	"--log-file:; specify file name to print messages"
+	"--log-socket:; specify address/port pair to send messages"
+	"--main-stacksize:; specify main thread stack size"
+	"--max-stackframe:; specify max stack frame size"
+	"--merge-recursive-frames:; specify stack level to detect recursion"
+	"--num-callers:; specify max call stack level to print"
+	"--num-transtab-sectors:; specify number of sectors for code translation"
+	"q --quiet; print error messages only"
+	"--read-inline-info:; recognize inlined functions"
+	"--read-var-info:; recognize variable types and locations"
+	"--redzone-size:; specify size of padding around allocated memory"
+	"--require-text-symbol:; specify so file and symbol name pattern pair to require when loaded"
+	"--run-libc-freeres:; make libc release internal resources before exit"
+	"--show-below-main:"
+	"--show-emwarns:"
+	"--sigill-diagnostics:; report illegal instructions"
+	"--sim-hints:; specify hints to modify simulation behavior"
+	"--smc-check:; specify where self-modifying code is detected"
+	"--soname-synonyms:; specify patterns to replace libraries"
+	"--suppressions:; specify file that defines suppressed errors"
+	"--time-stamp:; print messages with time stamp"
+	"--tool:"
+	"--trace-children:; keep tracing even after 'exec'"
+	"--trace-children-skip:; specify command name patterns to stop tracing"
+	"--trace-children-skip-by-arg:; specify argument patterns to stop tracing"
+	"--track-fds:; track file descriptors"
+	"--unw-stack-scan-frames:; specify call stack level to scan"
+	"--unw-stack-scan-thresh:; specify threshold to force stack scanning"
+	"--version"
+	"v --verbose; show more detail"
+	"--vgdb:; enable gdbserver connection"
+	"--vgdb-error:; specify number of errors allowed before gdbserver connection"
+	"--vgdb-poll:; specify gdbserver poll count"
+	"--vgdb-prefix:; specify prefix of name of temporary files to communicate with gdbserver"
+	"--vgdb-stop-at:; specify events to wait for gdbserver connection"
+	"--xml:; use XML format for messages"
+	"--xml-fd:; specify file descriptor to print XML messages"
+	"--xml-file:; specify file name to print XML messages"
+	"--vgdb-shadow-registers:; expose shadow registers to gdbserver"
+	"--xml-socket:; specify address/port pair to send XML messages"
+	"--xml-user-comment:; specify additional comment added in XML format"
+	) #<#
+
+	# memcheck options
+	OPTIONS=("$OPTIONS" #>#
+	"--errors-for-leak-kinds:"
+	"--free-fill:; specify dummy byte value to fill freed memory"
+	"--freelist-vol:; specify size of freed memory"
+	"--freelist-big-blocks:; specify size threshold to be prioritized in free list"
+	"--ignore-ranges:; specify memory range to ignore"
+	"--keep-stacktraces:; specify stack trace recording policy"
+	"--leak-check:; specify leak check verbosity"
+	"--leak-check-heuristics:; specify heuristics to use"
+	"--leak-resolution:; specify stack trace similarity to allow merge"
+	"--malloc-fill:; specify initial byte value to fill allocated memory"
+	"--partial-loads-ok:; allow accessing partially invalid address range"
+	"--show-mismatched-frees:; check malloc/new/free/delete combination"
+	"--show-leak-kinds:"
+	"--show-possibly-lost:; report possibly lost leaks"
+	"--show-reachable:; report all kinds of leaks"
+	"--track-origins:; track origin of uninitialized values"
+	"--undef-value-errors:; report uses of uninitialized values"
+	"--workaround-gcc296-bugs: overlook access below stack pointer"
+	) #<#
+
+	# TODO: Other tools' options are not supported now...
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(--allow-mismatched-debuginfo|--child-silent-after-fork|--db-attach|--demangle|--dsymutil|--error-limit|--partial-loads-ok|--read-inline-info|--read-var-info|--run-libc-freeres|--show-mismatched-frees|--show-possibly-lost|--show-reachable|--sigill-diagnostics|--time-stamp|--trace-children|--track-fds|--track-origins|--undef-value-errors|--vgdb-shadow-registers|--xml) #>>#
+		complete -P "$PREFIX" no yes
+		;; #<<#
+	(--gen-suppressions) #>>#
+		complete -P "$PREFIX" all no yes
+		;; #<<#
+	(--vgdb) #>>#
+		complete -P "$PREFIX" full no yes
+		;; #<<#
+	(--fair-sched) #>>#
+		complete -P "$PREFIX" -D 'enable or die' yes
+		complete -P "$PREFIX" -D 'enable or fall back' try
+		complete -P "$PREFIX" -D 'disable' no
+		;; #<<#
+	(--fullpath-after|--log-file|--suppressions|--xml-file)
+		complete -P "$PREFIX" -f
+		;;
+	(--extra-debuginfo-path)
+		complete -P "$PREFIX" -S / -T -d
+		;;
+	(--db-command)
+		complete -P "$PREFIX" --external-command
+		;;
+	(--keep-stacktraces) #>>#
+		complete -P "$PREFIX" \
+			alloc alloc-and-free alloc-then-free free none
+		;; #<<#
+	(--kernel-variant) #>>#
+		complete -P "$PREFIX" android-gpu-adreno3xx
+		complete -P "$PREFIX" android-gpu-sgx5xx
+		complete -P "$PREFIX" -D 'software TLS' android-no-hw-tls
+		complete -P "$PREFIX" -D 'sys_broc on x86' bproc
+		;; #<<#
+	(--leak-check) #>>#
+		complete -P "$PREFIX" -D 'full' full yes
+		complete -P "$PREFIX" no
+		complete -P "$PREFIX" summary
+		;; #<<#
+	(--leak-check-heuristics)
+		command -f completion//valgrind:skipcomma
+		#>>#
+		complete -P "$PREFIX" all length64 multipleinheritance \
+			newarray none stdstring
+		;; #<<#
+	(--leak-resolution) #>>#
+		complete -P "$PREFIX" high low med
+		;; #<<#
+	(--show-leak-kinds|--errors-for-leak-kinds)
+		command -f completion//valgrind:skipcomma
+		#>>#
+		complete -P "$PREFIX" \
+			all definite indirect none possible reachable
+		;; #<<#
+	(--sim-hints)
+		command -f completion//valgrind:skipcomma
+		#>>#
+		complete -P "$PREFIX" enable-outer
+		complete -P "$PREFIX" fuse-compatible
+		complete -P "$PREFIX" lax-ioctls
+		complete -P "$PREFIX" no-inner-prefix
+		complete -P "$PREFIX" no-nptl-pthread-stackcache
+		;; #<<#
+	(--smc-check) #>>#
+		complete -P "$PREFIX" all
+		complete -P "$PREFIX" -D 'all but file-backed memory' all-non-file
+		complete -P "$PREFIX" none
+		complete -P "$PREFIX" -D 'on stack only' stack
+		;; #<<#
+	(--trace-children-skip)
+		command -f completion//valgrind:skipcomma
+		complete -P "$PREFIX" --external-command
+		;;
+	(--trace-children-skip-by-arg)
+		command -f completion//valgrind:skipcomma
+		complete -P "$PREFIX" -f
+		;;
+	(--tool) #>>#
+		complete -P "$PREFIX" cachegrind callgrind drd exp-bbv exp-dhat\
+			exp-sgcheck helgrind lackey massif memcheck none
+		;; #<<#
+	(--vgdb-stop-at)
+		command -f completion//valgrind:skipcomma
+		#>>#
+		complete -P "$PREFIX" all exit none startup valgrindabexit
+		;; #<<#
+	('')
+		command -f completion//getoperands
+		command -f completion//reexecute -e
+		;;
+	esac
+
+}
+
+# skip to last comma-separated word
+function completion//valgrind:skipcomma {
+	typeset targetword="${TARGETWORD#"$PREFIX"}"
+	targetword="${targetword##*,}"
+	PREFIX="${TARGETWORD%"$targetword"}"
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

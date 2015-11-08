@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.c: modifiable string buffer */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,10 @@
 #include "strbuf.h"
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,8 +77,8 @@ xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
  * the buffer contents is truncated. */
 xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 {
-    // buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (char));
-    buf->contents = xrealloc(buf->contents, newmax + 1);
+    // buf->contents = xrealloce(buf->contents, newmax, 1, sizeof (char));
+    buf->contents = xrealloc(buf->contents, add(newmax, 1));
     buf->maxlength = newmax;
     buf->contents[newmax] = '\0';
     if (newmax < buf->length)
@@ -108,7 +110,7 @@ xstrbuf_T *sb_replace_force(
 	xstrbuf_T *restrict buf, size_t i, size_t bn,
 	const char *restrict s, size_t sn)
 {
-    size_t newlength = buf->length - bn + sn;
+    size_t newlength = add(buf->length - bn, sn);
     sb_ensuremax(buf, newlength);
     memmove(buf->contents + i + sn, buf->contents + i + bn,
 	    buf->length - (i + bn) + 1);
@@ -140,7 +142,7 @@ xstrbuf_T *sb_replace(
  * The byte is appended even if it is a null byte. */
 xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
 {
-    sb_ensuremax(buf, buf->length + 1);
+    sb_ensuremax(buf, add(buf->length, 1));
     buf->contents[buf->length++] = c;
     buf->contents[buf->length] = '\0';
     return buf;
@@ -150,7 +152,7 @@ xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
  * The bytes are appended even if `c' is a null byte. */
 xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
 {
-    sb_ensuremax(buf, buf->length + n);
+    sb_ensuremax(buf, add(buf->length, n));
     memset(&buf->contents[buf->length], c, n);
     buf->length += n;
     buf->contents[buf->length] = '\0';
@@ -167,7 +169,7 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
 {
     size_t count;
 
-    sb_ensuremax(buf, buf->length + MB_CUR_MAX);
+    sb_ensuremax(buf, add(buf->length, MB_CUR_MAX));
     count = wcrtomb(&buf->contents[buf->length], c, ps);
     if (count == (size_t) -1) {
 	buf->contents[buf->length] = '\0';
@@ -213,7 +215,7 @@ wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
 	    s = NULL;
 	    break;
 	}
-	sb_ensuremax(buf, buf->maxlength + MB_CUR_MAX);
+	sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
     }
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
@@ -251,7 +253,7 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 	buf->length += count;
 	if (s == NULL)
 	    break;
-	sb_ensuremax(buf, buf->maxlength + MB_CUR_MAX);
+	sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
     }
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
@@ -267,16 +269,31 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     va_list copyap;
     va_copy(copyap, ap);
 
-    int rest = buf->maxlength - buf->length + 1;
+    // No need to check for overflow in `buf->maxlength - buf->length + 1' here.
+    // Should overflow occur, the buffer would not have been allocated
+    // successfully.
+    size_t rest = buf->maxlength - buf->length + 1;
     int result = vsnprintf(&buf->contents[buf->length], rest, format, ap);
 
-    if (result >= rest) {
-	/* If the buffer is too small... */
-	sb_ensuremax(buf, buf->length + result);
+    // If the buffer was too small...
+#if INT_MAX < SIZE_MAX
+    if (result >= 0 && (size_t) result >= rest) {
+#else // INT_MAX >= SIZE_MAX
+    if (result >= (int) rest) {
+	if (result > (int) SIZE_MAX)
+	    alloc_failed();
+#endif
+	// retry with a larger buffer
+	sb_ensuremax(buf, add(buf->length, (size_t) result));
 	rest = buf->maxlength - buf->length + 1;
 	result = vsnprintf(&buf->contents[buf->length], rest, format, copyap);
     }
-    assert(result < rest);
+#if INT_MAX < SIZE_MAX
+    assert(result < 0 || (size_t) result < rest);
+#else // INT_MAX >= SIZE_MAX
+    assert(result < (int) rest);
+#endif
+
     if (result >= 0)
 	buf->length += result;
     else
@@ -330,7 +347,7 @@ xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
  * the buffer contents is truncated. */
 xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 {
-    buf->contents = xreallocn(buf->contents, newmax + 1, sizeof (wchar_t));
+    buf->contents = xrealloce(buf->contents, newmax, 1, sizeof (wchar_t));
     buf->maxlength = newmax;
     buf->contents[newmax] = L'\0';
     if (newmax < buf->length)
@@ -362,7 +379,7 @@ xwcsbuf_T *wb_replace_force(
 	xwcsbuf_T *restrict buf, size_t i, size_t bn,
 	const wchar_t *restrict s, size_t sn)
 {
-    size_t newlength = buf->length - bn + sn;
+    size_t newlength = add(buf->length - bn, sn);
     wb_ensuremax(buf, newlength);
     wmemmove(buf->contents + i + sn, buf->contents + i + bn,
 	    buf->length - (i + bn) + 1);
@@ -394,7 +411,7 @@ xwcsbuf_T *wb_replace(
  * The character is appended even if it is a null wide character. */
 xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
 {
-    wb_ensuremax(buf, buf->length + 1);
+    wb_ensuremax(buf, add(buf->length, 1));
     buf->contents[buf->length++] = c;
     buf->contents[buf->length] = L'\0';
     return buf;
@@ -420,7 +437,7 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
 	buf->length += count;
 	if (s == NULL)
 	    break;
-	wb_ensuremax(buf, buf->maxlength + 1);
+	wb_ensuremax(buf, add(buf->maxlength, 1));
     }
 
     buf->contents[buf->length] = L'\0';
@@ -435,7 +452,8 @@ int wb_vwprintf(
 	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
 {
     va_list copyap;
-    int rest, result;
+    size_t rest;
+    int result;
 
     for (int i = 0; i < 20; i++) {
 	va_copy(copyap, ap);
@@ -443,13 +461,23 @@ int wb_vwprintf(
 	result = vswprintf(&buf->contents[buf->length], rest, format, copyap);
 	va_end(copyap);
 
-	if (0 <= result && result < rest)
+	if (0 <= result &&
+#if INT_MAX < SIZE_MAX
+		(size_t) result < rest)
+#else // INT_MAX >= SIZE_MAX
+		result < (int) rest)
+#endif
 	    break;
+#if INT_MAX > SIZE_MAX
+	if (result > (int) SIZE_MAX)
+	    alloc_failed();
+#endif
 
 	/* According to POSIX, if the buffer is too short, `vswprintf' returns
 	 * a negative integer. On some systems, however, it returns a desired
 	 * buffer length as `vsprintf' does, which is rather preferable. */
-	wb_ensuremax(buf, buf->length + (result < 0 ? 2 * rest : result));
+	wb_ensuremax(buf,
+		add(buf->length, result < 0 ? mul(2, rest) : (size_t) result));
     }
     if (result >= 0)
 	buf->length += result;
@@ -586,7 +614,7 @@ wchar_t *malloc_wprintf(const wchar_t *format, ...)
 
 /* Joins the wide-character strings in the specified NULL-terminated array. The
  * array elements are considered pointers to wide strings.
- * If `padding' is non-NULL, `padding' is padded between each joined element.
+ * `padding' is padded between each joined element.
  * Returns a newly malloced string. */
 wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 {
@@ -594,12 +622,12 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 
     /* count the full length of the resulting string */
     for (elemcount = 0; array[elemcount] != NULL; elemcount++)
-	ccount += wcslen(array[elemcount]);
-    if (padding != NULL && elemcount > 0)
-	ccount += wcslen(padding) * (elemcount - 1);
+	ccount = add(ccount, wcslen(array[elemcount]));
+    if (elemcount > 0)
+	ccount = add(ccount, mul(wcslen(padding), elemcount - 1));
 
     /* do copying */
-    wchar_t *const result = xmallocn(ccount + 1, sizeof *result);
+    wchar_t *const result = xmalloce(ccount, 1, sizeof *result);
     wchar_t *s = result;
     for (size_t i = 0; i < elemcount; i++) {
 	wchar_t *elem = array[i];

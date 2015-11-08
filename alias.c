@@ -136,7 +136,7 @@ void define_alias(
     size_t namelen = equal - nameandvalue;
     size_t valuelen = wcslen(equal + 1);
     alias_T *alias = xmallocs(sizeof *alias,
-	    namelen + valuelen + 2, sizeof *alias->value);
+	    add(add(namelen, valuelen), 2), sizeof *alias->value);
 
     alias->flags = 0;
     alias->refcount = 1;

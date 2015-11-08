@@ -327,7 +327,7 @@ void exec_pipelines_async(const pipeline_T *p)
     
     if (cpid > 0) {
 	/* parent process: add a new job */
-	job_T *job = xmalloc(sizeof *job + sizeof *job->j_procs);
+	job_T *job = xmalloc(add(sizeof *job, sizeof *job->j_procs));
 	process_T *ps = job->j_procs;
 
 	ps->pr_pid = cpid;

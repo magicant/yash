@@ -32,6 +32,9 @@ current operand is aborted and the next operand is parsed/executed
 immediately.
 The link:_break.html[break built-in] with the +-i+ (+--iteration+) option is
 similar but the remaining operands are not parsed/executed.
+The value of the link:params.html#sp-hash[+?+ special parameter] is saved
+before the iterative execution is started. The parameter value is restored to
+the saved one after each iteration.
 
 [[options]]
 == Options

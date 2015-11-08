@@ -57,6 +57,8 @@ static struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
 static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
+static void execute_file_in_home(const wchar_t *path)
+    __attribute__((nonnull));
 static void execute_file(const wchar_t *path);
 static void print_help(void);
 static void print_version(void);
@@ -256,15 +258,10 @@ struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
 /* Executes "$HOME/.yash_profile". */
 void execute_profile(const wchar_t *profile)
 {
-    if (profile != NULL) {
+    if (profile != NULL)
 	execute_file(profile);
-	return;
-    }
-
-    wchar_t *path =
-	parse_and_expand_string(L"$HOME/.yash_profile", NULL, false);
-    execute_file(path);
-    free(path);
+    else
+	execute_file_in_home(L".yash_profile");
 }
 
 /* Executes the initialization file.
@@ -283,14 +280,29 @@ void execute_rcfile(const wchar_t *rcfile)
 	return;
     }
 
-    if (rcfile != NULL) {
+    if (rcfile != NULL)
 	execute_file(rcfile);
-	return;
-    }
+    else
+	execute_file_in_home(L".yashrc");
+}
 
-    wchar_t *path = parse_and_expand_string(L"$HOME/.yashrc", NULL, false);
-    execute_file(path);
-    free(path);
+/* Executes the specified file. The `path' must be relative to $HOME. */
+void execute_file_in_home(const wchar_t *path)
+{
+    const wchar_t *home = getvar(L VAR_HOME);
+    if (home == NULL || home[0] == L'\0')
+	return;
+
+    xwcsbuf_T fullpath;
+    wb_init(&fullpath);
+    wb_cat(&fullpath, home);
+    if (fullpath.contents[fullpath.length - 1] != L'/')
+	wb_wccat(&fullpath, L'/');
+    wb_cat(&fullpath, path);
+
+    execute_file(fullpath.contents);
+
+    wb_destroy(&fullpath);
 }
 
 /* Executes the specified file if `path' is non-NULL. */

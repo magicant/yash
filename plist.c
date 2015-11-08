@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* plist.c: modifiable list of pointers */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2015 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ void **plndup(void *const *array, size_t count, void *copy(const void *p))
     while (array[realcount] != NULL && realcount < count)
 	realcount++;
 
-    void **result = xmallocn(realcount + 1, sizeof *result);
+    void **result = xmalloce(realcount, 1, sizeof *result);
     for (size_t i = 0; i < realcount; i++)
 	result[i] = copy(array[i]);
     result[realcount] = NULL;
@@ -90,7 +90,7 @@ void plfree(void **ary, void freer(void *elem))
  * capacity. */
 plist_T *pl_initwithmax(plist_T *list, size_t max)
 {
-    list->contents = xmallocn(max + 1, sizeof (void *));
+    list->contents = xmalloce(max, 1, sizeof (void *));
     list->contents[0] = NULL;
     list->length = 0;
     list->maxlength = max;
@@ -102,7 +102,7 @@ plist_T *pl_initwithmax(plist_T *list, size_t max)
  * the pointer list is truncated. */
 plist_T *pl_setmax(plist_T *list, size_t newmax)
 {
-    list->contents = xreallocn(list->contents, newmax + 1, sizeof (void *));
+    list->contents = xrealloce(list->contents, newmax, 1, sizeof (void *));
     list->maxlength = newmax;
     list->contents[newmax] = NULL;
     if (newmax < list->length)
@@ -153,7 +153,7 @@ plist_T *pl_replace(
     if (ln > list->length - i)
 	ln = list->length - i;
 
-    size_t newlength = list->length - ln + an;
+    size_t newlength = add(list->length - ln, an);
     pl_ensuremax(list, newlength);
     memmove(list->contents + i + an, list->contents + i + ln,
 	    (list->length - (i + ln) + 1) * sizeof (void *));
@@ -166,7 +166,7 @@ plist_T *pl_replace(
  * `p' may be NULL or a pointer to the list itself. */
 plist_T *pl_add(plist_T *list, const void *p)
 {
-    pl_ensuremax(list, list->length + 1);
+    pl_ensuremax(list, add(list->length, 1));
     list->contents[list->length++] = (void *) p;
     list->contents[list->length] = NULL;
     return list;

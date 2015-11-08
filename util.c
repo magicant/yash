@@ -36,22 +36,6 @@
 #include "plist.h"
 
 
-/********** Miscellaneous Utilities **********/
-
-/* Computes `mainsize + count * elemsize', but aborts the program if the size is
- * too large. `elemsize' must not be zero. */
-size_t addmul(size_t mainsize, size_t count, size_t elemsize)
-{
-    assert(elemsize > 0);
-
-    size_t arraysize = count * elemsize;
-    size_t totalsize = mainsize + arraysize;
-    if (arraysize / elemsize != count || totalsize < mainsize)
-	alloc_failed();
-    return totalsize;
-}
-
-
 /********** Memory Utilities **********/
 
 /* This function is called on memory allocation failure and
@@ -84,7 +68,8 @@ char *xstrndup(const char *s, size_t len)
 {
     len = xstrnlen(s, len);
 
-    char *result = xmalloc(len + 1);
+    // char *result = xmalloce(len, 1, sizeof (char));
+    char *result = xmalloc(add(len, 1));
     result[len] = '\0';
     return memcpy(result, s, len);
 }
@@ -108,7 +93,7 @@ wchar_t *xwcsndup(const wchar_t *s, size_t len)
 {
     len = xwcsnlen(s, len);
 
-    wchar_t *result = xmallocn(len + 1, sizeof (wchar_t));
+    wchar_t *result = xmalloce(len, 1, sizeof (wchar_t));
     result[len] = L'\0';
     return wmemcpy(result, s, len);
 }

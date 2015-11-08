@@ -661,7 +661,7 @@ __IN__
 read: read a line from the standard input
 
 Syntax:
-	read [-Ar] variable...
+	read [-Aer] [-P|-p] variable...
 
 Options:
 	-A       --array
