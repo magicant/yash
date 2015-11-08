@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.40
+
+  *  Fixed possible arithmetic overflow errors in memory allocation
+     which might result in an undefined behavior.
+
+----------------------------------------------------------------------
 Yash 2.39
 
   +  New options for the "read" built-in: -e, -P, -p
