@@ -18,13 +18,6 @@ set missing argument 2
 set invalid option 1 2
 set invalid option 2 2
 set unexpected option argument 2
-===== cd =====
-cd no-such-option 2
-cd too-many-operands 2
-cd no-such-dir 1
-cd no OLDPWD 1
-cd no HOME 1
-cd output error 0
 ===== pwd =====
 pwd no-such-option 2
 pwd invalid operand 2

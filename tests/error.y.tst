@@ -50,25 +50,6 @@ echo set invalid option 2 $?
 $INVOKE $TESTEE --version=X
 echo set unexpected option argument $?
 
-echo ===== cd =====
-echo ===== cd ===== >&2
-
-cd --no-such-option
-echo cd no-such-option $?
-cd / /
-echo cd too-many-operands $?
-cd ./no/such/dir 2>/dev/null
-echo cd no-such-dir $?
-(
-cd /
-(unset OLDPWD; cd -)
-echo cd no OLDPWD $?
-(unset HOME; cd)
-echo cd no HOME $?
-(cd - >&- 2>/dev/null)
-echo cd output error $?
-)
-
 echo ===== pwd =====
 echo ===== pwd ===== >&2
 

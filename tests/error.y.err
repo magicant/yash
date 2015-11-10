@@ -15,11 +15,6 @@ set: the -o option requires an argument
 set: `-' is not a valid option
 set: `X' is not a valid option
 ../yash: --version=X: the --version option does not take an argument
-===== cd =====
-cd: `--no-such-option' is not a valid option
-cd: too many operands are specified
-cd: $OLDPWD is not set
-cd: $HOME is not set
 ===== pwd =====
 pwd: `--no-such-option' is not a valid option
 pwd: no operand is expected
