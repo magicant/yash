@@ -160,6 +160,9 @@ test
 true
  * nop-p.tst
 
+umask
+ * umask-p.tst
+
 unalias
  * alias-p.tst
 

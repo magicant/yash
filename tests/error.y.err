@@ -28,9 +28,6 @@ hash: `--no-such-option' is not a valid option
 hash: no operand is expected
 hash: `./no/such/command': a command name must not contain `/'
 hash: command `no_such_command' was not found in $PATH
-===== umask =====
-umask: `--no-such-option' is not a valid option
-umask: too many operands are specified
 ===== typeset =====
 typeset: `--no-such-option' is not a valid option
 typeset: the -f option cannot be used with the -x option

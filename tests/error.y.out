@@ -35,10 +35,6 @@ hash invalid operand 2
 hash slash argument 1
 hash command not found 1
 hash output error 1
-===== umask =====
-umask no-such-option 2
-umask too-many-operands 2
-umask output error 1
 ===== typeset =====
 typeset no-such-option 2
 typeset invalid-option-combination 1 2

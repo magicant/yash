@@ -94,16 +94,6 @@ hash ls
 (hash >&- 2>/dev/null)
 echo hash output error $?
 
-echo ===== umask =====
-echo ===== umask ===== >&2
-
-umask --no-such-option
-echo umask no-such-option $?
-umask too-many operands
-echo umask too-many-operands $?
-(umask >&- 2>/dev/null)
-echo umask output error $?
-
 echo ===== typeset =====
 echo ===== typeset ===== >&2
 

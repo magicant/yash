@@ -207,6 +207,7 @@ testcase() {
 	fi
 	cat <&3
     } >"$in_file"
+    chmod u+r "$in_file"
 
     if [ "${skip-}" ]; then
 	log_stdout SKIPPED
@@ -220,6 +221,8 @@ testcase() {
     testee "$@" <"$in_file" >"$out_file" 2>"$err_file" 3>&- 4>&- 5>&-
     actual_exit_status="$?"
     set -e
+
+    chmod u+r "$out_file" "$err_file"
 
     failed="false"
 
