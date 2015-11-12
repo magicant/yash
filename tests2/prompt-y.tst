@@ -1,4 +1,4 @@
-# input-y.tst: yash-specific test of input processing
+# prompt-y.tst: yash-specific test of input processing
 
 if [ "$(id -u)" -eq 0 ]; then
     skip="true"
