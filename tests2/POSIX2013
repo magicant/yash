@@ -140,6 +140,9 @@ false
 fg
  * fg-p.tst
 
+hash
+ * hash-y.tst
+
 read
  * read-p.tst
 
