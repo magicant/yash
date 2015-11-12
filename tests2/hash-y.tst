@@ -179,6 +179,11 @@ __IN__
 
 )
 
+test_OE -e 0 'assignment to $PATH removes all remembered command paths'
+hash sh mkdir chmod
+PATH= hash
+__IN__
+
 test_Oe -e 2 'using -a with operands'
 hash -a foo
 __IN__

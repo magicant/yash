@@ -213,6 +213,59 @@ command
 [baz]
 __OUT__
 
+(
+# Ensure $PWD is safe to assign to $PATH
+case $PWD in (*[:%]*)
+    skip="true"
+esac
+
+setup - <<\__END__
+mkdir "$TEST_NO.path" && cd "$TEST_NO.path"
+make_command() for c do echo echo "Running $c" >"$c" && chmod a+x "$c"; done
+__END__
+
+export TEST_NO="$LINENO"
+test_oE 'assignment to $PATH removes all remembered command paths'
+mkdir a b c
+PATH=$PWD/a:$PWD/b:$PWD/c:$PATH
+make_command c/command1 c/command2
+command1
+command2
+echo ---
+make_command b/command1 b/command2
+PATH="$PATH"
+make_command a/command1 a/command2
+command1
+command2
+__IN__
+Running c/command1
+Running c/command2
+---
+Running a/command1
+Running a/command2
+__OUT__
+
+export TEST_NO="$LINENO"
+test_oE 'remembered command path is ignored if command is missing'
+mkdir a b
+PATH=$PWD/a:$PWD/b:$PATH
+make_command b/command1 b/command2
+command1
+command2
+echo ---
+make_command a/command1 a/command2; rm b/command1 b/command2
+command1
+command2
+__IN__
+Running b/command1
+Running b/command2
+---
+Running a/command1
+Running a/command2
+__OUT__
+
+)
+
 test_o 'argv[0] (command name without slash)'
 sh -c 'echo "$0"'
 PATH=./dir2:$PATH
