@@ -1,5 +1,7 @@
 # prompt-y.tst: yash-specific test of input processing
 
+(
+
 if [ "$(id -u)" -eq 0 ]; then
     skip="true"
 fi
@@ -96,21 +98,6 @@ __ERR__
 
 )
 
-(
-setup -d
-
-test_o 'default prompt strings' -i +m
-bracket "$PS1"
-bracket "$PS2"
-bracket "$PS4"
-__IN__
-[\$ ]
-[> ]
-[+ ]
-__OUT__
-
-)
-
 test_e 'expansion and substitution in PS1' -i +m
 PS1='${PWD##"$PWD"}$(echo \?)'; echo >&2
 PS1='! !! $ '; echo >&2
@@ -152,5 +139,41 @@ $
 1$ > 0
 123$ 1
 __ERR__
+
+)
+
+(
+setup -d
+
+(
+if [ "$(id -u)" -ne 0 ]; then
+    skip="true"
+fi
+
+posix="true"
+
+test_o 'default prompt strings (POSIX, root)' -i +m
+bracket "$PS1"
+bracket "$PS2"
+bracket "$PS4"
+__IN__
+[# ]
+[> ]
+[+ ]
+__OUT__
+
+)
+
+test_o 'default prompt strings' -i +m
+bracket "$PS1"
+bracket "$PS2"
+bracket "$PS4"
+__IN__
+[\$ ]
+[> ]
+[+ ]
+__OUT__
+
+)
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -1,6 +1,0 @@
-posix PS1={# }
-posix PS2={> }
-posix PS4={+ }
-yash PS1={\$ }
-yash PS2={> }
-yash PS4={+ }
