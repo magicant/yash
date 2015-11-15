@@ -20,6 +20,14 @@ __IN__
 reached
 __ERR__
 
+test_Oe -e n 'exec with redirections in grouping'
+{ exec 4>&3; } 3>&2
+echo foo >&4
+{ exec >&3; } 2>/dev/null
+__IN__
+foo
+__ERR__
+
 )
 
 test_oE -e 0 'executing external command'

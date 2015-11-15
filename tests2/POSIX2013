@@ -45,6 +45,10 @@ Volume 3: Shell & Utilities
 2.6.6 Pathname Expansion
  * path-p.tst
 
+2.7 Redirection
+ * redir-p.tst
+ * redir-y.tst
+
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
    * error-p.tst
