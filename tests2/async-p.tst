@@ -45,9 +45,12 @@ __IN__
 1
 __OUT__
 
-test_OE 'stdin of asynchronous list is null' +i
+test_oE 'stdin of asynchronous list is null' +i
 cat& wait
+echo this line should not be consumed by cat
 __IN__
+this line should not be consumed by cat
+__OUT__
 
 test_o 'exit status of asynchronous list'
 true&
