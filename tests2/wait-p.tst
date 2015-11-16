@@ -90,4 +90,25 @@ exit 1&
 wait $!
 __IN__
 
+test_oE 'trap interrupts wait' -m
+trap 'echo USR1' USR1
+(
+    set +m
+    trap 'echo USR2; exit' USR2
+    kill -s USR1 $$
+    while kill -s CONT $$; do sleep 1; done # loop until signaled
+)&
+wait $!
+echo waited $(($? > 128))
+# Now, the background job should be still running.
+kill -s USR2 %
+wait $!
+echo waited $?
+__IN__
+USR1
+waited 1
+USR2
+waited 0
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

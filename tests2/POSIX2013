@@ -89,6 +89,11 @@ Command Search and Execution
 2.9.5 Function Definition Command
  * function-p.tst
 
+2.11 Signals and Error Handling
+ * async-p.tst
+ * signal-p.tst
+ * wait-p.tst
+
 2.13 Pattern Matching Notation
 
 2.13.1 Patterns Matching a Single Character

@@ -35,4 +35,15 @@ __OUT__
 #test_job_controlling_shell_signal_ignore "$LINENO" TTOU
 test_job_controlling_shell_signal_ignore "$LINENO" TSTP
 
+test_oE 'traps are not handled until foreground job finishes'
+trap 'echo trapped' USR1
+(
+    kill -s USR1 $$
+    echo signal sent
+)
+__IN__
+signal sent
+trapped
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -52,6 +52,20 @@ __IN__
 this line should not be consumed by cat
 __OUT__
 
+test_oE -e 0 'asynchronous list ignores SIGINT'
+sh -c 'kill -s INT $$; echo ok' &
+wait $!
+__IN__
+ok
+__OUT__
+
+test_oE -e 0 'asynchronous list ignores SIGQUIT'
+sh -c 'kill -s QUIT $$; echo ok' &
+wait $!
+__IN__
+ok
+__OUT__
+
 test_o 'exit status of asynchronous list'
 true&
 echo $?
