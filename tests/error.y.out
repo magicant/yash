@@ -62,15 +62,6 @@ trap output error 1 1
 trap output error 2 1
 trap output error 3 1
 trap no-such-signal 1
-===== kill =====
-kill no-such-option 1
-kill invalid-option-combination l n 2
-kill invalid-option-combination l s 2
-kill operands missing 2
-kill no-such-signal 1
-kill no-such-job 1
-kill output error 1 1
-kill output error 2 1
 ===== jobs kill =====
 jobs no-such-option 2
 jobs output error 1

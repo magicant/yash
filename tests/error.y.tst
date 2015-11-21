@@ -156,26 +156,6 @@ echo trap output error 3 $?
 trap '' NO-SUCH-SIGNAL
 echo trap no-such-signal $?
 
-echo ===== kill =====
-echo ===== kill ===== >&2
-
-kill --no-such-option
-echo kill no-such-option $?
-kill -l -n 0
-echo kill invalid-option-combination l n $?
-kill -l -s INT
-echo kill invalid-option-combination l s $?
-kill
-echo kill operands missing $?
-kill -l 0
-echo kill no-such-signal $?
-kill %100
-echo kill no-such-job $?
-(kill -l >&- 2>/dev/null)
-echo kill output error 1 $?
-(kill -l HUP >&- 2>/dev/null)
-echo kill output error 2 $?
-
 echo ===== jobs kill =====
 echo ===== jobs kill ===== >&2
 

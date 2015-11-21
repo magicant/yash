@@ -48,13 +48,6 @@ trap: this command requires 2 operands
 trap: SIGKILL cannot be trapped
 trap: SIGSTOP cannot be trapped
 trap: no such signal `NO-SUCH-SIGNAL'
-===== kill =====
-kill: no such signal `-NO-SUCH-OPTION'
-kill: the -n option cannot be used with the -l option
-kill: the -s option cannot be used with the -l option
-kill: this command requires an operand
-kill: no such signal `0'
-kill: no such job `%100'
 ===== jobs kill =====
 jobs: `--no-such-option' is not a valid option
 jobs: no such job `%100'

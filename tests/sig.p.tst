@@ -7,20 +7,6 @@ tmp="${TESTTMP}/sig.p.tmp"
 
 exec 2>/dev/null
 
-echo ===== kill =====
-
-kill -l >/dev/null
-
-$INVOKE $TESTEE -c 'kill $$' &
-wait $!
-kill -l $?
-
-# an asynchronous command prevents itself from being killed by SIGINT/SIGQUIT
-$INVOKE $TESTEE -c 'cd /tmp; kill -s INT  $$; echo SIGINT ' &
-wait $!
-$INVOKE $TESTEE -c 'cd /tmp; kill -s QUIT $$; echo SIGQUIT' &
-wait $!
-
 echo ===== trap =====
 
 trap -- "" USR1

@@ -152,6 +152,9 @@ fg
 hash
  * hash-y.tst
 
+kill
+ * kill-p.tst
+
 read
  * read-p.tst
 

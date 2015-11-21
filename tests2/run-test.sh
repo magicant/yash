@@ -167,7 +167,8 @@ testee() (
 # If the "-e <expected_exit_status>" option is specified, the exit status of
 # the testee is also checked. If the actual exit status differs from the
 # expected, the test case fails. If <expected_exit_status> is "n", the expected
-# is any non-zero exit status.
+# is any non-zero exit status. If <expected_exit_status> is a signal name (w/o
+# the SIG-prefix), the testee is expected to be killed by the signal.
 #
 # The first operand is used as the name of the test case.
 # The remaining operands are passed as arguments to the testee.
@@ -234,21 +235,39 @@ testcase() {
 	eprintf '%s:%d: %s: exit status mismatch\n' \
 	    "$test_file" "$test_lineno" "$test_case_name"
     }
-    if [ "$expected_exit_status" ]; then
-	if [ "$expected_exit_status" = n ]; then
+    case "$expected_exit_status" in
+	('')
+	    ;;
+	(n)
 	    printf '%% exit status: expected=non-zero actual=%d\n\n' \
 		"$actual_exit_status"
 	    if [ "$actual_exit_status" -eq 0 ]; then
 		exit_status_fail
 	    fi
-	else
+	    ;;
+	([[:alpha:]]*)
+	    printf '%% exit status: expected=%s ' "$expected_exit_status"
+	    if [ "$actual_exit_status" -le 128 ] ||
+		    ! actual_signal="$(kill -l "$actual_exit_status" \
+			2>/dev/null)"; then
+		printf 'actual=%d\n\n' "$actual_exit_status"
+		exit_status_fail
+	    else
+		printf 'actual=%d(%s)\n\n' \
+		    "$actual_exit_status" "$actual_signal"
+		if [ "$actual_signal" != "$expected_exit_status" ]; then
+		    exit_status_fail
+		fi
+	    fi
+	    ;;
+	(*)
 	    printf '%% exit status: expected=%d actual=%d\n\n' \
 		"$expected_exit_status" "$actual_exit_status"
 	    if [ "$actual_exit_status" -ne "$expected_exit_status" ]; then
 		exit_status_fail
 	    fi
-	fi
-    fi
+	    ;;
+    esac
 
     # check standard output
     if { exec <&4; } 2>/dev/null; then
