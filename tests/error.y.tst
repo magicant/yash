@@ -136,26 +136,6 @@ echo getopts invalid opt $?
 getopts abc var=iable
 echo getopts invalid var $?
 
-echo ===== trap =====
-echo ===== trap ===== >&2
-
-trap --no-such-option
-echo trap no-such-option $?
-trap foo
-echo trap operands missing $?
-trap '' KILL
-echo trap KILL $?
-trap '' STOP
-echo trap STOP $?
-(trap 'echo trap' INT TERM; trap >&- 2>/dev/null)
-echo trap output error 1 $?
-(trap 'echo trap' INT TERM; trap -p >&- 2>/dev/null)
-echo trap output error 2 $?
-(trap 'echo trap' INT TERM; trap -p INT >&- 2>/dev/null)
-echo trap output error 3 $?
-trap '' NO-SUCH-SIGNAL
-echo trap no-such-signal $?
-
 echo ===== jobs kill =====
 echo ===== jobs kill ===== >&2
 

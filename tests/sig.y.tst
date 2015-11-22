@@ -3,64 +3,6 @@
 
 command -b ulimit -c 0 2>/dev/null
 
-echo ===== trap =====
-
-trap 'echo trapped' USR1
-echo trap 1 $?
-trap '' USR2
-echo trap 2 $?
-while kill -s 0 $$; do sleep 1; done 2>/dev/null&
-kill -s USR2 $!
-kill -s USR1 $!
-wait $!
-kill -l $?
-
-trap -p USR1 USR2 INT
-echo trap 3 $?
-trap -  USR1 USR2 INT
-echo trap 4 $?
-
-{
-    $INVOKE $TESTEE -c  'trap "echo EXIT  1" EXIT;  ./_no_such_command_ '
-    $INVOKE $TESTEE -c  'trap "echo EXIT  2" EXIT; (./_no_such_command_)'
-    $INVOKE $TESTEE -ce 'trap "echo EXIT  3" EXIT;  ./_no_such_command_ '
-    $INVOKE $TESTEE -ce 'trap "echo EXIT  4" EXIT; (./_no_such_command_)'
-    $INVOKE $TESTEE -c  'trap "echo EXIT  5" EXIT;  ./_no_such_command_ ; :'
-    $INVOKE $TESTEE -c  'trap "echo EXIT  6" EXIT; (./_no_such_command_); :'
-    $INVOKE $TESTEE -ce 'trap "echo EXIT  7" EXIT;  ./_no_such_command_ ; :'
-    $INVOKE $TESTEE -ce 'trap "echo EXIT  8" EXIT; (./_no_such_command_); :'
-    $INVOKE $TESTEE -c  'trap "echo EXIT  9" EXIT;  ./_no_such_command_ ; (:)'
-    $INVOKE $TESTEE -c  'trap "echo EXIT 10" EXIT; (./_no_such_command_); (:)'
-    $INVOKE $TESTEE -ce 'trap "echo EXIT 11" EXIT;  ./_no_such_command_ ; (:)'
-    $INVOKE $TESTEE -ce 'trap "echo EXIT 12" EXIT; (./_no_such_command_); (:)'
-} 2>/dev/null
-echo trap 5
-
-# In subshell traps other than ignore are cleared.
-# Output of the trap built-in reflects it after first trap modification.
-(
-    trap '' USR1
-    trap 'echo USR2' USR2
-    (trap 'echo INT' INT && trap) | sort
-
-    ($INVOKE $TESTEE -c 'kill -USR1 $PPID'; echo USR1 sent 1)
-    (trap 'echo INT' INT
-	$INVOKE $TESTEE -c 'kill -USR1 $PPID'; echo USR1 sent 2)
-    ($INVOKE $TESTEE -c 'kill -USR2 $PPID' && echo not reached 1)
-    kill -l $?
-    (trap 'echo INT' INT
-	$INVOKE $TESTEE -c 'kill -USR2 $PPID'; echo not reached 2)
-    kill -l $?
-    (trap 'echo INT' INT; $INVOKE $TESTEE -c 'kill -INT $PPID'; :)
-)
-
-# "return" in traps are ignored
-$INVOKE $TESTEE <<\END
-trap 'return; echo not reached' USR1
-kill -USR1 $$
-echo return ignored
-END
-
 echo ===== signals =====
 
 export SIG

@@ -53,15 +53,6 @@ getopts operands missing 1 2
 getopts operands missing 2 2
 getopts invalid opt 1
 getopts invalid var 1
-===== trap =====
-trap no-such-option 2
-trap operands missing 2
-trap KILL 1
-trap STOP 1
-trap output error 1 1
-trap output error 2 1
-trap output error 3 1
-trap no-such-signal 1
 ===== jobs kill =====
 jobs no-such-option 2
 jobs output error 1

@@ -1,32 +1,3 @@
-===== trap =====
-trap 1 0
-trap 2 0
-USR1
-trap -- 'echo trapped' USR1
-trap -- '' USR2
-trap 3 0
-trap 4 0
-EXIT 1
-EXIT 2
-EXIT 3
-EXIT 4
-EXIT 5
-EXIT 6
-EXIT 7
-EXIT 8
-EXIT 9
-EXIT 10
-EXIT 11
-EXIT 12
-trap 5
-trap -- '' USR1
-trap -- 'echo INT' INT
-USR1 sent 1
-USR1 sent 2
-USR2
-USR2
-INT
-return ignored
 ===== signals =====
 INT ignored
 TERM ignored

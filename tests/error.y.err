@@ -42,12 +42,6 @@ getopts: this command requires 2 operands
 getopts: this command requires 2 operands
 getopts: `a::' is not a valid option specification
 getopts: `var=iable' is not a valid variable name
-===== trap =====
-trap: `--no-such-option' is not a valid option
-trap: this command requires 2 operands
-trap: SIGKILL cannot be trapped
-trap: SIGSTOP cannot be trapped
-trap: no such signal `NO-SUCH-SIGNAL'
 ===== jobs kill =====
 jobs: `--no-such-option' is not a valid option
 jobs: no such job `%100'
