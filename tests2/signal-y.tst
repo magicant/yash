@@ -81,13 +81,11 @@ test_noninteractive_non_job_controlling_shell_signal_ignore "$LINENO" URG
 # $1 = line no.
 # $2 = signal name
 test_noninteractive_job_controlling_shell_signal_kill() {
-    testcase "$1" "SIG$2 kills non-interactive job-controlling shell" \
-	3<<__IN__ 4<<__OUT__
-"$TESTEE" -cm +i 'kill -s $2 \$\$'
-kill -l \$?
+    testcase "$1" -e "$2" "SIG$2 kills non-interactive job-controlling shell" \
+	-m +i 3<<__IN__ 4</dev/null 5</dev/null
+kill -s $2 \$\$
+echo not reached
 __IN__
-$2
-__OUT__
 }
 
 test_noninteractive_job_controlling_shell_signal_kill "$LINENO" ABRT
@@ -109,8 +107,8 @@ test_noninteractive_job_controlling_shell_signal_kill "$LINENO" USR2
 # $2 = signal name
 test_noninteractive_job_controlling_shell_signal_ignore() {
     testcase "$1" -e 0 "SIG$2 spares non-interactive job-controlling shell" \
-	3<<__IN__ 4</dev/null 5</dev/null
-exec "$TESTEE" -cm +i 'kill -s $2 \$\$'
+	-m +i 3<<__IN__ 4</dev/null 5</dev/null
+kill -s $2 \$\$
 __IN__
 }
 
@@ -156,13 +154,10 @@ test_interactive_non_job_controlling_shell_signal_ignore "$LINENO" URG
 # $1 = line no.
 # $2 = signal name
 test_interactive_job_controlling_shell_signal_kill() {
-    testcase "$1" "SIG$2 kills interactive job-controlling shell" \
-	3<<__IN__ 4<<__OUT__
-"$TESTEE" -cim --norcfile 'kill -s $2 \$\$'
-kill -l \$?
+    testcase "$1" -e "$2" "SIG$2 kills interactive job-controlling shell" \
+	-im --rcfile=eraseps 3<<__IN__ 4</dev/null 5</dev/null
+kill -s $2 \$\$
 __IN__
-$2
-__OUT__
 }
 
 test_interactive_job_controlling_shell_signal_kill "$LINENO" ABRT
@@ -181,13 +176,12 @@ test_interactive_job_controlling_shell_signal_kill "$LINENO" USR2
 # $2 = signal name
 test_interactive_job_controlling_shell_signal_ignore() {
     testcase "$1" -e 0 "SIG$2 spares interactive job-controlling shell" \
-	3<<__IN__ 4</dev/null 5</dev/null
-exec "$TESTEE" -cim --norcfile 'kill -s $2 \$\$'
+	-im --rcfile=eraseps 3<<__IN__ 4</dev/null 5</dev/null
+kill -s $2 \$\$
 __IN__
 }
 
 test_interactive_job_controlling_shell_signal_ignore "$LINENO" CHLD
-test_interactive_job_controlling_shell_signal_ignore "$LINENO" INT
 test_interactive_job_controlling_shell_signal_ignore "$LINENO" QUIT
 test_interactive_job_controlling_shell_signal_ignore "$LINENO" TERM
 test_interactive_job_controlling_shell_signal_ignore "$LINENO" URG
