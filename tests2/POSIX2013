@@ -173,6 +173,7 @@ sh
     * signal-y.tst
 
 test
+ * test-p.tst
  * testtty-p.tst
 
 trap
