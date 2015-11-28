@@ -20,6 +20,9 @@ Volume 3: Shell & Utilities
  * alias-p.tst
 
 2.5.3 Shell Variables
+  LINENO
+    * lineno-p.tst
+    * lineno-y.tst
   PS1, PS2, PS4
     * prompt-y.tst
 

@@ -1,23 +1,6 @@
 # variable.p.tst: test of variables for any POSIX-compliant shell
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-echo $LINENO
-cat <<EOF
-some
-here
-document
-EOF
-cat <<\END
-another
-here-document
-END
-echo $LINENO
-echo line \
-continuation
-echo $LINENO
-
-echo ===== 1 =====
-
 var=var
 echo $var
 var='v'"a"r
