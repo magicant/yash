@@ -3,10 +3,6 @@
 
 var=xyz
 
-if [ "$$" -ne "$($INVOKE $TESTEE -c 'echo $PPID')" ]; then
-    echo \$\$=$$ \$PPID wrong
-fi
-
 echo 1 \$0=$0
 $INVOKE $TESTEE <<\END
 echo 2 \$0=$0
