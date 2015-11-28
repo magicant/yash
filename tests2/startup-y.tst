@@ -1,8 +1,5 @@
 # startup-y.tst: yash-specific test of shell startup
 
-test_O -d -e 2 'missing operand for -c option' -c
-__IN__
-
 test_O -e 17 'one operand with -c' -c 'exit 17'
 __IN__
 
@@ -87,8 +84,41 @@ __IN__
 [0  0]
 __OUT__
 
-test_O -d -e 2 'options -c and -s are mutually exclusive' -cs 'echo XXX'
+test_oE -e 0 'negating -c and enabling -s' -c +c -s
+echo ok
 __IN__
+ok
+__OUT__
+
+test_oE -e 0 'negating -s and enabling -c' -s +s -c 'echo ok'
+__IN__
+ok
+__OUT__
+
+testcase "$LINENO" -e 2 'missing command with -c' -c \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: the -c option is specified but no command is given
+__ERR__
+
+testcase "$LINENO" -e 2 'options -c and -s are mutually exclusive (separate)' \
+    -c -s 'echo XXX' 3</dev/null 4</dev/null 5<<__ERR__
+$testee: the -c option cannot be used with the -s option
+__ERR__
+
+testcase "$LINENO" -e 2 'options -c and -s are mutually exclusive (combined)' \
+    -cs 'echo XXX' 3</dev/null 4</dev/null 5<<__ERR__
+$testee: the -c option cannot be used with the -s option
+__ERR__
+
+testcase "$LINENO" -e 2 'options -c and -s are mutually exclusive (long)' \
+    --cmdlin --stdi 3</dev/null 4</dev/null 5<<__ERR__
+$testee: the -c option cannot be used with the -s option
+__ERR__
+
+testcase "$LINENO" -e 2 'options -c and -s are mutually exclusive (-o)' \
+    -o cmdlin -o stdi 3</dev/null 4</dev/null 5<<__ERR__
+$testee: the -c option cannot be used with the -s option
+__ERR__
 
 (
 input=./input$LINENO
@@ -488,6 +518,24 @@ test_E -e 0 'verbose version, short option' --version -v
 __IN__
 
 test_E -e 0 'verbose version, long option' --version --verbose
+__IN__
+
+testcase "$LINENO" -e 2 'unexpected option argument' --norc=_unexpected_ \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: --norc=_unexpected_: the --norcfile option does not take an argument
+__ERR__
+
+testcase "$LINENO" -e 2 'missing profile option argument' --profile \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: the --profile option requires an argument
+__ERR__
+
+testcase "$LINENO" -e 2 'missing rcfile option argument' --rcfile \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: the --rcfile option requires an argument
+__ERR__
+
+test_O -d -e 2 'ambiguous option' --p
 __IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
