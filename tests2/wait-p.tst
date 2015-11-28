@@ -91,22 +91,21 @@ wait $!
 __IN__
 
 test_oE 'trap interrupts wait' -m
-trap 'echo USR1' USR1
+interrupted=false
+trap 'interrupted=true' USR1
 (
     set +m
     trap 'echo USR2; exit' USR2
-    kill -s USR1 $$
-    while kill -s CONT $$; do sleep 1; done # loop until signaled
+    while kill -s USR1 $$; do sleep 1; done # loop until signaled
 )&
 wait $!
-echo waited $(($? > 128))
+echo interrupted=$interrupted $(($? > 128))
 # Now, the background job should be still running.
 kill -s USR2 %
 wait $!
 echo waited $?
 __IN__
-USR1
-waited 1
+interrupted=true 1
 USR2
 waited 0
 __OUT__
