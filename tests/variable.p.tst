@@ -3,21 +3,6 @@
 
 var=xyz
 
-echo 1 \$0=$0
-$INVOKE $TESTEE <<\END
-echo 2 \$0=$0
-END
-$INVOKE $TESTEE -c 'echo 3 \$0=$0'
-$INVOKE $TESTEE -c 'echo 4 \$0=$0' 'command name'
-
-echo ===== 4 =====
-
-$INVOKE $TESTEE -c 'var=1 trap "echo b \$var" EXIT
-    var=2 echo a $var'
-$INVOKE $TESTEE -c 'var=1 trap "echo d \$var" EXIT
-    echovar() { echo c $var; }
-    var=2 echovar'
-
 echo ===== set export =====
 
 export save="$(env -i PATH="$PATH" LC_CTYPE="$LC_CTYPE" foo=123 $INVOKE $TESTEE -c 'bar=456; set')"

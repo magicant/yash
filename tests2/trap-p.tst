@@ -90,6 +90,20 @@ __IN__
 0
 __OUT__
 
+test_oE 'trap command is not affected by assignment in same simple command' \
+    -c 'foo=1 trap "echo EXIT \$foo" EXIT; foo=2; foo=3 echo $foo'
+__IN__
+2
+EXIT 2
+__OUT__
+
+test_oE 'trap command is not affected by assignment for calling function' \
+    -c 'f() { echo $foo; }; foo=1 trap "echo EXIT \$foo" EXIT; foo=2; foo=3 f'
+__IN__
+3
+EXIT 3
+__OUT__
+
 test_oE 'trap command is not affected by redirections effective when set' \
     -c 'trap "echo foo" EXIT >/dev/null'
 __IN__
