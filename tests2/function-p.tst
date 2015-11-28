@@ -146,4 +146,15 @@ __IN__
 
 )
 
+test_oE 'variable assigned in function remains after return'
+func() {
+    foo=bar
+}
+foo=
+func
+echo $foo
+__IN__
+bar
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

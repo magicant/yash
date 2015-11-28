@@ -1,27 +1,7 @@
 # variable.p.tst: test of variables for any POSIX-compliant shell
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-var=var
-echo $var
-var='v'"a"r
-echo $var
-var=xxx echo $var
-
-foo='123  456  789'
-bar=-${foo}-
-echo $bar
-echo "$bar"
-
-echo ===== 2 =====
-
-func () {
-    var=xyz
-    echo $var
-}
-func
-echo $var
-
-echo ===== 3 =====
+var=xyz
 
 if [ "$$" -ne "$($INVOKE $TESTEE -c 'echo $PPID')" ]; then
     echo \$\$=$$ \$PPID wrong
