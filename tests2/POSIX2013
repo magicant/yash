@@ -132,6 +132,9 @@ eval
 exit
  * exit-p.tst
 
+export
+ * export-p.tst
+
 return
  * return-p.tst
 
