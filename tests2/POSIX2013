@@ -135,6 +135,10 @@ exit
 export
  * export-p.tst
 
+readonly
+ * readonly-p.tst
+ * readonly-y.tst
+
 return
  * return-p.tst
 
