@@ -142,6 +142,12 @@ readonly
 return
  * return-p.tst
 
+set
+ * option-p.tst
+ * set-p.tst
+ * set-y.tst
+ * settty-y.tst
+
 4 Utilities
 
 alias
@@ -170,10 +176,6 @@ kill
 
 read
  * read-p.tst
-
-set
-  * option-p.tst
-  * set-p.tst
 
 sh
   Stdin, Input files
