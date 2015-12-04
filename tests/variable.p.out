@@ -1,21 +1,3 @@
-===== set export =====
-123 456
-- -
-save unset
-123
-xyz
-var unset
-xyz
-null
-===== readonly =====
-xyz readonly! --
-xyz
---
-xyz
-xyz
---
-===== function unset =====
-ok
 ===== set shift =====
 2 3 a b c
 a b c
