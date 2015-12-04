@@ -148,6 +148,9 @@ set
  * set-y.tst
  * settty-y.tst
 
+unset
+ * unset-p.tst
+
 4 Utilities
 
 alias
