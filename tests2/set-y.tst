@@ -325,6 +325,26 @@ set -o allexport
 set +o allexport
 __OUT__
 
+test_oE -e 0 'option name can be abbreviated'
+set -o   allexpor && set +o | head -n 1 &&
+set +o   allexpo && set +o | head -n 1 &&
+set +o noallexp && set +o | head -n 1 &&
+set -o noallex && set +o | head -n 1 &&
+set    --alle && set +o | head -n 1 &&
+set    ++all && set +o | head -n 1 &&
+set  ++noal && set +o | head -n 1 &&
+set  --noa && set +o | head -n 1
+__IN__
+set -o allexport
+set +o allexport
+set -o allexport
+set +o allexport
+set -o allexport
+set +o allexport
+set -o allexport
+set +o allexport
+__OUT__
+
 test_x -e 0 'setting many shell options at once' -a
 set -ex +a -o noclobber -u
 printf '%s\n' "$-" | grep -qv a &&
