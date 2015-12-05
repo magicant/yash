@@ -148,6 +148,9 @@ set
  * set-y.tst
  * settty-y.tst
 
+shift
+ * shift-p.tst
+
 unset
  * unset-p.tst
 

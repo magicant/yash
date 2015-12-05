@@ -1,27 +1,6 @@
 # variable.p.tst: test of variables for any POSIX-compliant shell
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-var=xyz
-
-echo ===== set shift =====
-
-set 1 2 3 a b c
-shift
-echo "$@"
-shift 2
-echo "$@"
-shift 4 2>/dev/null || echo shift 4
-
-loop ()
-while [ $# -ne 0 ]; do
-    echo "$@"
-    shift
-done
-loop x y z
-echo "$@"
-shift 3
-echo $# "$@"
-
 echo ===== getopts =====
 
 echo $OPTIND
