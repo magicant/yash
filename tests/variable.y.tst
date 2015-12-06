@@ -1,20 +1,6 @@
 # variable.y.tst: yash-specific test of variables
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-func1 () { echo func1; }
-func2 () { echo func2; }
-
-func1; func2;
-
-func1 () {
-    func1 () { echo re-defined func1; }
-    func2 () { echo re-defined func2; }
-    echo re-defined.
-}
-func2; func1; func2; func1;
-
-echo ===== 2 =====
-
 echol () {
     typeset i  # local
     for i

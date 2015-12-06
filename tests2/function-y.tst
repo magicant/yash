@@ -116,6 +116,19 @@ __IN__
 foo
 __OUT__
 
+test_oE 'redefining function'
+func() { echo initial; }
+func
+func() { func() { echo redefined; } }
+func
+echo ---
+func
+__IN__
+initial
+---
+redefined
+__OUT__
+
 test_o 'effect of redefining read-only function'
 func() { echo foo; }
 readonly -f func
