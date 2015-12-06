@@ -1,15 +1,6 @@
 # variable.y.tst: yash-specific test of variables
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-printf "%s\n" IFS=["$IFS"]
-IFS= $INVOKE $TESTEE -c 'printf "%s\n" IFS=["$IFS"]'
-(unset IFS; $INVOKE $TESTEE -c 'printf "%s %s\n" IFS ${IFS+set}')
-(
-unset IFS
-v='1  2  3'
-echo $v "${IFS=-}" $v
-)
-
 RANDOM=123
 (echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
 RANDOM=456
