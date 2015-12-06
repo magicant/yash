@@ -1,22 +1,6 @@
 # variable.y.tst: yash-specific test of variables
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-RANDOM=123
-(echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
-RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable.y.tm1"
-(echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM
-RANDOM=456
-echo $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM) >"${TESTTMP}/variable.y.tm2"
-diff "${TESTTMP}/variable.y.tm1" "${TESTTMP}/variable.y.tm2" && echo ok
-
-oldrand=$RANDOM rand=$RANDOM
-while [ "$oldrand" = "$rand" ]; do
-    oldrand=$rand rand=$RANDOM
-done
-
-echo ===== 1 =====
-
 func1 () { echo func1; }
 func2 () { echo func2; }
 
