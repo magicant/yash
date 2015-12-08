@@ -1,36 +1,7 @@
 # variable.y.tst: yash-specific test of variables
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-echol () {
-    typeset i  # local
-    for i
-    do printf "%s\n" "$i"
-    done
-}
-
-unset i
-ary=123
-echol "$ary"
-ary=(1 22 '3  3' 4\ \ \ 4 5)
-echol "$ary"
-ary=456
-echol "$ary"
-ary=(9\
-9
-8'
-'8"
-"8
-7 #comment
-${ary/5/ })
-echol "$ary"
 ary=(test of array)
-echo i "${i-unset}"
-
-ary0=()
-unset ary0
-echo ary0 "${ary0-unset}"
-
-echo ===== 3 =====
 
 (
 YASH_AFTER_CD='echo -\> "$PWD"'

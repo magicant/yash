@@ -74,6 +74,14 @@ __IN__
 unset
 __OUT__
 
+test_oE -e 0 'deleting array variable (--variables)' -e
+a=()
+unset --variables a
+echo ${a-unset}
+__IN__
+unset
+__OUT__
+
 test_oE -e 0 'deleting existing function (--functions)' -e
 a() { echo a; }
 b() { echo b; }

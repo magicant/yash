@@ -48,6 +48,18 @@ __IN__
 [)(]
 __OUT__
 
+test_oE -e 0 'comment in array value'
+a=A
+b=(
+$a # 1
+# 2
+B
+)
+bracket "$b"
+__IN__
+[A][B]
+__OUT__
+
 test_Oe -e 2 'unclosed array assignment'
 a=(
 __IN__
