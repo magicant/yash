@@ -1,6 +1,10 @@
 # testtty-p.tst: test of the test built-in for any POSIX-compliant shell
 ../checkfg || skip="true" # %SEQUENTIAL%
 
+if ! testee -c 'command -bv test' >/dev/null; then
+    skip="true"
+fi
+
 posix="true"
 
 test_OE -e 1 'unary -t: empty operand'

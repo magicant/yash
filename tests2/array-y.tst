@@ -53,12 +53,16 @@ a=(
 __IN__
 syntax error: `)' is missing
 __ERR__
+#'
+#`
 
 test_Oe -e 2 'unquoted symbol in array assignment'
 a=(1;)
 __IN__
 syntax error: `)' is missing
 __ERR__
+#'
+#`
 
 test_oE -e 0 'reassigning array'
 a=(a)
@@ -67,6 +71,11 @@ bracket "$a"
 __IN__
 [b][c]
 __OUT__
+
+# Below are tests of the array built-in.
+if ! testee --version --verbose | grep -Fqx ' * array'; then
+    skip="true"
+fi
 
 test_OE -e 0 'printing all arrays (none defined)'
 array
@@ -113,6 +122,8 @@ array a= A B C
 __IN__
 array: `a=' is not a valid array name
 __ERR__
+#'
+#`
 
 (
 setup 'c=(1 2 3 4 5 6 7 8 9 10)'
@@ -157,6 +168,8 @@ array -d = 1
 __IN__
 array: `=' is not a valid array name
 __ERR__
+#'
+#`
 
 test_Oe -e n 'deleting array elements (missing operand)'
 array -d
@@ -245,6 +258,8 @@ array -i = 1 A
 __IN__
 array: `=' is not a valid array name
 __ERR__
+#'
+#`
 
 test_Oe -e n 'inserting array elements (missing operand)'
 array -i a
@@ -322,6 +337,8 @@ array -s = 1 A
 __IN__
 array: `=' is not a valid array name
 __ERR__
+#'
+#`
 
 test_Oe -e n 'setting array element (too many operands)'
 array -s a 1 A B
@@ -342,5 +359,7 @@ array --no-such-option
 __IN__
 array: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

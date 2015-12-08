@@ -204,7 +204,7 @@ test_long_option_default_off "$LINENO" verbose
 test_long_option_default_off "$LINENO" xtrace
 
 (
-if ! testee --version --verbose | grep -Fx ' * lineedit'; then
+if ! testee --version --verbose | grep -Fqx ' * lineedit'; then
     skip="true"
 fi
 test_long_option_default_off "$LINENO" emacs

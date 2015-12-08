@@ -1,5 +1,9 @@
 # test-y.tst: yash-specific test of the test built-in
 
+if ! testee -c 'command -bv test' >/dev/null; then
+    skip="true"
+fi
+
 umask u=rwx,go=
 
 >file

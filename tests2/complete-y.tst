@@ -1,5 +1,9 @@
 # complete-y.tst: yash-specific test of the complete built-in
 
+if ! testee -c 'command -bv complete' >/dev/null; then
+    skip="true"
+fi
+
 test_Oe -e 2 'invalid option'
 complete --no-such-option
 __IN__

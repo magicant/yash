@@ -1,5 +1,9 @@
 # help-y.tst: yash-specific test of the help built-in
 
+if ! testee --version --verbose | grep -Fqx ' * help'; then
+    skip="true"
+fi
+
 test_oE 'without arguments, the help for the help itself is printed'
 help
 __IN__
@@ -712,6 +716,11 @@ Try `man yash' for details.
 __OUT__
 #`
 
+(
+if ! testee --version --verbose | grep -Fqx ' * lineedit'; then
+    skip="true"
+fi
+
 test_oE 'help of set'
 help set
 __IN__
@@ -764,6 +773,8 @@ Options:
 Try `man yash' for details.
 __OUT__
 #`
+
+)
 
 test_oE 'help of shift'
 help shift

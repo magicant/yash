@@ -454,6 +454,12 @@ __OUT__
 # Tested in job-y.tst
 #test_oE 'job control is on by default in interactive shell'
 
+(
+if ! testee --version --verbose | grep -Fqx ' * help' ||
+    ! testee --version --verbose | grep -Fqx ' * lineedit'; then
+    skip="true"
+fi
+
 test_oE -e 0 'help' --help
 __IN__
 Syntax:
@@ -510,6 +516,8 @@ Options:
 Try `man yash' for details.
 __OUT__
 #`
+
+)
 
 test_E -e 0 'version' --version
 __IN__

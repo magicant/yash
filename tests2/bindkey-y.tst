@@ -1,5 +1,9 @@
 # bindkey-y.tst: yash-specific test of the bindkey built-in
 
+if ! testee -c 'command -bv bindkey' >/dev/null; then
+    skip="true"
+fi
+
 sort -k 1 >commands <<\__END__
 noop
 alert

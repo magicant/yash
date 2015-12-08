@@ -338,7 +338,7 @@ export histfile=/dev/null histsize=1
 
 # If the /dev/stdin special file is available, use it to speed up the test.
 # The shell enables buffering if it reads from a file.
-if [ "$(echo ok | cat /dev/stdin)" = ok ]; then
+if [ "$(echo ok | cat /dev/stdin 2>/dev/null)" = ok ]; then
     export STDIN=/dev/stdin
 else
     unset STDIN
@@ -347,8 +347,8 @@ fi
 test_OE -e 0 'history entry number wraps'
 {
 echo :
-while :; do
-    echo fc -l
+while echo fc -l; do
+    :
 done
 } |
 "$TESTEE" -i +m --rcfile="rcfile1" ${STDIN-} |

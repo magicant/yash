@@ -561,11 +561,13 @@ __OUT__
 (
 export histfile=histfile$LINENO histsize=50
 
-# Prepare the first history entries w/o running a test case.
-testee -is +m --rcfile="rcfile1" >/dev/null <<\__END__
+if ! [ "${skip-}" ]; then
+    # Prepare the first history entries w/o running a test case.
+    testee -is +m --rcfile="rcfile1" >/dev/null <<\__END__
 echo foo 1
 fc -s 1=2
 __END__
+fi
 
 test_oE 're-executed command is saved in history (-s)' -i +m --rcfile="rcfile1"
 fc -l

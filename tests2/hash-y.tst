@@ -2,6 +2,9 @@
 
 # Tests for the -d option are omitted because we cannot test it portably.
 
+# Prevent the echo command from being hashed for consistent results.
+setup 'echo() (command echo "$@")'
+
 (
 # Ensure $PWD is safe to assign to $PATH
 case $PWD in (*[:%]*)
