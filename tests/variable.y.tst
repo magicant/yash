@@ -4,15 +4,6 @@
 ary=(test of array)
 
 (
-YASH_AFTER_CD='echo -\> "$PWD"'
-cd /
-YASH_AFTER_CD=('echo cd' 'continue -i; echo ng' 'break -i' 'echo NG')
-cd "$OLDPWD"
-)
-
-echo ===== 4 =====
-
-(
 savepath=$PATH
 COMMAND_NOT_FOUND_HANDLER='PATH=$savepath echo not found: "$@"' \
     PATH= _no_such_command_ a b c

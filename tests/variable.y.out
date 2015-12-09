@@ -1,6 +1,3 @@
--> /
-cd
-===== 4 =====
 not found: _no_such_command_ a b c
 exitstatus=127
 exitstatus=127
