@@ -1,12 +1,3 @@
-not found: _no_such_command_ a b c
-exitstatus=127
-exitstatus=127
-cd /
-exitstatus=0 HANDLED=unset PWD=/
-exitstatus=0 HANDLED=unset
-not found: /dev /tmp
-unset
-exitstatus=127
 ===== typeset export =====
 abcdef
 abcxyz
