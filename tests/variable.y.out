@@ -1,22 +1,3 @@
-===== unset readonly =====
-unset unset unset unset
-readonly
-func local
-func readonly
-func localagain
-export
-export
-readonly ro2='export'
-typeset -r ro='readonly'
-typeset -r ro3='ro3'
-1
-2
-3
-ary=('test' 'of' 'array')
-readonly ary
-ary=('test' 'of' 'array')
-typeset -xr ary
-test of array
 ===== function typeset/unset =====
 func()
 {

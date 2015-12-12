@@ -64,6 +64,14 @@ test_OE -e 0 'assigning to variable with empty name'
 readonly =X # This succeeds, but the variable can never be used.
 __IN__
 
+test_Oe -e 1 'making array read-only' -e
+a=(1)
+readonly a
+readonly a=1
+__IN__
+readonly: $a is read-only
+__ERR__
+
 testcase "$LINENO" 'making function read-only' \
     3<<\__IN__ 4<<\__OUT__ 5<<__ERR__
 foo() { echo foo 1; }

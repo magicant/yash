@@ -82,6 +82,20 @@ __IN__
 unset
 __OUT__
 
+test_oE -e 0 'deleting local variable (--variables)' -e
+f() {
+    typeset a=local
+    unset a
+    echo $a
+}
+a=global
+f
+echo $a
+__IN__
+global
+global
+__OUT__
+
 test_oE -e 0 'deleting existing function (--functions)' -e
 a() { echo a; }
 b() { echo b; }
@@ -170,6 +184,13 @@ echo "$@"
 __IN__
 1 2 3
 __OUT__
+
+test_Oe -e 1 'deleting read-only variable'
+readonly a=1
+unset a
+__IN__
+unset: $a is read-only
+__ERR__
 
 test_Oe -e 2 'invalid option -z'
 unset -z
