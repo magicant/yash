@@ -2,44 +2,7 @@
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
 ary=(test of array)
-
-echo ===== typeset export =====
-
-func () {
-    typeset foo=abc bar
-    bar=def
-    echo $foo$bar
-    export foo bar=xyz
-    $INVOKE $TESTEE -c 'echo $foo$bar'
-    typeset -g baz qux=global
-    typeset
-    typeset -g | grep '^typeset baz$'
-}
-foo=foo bar=bar func
-$INVOKE $TESTEE -c 'echo $foo $bar'
-echo ${baz-unset} $qux
-
-func () {
-    export -g baz qux
-    export -p baz qux
-}
-func
-$INVOKE $TESTEE -c 'echo ${baz-unset} $qux'
-
-typeset -px baz qux
-
-typeset -X qux
-$INVOKE $TESTEE -c 'echo ${qux-unset}'
-echo ${qux-unset}
-
 export ary
-export -p ary
-env | grep "^ary="
-
-(
-ary=()
-typeset -p ary
-)
 
 echo ===== unset readonly =====
 
