@@ -145,9 +145,15 @@ test_sending_signal_num_kill_self "$LINENO" KILL 9
 test_sending_signal_num_kill_self "$LINENO" ALRM 14
 test_sending_signal_num_kill_self "$LINENO" TERM 15
 
+# This FIFO is for synchronization between processes. First, it ensures the
+# receiver has started before the sender sends a signal. Next, the receiver
+# tries to reopen the FIFO so that the receiver does not exit before it
+# receives the signal.
+mkfifo fifo
+
 # all processes in the same process group
 test_oE 'sending signal to process 0' -m
-kill -s HUP 0 | cat
+kill -s HUP 0 >fifo | cat fifo fifo
 kill -l $?
 __IN__
 HUP
@@ -156,7 +162,7 @@ __OUT__
 test_oE 'sending signal with negative process number: -s HUP' -m
 (
 pgid="$(exec sh -c 'echo $PPID')"
-kill -s HUP -- -$pgid | cat
+kill -s HUP -- -$pgid >fifo | cat fifo fifo
 )
 kill -l $?
 __IN__
@@ -166,7 +172,7 @@ __OUT__
 test_oE 'sending signal with negative process number: -1' -m
 (
 pgid="$(exec sh -c 'echo $PPID')"
-kill -1 -- -$pgid | cat
+kill -1 -- -$pgid >fifo | cat fifo fifo
 )
 kill -l $?
 __IN__
