@@ -185,12 +185,35 @@ __IN__
 1 2 3
 __OUT__
 
+test_oE 'deleting function with non-portable name' -e
+function f=/\'g() { }
+unset -f f=/\'g
+command -fv f=/\'g || echo function unset
+__IN__
+function unset
+__OUT__
+
 test_Oe -e 1 'deleting read-only variable'
 readonly a=1
 unset a
 __IN__
 unset: $a is read-only
 __ERR__
+
+test_oe 'deleting read-only function'
+func() { echo func; }
+readonly -f func
+unset -f func
+echo $?
+func
+__IN__
+1
+func
+__OUT__
+unset: function `func' is read-only
+__ERR__
+#'
+#`
 
 test_Oe -e 2 'invalid option -z'
 unset -z

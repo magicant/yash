@@ -345,12 +345,24 @@ g()
 __OUT__
 
 test_oE -e 0 'printing function with non-portable name (-fp)' -e
-function f/\'g() { }
-typeset -fp "f/'g"
+function f=/\'g() { }
+typeset -fp "f=/'g"
 __IN__
-function 'f/'\''g'()
+function 'f=/'\''g'()
 {
 }
+__OUT__
+
+test_oE 'printing function with command substitution with subshell (-fp)' -e
+eval "$(
+    print_foo() {
+	echo "$((echo foo) )"
+    }
+    typeset -fp print_foo
+)"
+print_foo
+__IN__
+foo
 __OUT__
 
 # TODO yash is broken
