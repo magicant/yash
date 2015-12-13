@@ -522,7 +522,7 @@ __OUT__
 test_E -e 0 'version' --version
 __IN__
 
-test_E -e 0 'verbose version, short option' --version -v
+test_E -e 0 'verbose version, short option' -Vv
 __IN__
 
 test_E -e 0 'verbose version, long option' --version --verbose
