@@ -31,4 +31,18 @@ __ERR__
 #'
 #`
 
+test_O -d -e 2 'invalid operand (non-numeric)'
+shift a
+__IN__
+
+test_O -d -e 2 'invalid operand (non-integral)' -s 1
+shift 1.0
+__IN__
+
+test_Oe -e 2 'invalid operand (negative)'
+shift -- -1
+__IN__
+shift: -1: the operand value must not be negative
+__ERR__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
