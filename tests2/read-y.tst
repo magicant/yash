@@ -159,6 +159,8 @@ read a=b
 __IN__
 read: `a=b' is not a valid variable name
 __ERR__
+#'
+#`
 
 # TODO: yash is broken
 #test_Oe -e 1 'empty variable name'
@@ -166,11 +168,15 @@ __ERR__
 #__IN__
 #read: `' is not a valid variable name
 #__ERR__
+#'
+#`
 
 test_Oe -e 2 'invalid option'
 read --no-such-option foo
 __IN__
 read: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

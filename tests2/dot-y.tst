@@ -126,6 +126,8 @@ test_Oe -e n 'invalid option'
 __IN__
 .: `-X' is not a valid option
 __ERR__
+#'
+#`
 
 )
 
@@ -135,6 +137,8 @@ unset YASH_LOADPATH
 __IN__
 .: file `_no_such_file_' was not found in $YASH_LOADPATH
 __ERR__
+#'
+#`
 
 test_Oe -e n 'null load path'
 YASH_LOADPATH=
@@ -142,5 +146,7 @@ YASH_LOADPATH=
 __IN__
 .: file `_no_such_file_' was not found in $YASH_LOADPATH
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

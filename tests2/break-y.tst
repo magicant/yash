@@ -77,5 +77,7 @@ break --no-such-option
 __IN__
 break: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

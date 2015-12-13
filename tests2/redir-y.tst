@@ -280,6 +280,8 @@ foo
 __IN__
 foo
 __OUT__
+: <<END
+END
 
 test_O -d -e 2 'space between < and ( in command redirection'
 < (:)

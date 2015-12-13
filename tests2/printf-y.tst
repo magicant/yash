@@ -516,6 +516,8 @@ printf --no-such-option ''
 __IN__
 printf: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 test_O -d -e n 'printing to closed stream'
 printf '\n' >&-

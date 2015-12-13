@@ -114,6 +114,8 @@ echo not reached
 __IN__
 return: `x' is not a valid integer
 __ERR__
+#'
+#`
 
 test_Oe -e n 'invalid operand: negative integer'
 return -- -100
@@ -121,17 +123,23 @@ echo not reached
 __IN__
 return: `-100' is not a valid integer
 __ERR__
+#'
+#`
 
 test_Oe -e n 'invalid operand: too large integer'
 return 999999999999999999999999999999999999999999999999999999999999999999999999
 __IN__
 return: `999999999999999999999999999999999999999999999999999999999999999999999999' is not a valid integer
 __ERR__
+#'
+#`
 
 test_Oe -e n 'invalid option'
 return --no-such-option ''
 __IN__
 return: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

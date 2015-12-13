@@ -73,18 +73,24 @@ exec -a echo echo echo
 __IN__
 exec: `-a' is not a valid option
 __ERR__
+#'
+#`
 
 test_Oe -e n 'invalid option'
 exec -c echo echo echo
 __IN__
 exec: `-c' is not a valid option
 __ERR__
+#'
+#`
 
 test_Oe -e n 'invalid option'
 exec -f echo echo echo
 __IN__
 exec: `-f' is not a valid option
 __ERR__
+#'
+#`
 
 )
 
@@ -93,5 +99,7 @@ exec --no-such-option
 __IN__
 exec: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

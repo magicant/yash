@@ -12,6 +12,8 @@ echo not reached
 __IN__
 exit: `x' is not a valid integer
 __ERR__
+#'
+#`
 
 test_Oe -e 2 'invalid operand: negative integer'
 exit -- -100
@@ -19,11 +21,15 @@ echo not reached
 __IN__
 exit: `-100' is not a valid integer
 __ERR__
+#'
+#`
 
 test_Oe -e 2 'invalid option'
 exit --no-such-option
 __IN__
 exit: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

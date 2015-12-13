@@ -186,12 +186,16 @@ alias --no-such-option
 __IN__
 alias: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 test_Oe -e n 'alias built-in printing non-existing alias'
 alias no_such_alias
 __IN__
 alias: no such alias `no_such_alias'
 __ERR__
+#'
+#`
 
 test_O -d -e n 'alias built-in printing to closed stream without operands'
 alias >&-
@@ -214,6 +218,8 @@ unalias --no-such-option
 __IN__
 unalias: `--no-such-option' is not a valid option
 __ERR__
+#'
+#`
 
 test_Oe -e n 'unalias built-in invalid combination of -a and operands'
 unalias -a e
@@ -232,6 +238,8 @@ unalias no_such_alias
 __IN__
 unalias: no such alias `no_such_alias'
 __ERR__
+#'
+#`
 
 )
 
