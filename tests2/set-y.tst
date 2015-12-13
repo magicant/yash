@@ -148,7 +148,7 @@ test_long_option_off  "$LINENO" x xtrace
 
 # $1 = $LINENO, $2 = long option
 test_long_option_default_off() {
-    testcase "$1" -e 0 "$2" 3<<__IN__
+    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__
 save="\$(set +o)" &&
 set +o   $2 && test "\$(set +o)" =  "\$save" &&
 set -o   $2 && test "\$(set +o)" != "\$save" &&
@@ -163,7 +163,7 @@ __IN__
 
 # $1 = $LINENO, $2 = long option
 test_long_option_default_on() {
-    testcase "$1" -e 0 "$2" 3<<__IN__
+    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__
 save="\$(set +o)" &&
 set -o   $2 && test "\$(set +o)" =  "\$save" &&
 set +o   $2 && test "\$(set +o)" != "\$save" &&
@@ -279,6 +279,11 @@ test_unenablable_short_option  "$LINENO" i interactive
 test_undisablable_short_option "$LINENO" i interactive
 test_unenablable_long_option   "$LINENO" i interactive
 test_undisablable_long_option  "$LINENO" i interactive
+
+test_unenablable_short_option  "$LINENO" l login
+test_undisablable_short_option "$LINENO" l login
+test_unenablable_long_option   "$LINENO" l login
+test_undisablable_long_option  "$LINENO" l login
 
 test_unenablable_short_option  "$LINENO" s stdin
 test_undisablable_short_option "$LINENO" s stdin
@@ -454,5 +459,63 @@ set -o unset
 set +o verbose
 set +o xtrace
 __OUT__
+
+test_Oe -e 2 'invalid option (short, only available in startup)'
+set -V
+__IN__
+set: `V' is not a valid option
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'invalid option (short, hyphen)'
+set -C-
+__IN__
+set: `-' is not a valid option
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'invalid option (short, unknown)'
+set -aXb
+__IN__
+set: `X' is not a valid option
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'invalid option (long)'
+set --version
+__IN__
+set: `--version' is not a valid option
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'missing option argument'
+set -o allexport -o
+__IN__
+set: the -o option requires an argument
+__ERR__
+
+test_O -e 2 'ambiguous option: standard output and exit status'
+set --cu
+__IN__
+
+test_o 'ambiguous option: error message'
+set --cu 2>&1 | head -n 1
+__IN__
+set: option `--cu' is ambiguous
+__OUT__
+#'
+#`
+
+test_O -d -e 2 'ambiguous option (with and without "no"-prefix)'
+set --not
+__IN__
+
+test_O -d -e 1 'printing to closed stream'
+set >&-
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

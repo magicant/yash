@@ -1,20 +1,3 @@
-===== set =====
-set: the cmdline option cannot be changed once the shell has been initialized
-set: the interactive option cannot be changed once the shell has been initialized
-set: the login option cannot be changed once the shell has been initialized
-set: the stdin option cannot be changed once the shell has been initialized
-set: `V' is not a valid option
-set: the cmdline option cannot be changed once the shell has been initialized
-set: the interactive option cannot be changed once the shell has been initialized
-set: the login option cannot be changed once the shell has been initialized
-set: the stdin option cannot be changed once the shell has been initialized
-set: `--version' is not a valid option
-set: `--no-such-option' is not a valid option
-set: `no-such-option' is not a valid option
-set: the -o option requires an argument
-set: `-' is not a valid option
-set: `X' is not a valid option
-../yash: --version=X: the --version option does not take an argument
 ===== pwd =====
 pwd: `--no-such-option' is not a valid option
 pwd: no operand is expected

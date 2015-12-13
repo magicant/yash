@@ -8,48 +8,6 @@
 # error tests for fc/history are in history.y.tst
 # error tests for pushd/popd/dirs are in dirstack.y.tst
 
-echo ===== set =====
-echo ===== set ===== >&2
-
-set -c
-echo set -c $?
-set -i
-echo set -i $?
-set -l
-echo set -l $?
-set -s
-echo set -s $?
-set -V
-echo set -V $?
-set --cmdl
-echo set --cmdline $?
-set --interactive
-echo set --interactive $?
-set -o log-in
-echo set --login $?
-set --stdin
-echo set --stdin $?
-set --version
-echo set --version $?
-set --no-such-option
-echo set no-such-option 1 $?
-set -o no-such-option
-echo set no-such-option 2 $?
-(set >&- 2>/dev/null)
-echo set output error $?
-set --cu 2>/dev/null
-echo set ambiguous option 1 $?
-set --noh 2>/dev/null
-echo set ambiguous option 2 $?
-set -o nolog +o nolog -o
-echo set missing argument $?
-set -C-
-echo set invalid option 1 $?
-set -aXb
-echo set invalid option 2 $?
-$INVOKE $TESTEE --version=X
-echo set unexpected option argument $?
-
 echo ===== pwd =====
 echo ===== pwd ===== >&2
 
