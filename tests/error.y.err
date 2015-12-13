@@ -1,35 +1,3 @@
-===== pwd =====
-pwd: `--no-such-option' is not a valid option
-pwd: no operand is expected
-===== hash =====
-hash: `--no-such-option' is not a valid option
-hash: no operand is expected
-hash: `./no/such/command': a command name must not contain `/'
-hash: command `no_such_command' was not found in $PATH
-===== typeset =====
-typeset: `--no-such-option' is not a valid option
-typeset: the -f option cannot be used with the -x option
-typeset: the -f option cannot be used with the -X option
-typeset: the -x option cannot be used with the -X option
-typeset: $readonly is read-only
-===== unset =====
-unset: `--no-such-option' is not a valid option
-unset: $readonly is read-only
-unset: function `func' is read-only
-===== shift =====
-shift: `--no-such-option' is not a valid option
-shift: 10000: cannot shift so many (there are only 0 positional parameters)
-===== getopts =====
-getopts: `--no-such-option' is not a valid option
-getopts: this command requires 2 operands
-getopts: this command requires 2 operands
-getopts: `a::' is not a valid option specification
-getopts: `var=iable' is not a valid variable name
-===== jobs kill =====
-jobs: `--no-such-option' is not a valid option
-jobs: no such job `%100'
-jobs: no such job `%no_such_job'
-kill: `%while' is not a job-controlled job
 ===== wait =====
 wait: `--no-such-option' is not a valid option
 ===== times =====

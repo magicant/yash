@@ -125,4 +125,24 @@ __IN__
 getopts: $OPTIND is read-only
 __ERR__
 
+test_Oe -e 2 'invalid option'
+getopts --no-such-option a o -a
+__IN__
+getopts: `--no-such-option' is not a valid option
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'missing operand (0)'
+getopts
+__IN__
+getopts: this command requires 2 operands
+__ERR__
+
+test_Oe -e 2 'missing operand (1)'
+getopts a
+__IN__
+getopts: this command requires 2 operands
+__ERR__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

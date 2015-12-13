@@ -421,9 +421,34 @@ __IN__
 typeset: the -f option cannot be used with the -X option
 __ERR__
 
-test_O -d -e 1 'printing to closed output stream'
+test_O -d -e 1 'printing to closed output stream (all variables w/o -p)'
 typeset >&-
 __IN__
+
+test_O -d -e 1 'printing to closed output stream (all variables with -p)'
+typeset -p >&-
+__IN__
+
+test_O -d -e 1 'printing to closed output stream (specific variable)'
+typeset -p PWD >&-
+__IN__
+
+(
+setup 'func() { :; }'
+
+test_O -d -e 1 'printing to closed output stream (all functions w/o -p)'
+typeset -f >&-
+__IN__
+
+test_O -d -e 1 'printing to closed output stream (all functions with -p)'
+typeset -fp >&-
+__IN__
+
+test_O -d -e 1 'printing to closed output stream (specific function)'
+typeset -fp func >&-
+__IN__
+
+)
 
 test_Oe -e 1 'assigning to read-only variable'
 typeset -r a
