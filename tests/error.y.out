@@ -1,7 +1,0 @@
-===== ulimit =====
-ulimit no-such-option 2
-ulimit invalid option 2
-ulimit output error 1
-ulimit invalid operand 2
-ulimit too many operands 1 2
-ulimit too many operands 2 2

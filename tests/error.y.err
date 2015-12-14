@@ -1,5 +1,0 @@
-===== ulimit =====
-ulimit: the -a option cannot be used with the -f option
-ulimit: `xxx' is not a valid integer
-ulimit: too many operands are specified
-ulimit: no operand is expected
