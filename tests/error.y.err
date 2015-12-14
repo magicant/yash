@@ -1,11 +1,3 @@
-===== wait =====
-wait: `--no-such-option' is not a valid option
-===== times =====
-times: `--no-such-option' is not a valid option
-times: no operand is expected
-===== suspend =====
-suspend: `--no-such-option' is not a valid option
-suspend: no operand is expected
 ===== ulimit =====
 ulimit: the -a option cannot be used with the -f option
 ulimit: `xxx' is not a valid integer

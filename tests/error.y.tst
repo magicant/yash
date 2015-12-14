@@ -1,41 +1,6 @@
 # error.y.tst: yash-specific test of error handling
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
 
-# error tests for alias/unalias are in alias.y.tst
-# error tests for array are in array.y.tst
-# error tests for help are in help.y.tst
-# error tests for fg/bg are in job.y.tst
-# error tests for fc/history are in history.y.tst
-# error tests for pushd/popd/dirs are in dirstack.y.tst
-
-echo ===== wait =====
-echo ===== wait ===== >&2
-
-wait --no-such-option
-echo wait no-such-option $?
-wait %100
-echo wait no-such-job 1 $?
-wait %no_such_job
-echo wait no-such-job 2 $?
-
-echo ===== times =====
-echo ===== times ===== >&2
-
-times --no-such-option
-echo times no-such-option $?
-times foo
-echo times invalid operand $?
-(times >&- 2>/dev/null)
-echo times output error $?
-
-echo ===== suspend =====
-echo ===== suspend ===== >&2
-
-suspend --no-such-option
-echo suspend no-such-option $?
-suspend foo
-echo suspend invalid operand $?
-
 echo ===== ulimit =====
 echo ===== ulimit ===== >&2
 
