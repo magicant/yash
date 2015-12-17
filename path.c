@@ -447,7 +447,10 @@ static wchar_t *get_default_path(void)
  * Keys are pointers to a multibyte string containing a command name and
  * values are pointers to a multibyte string containing the commands' full path.
  * For each entry, the key string is part of the value, that is, the last
- * pathname component of the value. */
+ * pathname component of the value.
+ * Full paths may be relative, in which case the paths are unreliable because
+ * the working directory may have been changed since the paths had been
+ * entered. */
 static hashtable_T cmdhash;
 
 /* Initializes the command hashtable. */
@@ -474,12 +477,12 @@ const char *get_command_path(const char *name, bool forcelookup)
 
     if (!forcelookup) {
 	path = ht_get(&cmdhash, name).value;
-	if (path != NULL && is_executable_regular(path))
+	if (path != NULL && path[0] == '/' && is_executable_regular(path))
 	    return path;
     }
 
     path = which(name, get_path_array(PA_PATH), is_executable_regular);
-    if (path != NULL && path[0] == '/') {
+    if (path != NULL) {
 	size_t namelen = strlen(name), pathlen = strlen(path);
 	const char *nameinpath = path + pathlen - namelen;
 	assert(strcmp(name, nameinpath) == 0);
@@ -1491,8 +1494,11 @@ void print_command_paths(bool all)
     size_t index = 0;
 
     while ((kv = ht_next(&cmdhash, &index)).key != NULL) {
+	const char *path = kv.value;
+	if (path[0] != '/')
+	    continue;
 	if (all || get_builtin(kv.key) == NULL) {
-	    if (!xprintf("%s\n", (char *) kv.value)) {
+	    if (!xprintf("%s\n", path)) {
 		break;
 	    }
 	}
