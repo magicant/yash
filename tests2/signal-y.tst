@@ -35,9 +35,16 @@ resumed
 __OUT__
 }
 
+(
+if "$use_valgrind"; then
+    skip="true"
+fi
+
 test_job_controlling_subshell_signal_ignore "$LINENO" TTIN
 test_job_controlling_subshell_signal_ignore "$LINENO" TTOU
 test_job_controlling_subshell_signal_ignore "$LINENO" TSTP
+
+)
 
 # $1 = line no.
 # $2 = signal name
@@ -284,10 +291,17 @@ continued
 __OUT__
 }
 
+(
+if "$use_valgrind"; then
+    skip="true"
+fi
+
 test_noninteractive_job_controlling_shell_job_signal_stop "$LINENO" TSTP
 test_noninteractive_job_controlling_shell_job_signal_stop "$LINENO" TTIN
 test_noninteractive_job_controlling_shell_job_signal_stop "$LINENO" TTOU
 test_noninteractive_job_controlling_shell_job_signal_stop "$LINENO" STOP
+
+)
 
 # $1 = line no.
 # $2 = signal name
@@ -383,10 +397,17 @@ continued
 __OUT__
 }
 
+(
+if "$use_valgrind"; then
+    skip="true"
+fi
+
 test_interactive_job_controlling_shell_job_signal_stop "$LINENO" TSTP
 test_interactive_job_controlling_shell_job_signal_stop "$LINENO" TTIN
 test_interactive_job_controlling_shell_job_signal_stop "$LINENO" TTOU
 test_interactive_job_controlling_shell_job_signal_stop "$LINENO" STOP
+
+)
 
 test_oe 'SIGINT interrupts interactive shell (+m)' -i +m --rcfile=./eraseps
 for i in 1 2 3; do

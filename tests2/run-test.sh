@@ -21,6 +21,7 @@
 # extension of the test file with ".trs".
 # If any test case fails, it is also reported to the standard error.
 # If the -r option is specified, intermediate files are not removed.
+# If the -v option is specified, the testee is tested by Valgrind.
 # The exit status is zero unless a critical error occurs. Failure of test cases
 # does not cause the script to return non-zero.
 
@@ -58,10 +59,13 @@ exec <&- 3>&- 4>&- 5>&-
 cd -L .
 
 remove_work_dir="true"
-while getopts r opt; do
+use_valgrind="false"
+while getopts rv opt; do
     case $opt in
 	(r)
 	    remove_work_dir="false";;
+	(v)
+	    use_valgrind="true";;
 	(*)
 	    exit 64 # sysexits.h EX_USAGE
     esac
@@ -146,8 +150,16 @@ $1"
 
 # Invokes the testee.
 # If the "posix" variable is defined non-empty, the testee is invoked as "sh".
+# If the "use_valgrind" variable is true, Valgrind is used to run the testee,
+# in which case the testee will ignore argv[0].
 testee() (
-    exec ${posix:+-a sh} "$testee" "$@"
+    if ! "$use_valgrind"; then
+	exec ${posix:+-a sh} "$testee" "$@"
+    else
+	exec valgrind --leak-check=full --vgdb=no --log-fd=17 \
+	    "$testee" ${posix:+-o posix} "$@" \
+	    17>>"${valgrind_file-0.valgrind}"
+    fi
 )
 
 # The test case runner.
@@ -202,6 +214,7 @@ testcase() {
     in_file="$test_lineno.in"
     out_file="$test_lineno.out"
     err_file="$test_lineno.err"
+    valgrind_file="$test_lineno.valgrind"
 
     # prepare input file
     {
@@ -298,6 +311,25 @@ testcase() {
 		"$test_file" "$test_lineno" "$test_case_name"
 	fi
 	echo
+    fi
+
+    # check Valgrind results
+    if [ -f "$valgrind_file" ]; then
+	chmod a+r "$valgrind_file"
+	printf '%% Valgrind log:\n'
+	cat "$valgrind_file"
+	echo
+	if grep -q 'valgrind: fatal error:' "$valgrind_file"; then
+	    # There was an error in Valgrind. Treat this test case as skipped.
+	    log_stdout SKIPPED
+	    echo
+	    return
+	fi
+	if grep 'ERROR SUMMARY:' "$valgrind_file" | grep -qv ' 0 errors'; then
+	    failed="true"
+	    eprintf '%s:%d: %s: Valgrind detected error\n' \
+		"$test_file" "$test_lineno" "$test_case_name"
+	fi
     fi
 
     if "$failed"; then

@@ -120,6 +120,11 @@ __IN__
 a
 __OUT__
 
+(
+if "$use_valgrind"; then
+    skip="true" # Valgrind does not pass $0 as expected.
+fi
+
 test_oE '$0 remains unchanged while executing function'
 func() { printf '%s\n' "$0"; }
 func
@@ -128,6 +133,8 @@ __IN__
 sh
 sh
 __OUT__
+
+)
 
 (
 setup 'func() (exit $1)'

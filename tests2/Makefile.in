@@ -36,6 +36,7 @@ TARGET = @TARGET@
 YASH = $(topdir)/$(TARGET)
 TESTERS = checkfg invoke resetsig
 TESTEE = $(YASH)
+RUN_TEST = ./resetsig $(YASH) ./run-test.sh
 SUMMARY = summary.log
 BYPRODUCTS = $(SOURCES:.c=.o) $(TESTERS) $(TEST_RESULTS) $(SUMMARY) *.dSYM
 
@@ -53,12 +54,14 @@ test-posix:
 	@$(MAKE) TEST_SOURCES='$$(POSIX_TEST_SOURCES)' test
 test-yash:
 	@$(MAKE) TEST_SOURCES='$$(YASH_TEST_SOURCES)' test
+test-valgrind:
+	@$(MAKE) RUN_TEST='$(RUN_TEST) -v' test
 
 $(SUMMARY): $(TEST_RESULTS)
 	$(SHELL) ./summarize.sh $(TEST_RESULTS) >| $@
 $(TEST_RESULTS): $(TESTERS) $(YASH)
 .tst.trs:
-	@set ./resetsig $(YASH) ./run-test.sh $(TESTEE) $<; \
+	@set $(RUN_TEST) $(TESTEE) $<; \
 	if grep -q %SEQUENTIAL% $<; then \
 		set $(SHELL) ./enqueue.sh "$$@"; \
 	fi; \
@@ -96,7 +99,7 @@ Makefile: Makefile.in $(topdir)/config.status
 	@+(cd $(topdir) && $(MAKE) config.status)
 	@(cd $(topdir) && $(SHELL) config.status $(subdir)/$@)
 
-.PHONY: test test-posix test-yash tester distfiles copy-distfiles makedeps mostlyclean clean distclean maintainer-clean
+.PHONY: test test-posix test-yash test-valgrind tester distfiles copy-distfiles makedeps mostlyclean clean distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ checkfg.d
