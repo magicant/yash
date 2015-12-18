@@ -225,6 +225,20 @@ make_command() for c do echo echo "Running $c" >"$c" && chmod a+x "$c"; done
 __END__
 
 export TEST_NO="$LINENO"
+test_oE 'running command in different directory with relative path in $PATH'
+mkdir a b
+make_command a/command1 b/command1
+PATH=.:$PATH
+cd a
+command1
+cd ../b
+command1
+__IN__
+Running a/command1
+Running b/command1
+__OUT__
+
+export TEST_NO="$LINENO"
 test_oE 'assignment to $PATH removes all remembered command paths'
 mkdir a b c
 PATH=$PWD/a:$PWD/b:$PWD/c:$PATH
