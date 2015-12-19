@@ -34,13 +34,7 @@ yash.txt
 /po/en@boldquot.po
 /po/en@boldquot.ih
 
-/tests/checkfg
-/tests/invoke
-/tests/resetsig
-/tests/test.log
-
 /tests2/checkfg
-/tests2/invoke
 /tests2/resetsig
 /tests2/summary.log
 /tests2/*.trs
