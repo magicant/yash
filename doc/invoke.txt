@@ -45,11 +45,12 @@ If you do not give any operands, the shell reads the standard input as if the
 You cannot use both the +-c+ (+--cmdline+) and +-s+ (+--stdin+) options at a
 time.
 
-If you specify either the +--help+ or +--version+ option, the shell never
-performs the usual initialization or command execution. Instead, it just
-prints brief usage (for +--help+) or version information (for +--version+). If
-the +--version+ option is accompanied by the +-v+ (+--verbose+) option, the
-shell prints a list of the available optional features as well.
+If you specify either the +--help+ or +-V+ (+--version+) option, the shell
+never performs the usual initialization or command execution. Instead, it just
+prints brief usage (for +--help+) or version information (for +-V+ and
++--version+). If the +-V+ (+--version+) option is accompanied by the +-v+
+(+--verbose+) option, the shell prints a list of the available optional
+features as well.
 
 If you specify the +-i+ (+--interactive+) option, the shell goes into the
 link:interact.html[interactive mode].
