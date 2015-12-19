@@ -1,6 +1,6 @@
 # Japanese translations for yash package
 # yash パッケージのメッセージの和訳
-# Copyright (C) 2010-2012 Magicant
+# Copyright (C) 2010-2015 Magicant
 # This file is distributed under the same license as the yash package.
 # WATANABE Yuki <magicant@users.osdn.me>, 2010-2012.
 #
@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: yash 2.35\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2015-10-02 23:59+0900\n"
-"PO-Revision-Date: 2013-06-08 16:30+0900\n"
+"PO-Revision-Date: 2015-12-19 22:43+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -361,7 +361,7 @@ msgstr "無制限"
 
 #: builtins/ulimit.c:270
 msgid "set or print a resource limitation"
-msgstr "リソースの制限を設定または設定する"
+msgstr "リソースの制限を設定または表示する"
 
 #: builtins/ulimit.c:273
 msgid ""
