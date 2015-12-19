@@ -4,7 +4,7 @@ if ! testee --version --verbose | grep -Fqx ' * help'; then
     skip="true"
 fi
 
-test_oE 'without arguments, the help for the help itself is printed'
+test_oE -e 0 'without arguments, the help for the help itself is printed'
 help
 __IN__
 help: print usage of built-in commands
@@ -19,7 +19,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of alias'
+test_oE -e 0 'help of alias'
 help alias
 __IN__
 alias: define or print aliases
@@ -41,7 +41,7 @@ if ! testee -c 'command -bv array' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of array'
+test_oE -e 0 'help of array'
 help array
 __IN__
 array: manipulate an array
@@ -65,7 +65,7 @@ __OUT__
 
 )
 
-test_oE 'help of bg'
+test_oE -e 0 'help of bg'
 help bg
 __IN__
 bg: run jobs in the background
@@ -85,7 +85,7 @@ if ! testee -c 'command -bv bindkey' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of bindkey'
+test_oE -e 0 'help of bindkey'
 help bindkey
 __IN__
 bindkey: set or print key bindings for line-editing
@@ -107,7 +107,7 @@ __OUT__
 
 )
 
-test_oE 'help of break'
+test_oE -e 0 'help of break'
 help break
 __IN__
 break: exit a loop
@@ -124,7 +124,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of cd'
+test_oE -e 0 'help of cd'
 help cd
 __IN__
 cd: change the working directory
@@ -142,7 +142,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of colon'
+test_oE -e 0 'help of colon'
 help :
 __IN__
 :: do nothing
@@ -154,7 +154,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of command'
+test_oE -e 0 'help of command'
 help command
 __IN__
 command: execute or identify a command
@@ -183,7 +183,7 @@ if ! testee -c 'command -bv complete' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of complete'
+test_oE -e 0 'help of complete'
 help complete
 __IN__
 complete: generate completion candidates
@@ -235,7 +235,7 @@ __OUT__
 
 )
 
-test_oE 'help of continue'
+test_oE -e 0 'help of continue'
 help continue
 __IN__
 continue: continue a loop
@@ -257,7 +257,7 @@ if ! testee -c 'command -bv dirs' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of dirs'
+test_oE -e 0 'help of dirs'
 help dirs
 __IN__
 dirs: print the directory stack
@@ -276,7 +276,7 @@ __OUT__
 
 )
 
-test_oE 'help of disown'
+test_oE -e 0 'help of disown'
 help disown
 __IN__
 disown: disown jobs
@@ -293,7 +293,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of dot'
+test_oE -e 0 'help of dot'
 help .
 __IN__
 .: read a file and execute commands
@@ -315,7 +315,7 @@ if ! testee -c 'command -bv echo' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of echo'
+test_oE -e 0 'help of echo'
 help echo
 __IN__
 echo: print arguments
@@ -329,7 +329,7 @@ __OUT__
 
 )
 
-test_oE 'help of eval'
+test_oE -e 0 'help of eval'
 help eval
 __IN__
 eval: evaluate arguments as a command
@@ -345,7 +345,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of exec'
+test_oE -e 0 'help of exec'
 help exec
 __IN__
 exec: replace the shell process with an external command
@@ -363,7 +363,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of exit'
+test_oE -e 0 'help of exit'
 help exit
 __IN__
 exit: exit the shell
@@ -379,7 +379,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of export'
+test_oE -e 0 'help of export'
 help export
 __IN__
 export: export variables as environment variables
@@ -400,7 +400,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of false'
+test_oE -e 0 'help of false'
 help false
 __IN__
 false: do nothing unsuccessfully
@@ -417,7 +417,7 @@ if ! testee -c 'command -bv fc' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of fc'
+test_oE -e 0 'help of fc'
 help fc
 __IN__
 fc: list or re-execute command history
@@ -443,7 +443,7 @@ __OUT__
 
 )
 
-test_oE 'help of fg'
+test_oE -e 0 'help of fg'
 help fg
 __IN__
 fg: run jobs in the foreground
@@ -458,7 +458,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of getopts'
+test_oE -e 0 'help of getopts'
 help getopts
 __IN__
 getopts: parse command options
@@ -473,7 +473,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of hash'
+test_oE -e 0 'help of hash'
 help hash
 __IN__
 hash: remember, forget, or report command locations
@@ -496,7 +496,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of help'
+test_oE -e 0 'help of help'
 help help
 __IN__
 help: print usage of built-in commands
@@ -516,7 +516,7 @@ if ! testee -c 'command -bv history' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of history'
+test_oE -e 0 'help of history'
 help history
 __IN__
 history: manage command history
@@ -539,7 +539,7 @@ __OUT__
 
 )
 
-test_oE 'help of jobs'
+test_oE -e 0 'help of jobs'
 help jobs
 __IN__
 jobs: print info about jobs
@@ -559,7 +559,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of kill'
+test_oE -e 0 'help of kill'
 help kill
 __IN__
 kill: send a signal to processes
@@ -577,7 +577,7 @@ if ! testee -c 'command -bv popd' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of popd'
+test_oE -e 0 'help of popd'
 help popd
 __IN__
 popd: pop a directory from the directory stack
@@ -599,7 +599,7 @@ if ! testee -c 'command -bv printf' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of printf'
+test_oE -e 0 'help of printf'
 help printf
 __IN__
 printf: print a formatted string
@@ -621,7 +621,7 @@ if ! testee -c 'command -bv pushd' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of pushd'
+test_oE -e 0 'help of pushd'
 help pushd
 __IN__
 pushd: push a directory into the directory stack
@@ -642,7 +642,7 @@ __OUT__
 
 )
 
-test_oE 'help of pwd'
+test_oE -e 0 'help of pwd'
 help pwd
 __IN__
 pwd: print the working directory
@@ -659,7 +659,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of read'
+test_oE -e 0 'help of read'
 help read
 __IN__
 read: read a line from the standard input
@@ -679,7 +679,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of readonly'
+test_oE -e 0 'help of readonly'
 help readonly
 __IN__
 readonly: make variables read-only
@@ -700,7 +700,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of return'
+test_oE -e 0 'help of return'
 help return
 __IN__
 return: return from a function or script
@@ -721,7 +721,7 @@ if ! testee --version --verbose | grep -Fqx ' * lineedit'; then
     skip="true"
 fi
 
-test_oE 'help of set'
+test_oE -e 0 'help of set'
 help set
 __IN__
 set: set shell options and positional parameters
@@ -776,7 +776,7 @@ __OUT__
 
 )
 
-test_oE 'help of shift'
+test_oE -e 0 'help of shift'
 help shift
 __IN__
 shift: remove some positional parameters
@@ -791,7 +791,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of suspend'
+test_oE -e 0 'help of suspend'
 help suspend
 __IN__
 suspend: suspend the shell
@@ -812,7 +812,7 @@ if ! testee -c 'command -bv test' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of test'
+test_oE -e 0 'help of test'
 help test
 __IN__
 test: evaluate a conditional expression
@@ -825,7 +825,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of ['
+test_oE -e 0 'help of ['
 help [
 __IN__
 [: evaluate a conditional expression
@@ -840,7 +840,7 @@ __OUT__
 
 )
 
-test_oE 'help of times'
+test_oE -e 0 'help of times'
 help times
 __IN__
 times: print CPU time usage
@@ -855,7 +855,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of trap'
+test_oE -e 0 'help of trap'
 help trap
 __IN__
 trap: set or print signal handlers
@@ -873,7 +873,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of true'
+test_oE -e 0 'help of true'
 help true
 __IN__
 true: do nothing successfully
@@ -885,7 +885,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of type'
+test_oE -e 0 'help of type'
 help type
 __IN__
 type: identify a command
@@ -908,7 +908,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of typeset'
+test_oE -e 0 'help of typeset'
 help typeset
 __IN__
 typeset: set or print variables
@@ -934,7 +934,7 @@ if ! testee -c 'command -bv ulimit' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'help of ulimit'
+test_oE -e 0 'help of ulimit'
 help ulimit
 __IN__
 ulimit: set or print a resource limitation
@@ -970,7 +970,7 @@ __OUT__
 
 )
 
-test_oE 'help of umask'
+test_oE -e 0 'help of umask'
 help umask
 __IN__
 umask: print or set the file creation mask
@@ -987,7 +987,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of unalias'
+test_oE -e 0 'help of unalias'
 help unalias
 __IN__
 unalias: undefine aliases
@@ -1004,7 +1004,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of unset'
+test_oE -e 0 'help of unset'
 help unset
 __IN__
 unset: remove variables or functions
@@ -1021,7 +1021,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'help of wait'
+test_oE -e 0 'help of wait'
 help wait
 __IN__
 wait: wait for jobs to terminate
@@ -1036,7 +1036,7 @@ Try `man yash' for details.
 __OUT__
 #`
 
-test_oE 'specifying many operands'
+test_oE -e 0 'specifying many operands'
 help true false help
 __IN__
 true: do nothing successfully
