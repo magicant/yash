@@ -77,6 +77,9 @@ The exit status of the trap built-in is zero unless there is any error.
 
 The trap built-in is a link:builtin.html#types[special built-in].
 
+The POSIX standard defines no options for the trap built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
 The POSIX standard requires that signal names must be specified without the
 +SIG+-prefix, like +INT+ and +QUIT+.
 As an extension, yash accepts +SIG+-prefixed names like +SIGINT+ and +SIGQUIT+

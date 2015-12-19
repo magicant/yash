@@ -71,6 +71,7 @@ Non-existing files are considered older than any existing files.
 The binary operators below compare strings:
 
 +{{string1}} = {{string2}}+::
++{{string1}} == {{string2}}+::
 {{string1}} is the same string as {{string2}}
 +{{string1}} != {{string2}}+::
 {{string1}} is not the same string as {{string2}}
@@ -157,6 +158,7 @@ For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
 The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
++-G+, +-k+, +-N+, +-O+,
 +-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
 +-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
 POSIX neither specifies +-o+ as a unary operator.
