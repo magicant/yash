@@ -934,8 +934,12 @@ if ! testee -c 'command -bv ulimit' >/dev/null; then
     skip="true"
 fi
 
-test_oE -e 0 'help of ulimit'
+test_x -e 0 'help of ulimit: exit status'
 help ulimit
+__IN__
+
+test_oE 'help of ulimit: output'
+help ulimit | grep -v '^	-[eilmqruvx]'
 __IN__
 ulimit: set or print a resource limitation
 
@@ -949,19 +953,10 @@ Options:
 	-a       --all
 	-c       --core
 	-d       --data
-	-e       --nice
 	-f       --fsize
-	-i       --sigpending
-	-l       --memlock
-	-m       --rss
 	-n       --nofile
-	-q       --msgqueue
-	-r       --rtprio
 	-s       --stack
 	-t       --cpu
-	-u       --nproc
-	-v       --as
-	-x       --locks
 	         --help
 
 Try `man yash' for details.
