@@ -1,0 +1,216 @@
+This document indicates which part of IEEE Std 1003.1, 2013 edition, which is
+informally referred to as POSIX 2013 in this document, is covered by which
+test file.
+
+
+Volume 3: Shell & Utilities
+===========================
+
+1.1.2 Concepts Derived from the ISO C Standard
+  Arithmetic Precision and Operations
+    * arith-p.tst
+
+2.2 Quoting
+ * quote-p.tst
+
+2.3 Token Recognition
+ * comment-p.tst
+
+2.3.1 Alias Substitution
+ * alias-p.tst
+
+2.5.3 Shell Variables
+  LINENO
+    * lineno-p.tst
+    * lineno-y.tst
+  PS1, PS2, PS4
+    * prompt-y.tst
+
+2.6 Word Expansions
+  Empty field removal
+    * fsplit-p.tst
+
+2.6.1 Tilde Expansion
+ * tilde-p.tst
+
+2.6.2 Parameter Expansion
+ * param-p.tst
+
+2.6.3 Command Substitution
+ * cmdsub-p.tst
+
+2.6.4 Arithmetic Expansion
+ * arith-p.tst
+
+2.6.5 Field Splitting
+ * fsplit-p.tst
+
+2.6.6 Pathname Expansion
+ * path-p.tst
+
+2.7 Redirection
+ * redir-p.tst
+ * redir-y.tst
+
+2.8.1 Consequences of Shell Errors
+  Shell language syntax error
+   * error-p.tst
+  Utility syntax error, redirection error, variable assignment error
+   * builtins-p.tst
+   * builtins-y.tst
+  Expansion error
+   * error-p.tst
+  Dot script not found
+   * dot-p.tst
+
+2.8.2 Exit Status for Commands
+ * error-p.tst
+
+2.9.1 Simple Commands
+ * redir-p.tst
+ * simple-p.tst
+
+Command Search and Execution
+ * builtins-p.tst
+ * simple-p.tst
+
+2.9.2 Pipelines
+ * pipeline-p.tst
+
+2.9.3 Lists
+ * andor-p.tst
+ * async-p.tst
+
+2.9.4 Compound Commands
+ * case-p.tst
+ * for-p.tst
+ * grouping-p.tst
+ * if-p.tst
+ * until-p.tst
+ * while-p.tst
+
+2.9.5 Function Definition Command
+ * function-p.tst
+
+2.11 Signals and Error Handling
+ * async-p.tst
+ * signal-p.tst
+ * wait-p.tst
+
+2.12 Shell Execution Environment
+ * trap-p.tst
+
+2.13 Pattern Matching Notation
+
+2.13.1 Patterns Matching a Single Character
+ * fnmatch-p.tst
+
+2.13.2 Patterns Matching Multiple Characters
+ * fnmatch-p.tst
+
+2.13.3 Patterns Used for Filename Expansion
+ * path-p.tst
+
+2.14 Special Built-In Utilities
+ * builtins-p.tst
+
+break
+ * break-p.tst
+
+colon
+ * nop-p.tst
+
+continue
+ * continue-p.tst
+
+dot
+ * dot-p.tst
+
+eval
+ * eval-p.tst
+
+exit
+ * exit-p.tst
+
+export
+ * export-p.tst
+
+readonly
+ * readonly-p.tst
+ * readonly-y.tst
+
+return
+ * return-p.tst
+
+set
+ * option-p.tst
+ * set-p.tst
+ * set-y.tst
+ * settty-y.tst
+
+shift
+ * shift-p.tst
+
+unset
+ * unset-p.tst
+
+4 Utilities
+
+alias
+ * alias-p.tst
+
+bg
+ * bg-p.tst
+
+cd
+ * cd-p.tst
+
+command
+ * command-p.tst
+
+false
+ * nop-p.tst
+
+fg
+ * fg-p.tst
+
+getopts
+ * getopts-p.tst
+
+hash
+ * hash-y.tst
+
+kill
+ * kill-p.tst
+
+read
+ * read-p.tst
+
+sh
+  Stdin, Input files
+    * input-p.tst
+  Asynchronous events
+    * signal-p.tst
+    * signal-y.tst
+
+test
+ * test-p.tst
+ * testtty-p.tst
+
+trap
+ * trap-p.tst
+
+true
+ * nop-p.tst
+
+umask
+ * umask-p.tst
+
+unalias
+ * alias-p.tst
+
+wait
+ * wait-p.tst
+
+
+vim: set tw=78:

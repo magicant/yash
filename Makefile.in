@@ -96,7 +96,7 @@ configm.h: Makefile
 		} >$@
 	-@echo done
 
-test tests check: _PHONY
+test tests check: _PHONY $(TARGET)
 	@+(cd tests && $(MAKE))
 tester: _PHONY
 	@+(cd tests && $(MAKE) $@)

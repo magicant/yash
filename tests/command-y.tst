@@ -1,0 +1,259 @@
+# command-y.tst: yash-specific test of the command and type built-ins
+
+# Seemingly meaningless comments like #` in this script are to work around
+# syntax highlighting errors on some editors.
+
+test_oE -e 0 'executing with -b option'
+command -b eval echo foo
+__IN__
+foo
+__OUT__
+
+test_Oe -e 127 'external command is not found with -b option'
+command -b cat /dev/null
+__IN__
+command: no such command `cat'
+__ERR__
+#`
+
+test_OE -e 0 'executing with -e option'
+command -e cat /dev/null
+__IN__
+
+test_Oe -e 127 'built-in command is not found with -e option'
+PATH=
+command -e exit 10
+__IN__
+command: no such command `exit'
+__ERR__
+#`
+
+test_oE -e 0 'executing with -f option'
+exit() { echo foo; }
+command -f exit 1
+__IN__
+foo
+__OUT__
+
+test_oE -e 0 'executing function with name containing slash'
+function foo/bar {
+    echo "$@"
+}
+command -f foo/bar baz 'x  x'
+__IN__
+baz x  x
+__OUT__
+
+test_Oe -e 127 'external command is not found with -f option'
+command -f cat /dev/null
+__IN__
+command: no such command `cat'
+__ERR__
+#`
+
+test_oE -e 0 'describing alias (-V)'
+alias a='foo'
+command -V a
+__IN__
+a: an alias for `foo'
+__OUT__
+#`
+
+test_oE -e 0 'describing special built-ins (-V)'
+command -V : . break continue eval exec exit export readonly return set shift \
+    times trap unset
+__IN__
+:: a special built-in
+.: a special built-in
+break: a special built-in
+continue: a special built-in
+eval: a special built-in
+exec: a special built-in
+exit: a special built-in
+export: a special built-in
+readonly: a special built-in
+return: a special built-in
+set: a special built-in
+shift: a special built-in
+times: a special built-in
+trap: a special built-in
+unset: a special built-in
+__OUT__
+
+# `newgrp' is not a semi-special built-in in yash.
+test_oE -e 0 'describing semi-special built-ins (-V)'
+command -V bg cd command false fg getopts jobs kill pwd read true umask wait
+__IN__
+bg: a semi-special built-in
+cd: a semi-special built-in
+command: a semi-special built-in
+false: a semi-special built-in
+fg: a semi-special built-in
+getopts: a semi-special built-in
+jobs: a semi-special built-in
+kill: a semi-special built-in
+pwd: a semi-special built-in
+read: a semi-special built-in
+true: a semi-special built-in
+umask: a semi-special built-in
+wait: a semi-special built-in
+__OUT__
+
+test_OE 'describing regular built-ins (-V)'
+testreg() {
+    command -V $1 | grep -v "^$1: a regular built-in "
+}
+testreg typeset
+testreg disown
+testreg type
+__IN__
+
+test_OE -e 0 'describing external command (-V)'
+command -V cat | grep -q '^cat: an external command at'
+__IN__
+
+test_oE -e 0 'describing function (-V)'
+true() { :; }
+type -V true
+__IN__
+true: a function
+__OUT__
+
+test_oE -e 0 'describing reserved words (-V)'
+command -V if then else elif fi do done case esac while until for function \
+    { } ! in
+__IN__
+if: a shell keyword
+then: a shell keyword
+else: a shell keyword
+elif: a shell keyword
+fi: a shell keyword
+do: a shell keyword
+done: a shell keyword
+case: a shell keyword
+esac: a shell keyword
+while: a shell keyword
+until: a shell keyword
+for: a shell keyword
+function: a shell keyword
+{: a shell keyword
+}: a shell keyword
+!: a shell keyword
+in: a shell keyword
+__OUT__
+
+test_oE -e 0 'describing alias with -a option'
+alias a='foo'
+command -va a &&
+command --identify --alias a
+__IN__
+alias a='foo'
+alias a='foo'
+__OUT__
+
+test_oE -e 0 'describing built-ins with -b option'
+command -vb : bg &&
+command --identify --builtin-command : bg
+__IN__
+:
+bg
+:
+bg
+__OUT__
+
+test_E -e 0 'describing regular built-in with -b option'
+command -vb hash &&
+command --identify --builtin-command hash
+__IN__
+
+test_E -e 0 'describing external command with -e option'
+command -ve cat &&
+command --identify --external-command cat
+__IN__
+
+test_oE -e 0 'describing function with -f option'
+true() { :; }
+command -vf true &&
+command --identify --function true
+__IN__
+true
+true
+__OUT__
+
+test_oE -e 0 'describing reserved word with -k option'
+command -vk if &&
+command --identify --keyword if
+__IN__
+if
+if
+__OUT__
+
+test_OE -e 1 'describing non-existent command (-va)'
+command -va exit
+__IN__
+
+test_OE -e 1 'describing non-existent command (-vb)'
+command -vb cat
+__IN__
+
+test_OE -e 1 'describing non-existent command (-ve)'
+PATH=
+command -ve exit
+__IN__
+
+test_OE -e 1 'describing non-existent command (-vk)'
+command -vk exit
+__IN__
+
+test_OE -e 1 'describing non-existent command (-vf)'
+command -vf exit
+__IN__
+
+test_Oe -e 1 'describing non-existent command (-V)'
+PATH=
+command -V _no_such_command_
+__IN__
+command: no such command `_no_such_command_'
+__ERR__
+#`
+
+test_oE -e 0 'describing with long option'
+command --verbose-identify if : bg
+__IN__
+if: a shell keyword
+:: a special built-in
+bg: a semi-special built-in
+__OUT__
+
+test_oE -e 0 'describing with type command'
+type if : bg
+__IN__
+if: a shell keyword
+:: a special built-in
+bg: a semi-special built-in
+__OUT__
+
+test_O -d -e 1 'printing to closed stream'
+command -v command >&-
+__IN__
+
+test_Oe -e n 'using -a without -v'
+command -a :
+__IN__
+command: the -a or -k option must be used with the -v option
+__ERR__
+
+test_Oe -e n 'using -k without -v'
+command -k :
+__IN__
+command: the -a or -k option must be used with the -v option
+__ERR__
+
+test_Oe -e n 'invalid option'
+command --no-such-option
+__IN__
+command: `--no-such-option' is not a valid option
+__ERR__
+#`
+
+# vim: set ft=sh ts=8 sts=4 sw=4 noet:

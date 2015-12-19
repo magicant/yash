@@ -1,8 +1,0 @@
-# printf 'posix PS1={%s}\n' "$PS1"
-# printf 'posix PS2={%s}\n' "$PS2"
-# printf 'posix PS4={%s}\n' "$PS4"
-# exit
-# printf 'yash PS1={%s}\n' "$PS1"
-# printf 'yash PS2={%s}\n' "$PS2"
-# printf 'yash PS4={%s}\n' "$PS4"
-# exit
