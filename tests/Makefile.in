@@ -19,7 +19,7 @@
 
 @MAKE_SHELL@
 topdir = ..
-subdir = tests2
+subdir = tests
 
 CC = @CC@
 CFLAGS = @CFLAGS@

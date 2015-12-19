@@ -24,7 +24,7 @@ tempo=".temp.o"
 tempd=".temp.d"
 tempout="./.temp.out"
 temptxt="./.temp.txt"
-dirs=". builtins doc doc/ja lineedit po tests2"
+dirs=". builtins doc doc/ja lineedit po tests"
 
 target="yash"
 version="2.39"
