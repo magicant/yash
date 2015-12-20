@@ -535,6 +535,8 @@ xfnmresult_T wmatch_literal(
 	size_t index = slen - xfnm->value.literal.length;
 	if (wcscmp(&s[index], xfnm->value.literal.contents) != 0)
 	    return MISMATCH;
+	if ((xfnm->flags & (XFNM_SHORTEST | XFNM_headstar)) == XFNM_headstar)
+	    index = 0;
 	return (xfnmresult_T) { .start = index, .end = slen };
     } else {
 	const wchar_t *ss;

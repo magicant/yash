@@ -263,13 +263,12 @@ __IN__
 [1-2-3-][1-2-3-4][1-2-3][1-2-3-4][**][%%]
 __OUT__
 
-# TODO yash is broken
-#test_oE 'removing longest matching suffix'
-#a=1-2-3-4 s='***' p='%%%'
-#bracket "${a%%4}" "${a%%3}" "${a%%-*}" "${a%%*}" "${s%%'*'}" "${p%%%}"
-#__IN__
-#[1-2-3-][1-2-3-4][1][][**][%%]
-#__OUT__
+test_oE 'removing longest matching suffix'
+a=1-2-3-4 s='***' p='%%%'
+bracket "${a%%4}" "${a%%3}" "${a%%-*}" "${a%%*}" "${s%%'*'}" "${p%%%}"
+__IN__
+[1-2-3-][1-2-3-4][1][][**][%%]
+__OUT__
 
 ### Examples from informative sections of POSIX
 
