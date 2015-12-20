@@ -49,7 +49,7 @@ commands.in: editing.h
 	@grep 'cmd_.*/\*C\*/$$' $? | \
 	LC_ALL=C sed -e 's/\(cmd_[0-9a-zA-Z_]*\).*/\1/' -e 's/.*cmd_//' \
 		-e 'h' -e 's/_/-/g' -e 'G' -e 's/\n/ /' | \
-	LC_COLLATE=C sort -k 1 | \
+	LC_ALL=C sort -k 1 | \
 	sed -e 's/ /", cmd_/' -e 's/^/{ "/' -e 's/$$/, },/' > $@
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) Makefile.in
