@@ -111,9 +111,9 @@ fi
 
 test_oE '/.. is canonicalized to / (+o POSIX)'
 cd /..//../dev
-pwd
+printf '%s\n' "$PWD"
 cd /../..
-pwd
+printf '%s\n' "$PWD"
 __IN__
 /dev
 /
@@ -122,13 +122,12 @@ __OUT__
 (
 posix="true"
 
-# TODO: yash is broken
-#test_oE '/.. is kept intact (-o POSIX)'
-#cd /../../dev
-#pwd
-#__IN__
-#/../../dev
-#__OUT__
+test_oE '/.. is kept intact (-o POSIX)'
+cd /../../dev
+printf '%s\n' "$PWD"
+__IN__
+/../../dev
+__OUT__
 
 )
 
