@@ -1,0 +1,12 @@
+sudo: false
+language: c
+compiler:
+ - gcc
+ - clang
+addons:
+  apt:
+    packages:
+     - ed
+install: (mkdir -p ~/bin && cd ~/bin && curl -L https://raw.githubusercontent.com/magicant/settings/96f1a45ff1fb83ceecbf95c683ba794fa930b996/makedummycmds | sh)
+script: export CC="$CC -std=c99" PATH="$HOME/bin:$PATH" && ./configure -d && make -k test
+after_failure: cat tests/summary.log
