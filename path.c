@@ -1205,11 +1205,6 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 step6:  /* set the value of `curpath' */
     assert(newpwd[0] != L'/');
     assert(curpath.length == 0);
-    if (logical) {
-	wb_cat(&curpath, origpwd);
-	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
-	    wb_wccat(&curpath, L'/');
-    }
     wb_cat(&curpath, newpwd);
 
 step7:  /* ensure the value of `curpath' is an absolute path */
