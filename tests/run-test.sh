@@ -231,10 +231,20 @@ testcase() {
 	return
     fi
 
+    if [ -e "$out_file" ]; then
+	printf 'Output file %s already exists.\n' "$out_file"
+	return 1
+    fi
+    if [ -e "$err_file" ]; then
+	printf 'Output file %s already exists.\n' "$err_file"
+	return 1
+    fi
+
     # run the testee
     log_stdout START
     set +e
-    testee "$@" <"$in_file" >"$out_file" 2>"$err_file" 3>&- 4>&- 5>&-
+    # Output files are opened in append mode to ensure write atomicity.
+    testee "$@" <"$in_file" >>"$out_file" 2>>"$err_file" 3>&- 4>&- 5>&-
     actual_exit_status="$?"
     set -e
 

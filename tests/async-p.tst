@@ -16,13 +16,12 @@ __IN__
 __OUT__
 
 test_o 'asynchronous lists separated by ampersands'
-echo 1 >out1& echo 2 >out2 &echo 3 >out3&
+echo& echo &echo&
 wait
-cat out1 out2 out3
 __IN__
-1
-2
-3
+
+
+
 __OUT__
 
 test_o 'asynchronous commands run asynchronously'
