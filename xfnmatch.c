@@ -522,11 +522,13 @@ xfnmresult_T wmatch_literal(
 	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
     if (xfnm->flags & XFNM_HEADONLY) {
-	s = matchwcsprefix(s, xfnm->value.literal.contents);
-	if (s == NULL)
+	const wchar_t *tail = matchwcsprefix(s, xfnm->value.literal.contents);
+	if (tail == NULL)
 	    return MISMATCH;
-	if ((xfnm->flags & XFNM_TAILONLY) && (*s != L'\0'))
+	if ((xfnm->flags & XFNM_TAILONLY) && (*tail != L'\0'))
 	    return MISMATCH;
+	if ((xfnm->flags & (XFNM_SHORTEST | XFNM_tailstar)) == XFNM_tailstar)
+	    return (xfnmresult_T) { .start = 0, .end = wcslen(s) };
 	return (xfnmresult_T) { .start = 0, .end = xfnm->value.literal.length };
     } else if (xfnm->flags & XFNM_TAILONLY) {
 	size_t slen = wcslen(s);

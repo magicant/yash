@@ -14,6 +14,9 @@ Yash 2.40
      which might result in an undefined behavior.
   *  Fixed memory leak on finding a command in a relative path from
      $PATH.
+  *  The parameter expansion ${foo##bar*} was being treated like
+     ${foo##bar} where the asterisk should match up to the end of the
+     parameter value.
   *  The parameter expansion ${foo%%*} was being expanded to ${foo}
      where it should expand to an empty string.
 
