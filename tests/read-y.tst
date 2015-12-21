@@ -162,14 +162,12 @@ __ERR__
 #'
 #`
 
-# TODO: yash is broken
-#test_Oe -e 1 'empty variable name'
-#echo | read ''
-#__IN__
-#read: `' is not a valid variable name
-#__ERR__
-#'
-#`
+# Empty variable name is supported, though it may seem counterintuitive...
+test_oE -e 0 'empty variable name'
+echo foo | { read ''; readonly ''; readonly; }
+__IN__
+readonly ''='foo'
+__OUT__
 
 test_Oe -e 2 'invalid option'
 read --no-such-option foo
