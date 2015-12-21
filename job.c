@@ -1155,9 +1155,9 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 
     wchar_t *name = get_job_name(job);
     if (fg && posixly_correct)
-	printf("%ls\n", name);
+	xprintf("%ls\n", name);
     else
-	printf("[%zu] %ls\n", jobnumber, name);
+	xprintf("[%zu] %ls\n", jobnumber, name);
     if (name != job->j_procs[0].pr_name)
 	free(name);
 

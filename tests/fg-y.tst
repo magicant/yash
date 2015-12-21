@@ -63,11 +63,10 @@ fg: no such job `%2'
 __ERR__
 #`
 
-# TODO: yash is broken
-#test_O -d -e 1 'printing to closed stream' -m
-#:&
-#fg >&-
-#__IN__
+test_O -d -e 1 'printing to closed stream' -m
+:&
+fg >&-
+__IN__
 
 test_Oe -e 2 'invalid option' -m
 fg --no-such-option

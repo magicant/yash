@@ -19,6 +19,8 @@ Yash 2.40
      parameter value.
   *  The parameter expansion ${foo%%*} was being expanded to ${foo}
      where it should expand to an empty string.
+  *  The "fg" and "bg" built-ins now report an error when they fail to
+     print the job name.
 
 ----------------------------------------------------------------------
 Yash 2.39
