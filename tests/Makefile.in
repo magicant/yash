@@ -78,7 +78,7 @@ $(YASH):
 	@rm -f $@
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
-DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in POSIX2013 enqueue.sh run-test.sh summarize.sh
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in POSIX2013 README enqueue.sh run-test.sh summarize.sh
 distfiles: makedeps $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
