@@ -12,6 +12,8 @@ Yash 2.40
 
   *  Fixed possible arithmetic overflow errors in memory allocation
      which might result in an undefined behavior.
+  *  Fixed crash on assigning a floating-point number in arithmetic
+     expansion.
   *  Fixed memory leak on finding a command in a relative path from
      $PATH.
   *  The parameter expansion ${foo##bar*} was being treated like

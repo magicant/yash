@@ -209,8 +209,6 @@ __IN__
 A B
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator ='
 a=1 b=1.2 c=1.2 d=foo
 echoraw $((a=2.5)) $((b=3.75)) $((c=9)) $((d=1.25))
@@ -265,8 +263,6 @@ __IN__
 5.75 5.75 3.5
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator <<='
 a=10 b=10.9 c=10.9
 echoraw $((a<<=2.9)) $((b<<=2.9)) $((c<<=2))
@@ -276,8 +272,6 @@ __IN__
 40 40 40
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator >>='
 a=42 b=42.9 c=42.9
 echoraw $((a>>=2.9)) $((b>>=2.9)) $((c>>=2))
@@ -287,8 +281,6 @@ __IN__
 10 10 10
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator &='
 a=10 b=10.75 c=10.75
 echoraw $((a&=12.25)) $((b&=12.25)) $((c&=12))
@@ -298,8 +290,6 @@ __IN__
 8 8 8
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator ^='
 a=10 b=10.75 c=10.75
 echoraw $((a^=12.25)) $((b^=12.25)) $((c^=12))
@@ -309,8 +299,6 @@ __IN__
 6 6 6
 __OUT__
 
-# TODO: yash is broken
-: <<\__OUT__
 test_oE -e 0 'float: assignment operator |='
 a=10 b=10.75 c=10.75
 echoraw $((a|=12.25)) $((b|=12.25)) $((c|=12))

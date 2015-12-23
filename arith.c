@@ -104,6 +104,10 @@ static bool do_assignment(const word_T *word, const value_T *value)
     __attribute__((nonnull));
 static wchar_t *value_to_string(const value_T *value)
     __attribute__((nonnull));
+static bool do_binary_calculation(
+	evalinfo_T *info, tokentype_T ttype,
+	value_T *lhs, value_T *rhs, value_T *result)
+    __attribute__((nonnull));
 static long do_long_calculation(tokentype_T ttype, long v1, long v2);
 static double do_double_calculation(tokentype_T ttype, double v1, double v2);
 static long do_double_comparison(tokentype_T ttype, double v1, double v2);
@@ -257,25 +261,9 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 		parse_assignment(info, &rhs);
 		if (result->type == VT_VAR) {
 		    word_T saveword = result->v_var;
-		    switch (coerce_type(info, result, &rhs)) {
-			case VT_LONG:
-			    if (!fail_if_will_divide_by_zero(
-					ttype, &rhs, info, result))
-				result->v_long = do_long_calculation(ttype,
-					result->v_long, rhs.v_long);
-			    break;
-			case VT_DOUBLE:
-			    if (!fail_if_will_divide_by_zero(
-					ttype, &rhs, info, result))
-				result->v_double = do_double_calculation(ttype,
-					result->v_double, rhs.v_double);
-			    break;
-			case VT_INVALID:
-			    result->type = VT_INVALID;
-			    break;
-			case VT_VAR:
-			    assert(false);
-		    }
+		    if (!do_binary_calculation(
+				info, ttype, result, &rhs, result))
+			break;
 		    if (!do_assignment(&saveword, result))
 			info->error = true, result->type = VT_INVALID;
 		} else if (result->type != VT_INVALID) {
@@ -327,6 +315,62 @@ wchar_t *value_to_string(const value_T *value)
 	    }
     }
     assert(false);
+}
+
+/* Applies the binary operation defined by token `ttype' to operands `lhs' and
+ * `rhs'. The operands may be modified as a result of coercion. The result is
+ * assigned to `*result' unless there is an error.
+ * Returns true iff successful. */
+bool do_binary_calculation(
+	evalinfo_T *info, tokentype_T ttype,
+	value_T *lhs, value_T *rhs, value_T *result)
+{
+    switch (ttype) {
+	case TT_ASTER:  case TT_ASTEREQUAL:
+	case TT_SLASH:  case TT_SLASHEQUAL:
+	case TT_PERCENT:  case TT_PERCENTEQUAL:
+	case TT_PLUS:  case TT_PLUSEQUAL:
+	case TT_MINUS:  case TT_MINUSEQUAL:
+	    result->type = coerce_type(info, lhs, rhs);
+	    if (fail_if_will_divide_by_zero(ttype, rhs, info, result))
+		return false;
+	    switch (result->type) {
+		case VT_LONG:
+		    result->v_long = do_long_calculation(
+			    ttype, lhs->v_long, rhs->v_long);
+		    break;
+		case VT_DOUBLE:
+		    result->v_double = do_double_calculation(
+			    ttype, lhs->v_double, rhs->v_double);
+		    break;
+		case VT_VAR:
+		    assert(false);
+		case VT_INVALID:
+		    break;
+	    }
+	    break;
+	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
+	case TT_GREATERGREATER:  case TT_GREATERGREATEREQUAL:
+	case TT_AMP:  case TT_AMPEQUAL:
+	case TT_HAT:  case TT_HATEQUAL:
+	case TT_PIPE:  case TT_PIPEEQUAL:
+	    coerce_integer(info, lhs);
+	    coerce_integer(info, rhs);
+	    if (lhs->type == VT_LONG && rhs->type == VT_LONG) {
+		result->type = VT_LONG;
+		result->v_long =
+		    do_long_calculation(ttype, lhs->v_long, rhs->v_long);
+	    } else {
+		result->type = VT_INVALID;
+	    }
+	    break;
+	case TT_EQUAL:
+	    *result = *rhs;
+	    break;
+	default:
+	    assert(false);
+    }
+    return true;
 }
 
 /* Does unary or binary long calculation according to the specified operator
