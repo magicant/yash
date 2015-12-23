@@ -590,14 +590,7 @@ void parse_inclusive_or(evalinfo_T *info, value_T *result)
 	    case TT_PIPE:
 		next_token(info);
 		parse_exclusive_or(info, &rhs);
-		coerce_integer(info, result);
-		coerce_integer(info, &rhs);
-		if (result->type == VT_LONG && rhs.type == VT_LONG) {
-		    result->v_long = do_long_calculation(ttype,
-			    result->v_long, rhs.v_long);
-		} else {
-		    result->type = VT_INVALID;
-		}
+		do_binary_calculation(info, TT_PIPE, result, &rhs, result);
 		break;
 	    default:
 		return;
@@ -617,14 +610,7 @@ void parse_exclusive_or(evalinfo_T *info, value_T *result)
 	    case TT_HAT:
 		next_token(info);
 		parse_and(info, &rhs);
-		coerce_integer(info, result);
-		coerce_integer(info, &rhs);
-		if (result->type == VT_LONG && rhs.type == VT_LONG) {
-		    result->v_long = do_long_calculation(ttype,
-			    result->v_long, rhs.v_long);
-		} else {
-		    result->type = VT_INVALID;
-		}
+		do_binary_calculation(info, TT_HAT, result, &rhs, result);
 		break;
 	    default:
 		return;
@@ -644,14 +630,7 @@ void parse_and(evalinfo_T *info, value_T *result)
 	    case TT_AMP:
 		next_token(info);
 		parse_equality(info, &rhs);
-		coerce_integer(info, result);
-		coerce_integer(info, &rhs);
-		if (result->type == VT_LONG && rhs.type == VT_LONG) {
-		    result->v_long = do_long_calculation(ttype,
-			    result->v_long, rhs.v_long);
-		} else {
-		    result->type = VT_INVALID;
-		}
+		do_binary_calculation(info, TT_AMP, result, &rhs, result);
 		break;
 	    default:
 		return;
@@ -753,14 +732,7 @@ void parse_shift(evalinfo_T *info, value_T *result)
 	    case TT_GREATERGREATER:
 		next_token(info);
 		parse_additive(info, &rhs);
-		coerce_integer(info, result);
-		coerce_integer(info, &rhs);
-		if (result->type == VT_LONG && rhs.type == VT_LONG) {
-		    result->v_long = do_long_calculation(ttype,
-			    result->v_long, rhs.v_long);
-		} else {
-		    result->type = VT_INVALID;
-		}
+		do_binary_calculation(info, ttype, result, &rhs, result);
 		break;
 	    default:
 		return;
@@ -783,21 +755,7 @@ void parse_additive(evalinfo_T *info, value_T *result)
 	    case TT_MINUS:
 		next_token(info);
 		parse_multiplicative(info, &rhs);
-		switch (coerce_type(info, result, &rhs)) {
-		    case VT_LONG:
-			result->v_long = do_long_calculation(ttype,
-				result->v_long, rhs.v_long);
-			break;
-		    case VT_DOUBLE:
-			result->v_double = do_double_calculation(ttype,
-				result->v_double, rhs.v_double);
-			break;
-		    case VT_INVALID:
-			result->type = VT_INVALID;
-			break;
-		    case VT_VAR:
-			assert(false);
-		}
+		do_binary_calculation(info, ttype, result, &rhs, result);
 		break;
 	    default:
 		return;
@@ -822,25 +780,7 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
 	    case TT_PERCENT:
 		next_token(info);
 		parse_prefix(info, &rhs);
-		switch (coerce_type(info, result, &rhs)) {
-		    case VT_LONG:
-			if (!fail_if_will_divide_by_zero(
-				    ttype, &rhs, info, result))
-			    result->v_long = do_long_calculation(ttype,
-				    result->v_long, rhs.v_long);
-			break;
-		    case VT_DOUBLE:
-			if (!fail_if_will_divide_by_zero(
-				    ttype, &rhs, info, result))
-			    result->v_double = do_double_calculation(ttype,
-				    result->v_double, rhs.v_double);
-			break;
-		    case VT_INVALID:
-			result->type = VT_INVALID;
-			break;
-		    case VT_VAR:
-			assert(false);
-		}
+		do_binary_calculation(info, ttype, result, &rhs, result);
 		break;
 	    default:
 		return;
