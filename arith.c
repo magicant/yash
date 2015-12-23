@@ -108,7 +108,8 @@ static bool do_binary_calculation(
 	evalinfo_T *info, tokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
     __attribute__((nonnull));
-static long do_long_calculation(tokentype_T ttype, long v1, long v2);
+static long do_long_calculation1(tokentype_T ttype, long v1, long v2);
+static long do_long_calculation2(tokentype_T ttype, long v1, long v2);
 static double do_double_calculation(tokentype_T ttype, double v1, double v2);
 static long do_double_comparison(tokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
@@ -336,7 +337,7 @@ bool do_binary_calculation(
 		return false;
 	    switch (result->type) {
 		case VT_LONG:
-		    result->v_long = do_long_calculation(
+		    result->v_long = do_long_calculation1(
 			    ttype, lhs->v_long, rhs->v_long);
 		    break;
 		case VT_DOUBLE:
@@ -359,7 +360,7 @@ bool do_binary_calculation(
 	    if (lhs->type == VT_LONG && rhs->type == VT_LONG) {
 		result->type = VT_LONG;
 		result->v_long =
-		    do_long_calculation(ttype, lhs->v_long, rhs->v_long);
+		    do_long_calculation2(ttype, lhs->v_long, rhs->v_long);
 	    } else {
 		result->type = VT_INVALID;
 	    }
@@ -375,7 +376,7 @@ bool do_binary_calculation(
 
 /* Does unary or binary long calculation according to the specified operator
  * token. Division by zero is not allowed. */
-long do_long_calculation(tokentype_T ttype, long v1, long v2)
+long do_long_calculation1(tokentype_T ttype, long v1, long v2)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
@@ -388,6 +389,16 @@ long do_long_calculation(tokentype_T ttype, long v1, long v2)
 	    return v1 / v2;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
 	    return v1 % v2;
+	default:
+	    assert(false);
+    }
+}
+
+/* Does unary or binary long calculation according to the specified operator
+ * token. */
+long do_long_calculation2(tokentype_T ttype, long v1, long v2)
+{
+    switch (ttype) {
 	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
 	    return v1 << v2;
 	case TT_GREATERGREATER:  case TT_GREATERGREATEREQUAL:
@@ -410,8 +421,6 @@ long do_long_calculation(tokentype_T ttype, long v1, long v2)
 	    return v1 ^ v2;
 	case TT_PIPE:  case TT_PIPEEQUAL:
 	    return v1 | v2;
-	case TT_EQUAL:
-	    return v2;
 	default:
 	    assert(false);
     }
@@ -655,7 +664,7 @@ void parse_equality(evalinfo_T *info, value_T *result)
 		parse_relational(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation(ttype,
+			result->v_long = do_long_calculation2(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
@@ -697,7 +706,7 @@ void parse_relational(evalinfo_T *info, value_T *result)
 		parse_shift(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation(ttype,
+			result->v_long = do_long_calculation2(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
