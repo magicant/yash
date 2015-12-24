@@ -21,6 +21,11 @@ Yash 2.40
      parameter value.
   *  The parameter expansion ${foo%%*} was being expanded to ${foo}
      where it should expand to an empty string.
+  *  Fixed incorrect exit status of simple commands where command
+     substitution is performed during command word expansion which
+     yields no command line words.
+  *  Pipes were not being connected as expected during command word
+     expansion.
   *  The "fg" and "bg" built-ins now report an error when they fail to
      print the job name.
 

@@ -768,6 +768,11 @@ pid_t exec_process(
 	finally_exit = true;
     }
 
+    lastcmdsubstatus = Exit_SUCCESS;
+
+    /* connect pipes and close leftovers */
+    connect_pipes(pi);
+
     if (c->c_type == CT_SIMPLE) {
 	if (!expand_line(c->c_words, &argc, &argv)) {
 	    laststatus = Exit_EXPERROR;
@@ -786,11 +791,6 @@ pid_t exec_process(
 	}
     }
     /* `argc' and `argv' are used only for `CT_SIMPLE'. */
-
-    lastcmdsubstatus = Exit_SUCCESS;
-
-    /* connect pipes and close leftovers */
-    connect_pipes(pi);
 
     /* open redirections */
     savefd_T *savefd;

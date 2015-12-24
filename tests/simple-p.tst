@@ -4,6 +4,10 @@ posix="true"
 
 setup -d
 
+test_x -e 11 'exit status of empty command with command substitution'
+$(exit 11)
+__IN__
+
 test_oE 'command words are expanded before assignments and redirections'
 unset a
 a=$(echo A 3>|f1) 3>|f1 echo "$(test -f f1 || echo file does not exist $a)"

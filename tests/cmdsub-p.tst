@@ -30,12 +30,11 @@ y][x
 y]
 __OUT__
 
-# TODO: yash is broken
-#test_oE 'stdin is not redirected'
-#echo a | echo $(cat)
-#__IN__
-#a
-#__OUT__
+test_oE 'stdin is not redirected'
+echo a | echo $(cat)
+__IN__
+a
+__OUT__
 
 test_oe -e 0 'stderr is not redirected'
 bracket "$(echo x >&2)"
