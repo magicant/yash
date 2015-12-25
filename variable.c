@@ -2255,10 +2255,8 @@ int unset_builtin(int argc, void **argv)
 	if (function) {
 	    unset_function(name);
 	} else {
-	    if (wcschr(name, L'=')) {
-		xerror(0, Ngt("`%ls' is not a valid variable name"), name);
+	    if (wcschr(name, L'='))
 		continue;
-	    }
 	    unset_variable(name);
 	}
     }

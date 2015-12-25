@@ -175,8 +175,6 @@ __IN__
 external a
 __OUT__
 
-# TODO yash is broken
-: <<\__OUT__
 test_oE -e 0 'invalid variable names are ignored' -e
 set 1 2 3
 unset = =foo
