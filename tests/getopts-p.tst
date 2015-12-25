@@ -235,8 +235,6 @@ __IN__
 3[c]
 __OUT__
 
-# TODO yash is broken
-: <<\__OUT__
 test_o 'option characters are alphanumeric'
 getopts ab:01: o -a -b arg -1 -2 -0
 printf '1[%s]\n' "$o"

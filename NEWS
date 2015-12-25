@@ -23,6 +23,8 @@ Yash 2.40
      parameter value.
   *  The parameter expansion ${foo%%*} was being expanded to ${foo}
      where it should expand to an empty string.
+  *  The "getopts" built-in no longer rejects digits as option
+     characters.
   *  Fixed incorrect exit status of simple commands where command
      substitution is performed during command word expansion which
      yields no command line words.

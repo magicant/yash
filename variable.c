@@ -2544,7 +2544,7 @@ bool check_options(const wchar_t *options)
 		return false;
 	    /* falls thru! */
 	default:
-	    if (posixly_correct && !iswalpha(*options))
+	    if (posixly_correct && !iswalnum(*options))
 		return false;
 	    options++;
 	    if (*options == L':')
