@@ -2074,7 +2074,7 @@ int exec_builtin_2(int argc, void **argv, const wchar_t *as, bool clear)
     }
 
     exec_external_program(commandpath, argc, mbsargv0, argv, envs);
-    err = Exit_NOEXEC;
+    err = laststatus;
 
     if (clear)
 	plfree((void **) envs, free);

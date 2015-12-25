@@ -53,11 +53,10 @@ foo bar
 0
 __OUT__
 
-# TODO: yash is broken
-#test_O -d -e 127 'executing non-existing command (relative)'
-#exec ./_no_such_command_
-#echo not reached
-#__IN__
+test_O -d -e 127 'executing non-existing command (relative)'
+exec ./_no_such_command_
+echo not reached
+__IN__
 
 test_O -d -e 127 'executing non-existing command (empty path)'
 PATH=

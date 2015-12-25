@@ -28,6 +28,8 @@ Yash 2.40
   *  Fixed incorrect exit status of simple commands where command
      substitution is performed during command word expansion which
      yields no command line words.
+  *  The "exec" built-in now correctly exits with an exit status of
+     127 for a script file not found.
   *  Pipes were not being connected as expected during command word
      expansion.
   *  The "fg" and "bg" built-ins now report an error when they fail to
