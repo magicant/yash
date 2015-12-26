@@ -142,7 +142,7 @@ __IN__
 __OUT__
 
 # If field splitting yields a single empty field and it is not quoted, then it
-# is removed. Note that empty quotations do not affect field splitting.
+# is removed.
 # TODO: yash is broken
 #test_oE 'empty field removal'
 #a= b=' ' c=' - '
@@ -169,8 +169,8 @@ __OUT__
 #[5][]
 #[6][]
 #[7][]
-#[8][]
-#[9][-]
+#[8][][]
+#[9][][-][]
 #[10][]
 #[11][]
 #[12][]
