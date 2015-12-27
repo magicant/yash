@@ -205,6 +205,12 @@ $(DISTDIR).shar.gz: $(DISTDIR).shar
 $(DISTDIR).zip: $(DISTDIR)
 	rm -rf $@
 	zip -rq $@ $(DISTDIR)
+distcheck: dist
+	# Currently, distcheck requires tar that automatically uncompresses
+	# the archive.
+	tar -x -f $(DISTDIR).tar.gz
+	(cd $(DISTDIR) && sh configure && make check dist)
+	$(RM_DISTDIR)
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash
 distfiles: makedeps $(DISTFILES)
@@ -272,7 +278,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip dist-all distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean 
+.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip dist-all distcheck distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
