@@ -25,6 +25,8 @@ Yash 2.40
      where it should expand to an empty string.
   *  The "getopts" built-in no longer rejects digits as option
      characters.
+  *  The non-interactive shell no longer exits when the "command"
+     built-in executes the "." built-in and the script is not found.
   *  Fixed incorrect exit status of simple commands where command
      substitution is performed during command word expansion which
      yields no command line words.

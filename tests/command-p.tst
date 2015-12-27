@@ -17,13 +17,12 @@ __IN__
 reached
 __OUT__
 
-# TODO: yash is broken
-#test_o 'dot script not found does not kill shell'
-#command . ./_no_such_file_
-#echo reached
-#__IN__
-#reached
-#__OUT__
+test_o 'dot script not found does not kill shell'
+command . ./_no_such_file_
+echo reached
+__IN__
+reached
+__OUT__
 
 test_o 'assignment on special built-in is temporary'
 a=a

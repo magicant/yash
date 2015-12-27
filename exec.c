@@ -1941,7 +1941,7 @@ int dot_builtin(int argc, void **argv)
 
 error:
     free(mbsfilename);
-    if (!is_interactive_now)
+    if (special_builtin_executed && !is_interactive_now)
 	exit_shell_with_status(Exit_FAILURE);
     return Exit_FAILURE;
 }
