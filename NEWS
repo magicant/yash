@@ -12,6 +12,8 @@ Yash 2.40
 
   =  The "unset" built-in no longer rejects variable names containing
      the "=" symbol as an error. They are now silently ignored.
+  =  In the POSIXly-correct mode, unclosed here-documents are now
+     treated as an error.
   *  Fixed possible arithmetic overflow errors in memory allocation
      which might result in an undefined behavior.
   *  Fixed crash on assigning a floating-point number in arithmetic

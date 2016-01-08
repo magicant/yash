@@ -2462,6 +2462,8 @@ void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 	} else {
 	    /* encountered EOF before reading an end-of-contents marker! */
 	    linelen = ps->src.length - ps->index;
+	    if (posixly_correct)
+		serror(ps, Ngt("the here-document is not closed"));
 	}
 	wb_ncat_force(&buf, &ps->src.contents[ps->index], linelen);
 	ps->index += linelen;
@@ -2490,9 +2492,12 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
     bool skiptab = (r->rd_type == RT_HERERT);
 
     while (!is_end_of_heredoc_contents(ps, eoc, skiptab)) {
+	size_t oldindex = ps->index;
 	lastp = parse_string_without_quotes(ps, true, true, lastp);
-	if (ps->src.contents[ps->index - 1] != L'\n') {
+	if (ps->index == oldindex || ps->src.contents[ps->index - 1] != L'\n') {
 	    /* encountered EOF before reading an end-of-contents marker! */
+	    if (posixly_correct)
+		serror(ps, Ngt("the here-document is not closed"));
 	    break;
 	}
     }
@@ -2511,7 +2516,7 @@ bool is_end_of_heredoc_contents(
 
     if (ps->src.contents[ps->index] == L'\0')
 	if (read_more_input(ps) != INPUT_OK)
-	    return true;
+	    return !posixly_correct;
     if (skiptab)
 	while (ps->src.contents[ps->index] == L'\t')
 	    ps->index++;

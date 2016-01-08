@@ -292,6 +292,29 @@ __OUT__
 : <<END
 END
 
+(
+posix="true"
+
+test_Oe -e 2 'missing here-document delimiter (POSIX, unquoted)'
+cat <<END
+foo
+__IN__
+syntax error: the here-document is not closed
+__ERR__
+: <<END
+END
+
+test_Oe -e 2 'missing here-document delimiter (POSIX, quoted)'
+cat <<\END
+foo
+__IN__
+syntax error: the here-document is not closed
+__ERR__
+: <<END
+END
+
+)
+
 test_O -d -e 2 'space between < and ( in command redirection'
 < (:)
 __IN__
