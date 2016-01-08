@@ -274,8 +274,17 @@ __IN__
 syntax error: the end-of-here-document indicator contains a newline
 __ERR__
 
-test_oE -e 0 'missing here-document delimiter'
+test_oE -e 0 'missing here-document delimiter (non-POSIX, unquoted)'
 cat <<END
+foo
+__IN__
+foo
+__OUT__
+: <<END
+END
+
+test_oE -e 0 'missing here-document delimiter (non-POSIX, quoted)'
+cat <<\END
 foo
 __IN__
 foo
