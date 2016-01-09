@@ -30,14 +30,13 @@ y
 x
 __OUT__
 
-# TODO: yash is broken
-#test_Oe -e 1 'non-job-controlled job (default operand)'
-#:&
-#set -m
-#fg
-#__IN__
-#fg: there is no current job
-#__ERR__
+test_Oe -e 1 'non-job-controlled job (default operand)'
+:&
+set -m
+fg
+__IN__
+fg: the current job is not a job-controlled job
+__ERR__
 
 test_Oe -e 1 'non-job-controlled job (job ID operand)'
 :&

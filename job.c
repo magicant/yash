@@ -1134,6 +1134,8 @@ int fg_builtin(int argc, void **argv)
 	if (current_jobnumber == 0 ||
 		(job = joblist.contents[current_jobnumber])->j_legacy) {
 	    xerror(0, Ngt("there is no current job"));
+	} else if (job->j_pgid == 0) {
+	    xerror(0, Ngt("the current job is not a job-controlled job"));
 	} else {
 	    status = continue_job(current_jobnumber, job, fg);
 	}

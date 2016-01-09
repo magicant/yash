@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.41
+
+  *  The "fg" and "bg" built-ins no longer try to resume a non-job-
+     controlled job when given no operand.
+
+----------------------------------------------------------------------
 Yash 2.40
 
   =  The "unset" built-in no longer rejects variable names containing

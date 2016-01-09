@@ -1,14 +1,13 @@
 # bg-y.tst: yash-specific test of the bg built-in
 ../checkfg || skip="true" # %SEQUENTIAL%
 
-# TODO: yash is broken
-#test_Oe -e 1 'non-job-controlled job (default operand)'
-#:&
-#set -m
-#bg
-#__IN__
-#bg: there is no current job
-#__ERR__
+test_Oe -e 1 'non-job-controlled job (default operand)'
+:&
+set -m
+bg
+__IN__
+bg: the current job is not a job-controlled job
+__ERR__
 
 test_Oe -e 1 'non-job-controlled job (job ID operand)'
 :&
