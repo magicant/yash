@@ -12,6 +12,8 @@ Yash 2.41
 
   *  The "fg" and "bg" built-ins no longer try to resume a non-job-
      controlled job when given no operand.
+  *  In range brace expansion, integers were not always parsed
+     correctly.
 
 ----------------------------------------------------------------------
 Yash 2.40

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1298,7 +1298,7 @@ bool try_expand_brace_sequence(
 	return false;
     startlen = has_leading_zero(c, &sign) ? (dotp - c) : 0;
     errno = 0;
-    start = wcstol(c, &c, 0);
+    start = wcstol(c, &c, 10);
     if (errno != 0 || c != dotp)
 	return false;
 
@@ -1311,7 +1311,7 @@ bool try_expand_brace_sequence(
 	return false;
     endlen = has_leading_zero(c, &sign) ? (dotbracep - c) : 0;
     errno = 0;
-    end = wcstol(c, &c, 0);
+    end = wcstol(c, &c, 10);
     if (errno != 0 || c != dotbracep)
 	return false;
 
@@ -1323,7 +1323,7 @@ bool try_expand_brace_sequence(
 	if (bracep == NULL || c == bracep)
 	    return false;
 	errno = 0;
-	delta = wcstol(c, &c, 0);
+	delta = wcstol(c, &c, 10);
 	if (delta == 0 || errno != 0 || c != bracep)
 	    return false;
     } else {

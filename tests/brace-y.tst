@@ -60,18 +60,17 @@ __IN__
 [-3][-2][-1][0][1][2]
 __OUT__
 
-# TODO: yash is broken
-#test_oE 'multi-digit sequences'
-#bracket {99..101}
-#bracket {099..101}
-#bracket {-101..-99}
-#bracket {-101..-099}
-#__IN__
-#[99][100][101]
-#[099][100][101]
-#[-101][-100][-99]
-#[-101][-100][-099]
-#__OUT__
+test_oE 'multi-digit sequences'
+bracket {99..101}
+bracket {099..101}
+bracket {-101..-99}
+bracket {-101..-099}
+__IN__
+[99][100][101]
+[099][100][101]
+[-101][-100][-99]
+[-101][-100][-099]
+__OUT__
 
 test_oE 'sequences with non-default steps'
 bracket {2..11..3}x
