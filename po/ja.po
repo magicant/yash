@@ -1,15 +1,15 @@
 # Japanese translations for yash package
 # yash パッケージのメッセージの和訳
-# Copyright (C) 2010-2015 Magicant
+# Copyright (C) 2010-2016 Magicant
 # This file is distributed under the same license as the yash package.
-# WATANABE Yuki <magicant@users.osdn.me>, 2010-2012.
+# WATANABE Yuki <magicant@users.osdn.me>, 2010-2016.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: yash 2.35\n"
+"Project-Id-Version: yash 2.40\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2016-01-09 11:50+0900\n"
-"PO-Revision-Date: 2015-12-19 22:43+0900\n"
+"PO-Revision-Date: 2016-01-09 11:55+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -1100,9 +1100,8 @@ msgid "the end-of-here-document indicator contains a newline"
 msgstr "ヒアドキュメントの終端子に改行が入っています"
 
 #: parser.c:2466 parser.c:2500
-#, fuzzy
 msgid "the here-document is not closed"
-msgstr "二重引用符が閉じられていません"
+msgstr "ヒアドキュメントが閉じられていません"
 
 #: parser.c:2647
 #, c-format
