@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1344,11 +1344,11 @@ check_rev:
 	struct search_result_T temp = lfirst;  lfirst = llast;  llast = temp;
 	rev = !rev;
     }
-    assert(lfirst.next != Histlist);
-    assert(llast.prev  != Histlist);
 
-    const histentry_T *efirst = ashistentry(lfirst.next);
-    const histentry_T *elast  = ashistentry(llast.prev);
+    const histentry_T *efirst =
+	    ashistentry(lfirst.next == Histlist ? lfirst.prev : lfirst.next);
+    const histentry_T *elast =
+	    ashistentry(llast.prev == Histlist ? llast.next : llast.prev);
     if (list)
 	return fc_print_entries(stdout, efirst, elast, rev, ptype);
     else

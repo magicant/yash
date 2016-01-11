@@ -258,9 +258,9 @@ __OUT__
 
 test_oE 'out-of-range history numbers are clamped, positive' \
     -i +m --rcfile="rcfile1"
-fc -l 1 100
+fc -l 3 100
 __IN__
-2	fc -l 1 100
+2	fc -l 3 100
 __OUT__
 
 export histsize=0
@@ -293,15 +293,12 @@ __IN__
 4	echo foo 4
 __OUT__
 
-# TODO: yash is broken
-: <<\__COMMENT__
 test_oE 'out-of-range history numbers are clamped, negative' \
     -i +m --rcfile="rcfile1"
 fc -l -100 -100
 __IN__
 1	echo foo 1
 __OUT__
-__COMMENT__
 
 )
 

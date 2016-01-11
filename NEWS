@@ -14,6 +14,8 @@ Yash 2.41
      controlled job when given no operand.
   *  In range brace expansion, integers were not always parsed
      correctly.
+  *  The "fc" built-in was not handling the history range correctly
+     when the range was specified with an unused entry number.
 
 ----------------------------------------------------------------------
 Yash 2.40
