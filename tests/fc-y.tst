@@ -541,14 +541,13 @@ echo fxx/bar/foo/bar
 fxx/bar/foo/bar
 __OUT__
 
-# TODO: yash is broken
-#test_oE 'replacing part of re-executed command, non-default command (-s)' \
-#    -i +m --rcfile="rcfile1"
-#fc -s oo=zz 1
-#__IN__
-#echo fzz/bar/foo/bar
-#fzz/bar/foo/bar
-#__OUT__
+test_oE 'replacing part of re-executed command, non-default command (-s)' \
+    -i +m --rcfile="rcfile1"
+fc -s oo=zz 1
+__IN__
+echo fzz/bar/foo/bar
+fzz/bar/foo/bar
+__OUT__
 
 )
 

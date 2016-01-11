@@ -1247,6 +1247,18 @@ int fc_builtin(int argc, void **argv)
 	}
     }
 
+    /* parse <old=new> */
+    const wchar_t *old = NULL, *new = NULL;
+    if (silent && xoptind < argc) {
+	wchar_t *eq = wcschr(ARGV(xoptind), L'=');
+	if (eq != NULL) {
+	    eq[0] = L'\0';
+	    old = ARGV(xoptind);
+	    new = &eq[1];
+	    xoptind++;
+	}
+    }
+
     /* error checks */
     if (editor && list)
 	return mutually_exclusive_option_error(L'e', L'l');
@@ -1283,18 +1295,6 @@ int fc_builtin(int argc, void **argv)
 	} else {
 	    xerror(0, Ngt("the command history is empty"));
 	    return Exit_FAILURE;
-	}
-    }
-
-    /* parse <old=new> */
-    const wchar_t *old = NULL, *new = NULL;
-    if (silent && xoptind < argc) {
-	wchar_t *eq = wcschr(ARGV(xoptind), L'=');
-	if (eq != NULL) {
-	    eq[0] = L'\0';
-	    old = ARGV(xoptind);
-	    new = &eq[1];
-	    xoptind++;
 	}
     }
 

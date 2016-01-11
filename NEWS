@@ -16,6 +16,8 @@ Yash 2.41
      correctly.
   *  The "fc" built-in was not handling the history range correctly
      when the range was specified with an unused entry number.
+  *  The "fc" built-in was incorrectly rejecting the syntax of the
+     form "fc -s foo=bar n".
 
 ----------------------------------------------------------------------
 Yash 2.40
