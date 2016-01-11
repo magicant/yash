@@ -346,6 +346,9 @@ exit status is zero if the {{command}}s are not empty and not executed at all.
 If the {{command}}s are empty, the exit status is that of the last executed
 command before the for loop.
 
+If the variable is read-only, the execution of the for loop is interrupted and
+the exit status will be non-zero.
+
 [[case]]
 === Case command
 

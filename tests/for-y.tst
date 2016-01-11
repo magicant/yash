@@ -307,8 +307,7 @@ A
 B
 __OUT__
 
-# TODO: exit status should be non-zero
-test_O -d 'read-only variable'
+test_O -d -e 2 'read-only variable'
 readonly v=readonly
 for v in 1; do
     echo not reached

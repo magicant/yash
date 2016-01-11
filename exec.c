@@ -432,8 +432,10 @@ void exec_for(const command_T *c, bool finally_exit)
     int i;
     for (i = 0; i < count; i++) {
 	if (!set_variable(c->c_forname, words[i],
-		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false))
+		    posixly_correct ? SCOPE_GLOBAL : SCOPE_LOCAL, false)) {
+	    laststatus = Exit_ASSGNERR;
 	    goto done;
+	}
 	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
 
 	if (c->c_forcmds == NULL)
