@@ -332,8 +332,6 @@ __ERR__
 (
 export histfile=histfile$LINENO
 
-# TODO: yash is broken
-: <<\__COMMENT__
 test_oE 'default HISTSIZE is >= 128' -i +m --rcfile="rcfile1"
 : foo 1
 : foo 2
@@ -464,12 +462,11 @@ test_oE 'default HISTSIZE is >= 128' -i +m --rcfile="rcfile1"
 : foo 127
 fc -l 1 3; fc -l 128
 __IN__
-1	echo foo 1
-2	echo foo 2
-3	echo foo 3
+1	: foo 1
+2	: foo 2
+3	: foo 3
 128	fc -l 1 3; fc -l 128
 __OUT__
-__COMMENT__
 
 )
 
