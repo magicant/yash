@@ -125,7 +125,7 @@ __IN__
 4
 __OUT__
 
-test_oE -e 0 'input command redirection' -e
+test_oE -e 0 'input process redirection' -e
 cat <(echo foo)
 cat <(echo bar)-
 __IN__
@@ -133,14 +133,14 @@ foo
 bar
 __OUT__
 
-test_oE -e 0 'output command redirection' -e
+test_oE -e 0 'output process redirection' -e
 echo >(read i && echo $((i+1)))99 | cat
 # "cat" ensures the output is flushed before the shell exits
 __IN__
 100
 __OUT__
 
-test_oE -e 0 'command redirection is run in subshell' -e
+test_oE -e 0 'process redirection is run in subshell' -e
 i=0
 echo >(read i && echo $((i+1))) 99 | cat
 # "cat" ensures the output is flushed before reaching this line
@@ -150,7 +150,7 @@ __IN__
 0
 __OUT__
 
-test_x -e 0 'exit status of command redirection is ignored'
+test_x -e 0 'exit status of process redirection is ignored'
 <(false) >(false)
 __IN__
 
@@ -315,22 +315,22 @@ END
 
 )
 
-test_O -d -e 2 'space between < and ( in command redirection'
+test_O -d -e 2 'space between < and ( in process redirection'
 < (:)
 __IN__
 
 # TODO: yash is broken
 : <<__END__
-test_Oe -e 2 'unclosed input command redirection'
+test_Oe -e 2 'unclosed input process redirection'
 echo not printed <(
 __IN__
-syntax error: unclosed command redirection
+syntax error: unclosed process redirection
 __ERR__
 
-test_Oe -e 2 'unclosed output command redirection'
+test_Oe -e 2 'unclosed output process redirection'
 echo not printed >(
 __IN__
-syntax error: unclosed command redirection
+syntax error: unclosed process redirection
 __ERR__
 __END__
 

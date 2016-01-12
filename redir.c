@@ -813,7 +813,7 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
     assert(type == RT_PROCIN || type == RT_PROCOUT);
     if (pipe(pipefd) < 0) {
 	xerror(errno, Ngt("redirection: cannot open a pipe "
-		    "for the command redirection"));
+		    "for the process redirection"));
 	return -1;
     }
     cpid = fork_and_reset(-1, false, 0);
@@ -851,7 +851,7 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
 	if (command->is_preparsed)
 	    exec_and_or_lists(command->value.preparsed, true);
 	else
-	    exec_wcs(command->value.unparsed, gt("command redirection"), true);
+	    exec_wcs(command->value.unparsed, gt("process redirection"), true);
 	assert(false);
     }
 }
