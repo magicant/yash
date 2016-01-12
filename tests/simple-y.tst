@@ -9,14 +9,13 @@ __IN__
 [1-2-3][][][1][2][3]
 __OUT__
 
-# TODO: not implemented yet
 # The behavior for this case is POSIXly-unspecified, but many other existing
 # shells behave this way.
-#test_O 'assigning to read-only variable: exit for empty command'
-#readonly a=A
-#a=B
-#echo not reached
-#__IN__
+test_O 'assigning to read-only variable: exit for empty command'
+readonly a=A
+a=B
+echo not reached
+__IN__
 
 test_o -d 'COMMAND_NOT_FOUND_HANDLER is run when command was not found'
 COMMAND_NOT_FOUND_HANDLER=('echo not found' 'echo handled')

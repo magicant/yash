@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.41
 
+  =  The non-interactive shell now exits on an assignment error
+     in a simple command without a command name.
   =  The exit status is now non-zero when a for loop has been
      interrupted because of an read-only variable.
   *  Unclosed process redirections are now detected as syntax error.

@@ -173,6 +173,8 @@ following errors, the shell immediately exits with a non-zero exit status:
 - An error occurs during redirection or assignment in a
   link:syntax.html#simple[simple command] whose command name is a special
   built-in and the shell is in the POSIXly-correct mode.
+- An error occurs during assignment in a simple command without a command
+  name.
 - An error occurs during link:expand.html[expansion] (except during shell
   initialization).
 

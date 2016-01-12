@@ -39,11 +39,9 @@ eval ":; $(
     readonly -p
 )"
 echo 1 $a
-a=X
-echo 2 $a $?
+a=X && echo not reached
 __IN__
 1 A
-2 A 2
 __OUT__
 
 test_oE 'making read-only with -p (variables)'

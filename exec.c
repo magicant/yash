@@ -816,10 +816,13 @@ pid_t exec_process(
     last_assign = c->c_assigns;
     if (argc == 0) {
 	/* if there is no command word, just perform assignments */
-	if (do_assignments(c->c_assigns, false, shopt_allexport))
+	if (do_assignments(c->c_assigns, false, shopt_allexport)) {
 	    laststatus = lastcmdsubstatus;
-	else
+	} else {
 	    laststatus = Exit_ASSGNERR;
+	    if (!is_interactive_now)
+		finally_exit = true;
+	}
 	print_xtrace(NULL);
 	goto done2;
     }
