@@ -1377,6 +1377,8 @@ parse_command:
     ensure_buffer(ps, 1);
     if (ps->src.contents[ps->index] == L')')
 	ps->index++;
+    else
+	serror(ps, Ngt("unclosed process redirection"));
     skip_blanks_and_comment(ps);
     return result;
 }

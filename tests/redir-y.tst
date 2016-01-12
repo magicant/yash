@@ -319,8 +319,6 @@ test_O -d -e 2 'space between < and ( in process redirection'
 < (:)
 __IN__
 
-# TODO: yash is broken
-: <<__END__
 test_Oe -e 2 'unclosed input process redirection'
 echo not printed <(
 __IN__
@@ -332,6 +330,5 @@ echo not printed >(
 __IN__
 syntax error: unclosed process redirection
 __ERR__
-__END__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

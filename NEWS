@@ -12,6 +12,7 @@ Yash 2.41
 
   =  The exit status is now non-zero when a for loop has been
      interrupted because of an read-only variable.
+  *  Unclosed process redirections are now detected as syntax error.
   *  The "fg" and "bg" built-ins no longer try to resume a non-job-
      controlled job when given no operand.
   *  In range brace expansion, integers were not always parsed
