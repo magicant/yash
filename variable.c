@@ -1728,10 +1728,13 @@ int typeset_builtin(int argc, void **argv)
 		/* treat function */
 		function_T *f = ht_get(&functions, arg).value;
 		if (f != NULL) {
-		    if (readonly)
-			f->f_type |= VF_READONLY | VF_NODELETE;
-		    if (print)
-			print_function(arg, f, ARGV(0), readonly);
+		    if (print) {
+			if (!readonly || (f->f_type & VF_READONLY))
+			    print_function(arg, f, ARGV(0), readonly);
+		    } else {
+			if (readonly)
+			    f->f_type |= VF_READONLY | VF_NODELETE;
+		    }
 		} else {
 		    xerror(0, Ngt("no such function `%ls'"), arg);
 		}

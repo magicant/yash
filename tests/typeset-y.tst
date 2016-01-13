@@ -365,8 +365,6 @@ __IN__
 foo
 __OUT__
 
-# TODO yash is broken
-: <<\__OUT__
 test_oE -e 0 'printing read-only function (-frp)' -e
 f() { }
 g() ( )
