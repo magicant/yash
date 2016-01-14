@@ -17,6 +17,8 @@ Yash 2.41
   *  Unclosed process redirections are now detected as syntax error.
   *  In the "typeset" built-in, the -r option was not effective when
      printing functions.
+  *  The "typeset" built-in now detects combination of the -f and -g
+     options as an error.
   *  The "fg" and "bg" built-ins no longer try to resume a non-job-
      controlled job when given no operand.
   *  In range brace expansion, integers were not always parsed

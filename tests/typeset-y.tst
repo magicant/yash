@@ -399,8 +399,6 @@ __IN__
 typeset: the -x option cannot be used with the -X option
 __ERR__
 
-# TODO not implemented
-: <<\__ERR__
 test_Oe -e 2 'specifying -f and -g at once'
 typeset -fg
 __IN__

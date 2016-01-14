@@ -1654,6 +1654,9 @@ int typeset_builtin(int argc, void **argv)
 	    || wcscmp(ARGV(0), L"set") == 0);
     }
 
+    if (function && global && wcscmp(ARGV(0), L"typeset") == 0)
+	return special_builtin_syntax_error(
+		mutually_exclusive_option_error(L'f', L'g'));
     if (function && export)
 	return special_builtin_syntax_error(
 		mutually_exclusive_option_error(L'f', L'x'));
