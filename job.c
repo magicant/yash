@@ -725,10 +725,10 @@ int print_job_status(size_t jobnumber,
     int result = 0;
 
     job_T *job = get_job(jobnumber);
-    if (job == NULL
-	    || (changedonly && !job->j_statuschanged)
-	    || job->j_nonotify)
+    if (job == NULL || job->j_nonotify)
 	return result;
+    if (changedonly && !job->j_statuschanged)
+	goto done;
 
     char current;
     if      (jobnumber == current_jobnumber)  current = '+';
@@ -784,6 +784,7 @@ int print_job_status(size_t jobnumber,
 	}
     }
     job->j_statuschanged = false;
+done:
     if (remove_done && job->j_status == JS_DONE)
 	remove_job(jobnumber);
 
