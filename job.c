@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,8 +65,8 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
-static int print_job_status(
-	size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+static int print_job_status(size_t jobnumber,
+	bool changedonly, bool verbose, bool remove_done, FILE *f)
     __attribute__((nonnull));
 static size_t get_jobnumber_from_name(const wchar_t *name)
     __attribute__((nonnull,pure));
@@ -711,14 +711,16 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 }
 
 /* Prints the status of the specified job.
- * Finished jobs are removed from the job list after the status is printed.
+ * If `remove_done' is true, finished jobs are removed from the job list after
+ * the status is printed.
  * If the specified job doesn't exist, nothing is printed (it isn't an error).
  * If `changedonly' is true, the job is printed only if the `j_statuschanged'
  * flag is true.
  * If `verbose' is true, the status is printed in the process-wise format rather
  * than the usual job-wise format.
  * Returns zero if successful. Returns errno if `fprintf' failed. */
-int print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
+int print_job_status(size_t jobnumber,
+	bool changedonly, bool verbose, bool remove_done, FILE *f)
 {
     int result = 0;
 
@@ -782,7 +784,7 @@ int print_job_status(size_t jobnumber, bool changedonly, bool verbose, FILE *f)
 	}
     }
     job->j_statuschanged = false;
-    if (job->j_status == JS_DONE)
+    if (remove_done && job->j_status == JS_DONE)
 	remove_job(jobnumber);
 
     return result;
@@ -793,7 +795,7 @@ void print_job_status_all(void)
 {
     apply_curstop();
     for (size_t i = 1; i < joblist.length; i++)
-	print_job_status(i, true, false, stderr);
+	print_job_status(i, true, false, false, stderr);
 }
 
 /* If the shell is interactive and the specified job has been killed by a
@@ -1056,7 +1058,7 @@ bool jobs_builtin_print_job(size_t jobnumber,
 	int result = printf("%jd\n", (intmax_t) job->j_pgid);
 	err = (result >= 0) ? 0 : errno;
     } else {
-	err = print_job_status(jobnumber, changedonly, verbose, stdout);
+	err = print_job_status(jobnumber, changedonly, verbose, true, stdout);
     }
     if (err != 0) {
 	xerror(err, Ngt("cannot print to the standard output"));
@@ -1289,7 +1291,7 @@ int wait_builtin(int argc, void **argv)
 		}
 		if (job->j_status != JS_RUNNING) {
 		    if (jobcontrol && is_interactive_now && !posixly_correct)
-			print_job_status(jobnumber, false, false, stdout);
+			print_job_status(jobnumber, false, false, true, stdout);
 		    else if (job->j_status == JS_DONE)
 			remove_job(jobnumber);
 		}
@@ -1320,7 +1322,7 @@ bool wait_builtin_has_job(bool jobcontrol)
     /* print/remove already-finished jobs */
     if (jobcontrol && is_interactive_now && !posixly_correct) {
 	for (size_t i = 1; i < joblist.length; i++)
-	    print_job_status(i, true, false, stdout);
+	    print_job_status(i, true, false, true, stdout);
     } else {
 	for (size_t i = 1; i < joblist.length; i++) {
 	    job_T *job = joblist.contents[i];

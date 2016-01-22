@@ -27,6 +27,8 @@ Yash 2.41
      when the range was specified with an unused entry number.
   *  The "fc" built-in was incorrectly rejecting the syntax of the
      form "fc -s foo=bar n".
+  *  The interactive shell was unexpectedly forgetting the exit status
+     of background jobs when reporting the job status.
 
 ----------------------------------------------------------------------
 Yash 2.40
