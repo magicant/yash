@@ -69,7 +69,7 @@ assert_true ABC
 assert_true xyz
 
 (
-block_file="$(find /dev -type b | head -n 1)"
+block_file="$(find /dev -type b 2>/dev/null | head -n 1)"
 if [ -e "$block_file" ]; then
     ln -s "$block_file" blocklink
 else
@@ -86,7 +86,7 @@ assert_false -b brokenlink
 )
 
 (
-character_file="$(find /dev -type c | head -n 1)"
+character_file="$(find /dev -type c 2>/dev/null | head -n 1)"
 if [ -e "$character_file" ]; then
     ln -s "$character_file" characterlink
 else
