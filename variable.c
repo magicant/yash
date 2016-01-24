@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2324,13 +2324,27 @@ const char unset_syntax[] = Ngt(
 );
 #endif
 
+/* Options for the "shift" built-in. */
+const struct xgetopt_T shift_options[] = {
+    { L'A', L"array", OPTARG_REQUIRED, false, NULL, },
+#if YASH_ENABLE_HELP
+    { L'-', L"help",  OPTARG_NONE,     false, NULL, },
+#endif
+    { L'\0', NULL, 0, false, NULL, },
+};
+
 /* The "shift" built-in */
 int shift_builtin(int argc, void **argv)
 {
+    const wchar_t *arrayname = NULL;
+
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
+    while ((opt = xgetopt(argv, shift_options, 0)) != NULL) {
 	switch (opt->shortopt) {
+	    case L'A':
+		arrayname = xoptarg;
+		break;
 #if YASH_ENABLE_HELP
 	    case L'-':
 		return print_builtin_help(ARGV(0));
@@ -2364,16 +2378,35 @@ int shift_builtin(int argc, void **argv)
 	scount = 1;
     }
 
-    variable_T *var = search_variable(L VAR_positional);
-    assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+    variable_T *var;
+    if (arrayname == NULL) {
+	var = search_variable(L VAR_positional);
+	assert(var != NULL && (var->v_type & VF_MASK) == VF_ARRAY);
+    } else {
+	var = search_variable(arrayname);
+	if (wcschr(arrayname, L'=') != NULL ||
+		var == NULL || (var->v_type & VF_MASK) != VF_ARRAY) {
+	    xerror(0, Ngt("$%ls is not an array"), arrayname);
+	    return Exit_FAILURE;
+	}
+    }
+
     if (scount > var->v_valc) {
-	xerror(0,
-	    ngt("%zu: cannot shift so many "
-		"(there is only one positional parameter)",
-		"%zu: cannot shift so many "
-		"(there are only %zu positional parameters)",
-		var->v_valc),
-	    scount, var->v_valc);
+	const char *message;
+	if (arrayname == NULL) {
+	    message = ngt("%zu: cannot shift so many "
+		    "(there is only one positional parameter)",
+		    "%zu: cannot shift so many "
+		    "(there are only %zu positional parameters)",
+		    var->v_valc);
+	} else {
+	    message = ngt("%zu: cannot shift so many "
+		    "(there is only one array element)",
+		    "%zu: cannot shift so many "
+		    "(there are only %zu array elements)",
+		    var->v_valc);
+	}
+	xerror(0, message, scount, var->v_valc);
 	return Exit_FAILURE;
     }
 
@@ -2390,10 +2423,10 @@ int shift_builtin(int argc, void **argv)
 
 #if YASH_ENABLE_HELP
 const char shift_help[] = Ngt(
-"remove some positional parameters"
+"remove some positional parameters or array elements"
 );
 const char shift_syntax[] = Ngt(
-"\tshift [count]\n"
+"\tshift [-A array_name] [count]\n"
 );
 #endif
 
@@ -3015,7 +3048,7 @@ variable_T *get_dirstack(void)
     variable_T *var = search_variable(L VAR_DIRSTACK);
     if (var != NULL) {
 	if ((var->v_type & VF_MASK) != VF_ARRAY) {
-	    xerror(0, Ngt("$DIRSTACK is not an array"));
+	    xerror(0, Ngt("$%ls is not an array"), L VAR_DIRSTACK);
 	    return NULL;
 	} else if (var->v_type & VF_READONLY) {
 	    xerror(0, Ngt("$%ls is read-only"), L VAR_DIRSTACK);

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ void init_builtin(void)
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help, unset_syntax,
 	    unset_options);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help, shift_syntax,
-	    help_option);
+	    shift_options);
     DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL, getopts_help,
 	    getopts_syntax, help_option);
     DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help, read_syntax,

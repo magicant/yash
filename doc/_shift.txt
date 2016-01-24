@@ -3,27 +3,38 @@
 :lang: en
 //:title: Yash manual - Shift built-in
 
-The dfn:[shift built-in] removes some positional parameters.
+The dfn:[shift built-in] removes some
+link:params.html#positional[positional parameters] or
+link:params.html#arrays[array] values.
 
 [[syntax]]
 == Syntax
 
-- +shift [{{count}}]+
+- +shift [-A {{array}}] [{{count}}]+
 
 [[description]]
 == Description
 
 The shift built-in removes the first {{count}}
-link:params.html#positional[positional parameters].
+link:params.html#positional[positional parameters] or
+link:params.html#arrays[array] values, where {{count}} is specified by the
+operand.
+
+[[options]]
+== Options
+
++-A {{array}}+::
++--array={{array}}+::
+Remove first {{count}} values of {{array}} instead of positional parameters.
 
 [[operands]]
 == Operands
 
 {{count}}::
-The number of positional parameters to be removed.
+The number of positional parameters or array values to be removed.
 +
-It is an error if the actual number of positional parameters is less than
-{{count}}.
+It is an error if the actual number of positional parameters or array values
+is less than {{count}}.
 If omitted, the default value is one.
 
 [[exitstatus]]
@@ -37,6 +48,10 @@ The exit status of the shift built-in is zero unless there is any error.
 The shift built-in is a link:builtin.html#types[special built-in].
 
 The number of positional parameters can be obtained with the
-link:params.html#sp-hash[+#+ special parameter].
+link:params.html#sp-hash[+&#35;+ special parameter].
+The number of array values can be obtained with +$&#123;{{array}}[&#35;]}+.
+
+The POSIX standard defines no options for the shift built-in;
+the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

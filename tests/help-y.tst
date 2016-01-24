@@ -779,13 +779,14 @@ __OUT__
 test_oE -e 0 'help of shift'
 help shift
 __IN__
-shift: remove some positional parameters
+shift: remove some positional parameters or array elements
 
 Syntax:
-	shift [count]
+	shift [-A array_name] [count]
 
 Options:
-	--help
+	-A ...   --array=...
+	         --help
 
 Try `man yash' for details.
 __OUT__

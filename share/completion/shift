@@ -1,0 +1,25 @@
+# (C) 2016 magicant
+
+# Completion script for the "shift" built-in command.
+
+function completion/shift {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"A: --array:; specify an array name to remove elements from"
+	"--help"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(A|--array)
+		complete -P "$PREFIX" --array-variable
+		;;
+	esac
+
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

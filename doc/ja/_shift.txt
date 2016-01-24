@@ -3,25 +3,32 @@
 :lang: ja
 //:title: Yash マニュアル - Shift 組込みコマンド
 
-dfn:[Shift 組込みコマンド]はlink:params.html#positional[位置パラメータ]のいくつかを削除します。
+dfn:[Shift 組込みコマンド]はlink:params.html#positional[位置パラメータ]またはlink:params.html#arrays[配列]の要素のいくつかを削除します。
 
 [[syntax]]
 == 構文
 
-- +shift [{{個数}}]+
+- +shift [-A {{配列名}}] [{{個数}}]+
 
 [[description]]
 == 説明
 
-Shift コマンドはlink:params.html#positional[位置パラメータ]のうち最初のいくつかを削除します。削除するパラメータの数はオペランドで指定します。
+Shift コマンドはlink:params.html#positional[位置パラメータ]またはlink:params.html#arrays[配列]の要素のうち最初のいくつかを削除します。削除するパラメータ・要素の数はオペランドで指定します。
+
+[[options]]
+== オプション
+
++-A {{配列}}+::
++--array={{配列}}+::
+位置パラメータではなく{{配列}}の最初の要素を削除します。
 
 [[operands]]
 == オペランド
 
 {{個数}}::
-削除する位置パラメータの個数を指示する 0 以上の自然数です。
+削除する位置パラメータまたは配列の要素の個数を指示する 0 以上の自然数です。
 +
-実際の位置パラメータの個数より大きい数を指定するとエラーになります。省略すると 1 を指定したものとみなします。
+実際の位置パラメータ・要素の個数より大きい数を指定するとエラーになります。省略すると 1 を指定したものとみなします。
 
 [[exitstatus]]
 == 終了ステータス
@@ -33,6 +40,8 @@ Shift コマンドはlink:params.html#positional[位置パラメータ]のうち
 
 Shift コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
 
-位置パラメータの個数はlink:params.html#special[特殊パラメータ +#+] によって知ることができます。
+位置パラメータの個数はlink:params.html#special[特殊パラメータ +&#35;+] によって知ることができます。配列の要素の個数は +$&#123;{{配列}}[&#35;]}+ によって知ることができます。
+
+POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
 // vim: set filetype=asciidoc expandtab:

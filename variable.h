@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -167,6 +167,7 @@ extern int shift_builtin(int argc, void **argv)
 #if YASH_ENABLE_HELP
 extern const char shift_help[], shift_syntax[];
 #endif
+extern const struct xgetopt_T shift_options[];
 
 extern int getopts_builtin(int argc, void **argv)
     __attribute__((nonnull));
