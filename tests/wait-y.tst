@@ -1,4 +1,5 @@
 # wait-y.tst: yash-specific test of the wait built-in
+../checkfg || skip="true" # %SEQUENTIAL%
 
 mkfifo sync
 
