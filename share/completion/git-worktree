@@ -1,0 +1,90 @@
+# (C) 2016 magicant
+
+# Completion script for the "git-worktree" command.
+# Supports Git 2.7.0.
+
+function completion/git-worktree {
+	WORDS=(git worktree "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::worktree:arg
+	if [ ${WORDS[#]} -le 1 ]; then
+		complete -P "$PREFIX" add prune list
+	else
+		WORDS=("${WORDS[2,-1]}")
+		if command -vf "completion/git::worktree:${WORDS[1]}:arg" >/dev/null 2>&1; then
+			command -f "completion/git::worktree:${WORDS[1]}:arg"
+		fi
+	fi
+
+function completion/git::worktree:add:arg {
+
+	OPTIONS=( #>#
+	"B:; create or reset a new branch and check it out"
+	"b:; create a new branch and check it out"
+	"--detach; leave HEAD in detached head state"
+	"f --force; allow multiple working trees for single branch"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		([Bb])
+			command -f completion/git::completeref --branches
+			;;
+		('')
+			command -f completion//getoperands
+			case ${WORDS[#]} in
+				(0)
+					complete -P "$PREFIX" -S / -T -d
+					;;
+				(1)
+					command -f completion/git::completeref
+					;;
+			esac
+			;;
+	esac
+
+}
+
+function completion/git::worktree:prune:arg {
+
+	OPTIONS=( #>#
+	"--expire:; specify age of working trees to remove"
+	"n --dry-run; don't remove any working trees"
+	"v --verbose; report removed working trees"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--expire)
+			# TODO complete date
+			;;
+	esac
+
+}
+
+function completion/git::worktree:list:arg {
+
+	OPTIONS=( #>#
+	"--porcelain; print in the machine-friendly format"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			;;
+	esac
+
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

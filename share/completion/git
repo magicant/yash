@@ -1,4 +1,4 @@
-# (C) 2011-2014 magicant
+# (C) 2011-2016 magicant
 
 # Completion script for the "git" command.
 # Supports Git 1.7.7.
@@ -262,6 +262,7 @@ function completion/git::completecmd { #>>#
 	complete -P "$PREFIX" -D "check integrity of packed objects" verify-pack
 	complete -P "$PREFIX" -D "check the GPG signature of tags" verify-tag
 	complete -P "$PREFIX" -D "show logs and differences between commits" whatchanged
+	complete -P "$PREFIX" -D "manage additional working trees" worktree
 	complete -P "$PREFIX" -D "create a tree object from the index" write-tree
 	#<<#
 	typeset cmd

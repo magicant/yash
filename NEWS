@@ -11,6 +11,7 @@ History of Yash
 Yash 2.41
 
   +  New option for the "shift" built-in: -A
+  +  New completion script for: git-worktree
   =  The non-interactive shell now exits on an assignment error
      in a simple command without a command name.
   =  The exit status is now non-zero when a for loop has been
