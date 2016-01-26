@@ -1812,9 +1812,10 @@ int history_read(const wchar_t *s)
     if (f == NULL)
 	goto error;
     fc_read_history(f, true);
-    if ((ferror(f) != 0) | (fclose(f) != 0))
-	goto error;
-    return Exit_SUCCESS;
+    bool error = ferror(f);
+    error |= fclose(f);
+    if (!error)
+	return Exit_SUCCESS;
 
 error:
     xerror(0, Ngt("cannot read history from file `%ls'"), s);

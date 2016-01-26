@@ -31,6 +31,7 @@ Yash 2.41
      form "fc -s foo=bar n".
   *  The interactive shell was unexpectedly forgetting the exit status
      of background jobs when reporting the job status.
+  *  Fixed potential undefined behavior during reading a history file.
 
 ----------------------------------------------------------------------
 Yash 2.40
