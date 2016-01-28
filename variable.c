@@ -2340,7 +2340,7 @@ int shift_builtin(int argc, void **argv)
 
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, shift_options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, shift_options, XGETOPT_DIGIT)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'A':
 		arrayname = xoptarg;
@@ -2357,25 +2357,18 @@ int shift_builtin(int argc, void **argv)
     if (!validate_operand_count(argc - xoptind, 0, 1))
 	return special_builtin_syntax_error(Exit_ERROR);
 
-    size_t scount;
+    long count;
     if (xoptind < argc) {
-	long count;
 	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
 	    return special_builtin_syntax_error(Exit_ERROR);
-	} else if (count < 0) {
+	} else if (posixly_correct && count < 0) {
 	    xerror(0, Ngt("%ls: the operand value must not be negative"),
 		    ARGV(xoptind));
 	    return special_builtin_syntax_error(Exit_ERROR);
 	}
-#if LONG_MAX > SIZE_MAX
-	if (count > (long) SIZE_MAX)
-	    scount = SIZE_MAX;
-	else
-#endif
-	    scount = (size_t) count;
     } else {
-	scount = 1;
+	count = 1;
     }
 
     variable_T *var;
@@ -2391,30 +2384,40 @@ int shift_builtin(int argc, void **argv)
 	}
     }
 
-    if (scount > var->v_valc) {
+    unsigned long abscount =
+	(count >= 0) ? (unsigned long) count : -(unsigned long) count;
+
+    if (
+#if ULONG_MAX > SIZE_MAX
+	    abscount > (unsigned long) var->v_valc
+#else
+	    (size_t) abscount > var->v_valc
+#endif
+	    ) {
 	const char *message;
 	if (arrayname == NULL) {
-	    message = ngt("%zu: cannot shift so many "
+	    message = ngt("%ld: cannot shift so many "
 		    "(there is only one positional parameter)",
-		    "%zu: cannot shift so many "
+		    "%ld: cannot shift so many "
 		    "(there are only %zu positional parameters)",
 		    var->v_valc);
 	} else {
-	    message = ngt("%zu: cannot shift so many "
+	    message = ngt("%ld: cannot shift so many "
 		    "(there is only one array element)",
-		    "%zu: cannot shift so many "
+		    "%ld: cannot shift so many "
 		    "(there are only %zu array elements)",
 		    var->v_valc);
 	}
-	xerror(0, message, scount, var->v_valc);
+	xerror(0, message, count, var->v_valc);
 	return Exit_FAILURE;
     }
 
+    size_t from = (count >= 0) ? 0 : (var->v_valc - (size_t) abscount);
     plist_T list;
     pl_initwith(&list, var->v_vals, var->v_valc);
-    for (size_t i = 0; i < scount; i++)
-	free(list.contents[i]);
-    pl_remove(&list, 0, scount);
+    for (size_t i = 0; i < (size_t) abscount; i++)
+	free(list.contents[from + i]);
+    pl_remove(&list, from, (size_t) abscount);
     var->v_valc = list.length;
     var->v_vals = pl_toary(&list);
 

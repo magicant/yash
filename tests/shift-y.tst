@@ -2,6 +2,35 @@
 
 setup -d
 
+(
+posix="true"
+
+test_Oe -e 2 'negative operand (POSIX)'
+shift -- -1
+__IN__
+shift: -1: the operand value must not be negative
+__ERR__
+
+)
+
+test_oE -e 0 'negative operand (non-POSIX) 1 -> 0' -es a
+shift -1 && bracket "$#" "$@"
+__IN__
+[0]
+__OUT__
+
+test_oE -e 0 'negative operand (non-POSIX) 2 -> 1' -es 'a  a' b
+shift -1 && bracket "$#" "$@"
+__IN__
+[1][a  a]
+__OUT__
+
+test_oE -e 0 'negative operand (non-POSIX) 2 -> 0' -es 'a  a' b
+shift -2 && bracket "$#" "$@"
+__IN__
+[0]
+__OUT__
+
 test_oE -e 0 'array shift 0 -> 0' -e
 a=()
 shift -A a 0 && bracket "${a[#]}" "$a"
@@ -30,6 +59,14 @@ bracket "${a[#]}" "$a"
 __IN__
 [3][a][b  b][c]
 __OUT__
+
+test_O -d -e 1 'too small operand -1 for 0'
+shift -- -1
+__IN__
+
+test_O -d -e 1 'too small operand -2 for 1' -s a
+shift -- -2
+__IN__
 
 test_O -d -e 1 'too large operand 2 for 1 array element'
 a=(X)
@@ -83,12 +120,6 @@ __IN__
 test_O -d -e 2 'invalid operand (non-integral)' -s 1
 shift 1.0
 __IN__
-
-test_Oe -e 2 'invalid operand (negative)'
-shift -- -1
-__IN__
-shift: -1: the operand value must not be negative
-__ERR__
 
 test_Oe -e 1 'invalid array name (containing equal)'
 shift -A a=a 0

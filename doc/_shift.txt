@@ -36,6 +36,8 @@ The number of positional parameters or array values to be removed.
 It is an error if the actual number of positional parameters or array values
 is less than {{count}}.
 If omitted, the default value is one.
+If negative, the last -{{count}} positional parameters or array values are
+removed instead of the first ones.
 
 [[exitstatus]]
 == Exit status
@@ -53,5 +55,7 @@ The number of array values can be obtained with +$&#123;{{array}}[&#35;]}+.
 
 The POSIX standard defines no options for the shift built-in;
 the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
+
+Negative operands are not allowed in the POSIXly-correct mode.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
