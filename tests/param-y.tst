@@ -810,6 +810,15 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 '${foo/bar} unavailable in POSIX mode'
+a=123
+echo ${a/2}
+__IN__
+syntax error: invalid character `/' in parameter expansion
+__ERR__
+#'
+#`
+
 )
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -33,6 +33,8 @@ Yash 2.41
   *  The interactive shell was unexpectedly forgetting the exit status
      of background jobs when reporting the job status.
   *  Fixed potential undefined behavior during reading a history file.
+  *  Parameter expansions of the form ${foo/bar/baz} are now rejected
+     in the POSIXly-correct mode, as documented in the manual.
 
 ----------------------------------------------------------------------
 Yash 2.40

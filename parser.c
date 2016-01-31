@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1692,7 +1692,12 @@ parse_name:;
     case L'?':   pe->pe_type |= PT_ERROR;                    goto parse_subst;
     case L'#':   pe->pe_type |= PT_MATCH | PT_MATCHHEAD;     goto parse_match;
     case L'%':   pe->pe_type |= PT_MATCH | PT_MATCHTAIL;     goto parse_match;
-    case L'/':   pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;  goto parse_match;
+    case L'/':
+	if (posixly_correct)
+	    serror(ps, Ngt("invalid character `%lc' in parameter expansion"),
+		    (wint_t) L'/');
+	pe->pe_type |= PT_SUBST | PT_MATCHLONGEST;
+	goto parse_match;
     case L'\0':
     case L'\n':
     case L'}':
