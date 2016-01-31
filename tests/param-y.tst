@@ -792,4 +792,24 @@ __IN__
 [1::  ::3]
 __OUT__
 
+(
+posix="true"
+
+test_Oe -e 2 'nested expansion unavailable in POSIX mode'
+echo ${{a}}
+__IN__
+syntax error: the parameter name is missing or invalid
+__ERR__
+
+test_Oe -e 2 'index unavailable in POSIX mode'
+a=123
+echo ${a[1]}
+__IN__
+syntax error: invalid character `[' in parameter expansion
+__ERR__
+#'
+#`
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
