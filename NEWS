@@ -12,7 +12,7 @@ Yash 2.41
 
   +  New option for the "shift" built-in: -A
   +  The "shift" built-in now accepts negative counts.
-  +  New completion script for: git-notes, git-worktree
+  +  New completion script for: git-notes, git-reflog, git-worktree
   =  The non-interactive shell now exits on an assignment error
      in a simple command without a command name.
   =  The exit status is now non-zero when a for loop has been

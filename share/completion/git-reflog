@@ -1,0 +1,40 @@
+# (C) 2016 magicant
+
+# Completion script for the "git-reflog" command.
+# Supports Git 2.6.2.
+
+function completion/git-reflog {
+	WORDS=(git reflog "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::reflog:arg
+	if [ ${WORDS[#]} -le 1 ]; then
+		complete -P "$PREFIX" delete exists expire show
+	else
+		WORDS=("${WORDS[2,-1]}")
+		if command -vf "completion/git::reflog:${WORDS[1]}:arg" >/dev/null 2>&1; then
+			command -f "completion/git::reflog:${WORDS[1]}:arg"
+		fi
+	fi
+
+function completion/git::reflog:delete:arg {
+	# Options are not supported since the delete subcommand is not mainly
+	# for interactive use.
+	command -f completion/git::completeref
+}
+
+function completion/git::reflog:exists:arg {
+	command -f completion/git::completeref
+}
+
+# Not supported, since the expire subcommand is not mainly for interactive use.
+# function completion/git::reflog:expire:arg
+
+function completion/git::reflog:show:arg {
+	WORDS=(git log -g --abbrev-commit --pretty=oneline "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
