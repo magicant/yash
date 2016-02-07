@@ -1,0 +1,182 @@
+# (C) 2016 magicant
+
+# Completion script for the "git-notes" command.
+# Supports Git 2.6.2.
+
+function completion/git-notes {
+	WORDS=(git notes "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::notes:arg {
+
+	OPTIONS=( #>#
+	"--ref:; specify a note ref to operate on"
+	) #<#
+
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(--ref)
+			command -f completion/git::completeref \
+				abbrprefixes='refs/ refs/notes/'
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -lt 1 ]; then
+				complete -P "$PREFIX" add append copy edit \
+					get-ref list show merge prune remove
+			else
+				if command -vf "completion/git::notes:${WORDS[1]}:arg" >/dev/null 2>&1; then
+					command -f "completion/git::notes:${WORDS[1]}:arg"
+				fi
+			fi
+			;;
+	esac
+
+}
+
+function completion/git::notes:add:arg {
+
+	OPTIONS=( #>#
+	"C: --reuse-message:; specify a blob used as the note message"
+	"c: --reedit-message:; like -C, but reedit the message"
+	"F: --file:; specify a file containing the note message"
+	"f --force; overwrite existing note"
+	"m: --message:; specify a note message"
+	"--allow-empty; allow an empty note"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		([Cc]|--reuse-message|--reedit-message|'')
+			command -f completion/git::completeref
+			;;
+		(F|--file)
+			complete -P "$PREFIX" -f
+			;;
+	esac
+
+}
+
+function completion/git::notes:append:arg {
+	command -f completion/git::notes:add:arg "$@"
+}
+
+function completion/git::notes:copy:arg {
+
+	OPTIONS=( #>#
+	"f --force; overwrite existing note"
+	"--stdin; read object names to remove notes from from standard input"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+function completion/git::notes:edit:arg {
+
+	OPTIONS=( #>#
+	"--allow-empty; allow an empty note"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+function completion/git::notes:list:arg {
+	command -f completion/git::completeref
+}
+
+function completion/git::notes:merge:arg {
+
+	OPTIONS=( #>#
+	"--abort; abort the ongoing merge"
+	"--commit; finalize the ongoing merge"
+	"q --quiet; don't print informational messages"
+	"s: --strategy:; specify a strategy to resolve conflict"
+	"v --verbose; print detailed messages"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		(s|--strategy) #>>#
+			complete -P "$PREFIX" -D "catenate and sort note lines uniquely" cat_sort_uniq
+			complete -P "$PREFIX" -D "edit work tree" manual
+			complete -P "$PREFIX" -D "discard remote changes" ours
+			complete -P "$PREFIX" -D "discard local changes" theirs
+			complete -P "$PREFIX" -D "catenate notes" union
+			;; #<<#
+		('')
+			command -f completion/git::completeref \
+				abbrprefixes='refs/ refs/notes/'
+			;;
+	esac
+
+}
+
+function completion/git::notes:prune:arg {
+
+	OPTIONS=( #>#
+	"n --dry-run; don't actually remove notes"
+	"v --verbose; print detailed messages"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+	esac
+
+}
+
+function completion/git::notes:remove:arg {
+
+	OPTIONS=( #>#
+	"--ignore-missing; ignore operands without notes"
+	"--stdin; read object names to remove notes from from standard input"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/git::completeref
+			;;
+	esac
+
+}
+
+function completion/git::notes:show:arg {
+	command -f completion/git::completeref
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
