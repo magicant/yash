@@ -23,6 +23,21 @@ __IN__
 unset 4
 __OUT__
 
+test_oE -e 0 'overwriting temporary variable' -e
+a=1 typeset a=2
+echo $a
+__IN__
+2
+__OUT__
+
+test_oE -e 0 'redeclaring temporary variable' -e
+a=1
+a=2 typeset a
+echo $a
+__IN__
+1
+__OUT__
+
 test_oE -e 0 'printing all variables (no option)' -e
 typeset >/dev/null
 typeset | grep -q '^typeset -x PATH='
