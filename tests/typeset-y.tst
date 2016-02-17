@@ -38,6 +38,13 @@ __IN__
 1
 __OUT__
 
+test_oE -e 0 'declaring local variable with temporary variable' -e
+a=1 typeset b
+echo a=${a-unset} b=${b-unset}
+__IN__
+a=unset b=unset
+__OUT__
+
 test_oE -e 0 'printing all variables (no option)' -e
 typeset >/dev/null
 typeset | grep -q '^typeset -x PATH='

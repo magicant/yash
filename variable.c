@@ -230,6 +230,11 @@ void varkvfree(kvpair_T kv)
  * calls `varkvfree'. */
 void varkvfree_reexport(kvpair_T kv)
 {
+    if (kv.key == NULL) {
+	assert(kv.value == NULL);
+	return;
+    }
+
     variable_set(kv.key, NULL);
     if (((variable_T *) kv.value)->v_type & VF_EXPORT)
 	update_environment(kv.key);
