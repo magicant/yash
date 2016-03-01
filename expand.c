@@ -226,16 +226,8 @@ bool expand_and_split_words(
 	return false;
     }
     assert(expand.valuebuf.length == expand.splitbuf.length);
-
-    /* A quoted empty word, if any, is added to the list here. It is indicated
-     * by the `putempty' flag that is set when a quote is found. */
-    if (expand.valuebuf.length > 0 || expand.putempty) {
-	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
-	pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
-    } else {
-	wb_destroy(&expand.valuebuf);
-	sb_destroy(&expand.splitbuf);
-    }
+    pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
+    pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
 
     /* brace expansion (list1 -> list2) */
     if (shopt_braceexpand) {
@@ -251,7 +243,19 @@ bool expand_and_split_words(
     }
 
     /* field splitting (list2 -> list) */
+    size_t oldlength = list->length;
     fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), list);
+    assert(oldlength <= list->length);
+
+    /* empty field removal */
+    if (!expand.putempty && list->length - oldlength == 1) {
+	wchar_t *field = list->contents[oldlength];
+	if (field[0] == L'\0') {
+	    free(field);
+	    pl_remove(list, oldlength, 1);
+	}
+    }
+
     return true;
 }
 
