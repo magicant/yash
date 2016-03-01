@@ -43,6 +43,12 @@
 #include "yash.h"
 
 
+/* characters that have special meanings in brace expansion, quote removal, and
+ * globbing. When an unquoted expansion includes these characters, they are
+ * backslashed to protect from unexpected side effects in succeeding expansion
+ * steps. */
+#define CHARS_ESCAPED L"\\\"\'{,}"
+
 static bool expand_and_split_words(
 	const wordunit_T *restrict w, plist_T *restrict list)
     __attribute__((nonnull(2)));
@@ -130,6 +136,10 @@ static inline void add_sq(
     __attribute__((nonnull));
 static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
     __attribute__((nonnull));
+static wchar_t *escaped_remove(const wchar_t *s, const wchar_t *reject)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 static void glob_all(void **restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
@@ -255,6 +265,10 @@ bool expand_and_split_words(
 	    pl_remove(list, oldlength, 1);
 	}
     }
+
+    /* quote removal */
+    for (size_t i = oldlength; i < list->length; i++)
+	list->contents[i] = escaped_remove_free(list->contents[i], L"\"\'");
 
     return true;
 }
@@ -423,6 +437,7 @@ bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist)
 {
+    size_t oldlength = valuelist->length;
     struct expand_word_T expand;
 
     expand.valuelist = valuelist;
@@ -438,6 +453,11 @@ bool expand_word(
 	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
     else
 	wb_destroy(&expand.valuebuf);
+
+    /* quote removal */
+    for (size_t i = oldlength; i < valuelist->length; i++)
+	valuelist->contents[i] =
+	    escaped_remove_free(valuelist->contents[i], L"\"\'");
 
     return ok;
 }
@@ -1734,6 +1754,33 @@ wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 	    return (wchar_t *) s;
     }
     return NULL;
+}
+
+/* Removes characters in `reject' from `s'.
+ * Backslash escapes in `s' are recognized. Escapes and escaped characters are
+ * kept in the result.
+ * The result is a newly malloced string. */
+wchar_t *escaped_remove(const wchar_t *s, const wchar_t *reject)
+{
+    xwcsbuf_T result;
+    wb_init(&result);
+    for (;;) {
+	const wchar_t *rejectchar = escaped_wcspbrk(s, reject);
+	if (rejectchar == NULL)
+	    break;
+	wb_ncat_force(&result, s, rejectchar - s);
+	s = rejectchar + 1;
+    }
+    wb_cat(&result, s);
+    return wb_towcs(&result);
+}
+
+/* Like `escaped_remove', but frees `s' before returning the result. */
+wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
+{
+    wchar_t *result = escaped_remove(s, reject);
+    free(s);
+    return result;
 }
 
 
