@@ -57,7 +57,7 @@ struct expand_word_T {
 
 static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+	plist_T *restrict valuelist)
     __attribute__((nonnull(4)));
 static bool expand_word_inner(const wordunit_T *restrict w,
 	tildetype_T tilde, bool quoted, bool rec,
@@ -268,7 +268,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     plist_T list;
     pl_init(&list);
 
-    if (!expand_word(arg, tilde, false, &list, NULL)) {
+    if (!expand_word(arg, tilde, false, &list)) {
 	maybe_exit_on_error();
 	plfree(pl_toary(&list), free);
 	return NULL;
@@ -411,43 +411,29 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * If `quoted' is true, the expanded words are all backslashed as if the entire
  * expansion is quoted.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
- * The splittability string is added to `splitlist' if `splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
- * In most cases, one string is added to each of `valuelist' and `splitlist'.
- * If the word contains "$@", the result may be any number of strings.
+ * In most cases, one string is added to `valuelist'. If the word contains "$@",
+ * however, any number of strings may be added.
  * The return value is true iff successful. */
-/* A splittability string is an array of Boolean values that specifies where
- * the word can be split in field splitting. The word can be split at the nth
- * character iff the nth value of the splittability string is non-zero. */
 bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+	plist_T *restrict valuelist)
 {
     struct expand_word_T expand;
 
     expand.valuelist = valuelist;
     wb_init(&expand.valuebuf);
-    expand.splitlist = splitlist;
-    if (expand.splitlist != NULL)
-	sb_init(&expand.splitbuf);
+    expand.splitlist = NULL;
     expand.putempty = false;
 
     bool ok = expand_word_inner(w, tilde, quoted, false, &expand);
 
-    if (expand.splitlist != NULL)
-	assert(expand.valuebuf.length == expand.splitbuf.length);
-
     /* A quoted empty word, if any, is added to the list here. It is indicated
      * by the `putempty' flag that is set when a quote is found. */
-    if (expand.valuebuf.length > 0 || expand.putempty) {
+    if (expand.valuebuf.length > 0 || expand.putempty)
 	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
-	if (expand.splitlist != NULL)
-	    pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
-    } else {
+    else
 	wb_destroy(&expand.valuebuf);
-	if (expand.splitlist != NULL)
-	    sb_destroy(&expand.splitbuf);
-    }
 
     return ok;
 }
@@ -465,6 +451,9 @@ bool expand_word(
  * accordingly if `e->splitlist' is non-NULL.
  * Single- or double-quoted characters are unquoted and backslashed.
  * The return value is true iff successful. */
+/* A splittability string is an array of Boolean values that specifies where
+ * the word can be split in field splitting. The word can be split at the nth
+ * character iff the nth value of the splittability string is non-zero. */
 bool expand_word_inner(const wordunit_T *restrict w,
 	tildetype_T tilde, bool quoted, bool rec,
 	struct expand_word_T *restrict e)
@@ -687,7 +676,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_word(p->pe_nest, TT_NONE, true, &plist, NULL)) {
+	if (!expand_word(p->pe_nest, TT_NONE, true, &plist)) {
 	    plfree(pl_toary(&plist), free);
 	    return false;
 	}
