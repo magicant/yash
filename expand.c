@@ -210,11 +210,31 @@ bool expand_and_split_words(
     pl_init(&valuelist1);
     pl_init(&splitlist1);
 
+    struct expand_word_T expand;
+    expand.valuelist = &valuelist1;
+    expand.splitlist = &splitlist1;
+    wb_init(&expand.valuebuf);
+    sb_init(&expand.splitbuf);
+    expand.putempty = false;
+
     /* four expansions (w -> list1) */
-    if (!expand_word(w, TT_SINGLE, false, &valuelist1, &splitlist1)) {
+    if (!expand_word_inner(w, TT_SINGLE, false, false, &expand)) {
 	plfree(pl_toary(&valuelist1), free);
 	plfree(pl_toary(&splitlist1), free);
+	wb_destroy(&expand.valuebuf);
+	sb_destroy(&expand.splitbuf);
 	return false;
+    }
+    assert(expand.valuebuf.length == expand.splitbuf.length);
+
+    /* A quoted empty word, if any, is added to the list here. It is indicated
+     * by the `putempty' flag that is set when a quote is found. */
+    if (expand.valuebuf.length > 0 || expand.putempty) {
+	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
+	pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
+    } else {
+	wb_destroy(&expand.valuebuf);
+	sb_destroy(&expand.splitbuf);
     }
 
     /* brace expansion (list1 -> list2) */
