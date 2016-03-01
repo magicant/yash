@@ -54,7 +54,7 @@ static bool expand_and_split_words(
     __attribute__((nonnull(2)));
 
 /* data passed between expansion functions */
-struct expand_word_T {
+struct expand_four_T {
     plist_T *valuelist, *splitlist;
     xwcsbuf_T valuebuf;
     xstrbuf_T splitbuf;
@@ -63,13 +63,13 @@ struct expand_word_T {
 /* When "$@" appears during expansion and there is no positional parameter, the
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
-static bool expand_word(
+static bool expand_four_and_remove_quotes(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist)
     __attribute__((nonnull(4)));
-static bool expand_word_inner(const wordunit_T *restrict w,
+static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool quoted, bool rec,
-	struct expand_word_T *restrict e)
+	struct expand_four_T *restrict e)
     __attribute__((nonnull(5)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
@@ -79,7 +79,7 @@ static wchar_t *expand_tilde(const wchar_t **ss,
 enum indextype_T { IDX_NONE, IDX_ALL, IDX_CONCAT, IDX_NUMBER, };
 
 static bool expand_param(const paramexp_T *restrict p, bool indq,
-	struct expand_word_T *restrict e)
+	struct expand_four_T *restrict e)
     __attribute__((nonnull));
 static wchar_t *expand_param_simple(const paramexp_T *p)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -222,7 +222,7 @@ bool expand_and_split_words(
     pl_init(&valuelist1);
     pl_init(&splitlist1);
 
-    struct expand_word_T expand;
+    struct expand_four_T expand;
     expand.valuelist = &valuelist1;
     expand.splitlist = &splitlist1;
     wb_init(&expand.valuebuf);
@@ -230,7 +230,7 @@ bool expand_and_split_words(
     expand.zeroword = false;
 
     /* four expansions (w -> list1) */
-    if (!expand_word_inner(w, TT_SINGLE, false, false, &expand)) {
+    if (!expand_four(w, TT_SINGLE, false, false, &expand)) {
 	plfree(pl_toary(&valuelist1), free);
 	plfree(pl_toary(&splitlist1), free);
 	wb_destroy(&expand.valuebuf);
@@ -289,7 +289,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     plist_T list;
     pl_init(&list);
 
-    if (!expand_word(arg, tilde, false, &list)) {
+    if (!expand_four_and_remove_quotes(arg, tilde, false, &list)) {
 	maybe_exit_on_error();
 	plfree(pl_toary(&list), free);
 	return NULL;
@@ -425,8 +425,6 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /********** Four Expansions **********/
 
 /* Performs the four expansions in the specified single word.
- * The four expansions are tilde expansion, parameter expansion, command
- * substitution and arithmetic expansion.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that is performed.
  * If `quoted' is true, the expanded words are all backslashed as if the entire
@@ -436,19 +434,19 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
  * In most cases, one string is added to `valuelist'. If the word contains "$@",
  * however, any number of strings may be added.
  * The return value is true iff successful. */
-bool expand_word(
+bool expand_four_and_remove_quotes(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
 	plist_T *restrict valuelist)
 {
     size_t oldlength = valuelist->length;
-    struct expand_word_T expand;
+    struct expand_four_T expand;
 
     expand.valuelist = valuelist;
     wb_init(&expand.valuebuf);
     expand.splitlist = NULL;
     expand.zeroword = false;
 
-    bool ok = expand_word_inner(w, tilde, quoted, false, &expand);
+    bool ok = expand_four(w, tilde, quoted, false, &expand);
 
     /* remove empty word for "$@" if $# == 0 */
     if (valuelist->length == oldlength && expand.zeroword &&
@@ -466,6 +464,8 @@ bool expand_word(
 }
 
 /* Performs the four expansions in the specified single word.
+ * The four expansions are tilde expansion, parameter expansion, command
+ * substitution, and arithmetic expansion.
  * `w' is the word in which expansions occur.
  * `tilde' specifies the type of tilde expansion that is performed.
  * If `quoted' is true, the expanded words are all backslashed as if the entire
@@ -482,9 +482,9 @@ bool expand_word(
 /* A splittability string is an array of Boolean values that specifies where
  * the word can be split in field splitting. The word can be split at the nth
  * character iff the nth value of the splittability string is non-zero. */
-bool expand_word_inner(const wordunit_T *restrict w,
+bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool quoted, bool rec,
-	struct expand_word_T *restrict e)
+	struct expand_four_T *restrict e)
 {
     bool ok = true;
     bool indq = false;  /* in a double quote? */
@@ -661,7 +661,7 @@ finish:
  * The result is put in `e'.
  * Returns true iff successful. */
 bool expand_param(const paramexp_T *restrict p, bool indq,
-	struct expand_word_T *restrict e)
+	struct expand_four_T *restrict e)
 {
     /* parse indices first */
     ssize_t startindex, endindex;
@@ -706,7 +706,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_word(p->pe_nest, TT_NONE, true, &plist)) {
+	if (!expand_four_and_remove_quotes(p->pe_nest, TT_NONE, true, &plist)) {
 	    plfree(pl_toary(&plist), free);
 	    return false;
 	}
@@ -823,7 +823,7 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_word_inner(p->pe_subst, TT_SINGLE, indq, true, e);
+	    return expand_four(p->pe_subst, TT_SINGLE, indq, true, e);
 	}
 	break;
     case PT_ASSIGN:
@@ -971,7 +971,7 @@ subst:
 wchar_t *expand_param_simple(const paramexp_T *p)
 {
     plist_T valuelist;
-    struct expand_word_T expand;
+    struct expand_four_T expand;
 
     expand.valuelist = pl_init(&valuelist);
     wb_init(&expand.valuebuf);
