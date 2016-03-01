@@ -118,11 +118,27 @@ __IN__
 __OUT__
 }
 
+test_single_hyphen() {
+testcase "$1" "ECHO_STYLE=${ECHO_STYLE-} single hyphen is not an option" \
+    3<<\__IN__ 4<<\__OUT__ 5</dev/null
+echo -
+echo - -
+echo - - foo
+echo foo - bar
+__IN__
+-
+- -
+- - foo
+foo - bar
+__OUT__
+}
+
 (
 unset ECHO_STYLE
 test_n_ignored "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_enabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -130,6 +146,7 @@ export ECHO_STYLE=SYSV
 test_n_ignored "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_enabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -137,6 +154,7 @@ export ECHO_STYLE=XSI
 test_n_ignored "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_enabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -144,6 +162,7 @@ export ECHO_STYLE=BSD
 test_n_recognized "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_disabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -152,6 +171,7 @@ test_n_recognized "$LINENO"
 test_e_recognized "$LINENO"
 test_e_n_combination "$LINENO"
 test_escape_default_disabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -160,6 +180,7 @@ test_n_recognized "$LINENO"
 test_e_recognized "$LINENO"
 test_e_n_combination "$LINENO"
 test_escape_default_enabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -167,6 +188,7 @@ export ECHO_STYLE=DASH
 test_n_recognized "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_enabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 (
@@ -174,6 +196,7 @@ export ECHO_STYLE=RAW
 test_n_ignored "$LINENO"
 test_e_ignored "$LINENO"
 test_escape_default_disabled "$LINENO"
+test_single_hyphen "$LINENO"
 )
 
 test_O -d -e n 'echoing to closed stream'

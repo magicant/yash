@@ -18,6 +18,8 @@ Yash 2.41
   =  The exit status is now non-zero when a for loop has been
      interrupted because of an read-only variable.
   *  Unclosed process redirections are now detected as syntax error.
+  *  When $ECHO_STYLE was GNU or ZSH, the "echo" built-in was
+     incorrectly ignoring single hyphen operands.
   *  The "typeset" built-in was crashing when used with a temporary
      assignment to a variable not specified in the built-in operands.
   *  In the "typeset" built-in, the -r option was not effective when

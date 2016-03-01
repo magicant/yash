@@ -112,4 +112,10 @@ when the first argument is +-n+ or when any argument contains a backslash.
 For maximum portability, the link:_printf.html[printf built-in] should be
 preferred over the echo built-in.
 
+Although many values for the +ECHO_STYLE+ variable are defined on the basis of
+other existing implementations, yash is not intended to exactly imitate those
+originals. Zsh's echo built-in interprets a single hyphen argument as a
+separator between options and operands. Yash does not support such use of
+hyphen.
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

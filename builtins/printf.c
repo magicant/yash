@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.c: the echo/printf built-ins */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ int echo_builtin(int argc, void **argv)
     if (eoption) {
 	assert(noption);
 	for (index = 1; index < argc; index++) {
-	    if (ARGV(index)[0] != L'-')
+	    if (ARGV(index)[0] != L'-' || ARGV(index)[1] == L'\0')
 		break;
 	    if (ARGV(index)[wcsspn(&ARGV(index)[1], L"neE") + 1] != L'\0')
 		break;
