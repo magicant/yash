@@ -58,8 +58,10 @@ struct expand_word_T {
     plist_T *valuelist, *splitlist;
     xwcsbuf_T valuebuf;
     xstrbuf_T splitbuf;
-    bool putempty;
+    bool zeroword;
 };
+/* When "$@" appears during expansion and there is no positional parameter, the
+ * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
 static bool expand_word(
 	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
@@ -225,7 +227,7 @@ bool expand_and_split_words(
     expand.splitlist = &splitlist1;
     wb_init(&expand.valuebuf);
     sb_init(&expand.splitbuf);
-    expand.putempty = false;
+    expand.zeroword = false;
 
     /* four expansions (w -> list1) */
     if (!expand_word_inner(w, TT_SINGLE, false, false, &expand)) {
@@ -258,9 +260,10 @@ bool expand_and_split_words(
     assert(oldlength <= list->length);
 
     /* empty field removal */
-    if (!expand.putempty && list->length - oldlength == 1) {
+    if (list->length - oldlength == 1) {
 	wchar_t *field = list->contents[oldlength];
-	if (field[0] == L'\0') {
+	if (field[0] == L'\0' ||
+		(expand.zeroword && wcscmp(field, L"\"\"") == 0)) {
 	    free(field);
 	    pl_remove(list, oldlength, 1);
 	}
@@ -443,16 +446,16 @@ bool expand_word(
     expand.valuelist = valuelist;
     wb_init(&expand.valuebuf);
     expand.splitlist = NULL;
-    expand.putempty = false;
+    expand.zeroword = false;
 
     bool ok = expand_word_inner(w, tilde, quoted, false, &expand);
 
-    /* A quoted empty word, if any, is added to the list here. It is indicated
-     * by the `putempty' flag that is set when a quote is found. */
-    if (expand.valuebuf.length > 0 || expand.putempty)
-	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
-    else
+    /* remove empty word for "$@" if $# == 0 */
+    if (valuelist->length == oldlength && expand.zeroword &&
+	    wcscmp(expand.valuebuf.contents, L"\"\"") == 0)
 	wb_destroy(&expand.valuebuf);
+    else
+	pl_add(valuelist, wb_towcs(&expand.valuebuf));
 
     /* quote removal */
     for (size_t i = oldlength; i < valuelist->length; i++)
@@ -473,7 +476,8 @@ bool expand_word(
  * put in `e->valuebuf' and the others are inserted to `e->valuelist'.
  * The splittability strings are put in `e->splitbuf' and `e->splitlist'
  * accordingly if `e->splitlist' is non-NULL.
- * Single- or double-quoted characters are unquoted and backslashed.
+ * Single- and double-quotations remain in the resulting word. In addition,
+ * characters inside those quotations are backslashed.
  * The return value is true iff successful. */
 /* A splittability string is an array of Boolean values that specifies where
  * the word can be split in field splitting. The word can be split at the nth
@@ -512,13 +516,15 @@ bool expand_word_inner(const wordunit_T *restrict w,
 		switch (*ss) {
 		case L'"':
 		    indq = !indq;
-		    e->putempty |= indq;
+		    wb_wccat(&e->valuebuf, L'"');
+		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\'':
 		    if (indq)
 			goto default_case;
-		    e->putempty = true;
+		    wb_wccat(&e->valuebuf, L'\'');
 		    add_sq(&ss, &e->valuebuf, true);
+		    wb_wccat(&e->valuebuf, L'\'');
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
@@ -924,7 +930,7 @@ subst:
 
     /* add the elements of `values' to `e->valuelist' */
     if (values[0] == NULL) {
-	e->putempty = false;
+	e->zeroword = true;
     } else {
 	/* add the first element */
 	wb_catfree(&e->valuebuf, values[0]);
@@ -970,17 +976,16 @@ wchar_t *expand_param_simple(const paramexp_T *p)
     expand.valuelist = pl_init(&valuelist);
     wb_init(&expand.valuebuf);
     expand.splitlist = NULL;
-    expand.putempty = false;
+    expand.zeroword = false;
 
     bool ok = expand_param(p, false, &expand);
 
-    /* A quoted empty word, if any, is added to the list here. It is indicated
-     * by the `putempty' flag, which is set when a quote is found. */
-    if (expand.valuebuf.length > 0 || expand.putempty) {
-	pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
-    } else {
+    /* remove empty word for "$@" if $# == 0 */
+    if (valuelist.length > 0 && expand.zeroword &&
+	    wcscmp(expand.valuebuf.contents, L"\"\"") == 0)
 	wb_destroy(&expand.valuebuf);
-    }
+    else
+	pl_add(&valuelist, wb_towcs(&expand.valuebuf));
 
     for (size_t i = 0; i < valuelist.length; i++)
 	valuelist.contents[i] = unescapefree(valuelist.contents[i]);
