@@ -19,6 +19,7 @@ test_oE 'default operand chooses most recently suspended job' -m
 :&
 sh -c 'kill -s STOP $$; echo 1'
 bg >/dev/null
+wait
 __IN__
 1
 __OUT__
