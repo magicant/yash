@@ -143,40 +143,39 @@ __OUT__
 
 # If field splitting yields a single empty field and it is not quoted, then it
 # is removed.
-# TODO: yash is broken
-#test_oE 'empty field removal'
-#a= b=' ' c=' - '
-#bracket 1 $a
-#bracket 2 $b
-#bracket 3 ''$a
-#bracket 4 ''$b
-#bracket 5 $a''
-#bracket 6 $b''
-#bracket 7 ''$a''
-#bracket 8 ''$b''
-#bracket 9 ''$c''
-#bracket 10 ${a:-""}
-#bracket 11 "${a:-""}"
-#bracket 12 "$a"
-#bracket 13 "$b"
-#bracket 14 "" """"""
-#bracket 15 '' ''''''
-#__IN__
-#[1]
-#[2]
-#[3][]
-#[4][]
-#[5][]
-#[6][]
-#[7][]
-#[8][][]
-#[9][][-][]
-#[10][]
-#[11][]
-#[12][]
-#[13][ ]
-#[14][][]
-#[15][][]
-#__OUT__
+test_oE 'empty field removal'
+a= b=' ' c=' - '
+bracket 1 $a
+bracket 2 $b
+bracket 3 ''$a ""$a
+bracket 4 ''$b ""$b
+bracket 5 $a'' $a""
+bracket 6 $b'' $b""
+bracket 7 ''$a'' ""$a""
+bracket 8 ''$b'' ""$b""
+bracket 9 ''$c'' ""$c""
+bracket 10 ${a:-''} ${a:-""}
+bracket 11 "${a:-''}" "${a:-""}"
+bracket 12 "$a"
+bracket 13 "$b"
+bracket 14 "" """"""
+bracket 15 '' ''''''
+__IN__
+[1]
+[2]
+[3][][]
+[4][][]
+[5][][]
+[6][][]
+[7][][]
+[8][][][][]
+[9][][-][][][-][]
+[10][][]
+[11][][]
+[12][]
+[13][ ]
+[14][][]
+[15][][]
+__OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

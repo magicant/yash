@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.h: word expansion */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,6 @@
 
 
 #define DEFAULT_IFS L" \t\n"
-
-/* characters that have special meanings in brace expansion and glob. */
-#define CHARS_ESCAPED L"\\{,}"
 
 /* characters that can be escaped with a backslash inside double-quotes. */
 #define CHARS_ESCAPABLE L"$`\"\\"

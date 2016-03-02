@@ -17,6 +17,8 @@ Yash 2.41
      in a simple command without a command name.
   =  The exit status is now non-zero when a for loop has been
      interrupted because of an read-only variable.
+  =  When there is no positional parameter, the word """$@" is now
+     expanded to an empty word, producing the same result as "$@""".
   *  Unclosed process redirections are now detected as syntax error.
   *  When $ECHO_STYLE was GNU or ZSH, the "echo" built-in was
      incorrectly ignoring single hyphen operands.
@@ -39,6 +41,8 @@ Yash 2.41
   *  Fixed potential undefined behavior during reading a history file.
   *  Parameter expansions of the form ${foo/bar/baz} are now rejected
      in the POSIXly-correct mode, as documented in the manual.
+  *  Single- or double-quoted empty words were incorrectly being
+     removed in field splitting.
 
 ----------------------------------------------------------------------
 Yash 2.40
