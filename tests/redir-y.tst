@@ -71,6 +71,25 @@ __IN__
 foo
 __OUT__
 
+test_oE -e 0 'complex expansion in here-document' -s 1 '"  "' 3
+IFS=-
+printf '[%s]' ${1+"$@"}; echo
+printf '[%s]' "${1+"$@"}"; echo
+cat <<END
+[$*]
+[$@]
+[${1+"$*"}]
+[${1+"$@"}]
+END
+__IN__
+[1]["  "][3]
+[1]["  "][3]
+[1-"  "-3]
+[1-"  "-3]
+[1-"  "-3]
+[1 "  " 3]
+__OUT__
+
 test_oE -e 0 'duplicating input to the same file descriptor'
 echo foo | cat <&0
 __IN__

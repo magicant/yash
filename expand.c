@@ -987,8 +987,10 @@ wchar_t *expand_param_simple(const paramexp_T *p)
     else
 	pl_add(&valuelist, wb_towcs(&expand.valuebuf));
 
-    for (size_t i = 0; i < valuelist.length; i++)
-	valuelist.contents[i] = unescapefree(valuelist.contents[i]);
+    for (size_t i = 0; i < valuelist.length; i++) {
+	wchar_t *v = escaped_remove_free(valuelist.contents[i], L"\"\'");
+	valuelist.contents[i] = unescapefree(v);
+    }
 
     void **results = pl_toary(expand.valuelist);
     wchar_t *result = ok ? joinwcsarray(results, L" ") : NULL;
