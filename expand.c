@@ -993,7 +993,9 @@ wchar_t *expand_param_simple(const paramexp_T *p)
     }
 
     void **results = pl_toary(expand.valuelist);
-    wchar_t *result = ok ? joinwcsarray(results, L" ") : NULL;
+    const wchar_t *ifs = getvar(L VAR_IFS);
+    wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
+    wchar_t *result = ok ? joinwcsarray(results, padding) : NULL;
     plfree(results, free);
     return result;
 }

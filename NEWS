@@ -19,6 +19,9 @@ Yash 2.41
      interrupted because of an read-only variable.
   =  When there is no positional parameter, the word """$@" is now
      expanded to an empty word, producing the same result as "$@""".
+  =  The first character of $IFS is now always used as a separator
+     when concatenating positional parameters. Previously, $IFS was
+     ignored in some corner cases.
   *  Unclosed process redirections are now detected as syntax error.
   *  When $ECHO_STYLE was GNU or ZSH, the "echo" built-in was
      incorrectly ignoring single hyphen operands.
