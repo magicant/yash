@@ -64,11 +64,11 @@ struct expand_four_T {
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
 static bool expand_four_and_remove_quotes(
-	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
+	const wordunit_T *restrict w, tildetype_T tilde, bool escapeall,
 	plist_T *restrict valuelist)
     __attribute__((nonnull(4)));
 static bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool quoted, bool rec,
+	tildetype_T tilde, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
     __attribute__((nonnull(5)));
 static void fill_splitbuf(struct expand_four_T *e, bool splittable)
@@ -421,15 +421,15 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /* Performs the four expansions in the specified single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that is performed.
- * If `quoted' is true, the expanded words are all backslashed as if the entire
- * expansion is quoted.
+ * If `escapeall' is true, the expanded words are all backslashed as if the
+ * entire expansion is quoted.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
  * Single- or double-quoted characters are unquoted and backslashed.
  * In most cases, one string is added to `valuelist'. If the word contains "$@",
  * however, any number of strings may be added.
  * The return value is true iff successful. */
 bool expand_four_and_remove_quotes(
-	const wordunit_T *restrict w, tildetype_T tilde, bool quoted,
+	const wordunit_T *restrict w, tildetype_T tilde, bool escapeall,
 	plist_T *restrict valuelist)
 {
     size_t oldlength = valuelist->length;
@@ -440,7 +440,7 @@ bool expand_four_and_remove_quotes(
     expand.splitlist = NULL;
     expand.zeroword = false;
 
-    bool ok = expand_four(w, tilde, quoted, false, &expand);
+    bool ok = expand_four(w, tilde, escapeall, false, &expand);
 
     /* remove empty word for "$@" if $# == 0 */
     if (valuelist->length == oldlength && expand.zeroword &&
@@ -462,8 +462,8 @@ bool expand_four_and_remove_quotes(
  * substitution, and arithmetic expansion.
  * `w' is the word in which expansions occur.
  * `tilde' specifies the type of tilde expansion that is performed.
- * If `quoted' is true, the expanded words are all backslashed as if the entire
- * expansion is quoted.
+ * If `escapeall' is true, the expanded words are all backslashed as if the
+ * entire expansion is quoted.
  * `rec' must be true iff this expansion is part of another expansion.
  * `e->valuebuf' must be initialized before calling this function and is used to
  * expand the current word. If `w' expands to multiple words, the last word is
@@ -477,7 +477,7 @@ bool expand_four_and_remove_quotes(
  * the word can be split in field splitting. The word can be split at the nth
  * character iff the nth value of the splittability string is non-zero. */
 bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool quoted, bool rec,
+	tildetype_T tilde, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
 {
     bool ok = true;
@@ -486,7 +486,7 @@ bool expand_four(const wordunit_T *restrict w,
     const wchar_t *ss;
     wchar_t *s;
 
-#define FILL_SBUF(s) fill_splitbuf(e, !indq && !quoted && (s));
+#define FILL_SBUF(s) fill_splitbuf(e, !indq && !escapeall && (s));
 #define FILL_SBUF_SPLITTABLE   FILL_SBUF(true)
 #define FILL_SBUF_UNSPLITTABLE FILL_SBUF(false)
 
@@ -540,7 +540,7 @@ bool expand_four(const wordunit_T *restrict w,
 		    }
 		    /* falls thru! */
 		default:  default_case:
-		    if (indq || quoted)
+		    if (indq || escapeall)
 			wb_wccat(&e->valuebuf, L'\\');
 		    wb_wccat(&e->valuebuf, *ss);
 		    FILL_SBUF(rec);
@@ -550,7 +550,7 @@ bool expand_four(const wordunit_T *restrict w,
 	    }
 	    break;
 	case WT_PARAM:
-	    if (!expand_param(w->wu_param, indq || quoted, e))
+	    if (!expand_param(w->wu_param, indq || escapeall, e))
 		ok = false;
 	    break;
 	case WT_CMDSUB:
@@ -563,7 +563,7 @@ bool expand_four(const wordunit_T *restrict w,
 cat_s:
 	    if (s != NULL) {
 		wb_catfree(&e->valuebuf, escapefree(s,
-			    (indq || quoted) ? NULL : CHARS_ESCAPED));
+			    (indq || escapeall) ? NULL : CHARS_ESCAPED));
 		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
