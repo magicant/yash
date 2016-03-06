@@ -982,14 +982,7 @@ wchar_t *expand_param_simple(const paramexp_T *p)
     expand.zeroword = false;
 
     bool ok = expand_param(p, false, &expand);
-
-    /* remove empty word for "$@" if $# == 0 */
-    if (valuelist.length > 0 && expand.zeroword &&
-	    wcscmp(expand.valuebuf.contents, L"\"\"") == 0)
-	wb_destroy(&expand.valuebuf);
-    else
-	pl_add(&valuelist, wb_towcs(&expand.valuebuf));
-
+    pl_add(&valuelist, wb_towcs(&expand.valuebuf));
     if (!ok) {
 	plfree(pl_toary(&valuelist), free);
 	return NULL;
