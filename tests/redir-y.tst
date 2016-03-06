@@ -105,6 +105,21 @@ __IN__
 [1="  "=3]
 __OUT__
 
+test_oE -e 0 'complex expansion with backslashes in here-document' -s 1 '\' 3
+IFS='\'
+cat <<END
+[$*]
+[$@]
+[${1+"$*"}]
+[${1+"$@"}]
+END
+__IN__
+[1\\\3]
+[1\\\3]
+[1\\\3]
+[1\\\3]
+__OUT__
+
 test_oE -e 0 'duplicating input to the same file descriptor'
 echo foo | cat <&0
 __IN__

@@ -98,9 +98,9 @@ static void match_each(void **restrict slist, const wchar_t *restrict pattern,
 static void subst_each(void **restrict slist, const wchar_t *pattern,
 	const wchar_t *subst, paramexptype_T type)
     __attribute__((nonnull));
-static wchar_t *concatenate_values(void **values)
+static wchar_t *concatenate_values(void **values, bool escape)
     __attribute__((nonnull,malloc,warn_unused_result));
-static void **concatenate_values_into_array(void **values)
+static void **concatenate_values_into_array(void **values, bool escape)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
@@ -305,7 +305,7 @@ wchar_t *expand_single(const wordunit_T *arg,
 	return NULL;
     }
 
-    return concatenate_values(pl_toary(&list));
+    return concatenate_values(pl_toary(&list), true);
 }
 
 /* Like `expand_single', but the result is unescaped (if successful). */
@@ -898,7 +898,7 @@ subst:
 
     /* concatenate the elements of `values' */
     if (concat)
-	values = concatenate_values_into_array(values);
+	values = concatenate_values_into_array(values, false);
 
     /* PT_NUMBER */
     if (p->pe_type & PT_NUMBER)
@@ -906,7 +906,7 @@ subst:
 
     /* concatenate the elements of `values' */
     if (!indq)
-	values = concatenate_values_into_array(values);
+	values = concatenate_values_into_array(values, false);
 
     /* backslash escape */
     for (size_t i = 0; values[i] != NULL; i++)
@@ -1120,11 +1120,11 @@ void subst_each(void **restrict slist, const wchar_t *pattern,
 /* Concatenates the wide strings in the specified array.
  * Array `*values' must be a NULL-terminated array of pointers to wide strings.
  * The strings are concatenated into one, each separated by the first $IFS
- * character.
+ * character. The separators are backslashed if `escape' is true.
  * The array and its element strings are all freed in this function.
  * The return value is a pointer to the newly malloced wide string that is the
  * result of concatenation. */
-wchar_t *concatenate_values(void **values)
+wchar_t *concatenate_values(void **values, bool escape)
 {
     wchar_t *first = values[0];
     if (first != NULL && values[1] == NULL) {
@@ -1134,21 +1134,21 @@ wchar_t *concatenate_values(void **values)
     }
 
     const wchar_t *ifs = getvar(L VAR_IFS);
-    wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
-    wchar_t *result = joinwcsarray(values, padding);
+    wchar_t padding[] = { L'\\', ifs != NULL ? ifs[0] : L' ', L'\0' };
+    wchar_t *result = joinwcsarray(values, escape ? padding : &padding[1]);
     plfree(values, free);
     return result;
 }
 
 /* Like `concatenate_values', but returns a pointer to a newly malloced
  * NULL-terminated array containing the concatenated string. */
-void **concatenate_values_into_array(void **values)
+void **concatenate_values_into_array(void **values, bool escape)
 {
     if (values[0] != NULL && values[1] == NULL)
 	return values;
 
     void **results = xmallocn(2, sizeof *values);
-    results[0] = concatenate_values(values);
+    results[0] = concatenate_values(values, escape);
     results[1] = NULL;
     return results;
 }
