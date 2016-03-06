@@ -282,22 +282,38 @@ bool expand_and_split_words(
 /* Expands a single word: the four expansions and quote removal.
  * This function doesn't perform brace expansion, field splitting, globbing and
  * unescaping.
+ * If `processquotes' is true, single- and double-quotations are recognized as
+ * quotes. Otherwise, they are treated like backslashed characters.
+ * If `escapeall' is true, the expanded words are all backslashed as if the
+ * entire expansion is quoted.
+ * If `processquotes' and `escapeall' are false, only backslashes not preceding
+ * any of $, `, \ are self-backslashed.
  * If successful, the resulting word is returned as a newly malloced string
  * that may include backslash escapes.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
-wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
+wchar_t *expand_single(const wordunit_T *arg,
+	tildetype_T tilde, bool processquotes, bool escapeall)
 {
     plist_T list;
     pl_init(&list);
 
-    if (!expand_four_and_remove_quotes(arg, tilde, true, false, &list)) {
+    if (!expand_four_and_remove_quotes(
+		arg, tilde, processquotes, escapeall, &list)) {
 	maybe_exit_on_error();
 	plfree(pl_toary(&list), free);
 	return NULL;
     }
 
     return concatenate_values(pl_toary(&list));
+}
+
+/* Like `expand_single', but the result is unescaped (if successful). */
+wchar_t *expand_single_and_unescape(const wordunit_T *arg,
+	tildetype_T tilde, bool processquotes, bool escapeall)
+{
+    wchar_t *result = expand_single(arg, tilde, processquotes, escapeall);
+    return result == NULL ? NULL : unescapefree(result);
 }
 
 /* Expands a single word: the four expansions, glob, quote removal and unescape.
@@ -312,7 +328,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
  * On error in a non-interactive shell, the shell exits. */
 char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 {
-    wchar_t *exp = expand_single(arg, tilde);
+    wchar_t *exp = expand_single(arg, tilde, true, false);
     char *result;
 
     if (exp == NULL)
@@ -357,29 +373,6 @@ noglob:
 	    xerror(EILSEQ, Ngt("redirection"));
     }
     return result;
-}
-
-/* Performs expansions in a string: parameter/arithmetic/command expansions.
- * Brace expansion, field splitting and globbing are not performed.
- * If `esc' is true, backslashes preceding $, `, \ are removed. Otherwise,
- * no quotations are removed.
- * The result is a newly malloced string.
- * On error, an error message is printed and NULL is returned. */
-wchar_t *expand_string(const wordunit_T *w, bool esc)
-{
-    plist_T valuelist;
-    pl_init(&valuelist);
-
-    if (!expand_four_and_remove_quotes(w, TT_NONE, false, !esc, &valuelist)) {
-	plfree(pl_toary(&valuelist), free);
-	maybe_exit_on_error();
-	return NULL;
-    }
-
-    for (size_t i = 0; i < valuelist.length; i++)
-	valuelist.contents[i] = unescapefree(valuelist.contents[i]);
-
-    return concatenate_values(pl_toary(&valuelist));
 }
 
 
@@ -545,9 +538,9 @@ escape:
 	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
-	    s = expand_single(w->wu_arith, TT_NONE);
+	    s = expand_single_and_unescape(w->wu_arith, TT_NONE, true, false);
 	    if (s != NULL)
-		s = evaluate_arithmetic(unescapefree(s));
+		s = evaluate_arithmetic(s);
 cat_s:
 	    if (s != NULL) {
 		wb_catfree(&e->valuebuf, escapefree(s,
@@ -660,7 +653,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_start == NULL) {
 	startindex = 0, endindex = SSIZE_MAX, indextype = IDX_NONE;
     } else {
-	wchar_t *start = expand_single(p->pe_start, TT_NONE);
+	wchar_t *start = expand_single(p->pe_start, TT_NONE, true, false);
 	if (start == NULL)
 	    return false;
 	indextype = parse_indextype(start);
@@ -677,7 +670,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	    if (p->pe_end == NULL) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
-		wchar_t *end = expand_single(p->pe_end, TT_NONE);
+		wchar_t *end = expand_single(p->pe_end, TT_NONE, true, false);
 		if (end == NULL || !evaluate_index(end, &endindex))
 		    return false;
 	    }
@@ -837,10 +830,10 @@ subst:
 			p->pe_name);
 		return false;
 	    }
-	    subst = expand_single(p->pe_subst, TT_SINGLE);
+	    subst = expand_single_and_unescape(
+		    p->pe_subst, TT_SINGLE, true, false);
 	    if (subst == NULL)
 		return false;
-	    subst = unescapefree(subst);
 	    if (v.type != GV_ARRAY) {
 		assert(v.type == GV_NOTFOUND || v.type == GV_SCALAR);
 		if (!set_variable(
@@ -880,7 +873,7 @@ subst:
     wchar_t *match;
     switch (p->pe_type & PT_MASK) {
     case PT_MATCH:
-	match = expand_single(p->pe_match, TT_SINGLE);
+	match = expand_single(p->pe_match, TT_SINGLE, true, false);
 	if (match == NULL) {
 	    plfree(values, free);
 	    return false;
@@ -889,15 +882,14 @@ subst:
 	free(match);
 	break;
     case PT_SUBST:
-	match = expand_single(p->pe_match, TT_SINGLE);
-	subst = expand_single(p->pe_subst, TT_SINGLE);
+	match = expand_single(p->pe_match, TT_SINGLE, true, false);
+	subst = expand_single_and_unescape(p->pe_subst, TT_SINGLE, true, false);
 	if (match == NULL || subst == NULL) {
 	    free(match);
 	    free(subst);
 	    plfree(values, free);
 	    return false;
 	}
-	subst = unescapefree(subst);
 	subst_each(values, match, subst, p->pe_type);
 	free(match);
 	free(subst);
@@ -1041,9 +1033,9 @@ void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 void print_subst_as_error(const paramexp_T *p)
 {
     if (p->pe_subst != NULL) {
-	wchar_t *subst = expand_single(p->pe_subst, TT_SINGLE);
+	wchar_t *subst = expand_single_and_unescape(
+		p->pe_subst, TT_SINGLE, true, false);
 	if (subst != NULL) {
-	    subst = unescapefree(subst);
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);
 	    else
@@ -1838,7 +1830,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 
     if (!parse_string(&info, &word))
 	return NULL;
-    result = expand_string(word, esc);
+    result = expand_single_and_unescape(word, TT_NONE, false, !esc);
     wordfree(word);
     return result;
 }

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -607,7 +607,7 @@ wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
     if (w == NULL) {
 	return NULL;
     } else {
-	wchar_t *s = expand_single(w, tilde);
+	wchar_t *s = expand_single(w, tilde, true, false);
 	wordfree(w);
 	assert(s != NULL);
 	return s;
@@ -665,7 +665,7 @@ cparse_word:
 		if (pi->ctxt->pwords == NULL
 			&& (pi->ctxt->type & CTXT_VBRACED)) {
 		    xwcsbuf_T buf;
-		    wchar_t *prefix = expand_single(first, tilde);
+		    wchar_t *prefix = expand_single(first, tilde, true, false);
 		    assert(prefix != NULL);
 		    pi->ctxt->pattern = wb_towcs(wb_catfree(
 				wb_initwith(&buf, prefix), pi->ctxt->pattern));
@@ -731,7 +731,7 @@ finish:
     pi->ctxt->type = ctxttype;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
-    pi->ctxt->pattern = expand_single(first, tilde);
+    pi->ctxt->pattern = expand_single(first, tilde, true, false);
     pi->ctxt->srcindex = srcindex;
     wordfree(first);
     return NULL;

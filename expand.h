@@ -40,12 +40,14 @@ extern _Bool expand_line(
 extern _Bool expand_multiple(
 	const struct wordunit_T *restrict w, struct plist_T *restrict list)
     __attribute__((nonnull(2)));
-extern wchar_t *expand_single(const struct wordunit_T *arg, tildetype_T tilde)
+extern wchar_t *expand_single(const struct wordunit_T *arg,
+	tildetype_T tilde, _Bool processquotes, _Bool escapeall)
+    __attribute__((malloc,warn_unused_result));
+extern wchar_t *expand_single_and_unescape(const struct wordunit_T *arg,
+	tildetype_T tilde, _Bool processquotes, _Bool escapeall)
     __attribute__((malloc,warn_unused_result));
 extern char *expand_single_with_glob(
 	const struct wordunit_T *arg, tildetype_T tilde)
-    __attribute__((malloc,warn_unused_result));
-extern wchar_t *expand_string(const struct wordunit_T *w, _Bool esc)
     __attribute__((malloc,warn_unused_result));
 
 extern void extract_fields(

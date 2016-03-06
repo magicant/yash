@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -447,10 +447,11 @@ char *expand_redir_filename(const struct wordunit_T *filename)
     if (is_interactive) {
 	return expand_single_with_glob(filename, TT_SINGLE);
     } else {
-	wchar_t *result = expand_single(filename, TT_SINGLE);
+	wchar_t *result = expand_single_and_unescape(
+		filename, TT_SINGLE, true, false);
 	if (result == NULL)
 	    return NULL;
-	char *mbsresult = realloc_wcstombs(unescapefree(result));
+	char *mbsresult = realloc_wcstombs(result);
 	if (mbsresult == NULL)
 	    xerror(EILSEQ, Ngt("redirection"));
 	return mbsresult;
@@ -726,7 +727,8 @@ error:
  * temporary file. */
 int open_heredocument(const wordunit_T *contents)
 {
-    wchar_t *wcontents = expand_string(contents, true);
+    wchar_t *wcontents = expand_single_and_unescape(
+	    contents, TT_NONE, false, false);
     if (wcontents == NULL)
 	return -1;
 
