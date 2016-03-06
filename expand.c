@@ -71,6 +71,8 @@ static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool quoted, bool rec,
 	struct expand_four_T *restrict e)
     __attribute__((nonnull(5)));
+static void fill_splitbuf(struct expand_four_T *e, bool splittable)
+    __attribute__((nonnull));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
@@ -484,12 +486,7 @@ bool expand_four(const wordunit_T *restrict w,
     const wchar_t *ss;
     wchar_t *s;
 
-#define FILL_SBUF(c)                                            \
-    do {                                                        \
-	if (e->splitlist != NULL)                               \
-	    sb_ccat_repeat(&e->splitbuf, c,                     \
-		    e->valuebuf.length - e->splitbuf.length);   \
-    } while (false)
+#define FILL_SBUF(s) fill_splitbuf(e, !indq && !quoted && (s));
 #define FILL_SBUF_SPLITTABLE   FILL_SBUF(true)
 #define FILL_SBUF_UNSPLITTABLE FILL_SBUF(false)
 
@@ -546,7 +543,7 @@ bool expand_four(const wordunit_T *restrict w,
 		    if (indq || quoted)
 			wb_wccat(&e->valuebuf, L'\\');
 		    wb_wccat(&e->valuebuf, *ss);
-		    FILL_SBUF(rec && !indq && !quoted);
+		    FILL_SBUF(rec);
 		    break;
 		}
 		ss++;
@@ -567,7 +564,7 @@ cat_s:
 	    if (s != NULL) {
 		wb_catfree(&e->valuebuf, escapefree(s,
 			    (indq || quoted) ? NULL : CHARS_ESCAPED));
-		FILL_SBUF(!(indq || quoted));
+		FILL_SBUF_SPLITTABLE;
 	    } else {
 		ok = false;
 	    }
@@ -575,7 +572,21 @@ cat_s:
 	}
     }
 
+#undef FILL_SBUF_UNSPLITTABLE
+#undef FILL_SBUF_SPLITTABLE
+#undef FILL_SBUF
+
     return ok;
+}
+
+/* Appends to `e->splitbuf' as many `splittable' as needed to match the length
+ * with `e->valuebuf'. */
+void fill_splitbuf(struct expand_four_T *e, bool splittable)
+{
+    if (e->splitlist == NULL)
+	return;
+    sb_ccat_repeat(
+	    &e->splitbuf, splittable, e->valuebuf.length - e->splitbuf.length);
 }
 
 /* Performs tilde expansion.
@@ -926,7 +937,7 @@ subst:
     } else {
 	/* add the first element */
 	wb_catfree(&e->valuebuf, values[0]);
-	FILL_SBUF(!indq);
+	fill_splitbuf(e, !indq);
 	if (values[1] != NULL) {
 	    pl_add(e->valuelist, wb_towcs(&e->valuebuf));
 	    if (e->splitlist != NULL)
@@ -946,7 +957,7 @@ subst:
 	    wb_initwith(&e->valuebuf, values[i]);
 	    if (e->splitlist != NULL) {
 		sb_init(&e->splitbuf);
-		FILL_SBUF(!indq);
+		fill_splitbuf(e, !indq);
 	    }
 	}
     }
