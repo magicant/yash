@@ -68,9 +68,9 @@ static bool expand_four_and_remove_quotes(
 	plist_T *restrict valuelist)
     __attribute__((nonnull(4)));
 static bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool escapeall, bool rec,
+	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
-    __attribute__((nonnull(5)));
+    __attribute__((nonnull(6)));
 static void fill_splitbuf(struct expand_four_T *e, bool splittable)
     __attribute__((nonnull));
 
@@ -83,8 +83,6 @@ enum indextype_T { IDX_NONE, IDX_ALL, IDX_CONCAT, IDX_NUMBER, };
 static bool expand_param(const paramexp_T *restrict p, bool indq,
 	struct expand_four_T *restrict e)
     __attribute__((nonnull));
-static wchar_t *expand_param_simple(const paramexp_T *p)
-    __attribute__((nonnull,malloc,warn_unused_result));
 static enum indextype_T parse_indextype(const wchar_t *indexstr)
     __attribute__((nonnull,pure));
 static wchar_t *trim_wstring(wchar_t *s, ssize_t startindex, ssize_t endindex)
@@ -234,7 +232,7 @@ bool expand_and_split_words(
     expand.zeroword = false;
 
     /* four expansions (w -> list1) */
-    if (!expand_four(w, TT_SINGLE, false, false, &expand)) {
+    if (!expand_four(w, TT_SINGLE, true, false, false, &expand)) {
 	plfree(pl_toary(&valuelist1), free);
 	plfree(pl_toary(&splitlist1), free);
 	wb_destroy(&expand.valuebuf);
@@ -368,51 +366,29 @@ noglob:
  * On error, an error message is printed and NULL is returned. */
 wchar_t *expand_string(const wordunit_T *w, bool esc)
 {
-    bool ok = true;
-    xwcsbuf_T buf;
-    wchar_t *s;
+    plist_T valuelist;
+    struct expand_four_T expand;
 
-    wb_init(&buf);
-    for (; w != NULL; w = w->next) {
-	switch (w->wu_type) {
-	case WT_STRING:
-	    for (const wchar_t *ss = w->wu_string; *ss != L'\0'; ss++) {
-		if (esc && ss[0] == L'\\' && ss[1] != L'\0'
-			&& wcschr(L"$`\\", ss[1]) != NULL) {
-		    ss++;
-		    if (*ss != L'\0')
-			wb_wccat(&buf, *ss);
-		} else {
-		    wb_wccat(&buf, *ss);
-		}
-	    }
-	    break;
-	case WT_PARAM:
-	    s = expand_param_simple(w->wu_param);
-	    goto cat_s;
-	case WT_CMDSUB:
-	    s = exec_command_substitution(&w->wu_cmdsub);
-	    goto cat_s;
-	case WT_ARITH:
-	    s = expand_single(w->wu_arith, TT_NONE);
-	    if (s != NULL)
-		s = evaluate_arithmetic(unescapefree(s));
-	cat_s:
-	    if (s != NULL) {
-		wb_catfree(&buf, s);
-	    } else {
-		ok = false;
-	    }
-	    break;
-	}
-    }
-    if (ok) {
-	return wb_towcs(&buf);
-    } else {
-	wb_destroy(&buf);
+    pl_init(&valuelist);
+    expand.valuelist = &valuelist;
+    wb_init(&expand.valuebuf);
+    expand.splitlist = NULL;
+    expand.zeroword = false;
+
+    bool ok = expand_four(w, TT_NONE, false, !esc, false, &expand);
+    pl_add(&valuelist, wb_towcs(&expand.valuebuf));
+    if (!ok) {
+	plfree(pl_toary(&valuelist), free);
 	maybe_exit_on_error();
 	return NULL;
     }
+
+    for (size_t i = 0; i < valuelist.length; i++) {
+	wchar_t *v = escaped_remove_free(valuelist.contents[i], L"\"\'");
+	valuelist.contents[i] = unescapefree(v);
+    }
+
+    return concatenate_values(pl_toary(&valuelist));
 }
 
 
@@ -440,7 +416,7 @@ bool expand_four_and_remove_quotes(
     expand.splitlist = NULL;
     expand.zeroword = false;
 
-    bool ok = expand_four(w, tilde, escapeall, false, &expand);
+    bool ok = expand_four(w, tilde, true, escapeall, false, &expand);
 
     /* remove empty word for "$@" if $# == 0 */
     if (valuelist->length == oldlength && expand.zeroword &&
@@ -462,8 +438,12 @@ bool expand_four_and_remove_quotes(
  * substitution, and arithmetic expansion.
  * `w' is the word in which expansions occur.
  * `tilde' specifies the type of tilde expansion that is performed.
+ * If `processquotes' is true, single- and double-quotations are recognized as
+ * quotes. Otherwise, they are treated like backslashed characters.
  * If `escapeall' is true, the expanded words are all backslashed as if the
  * entire expansion is quoted.
+ * If `processquotes' and `escapeall' are false, only backslashes not preceding
+ * any of $, `, \ are self-backslashed.
  * `rec' must be true iff this expansion is part of another expansion.
  * `e->valuebuf' must be initialized before calling this function and is used to
  * expand the current word. If `w' expands to multiple words, the last word is
@@ -477,7 +457,7 @@ bool expand_four_and_remove_quotes(
  * the word can be split in field splitting. The word can be split at the nth
  * character iff the nth value of the splittability string is non-zero. */
 bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool escapeall, bool rec,
+	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
 {
     bool ok = true;
@@ -504,21 +484,32 @@ bool expand_four(const wordunit_T *restrict w,
 	    while (*ss != L'\0') {
 		switch (*ss) {
 		case L'"':
+		    if (!processquotes)
+			goto escape;
 		    indq = !indq;
 		    wb_wccat(&e->valuebuf, L'"');
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\'':
-		    if (indq)
-			goto default_case;
+		    if (!processquotes || indq)
+			goto escape;
 		    wb_wccat(&e->valuebuf, L'\'');
 		    add_sq(&ss, &e->valuebuf, true);
 		    wb_wccat(&e->valuebuf, L'\'');
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
+		    if (!processquotes) {
+			if (!escapeall) {
+			    wchar_t c = ss[1];
+			    if (c == L'$' || c == L'`' || c == L'\\')
+				ss++;
+			}
+			goto escape;
+		    }
+
 		    if (indq && wcschr(CHARS_ESCAPABLE, ss[1]) == NULL) {
-			goto default_case;
+			goto escape;
 		    } else {
 			wb_wccat(&e->valuebuf, L'\\');
 			if (*++ss != L'\0')
@@ -539,8 +530,9 @@ bool expand_four(const wordunit_T *restrict w,
 			continue;
 		    }
 		    /* falls thru! */
-		default:  default_case:
+		default:
 		    if (indq || escapeall)
+escape:
 			wb_wccat(&e->valuebuf, L'\\');
 		    wb_wccat(&e->valuebuf, *ss);
 		    FILL_SBUF(rec);
@@ -826,7 +818,7 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_four(p->pe_subst, TT_SINGLE, indq, true, e);
+	    return expand_four(p->pe_subst, TT_SINGLE, true, indq, true, e);
 	}
 	break;
     case PT_ASSIGN:
@@ -964,36 +956,6 @@ subst:
     free(values);
 
     return true;
-}
-
-/* Performs parameter expansion and returns the resulting word.
- * If multiple words result, they are concatenated into a single string, each
- * separated by a space.
- * If successful, returns a newly-malloced wide string.
- * On error, returns NULL. */
-wchar_t *expand_param_simple(const paramexp_T *p)
-{
-    plist_T valuelist;
-    struct expand_four_T expand;
-
-    expand.valuelist = pl_init(&valuelist);
-    wb_init(&expand.valuebuf);
-    expand.splitlist = NULL;
-    expand.zeroword = false;
-
-    bool ok = expand_param(p, false, &expand);
-    pl_add(&valuelist, wb_towcs(&expand.valuebuf));
-    if (!ok) {
-	plfree(pl_toary(&valuelist), free);
-	return NULL;
-    }
-
-    for (size_t i = 0; i < valuelist.length; i++) {
-	wchar_t *v = escaped_remove_free(valuelist.contents[i], L"\"\'");
-	valuelist.contents[i] = unescapefree(v);
-    }
-
-    return concatenate_values(pl_toary(&valuelist));
 }
 
 /* Returns IDX_ALL, IDX_CONCAT, IDX_NUMBER if `indexstr' is L"@", L"*",
