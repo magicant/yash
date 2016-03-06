@@ -64,9 +64,10 @@ struct expand_four_T {
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
 static bool expand_four_and_remove_quotes(
-	const wordunit_T *restrict w, tildetype_T tilde, bool escapeall,
+	const wordunit_T *restrict w,
+	tildetype_T tilde, bool processquotes, bool escapeall,
 	plist_T *restrict valuelist)
-    __attribute__((nonnull(4)));
+    __attribute__((nonnull(5)));
 static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
@@ -290,7 +291,7 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
     plist_T list;
     pl_init(&list);
 
-    if (!expand_four_and_remove_quotes(arg, tilde, false, &list)) {
+    if (!expand_four_and_remove_quotes(arg, tilde, true, false, &list)) {
 	maybe_exit_on_error();
 	plfree(pl_toary(&list), free);
 	return NULL;
@@ -367,26 +368,16 @@ noglob:
 wchar_t *expand_string(const wordunit_T *w, bool esc)
 {
     plist_T valuelist;
-    struct expand_four_T expand;
-
     pl_init(&valuelist);
-    expand.valuelist = &valuelist;
-    wb_init(&expand.valuebuf);
-    expand.splitlist = NULL;
-    expand.zeroword = false;
 
-    bool ok = expand_four(w, TT_NONE, false, !esc, false, &expand);
-    pl_add(&valuelist, wb_towcs(&expand.valuebuf));
-    if (!ok) {
+    if (!expand_four_and_remove_quotes(w, TT_NONE, false, !esc, &valuelist)) {
 	plfree(pl_toary(&valuelist), free);
 	maybe_exit_on_error();
 	return NULL;
     }
 
-    for (size_t i = 0; i < valuelist.length; i++) {
-	wchar_t *v = escaped_remove_free(valuelist.contents[i], L"\"\'");
-	valuelist.contents[i] = unescapefree(v);
-    }
+    for (size_t i = 0; i < valuelist.length; i++)
+	valuelist.contents[i] = unescapefree(valuelist.contents[i]);
 
     return concatenate_values(pl_toary(&valuelist));
 }
@@ -397,15 +388,20 @@ wchar_t *expand_string(const wordunit_T *w, bool esc)
 /* Performs the four expansions in the specified single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that is performed.
+ * If `processquotes' is true, single- and double-quotations are recognized as
+ * quotes. Otherwise, they are treated like backslashed characters.
  * If `escapeall' is true, the expanded words are all backslashed as if the
  * entire expansion is quoted.
+ * If `processquotes' and `escapeall' are false, only backslashes not preceding
+ * any of $, `, \ are self-backslashed.
  * The expanded word is added to `valuelist' as a newly malloced wide string.
  * Single- or double-quoted characters are unquoted and backslashed.
  * In most cases, one string is added to `valuelist'. If the word contains "$@",
  * however, any number of strings may be added.
  * The return value is true iff successful. */
 bool expand_four_and_remove_quotes(
-	const wordunit_T *restrict w, tildetype_T tilde, bool escapeall,
+	const wordunit_T *restrict w,
+	tildetype_T tilde, bool processquotes, bool escapeall,
 	plist_T *restrict valuelist)
 {
     size_t oldlength = valuelist->length;
@@ -416,7 +412,7 @@ bool expand_four_and_remove_quotes(
     expand.splitlist = NULL;
     expand.zeroword = false;
 
-    bool ok = expand_four(w, tilde, true, escapeall, false, &expand);
+    bool ok = expand_four(w, tilde, processquotes, escapeall, false, &expand);
 
     /* remove empty word for "$@" if $# == 0 */
     if (valuelist->length == oldlength && expand.zeroword &&
@@ -701,7 +697,8 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_type & PT_NEST) {
 	plist_T plist;
 	pl_init(&plist);
-	if (!expand_four_and_remove_quotes(p->pe_nest, TT_NONE, true, &plist)) {
+	if (!expand_four_and_remove_quotes(
+		    p->pe_nest, TT_NONE, true, true, &plist)) {
 	    plfree(pl_toary(&plist), free);
 	    return false;
 	}
