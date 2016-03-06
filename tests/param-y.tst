@@ -746,6 +746,15 @@ __IN__
 234
 __OUT__
 
+test_oE 'backslash in parameter index'
+a=abcde
+echo ${a[1\+1,2\*2]}
+echo ${a[\@]}
+__IN__
+bcd
+abcde
+__OUT__
+
 test_oE 'valid assignment to array element in expansion'
 a=('' '' '')
 bracket "${a[1]=x}" "${a[2]=y}" "${a[3]=z}"

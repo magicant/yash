@@ -46,6 +46,7 @@ Yash 2.41
      in the POSIXly-correct mode, as documented in the manual.
   *  Single- or double-quoted empty words were incorrectly being
      removed in field splitting.
+  *  Backslash escapes are now recognized in parameter indexes.
 
 ----------------------------------------------------------------------
 Yash 2.40

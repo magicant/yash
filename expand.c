@@ -653,7 +653,8 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_start == NULL) {
 	startindex = 0, endindex = SSIZE_MAX, indextype = IDX_NONE;
     } else {
-	wchar_t *start = expand_single(p->pe_start, TT_NONE, true, false);
+	wchar_t *start = expand_single_and_unescape(
+		p->pe_start, TT_NONE, true, false);
 	if (start == NULL)
 	    return false;
 	indextype = parse_indextype(start);
@@ -670,7 +671,8 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	    if (p->pe_end == NULL) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
-		wchar_t *end = expand_single(p->pe_end, TT_NONE, true, false);
+		wchar_t *end = expand_single_and_unescape(
+			p->pe_end, TT_NONE, true, false);
 		if (end == NULL || !evaluate_index(end, &endindex))
 		    return false;
 	    }
