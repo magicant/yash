@@ -97,7 +97,9 @@ static void match_each(void **restrict slist, const wchar_t *restrict pattern,
 static void subst_each(void **restrict slist, const wchar_t *pattern,
 	const wchar_t *subst, paramexptype_T type)
     __attribute__((nonnull));
-static void **concatenate_values(void **values)
+static wchar_t *concatenate_values(void **values)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void **concatenate_values_into_array(void **values)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
@@ -285,7 +287,6 @@ bool expand_and_split_words(
  * On error in a non-interactive shell, the shell exits. */
 wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 {
-    wchar_t *result;
     plist_T list;
     pl_init(&list);
 
@@ -294,17 +295,8 @@ wchar_t *expand_single(const wordunit_T *arg, tildetype_T tilde)
 	plfree(pl_toary(&list), free);
 	return NULL;
     }
-    if (list.length != 1) {
-	/* concatenate multiple words to a single */
-	const wchar_t *ifs = getvar(L VAR_IFS);
-	wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
-	result = joinwcsarray(list.contents, padding);
-	plfree(pl_toary(&list), free);
-    } else {
-	result = list.contents[0];
-	pl_destroy(&list);
-    }
-    return result;
+
+    return concatenate_values(pl_toary(&list));
 }
 
 /* Expands a single word: the four expansions, glob, quote removal and unescape.
@@ -914,7 +906,7 @@ subst:
 
     /* concatenate the elements of `values' */
     if (concat)
-	values = concatenate_values(values);
+	values = concatenate_values_into_array(values);
 
     /* PT_NUMBER */
     if (p->pe_type & PT_NUMBER)
@@ -922,7 +914,7 @@ subst:
 
     /* concatenate the elements of `values' */
     if (!indq)
-	values = concatenate_values(values);
+	values = concatenate_values_into_array(values);
 
     /* backslash escape */
     for (size_t i = 0; values[i] != NULL; i++)
@@ -987,17 +979,17 @@ wchar_t *expand_param_simple(const paramexp_T *p)
     else
 	pl_add(&valuelist, wb_towcs(&expand.valuebuf));
 
+    if (!ok) {
+	plfree(pl_toary(&valuelist), free);
+	return NULL;
+    }
+
     for (size_t i = 0; i < valuelist.length; i++) {
 	wchar_t *v = escaped_remove_free(valuelist.contents[i], L"\"\'");
 	valuelist.contents[i] = unescapefree(v);
     }
 
-    void **results = pl_toary(expand.valuelist);
-    const wchar_t *ifs = getvar(L VAR_IFS);
-    wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
-    wchar_t *result = ok ? joinwcsarray(results, padding) : NULL;
-    plfree(results, free);
-    return result;
+    return concatenate_values(pl_toary(&valuelist));
 }
 
 /* Returns IDX_ALL, IDX_CONCAT, IDX_NUMBER if `indexstr' is L"@", L"*",
@@ -1175,23 +1167,35 @@ void subst_each(void **restrict slist, const wchar_t *pattern,
  * The strings are concatenated into one, each separated by the first $IFS
  * character.
  * The array and its element strings are all freed in this function.
- * The return value is a pointer to a newly malloced NULL-terminated array that
- * contains exactly one element: a pointer to the newly malloced wide string
- * that is the result of concatenation. */
-void **concatenate_values(void **values)
+ * The return value is a pointer to the newly malloced wide string that is the
+ * result of concatenation. */
+wchar_t *concatenate_values(void **values)
 {
-    /* If the array contains just one string, simply return it. */
-    if (values[0] != NULL && values[1] == NULL)
-	return values;
+    wchar_t *first = values[0];
+    if (first != NULL && values[1] == NULL) {
+	// no actual concatenation needed
+	free(values);
+	return first;
+    }
 
     const wchar_t *ifs = getvar(L VAR_IFS);
     wchar_t padding[] = { ifs != NULL ? ifs[0] : L' ', L'\0' };
     wchar_t *result = joinwcsarray(values, padding);
     plfree(values, free);
-    values = xmallocn(2, sizeof *values);
-    values[0] = result;
-    values[1] = NULL;
-    return values;
+    return result;
+}
+
+/* Like `concatenate_values', but returns a pointer to a newly malloced
+ * NULL-terminated array containing the concatenated string. */
+void **concatenate_values_into_array(void **values)
+{
+    if (values[0] != NULL && values[1] == NULL)
+	return values;
+
+    void **results = xmallocn(2, sizeof *values);
+    results[0] = concatenate_values(values);
+    results[1] = NULL;
+    return results;
 }
 
 /* Substitutes each string in the specified array with a string that contains

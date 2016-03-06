@@ -411,6 +411,12 @@ continuation
 quote 'single' "double \$ 'a' " \$ 'a'
 __OUT__
 
+test_O -e n 'expansion error in here-document'
+echo not printed <<END
+${a?}
+END
+__IN__
+
 test_oE -e 0 'various quotation of here-document delimiter'
 cat <<E'N'D &&
 single
