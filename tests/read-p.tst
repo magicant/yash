@@ -200,6 +200,15 @@ __IN__
 0 [A] [B] [] []
 __OUT__
 
+test_oE 'exact number of fields with non-whitespace IFS'
+IFS=' -' read a b c <<\END
+A-B-C - 
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]" "[${c-unset}]"
+__IN__
+0 [A] [B] [C]
+__OUT__
+
 test_oE 'too many fields are joined with trailing whitespaces removed'
 IFS=' -' read a b c <<\END
 A B C-C C\\C\
@@ -210,7 +219,7 @@ __IN__
 0 [A] [B] [C-C C\CC]
 __OUT__
 
-test_oE 'too many fields are joined, with non-whitespace delimiter'
+test_oE 'too many fields are joined, ending with non-whitespace delimiter'
 IFS=' -' read a b c <<\END
 A B C-C C\\C\
 C -  

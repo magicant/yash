@@ -50,7 +50,7 @@ extern char *expand_single_with_glob(
 	const struct wordunit_T *arg, tildetype_T tilde)
     __attribute__((malloc,warn_unused_result));
 
-extern void extract_fields(
+extern wchar_t *extract_fields(
 	const wchar_t *restrict s, const char *restrict split,
 	_Bool escaped, const wchar_t *restrict ifs,
 	struct plist_T *restrict dest)

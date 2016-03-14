@@ -184,6 +184,7 @@ test_long_option_default_on  "$LINENO" curasync
 test_long_option_default_on  "$LINENO" curbg
 test_long_option_default_on  "$LINENO" curstop
 test_long_option_default_off "$LINENO" dotglob
+test_long_option_default_off "$LINENO" emptylastfield
 test_long_option_default_off "$LINENO" errexit
 # One can never reset the no-exec option
 #test_long_option_default_on  "$LINENO" exec
@@ -390,6 +391,7 @@ curasync        on
 curbg           on
 curstop         on
 dotglob         off
+emptylastfield  off
 errexit         off
 exec            on
 extendedglob    off
@@ -441,6 +443,7 @@ set -o curasync
 set -o curbg
 set -o curstop
 set +o dotglob
+set +o emptylastfield
 set +o errexit
 set -o exec
 set +o extendedglob

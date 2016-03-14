@@ -518,14 +518,21 @@ whitespace] and other IFS characters are called dfn:[IFS non-whitespace].
 Field splitting is performed as follows:
 
 . The shell searches words for split points. A split point is one or more
-  adjacent IFS characters within the word portions that are subject to field
-  splitting. The following steps are taken for each split point found.
-. If the split point includes one or more IFS non-whitespaces, any IFS
+  adjacent IFS characters within the word portions where field splitting can
+  occur. The following steps are taken for each split point found.
+. If the split point includes one or more IFS non-whitespaces, all the IFS
   whitespaces in the split point are ignored and the word is split at each IFS
   non-whitespace in the split point.
 . If the split point includes no IFS non-whitespaces, the word is split at the
   split point unless it is at the beginning or end of the word.
 . The split points are removed from the results.
+
+Finally, the last word is removed from the results if:
+
+- the link:_set.html#so-emptylastfield[empty-last-field option] is not
+  enabled;
+- the result is more than one word; and
+- the last word is empty.
 
 [NOTE]
 Words are not split at all when the value of the +IFS+ variable is empty.

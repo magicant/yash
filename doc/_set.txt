@@ -92,6 +92,10 @@ in link:expand.html#glob[pathname expansion].
 This option enables link:lineedit.html[line-editing] in the
 link:lineedit.html#modes[emacs mode].
 
+[[so-emptylastfield]]empty-last-field::
+When enabled, link:expand.html#split[field splitting] does not remove the last
+field even if it is empty.
+
 [[so-errexit]]err-exit (+-e+)::
 When enabled, if a link:syntax.html#pipelines[pipeline] ends with a non-zero
 exit status, the shell immediately exits unless:

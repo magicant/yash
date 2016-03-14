@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.41
 
+  +  '--emptylastfield' option.
   +  New option for the "shift" built-in: -A
   +  The "shift" built-in now accepts negative counts.
   +  New completion script for: git-notes, git-reflog, git-worktree
@@ -19,6 +20,10 @@ Yash 2.41
      interrupted because of an read-only variable.
   =  When there is no positional parameter, the word """$@" is now
      expanded to an empty word, producing the same result as "$@""".
+  =  The behavior of field splitting has been modified to match the
+     intended interpretation of POSIX: If field splitting yields more
+     than one field and the last field is empty, the last field is now
+     removed.
   =  The first character of $IFS is now always used as a separator
      when concatenating positional parameters. Previously, $IFS was
      ignored in some corner cases.

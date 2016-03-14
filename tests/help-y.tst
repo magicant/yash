@@ -741,6 +741,7 @@ Options:
 	         -o curstop
 	         -o dotglob
 	         -o emacs
+	         -o emptylastfield
 	-e       -o errexit
 	+n       -o exec
 	         -o extendedglob

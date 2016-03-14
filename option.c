@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -148,6 +148,10 @@ bool shopt_nullglob = false;
  * Corresponds to the --braceexpand option. */
 bool shopt_braceexpand = false;
 
+/* If set, empty last field is preserved in field splitting.
+ * Corresponds to the --emptylastfield option. */
+bool shopt_emptylastfield = false;
+
 /* If set, it is allowed to overwrite existing files by redirections.
  * Corresponds to the +C/--clobber option. */
 bool shopt_clobber = true;
@@ -199,6 +203,7 @@ static const struct option_T shell_options[] = {
 #if YASH_ENABLE_LINEEDIT
     { 0,    0,    L"emacs",          &shopt_emacs,          true, },
 #endif
+    { 0,    0,    L"emptylastfield", &shopt_emptylastfield, true, },
     { L'e', 0,    L"errexit",        &shopt_errexit,        true, },
     { 0,    L'n', L"exec",           &shopt_exec,           true, },
     { 0,    0,    L"extendedglob",   &shopt_extendedglob,   true, },

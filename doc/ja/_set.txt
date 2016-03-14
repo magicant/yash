@@ -63,6 +63,9 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 [[so-emacs]]emacs::
 このオプションは emacs 風link:lineedit.html[行編集]を有効にします。
 
+[[so-emptylastfield]]empty-last-field::
+このオプションが有効な時、link:expand.html#split[単語分割]で最後の単語が空になっても削除しません。
+
 [[so-errexit]]err-exit (+-e+)::
 このオプションが有効な時、実行したlink:syntax.html#pipelines[パイプライン]の終了ステータスが 0 でなければ、シェルは直ちに終了します。ただし、以下の場合を除きます。
 

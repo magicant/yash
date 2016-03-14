@@ -6,7 +6,7 @@ test_oE 'words are expanded in order of appearance'
 a=1-2-3 IFS=
 bracket $a ${IFS:= -} $a
 __IN__
-[1-2-3][][][1][2][3]
+[1-2-3][1][2][3]
 __OUT__
 
 # The behavior for this case is POSIXly-unspecified, but many other existing

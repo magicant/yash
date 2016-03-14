@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.h: option settings */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ extern _Bool shopt_histspace;
 extern _Bool shopt_glob, shopt_caseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;
+extern _Bool shopt_emptylastfield;
 extern _Bool shopt_clobber;
 #if YASH_ENABLE_LINEEDIT
 extern enum shopt_lineedit_T shopt_lineedit;

@@ -60,52 +60,47 @@ __IN__
 [1][2][3][4][5][6][-"%"\]
 __OUT__
 
-# POSIX's rationale says the standard is based on the behavior of ksh, but the
-# strict interpretation of the standard is inconsistent with the actual ksh
-# behavior. ksh and some other shells fail the following tests because of
-# omitted last empty field.
-
 test_oE 'field splitting with non-whitespace IFS'
 IFS='-"'
-a='1-2"3' b='--4-"5"-6--'
+a='1-2"3' b='--4-"5"-6-7'
 bracket $a
 bracket $b
 __IN__
 [1][2][3]
-[][][4][][5][][6][][]
+[][][4][][5][][6][7]
 __OUT__
 
 test_oE 'complex field splitting with nonsuccessive non-whitespace IFS'
 IFS=' -"'
-a='1%2-3"4&5' b='- 22- 3- 44- ' c=' -22 -3 -44 -' d=' - 22 - 3 - 44 - '
+a='1%2-3"4&5' b='- 22- 3- 44 ' c=' -22 -3 -44 ' d=' - 22 - 3 - 44'
 bracket $a
 bracket $b
 bracket $c
 bracket $d
 __IN__
 [1%2][3][4&5]
-[][22][3][44][]
-[][22][3][44][]
-[][22][3][44][]
+[][22][3][44]
+[][22][3][44]
+[][22][3][44]
 __OUT__
 
 test_oE 'complex field splitting with successive non-whitespace IFS'
 IFS=' -'
-a='--3""3--' b='  --33  --' c='-  -33-  -' d='--  33--  '
+a='--3""3' b='  --33' c='-  -33' d='--  33'
 bracket $a
 bracket $b
 bracket $c
 bracket $d
 __IN__
-[][][3""3][][]
-[][][33][][]
-[][][33][][]
-[][][33][][]
+[][][3""3]
+[][][33]
+[][][33]
+[][][33]
 __OUT__
 
 test_oE 'backslash not in IFS'
 IFS=' -'
-a='\' b='\ \' c='\  \' d='\-\' e='\--\' f='-\\ -\-'
+a='\x' b='\ \x' c='\  \x' d='\-\x' e='\--\x' f='-\\ -\-\x'
 bracket $a
 bracket $b
 bracket $c
@@ -113,17 +108,17 @@ bracket $d
 bracket $e
 bracket $f
 __IN__
-[\]
-[\][\]
-[\][\]
-[\][\]
-[\][][\]
-[][\\][\][]
+[\x]
+[\][\x]
+[\][\x]
+[\][\x]
+[\][][\x]
+[][\\][\][\x]
 __OUT__
 
 test_oE 'backslash in IFS'
 IFS=' \-'
-a='\' b='\ \' c='\  \' d='\-\' e='\--\' f='-\\ -\-' g='1\2\\ 4-5\- 7\'
+a='\x' b='\ \x' c='\  \x' d='\-\x' e='\--\x' f='-\\ -\-x' g='1\2\\ 4-5\- 7\x'
 bracket $a
 bracket $b
 bracket $c
@@ -132,13 +127,13 @@ bracket $e
 bracket $f
 bracket $g
 __IN__
-[][]
-[][][]
-[][][]
-[][][][]
-[][][][][]
-[][][][][][][]
-[1][2][][4][5][][7][]
+[][x]
+[][][x]
+[][][x]
+[][][][x]
+[][][][][x]
+[][][][][][][x]
+[1][2][][4][5][][7][x]
 __OUT__
 
 # If field splitting yields a single empty field and it is not quoted, then it
@@ -176,6 +171,76 @@ __IN__
 [13][ ]
 [14][][]
 [15][][]
+__OUT__
+
+test_oE 'empty last field is ignored (non-backslash IFS)'
+IFS=' ='
+a='='; bracket $a
+a='=='; bracket $a
+a='==='; bracket $a
+a='1'; bracket $a
+a='1='; bracket $a
+a='1=='; bracket $a
+a='1==='; bracket $a
+echo ===
+a='1= '; bracket $a
+a='1==  '; bracket $a
+a='1===   '; bracket $a
+echo ===
+a='1= ='; bracket $a
+a='1==  ='; bracket $a
+a='1===   ='; bracket $a
+__IN__
+
+[][]
+[][][]
+[1]
+[1]
+[1][]
+[1][][]
+===
+[1]
+[1][]
+[1][][]
+===
+[1][]
+[1][][]
+[1][][][]
+__OUT__
+
+test_oE 'empty last field is ignored (backslash IFS)'
+IFS=' =\'
+a='\'; bracket $a
+a='\\'; bracket $a
+a='\\\'; bracket $a
+a='1'; bracket $a
+a='1\'; bracket $a
+a='1\\'; bracket $a
+a='1\\\'; bracket $a
+echo ===
+a='1\ '; bracket $a
+a='1\\  '; bracket $a
+a='1\\\   '; bracket $a
+echo ===
+a='1\ \'; bracket $a
+a='1\\  \'; bracket $a
+a='1\\\   \'; bracket $a
+__IN__
+
+[][]
+[][][]
+[1]
+[1]
+[1][]
+[1][][]
+===
+[1]
+[1][]
+[1][][]
+===
+[1][]
+[1][][]
+[1][][][]
 __OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

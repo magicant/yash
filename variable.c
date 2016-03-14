@@ -2716,6 +2716,7 @@ int read_builtin(int argc, void **argv)
     }
 
     /* split fields */
+    const wchar_t *tail;
     plist_T list;
     pl_init(&list);
     {
@@ -2723,7 +2724,7 @@ int read_builtin(int argc, void **argv)
 	if (ifs == NULL)
 	    ifs = DEFAULT_IFS;
 
-	extract_fields(buf.contents, split.contents, false, ifs, &list);
+	tail = extract_fields(buf.contents, split.contents, false, ifs, &list);
 	assert(list.length % 2 == 0);
     }
 
@@ -2749,8 +2750,11 @@ int read_builtin(int argc, void **argv)
     if (ro.array) {
 	assign_array(name, &list, 2 * (count - 1));
     } else {
-	const wchar_t *start = list.contents[2 * (count - 1)];
-	const wchar_t *end = list.contents[list.length - 1];
+	size_t i = count - 1;
+	const wchar_t *start = list.contents[2 * i];
+	const wchar_t *end = list.contents[2 * i + 1];
+	if (2 * count < list.length)
+	    end = tail;
 	wchar_t *field = xwcsndup(start, end - start);
 	set_variable(name, field, SCOPE_GLOBAL, shopt_allexport);
     }
