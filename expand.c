@@ -1464,12 +1464,12 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
  * corresponding character in the splittability string is non-zero. Refer to
  * POSIX for how whitespaces are treated in field splitting.
  *
- * If the last field is empty, the index is taken just after the last character
- * that is not an IFS-whitespace. The empty last field is removed if
+ * If an IFS non-whitespace delimits an empty field, the field is assumed just
+ * before the non-whitespace delimiter. The empty last field is removed if
  * `shopt_emptylastfield' is false.
  *
- * The return value is a pointer to the end of the last field (assuming
- * `shopt_emptylastfield' is true). */
+ * The return value is a pointer to the end of the input string (but before
+ * trailing IFS whitespaces). */
 /* Split examples (assuming `ifs' = L" -" and `shopt_emptylastfield' is true)
  *   ""                  ->   ""
  *   "  "                ->   ""
@@ -1484,6 +1484,7 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict split,
 	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0;
+    size_t ifswhitestartindex;
     size_t oldlen = dest->length;
 
     /* true when the currently skipping IFS whitespaces immediately follow a
@@ -1491,7 +1492,7 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict split,
     bool afterfield = false;
 
     for (;;) {
-	size_t ifswhitestartindex = index;
+	ifswhitestartindex = index;
 	index += skip_ifs_whitespaces(&s[index], &split[index], escaped, ifs);
 
 	/* extract next field, if any */
@@ -1506,7 +1507,7 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict split,
 	/* Now the current char is either null or a IFS non-whitespace. */
 
 	if (!afterfield)
-	    add_empty_field(dest, &s[ifswhitestartindex]);
+	    add_empty_field(dest, &s[index]);
 
 	/* skip (only one) IFS non-whitespace */
 	size_t ifsstartindex = index;
@@ -1520,17 +1521,14 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict split,
 	break;
     }
 
-    size_t newlen = dest->length;
-    assert(newlen - oldlen >= 2);
-
-    wchar_t *endoflastfield = dest->contents[newlen - 1];
-
     /* remove the empty last field */
+    size_t newlen = dest->length;
     if (!shopt_emptylastfield && newlen - oldlen >= 2 * 2 &&
 	    dest->contents[newlen - 2] == dest->contents[newlen - 1])
 	pl_remove(dest, newlen - 2, 2);
 
-    return endoflastfield;
+    assert(dest->length - oldlen >= 2);
+    return (wchar_t *) &s[ifswhitestartindex];
 }
 
 /* If `*s' is a (possibly escaped if `escaped') IFS character, returns the

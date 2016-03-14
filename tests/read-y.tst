@@ -80,6 +80,26 @@ __OUT__
 
 )
 
+# Many other shells behave this way, too.
+test_oE 'too many fields are joined with leading whitespaces removed'
+IFS=' -' read a b <<\END
+ - -
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]"
+IFS=' -' read a b <<\END
+ - - -
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]"
+IFS=' -' read a b <<\END
+ - -  -   -
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]"
+__IN__
+0 [] []
+0 [] [- -]
+0 [] [-  -   -]
+__OUT__
+
 test_oE 'array - single operand - single field'
 read -A a <<\END
 A

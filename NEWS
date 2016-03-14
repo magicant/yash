@@ -24,6 +24,8 @@ Yash 2.41
      intended interpretation of POSIX: If field splitting yields more
      than one field and the last field is empty, the last field is now
      removed.
+  =  The "read" built-in now removes leading whitespaces when
+     assigning the last input value to the variable.
   =  The first character of $IFS is now always used as a separator
      when concatenating positional parameters. Previously, $IFS was
      ignored in some corner cases.
