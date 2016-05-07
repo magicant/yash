@@ -131,6 +131,17 @@ __OUT__
 # See also the test 'no quote removal with quoted here-document delimiter'
 # in redir-p.tst
 
+test_oE -e 0 'here-document is expanded in current shell' -e
+unset a
+cat <<END
+${a=foo}
+END
+echo $a
+__IN__
+foo
+foo
+__OUT__
+
 test_oE -e 0 'duplicating input to the same file descriptor'
 echo foo | cat <&0
 __IN__
