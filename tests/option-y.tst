@@ -8,6 +8,13 @@ test_x -e 0 'hashondef (long) off: $-' +o hashondef
 printf '%s\n' "$-" | grep -qv h
 __IN__
 
+test_o 'noexec is linewise'
+set -n; echo executed
+echo not executed
+__IN__
+executed
+__OUT__
+
 test_o 'noexec is ineffective when interactive' -in +m --norcfile
 echo printed; exit; echo not printed
 __IN__
