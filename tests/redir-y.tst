@@ -120,6 +120,17 @@ __IN__
 [1\\\3]
 __OUT__
 
+test_oE -e 0 'line-continued end-of-here-document indicator (unquoted)' -e
+cat <<echo
+ec\
+ho
+echo
+__IN__
+echo
+__OUT__
+# See also the test 'no quote removal with quoted here-document delimiter'
+# in redir-p.tst
+
 test_oE -e 0 'duplicating input to the same file descriptor'
 echo foo | cat <&0
 __IN__

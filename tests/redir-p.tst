@@ -400,15 +400,19 @@ arithmetic $((1+10))
 __OUT__
 
 test_oE -e 0 'no quote removal with quoted here-document delimiter'
-cat <<'END'
+cat <<'echo'
 backslash \a \$foo \\\\ \`\` \"\" line-\
 continuation
 quote 'single' "double \$ 'a' " \$ 'a'
-END
+ec\
+ho
+echo
 __IN__
 backslash \a \$foo \\\\ \`\` \"\" line-\
 continuation
 quote 'single' "double \$ 'a' " \$ 'a'
+ec\
+ho
 __OUT__
 
 test_O -e n 'expansion error in here-document'
