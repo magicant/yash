@@ -131,6 +131,23 @@ __OUT__
 # See also the test 'no quote removal with quoted here-document delimiter'
 # in redir-p.tst
 
+# This is not required by POSIX, but many other shells behave this way.
+test_oE -e 0 'end-of-here-document indicator just before EOF (unquoted)' \
+    -c 'cat <<END
+foo
+END'
+__IN__
+foo
+__OUT__
+
+test_oE -e 0 'end-of-here-document indicator just before EOF (quoted)' \
+    -c 'cat <<\END
+foo
+END'
+__IN__
+foo
+__OUT__
+
 test_oE -e 0 'here-document is expanded in current shell' -e
 unset a
 cat <<END
