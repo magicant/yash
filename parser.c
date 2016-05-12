@@ -495,6 +495,8 @@ static void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 static bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
     __attribute__((nonnull));
+static void reject_pending_heredocs(parsestate_T *ps)
+    __attribute__((nonnull));
 static wordunit_T **parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline,
 	wordunit_T **lastp)
@@ -551,9 +553,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 
     and_or_T *r = parse_command_list(&ps, true);
 
-    if (ps.pending_heredocs.length > 0)
-	serror(&ps,
-		Ngt("here-document content is missing at the end of input"));
+    reject_pending_heredocs(&ps);
 
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
@@ -2473,7 +2473,8 @@ void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 	} else {
 	    /* encountered EOF before reading an end-of-contents marker! */
 	    linelen = ps->src.length - ps->index;
-	    serror(ps, Ngt("the here-document is not closed"));
+	    serror(ps, Ngt("the here-document content is not closed by `%ls'"),
+		    eoc);
 	}
 	wb_ncat_force(&buf, &ps->src.contents[ps->index], linelen);
 	ps->index += linelen;
@@ -2506,7 +2507,8 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 	lastp = parse_string_without_quotes(ps, true, true, lastp);
 	if (ps->index == oldindex || ps->src.contents[ps->index - 1] != L'\n') {
 	    /* encountered EOF before reading an end-of-contents marker! */
-	    serror(ps, Ngt("the here-document is not closed"));
+	    serror(ps, Ngt("the here-document content is not closed by `%ls'"),
+		    eoc);
 	    break;
 	}
     }
@@ -2544,6 +2546,22 @@ bool is_end_of_heredoc_contents(
 	}
     }
     return false;
+}
+
+/* Prints an error message for each pending here-document. */
+void reject_pending_heredocs(parsestate_T *ps)
+{
+    for (size_t i = 0; i < ps->pending_heredocs.length; i++) {
+	const redir_T *r = ps->pending_heredocs.contents[i];
+	const char *operator;
+	switch (r->rd_type) {
+	    case RT_HERE:    operator = "<<";   break;
+	    case RT_HERERT:  operator = "<<-";  break;
+	    default:         assert(false);
+	}
+	serror(ps, Ngt("here-document content for %s%ls is missing"),
+		operator, r->rd_hereend);
+    }
 }
 
 /* Parses a string.

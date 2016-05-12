@@ -366,22 +366,26 @@ test_Oe -e 2 'unclosed here-document (unquoted)'
 cat <<END
 foo
 __IN__
-syntax error: the here-document is not closed
+syntax error: the here-document content is not closed by `END'
 __ERR__
+#'
+#`
 : <<END
 END
 
 test_Oe -e 2 'missing newline and here-document delimiter (unquoted)' \
     -c 'cat <<END'
 __IN__
-yash -c:1: syntax error: here-document content is missing at the end of input
+yash -c:1: syntax error: here-document content for <<END is missing
 __ERR__
+: <<END
+END
 
 test_Oe -e 2 'unclosed here-document (quoted)'
 cat <<\END
 foo
 __IN__
-syntax error: the here-document is not closed
+syntax error: the here-document content is not closed by `END'
 __ERR__
 : <<END
 END
@@ -389,8 +393,10 @@ END
 test_Oe -e 2 'missing newline and here-document delimiter (quoted)' \
     -c 'cat <<\END'
 __IN__
-yash -c:1: syntax error: here-document content is missing at the end of input
+yash -c:1: syntax error: here-document content for <<\END is missing
 __ERR__
+: <<END
+END
 
 test_O -d -e 2 'space between < and ( in process redirection'
 < (:)
