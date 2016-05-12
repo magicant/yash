@@ -551,6 +551,10 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 
     and_or_T *r = parse_command_list(&ps, true);
 
+    if (posixly_correct && ps.pending_heredocs.length > 0)
+	serror(&ps,
+		Ngt("here-document content is missing at the end of input"));
+
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
     destroy_aliaslist(ps.aliases);

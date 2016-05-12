@@ -345,7 +345,7 @@ __IN__
 syntax error: the end-of-here-document indicator contains a newline
 __ERR__
 
-test_oE -e 0 'missing here-document delimiter (non-POSIX, unquoted)'
+test_oE -e 0 'unclosed here-document (non-POSIX, unquoted)'
 cat <<END
 foo
 __IN__
@@ -354,7 +354,12 @@ __OUT__
 : <<END
 END
 
-test_oE -e 0 'missing here-document delimiter (non-POSIX, quoted)'
+test_OE -e 0 \
+    'missing newline and here-document delimiter (non-POSIX, unquoted)' \
+    -c 'cat <<END'
+__IN__
+
+test_oE -e 0 'unclosed here-document (non-POSIX, quoted)'
 cat <<\END
 foo
 __IN__
@@ -362,11 +367,16 @@ foo
 __OUT__
 : <<END
 END
+
+test_OE -e 0 \
+    'missing newline and here-document delimiter (non-POSIX, quoted)' \
+    -c 'cat <<\END'
+__IN__
 
 (
 posix="true"
 
-test_Oe -e 2 'missing here-document delimiter (POSIX, unquoted)'
+test_Oe -e 2 'unclosed here-document (POSIX, unquoted)'
 cat <<END
 foo
 __IN__
@@ -375,7 +385,13 @@ __ERR__
 : <<END
 END
 
-test_Oe -e 2 'missing here-document delimiter (POSIX, quoted)'
+test_Oe -e 2 'missing newline and here-document delimiter (POSIX, unquoted)' \
+    -c 'cat <<END'
+__IN__
+sh -c:1: syntax error: here-document content is missing at the end of input
+__ERR__
+
+test_Oe -e 2 'unclosed here-document (POSIX, quoted)'
 cat <<\END
 foo
 __IN__
@@ -383,6 +399,12 @@ syntax error: the here-document is not closed
 __ERR__
 : <<END
 END
+
+test_Oe -e 2 'missing newline and here-document delimiter (POSIX, quoted)' \
+    -c 'cat <<\END'
+__IN__
+sh -c:1: syntax error: here-document content is missing at the end of input
+__ERR__
 
 )
 
