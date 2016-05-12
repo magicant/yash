@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.42
+
+  =  Unclosed here-documents are now always rejected.
+
+----------------------------------------------------------------------
 Yash 2.41
 
   +  '--emptylastfield' option.

@@ -551,7 +551,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 
     and_or_T *r = parse_command_list(&ps, true);
 
-    if (posixly_correct && ps.pending_heredocs.length > 0)
+    if (ps.pending_heredocs.length > 0)
 	serror(&ps,
 		Ngt("here-document content is missing at the end of input"));
 
@@ -2473,8 +2473,7 @@ void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 	} else {
 	    /* encountered EOF before reading an end-of-contents marker! */
 	    linelen = ps->src.length - ps->index;
-	    if (posixly_correct)
-		serror(ps, Ngt("the here-document is not closed"));
+	    serror(ps, Ngt("the here-document is not closed"));
 	}
 	wb_ncat_force(&buf, &ps->src.contents[ps->index], linelen);
 	ps->index += linelen;
@@ -2507,8 +2506,7 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 	lastp = parse_string_without_quotes(ps, true, true, lastp);
 	if (ps->index == oldindex || ps->src.contents[ps->index - 1] != L'\n') {
 	    /* encountered EOF before reading an end-of-contents marker! */
-	    if (posixly_correct)
-		serror(ps, Ngt("the here-document is not closed"));
+	    serror(ps, Ngt("the here-document is not closed"));
 	    break;
 	}
     }
@@ -2527,7 +2525,7 @@ bool is_end_of_heredoc_contents(
 
     if (ps->src.contents[ps->index] == L'\0')
 	if (read_more_input(ps) != INPUT_OK)
-	    return !posixly_correct;
+	    return false;
     if (skiptab)
 	while (ps->src.contents[ps->index] == L'\t')
 	    ps->index++;
