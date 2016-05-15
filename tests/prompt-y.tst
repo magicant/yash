@@ -108,7 +108,8 @@ $
 ! !! $ 
 __ERR__
 
-# TODO: Test of \j, \$, \[, \], and \f is missing
+# TODO: Test of \j, \[, \], and \f is missing
+# \$ is tested in another test case below
 test_e 'backslash notations in PS1' -i +m
 PS1='\a \e \n \r $(printf \\\\)\ $'; echo >&2
 echo >&2; exit
@@ -118,7 +119,8 @@ $
   \ $
 __ERR__
 
-# TODO: Test of \j, \$, \[, \], and \f is missing
+# TODO: Test of \j, \[, \], and \f is missing
+# \$ is tested in another test case below
 test_e 'backslash notations in PS2' -i +m
 PS2='\a \e \n \r \\ >'; echo >&2
 \
@@ -128,6 +130,42 @@ $
 $   
   \ >
 __ERR__
+
+user_id="$(id -u)"
+
+(
+if [ "$user_id" -ne 0 ]; then
+    skip="true"
+fi
+
+test_e '\$ in PS1 and PS2 (root)' -i +m
+PS1='\$ ' PS2='\$_'; echo >&2
+e\
+c\
+ho >&2; exit
+__IN__
+$ 
+# #_#_
+__ERR__
+
+)
+
+(
+if [ "$user_id" -eq 0 ]; then
+    skip="true"
+fi
+
+test_e '\$ in PS1 and PS2 (non-root)' -i +m
+PS1='\$ ' PS2='\$_'; echo >&2
+e\
+c\
+ho >&2; exit
+__IN__
+$ 
+$ $_$_
+__ERR__
+
+)
 
 test_e 'prompt command' -i +m
 PROMPT_COMMAND='printf 1 >&2'; echo >&2
