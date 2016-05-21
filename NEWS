@@ -11,6 +11,7 @@ History of Yash
 Yash 2.42
 
   =  Unclosed here-documents are now always rejected.
+  =  A job-control shell now ignores SIGTTIN and SIGTTOU by default.
 
 ----------------------------------------------------------------------
 Yash 2.41

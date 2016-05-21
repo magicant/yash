@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@
 /* About the shell's signal handling:
  *
  * Yash always catches SIGCHLD.
- * When job control is active, SIGTSTP is ignored.
+ * When job control is active, SIGTTIN, SIGTTOU, and SIGTSTP are ignored.
  * If the shell is interactive, SIGTERM and SIGQUIT are ignored and SIGINT and
  * SIGWINCH are caught.
  * Trapped signals are also caught.
@@ -293,8 +293,8 @@ static volatile sig_atomic_t sigwinch_received;
 
 /* true iff SIGCHLD is handled. */
 static bool main_handler_set = false;
-/* true iff SIGTSTP is ignored. */
-static bool job_handler_set = false;
+/* true iff SIGTTIN, SIGTTOU, and SIGTSTP are ignored. */
+static bool job_handlers_set = false;
 /* true iff SIGTERM, SIGINT, SIGQUIT and SIGWINCH are ignored/handled. */
 static bool interactive_handlers_set = false;
 
@@ -314,8 +314,10 @@ void set_signals(void)
 {
     sigset_t block = trapped_signals;
 
-    if (!job_handler_set && doing_job_control_now) {
-	job_handler_set = true;
+    if (!job_handlers_set && doing_job_control_now) {
+	job_handlers_set = true;
+	set_special_handler(SIGTTIN, SIG_IGN);
+	set_special_handler(SIGTTOU, SIG_IGN);
 	set_special_handler(SIGTSTP, SIG_IGN);
     }
 
@@ -347,8 +349,10 @@ void set_signals(void)
  * If `leave' is false, the setting for SIGCHLD are not restored. */
 void restore_signals(bool leave)
 {
-    if (job_handler_set) {
-	job_handler_set = false;
+    if (job_handlers_set) {
+	job_handlers_set = false;
+	reset_special_handler(SIGTTIN, SIG_IGN, leave);
+	reset_special_handler(SIGTTOU, SIG_IGN, leave);
 	reset_special_handler(SIGTSTP, SIG_IGN, leave);
     }
     if (interactive_handlers_set) {
@@ -372,15 +376,19 @@ void restore_signals(bool leave)
     }
 }
 
-/* Re-sets the signal handler for SIGTSTP according to the current
- * `doing_job_control_now' and `job_handler_set'. */
+/* Re-sets the signal handler for SIGTTIN, SIGTTOU, and SIGTSTP according to the
+ * current `doing_job_control_now' and `job_handlers_set'. */
 void reset_job_signals(void)
 {
-    if (doing_job_control_now && !job_handler_set) {
-	job_handler_set = true;
+    if (doing_job_control_now && !job_handlers_set) {
+	job_handlers_set = true;
+	set_special_handler(SIGTTIN, SIG_IGN);
+	set_special_handler(SIGTTOU, SIG_IGN);
 	set_special_handler(SIGTSTP, SIG_IGN);
-    } else if (!doing_job_control_now && job_handler_set) {
-	job_handler_set = false;
+    } else if (!doing_job_control_now && job_handlers_set) {
+	job_handlers_set = false;
+	reset_special_handler(SIGTTIN, SIG_IGN, false);
+	reset_special_handler(SIGTTOU, SIG_IGN, false);
 	reset_special_handler(SIGTSTP, SIG_IGN, false);
     }
 }
@@ -870,8 +878,10 @@ void set_trap(int signum, const wchar_t *command)
 	    if (interactive_handlers_set)
 		return;
 	    break;
+	case SIGTTIN:
+	case SIGTTOU:
 	case SIGTSTP:
-	    if (job_handler_set)
+	    if (job_handlers_set)
 		goto default_ignore;
 	    break;
 	case SIGTERM:
@@ -905,7 +915,8 @@ bool is_ignored(int signum)
     if (signum == 0)
 	return false;
 
-    if (doing_job_control_now && signum == SIGTSTP)
+    if (doing_job_control_now &&
+	    (signum == SIGTTIN || signum == SIGTTOU || signum == SIGTSTP))
 	return sigismember(&ignored_signals, signum);
 
     struct sigaction action;

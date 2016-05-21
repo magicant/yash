@@ -30,9 +30,8 @@ __IN__
 __OUT__
 }
 
-# TODO: yash is not supporting POSIX.1-2013 yet
-#test_job_controlling_shell_signal_ignore "$LINENO" TTIN
-#test_job_controlling_shell_signal_ignore "$LINENO" TTOU
+test_job_controlling_shell_signal_ignore "$LINENO" TTIN
+test_job_controlling_shell_signal_ignore "$LINENO" TTOU
 test_job_controlling_shell_signal_ignore "$LINENO" TSTP
 
 test_oE 'traps are not handled until foreground job finishes'
