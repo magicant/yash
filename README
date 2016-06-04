@@ -50,9 +50,6 @@ See the "INSTALL" file to see how to build and install yash.
      0004=other read   0002=other write  0001=other execute
  * The character categorization in locales other than the POSIX locale
    is assumed upward compatible with the POSIX locale.
- * When the -e (-o errexit) option is set, failure of the last command
-   of an and/or list makes the shell exit. This behavior is not
-   strictly POSIX-compliant, but most existing shells behave this way.
  * The -o nolog option is not supported: it is silently ignored.
  * According to POSIX, the value of variable `PS1' is subject to
    parameter expansion. Yash performs command substitution and
