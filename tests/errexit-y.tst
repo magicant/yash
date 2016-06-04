@@ -19,12 +19,10 @@ case a in (${a?}) esac
 echo not reached
 __IN__
 
-test_o -e 0 'expansion error in for word' -i +m
+test_O -e n 'expansion error in for word' -i +m
 for i in ${a?}; do echo not reached; done
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
 test_O -e n 'redirection error on subshell'
 ( :; ) <_no_such_file_

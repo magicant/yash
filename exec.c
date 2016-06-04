@@ -408,6 +408,8 @@ void exec_for(const command_T *c, bool finally_exit)
 	/* expand the words between "in" and "do" of the for command. */
 	if (!expand_line(c->c_forwords, &count, &words)) {
 	    laststatus = Exit_EXPERROR;
+	    if (is_errexit_condition())
+		exit_shell_with_status(laststatus);
 	    goto finish;
 	}
     } else {
