@@ -143,8 +143,10 @@ static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
 static void exec_commands(command_T *c, exec_T type);
-static inline bool should_exit(const command_T *c)
-    __attribute__((nonnull));
+static bool is_errexit_condition(void)
+    __attribute__((pure));
+static inline bool is_errexit_condition_for(const command_T *c)
+    __attribute__((nonnull,pure));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static pid_t exec_process(
@@ -646,36 +648,20 @@ void exec_commands(command_T *c, exec_T type)
 
     handle_signals();
 
-    if (shopt_errexit && should_exit(c))
+    if (is_errexit_condition_for(c)) {
 	exit_shell_with_status(laststatus);
+    }
 
     comsfree(c);
 }
 
 /* Returns true if the shell should exit because of the `errexit' option. */
-bool should_exit(const command_T *c)
+bool is_errexit_condition(void)
 {
-    if (suppresserrexit)
+    if (!shopt_errexit || suppresserrexit)
 	return false;
     if (laststatus == Exit_SUCCESS)
 	return false;
-
-    /* If this is a multi-command pipeline, the commands are executed in
-     * subshells. Otherwise, we need to check the type of the command. */
-    if (c->next == NULL) {
-	switch (c->c_type) {
-	    case CT_SIMPLE:
-	    case CT_SUBSHELL:
-	    case CT_FUNCDEF:
-		break;
-	    case CT_GROUP:
-	    case CT_IF:
-	    case CT_FOR:
-	    case CT_WHILE:
-	    case CT_CASE:
-		return false;
-	}
-    }
 
 #if YASH_ENABLE_LINEEDIT
     if (le_state & LE_STATE_COMPLETING)
@@ -683,6 +669,33 @@ bool should_exit(const command_T *c)
 #endif
 
     return true;
+}
+
+/* Returns true if the shell should exit because of the `errexit' option. */
+bool is_errexit_condition_for(const command_T *c)
+{
+    if (!is_errexit_condition())
+	return false;
+
+    /* If this is a multi-command pipeline, the commands are executed in
+     * subshells. Otherwise, we need to check the type of the command. */
+    if (c->next != NULL)
+	return true;
+
+    switch (c->c_type) {
+	case CT_SIMPLE:
+	case CT_SUBSHELL:
+	case CT_FUNCDEF:
+	    return true;
+	case CT_GROUP:
+	case CT_IF:
+	case CT_FOR:
+	case CT_WHILE:
+	case CT_CASE:
+	    return false;
+    }
+
+    assert(false);
 }
 
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
