@@ -9,19 +9,15 @@
 
 setup 'set -e'
 
-test_o -e 0 'expansion error in case word' -i +m
+test_O -e n 'expansion error in case word' -i +m
 case ${a?} in (*) esac
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'expansion error in case pattern' -i +m
+test_O -e n 'expansion error in case pattern' -i +m
 case a in (${a?}) esac
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
 test_o -e 0 'expansion error in for word' -i +m
 for i in ${a?}; do echo not reached; done

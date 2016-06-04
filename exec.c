@@ -539,6 +539,8 @@ done:
 
 fail:
     laststatus = Exit_EXPERROR;
+    if (is_errexit_condition())
+	exit_shell_with_status(laststatus);
     goto done;
 }
 
