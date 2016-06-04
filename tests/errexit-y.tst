@@ -35,46 +35,34 @@ test_O -e n 'redirection error on subshell'
 echo not reached
 __IN__
 
-test_o -e 0 'redirection error on grouping'
+test_O -e n 'redirection error on grouping'
 { :; } <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'redirection error on for loop'
+test_O -e n 'redirection error on for loop'
 for i in i; do :; done <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'redirection error on case'
+test_O -e n 'redirection error on case'
 case i in esac <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'redirection error on if'
+test_O -e n 'redirection error on if'
 if :; then :; fi <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'redirection error on while loop'
+test_O -e n 'redirection error on while loop'
 while echo not reached; false; do :; done <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
-test_o -e 0 'redirection error on until loop'
+test_O -e n 'redirection error on until loop'
 until echo not reached; do :; done <_no_such_file_
-echo reached
+echo not reached
 __IN__
-reached
-__OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

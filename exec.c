@@ -811,6 +811,8 @@ pid_t exec_process(
     if (!open_redirections(c->c_redirs, &savefd)) {
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
+	if (is_errexit_condition())
+	    exit_shell_with_status(laststatus);
 	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
 		argc > 0 && is_special_builtin(argv0))
 	    finally_exit = true;
