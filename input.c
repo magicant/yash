@@ -97,11 +97,6 @@ inputresult_T read_input(
     size_t initlen = buf->length;
     inputresult_T status = INPUT_EOF;
 
-    if (trap) {
-	handle_signals();
-	reset_sigint();
-    }
-
     for (;;) {
 	if (info->bufpos >= info->bufmax) {
 read_input:  /* if there's nothing in the buffer, read the next input */

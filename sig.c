@@ -598,6 +598,9 @@ enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
 	return W_ERROR;
     }
 
+    if (trap)
+	sigint_received = false;
+
     ss = accept_sigmask;
     sigdelset(&ss, SIGCHLD);
     if (interactive_handlers_set) {
@@ -630,15 +633,20 @@ enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
 	fd_set fdset;
 	FD_ZERO(&fdset);
 	FD_SET(fd, &fdset);
-	if (pselect(fd + 1, &fdset, NULL, NULL, top, &ss) >= 0) {
-	    if (trap)
-		sigint_received = false;
+
+	int count = pselect(fd + 1, &fdset, NULL, NULL, top, &ss);
+
+	if (trap && sigint_received) {
+	    sigint_received = false;
+	    return W_INTERRUPTED;
+	}
+
+	if (count >= 0)
 	    return FD_ISSET(fd, &fdset) ? W_READY : W_TIMED_OUT;
-	} else {
-	    if (errno != EINTR) {
-		xerror(errno, "pselect");
-		return W_ERROR;
-	    }
+
+	if (errno != EINTR) {
+	    xerror(errno, "pselect");
+	    return W_ERROR;
 	}
     }
 }
@@ -1020,13 +1028,6 @@ void set_laststatus_if_interrupted(void)
 void set_interrupted(void)
 {
     sigint_received = true;
-}
-
-/* Resets the `sigint_received' flag. */
-/* This function should be called just after calling `handle_signals'. */
-void reset_sigint(void)
-{
-    sigint_received = false;
 }
 
 #if YASH_ENABLE_LINEEDIT

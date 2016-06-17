@@ -59,7 +59,6 @@ extern void phantomize_traps(void);
 extern _Bool is_interrupted(void);
 extern void set_laststatus_if_interrupted(void);
 extern void set_interrupted(void);
-extern void reset_sigint(void);
 #if YASH_ENABLE_LINEEDIT
 extern void reset_sigwinch(void);
 #endif
