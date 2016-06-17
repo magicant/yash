@@ -3,7 +3,7 @@ http://yash.osdn.jp/
 =======================
 
 
-Yash は POSIX.1 (IEEE Std 1003.1, 2008 Edition) 規格に (ほぼ) 準拠して
+Yash は POSIX.1 (IEEE Std 1003.1, 2013 Edition) 規格に (ほぼ) 準拠して
 いるコマンドラインシェルです。Bash や ksh などの他のシェルよりもより厳
 密に規格に準拠しています。
 

@@ -4,7 +4,7 @@ http://yash.osdn.jp/
 
 
 Yash is a command line shell that conforms to the POSIX.1 standard
-(IEEE Std 1003.1, 2008 Edition) for the most part. Actually, it is
+(IEEE Std 1003.1, 2013 Edition) for the most part. Actually, it is
 much more POSIX-compliant than other shell like bash and zsh.
 
 Yash also has its own features beyond POSIX, such as:
