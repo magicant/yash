@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,9 +105,15 @@ inputresult_T read_input(
     for (;;) {
 	if (info->bufpos >= info->bufmax) {
 read_input:  /* if there's nothing in the buffer, read the next input */
-	    ok = wait_for_input(info->fd, trap, -1);
-	    if (!ok)
-		goto end;
+	    switch (wait_for_input(info->fd, trap, -1)) {
+		case W_READY:
+		    break;
+		case W_TIMED_OUT:
+		    assert(false);
+		case W_ERROR:
+		    ok = false;
+		    goto end;
+	    }
 
 	    ssize_t readcount = read(info->fd, info->buf, info->bufsize);
 	    if (readcount < 0) switch (errno) {

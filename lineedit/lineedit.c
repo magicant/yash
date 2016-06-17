@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* lineedit.c: command line editing */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -199,41 +199,47 @@ void read_next(void)
     le_display_flush();
 
     /* wait for and read the next byte */
-    if (keycode_ambiguous)
-	timeout = !wait_for_input(
-		STDIN_FILENO, reader_trap, get_read_timeout());
-    else
-	wait_for_input(STDIN_FILENO, reader_trap, -1);
-    if (!timeout) {
-	switch (read(STDIN_FILENO, &c, 1)) {
-	    case 0:
-		incomplete_wchar = keycode_ambiguous = false;
-		le_editstate = LE_EDITSTATE_ERROR;
-		return;
-	    case 1:
-		break;
-	    case -1:
-		switch (errno) {
-		    case EAGAIN:
+    switch (wait_for_input(STDIN_FILENO, reader_trap,
+	    keycode_ambiguous ? get_read_timeout() : -1)) {
+	case W_READY:
+	    switch (read(STDIN_FILENO, &c, 1)) {
+		case 0:
+		    incomplete_wchar = keycode_ambiguous = false;
+		    le_editstate = LE_EDITSTATE_ERROR;
+		    return;
+		case 1:
+		    break;
+		case -1:
+		    switch (errno) {
+			case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
-		    case EWOULDBLOCK:
+			case EWOULDBLOCK:
 #endif
-		    case EINTR:
-			return;
-		    default:
-			xerror(errno, Ngt("cannot read input"));
-			incomplete_wchar = keycode_ambiguous = false;
-			le_editstate = LE_EDITSTATE_ERROR;
-			return;
-		}
-	    default:
-		assert(false);
-	}
-	if (has_meta_bit(c))
-	    sb_ccat(sb_ccat(&reader_first_buffer, ESCAPE_CHAR), c & ~META_BIT);
-	else
+			case EINTR:
+			    return;
+			default:
+			    xerror(errno, Ngt("cannot read input"));
+			    incomplete_wchar = keycode_ambiguous = false;
+			    le_editstate = LE_EDITSTATE_ERROR;
+			    return;
+		    }
+		default:
+		    assert(false);
+	    }
+	    if (has_meta_bit(c)) {
+		sb_ccat(&reader_first_buffer, ESCAPE_CHAR);
+		sb_ccat(&reader_first_buffer, c & ~META_BIT);
+	    } else {
 direct_first_buffer:
-	    sb_ccat(&reader_first_buffer, c);
+		sb_ccat(&reader_first_buffer, c);
+	    }
+	    break;
+	case W_TIMED_OUT:
+	    timeout = true;
+	    break;
+	case W_ERROR:
+	    le_editstate = LE_EDITSTATE_ERROR;
+	    return;
     }
 
     if (incomplete_wchar || le_next_verbatim)

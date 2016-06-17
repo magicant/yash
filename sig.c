@@ -583,10 +583,8 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
  * If `timeout' is negative, the wait time is unlimited.
  * If the wait is interrupted by a signal, this function will re-wait for the
  * specified timeout, which means that this function may wait for a time length
- * longer than the specified timeout.
- * This function returns true if the input is ready or false if an error
- * occurred or it timed out. */
-bool wait_for_input(int fd, bool trap, int timeout)
+ * longer than the specified timeout. */
+enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
 {
     sigset_t ss;
     struct timespec to;
@@ -595,7 +593,7 @@ bool wait_for_input(int fd, bool trap, int timeout)
     assert(fd >= 0);
     if (fd >= FD_SETSIZE) {
 	xerror(0, Ngt("too many files are opened for yash to handle"));
-	return false;
+	return W_ERROR;
     }
 
     ss = accept_sigmask;
@@ -629,11 +627,11 @@ bool wait_for_input(int fd, bool trap, int timeout)
 	if (pselect(fd + 1, &fdset, NULL, NULL, top, &ss) >= 0) {
 	    if (trap)
 		sigint_received = false;
-	    return FD_ISSET(fd, &fdset);
+	    return FD_ISSET(fd, &fdset) ? W_READY : W_TIMED_OUT;
 	} else {
 	    if (errno != EINTR) {
 		xerror(errno, "pselect");
-		return false;
+		return W_ERROR;
 	    }
 	}
     }

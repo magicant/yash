@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.h: signal handling */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,12 @@ extern void stop_myself(void);
 
 extern void handle_signals(void);
 extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
-extern _Bool wait_for_input(int fd, _Bool trap, int timeout);
+
+enum wait_for_input_T {
+    W_READY, W_TIMED_OUT, /*W_INTERRUPTED,*/ W_ERROR,
+};
+
+extern enum wait_for_input_T wait_for_input(int fd, _Bool trap, int timeout);
 
 extern int handle_traps(void);
 extern void execute_exit_trap(void);
