@@ -237,6 +237,9 @@ direct_first_buffer:
 	case W_TIMED_OUT:
 	    timeout = true;
 	    break;
+	case W_INTERRUPTED:
+	    le_editstate = LE_EDITSTATE_INTERRUPTED;
+	    return;
 	case W_ERROR:
 	    le_editstate = LE_EDITSTATE_ERROR;
 	    return;

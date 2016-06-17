@@ -578,7 +578,9 @@ int wait_for_sigchld(bool interruptible, bool return_on_trap)
  * `handle_sigchld' and `handle_sigwinch' are called to handle SIGCHLD and
  * SIGWINCH that are caught while waiting.
  * If `trap' is true, traps are also handled while waiting and the
- * `sigint_received' flag is cleared when this function returns.
+ * `sigint_received' flag is cleared when this function returns. The return
+ * value can be W_INTERRUPTED only if `trap' is true. Any SIGINT received before
+ * entering this function is ignored.
  * The maximum time length of wait is specified by `timeout' in milliseconds.
  * If `timeout' is negative, the wait time is unlimited.
  * If the wait is interrupted by a signal, this function will re-wait for the
@@ -620,6 +622,10 @@ enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
 #if YASH_ENABLE_LINEEDIT && defined SIGWINCH
 	handle_sigwinch();
 #endif
+	if (trap && sigint_received) {
+	    sigint_received = false;
+	    return W_INTERRUPTED;
+	}
 
 	fd_set fdset;
 	FD_ZERO(&fdset);

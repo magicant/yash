@@ -12,6 +12,7 @@ Yash 2.42
 
   =  Unclosed here-documents are now always rejected.
   =  A job-control shell now ignores SIGTTIN and SIGTTOU by default.
+  =  Line-editing can now be interrupted by SIGINT.
 
 ----------------------------------------------------------------------
 Yash 2.41

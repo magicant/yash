@@ -95,7 +95,7 @@ inputresult_T read_input(
 	xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
 {
     size_t initlen = buf->length;
-    bool ok = true;
+    inputresult_T status = INPUT_EOF;
 
     if (trap) {
 	handle_signals();
@@ -110,8 +110,14 @@ read_input:  /* if there's nothing in the buffer, read the next input */
 		    break;
 		case W_TIMED_OUT:
 		    assert(false);
+		case W_INTERRUPTED:
+		    // Ignore interruption and continue reading, because:
+		    //  1) POSIX does not require to do so, and
+		    //  2) the buffer for canonical-mode editing cannot be
+		    //     controlled from the shell.
+		    goto read_input;
 		case W_ERROR:
-		    ok = false;
+		    status = INPUT_ERROR;
 		    goto end;
 	    }
 
@@ -157,14 +163,12 @@ read_input:  /* if there's nothing in the buffer, read the next input */
 
 error:
     xerror(errno, Ngt("cannot read input"));
-    ok = false;
+    status = INPUT_ERROR;
 end:
     if (initlen != buf->length)
 	return INPUT_OK;
-    else if (ok)
-	return INPUT_EOF;
     else
-	return INPUT_ERROR;
+	return status;
 }
 
 /* An input function that prints a prompt and reads input.

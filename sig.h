@@ -47,7 +47,7 @@ extern void handle_signals(void);
 extern int wait_for_sigchld(_Bool interruptible, _Bool return_on_trap);
 
 enum wait_for_input_T {
-    W_READY, W_TIMED_OUT, /*W_INTERRUPTED,*/ W_ERROR,
+    W_READY, W_TIMED_OUT, W_INTERRUPTED, W_ERROR,
 };
 
 extern enum wait_for_input_T wait_for_input(int fd, _Bool trap, int timeout);
