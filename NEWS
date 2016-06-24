@@ -14,6 +14,9 @@ Yash 2.42
   =  Unclosed here-documents are now always rejected.
   =  A job-control shell now ignores SIGTTIN and SIGTTOU by default.
   =  Line-editing can now be interrupted by SIGINT.
+  =  The "-o errexit" option is now applied to redirection errors on
+     compound commands and expansion errors in the for and case
+     commands.
 
 ----------------------------------------------------------------------
 Yash 2.41
