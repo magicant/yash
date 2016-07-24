@@ -1847,7 +1847,7 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
 /* Parses a command substitution enclosed by backquotes.
  * When this function is called, the current position must be at the character
  * that just follows the opening backquote L'`'. This function advances the
- * position to the character that just follows the closing backquote L'~'. */
+ * position to the character that just follows the closing backquote L'`'. */
 wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
 {
     xwcsbuf_T buf;
