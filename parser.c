@@ -446,7 +446,7 @@ static wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
 static void skip_to_next_single_quote(parsestate_T *ps)
     __attribute__((nonnull));
-static wordunit_T *parse_special_word_unit(parsestate_T *ps)
+static wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -458,7 +458,7 @@ static embedcmd_T extract_command_in_paren(parsestate_T *ps)
     __attribute__((nonnull,warn_unused_result));
 static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
+static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1456,7 +1456,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
 	case L'$':
 	case L'`':
 	    MAKE_WORDUNIT_STRING;
-	    wordunit_T *wu = parse_special_word_unit(ps);
+	    wordunit_T *wu = parse_special_word_unit(ps, indq);
 	    startindex = ps->index;
 	    if (wu != NULL) {
 		*lastp = wu;
@@ -1524,8 +1524,9 @@ void skip_to_next_single_quote(parsestate_T *ps)
  * or substitution.
  * If the character at the current position is '$' but it is not an expansion,
  * the position is not moved and the return value is NULL. Otherwise, The
- * position is advanced by at least one character. */
-wordunit_T *parse_special_word_unit(parsestate_T *ps)
+ * position is advanced by at least one character.
+ * Between double quotes, `indq' must be true. */
+wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
 {
     switch (ps->src.contents[ps->index++]) {
     case L'$':
@@ -1544,7 +1545,7 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps)
 	    return tryparse_paramexp_raw(ps);
 	}
     case L'`':
-	return parse_cmdsubst_in_backquote(ps);
+	return parse_cmdsubst_in_backquote(ps, indq);
     default:
 	assert(false);
     }
@@ -1634,7 +1635,7 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
 		    && (ps->src.contents[ps->index + 1] == L'{'
 			|| ps->src.contents[ps->index + 1] == L'(')))) {
 	size_t neststartindex = ps->index;
-	pe->pe_nest = parse_special_word_unit(ps);
+	pe->pe_nest = parse_special_word_unit(ps, false);
 	if (ps->index != neststartindex)
 	    pe->pe_type |= PT_NEST;
 	else
@@ -1847,8 +1848,10 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
 /* Parses a command substitution enclosed by backquotes.
  * When this function is called, the current position must be at the character
  * that just follows the opening backquote L'`'. This function advances the
- * position to the character that just follows the closing backquote L'`'. */
-wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
+ * position to the character that just follows the closing backquote L'`'.
+ * If `bsbq' is true, backslash-escaped backquotes are handled; otherwise, they
+ * are left intact. */
+wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
 {
     xwcsbuf_T buf;
     wordunit_T *result = xmalloc(sizeof *result);
@@ -1873,6 +1876,10 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps)
 	    switch (ps->src.contents[ps->index]) {
 		case L'$':  case L'`':  case L'\\':
 		    goto default_;
+		case L'"':
+		    if (bsbq)
+			goto default_;
+		    /* falls thru! */
 		default:
 		    wb_wccat(&buf, L'\\');
 		    continue;
@@ -1922,7 +1929,7 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	case L'$':
 	case L'`':
 	    MAKE_WORDUNIT_STRING;
-	    wordunit_T *wu = parse_special_word_unit(ps);
+	    wordunit_T *wu = parse_special_word_unit(ps, false);
 	    startindex = ps->index;
 	    if (wu != NULL) {
 		*lastp = wu;
@@ -2604,7 +2611,7 @@ wordunit_T **parse_string_without_quotes(
 	    /* falls thru! */
 	case L'$':
 	    MAKE_WORDUNIT_STRING;
-	    wordunit_T *wu = parse_special_word_unit(ps);
+	    wordunit_T *wu = parse_special_word_unit(ps, true);
 	    startindex = ps->index;
 	    if (wu != NULL) {
 		*lastp = wu;

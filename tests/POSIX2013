@@ -12,6 +12,7 @@ Volume 3: Shell & Utilities
 
 2.2 Quoting
  * quote-p.tst
+ * cmdsub-p.tst
 
 2.3 Token Recognition
  * comment-p.tst

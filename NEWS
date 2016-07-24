@@ -17,6 +17,9 @@ Yash 2.42
   =  The "-o errexit" option is now applied to redirection errors on
      compound commands and expansion errors in the for and case
      commands.
+  *  In backquoted command substitutions that occur in double quotes,
+     backslashes that escape a double quote are now handled before the
+     containing command is parsed.
 
 ----------------------------------------------------------------------
 Yash 2.41

@@ -80,15 +80,26 @@ test_oE 'quotations in backquotes in double quotes'
 echoraw "`echoraw "a"'b'`"
 echoraw "`echoraw \$ "\$" '\$'`"
 echoraw "`echoraw \\\\ "\\\\" '\\\\'`"
-#echoraw "`echoraw \"1\"`"
+echoraw "`echoraw \"1\"`"
 echoraw "`echoraw \'2\'`"
 echoraw "`echoraw \`echo a\` "\`echo b\`" '\`echo c\`'`"
 __IN__
 ab
 $ $ $
 \ \ \\
+1
 '2'
 a b `echo c`
+__OUT__
+
+test_oE 'quotations in backquotes in here-document'
+cat <<END
+`echoraw \"1\"`
+" `echoraw \"2\"` "
+END
+__IN__
+1
+" 2 "
 __OUT__
 
 test_oE 'quotations in command substitution'
