@@ -62,8 +62,33 @@ __OUT__
 
 test_oE 'quotations in backquotes'
 echoraw `echoraw "a"'b'`
+echoraw `echoraw \$ "\$" '\$'`
+echoraw `echoraw \\\\ "\\\\" '\\\\'`
+echoraw `echoraw \" "\"" '\"'`
+echoraw `echoraw \' "\'"`
+echoraw `echoraw \`echo a\` "\`echo b\`" '\`echo c\`'`
 __IN__
 ab
+$ $ $
+\ \ \\
+" " \"
+' \'
+a b `echo c`
+__OUT__
+
+test_oE 'quotations in backquotes in double quotes'
+echoraw "`echoraw "a"'b'`"
+echoraw "`echoraw \$ "\$" '\$'`"
+echoraw "`echoraw \\\\ "\\\\" '\\\\'`"
+#echoraw "`echoraw \"1\"`"
+echoraw "`echoraw \'2\'`"
+echoraw "`echoraw \`echo a\` "\`echo b\`" '\`echo c\`'`"
+__IN__
+ab
+$ $ $
+\ \ \\
+'2'
+a b `echo c`
 __OUT__
 
 test_oE 'quotations in command substitution'
