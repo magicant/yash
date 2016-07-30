@@ -115,6 +115,9 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 [[so-nullglob]]null-glob::
 このオプションが有効な時、link:expand.html#glob[パス名展開]でマッチするパス名がないとき元のパターンは残りません。
 
+[[so-pipefail]]pipe-fail::
+このオプションが有効な時、link:syntax.html#pipelines[パイプライン]の全てのコマンドの終了ステータスが 0 の時のみパイプラインの終了ステータスが 0 になります。
+
 [[so-posixlycorrect]]posixly-correct::
 このオプションは link:posix.html[POSIX 準拠モード]を有効にします。
 

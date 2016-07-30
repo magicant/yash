@@ -618,7 +618,14 @@ int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:
-	return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
+	if (!shopt_pipefail)
+	    return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
+	for (size_t i = job->j_pcount; i-- > 0; ) {
+	    int status = calc_status_of_process(&job->j_procs[i]);
+	    if (status != Exit_SUCCESS)
+		return status;
+	}
+	return Exit_SUCCESS;
     case JS_STOPPED:
 	for (size_t i = job->j_pcount; i-- > 0; ) {
 	    if (job->j_procs[i].pr_status == JS_STOPPED)

@@ -763,6 +763,7 @@ Options:
 	-b       -o notify
 	         -o notifyle
 	         -o nullglob
+	         -o pipefail
 	         -o posixlycorrect
 	-s       -o stdin
 	         -o traceall

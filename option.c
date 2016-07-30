@@ -93,6 +93,11 @@ bool shopt_hashondef = false;
 /* If set, when a command returns a non-zero status, the shell exits.
  * Corresponds to the -e/--errexit option. */
 bool shopt_errexit = false;
+/* If set, the last non-zero exit status in a pipeline becomes the exit status
+ * of the whole pipeline. Otherwise, the last command in the pipeline always
+ * defines the exit status of the whole pipeline. Corresponds to the --pipefail
+ * option. */
+bool shopt_pipefail = false;
 /* If set, undefined variables are expanded to an empty string.
  * Corresponds to the +u/--unset option. */
 bool shopt_unset = true;
@@ -229,6 +234,7 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"notifyle",       &shopt_notifyle,       true, },
 #endif
     { 0,    0,    L"nullglob",       &shopt_nullglob,       true, },
+    { 0,    0,    L"pipefail",       &shopt_pipefail,       true, },
     { 0,    0,    L"posixlycorrect", &posixly_correct,      true, },
     { L's', 0,    L"stdin",          &shopt_stdin,          false, },
     { 0,    0,    L"traceall",       &shopt_traceall,       true, },

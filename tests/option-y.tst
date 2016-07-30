@@ -148,6 +148,27 @@ __OUT__
 
 )
 
+test_OE -e 0 'pipefail on: single command successful pipe' --pipefail
+true
+__IN__
+
+test_OE -e 13 'pipefail on: single command unsuccessful pipe' --pipefail
+(exit 13)
+__IN__
+
+test_OE -e 0 'pipefail on: multi-command successful pipe' --pipefail
+true | true | true | true
+__IN__
+
+test_OE -e 7 'pipefail on: multi-command unsuccessful pipe' --pipefail
+true | exit 2 | true | exit 7 | true | true
+__IN__
+
+test_OE -e 7 'pipefail on: multi-command unsuccessful pipe in subshell' \
+    --pipefail
+(true | exit 2 | true | exit 7 | true | true)
+__IN__
+
 test_oE 'traceall on: effect' --traceall
 exec 2>&1
 COMMAND_NOT_FOUND_HANDLER='echo not found $* >&2; HANDLED=1'

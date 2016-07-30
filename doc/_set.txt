@@ -169,6 +169,11 @@ When enabled, in link:expand.html#glob[pathname expansion], patterns that do
 not match any pathname are removed from the command line rather than left as
 is.
 
+[[so-pipefail]]pipe-fail::
+When enabled, the exit status of a link:syntax.html#pipelines[pipeline] is
+zero if and only if all the subcommands of the pipeline exit with an exit
+status of zero.
+
 [[so-posixlycorrect]]posixly-correct::
 This option enables the link:posix.html[POSIXly-correct mode].
 

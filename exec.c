@@ -302,7 +302,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	suppresserrexit |= p->pl_neg || p->next != NULL;
 
 	bool self = finally_exit && !doing_job_control_now
-	    && !p->next && !p->pl_neg && !any_trap_set;
+	    && !p->next && !p->pl_neg && !any_trap_set && !shopt_pipefail;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
 	if (p->pl_neg) {
 	    if (laststatus == Exit_SUCCESS)

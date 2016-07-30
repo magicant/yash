@@ -197,6 +197,7 @@ test_long_option_default_off "$LINENO" markdirs
 # The monitor option cannot be tested here due to dependency on the terminal.
 test_long_option_default_off "$LINENO" notify
 test_long_option_default_off "$LINENO" nullglob
+test_long_option_default_off "$LINENO" pipefail
 # This needs a special test (see below)
 #test_long_option_default_off "$LINENO" posixlycorrect
 test_long_option_default_on  "$LINENO" traceall
@@ -406,6 +407,7 @@ markdirs        off
 monitor         off
 notify          off
 nullglob        off
+pipefail        off
 posixlycorrect  off
 stdin           on
 traceall        on
@@ -456,6 +458,7 @@ set +o markdirs
 set +o monitor
 set +o notify
 set +o nullglob
+set +o pipefail
 set +o posixlycorrect
 set -o traceall
 set -o unset
