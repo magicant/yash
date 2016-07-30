@@ -21,12 +21,6 @@ __IN__
 printed
 __OUT__
 
-test_oE 'caseglob is on by default'
-set +o | grep 'caseglob$'
-__IN__
-set -o caseglob
-__OUT__
-
 >Caseglob1 >caseglob2
 
 test_oE 'caseglob on: effect' --caseglob
@@ -41,12 +35,6 @@ echo Caseglob*
 __IN__
 Caseglob1 caseglob2
 Caseglob1 caseglob2
-__OUT__
-
-test_oE 'dotglob is off by default'
-set +o | grep 'dotglob$'
-__IN__
-set +o dotglob
 __OUT__
 
 (
@@ -76,12 +64,6 @@ __OUT__
 
 )
 
-test_oE 'markdirs is off by default'
-set +o | grep 'markdirs$'
-__IN__
-set +o markdirs
-__OUT__
-
 (
 mkdir markdirs
 cd markdirs
@@ -105,12 +87,6 @@ directory regular
 __OUT__
 
 )
-
-test_oE 'extendedglob is off by default'
-set +o | grep 'extendedglob$'
-__IN__
-set +o extendedglob
-__OUT__
 
 (
 mkdir extendedglob
@@ -151,12 +127,6 @@ __OUT__
 
 )
 
-test_oE 'nullglob is off by default'
-set +o | grep 'nullglob$'
-__IN__
-set +o nullglob
-__OUT__
-
 mkdir nullglob
 >nullglob/xxx
 
@@ -177,12 +147,6 @@ __IN__
 __OUT__
 
 )
-
-test_oE 'traceall is on by default'
-set +o | grep 'traceall$'
-__IN__
-set -o traceall
-__OUT__
 
 test_oE 'traceall on: effect' --traceall
 exec 2>&1
@@ -206,12 +170,6 @@ __IN__
 no/such/command
 + no/such/command
 not found no/such/command
-__OUT__
-
-test_oE 'posixlycorrect is off by default'
-set +o | grep 'posixlycorrect$'
-__IN__
-set +o posixlycorrect
 __OUT__
 
 test_x -e 0 'abbreviation of -o argument' -o allex
