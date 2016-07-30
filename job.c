@@ -59,6 +59,8 @@ static size_t find_next_job(size_t numlimit);
 static void apply_curstop(void);
 static int calc_status(int status)
     __attribute__((const));
+static inline int calc_status_of_process(const process_T *p)
+    __attribute__((nonnull,pure));
 static wchar_t *get_job_name(const job_T *job)
     __attribute__((nonnull,warn_unused_result));
 static char *get_process_status_string(const process_T *p, bool *needfree)
@@ -602,16 +604,21 @@ int calc_status(int status)
     assert(false);
 }
 
+/* Computes the exit status of the specified process.
+ * The process state must be JS_DONE or JS_STOPPED. */
+int calc_status_of_process(const process_T *p)
+{
+    int s = p->pr_statuscode;
+    return (p->pr_pid == 0) ? s : calc_status(s);
+}
+
 /* Computes the exit status of the specified job.
  * The job state must be JS_DONE or JS_STOPPED. */
 int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:
-	if (job->j_procs[job->j_pcount - 1].pr_pid != 0)
-	    return calc_status(job->j_procs[job->j_pcount - 1].pr_statuscode);
-	else
-	    return job->j_procs[job->j_pcount - 1].pr_statuscode;
+	return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
     case JS_STOPPED:
 	for (int i = job->j_pcount; --i >= 0; ) {
 	    if (job->j_procs[i].pr_status == JS_STOPPED)
