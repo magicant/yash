@@ -620,7 +620,7 @@ int calc_status_of_job(const job_T *job)
     case JS_DONE:
 	return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
     case JS_STOPPED:
-	for (int i = job->j_pcount; --i >= 0; ) {
+	for (size_t i = job->j_pcount; i-- > 0; ) {
 	    if (job->j_procs[i].pr_status == JS_STOPPED)
 		return calc_status(job->j_procs[i].pr_statuscode);
 	}
