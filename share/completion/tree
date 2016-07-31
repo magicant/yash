@@ -58,7 +58,7 @@ function completion/tree {
 	"--version"
 	) #<#
 
-	command -f completion//parseoptions
+	command -f completion//parseoptions -en
 	case $ARGOPT in
 	(-)
 		command -f completion//completeoptions
