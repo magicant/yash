@@ -1,0 +1,94 @@
+# (C) 2016 magicant
+
+# Completion script for the "tree" command.
+# Supports tree 1.7.0.
+
+function completion/tree {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"A; enable ANSI line graphics hack for indentation"
+	"a; print all files (including dot-starting filenames)"
+	"C; print filenames in color"
+	"c; print or sort by last status change time"
+	"--charset:; specify a character set to print in"
+	"D; prepend last modified time to filenames"
+	"d; print directories only"
+	"--device; prepend device number to filenames"
+	"--dirsfirst; list directories before other files"
+	"--du; print the total sizes of directories"
+	"F; append symbols indicating file type"
+	"f; print pathnames instead of filenames"
+	"--filelimit:; don't descend directories with more than the specified number of files"
+	"g; prepend group name to filenames"
+	"H:; print in HTML with the specified base URL"
+	"h; print size using K, M, etc. for 1024^n"
+	"I:; specify a pattern to exclude from printed filenames"
+	"i; don't indent filenames"
+	"--ignore-case; make pattern matching case-insensitive (with -I/-P)"
+	"--inodes; prepend inode number to filenames"
+	"J; print in JSON"
+	"L:; specify directory depth to limit printing"
+	"l; follow all symbolic links"
+	"--matchdirs; apply patterns to directory names as well as file names"
+	"N; print unprintable characters as is"
+	"n; disable colored output"
+	"--nolinks; disable hyperlinks in HTML output"
+	"--noreport; don't print count of directories and files"
+	"o:; specify a file to print to"
+	"P:; specify a pattern to filter printed filenames"
+	"p; prepend permissions to filenames"
+	"--prune; exclude empty directories"
+	"Q; double-quote filenames"
+	"q; print unprintable characters as ?"
+	"r; sort in reverse order"
+	"S; like --charset=IBM437"
+	"s; prepend file size to filenames"
+	"--si; print size using k, M, etc. for 1000^n"
+	"--sort::; specify a sort key"
+	"T:; specify a title for HTML output"
+	"t; sort by last modified time"
+	"--timefmt:; specify a format for printing date"
+	"U; don't sort"
+	"u; prepend user name to filenames"
+	"v; sort filenames regarding as version numbers"
+	"X; print in XML"
+	"x; don't search different file systems"
+	"--help"
+	"--version"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	([HL]|--filelimit)
+		;;
+	(--charset)
+		# TODO --charset
+		;;
+	(--sort) #>>#
+		complete -P "$PREFIX" name size
+		complete -P "$PREFIX" -D "last status change time" ctime
+		complete -P "$PREFIX" -D "last modified time" mtime
+		complete -P "$PREFIX" -D "name as version number" version
+		;; #<<#
+	(--timefmt)
+		if command -vf completion//completestrftime >/dev/null 2>&1 ||
+				. -AL completion/date; then
+			command -f completion//completestrftime
+		fi
+		;;
+	('')
+		complete -P "$PREFIX" -S / -T -d
+		;;
+	(*)
+		complete -P "$PREFIX" -f
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
