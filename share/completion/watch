@@ -1,0 +1,40 @@
+# (C) 2016 magicant
+
+# Completion script for the "watch" command.
+# Supports procps-ng 3.3.10.
+
+function completion/watch {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=(
+	"b --beep; beep when the command returns a non-zero exit status"
+	"c --color; interpret ANSI color sequences"
+	"d:: --differences::; highlight the differences from previous output"
+	"e --errexit; stop when the command returns a non-zero exit status"
+	"g --chgexit; exit when command output differs from the previous"
+	"h --help; print help"
+	"n: --interval:; specify update interval in seconds"
+	"p --precise; keep update interval precise"
+	"t --no-title; turn off the header"
+	"v --version; print version info"
+	"x --exec; don't interpret operands as shell script"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	(d|--differences)
+		complete -P "$PREFIX" permanent
+		;;
+	('')
+		command -f completion//getoperands
+		command -f completion//reexecute -e
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
