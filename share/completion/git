@@ -1,19 +1,25 @@
 # (C) 2011-2016 magicant
 
 # Completion script for the "git" command.
-# Supports Git 1.7.7.
+# Supports Git 2.9.2.
 
 function completion/git {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
+	"C:; specify a directory to operate in"
 	"c:; specify a configuration parameter"
 	"--bare; treat the repository as a bare repository"
 	"--exec-path::; specify or print the directory containing core git executables"
 	"--git-dir:; specify the repository directory"
+	"--glob-pathspecs; enable globbing on all path-specs"
 	"--html-path; print the directory where HTML documentation is installed"
+	"--icase-pathspecs; treat path-specs case-insensitively"
 	"--info-path; print the directory where info manuals are installed"
+	"--literal-pathspecs; treat path-specs literally"
 	"--man-path; print the directory where manual pages are installed"
+	"--namespace:; specify a namespace"
+	"--noglob-pathspecs; disable globbing on all path-specs"
 	"p --paginate; run a pager to view Git's output"
 	"--no-pager; don't run a pager to view Git's output"
 	"--no-replace-objects; don't use replacement refs"
@@ -52,7 +58,7 @@ function completion/git {
 				command -f completion//git::completeoptionname =
 			fi
 			;;
-		(--exec-path|--git-dir|--work-tree)
+		(C|--exec-path|--git-dir|--work-tree)
 			complete -P "$PREFIX" -S / -T -d
 			;;
 		('')
