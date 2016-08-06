@@ -38,14 +38,13 @@ function completion/git::rev-list:arg {
 function completion/git::rev-list:getopt {
 	command -f completion/git::getorderopts
 	command -f completion/git::getprettyopts
+	command -f completion/git::getrefselectopts
 	OPTIONS=("$OPTIONS" #>#
 	"--ancestry-path"
-	"--all; print all commits reachable from any refs"
 	"--all-match; show commits that match all the other filter options only"
 	"--after: --since:; show commits after the specified date only"
 	"--author:; show commits by the specified author only"
 	"--before: --until:; show commits before the specified date only"
-	"--branches::; print all (or specified) branches"
 	"--cherry; like --right-only --cherry-mark --no-merges"
 	"--cherry-mark; like --cherry-pick, but mark commits"
 	"--cherry-pick; omit commits duplicated by cherry-picking"
@@ -58,7 +57,6 @@ function completion/git::rev-list:getopt {
 	"--first-parent; follow first parent of each commit only"
 	"F --fixed-strings; perform simple string matching rather than regular expression"
 	"--full-history"
-	"--glob:; show refs that match the specified pattern"
 	"--graph; print commit ancestry tree graph"
 	"--grep:; show commits whose log message matches the specified pattern only"
 	"--ignore-missing; ignore nonexistent refs"
@@ -81,7 +79,6 @@ function completion/git::rev-list:getopt {
 	"--quiet; print nothing"
 	"i --regexp-ignore-case; case-insensitive regular expression matching"
 	"--relative-date; like --date=relative"
-	"--remotes::; print all (or specified) remote refs"
 	"--remove-empty; stop when a given path disappears from the tree"
 	"--reverse; print in reverse order"
 	"--right-only; show commits on the right-hand-side branch only"
@@ -89,7 +86,6 @@ function completion/git::rev-list:getopt {
 	"--simplify-merges"
 	"--sparse"
 	"--stdin; read arguments from the standard input"
-	"--tags::; print all (or specified) tags"
 	"--unpacked; print object IDs that are not in packs"
 	"g --walk-reflogs; show reflogs instead of ancestry chain"
 	) #<#
@@ -109,9 +105,6 @@ function completion/git::rev-list:compopt
 		(--after|--before|--since|--until)
 			# TODO complete date
 			;;
-		(--branches)
-			command -f completion/git::completeref --branches
-			;;
 		(--committer)
 			typeset committer
 			while read -r committer; do
@@ -119,17 +112,9 @@ function completion/git::rev-list:compopt
 			done 2>/dev/null \
 				<(git log --all --format=format:%cn | uniq)
 			;;
-		(--glob)
-			command -f completion/git::completeref
-			;;
-		(--remotes)
-			command -f completion/git::completeref --remotes
-			;;
-		(--tags)
-			command -f completion/git::completeref --tags
-			;;
 		(*)
-			command -f completion/git::completeprettyopts
+			command -f completion/git::completeprettyopts ||
+			command -f completion/git::completerefselectopts
 			;;
 	esac
 

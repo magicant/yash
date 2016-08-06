@@ -579,6 +579,35 @@ function completion/git::completeprettyopts {
 	esac
 }
 
+function completion/git::getrefselectopts {
+	OPTIONS=("$OPTIONS" #>#
+	"--all; print all commits reachable from any refs"
+	"--branches::; print all (or specified) branches"
+	"--glob:; show refs that match the specified pattern"
+	"--remotes::; print all (or specified) remote refs"
+	"--tags::; print all (or specified) tags"
+	) #<#
+}
+
+function completion/git::completerefselectopts
+	case $ARGOPT in
+		(--branches)
+			command -f completion/git::completeref --branches
+			;;
+		(--glob)
+			command -f completion/git::completeref
+			;;
+		(--remotes)
+			command -f completion/git::completeref --remotes
+			;;
+		(--tags)
+			command -f completion/git::completeref --tags
+			;;
+		(*)
+			return 1
+			;;
+	esac
+
 function completion/git::--author:arg {
 	typeset author
 	while read -r author; do
