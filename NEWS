@@ -12,7 +12,8 @@ Yash 2.42
 
   +  '--pipefail' option.
   +  New completion script for: git-rev-parse, tree, watch
-  +  Updated completion script for: git, git-bisect (Git 2.9.2).
+  +  Updated completion script for: git, git-bisect, git-rev-list
+     (Git 2.9.2).
   =  Yash now supports the 2013 edition of POSIX.1-2008.
   =  Unclosed here-documents are now always rejected.
   =  A job-control shell now ignores SIGTTIN and SIGTTOU by default.

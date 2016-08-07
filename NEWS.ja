@@ -12,7 +12,8 @@ Yash 2.42
 
   +  '--pipefail' オプション
   +  補完スクリプトを追加: git-rev-parse, tree, watch
-  +  補完スクリプトを更新: git, git-bisect (Git 2.9.2).
+  +  補完スクリプトを更新: git, git-bisect, git-rev-list
+     (Git 2.9.2).
   =  POSIX.1-2008 の 2013 年版に準拠
   =  閉じられていないヒアドキュメントを常にエラーにするようになった
   =  ジョブ制御有効なシェルはデフォルトで SIGTTIN と SIGTTOU を
