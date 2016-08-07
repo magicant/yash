@@ -544,7 +544,8 @@ function completion/git::completeremote {
 
 function completion/git::getorderopts {
 	OPTIONS=("$OPTIONS" #>#
-	"--date-order; sort commits by date while keeping children before parent"
+	"--author-date-order; sort commits by author date while keeping children before parent"
+	"--date-order; sort commits by commit date while keeping children before parent"
 	"--topo-order; show in topological order"
 	) #<#
 }
@@ -583,6 +584,7 @@ function completion/git::getrefselectopts {
 	OPTIONS=("$OPTIONS" #>#
 	"--all; print all commits reachable from any refs"
 	"--branches::; print all (or specified) branches"
+	"--exclude:; ignore refs that match the specified pattern"
 	"--glob:; show refs that match the specified pattern"
 	"--remotes::; print all (or specified) remote refs"
 	"--tags::; print all (or specified) tags"
@@ -594,7 +596,7 @@ function completion/git::completerefselectopts
 		(--branches)
 			command -f completion/git::completeref --branches
 			;;
-		(--glob)
+		(--exclude|--glob)
 			command -f completion/git::completeref
 			;;
 		(--remotes)
@@ -634,13 +636,17 @@ function completion/git::--column:arg { #>>#
 
 function completion/git::--date:arg { #>>#
 	complete -P "$PREFIX" -D "print relative time like \"2 hours ago\"" relative
-	complete -P "$PREFIX" -D "print in local timezone" local
 	complete -P "$PREFIX" -D "print in original timezone" default
-	complete -P "$PREFIX" -D "print in ISO 8601 format" iso8601
+	complete -P "$PREFIX" -D "print in customized ISO 8601 format" iso8601
+	complete -P "$PREFIX" -D "print in strict ISO 8601 format" iso8601-strict
 	complete -P "$PREFIX" -D "print in RFC 2822 format" rfc2822
 	complete -P "$PREFIX" -D "print in YYYY-MM-DD format" short
 	complete -P "$PREFIX" -D "print the raw timestamp value" raw
+	complete -P "$PREFIX" local relative-local default-local iso8601-local \
+		iso8601-strict-local rfc2822-local short-local raw-local
+	complete -P "$PREFIX" -D "specify a format" -T format:
 } #<<#
+# TODO --date=format:...%
 
 function completion/git::--format:arg {
 	typeset word="${TARGETWORD#"$PREFIX"}"

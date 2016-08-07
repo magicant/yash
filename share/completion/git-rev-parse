@@ -16,7 +16,6 @@ function completion/git::rev-parse:arg {
 	"--before: --until:; convert the specified date to --mim-age timestamp"
 	"--default; specify a default argument"
 	"--disambiguate:; show all SHA-1 values that start with the specified prefix"
-	"--exclude; ignore refs that match the specified pattern"
 	"--flags; print options only"
 	"--git-common-dir; print the main repository path"
 	"--git-dir; print the repository path"
@@ -60,9 +59,6 @@ function completion/git::rev-parse:arg {
 			complete -P "$PREFIX" -D "allow ambiguous names" loose
 			complete -P "$PREFIX" -D "ensure unambiguous names" strict
 			;; #<<#
-		(--exclude)
-			command -f completion/git::completeref
-			;;
 		('')
 			command -f completion/git::completerefpath range=true
 			;;

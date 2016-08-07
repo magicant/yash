@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2016 magicant
 
 # Completion script for the "git-rev-list" command.
-# Supports Git 1.7.7.
+# Supports Git 2.9.2.
 
 function completion/git-rev-list {
 	WORDS=(git rev-list "${WORDS[2,-1]}")
@@ -16,7 +16,12 @@ function completion/git::rev-list:arg {
 	"--bisect-vars"
 	"--count; print the number of selected commits only"
 	"--header; print commits in the raw format"
+	"--objects; print object IDs referenced by selected commits"
+	"--objects-edge; like --objects, but print excluded commits too"
+	"--objects-edge-aggressive; like --objects-edge, but more slow and accurate"
+	"--indexed-objects; print object IDs referenced by the index"
 	"--timestamp; print the raw timestamp values"
+	"--unpacked; print object IDs that are not in packs"
 	) #<#
 	command -f completion/git::rev-list:getopt
 
@@ -40,26 +45,30 @@ function completion/git::rev-list:getopt {
 	command -f completion/git::getprettyopts
 	command -f completion/git::getrefselectopts
 	OPTIONS=("$OPTIONS" #>#
-	"--ancestry-path"
+	"--ancestry-path; show commits on the ancestor-descendant path only"
 	"--all-match; show commits that match all the other filter options only"
 	"--after: --since:; show commits after the specified date only"
 	"--author:; show commits by the specified author only"
+	"--basic-regexp; use basic regular expression"
 	"--before: --until:; show commits before the specified date only"
+	"--boundary; show excluded boundary commits"
 	"--cherry; like --right-only --cherry-mark --no-merges"
 	"--cherry-mark; like --cherry-pick, but mark commits"
 	"--cherry-pick; omit commits duplicated by cherry-picking"
 	"--children; print children's commit IDs as well"
 	"--committer:; show commits by the specified committer only"
 	"--date:; specify a date format"
-	"--dense"
+	"--dense; show commits that have a diff"
 	"--do-walk; traverse commit ancestors"
 	"E --extended-regexp; use extended regular expression"
 	"--first-parent; follow first parent of each commit only"
 	"F --fixed-strings; perform simple string matching rather than regular expression"
-	"--full-history"
+	"--full-history; follow all parents of merges even if the parents have no diff"
 	"--graph; print commit ancestry tree graph"
 	"--grep:; show commits whose log message matches the specified pattern only"
+	"--grep-reflog:; show commits whose reflog message matches the specified pattern only"
 	"--ignore-missing; ignore nonexistent refs"
+	"--invert-grep; show commits that don't match --grep=..."
 	"--left-only; show commits on the left-hand-side branch only"
 	"--left-right; show reachability of commits from branches"
 	# not meant for interactive use: "--max-age:"
@@ -72,24 +81,24 @@ function completion/git::rev-list:getopt {
 	"--no-max-parents; like --max-parents=-1"
 	"--no-merges; like --max-parents=1 (don't show merge commits)"
 	"--no-min-parents; like --min-parents=0"
-	"--no-walk; don't traverse commit ancestors"
-	"--objects; print object IDs referenced by selected commits"
-	"--objects-edge; like --objects, but print excluded commits too"
+	"--no-walk::; don't traverse commit ancestors"
 	"--parents; print parents' commit IDs as well"
+	"--perl-regexp; use Perl's regular expression"
 	"--quiet; print nothing"
 	"i --regexp-ignore-case; case-insensitive regular expression matching"
+	"--reflog; show all reflogs"
 	"--relative-date; like --date=relative"
 	"--remove-empty; stop when a given path disappears from the tree"
 	"--reverse; print in reverse order"
 	"--right-only; show commits on the right-hand-side branch only"
-	"--simplify-by-decoration"
-	"--simplify-merges"
-	"--sparse"
+	"--show-linear-break::; show a separator between branches"
+	"--simplify-by-decoration; show branch/tag heads only"
+	"--simplify-merges; don't show merges that re-merge an ancestor"
+	"--sparse; show all walked commits"
 	"--stdin; read arguments from the standard input"
-	"--unpacked; print object IDs that are not in packs"
+	"--use-bitmap-index"
 	"g --walk-reflogs; show reflogs instead of ancestry chain"
 	) #<#
-	# TODO: some descriptions are missing!
 	# "--not" is not included in this list because it is actually
 	# an operand rather than an option.
 }
@@ -111,6 +120,9 @@ function completion/git::rev-list:compopt
 				complete -P "$PREFIX" -- "$committer"
 			done 2>/dev/null \
 				<(git log --all --format=format:%cn | uniq)
+			;;
+		(--no-walk)
+			complete -P "$PREFIX" sorted unsorted
 			;;
 		(*)
 			command -f completion/git::completeprettyopts ||
