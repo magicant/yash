@@ -1,0 +1,228 @@
+# (C) 2016 magicant
+
+# Completion script for the "dnf" command.
+# Supports dnf 1.1.9.
+
+function completion/dnf {
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"4; use IPv4 addresses only"
+	"6; use IPv6 addresses only"
+	"--allowerasing; allow erasing conflicting packages"
+	"--assumeno; reject all questions"
+	"b --best; consider latest packages only"
+	"C --cacheonly; use local system cache only"
+	"c: --config:; specify a config file"
+	"d: --debuglevel:" # deprecated
+	"--debugsolver"
+	"--disableexcludes:; disable excludes for the specified repo"
+	"--disablerepo:"
+	"--downloadonly"
+	"e: --errorlevel:" # deprecated
+	"--enablerepo:"
+	"x: --exclude:; specify packages to exclude"
+	"h --help; print help"
+	"--installroot:"
+	"--nogpgcheck; skip GPG check"
+	"--noplugins; disable all plugins"
+	"q --quiet; don't print progress"
+	"R: --randomwait:; specify max minutes to wait"
+	"--refresh; refresh metadata"
+	"--releasever:; assume the specified system release version"
+	"--repofrompath:; temporarily add the specified repository"
+	"--rpmverbosity:; debug output level of the rpm command"
+	"--setopt:; override a config option"
+	"--showduplicates"
+	"v --verbose; print debug messages"
+	"--version; print version info"
+	"--assumeyes; accept all questions"
+	) #<#
+
+	command -f completion//parseoptions -es
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			# find first non-option argument and
+			# parse some global options
+			typeset OPTIND=2 subcmd=
+			while [ $OPTIND -le ${WORDS[#]} ]; do
+				case ${WORDS[OPTIND]} in
+					(-?*)
+						;;
+					(*)
+						subcmd=${WORDS[OPTIND]}
+						break
+						;;
+				esac
+				OPTIND=$((OPTIND+1))
+			done
+
+			if [ $OPTIND -le ${WORDS[#]} ]; then
+				# complete command argument
+				typeset OLDWORDS
+				OLDWORDS=("$WORDS")
+				WORDS=("${WORDS[1]}" "${WORDS[OPTIND+1,-1]}")
+				if { command -vf "completion/dnf::$subcmd:arg" ||
+						. -AL "completion/dnf_$subcmd"; } >/dev/null 2>&1; then
+					command -f "completion/dnf::$subcmd:arg" 
+				else
+					# Unknown subcommand... This fallback should work for most subcommands.
+					command -f completion/dnf::completepackage available
+					complete -P "$PREFIX" -f
+				fi
+			else
+				command -f completion/dnf::completecmd
+			fi
+			;;
+	esac
+
+}
+
+function completion/dnf::completion_helper {
+	${$(head -n 1 -- "$(command -v dnf)")#\#!} -m dnf.cli.completion_helper "$@"
+} 2>/dev/null
+
+function completion/dnf::complete_by_helper {
+	typeset IFS='
+'
+	complete -P "$PREFIX" $(command -f completion/dnf::completion_helper "$@")
+}
+
+function completion/dnf::completecmd {
+	command -f completion/dnf::complete_by_helper _cmds "${TARGETWORD#"$PREFIX"}"
+}
+
+# $1 = installed, available, updates
+function completion/dnf::completepackage {
+	command -f completion/dnf::complete_by_helper list -Cq "$1" "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::check-update:arg {
+	command -f completion/dnf::completepackage installed
+}
+
+function completion/dnf::clean:arg {
+	command -f completion/dnf::complete_by_helper clean -Cq DUMMY "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::distro-sync:arg {
+	command -f completion/dnf::completepackage installed
+}
+
+function completion/dnf::distribution-synchronization:arg {
+	command -f completion/dnf::completepackage installed
+}
+
+function completion/dnf::downgrade:arg {
+	command -f completion/dnf::complete_by_helper downgrade -Cq "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::erase:arg {
+	command -f completion/dnf::complete_by_helper remove -Cq "${TARGETWORD#"$PREFIX"}"
+}
+
+# TODO
+#function completion/dnf::group:arg {
+#}
+
+function completion/dnf::help:arg {
+	command -f completion/dnf::completecmd
+}
+
+function completion/dnf::history:arg {
+	command -f completion/dnf::complete_by_helper history -Cq DUMMY "${TARGETWORD#"$PREFIX"}"
+	# TODO complete second operand
+}
+
+function completion/dnf::info:arg {
+	command -f completion/dnf::completepackage available
+}
+
+function completion/dnf::install:arg {
+	command -f completion/dnf::complete_by_helper install -Cq "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::list:arg
+	case ${WORDS[#]} in
+		(1)
+			command -f completion/dnf::complete_by_helper list -Cq DUMMY "${TARGETWORD#"$PREFIX"}"
+			;;
+		(*)
+			command -f completion/dnf::completepackage available
+			;;
+	esac
+
+function completion/dnf::makecache:arg { #>>#
+	complete -P "$PREFIX" timer
+} #<<#
+
+function completion/dnf::mark:arg
+	case ${WORDS[#]} in
+		(1) #>>#
+			complete -P "$PREFIX" install remove
+			;; #<<#
+		(*)
+			command -f completion/dnf::completepackage installed
+			;;
+	esac
+
+function completion/dnf::provides:arg {
+	complete -P "$PREFIX" -f
+}
+
+function completion/dnf::reinstall:arg {
+	command -f completion/dnf::complete_by_helper reinstall -Cq "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::remove:arg {
+	command -f completion/dnf::complete_by_helper remove -Cq "${TARGETWORD#"$PREFIX"}"
+}
+
+function completion/dnf::repolist:arg { #>>#
+	complete -P "$PREFIX" all enabled disabled
+} #<<#
+
+# TODO
+#function completion/dnf::repository-packages:arg {
+#}
+
+# TODO
+#function completion/dnf::search:arg {
+#}
+
+function completion/dnf::update:arg {
+	command -f completion/dnf::upgrade:arg "$@"
+}
+
+function completion/dnf::updateinfo:arg { #>>#
+	complete -P "$PREFIX" -D 'show advisories on all package versions' all
+	complete -P "$PREFIX" -D 'show advisories on newer packages' available
+	complete -P "$PREFIX" -D 'print detail' info
+	complete -P "$PREFIX" -D 'show advisories on installed or older packages' installed
+	complete -P "$PREFIX" -D 'list update advisories' list
+	complete -P "$PREFIX" -D 'just print number of updates' summary
+	complete -P "$PREFIX" -D 'show advisories on available newer packages' updates
+	#<<#
+	command -f completion/dnf::completepackage updates
+}
+
+function completion/dnf::upgrade:arg {
+	command -f completion/dnf::completepackage updates
+}
+
+function completion/dnf::update-to:arg {
+	command -f completion/dnf::upgrade-to:arg "$@"
+}
+
+function completion/dnf::upgrade-to:arg {
+	command -f completion/dnf::completepackage updates
+}
+
+function completion/dnf::whatprovides:arg {
+	command -f completion/dnf::provides:arg "$@"
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
