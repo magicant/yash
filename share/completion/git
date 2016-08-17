@@ -312,7 +312,7 @@ function completion/git::completeref {
 				complete -P "$PREFIX" -D "exclude following commits" -- --not
 			esac
 			word=${word##*..}
-			typeset PREFIX=${TARGETWORD%"$word"}
+			typeset PREFIX="${TARGETWORD%"$word"}"
 			;;
 		(*)
 			break
@@ -514,11 +514,11 @@ function completion/git::completefilteredpath {
 function completion/git::completeobject {
 
 	typeset targetword="${TARGETWORD#"$PREFIX"}"
-	typeset t=$(sed 's;[@^]{[^}]*};;g' <<<"$targetword")
+	typeset t="$(sed 's;[@^]{[^}]*};;g' <<<"$targetword")"
 	case $t in
 		(*:*)
-			typeset path=${t#*:}
-			typeset treeish=${targetword%":$path"}
+			typeset path="${t#*:}"
+			typeset treeish="${targetword%":$path"}"
 			typeset PREFIX="$PREFIX$treeish:"
 			command -f completion/git::completepath "${treeish:-HEAD}"
 			# XXX empty treeish should fall back to the current index rather than HEAD
@@ -654,7 +654,7 @@ function completion/git::--format:arg {
 	case $word in
 	(format:*%*)
 		word=%${word##*%}
-		typeset PREFIX=${TARGETWORD%"$word"} #>>#
+		typeset PREFIX="${TARGETWORD%"$word"}" #>>#
 		complete -T -P "$PREFIX" -D "full commit ID" '%H'
 		complete -T -P "$PREFIX" -D "abbreviated commit ID" '%h'
 		complete -T -P "$PREFIX" -D "full tree ID" '%T'
