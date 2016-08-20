@@ -65,9 +65,37 @@ function completion/cd {
 
 function completion/cd::completedir {
 
-	complete -T -P "$PREFIX" -S / -d
+	# Part 1: complete directories relative to $PWD
+
+	# -L or -P?
+	typeset logical=true option
+	for option in "${WORDS[2,-1]}"; do
+		case $option in
+			(-L|--logical)  logical=true ;;
+			(-P|--physical) logical=false ;;
+			(--)            break ;;
+		esac
+	done
 
 	typeset word="${TARGETWORD#"$PREFIX"}"
+	typeset dirname="${word%"${word##*/}"}"
+	if $logical; then
+		typeset IFS=/
+		complete -T -P "$PREFIX$dirname" -S / -- $(
+			set -o errexit -o glob -o nullglob
+			if [ "$dirname" ]; then
+				command cd -L -- "$dirname" >/dev/null 2>&1
+			fi
+			candidates=(*/)
+			candidates=("${candidates%/}")
+			printf %s "${candidates[*]}"
+		)
+	else
+		complete -T -P "$PREFIX" -S / -d
+	fi
+
+	# Part 2: complete directories relative to $CDPATH
+
 	case $word in (/*|./*|../*)
 		return
 	esac
@@ -87,9 +115,6 @@ function completion/cd::completedir {
 		# remove $cdpath and trailing slash
 		candidates=("${candidates%/}")
 		candidates=("${candidates##"${cdpath%/}/"}")
-
-		# compute dirname of candidates so we can remove it
-		typeset dirname="${word%"${word##*/}"}"
 
 		complete -T -P "$PREFIX$dirname" -S / \
 			-- "${candidates#"$dirname"}"
