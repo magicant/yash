@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2016 magicant
 
 # Completion script for the "cd" built-in command.
 # Completion function "completion/cd" is used for the "dirs", "pushd", "popd"
@@ -45,11 +45,11 @@ function completion/cd {
 		dirstack=true
 		;;
 	(--default-directory)
-		complete -T -P "$PREFIX" -S / -d
+		command -f completion/cd::completedir
 		;;
 	(*)
 		case ${WORDS[1]} in (cd|pushd)
-			complete -T -S / -d
+			command -f completion/cd::completedir
 		esac
 		dirstack=true
 		;;
@@ -60,6 +60,42 @@ function completion/cd {
 			complete -P "$PREFIX" --dirstack-index
 		esac
 	fi
+
+}
+
+function completion/cd::completedir {
+
+	complete -T -P "$PREFIX" -S / -d
+
+	typeset word="${TARGETWORD#"$PREFIX"}"
+	case $word in (/*|./*|../*)
+		return
+	esac
+
+	typeset saveopts="$(set +o)"
+	set -o glob -o nullglob
+
+	typeset IFS=: cdpath candidates
+	for cdpath in ${CDPATH-}; do
+		if [ "$cdpath" = "" ]; then
+			cdpath=.
+		fi
+
+		# list candidates by globbing
+		candidates=("${cdpath%/}/$word"*/)
+
+		# remove $cdpath and trailing slash
+		candidates=("${candidates%/}")
+		candidates=("${candidates##"${cdpath%/}/"}")
+
+		# compute dirname of candidates so we can remove it
+		typeset dirname="${word%"${word##*/}"}"
+
+		complete -T -P "$PREFIX$dirname" -S / \
+			-- "${candidates#"$dirname"}"
+	done
+
+	eval "$saveopts"
 
 }
 
