@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.h: filename-related utilities */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,8 +51,6 @@ extern _Bool stat_result_same_file(
 extern _Bool is_same_file(const char *path1, const char *path2)
     __attribute__((nonnull));
 
-extern wchar_t *canonicalize_path(const wchar_t *path)
-    __attribute__((nonnull,malloc,warn_unused_result));
 extern _Bool is_normalized_path(const wchar_t *path)
     __attribute__((nonnull));
 

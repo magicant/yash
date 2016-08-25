@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,8 +70,6 @@ extern int eaccess(const char *path, int amode)
 
 static bool check_access(const char *path, mode_t mode, int amode)
     __attribute__((nonnull));
-static inline bool not_dotdot(const wchar_t *p)
-    __attribute__((nonnull,pure));
 
 /* Checks if `path' is an existing file. */
 bool is_file(const char *path)
@@ -207,89 +205,6 @@ bool is_same_file(const char *path1, const char *path2)
     struct stat stat1, stat2;
     return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
 	&& stat_result_same_file(&stat1, &stat2);
-}
-
-/* Canonicalizes a pathname.
- *  * Dot components are removed.
- *  * Dot-dot components are removed together with the preceding components. If
- *    any of the preceding components is not a directory, it is an error.
- *  * Redundant slashes are removed.
- * `path' must not be NULL.
- * The result is a newly malloced string if successful. NULL is returned on
- * error. */
-wchar_t *canonicalize_path(const wchar_t *path)
-{
-    wchar_t *const result = xmalloce(wcslen(path), 1, sizeof *result);
-    wchar_t *rp = result;
-    plist_T clist;
-
-    pl_init(&clist);
-
-    if (*path == L'/') {  /* first slash */
-	path++;
-	*rp++ = '/';
-	if (*path == L'/') {  /* second slash */
-	    path++;
-	    if (*path != L'/')  /* third slash */
-		*rp++ = '/';
-	}
-    }
-
-    for (;;) {
-	*rp = L'\0';
-	while (*path == L'/')
-	    path++;
-	if (*path == L'\0')
-	    break;
-	if (path[0] == L'.') {
-	    if (path[1] == L'\0') {
-		/* ignore trailing dot component */
-		break;
-	    } else if (path[1] == L'/') {
-		/* skip dot component */
-		path += 2;
-		continue;
-	    } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
-		    && clist.length > 0) {
-		/* dot-dot component */
-		wchar_t *prev = clist.contents[clist.length - 1];
-		if (not_dotdot(prev)) {
-		    char *mbsresult = malloc_wcstombs(result);
-		    bool isdir = (mbsresult != NULL) && is_directory(mbsresult);
-		    free(mbsresult);
-		    if (isdir) {
-			rp = prev;
-			/* result[index] = L'\0'; */
-			pl_remove(&clist, clist.length - 1, 1);
-			path += 2;
-			continue;
-		    } else {
-			/* error */
-			pl_destroy(&clist);
-			free(result);
-			return NULL;
-		    }
-		}
-	    }
-	}
-
-	/* others */
-	pl_add(&clist, rp);
-	if (clist.length > 1)
-	    *rp++ = L'/';
-	while (*path != L'\0' && *path != L'/')  /* copy next component */
-	    *rp++ = *path++;
-    }
-    pl_destroy(&clist);
-    assert(*rp == L'\0');
-    return result;
-}
-
-bool not_dotdot(const wchar_t *p)
-{
-    if (*p == L'/')
-	p++;
-    return wcscmp(p, L"..") != 0;
 }
 
 /* Checks if the specified `path' is normalized, that is, containing no "."
@@ -1049,6 +964,10 @@ int wglob_sortcmp(const void *v1, const void *v2)
 
 /********** Built-ins **********/
 
+static wchar_t *canonicalize_path(const wchar_t *path)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline bool not_dotdot(const wchar_t *p)
+    __attribute__((nonnull,pure));
 static void canonicalize_path_ex(xwcsbuf_T *buf)
     __attribute__((nonnull));
 static bool starts_with_root_parent(const wchar_t *path)
@@ -1296,6 +1215,89 @@ step10:  /* do chdir */
 	exec_variable_as_auxiliary_(VAR_YASH_AFTER_CD);
 
     return Exit_SUCCESS;
+}
+
+/* Canonicalizes a pathname.
+ *  * Dot components are removed.
+ *  * Dot-dot components are removed together with the preceding components. If
+ *    any of the preceding components is not a directory, it is an error.
+ *  * Redundant slashes are removed.
+ * `path' must not be NULL.
+ * The result is a newly malloced string if successful. NULL is returned on
+ * error. */
+wchar_t *canonicalize_path(const wchar_t *path)
+{
+    wchar_t *const result = xmalloce(wcslen(path), 1, sizeof *result);
+    wchar_t *rp = result;
+    plist_T clist;
+
+    pl_init(&clist);
+
+    if (*path == L'/') {  /* first slash */
+	path++;
+	*rp++ = '/';
+	if (*path == L'/') {  /* second slash */
+	    path++;
+	    if (*path != L'/')  /* third slash */
+		*rp++ = '/';
+	}
+    }
+
+    for (;;) {
+	*rp = L'\0';
+	while (*path == L'/')
+	    path++;
+	if (*path == L'\0')
+	    break;
+	if (path[0] == L'.') {
+	    if (path[1] == L'\0') {
+		/* ignore trailing dot component */
+		break;
+	    } else if (path[1] == L'/') {
+		/* skip dot component */
+		path += 2;
+		continue;
+	    } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
+		    && clist.length > 0) {
+		/* dot-dot component */
+		wchar_t *prev = clist.contents[clist.length - 1];
+		if (not_dotdot(prev)) {
+		    char *mbsresult = malloc_wcstombs(result);
+		    bool isdir = (mbsresult != NULL) && is_directory(mbsresult);
+		    free(mbsresult);
+		    if (isdir) {
+			rp = prev;
+			/* result[index] = L'\0'; */
+			pl_remove(&clist, clist.length - 1, 1);
+			path += 2;
+			continue;
+		    } else {
+			/* error */
+			pl_destroy(&clist);
+			free(result);
+			return NULL;
+		    }
+		}
+	    }
+	}
+
+	/* others */
+	pl_add(&clist, rp);
+	if (clist.length > 1)
+	    *rp++ = L'/';
+	while (*path != L'\0' && *path != L'/')  /* copy next component */
+	    *rp++ = *path++;
+    }
+    pl_destroy(&clist);
+    assert(*rp == L'\0');
+    return result;
+}
+
+bool not_dotdot(const wchar_t *p)
+{
+    if (*p == L'/')
+	p++;
+    return wcscmp(p, L"..") != 0;
 }
 
 /* Removes "/.." components at the beginning of the string in the buffer
