@@ -11,7 +11,7 @@ Yash 更新履歴
 Yash 2.42
 
   +  '--pipefail' オプション
-  +  補完スクリプトを追加: dnf, git-rev-parse, tree, watch
+  +  補完スクリプトを追加: carthage, dnf, git-rev-parse, tree, watch
   +  補完スクリプトを更新: cd, git, git-bisect, git-rev-list
      (Git 2.9.2).
   =  POSIX.1-2008 の 2013 年版に準拠

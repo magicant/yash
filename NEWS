@@ -11,7 +11,8 @@ History of Yash
 Yash 2.42
 
   +  '--pipefail' option.
-  +  New completion script for: dnf, git-rev-parse, tree, watch
+  +  New completion script for: carthage, dnf, git-rev-parse, tree,
+     watch
   +  Updated completion script for: cd, git, git-bisect, git-rev-list
      (Git 2.9.2).
   =  Yash now supports the 2013 edition of POSIX.1-2008.
