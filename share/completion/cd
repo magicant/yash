@@ -78,7 +78,8 @@ function completion/cd::completedir {
 	done
 
 	typeset word="${TARGETWORD#"$PREFIX"}"
-	typeset dirname="${word%"${word##*/}"}"
+	typeset basename="${word##*/}"
+	typeset dirname="${word%"$basename"}"
 	if $logical; then
 		typeset IFS=/
 		complete -T -P "$PREFIX$dirname" -S / -- $(
@@ -86,7 +87,7 @@ function completion/cd::completedir {
 			if [ "$dirname" ]; then
 				command cd -L -- "$dirname" >/dev/null 2>&1
 			fi
-			candidates=(*/)
+			candidates=("$basename"*/)
 			candidates=("${candidates%/}")
 			printf %s "${candidates[*]}"
 		)
