@@ -77,6 +77,9 @@ function completion/cd::completedir {
 		esac
 	done
 
+	typeset saveopts="$(set +o)"
+	set +o glob
+
 	typeset word="${TARGETWORD#"$PREFIX"}"
 	typeset basename="${word##*/}"
 	typeset dirname="${word%"$basename"}"
@@ -98,10 +101,10 @@ function completion/cd::completedir {
 	# Part 2: complete directories relative to $CDPATH
 
 	case $word in (/*|./*|../*)
+		eval "$saveopts"
 		return
 	esac
 
-	typeset saveopts="$(set +o)"
 	set -o glob -o nullglob
 
 	typeset IFS=: cdpath candidates
