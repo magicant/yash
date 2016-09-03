@@ -85,8 +85,8 @@ function completion/carthage::completedependencies {
 	typeset IFS=/
 	complete -P "$PREFIX" -- $(
 		set -o glob -o nullglob
-		cd -P "./$(git rev-parse --show-cdup)Carthage/Checkouts" \
-			2>/dev/null || exit
+		exec 2>/dev/null
+		cd -P "./$(git rev-parse --show-cdup)Carthage/Checkouts" || exit
 		candidates=(*/)
 		candidates=("${candidates%/}")
 		printf %s "${candidates[*]}"
