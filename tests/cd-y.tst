@@ -84,14 +84,14 @@ __ERR__
 test_oE -e 0 'YASH_AFTER_CD is iteratively executed after changing directory'
 YASH_AFTER_CD=(
 'printf "PWD=%s\n" "$PWD"'
-'echo [$?]'
+'printf "status=%d\n" "$?"'
 '(exit 1); break -i'
 'echo not reached')
 (exit 11)
 cd /
 __IN__
 PWD=/
-[11]
+status=11
 __OUT__
 
 (
