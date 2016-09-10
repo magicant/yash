@@ -63,8 +63,14 @@ Yash をビルドしインストールする方法については INSTALL.ja フ
    で一貫性のある動作を保つためにこのようになっています。
 
 
-======================
-Magicant <magicant@users.osdn.me>
+===== お知らせ =====
 
 感想・提案・バグ報告等を歓迎します。ただし、全ての提案やバグ報告に
 応じることを約束するものではありません。
+
+翻訳に関しては以下のページをご覧ください
+https://osdn.jp/projects/yash/wiki/HowToTranslate
+
+
+======================
+Magicant <magicant@users.osdn.me>
