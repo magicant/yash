@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.44
+
+  *  In the "test" built-in, the unary "-o" operator was returning the
+     wrong answer if the given option name was negated with the "no"
+     prefix (e.g. "test -o noclobber").
+
+----------------------------------------------------------------------
 Yash 2.43
 
   *  Updated completion script for: carthage, cd, su

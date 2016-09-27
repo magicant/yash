@@ -314,7 +314,7 @@ static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
 	struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
 #if YASH_ENABLE_TEST
-static struct option_T *find_option_unique(const wchar_t *s)
+static int test_option_unique(const wchar_t *s)
     __attribute__((nonnull,pure));
 #endif
 
@@ -783,31 +783,37 @@ void set_lineedit_option(enum shopt_lineedit_T v)
  * as the argument to the "-o" option. */
 bool is_valid_option_name(const wchar_t *s)
 {
-    return find_option_unique(s) != NULL;
+    return test_option_unique(s);
 }
 
 /* Returns true iff the specified string is a valid option name that can be used
  * as the argument to the "-o" option and the option is enabled. */
 bool option_is_enabled(const wchar_t *s)
 {
-    struct option_T *opt = find_option_unique(s);
-    return opt != NULL && *opt->optp;
+    return test_option_unique(s) == 2;
 }
 
-/* If the specified string is a valid option name that can be used as the
- * argument to the "-o" option, then returns the option. Otherwise, NULL is
- * returned. */
-struct option_T *find_option_unique(const wchar_t *s)
+/* Tests if the specified string is a valid option name that can be used
+ * as the argument to the "-o" option. Returns:
+ * 0 if the string is not a valid option name,
+ * 1 if it is a valid option that is currently disabled, or
+ * 2 if it is a valid option that is currently enabled. */
+int test_option_unique(const wchar_t *s)
 {
     plist_T options;
     pl_init(&options);
 
-    collect_matching_shell_options(s, &options);
+    size_t nooptindex = collect_matching_shell_options(s, &options);
+    int result = (options.length == 1);
 
-    struct option_T *opt = (options.length == 1) ? options.contents[0] : NULL;
+    if (result) {
+	struct option_T *opt = options.contents[0];
+	bool negated = (nooptindex == 0);
+	result += *opt->optp ^ negated;
+    }
 
     pl_destroy(&options);
-    return opt;
+    return result;
 }
 
 #endif /* YASH_ENABLE_TEST */
