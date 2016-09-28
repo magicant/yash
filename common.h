@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* common.h: defines symbols common to all sources. */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,10 +46,13 @@
 # define ngt(MSGS,MSGP,N) gt((N) == 1 ? (MSGS) : (MSGP))
 #endif
 
+/* This macro suppresses the uninitialized variable warnings from the compiler
+ * by assigning the given dummy value. When debugging is disabled, this macro
+ * just leaves the variable uninitialized. */
 #ifdef NDEBUG
-# define INIT(x) x
+# define INIT(x, dummy_initial_value) x
 #else
-# define INIT(x) x = x
+# define INIT(x, dummy_initial_value) x = dummy_initial_value
 #endif
 
 #define ARGV(i) ((wchar_t *) argv[i])

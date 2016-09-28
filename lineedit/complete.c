@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -484,7 +484,7 @@ void le_compdebug(const char *format, ...)
  * enabled. */
 void print_context_info(const le_context_T *ctxt)
 {
-    const char *INIT(s);
+    const char *INIT(s, NULL);
     switch (ctxt->quote) {
 	case QUOTE_NONE:    s = "none";    break;
 	case QUOTE_NORMAL:  s = "normal";  break;
@@ -525,9 +525,9 @@ void print_compopt_info(const le_compopt_T *compopt)
     if (!le_state_is_compdebug)
 	return;
 
-    const char *INIT(s);
     le_compdebug("target word without prefix: \"%ls\"", compopt->src);
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
+	const char *INIT(s, NULL);
 	switch (p->type) {
 	    case CPT_ACCEPT:  s = "accept";  break;
 	    case CPT_REJECT:  s = "reject";  break;

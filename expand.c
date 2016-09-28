@@ -609,7 +609,7 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 	return NULL;
     }
     if (!posixly_correct) {
-	size_t INIT(index);
+	size_t INIT(index, SIZE_MAX / 2);
 	if (username[0] == L'+') {
 	    if (username[1] == L'\0') {
 		home = getvar(L VAR_PWD);
