@@ -118,9 +118,11 @@ bool shopt_xtrace = false;
  * commands. */
 bool shopt_traceall = true;
 
+#if YASH_ENABLE_HISTORY
 /* If set, lines that start with a space are not saved in the history.
  * Corresponds to the --histspace option. */
 bool shopt_histspace = false;
+#endif
 /* Function definition commands are saved in the history only when this option
  * is set.
  * Corresponds to the --log option.
@@ -214,7 +216,9 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"extendedglob",   &shopt_extendedglob,   true, },
     { 0,    L'f', L"glob",           &shopt_glob,           true, },
     { L'h', 0,    L"hashondef",      &shopt_hashondef,      true, },
+#if YASH_ENABLE_HISTORY
     { 0,    0,    L"histspace",      &shopt_histspace,      true, },
+#endif
     { 0,    0,    L"ignoreeof",      &shopt_ignoreeof,      true, },
     { L'i', 0,    L"interactive",    &is_interactive,       false, },
 #if YASH_ENABLE_LINEEDIT

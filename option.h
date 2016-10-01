@@ -45,7 +45,9 @@ extern _Bool shopt_allexport, shopt_hashondef;
 extern _Bool shopt_errexit, shopt_pipefail, shopt_unset, shopt_exec,
        shopt_ignoreeof, shopt_verbose, shopt_xtrace;
 extern _Bool shopt_traceall;
+#if YASH_ENABLE_HISTORY
 extern _Bool shopt_histspace;
+#endif
 extern _Bool shopt_glob, shopt_caseglob, shopt_dotglob, shopt_markdirs,
        shopt_extendedglob, shopt_nullglob;
 extern _Bool shopt_braceexpand;

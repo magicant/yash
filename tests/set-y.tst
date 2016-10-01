@@ -191,7 +191,6 @@ test_long_option_default_off "$LINENO" errexit
 test_long_option_default_off "$LINENO" extendedglob
 test_long_option_default_on  "$LINENO" glob
 test_long_option_default_off "$LINENO" hashondef
-test_long_option_default_off "$LINENO" histspace
 test_long_option_default_off "$LINENO" ignoreeof
 test_long_option_default_off "$LINENO" markdirs
 # The monitor option cannot be tested here due to dependency on the terminal.
@@ -205,6 +204,12 @@ test_long_option_default_on  "$LINENO" unset
 test_long_option_default_off "$LINENO" verbose
 test_long_option_default_off "$LINENO" xtrace
 
+(
+if ! testee --version --verbose | grep -Fqx ' * history'; then
+    skip="true"
+fi
+test_long_option_default_off "$LINENO" histspace
+)
 (
 if ! testee --version --verbose | grep -Fqx ' * lineedit'; then
     skip="true"
@@ -377,7 +382,7 @@ set -o
 __IN__
 
 test_oE 'set -o: output'
-set -o |
+set -o | grep -v '^histspace ' |
 grep -v '^le' | grep -v '^emacs ' | grep -v '^notifyle ' | grep -v '^vi '
 echo ---
 set -a +o caseglob -o dotglob
@@ -398,7 +403,6 @@ exec            on
 extendedglob    off
 glob            on
 hashondef       off
-histspace       off
 ignoreeof       off
 interactive     off
 log             on
@@ -434,6 +438,7 @@ test_oE 'set +o: output'
 set +o |
 grep -v '^set [+-]o le' |
 grep -Fvx 'set +o emacs' |
+grep -Fvx 'set +o histspace' |
 grep -Fvx 'set +o notifyle' |
 grep -Fvx 'set +o vi'
 __IN__
@@ -451,7 +456,6 @@ set -o exec
 set +o extendedglob
 set -o glob
 set +o hashondef
-set +o histspace
 set +o ignoreeof
 set -o log
 set +o markdirs

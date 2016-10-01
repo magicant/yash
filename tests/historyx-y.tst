@@ -361,7 +361,8 @@ __IN__
 export histfile=histfile$LINENO histsize=50
 
 # Prepare the first history entry w/o running a test case.
-testee -is +m --rcfile="rcfile1" -o histspace >/dev/null <<\__END__
+[ "${skip-}" ] ||
+    testee -is +m --rcfile="rcfile1" -o histspace >/dev/null <<\__END__
  echo foo 1
 echo foo 2
  echo foo 3
