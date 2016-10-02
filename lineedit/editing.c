@@ -2853,14 +2853,12 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
 
     size_t old_index = le_main_index;
 
-    assert(le_main_index > 0 && count > 0);
+    assert(le_main_index > 0);
     assert(0 < index && index <= le_main_buffer.length);
     c = le_main_buffer.contents[old_index - 1];
     wb_remove(&le_main_buffer, old_index - 1, 1);
     wb_ninsert(&le_main_buffer, index - 1, &c, 1);
     le_main_index = index;
-    if (index > old_index)
-	index = old_index;
     reset_state();
     return;
 
