@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.h: command history management */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #define YASH_HISTORY_H
 
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include "xgetopt.h"
 
@@ -68,6 +69,12 @@ static inline histentry_T *ashistentry(const histlink_T *link)
 #endif
     return (histentry_T *) link;
 }
+
+// Maybe this should be in "input.h", but it's only used for reading the history
+// file.
+struct xwcsbuf_T;
+extern _Bool read_line(FILE *restrict f, struct xwcsbuf_T *restrict buf)
+    __attribute__((nonnull));
 
 extern unsigned next_history_number(void)
     __attribute__((pure));

@@ -152,8 +152,6 @@ static void write_histfile_pids(void);
 
 static FILE *open_histfile(void);
 static bool lock_histfile(short type);
-static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
-    __attribute__((nonnull));
 static bool try_read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
     __attribute__((nonnull));
 static long read_signature(void);
