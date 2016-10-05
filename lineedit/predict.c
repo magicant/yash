@@ -19,6 +19,7 @@
 #include "../common.h"
 #include "predict.h"
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -64,6 +65,7 @@ static FILE *file = NULL;
 
 static bool open_file(void);
 static void close_file(void);
+static bool lock_file(short type);
 static kvpair_T find_or_create_record(const wchar_t *cmdline)
     __attribute__((nonnull));
 static size_t find_attr_count_index(const record_T *r, hashval_T attrhash)
@@ -73,6 +75,7 @@ static attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
 static void increase_attr(record_T *r, const wchar_t *attr)
     __attribute__((nonnull));
 static bool read_records_from_file(void);
+static bool lock_file_and_read_records(void);
 static void maybe_init(void);
 static void record_attr(record_T *r, const wchar_t *attr_format, ...)
     __attribute__((nonnull(1,2)));
@@ -134,6 +137,29 @@ void close_file(void)
 	return;
     fclose(file);
     file = NULL;
+}
+
+/* Locks the statistics file, which must have been open.
+ * `type' must be one of `F_RDLCK', `F_WRLCK' and `F_UNLCK'.
+ * If `type' is `F_UNLCK', any buffered data must have been flushed to the file.
+ * When another process is holding a lock for the file, this process will be
+ * blocked until the lock is freed.
+ * Returns true iff successful. */
+bool lock_file(short type)
+{
+    assert(file != NULL);
+
+    struct flock flock = {
+	.l_type   = type,
+	.l_whence = SEEK_SET,
+	.l_start  = 0,
+	.l_len    = 0, /* to the end of file */
+    };
+    int fd = fileno(file);
+    int result;
+
+    while ((result = fcntl(fd, F_SETLKW, &flock)) == -1 && errno == EINTR);
+    return result != -1;
 }
 
 kvpair_T find_or_create_record(const wchar_t *cmdline)
@@ -206,10 +232,16 @@ bool read_records_from_file(void)
     wb_init(&buf);
     wb_init(&prev_attr);
 
+    bool error = false;
+
     assert(file != NULL);
+    clearerr(file);
+
     while (wb_truncate(&buf, 0), read_line(file, &buf)) {
-	if (buf.contents[0] != L'_' || buf.contents[1] != L'=')
+	if (buf.contents[0] != L'_' || buf.contents[1] != L'=') {
+	    error = true;
 	    break;
+	}
 
 	kvpair_T kv = find_or_create_record(&buf.contents[2]);
 	const wchar_t *cmdline = kv.key;
@@ -236,7 +268,23 @@ bool read_records_from_file(void)
     wb_destroy(&prev_attr);
     wb_destroy(&buf);
 
-    return !ferror(file);
+    return !error && !ferror(file);
+}
+
+/* First, if the statistics file is not open, this function opens it; otherwise,
+ * the file is assumed unlocked. Next, this function tries to acquire a lock.
+ * Then, this function reads the file from the current position to the end. If
+ * successful, this function returns true without releasing the lock; otherwise,
+ * false and the file is closed. */
+bool lock_file_and_read_records(void)
+{
+    if (file != NULL || open_file())
+	if (lock_file(F_WRLCK))
+	    if (read_records_from_file())
+		return true;
+
+    close_file();
+    return false;
 }
 
 /* Initialize the prediction module if not yet initialized. */
@@ -244,11 +292,6 @@ void maybe_init(void)
 {
     if (stattable.capacity == 0)
 	ht_init(&stattable, hashwcs, htwcscmp);
-
-    if (file == NULL)
-	if (open_file())
-	    if (!read_records_from_file())
-		close_file();
 }
 
 /* Constructs an attribute name by formatting `attr_format' with the remaining
@@ -275,6 +318,7 @@ void record_attr(record_T *r, const wchar_t *attr_format, ...)
 void le_record_entered_command(const wchar_t *cmdline)
 {
     maybe_init();
+    lock_file_and_read_records();
 
     // Drop lines other than the first.
     wchar_t *firstline = NULL;
@@ -314,6 +358,8 @@ void le_record_entered_command(const wchar_t *cmdline)
     if (file != NULL) {
 	fputwc(L'\n', file);
 	fflush(file);
+	if (!lock_file(F_UNLCK) || ferror(file))
+	    close_file();
     }
 
 done:
@@ -393,6 +439,9 @@ const wchar_t *most_probable_record_name(const wchar_t *prefix,
 const wchar_t *le_predict(const wchar_t *prefix)
 {
     maybe_init();
+    if (lock_file_and_read_records())
+	if (!lock_file(F_UNLCK))
+	    close_file();
 
     hashval_T attrs[3];
     size_t attrslen = 0;
@@ -438,9 +487,6 @@ void le_dump_stattable(void)
 #endif
 
 
-// TODO need to support a case where the statistics file is written to by
-// another yash process.
-// TODO need to lock the statistics file while accessing it.
 // TODO need to add an option to disable this feature.
 
 
