@@ -50,7 +50,9 @@ typedef struct record_T {
     size_t count; // How many times the command was executed
 } record_T;
 
-#define PREV_ATTR_NAME L"prev:1="
+#define PREV_EXIT_STATUS_ATTR_NAME L"prev_exit_status="
+#define PREV_ATTR_NAME             L"prev:1="
+#define VAR_PWD_ATTR_NAME          L"var:PWD="
 
 
 /* Hashtable mapping command lines (wchar_t *) to record data (record_T *). */
@@ -74,6 +76,16 @@ static bool read_records_from_file(void);
 static void maybe_init(void);
 static void record_attr(record_T *r, const wchar_t *attr_format, ...)
     __attribute__((nonnull(1,2)));
+static hashval_T format_attr_hash(const wchar_t *format, ...)
+    __attribute__((nonnull(1)));
+static size_t attr_count(const record_T *r, hashval_T attrhash)
+    __attribute__((nonnull,pure));
+static double posterior_probability(const record_T *r,
+	size_t attrslen, hashval_T attrs[static attrslen])
+    __attribute__((nonnull,pure));
+static const wchar_t *most_probable_record_name(const wchar_t *prefix,
+	size_t attrslen, hashval_T attrs[static attrslen])
+    __attribute__((nonnull,pure));
 
 
 /* Opens the statistics file. Returns true iff successful. */
@@ -279,11 +291,11 @@ void le_record_entered_command(const wchar_t *cmdline)
     if (file != NULL)
 	fwprintf(file, L"_=%ls\n", cmdline);
 
-    record_attr(r, L"prev_exit_status=%d", laststatus);
+    record_attr(r, L"%ls%d", PREV_EXIT_STATUS_ATTR_NAME, laststatus);
 
     const wchar_t *pwd = getvar(L VAR_PWD);
     if (pwd != NULL)
-	record_attr(r, L"var:PWD=%ls", pwd);
+	record_attr(r, L"%ls%ls", VAR_PWD_ATTR_NAME, pwd);
 
     const histlink_T *newest = histlist.Newest;
     if (newest != &histlist.link) {
@@ -301,6 +313,103 @@ void le_record_entered_command(const wchar_t *cmdline)
     }
 
     free(firstline);
+}
+
+hashval_T format_attr_hash(const wchar_t *format, ...)
+{
+    va_list va;
+    va_start(va, format);
+
+    wchar_t *attr = malloc_vwprintf(format, va);
+    hashval_T hash = hashwcs(attr);
+    free(attr);
+
+    va_end(va);
+    return hash;
+}
+
+size_t attr_count(const record_T *r, hashval_T attrhash)
+{
+    size_t index = find_attr_count_index(r, attrhash);
+    if (index < r->attrslen && r->attrs[index].attrhash == attrhash)
+	return r->attrs[index].count;
+
+    // Not found...
+    return 1; // not 0. Cromwell's rule.
+}
+
+/* Computes the posterior probability for the given record, on the condition of
+ * the given attribute set. */
+double posterior_probability(const record_T *r,
+	size_t attrslen, hashval_T attrs[static attrslen])
+{
+    double count = r->count;
+    double probability = count;
+
+    for (size_t i = 0; i < attrslen; i++) {
+	double attr_likelihood = attr_count(r, attrs[i]) / count;
+	probability *= attr_likelihood;
+    }
+
+    return probability;
+}
+
+/* Among all recorded commands that start with the given `prefix', returns the
+ * most probable one for the given attribute set. The result may be NULL if
+ * there is no match. */
+const wchar_t *most_probable_record_name(const wchar_t *prefix,
+	size_t attrslen, hashval_T attrs[static attrslen])
+{
+    const wchar_t *bestcmdline = NULL;
+    double bestposterior = 0;
+
+    size_t index = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&stattable, &index)).key != NULL) {
+	const wchar_t *cmdline = kv.key;
+	const wchar_t *afterprefix = matchwcsprefix(cmdline, prefix);
+	if (afterprefix == NULL || afterprefix[0] == L'\0')
+	    continue;
+
+	const record_T *r = kv.value;
+	double posterior = posterior_probability(r, attrslen, attrs);
+	if (posterior > bestposterior) {
+	    bestcmdline = cmdline;
+	    bestposterior = posterior;
+	}
+    }
+
+    return bestcmdline;
+}
+
+/* Among all recorded commands that start with the given `prefix', returns the
+ * most probable one for the current context. The result may be NULL if there is
+ * no match. */
+const wchar_t *le_predict(const wchar_t *prefix)
+{
+    maybe_init();
+
+    hashval_T attrs[3];
+    size_t attrslen = 0;
+
+    // 1. Compute attributes for the current context.
+    attrs[attrslen++] = format_attr_hash(
+            L"%ls%d", PREV_EXIT_STATUS_ATTR_NAME, laststatus);
+
+    const wchar_t *pwd = getvar(L VAR_PWD);
+    if (pwd != NULL)
+	attrs[attrslen++] =
+	    format_attr_hash(L"%ls%ls", VAR_PWD_ATTR_NAME, pwd);
+
+    const histlink_T *newest = histlist.Newest;
+    if (newest != &histlist.link) {
+        const histentry_T *prev = (const histentry_T *) newest;
+        attrs[attrslen++] =
+	    format_attr_hash(L"%ls%s", PREV_ATTR_NAME, prev->value);
+    }
+
+    // 2. Search
+    return most_probable_record_name(prefix, attrslen, attrs);
 }
 
 #if 0

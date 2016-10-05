@@ -24,6 +24,8 @@
 extern void le_record_entered_command(const wchar_t *cmdline)
     __attribute__((nonnull));
 extern void le_dump_stattable(void);
+extern const wchar_t *le_predict(const wchar_t *prefix)
+    __attribute__((nonnull,pure));
 
 
 #endif /* YASH_PREDICT_H */
