@@ -18,32 +18,58 @@
 
 #include "../common.h"
 #include "predict.h"
+#include <assert.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <wchar.h>
 #include "../exec.h"
+#include "../hashtable.h"
+#include "../history.h"
+#include "../plist.h"
 #include "../redir.h"
 #include "../strbuf.h"
 #include "../util.h"
 #include "../variable.h"
 
 
+typedef struct attr_count_T {
+    /* Hash code of the string (or anything) that identifies this attribute */
+    hashval_T attrhash;
+    /* How many times the command was executed with this attribute being true */
+    size_t count;
+} attr_count_T;
+
+typedef struct record_T {
+    attr_count_T *attrs; // Array of attr_count_T's. NULL if attrslen == 0
+    size_t attrslen;
+} record_T;
+
+
+/* Hashtable mapping command lines (wchar_t *) to record data (record_T *). */
+static hashtable_T stattable;
+
 /* File stream for the statistics file. */
 static FILE *file = NULL;
 
 
 static bool open_file(void);
-static bool maybe_init(void);
+static void close_file(void);
+static size_t find_attr_count_index(const record_T *r, hashval_T attrhash)
+    __attribute__((nonnull,pure));
+static attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
+    __attribute__((nonnull));
+static bool read_records_from_file(void);
+static void maybe_init(void);
 
 
-/* Opens the statistics file if not yet open.
- * Returns true iff successful. */
+/* Opens the statistics file. Returns true iff successful. */
 bool open_file(void)
 {
-    if (file != NULL)
-	return true;
+    assert(file == NULL);
 
     const wchar_t *home = getvar(L VAR_HOME);
     if (home == NULL || home[0] != L'/')
@@ -87,25 +113,107 @@ bool open_file(void)
     return true;
 }
 
-/* Initialize the prediction module if not yet initialized.
- * Returns true iff successful. */
-bool maybe_init(void)
+/* Closes the statistics file if open. */
+void close_file(void)
 {
-    if (!open_file())
-	return false;
+    if (file == NULL)
+	return;
+    fclose(file);
+    file = NULL;
+}
 
-    // TODO If file was opened successfully, we need to read the contents.
-    fseek(file, 0, SEEK_END);
+/* Perform binary search for an attr_count_T entry that have the specified
+ * `attrhash' in the specified record `r'. If such entry is not found, returns
+ * the index of the succeeding entry. */
+size_t find_attr_count_index(const record_T *r, hashval_T attrhash)
+{
+    size_t min_index = 0, max_index = r->attrslen;
+    while (max_index - min_index > 1) {
+	size_t mid_index = (max_index - min_index) / 2 + min_index;
+	if (r->attrs[mid_index].attrhash < attrhash)
+	    min_index = mid_index;
+	else
+	    max_index = mid_index;
+    }
+    if (min_index == max_index || r->attrs[min_index].attrhash >= attrhash)
+	return min_index;
+    else
+	return max_index; // == min_index + 1
+}
 
-    return true;
+attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
+{
+    size_t index = find_attr_count_index(r, attrhash);
+    if (index < r->attrslen && r->attrs[index].attrhash == attrhash)
+	return &r->attrs[index];
+
+    // create a new attr_count_T entry
+    r->attrs = xreallocn(r->attrs, r->attrslen + 1, sizeof *r->attrs);
+    memmove(&r->attrs[index + 1], &r->attrs[index],
+	    (r->attrslen - index) * sizeof *r->attrs);
+    r->attrslen++;
+
+    attr_count_T *ac = &r->attrs[index];
+    ac->attrhash = attrhash;
+    ac->count = 1; // not 0. Cromwell's rule.
+    return ac;
+}
+
+/* Reads statistics from the file. Returns false on error. */
+bool read_records_from_file(void)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
+    assert(file != NULL);
+    while (wb_truncate(&buf, 0), read_line(file, &buf)) {
+	if (buf.contents[0] != L'_' || buf.contents[1] != L'=')
+	    break;
+
+	record_T *r = ht_get(&stattable, &buf.contents[2]).value;
+	if (r == NULL) {
+	    r = xmalloc(sizeof *r);
+	    r->attrs = NULL;
+	    r->attrslen = 0;
+	    ht_set(&stattable, xwcsdup(&buf.contents[2]), r);
+	}
+
+	// TODO define an attribute that indicates the previous command
+
+	while (wb_truncate(&buf, 0), read_line(file, &buf) && buf.length > 0) {
+	    hashval_T attrhash = hashwcs(buf.contents);
+	    attr_count_T *ac = find_or_create_attr_count(r, attrhash);
+	    ac->count++;
+	}
+    }
+
+    wb_destroy(&buf);
+
+    return !ferror(file);
+}
+
+/* Initialize the prediction module if not yet initialized. */
+void maybe_init(void)
+{
+    if (stattable.capacity == 0)
+	ht_init(&stattable, hashwcs, htwcscmp);
+
+    if (file == NULL)
+	if (open_file())
+	    if (!read_records_from_file())
+		close_file();
 }
 
 /* Records the argument command line in the statistics file.
  * Only the first line of `cmdline' is recorded. */
 void le_record_entered_command(const wchar_t *cmdline)
 {
-    if (!maybe_init())
-	return; // give up
+    maybe_init();
+
+    if (file == NULL)
+	return;
+
+    // TODO add record to stattable
 
     // Drop lines other than the first.
     wchar_t *firstline = NULL;
