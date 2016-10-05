@@ -80,19 +80,11 @@ bool open_file(void)
 {
     assert(file == NULL);
 
-    const wchar_t *home = getvar(L VAR_HOME);
-    if (home == NULL || home[0] != L'/')
+    const wchar_t *wfilename = getvar(L VAR_HISTSTATFILE);
+    if (wfilename == NULL || wfilename[0] != L'/')
 	return false;
 
-    // TODO filename should be configurable
-    xwcsbuf_T wfilename; // filename = ~/.yash_history2
-    wb_init(&wfilename);
-    wb_cat(&wfilename, home);
-    if (wfilename.contents[wfilename.length - 1] != L'/')
-	wb_wccat(&wfilename, L'/');
-    wb_cat(&wfilename, L".yash_history2");
-
-    char *mbsfilename = realloc_wcstombs(wb_towcs(&wfilename));
+    char *mbsfilename = malloc_wcstombs(wfilename);
     if (mbsfilename == NULL)
 	return false;
 
