@@ -23,6 +23,7 @@
 
 extern void le_record_entered_command(const wchar_t *cmdline)
     __attribute__((nonnull));
+extern void le_dump_stattable(void);
 
 
 #endif /* YASH_PREDICT_H */

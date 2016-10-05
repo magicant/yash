@@ -305,6 +305,26 @@ void le_record_entered_command(const wchar_t *cmdline)
     free(firstline);
 }
 
+#if 0
+/* For debugging only. */
+void le_dump_stattable(void)
+{
+    size_t index = 0;
+    kvpair_T kv;
+    while ((kv = ht_next(&stattable, &index)).key != NULL) {
+	const wchar_t *cmdline = kv.key;
+	fprintf(stderr, "[%ls]\n", cmdline);
+
+	const record_T *r = kv.value;
+	for (size_t i = 0; i < r->attrslen; i++) {
+	    attr_count_T *ac = &r->attrs[i];
+	    fprintf(stderr, "%llx -> %zu\n",
+		    (unsigned long long) ac->attrhash, ac->count);
+	}
+    }
+}
+#endif
+
 
 // TODO need to support a case where the statistics file is written to by
 // another yash process.

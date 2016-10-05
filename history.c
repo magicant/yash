@@ -1006,6 +1006,10 @@ void finalize_history(void)
     if (!is_interactive_now || histfile == NULL)
 	return;
 
+#if 0
+    le_dump_stattable();
+#endif
+
     hist_lock = false;
     lock_histfile(F_WRLCK);
     update_time();
