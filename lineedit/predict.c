@@ -282,6 +282,10 @@ void le_record_entered_command(const wchar_t *cmdline)
     if (newline != NULL)
 	cmdline = firstline = xwcsndup(cmdline, newline - cmdline);
 
+    // ignore empty line
+    if (cmdline[0] == L'\0')
+	goto done;
+
     kvpair_T kv = find_or_create_record(cmdline);
     cmdline = kv.key;
     record_T *r = kv.value;
@@ -312,6 +316,7 @@ void le_record_entered_command(const wchar_t *cmdline)
 	fflush(file);
     }
 
+done:
     free(firstline);
 }
 
