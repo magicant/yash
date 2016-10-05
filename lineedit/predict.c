@@ -47,6 +47,7 @@ typedef struct attr_count_T {
 typedef struct record_T {
     attr_count_T *attrs; // Array of attr_count_T's. NULL if attrslen == 0
     size_t attrslen;
+    size_t count; // How many times the command was executed
 } record_T;
 
 #define PREV_ATTR_NAME L"prev:1="
@@ -131,6 +132,7 @@ kvpair_T find_or_create_record(const wchar_t *cmdline)
 	record_T *r = xmalloc(sizeof *r);
 	r->attrs = NULL;
 	r->attrslen = 0;
+	r->count = 1; // not 0. Cromwell's rule.
 	ht_set(&stattable, cmdline, r);
 	kv = (kvpair_T) { .key = (void *) cmdline, .value = (void *) r, };
     }
@@ -201,6 +203,8 @@ bool read_records_from_file(void)
 	const wchar_t *cmdline = kv.key;
 	record_T *r = kv.value;
 
+	r->count++;
+
 	// Add the prev:1 attribute.
 	if (prev_attr.length == 0) {
 	    // No previous command. Just prepare prev_attr.
@@ -270,6 +274,8 @@ void le_record_entered_command(const wchar_t *cmdline)
     cmdline = kv.key;
     record_T *r = kv.value;
 
+    r->count++;
+
     if (file != NULL)
 	fwprintf(file, L"_=%ls\n", cmdline);
 
@@ -305,9 +311,9 @@ void le_dump_stattable(void)
     kvpair_T kv;
     while ((kv = ht_next(&stattable, &index)).key != NULL) {
 	const wchar_t *cmdline = kv.key;
-	fprintf(stderr, "[%ls]\n", cmdline);
-
 	const record_T *r = kv.value;
+
+	fprintf(stderr, "[%ls] (%zu)\n", cmdline, r->count);
 	for (size_t i = 0; i < r->attrslen; i++) {
 	    attr_count_T *ac = &r->attrs[i];
 	    fprintf(stderr, "%llx -> %zu\n",
