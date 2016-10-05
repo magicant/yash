@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@
 #include "display.h"
 #include "keymap.h"
 #include "lineedit.h"
+#include "predict.h"
 #include "terminfo.h"
 
 
@@ -2347,6 +2348,30 @@ void check_reset_completion(void)
 	reset_completion = false;
     }
     next_reset_completion = false;
+}
+
+
+/********** Prediction Commands **********/
+
+/* Replaces the command line with the most probable history entry. */
+void cmd_predict(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    maybe_save_undo_history();
+    le_complete_cleanup();
+
+    const wchar_t *cmdline = le_predict(le_main_buffer.contents);
+    if (cmdline == NULL) {
+	cmd_alert(L'\0');
+    } else {
+	const wchar_t *suffix =
+	    matchwcsprefix(cmdline, le_main_buffer.contents);
+	assert(suffix != NULL);
+	wb_cat(&le_main_buffer, suffix);
+	le_main_index = le_main_buffer.length;
+    }
+
+    reset_state();
 }
 
 
