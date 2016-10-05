@@ -31,6 +31,7 @@
 #include "../exec.h"
 #include "../hashtable.h"
 #include "../history.h"
+#include "../option.h"
 #include "../plist.h"
 #include "../redir.h"
 #include "../strbuf.h"
@@ -317,6 +318,11 @@ void record_attr(record_T *r, const wchar_t *attr_format, ...)
  * Only the first line of `cmdline' is recorded. */
 void le_record_entered_command(const wchar_t *cmdline)
 {
+    // Proceed only when prediction is enabled. This feature is still
+    // experimental and statistics grow indefinitely.
+    if (!shopt_le_predict)
+	return;
+
     maybe_init();
     lock_file_and_read_records();
 
@@ -485,9 +491,6 @@ void le_dump_stattable(void)
     }
 }
 #endif
-
-
-// TODO need to add an option to disable this feature.
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

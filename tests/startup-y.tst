@@ -497,6 +497,7 @@ Options:
 	         -o lecompdebug
 	         -o leconvmeta
 	         -o lenoconvmeta
+	         -o lepredict
 	         -o lepromptsp
 	         -o levisiblebell
 	         -o log
