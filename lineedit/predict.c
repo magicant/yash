@@ -48,6 +48,8 @@ typedef struct record_T {
     size_t attrslen;
 } record_T;
 
+#define PREV_ATTR_NAME L"prev:1="
+
 
 /* Hashtable mapping command lines (wchar_t *) to record data (record_T *). */
 static hashtable_T stattable;
@@ -61,6 +63,8 @@ static void close_file(void);
 static size_t find_attr_count_index(const record_T *r, hashval_T attrhash)
     __attribute__((nonnull,pure));
 static attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
+    __attribute__((nonnull));
+static void increase_attr(record_T *r, const wchar_t *attr)
     __attribute__((nonnull));
 static bool read_records_from_file(void);
 static void maybe_init(void);
@@ -159,34 +163,58 @@ attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
     return ac;
 }
 
-/* Reads statistics from the file. Returns false on error. */
+/* Increases the attribute count for the specified attribute. */
+void increase_attr(record_T *r, const wchar_t *attr)
+{
+    hashval_T attrhash = hashwcs(attr);
+    attr_count_T *ac = find_or_create_attr_count(r, attrhash);
+    ac->count++;
+}
+
+/* Reads statistics from the file. Returns false on error.
+ * In addition to attributes recorded in the file, this function adds the
+ * prev:1 attribute for each record based on the command line of the previous
+ * record. */
 bool read_records_from_file(void)
 {
-    xwcsbuf_T buf;
+    xwcsbuf_T buf, prev_attr;
     wb_init(&buf);
+    wb_init(&prev_attr);
 
     assert(file != NULL);
     while (wb_truncate(&buf, 0), read_line(file, &buf)) {
 	if (buf.contents[0] != L'_' || buf.contents[1] != L'=')
 	    break;
 
-	record_T *r = ht_get(&stattable, &buf.contents[2]).value;
-	if (r == NULL) {
+	// Find or create an entry in stattable.
+	kvpair_T kv = ht_get(&stattable, &buf.contents[2]);
+	const wchar_t *cmdline = kv.key;
+	record_T *r = kv.value;
+	if (cmdline == NULL) {
+	    cmdline = xwcsdup(&buf.contents[2]);
 	    r = xmalloc(sizeof *r);
 	    r->attrs = NULL;
 	    r->attrslen = 0;
-	    ht_set(&stattable, xwcsdup(&buf.contents[2]), r);
+	    ht_set(&stattable, cmdline, r);
 	}
 
-	// TODO define an attribute that indicates the previous command
-
-	while (wb_truncate(&buf, 0), read_line(file, &buf) && buf.length > 0) {
-	    hashval_T attrhash = hashwcs(buf.contents);
-	    attr_count_T *ac = find_or_create_attr_count(r, attrhash);
-	    ac->count++;
+	// Add the prev:1 attribute.
+	if (prev_attr.length == 0) {
+	    // No previous command. Just prepare prev_attr.
+	    wb_cat(&prev_attr, PREV_ATTR_NAME);
+	} else {
+	    increase_attr(r, prev_attr.contents);
+	    wb_truncate(&prev_attr, wcslen(PREV_ATTR_NAME));
 	}
+	// Save cmdline for next record
+	wb_cat(&prev_attr, cmdline);
+
+	// Read attributes from file, each attribute per line.
+	while (wb_truncate(&buf, 0), read_line(file, &buf) && buf.length > 0)
+	    increase_attr(r, buf.contents);
     }
 
+    wb_destroy(&prev_attr);
     wb_destroy(&buf);
 
     return !ferror(file);
