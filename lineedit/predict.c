@@ -20,6 +20,7 @@
 #include "predict.h"
 #include <assert.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -60,6 +61,8 @@ static FILE *file = NULL;
 
 static bool open_file(void);
 static void close_file(void);
+static kvpair_T find_or_create_record(const wchar_t *cmdline)
+    __attribute__((nonnull));
 static size_t find_attr_count_index(const record_T *r, hashval_T attrhash)
     __attribute__((nonnull,pure));
 static attr_count_T *find_or_create_attr_count(record_T *r, hashval_T attrhash)
@@ -68,6 +71,8 @@ static void increase_attr(record_T *r, const wchar_t *attr)
     __attribute__((nonnull));
 static bool read_records_from_file(void);
 static void maybe_init(void);
+static void record_attr(record_T *r, const wchar_t *attr_format, ...)
+    __attribute__((nonnull(1,2)));
 
 
 /* Opens the statistics file. Returns true iff successful. */
@@ -124,6 +129,20 @@ void close_file(void)
 	return;
     fclose(file);
     file = NULL;
+}
+
+kvpair_T find_or_create_record(const wchar_t *cmdline)
+{
+    kvpair_T kv = ht_get(&stattable, cmdline);
+    if (kv.key == NULL) {
+	cmdline = xwcsdup(cmdline);
+	record_T *r = xmalloc(sizeof *r);
+	r->attrs = NULL;
+	r->attrslen = 0;
+	ht_set(&stattable, cmdline, r);
+	kv = (kvpair_T) { .key = (void *) cmdline, .value = (void *) r, };
+    }
+    return kv;
 }
 
 /* Perform binary search for an attr_count_T entry that have the specified
@@ -186,17 +205,9 @@ bool read_records_from_file(void)
 	if (buf.contents[0] != L'_' || buf.contents[1] != L'=')
 	    break;
 
-	// Find or create an entry in stattable.
-	kvpair_T kv = ht_get(&stattable, &buf.contents[2]);
+	kvpair_T kv = find_or_create_record(&buf.contents[2]);
 	const wchar_t *cmdline = kv.key;
 	record_T *r = kv.value;
-	if (cmdline == NULL) {
-	    cmdline = xwcsdup(&buf.contents[2]);
-	    r = xmalloc(sizeof *r);
-	    r->attrs = NULL;
-	    r->attrslen = 0;
-	    ht_set(&stattable, cmdline, r);
-	}
 
 	// Add the prev:1 attribute.
 	if (prev_attr.length == 0) {
@@ -232,16 +243,30 @@ void maybe_init(void)
 		close_file();
 }
 
+/* Constructs an attribute name by formatting `attr_format' with the remaining
+ * arguments and increments the count for the attribute in the specified record.
+ * The attribute name must not include a newline. */
+void record_attr(record_T *r, const wchar_t *attr_format, ...)
+{
+    va_list va;
+    va_start(va, attr_format);
+
+    wchar_t *attr = malloc_vwprintf(attr_format, va);
+    increase_attr(r, attr);
+    if (file != NULL) {
+	fputws(attr, file);
+	fputwc(L'\n', file);
+    }
+    free(attr);
+
+    va_end(va);
+}
+
 /* Records the argument command line in the statistics file.
  * Only the first line of `cmdline' is recorded. */
 void le_record_entered_command(const wchar_t *cmdline)
 {
     maybe_init();
-
-    if (file == NULL)
-	return;
-
-    // TODO add record to stattable
 
     // Drop lines other than the first.
     wchar_t *firstline = NULL;
@@ -249,14 +274,33 @@ void le_record_entered_command(const wchar_t *cmdline)
     if (newline != NULL)
 	cmdline = firstline = xwcsndup(cmdline, newline - cmdline);
 
-    fwprintf(file, L"_=%ls\nprev_exit_status=%d\n", cmdline, laststatus);
+    kvpair_T kv = find_or_create_record(cmdline);
+    cmdline = kv.key;
+    record_T *r = kv.value;
+
+    if (file != NULL)
+	fwprintf(file, L"_=%ls\n", cmdline);
+
+    record_attr(r, L"prev_exit_status=%d", laststatus);
 
     const wchar_t *pwd = getvar(L VAR_PWD);
     if (pwd != NULL)
-	fwprintf(file, L"var:PWD=%ls\n", pwd);
+	record_attr(r, L"var:PWD=%ls", pwd);
 
-    fputwc(L'\n', file);
-    fflush(file);
+    const histlink_T *newest = histlist.Newest;
+    if (newest != &histlist.link) {
+	// Don't use record_attr for PREV_ATTR_NAME because we don't write the
+	// attribute to the statistics file.
+	const histentry_T *prev = (const histentry_T *) newest;
+	wchar_t *attr = malloc_wprintf(L"%ls%s", PREV_ATTR_NAME, prev->value);
+	increase_attr(r, attr);
+	free(attr);
+    }
+
+    if (file != NULL) {
+	fputwc(L'\n', file);
+	fflush(file);
+    }
 
     free(firstline);
 }

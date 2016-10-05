@@ -1058,6 +1058,8 @@ void add_history(const wchar_t *line)
 	return;
 
 #if YASH_ENABLE_LINEEDIT
+    // Must call before adding the new entry to histlist because
+    // le_record_entered_command depends on histlist.Newest.
     le_record_entered_command(line);
 #endif
 
