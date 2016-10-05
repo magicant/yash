@@ -39,6 +39,9 @@
 #include "builtin.h"
 #include "exec.h"
 #include "job.h"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/predict.h"
+#endif
 #include "option.h"
 #include "path.h"
 #include "redir.h"
@@ -1055,6 +1058,10 @@ void add_history(const wchar_t *line)
 {
     if (shopt_histspace && iswblank(line[0]))
 	return;
+
+#if YASH_ENABLE_LINEEDIT
+    le_record_entered_command(line);
+#endif
 
     maybe_init_history();
     assert(!hist_lock);
