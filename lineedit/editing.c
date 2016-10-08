@@ -2421,24 +2421,6 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
-// TODO This command is no longer useful. Instead, we should have the
-// cmd_predict_and_accept command.
-/* Replaces the command line with the most probable history entry. */
-void cmd_predict(wchar_t c __attribute__((unused)))
-{
-    ALERT_AND_RETURN_IF_PENDING;
-    maybe_save_undo_history();
-    le_complete_cleanup();
-
-    if (predict()) {
-	le_main_index = le_main_buffer.length;
-    } else {
-	cmd_alert(L'\0');
-    }
-
-    reset_state();
-}
-
 bool predict(void)
 {
     // XXX We could omit unnecessary re-prediction.

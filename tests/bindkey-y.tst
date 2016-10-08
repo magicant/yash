@@ -94,7 +94,6 @@ complete-list
 complete-all
 complete-max
 clear-candidates
-predict
 vi-replace-char
 vi-insert-beginning
 vi-append

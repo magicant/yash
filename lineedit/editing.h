@@ -151,10 +151,6 @@ extern le_command_func_T
     cmd_complete_max, /*C*/
     cmd_clear_candidates; /*C*/
 
-/* prediction commands */
-extern le_command_func_T
-    cmd_predict; /*C*/
-
 /* vi-mode specific commands */
 extern le_command_func_T
     cmd_vi_replace_char, /*C*/
