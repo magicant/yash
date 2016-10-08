@@ -65,6 +65,7 @@ extern le_command_func_T
     cmd_eof_if_empty, /*C*/
     cmd_eof_or_delete, /*C*/
     cmd_accept_with_hash, /*C*/
+    cmd_accept_prediction, /*C*/
     cmd_setmode_viinsert, /*C*/
     cmd_setmode_vicommand, /*C*/
     cmd_setmode_emacs, /*C*/

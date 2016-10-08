@@ -937,6 +937,14 @@ void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
     cmd_accept_line(L'\0');
 }
 
+/* Accept the current line including the prediction. */
+void cmd_accept_prediction(wchar_t c)
+{
+    cmd_accept_line(c);
+    if (le_editstate == LE_EDITSTATE_DONE)
+	le_main_length = SIZE_MAX;
+}
+
 /* Changes the editing mode to "vi insert". */
 void cmd_setmode_viinsert(wchar_t c __attribute__((unused)))
 {
