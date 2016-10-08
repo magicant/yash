@@ -62,10 +62,20 @@ struct le_command_T {
 };
 
 
-/* The main buffer where the command line is edited. */
+/* The main buffer where the command line is edited.
+ * The contents of the buffer is divided into two parts: The first part is the
+ * main command line text that is input and edited by the user. The second is
+ * automatically appended after the first as a result of the prediction
+ * feature. As the user edits the first part, the prediction feature updates
+ * the second. When the user moves the cursor to somewhere in the second part,
+ * the text up to the cursor then becomes the first. */
 xwcsbuf_T le_main_buffer;
+/* The position that divides the main buffer into two parts as described just
+ * above. If `le_main_length > le_main_buffer.length', the second part is
+ * assumed empty. */
+size_t le_main_length;
 /* The position of the cursor on the command line.
- * 0 <= le_main_index <= le_main_buffer.length */
+ * le_main_index <= le_main_buffer.length */
 size_t le_main_index;
 
 /* The history entry that is being edited in the main buffer now.
@@ -151,9 +161,9 @@ static struct le_command_T last_find_command;
 static le_mode_id_T savemode;
 
 /* When starting the overwrite mode, the then `le_main_buffer' contents and
- * length are saved in this structure. The values are kept so that the original
- * contents can be restored when the user hits backspace. When the user leaves
- * the overwrite mode, `contents' is freed and set to NULL. */
+ * `le_main_length' are saved in this structure. The values are kept so that the
+ * original contents can be restored when the user hits backspace. When the user
+ * leaves the overwrite mode, `contents' is freed and set to NULL. */
 static struct {
     wchar_t *contents;
     size_t length;
@@ -173,6 +183,7 @@ static size_t undo_save_index;
 struct undo_history {
     size_t index;        /* index of the cursor */
     wchar_t contents[];  /* contents of the edit line */
+    // `contents' is a copy of `le_main_buffer.contents' up to `le_main_length'.
 };
 
 #define KILL_RING_SIZE 32  /* must be power of 2 */
@@ -195,6 +206,8 @@ static bool next_reset_completion;
 static void reset_state(void);
 static void reset_count(void);
 static int get_count(int default_value)
+    __attribute__((pure));
+static size_t active_length(void)
     __attribute__((pure));
 static void save_current_edit_command(void);
 static void save_current_find_command(void);
@@ -279,6 +292,9 @@ static void cancel_undo(int offset);
 
 static void check_reset_completion(void);
 
+static bool predict(void);
+static void clear_prediction(void);
+
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
 struct xwcsrange { const wchar_t *start, *end; };
@@ -319,7 +335,7 @@ static inline bool beginning_search_check_go_to_history(const wchar_t *prefix)
 void le_editing_init(void)
 {
     wb_init(&le_main_buffer);
-    le_main_index = 0;
+    le_main_length = le_main_index = 0;
     main_history_entry = Histlist;
     main_history_value = xwcsdup(L"");
 
@@ -343,6 +359,9 @@ void le_editing_init(void)
 
     reset_state();
     set_overwriting(false);
+
+    if (shopt_le_predict)
+	predict();
 }
 
 /* Finalizes the editing module when editing is finished.
@@ -358,6 +377,7 @@ wchar_t *le_editing_finalize(void)
     end_using_history();
     free(main_history_value);
 
+    clear_prediction();
     wb_wccat(&le_main_buffer, L'\n');
     return wb_towcs(&le_main_buffer);
 }
@@ -375,6 +395,14 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     last_command = current_command;
 
     reset_completion |= next_reset_completion;
+
+    if (le_main_length < le_main_index)
+	le_main_length = le_main_index;
+    if (le_editstate == LE_EDITSTATE_DONE)
+	clear_prediction();
+    else if (shopt_le_predict)
+	predict();
+
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
 	    le_main_index--;
@@ -417,6 +445,16 @@ int get_count(int default_value)
     return result;
 }
 
+/* Returns the length of the first part of `le_main_buffer'. */
+size_t active_length(void)
+{
+    if (le_main_length > le_main_buffer.length)
+	return le_main_buffer.length;
+    if (le_main_length < le_main_index)
+	return le_main_index;
+    return le_main_length;
+}
+
 /* Saves the currently executing command and the current state in
  * `last_edit_command' if we are not redoing and the mode is not "vi insert". */
 void save_current_edit_command(void)
@@ -448,10 +486,13 @@ void save_undo_history(void)
 	free(undo_history.contents[i]);
     pl_remove(&undo_history, undo_index, SIZE_MAX);
 
-    struct undo_history *e =
-	xmallocs(sizeof *e, add(le_main_buffer.length, 1), sizeof *e->contents);
+    // No need to check for overflow in `len + 1' here. Should overflow occur,
+    // the buffer would not have been allocated successfully.
+    size_t len = active_length();
+    struct undo_history *e = xmallocs(sizeof *e, len + 1, sizeof *e->contents);
     e->index = le_main_index;
-    wcscpy(e->contents, le_main_buffer.contents);
+    wcsncpy(e->contents, le_main_buffer.contents, len);
+    e->contents[len] = L'\0';
     pl_add(&undo_history, e);
     assert(undo_index == undo_history.length - 1);
     undo_history_entry = main_history_entry;
@@ -466,10 +507,12 @@ void maybe_save_undo_history(void)
     size_t save_undo_save_index = undo_save_index;
     undo_save_index = le_main_index;
 
+    size_t len = active_length();
     if (undo_history_entry == main_history_entry) {
 	if (undo_index < undo_history.length) {
 	    struct undo_history *h = undo_history.contents[undo_index];
-	    if (wcscmp(le_main_buffer.contents, h->contents) == 0) {
+	    if (wcsncmp(le_main_buffer.contents, h->contents, len) == 0 &&
+		    h->contents[len] == L'\0') {
 		/* The contents of the main buffer is the same as saved in the
 		 * history. Just save the index. */
 		h->index = le_main_index;
@@ -478,7 +521,8 @@ void maybe_save_undo_history(void)
 	    undo_index++;
 	}
     } else {
-	if (wcscmp(le_main_buffer.contents, main_history_value) == 0)
+	if (wcsncmp(le_main_buffer.contents, main_history_value, len) == 0 &&
+		main_history_value[len] == L'\0')
 	    return;
 
 	/* The contents of the buffer has been changed from the value of the
@@ -531,19 +575,24 @@ void exec_motion_command(size_t new_index, bool inclusive)
 	add_to_kill_ring(&le_main_buffer.contents[start_index],
 		end_index - start_index);
     }
-    switch (mec & MEC_CASEMASK) {
-	case MEC_UPPERCASE:
-	    to_upper_case(&le_main_buffer.contents[start_index],
-		    end_index - start_index);
-	    break;
-	case MEC_LOWERCASE:
-	    to_lower_case(&le_main_buffer.contents[start_index],
-		    end_index - start_index);
-	    break;
-	case MEC_SWITCHCASE:
-	    switch_case(&le_main_buffer.contents[start_index],
-		    end_index - start_index);
-	    break;
+    if (mec & MEC_CASEMASK) {
+	void (*case_func)(wchar_t *, size_t);
+	INIT(case_func, 0);
+	switch (mec & MEC_CASEMASK) {
+	    case MEC_UPPERCASE:
+		case_func = to_upper_case;
+		break;
+	    case MEC_LOWERCASE:
+		case_func = to_lower_case;
+		break;
+	    case MEC_SWITCHCASE:
+		case_func = switch_case;
+		break;
+	}
+	case_func(&le_main_buffer.contents[start_index],
+		end_index - start_index);
+	if (le_main_length < end_index)
+	    le_main_length = end_index;
     }
     switch (mec & MEC_CURSORMASK) {
 	case MEC_TOSTART:  le_main_index = start_index;  break;
@@ -552,6 +601,7 @@ void exec_motion_command(size_t new_index, bool inclusive)
     }
     if (mec & MEC_DELETE) {
 	save_current_edit_command();
+	clear_prediction();
 	if (!is_overwriting() || old_index <= new_index)
 	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
 	else
@@ -642,8 +692,9 @@ void set_overwriting(bool overwrite)
 {
     free(overwrite_save_buffer.contents);
     if (overwrite) {
-	overwrite_save_buffer.contents = xwcsdup(le_main_buffer.contents);
-	overwrite_save_buffer.length = le_main_buffer.length;
+	size_t len = active_length();
+	overwrite_save_buffer.contents = xwcsndup(le_main_buffer.contents, len);
+	overwrite_save_buffer.length = len;
     } else {
 	overwrite_save_buffer.contents = NULL;
     }
@@ -656,8 +707,9 @@ bool is_overwriting(void)
 }
 
 /* Restores the main buffer contents that were overwritten in the current
- * overwrite mode. The caller must adjust `le_main_index' because this function
- * may remove some characters from `le_main_buffer'. */
+ * overwrite mode. When called, `le_main_length >= le_main_buffer.length' must
+ * hold. The caller must adjust `le_main_index' because this function may remove
+ * some characters from `le_main_buffer'. */
 void restore_overwritten_buffer_contents(size_t start_index, size_t end_index)
 {
     size_t mid_index;
@@ -752,6 +804,7 @@ void cmd_self_insert(wchar_t c)
 	cmd_alert(L'\0');
 	return;
     }
+    clear_prediction();
 
     int count = get_count(1);
     while (--count >= 0)
@@ -852,7 +905,7 @@ void cmd_eof(wchar_t c __attribute__((unused)))
  * EOF). Otherwise, alerts. */
 void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
-    if (le_main_buffer.length == 0)
+    if (active_length() == 0)
 	cmd_eof(L'\0');
     else
 	cmd_alert(L'\0');
@@ -862,7 +915,7 @@ void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
  * EOF). Otherwise, deletes the character under the cursor. */
 void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 {
-    if (le_main_buffer.length == 0)
+    if (active_length() == 0)
 	cmd_eof(L'\0');
     else
 	cmd_delete_char(L'\0');
@@ -874,6 +927,7 @@ void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
 
     if (state.count.sign == 0 || le_main_buffer.contents[0] != L'#')
 	wb_insert(&le_main_buffer, 0, L"#");
@@ -2064,6 +2118,8 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
 void insert_killed_string(
 	bool after_cursor, bool cursor_on_last_char, size_t index)
 {
+    clear_prediction();
+
     const wchar_t *s = kill_ring[index];
     if (s == NULL)
 	return;
@@ -2105,6 +2161,7 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
     last_success = true;
     save_current_edit_command();
     maybe_save_undo_history();
+    clear_prediction();
 
     size_t index = last_put_elem;
     do
@@ -2150,6 +2207,7 @@ void cmd_cancel_undo_all(wchar_t c __attribute__((unused)))
 void cancel_undo(int offset)
 {
     maybe_save_undo_history();
+    clear_prediction();
 
     if (undo_history_entry != main_history_entry)
 	goto error;
@@ -2213,6 +2271,7 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 void cmd_complete(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete(lecr_normal);
@@ -2225,6 +2284,7 @@ void cmd_complete(wchar_t c __attribute__((unused)))
 void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_candidate(get_count(1));
@@ -2237,6 +2297,7 @@ void cmd_complete_next_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_candidate(-get_count(1));
@@ -2249,6 +2310,7 @@ void cmd_complete_prev_candidate(wchar_t c __attribute__((unused)))
 void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_column(get_count(1));
@@ -2261,6 +2323,7 @@ void cmd_complete_next_column(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_column(-get_count(1));
@@ -2273,6 +2336,7 @@ void cmd_complete_prev_column(wchar_t c __attribute__((unused)))
 void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_page(get_count(1));
@@ -2285,6 +2349,7 @@ void cmd_complete_next_page(wchar_t c __attribute__((unused)))
 void cmd_complete_prev_page(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete_select_page(-get_count(1));
@@ -2300,6 +2365,7 @@ void cmd_complete_list(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
+    clear_prediction();
     le_complete_cleanup();
     /* leave `next_reset_completion' to be true because the results of this
      * command cannot be used by succeeding completion commands. */
@@ -2315,6 +2381,7 @@ void cmd_complete_list(wchar_t c __attribute__((unused)))
 void cmd_complete_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete(lecr_substitute_all_candidates);
@@ -2327,6 +2394,7 @@ void cmd_complete_all(wchar_t c __attribute__((unused)))
 void cmd_complete_max(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     le_complete(lecr_longest_common_prefix);
@@ -2353,6 +2421,8 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
+// TODO This command is no longer useful. Instead, we should have the
+// cmd_predict_and_accept command.
 /* Replaces the command line with the most probable history entry. */
 void cmd_predict(wchar_t c __attribute__((unused)))
 {
@@ -2360,18 +2430,42 @@ void cmd_predict(wchar_t c __attribute__((unused)))
     maybe_save_undo_history();
     le_complete_cleanup();
 
-    const wchar_t *cmdline = le_predict(le_main_buffer.contents);
-    if (cmdline == NULL) {
-	cmd_alert(L'\0');
-    } else {
-	const wchar_t *suffix =
-	    matchwcsprefix(cmdline, le_main_buffer.contents);
-	assert(suffix != NULL);
-	wb_cat(&le_main_buffer, suffix);
+    if (predict()) {
 	le_main_index = le_main_buffer.length;
+    } else {
+	cmd_alert(L'\0');
     }
 
     reset_state();
+}
+
+bool predict(void)
+{
+    // XXX We could omit unnecessary re-prediction.
+    clear_prediction();
+
+    const wchar_t *cmdline = le_predict(le_main_buffer.contents);
+    if (cmdline == NULL)
+	return false;
+
+    le_main_length = le_main_buffer.length;
+
+    const wchar_t *suffix = matchwcsprefix(cmdline, le_main_buffer.contents);
+    assert(suffix != NULL);
+    wb_cat(&le_main_buffer, suffix);
+    return true;
+}
+
+/* Clears the second part of `le_main_buffer'.
+ * Commands that modify the buffer usually need to call this function. However,
+ * if a command affects or is affected by the second part, the command might
+ * need to update `le_main_length' in a more sophisticated way rather than
+ * calling this function. */
+void clear_prediction(void)
+{
+    if (le_main_length < le_main_buffer.length)
+	wb_truncate(&le_main_buffer, le_main_length);
+    le_main_length = SIZE_MAX;
 }
 
 
@@ -2400,6 +2494,9 @@ void vi_replace_char(wchar_t c)
 		le_main_buffer.contents[le_main_index] = c;
 		count--, le_main_index++;
 	    } while (count > 0 && le_main_index < le_main_buffer.length);
+	    if (le_main_length < le_main_index)
+		le_main_length = le_main_index;
+	    clear_prediction();
 	    le_main_index--;
 	}
 	reset_state();
@@ -2579,6 +2676,7 @@ void cmd_vi_append_last_bigword(wchar_t c __attribute__((unused)))
     if (range.start == range.end)
 	goto fail;
 
+    clear_prediction();
     if (le_main_index < le_main_buffer.length)
 	le_main_index++;
     size_t len = range.end - range.start;
@@ -2682,6 +2780,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 	    goto error0;
 	go_to_history(l, SEARCH_VI);
     }
+    clear_prediction();
     le_complete_cleanup();
     le_suspend_readline();
 
@@ -2774,6 +2873,7 @@ void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     maybe_save_undo_history();
+    clear_prediction();
     le_complete_cleanup();
     /* leave `next_reset_completion' to be true because the results of this
      * command cannot be used by succeeding completion commands. */
@@ -2797,6 +2897,7 @@ void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
@@ -2812,6 +2913,7 @@ void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
 void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
     check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
@@ -2884,6 +2986,12 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
     wb_remove(&le_main_buffer, old_index - 1, 1);
     wb_ninsert(&le_main_buffer, index - 1, &c, 1);
     le_main_index = index;
+
+    if (le_main_length < old_index)
+	le_main_length = old_index;
+    if (le_main_length < index)
+	le_main_length = index;
+
     reset_state();
     return;
 
@@ -2940,6 +3048,8 @@ void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
 	    buf.contents, buf.length);
     wb_destroy(&buf);
     le_main_index = new_index;
+    if (le_main_length < w2end)
+	le_main_length = w2end;
 end:
     reset_state();
     return;
@@ -2995,6 +3105,10 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 		towupper(le_main_buffer.contents[index]);
 	} while (index > 0 && ++count < 0);
     }
+
+    if (le_main_length < le_main_index)
+	le_main_length = le_main_index;
+
     reset_state();
 }
 
@@ -3045,11 +3159,16 @@ void replace_horizontal_space(bool deleteafter, const wchar_t *s)
 		&& iswblank(le_main_buffer.contents[end_index]))
 	    end_index++;
 
-    size_t slen = wcslen(s);
+    if (le_main_length < end_index)
+	le_main_length = end_index;
 
+    size_t slen = wcslen(s);
     wb_replace_force(&le_main_buffer, start_index, end_index - start_index,
 	    s, slen);
+
     le_main_index = start_index + slen;
+    le_main_length += le_main_index - end_index;
+
     reset_state();
 }
 
@@ -3262,6 +3381,7 @@ alert:
 void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
 {
     maybe_save_undo_history();
+    clear_prediction();
 
     free(main_history_value);
     wb_clear(&le_main_buffer);

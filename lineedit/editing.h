@@ -25,7 +25,7 @@
 
 
 extern xwcsbuf_T le_main_buffer;
-extern size_t le_main_index;
+extern size_t le_main_length, le_main_index;
 
 enum le_search_direction_T { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
