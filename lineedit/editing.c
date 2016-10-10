@@ -398,10 +398,18 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
 
     if (le_main_length < le_main_index)
 	le_main_length = le_main_index;
-    if (le_editstate == LE_EDITSTATE_DONE)
-	clear_prediction();
-    else if (shopt_le_predict)
-	predict();
+    switch (le_editstate) {
+	case LE_EDITSTATE_EDITING:
+	    if (shopt_le_predict)
+		predict();
+	    break;
+	case LE_EDITSTATE_DONE:
+	case LE_EDITSTATE_ERROR:
+	    clear_prediction();
+	    break;
+	case LE_EDITSTATE_INTERRUPTED:
+	    break;
+    }
 
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
 	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
