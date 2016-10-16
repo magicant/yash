@@ -26,6 +26,7 @@
 typedef union trievalue_T {
     const wchar_t *keyseq;
     le_command_func_T *cmdfunc;
+    double probability;
 } trievalue_T;
 typedef struct trienode_T trie_T;
 typedef struct trieget_T {
@@ -61,6 +62,11 @@ extern int trie_foreachw(const trie_T *t,
 	void *v)
     __attribute__((nonnull(1,2)));
 extern void trie_destroy(trie_T *t);
+
+extern trie_T *trie_add_probability(trie_T *t, const wchar_t *keywcs, double p)
+    __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *trie_probable_key(const trie_T *t)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 
 #endif /* YASH_TRIE_H */

@@ -52,6 +52,7 @@
 #include "keymap.h"
 #include "lineedit.h"
 #include "terminfo.h"
+#include "trie.h"
 
 
 /* The type of pairs of a command and an argument. */
@@ -291,7 +292,11 @@ static void cancel_undo(int offset);
 
 static void check_reset_completion(void);
 
-static bool predict(void);
+static bool update_buffer_with_prediction(void);
+static wchar_t *predict(void)
+    __attribute__((malloc,warn_unused_result));
+static size_t count_matching_previous_commands(const histentry_T *e1)
+    __attribute__((nonnull,pure));
 static void clear_prediction(void);
 
 static void vi_replace_char(wchar_t c);
@@ -360,7 +365,7 @@ void le_editing_init(void)
     set_overwriting(false);
 
     if (shopt_le_predict)
-	predict();
+	update_buffer_with_prediction();
 }
 
 /* Finalizes the editing module when editing is finished.
@@ -400,7 +405,7 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     switch (le_editstate) {
 	case LE_EDITSTATE_EDITING:
 	    if (shopt_le_predict)
-		predict();
+		update_buffer_with_prediction();
 	    break;
 	case LE_EDITSTATE_DONE:
 	case LE_EDITSTATE_ERROR:
@@ -2436,21 +2441,78 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
-bool predict(void)
+/* Removes any existing prediction and appends a new prediction to the main
+ * buffer. */
+bool update_buffer_with_prediction(void)
 {
     // XXX We could omit unnecessary re-prediction.
     clear_prediction();
 
-    const wchar_t *cmdline = NULL; // FIXME
-    if (cmdline == NULL)
+    wchar_t *suffix = predict();
+    if (suffix == NULL)
 	return false;
 
     le_main_length = le_main_buffer.length;
-
-    const wchar_t *suffix = matchwcsprefix(cmdline, le_main_buffer.contents);
-    assert(suffix != NULL);
-    wb_cat(&le_main_buffer, suffix);
+    wb_catfree(&le_main_buffer, suffix);
     return true;
+}
+
+/* Returns a command string fragment the user is most likely to append to the
+ * current main buffer contents. */
+wchar_t *predict(void)
+{
+    assert(le_main_length >= le_main_buffer.length);
+
+    char *mbsprefix = malloc_wcsntombs(le_main_buffer.contents, le_main_length);
+    if (mbsprefix == NULL)
+	return NULL;
+
+    // Create probability distribution trie.
+    trie_T *t = trie_create();
+    size_t i = 0;
+    for (const histlink_T *l = Histlist; (l = l->prev) != Histlist; ) {
+	i++;
+
+	const histentry_T *e = (const histentry_T *) l;
+	const char *mbssuffix = matchstrprefix(e->value, mbsprefix);
+	if (mbssuffix == NULL || mbssuffix[0] == '\0')
+	    continue;
+
+	wchar_t *cmd = malloc_mbstowcs(e->value);
+	if (cmd == NULL)
+	    continue;
+
+	const wchar_t *cmdsuffix = matchwcsprefix(cmd, le_main_buffer.contents);
+	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0') {
+	    size_t k = count_matching_previous_commands(e);
+	    t = trie_add_probability(t, cmdsuffix, 1.0 / i * k);
+	}
+	free(cmd);
+    }
+
+    // Find the result.
+    wchar_t *suffix = trie_probable_key(t);
+
+    trie_destroy(t);
+    free(mbsprefix);
+
+    return suffix;
+}
+
+size_t count_matching_previous_commands(const histentry_T *e)
+{
+    size_t count = 0;
+    const histlink_T *l1 = &e->link, *l2 = Histlist;
+    while ((l1 = l1->prev) != Histlist) {
+	l2 = l2->prev;
+
+	const histentry_T *e1 = (const histentry_T *) l1;
+	const histentry_T *e2 = (const histentry_T *) l2;
+	if (strcmp(e1->value, e2->value) != 0)
+	    break;
+	count++;
+    }
+    return count;
 }
 
 /* Clears the second part of `le_main_buffer'.
