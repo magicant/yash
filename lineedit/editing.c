@@ -51,7 +51,6 @@
 #include "display.h"
 #include "keymap.h"
 #include "lineedit.h"
-#include "predict.h"
 #include "terminfo.h"
 
 
@@ -2442,7 +2441,7 @@ bool predict(void)
     // XXX We could omit unnecessary re-prediction.
     clear_prediction();
 
-    const wchar_t *cmdline = le_predict(le_main_buffer.contents);
+    const wchar_t *cmdline = NULL; // FIXME
     if (cmdline == NULL)
 	return false;
 

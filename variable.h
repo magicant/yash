@@ -37,7 +37,6 @@ extern char **environ;
 #define VAR_HISTFILE                  "HISTFILE"
 #define VAR_HISTRMDUP                 "HISTRMDUP"
 #define VAR_HISTSIZE                  "HISTSIZE"
-#define VAR_HISTSTATFILE              "HISTSTATFILE"
 #define VAR_HOME                      "HOME"
 #define VAR_IFS                       "IFS"
 #define VAR_LANG                      "LANG"

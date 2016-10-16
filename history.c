@@ -39,9 +39,6 @@
 #include "builtin.h"
 #include "exec.h"
 #include "job.h"
-#if YASH_ENABLE_LINEEDIT
-# include "lineedit/predict.h"
-#endif
 #include "option.h"
 #include "path.h"
 #include "redir.h"
@@ -152,6 +149,8 @@ static void write_histfile_pids(void);
 
 static FILE *open_histfile(void);
 static bool lock_histfile(short type);
+static bool read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
+    __attribute__((nonnull));
 static bool try_read_line(FILE *restrict f, xwcsbuf_T *restrict buf)
     __attribute__((nonnull));
 static long read_signature(void);
@@ -1006,10 +1005,6 @@ void finalize_history(void)
     if (!is_interactive_now || histfile == NULL)
 	return;
 
-#if 0
-    le_dump_stattable();
-#endif
-
     hist_lock = false;
     lock_histfile(F_WRLCK);
     update_time();
@@ -1060,12 +1055,6 @@ void add_history(const wchar_t *line)
 {
     if (shopt_histspace && iswblank(line[0]))
 	return;
-
-#if YASH_ENABLE_LINEEDIT
-    // Must call before adding the new entry to histlist because
-    // le_record_entered_command depends on histlist.Newest.
-    le_record_entered_command(line);
-#endif
 
     maybe_init_history();
     assert(!hist_lock);
