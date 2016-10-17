@@ -2485,7 +2485,7 @@ wchar_t *predict(void)
 	const wchar_t *cmdsuffix = matchwcsprefix(cmd, le_main_buffer.contents);
 	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0') {
 	    size_t k = count_matching_previous_commands(e);
-	    t = trie_add_probability(t, cmdsuffix, 1.0 / i * k);
+	    t = trie_add_probability(t, cmdsuffix, (k + 1.0) / i);
 	}
 	free(cmd);
     }
