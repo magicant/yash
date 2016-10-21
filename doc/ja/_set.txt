@@ -96,6 +96,7 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 [[so-lecompdebug]]le-comp-debug::
 [[so-leconvmeta]]le-conv-meta::
 [[so-lenoconvmeta]]le-no-conv-meta::
+[[so-lepredict]]le-predict::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
 これらのオプションはlink:lineedit.html[行編集]の動作に影響します。link:lineedit.html#options[行編集のオプション]を参照してください。

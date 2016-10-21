@@ -65,6 +65,9 @@ When either is enabled, the other is automatically disabled.
 When neither is enabled, the 8th bit may be treated as a meta-key flag
 depending on terminfo data.
 
+link:_set.html#so-lepredict[le-predict]::
+activates <<prediction,command line prediction>>.
+
 link:_set.html#so-lepromptsp[le-prompt-sp]::
 When enabled, the shell prints a special character sequence before printing
 each prompt so that every prompt is printed at the beginning of a line.
@@ -215,6 +218,9 @@ Finish editing the current line.
 A newline is automatically appended to the line.
 The line will be executed by the shell.
 +
+If <<prediction,command line prediction>> is active, the current prediction
+(if any) is ignored. See also the accept-prediction command.
++
 --
 vi-insert::
 vi-command::
@@ -285,6 +291,9 @@ emacs::
 ifdef::basebackend-html[+++<kbd><code>\^[</code>#</kbd>+++]
 ifndef::basebackend-html[`\^[#`]
 --
+
+accept-prediction::
+Like the accept-line command, but include the <<prediction,predicted>> part.
 
 setmode-viinsert::
 Switch to the vi insert mode.
@@ -1773,5 +1782,39 @@ While a completion function is being executed:
 - the link:posix.html[POSIXly-correct mode] is temporarily disabled,
 - the link:_set.html#so-errexit[err-exit option] is temporarily disabled, and
 - link:_trap.html[traps] are not executed.
+
+[[prediction]]
+== Command line prediction
+
+This is an experimental feature. When the
+link:_set.html#so-lepredict[le-predict] option is enabled, the shell
+automatically tries to predict a command string fragment that follows the part
+of the command you have already typed in line-editing.
+
+For example, assume you have once typed the command +ls Documents+. Next
+time you start typing +ls Doc+, the shell will show +uments+ just after
+the cursor. If you are satisfied with this suggestion, you can move the cursor
+to the right by the forward-char or any other <<motion-commands,motion
+commands>> instead of typing the rest of the command. After moving the cursor
+after the last +s+, you can use the accept-line command to execute the
+command. You can also use the accept-prediction command to immediately execute
+the suggested command without moving the cursor.
+
+To distinguish the typed part and the predicted part of a command string, you
+can link:interact.html#prompt[change the font style] of the typed part by
+setting the link:params.html#sv-ps1s[+PS1S+] variable. Customizing the font
+style of the predicted part is not (yet) supported; it is always shown in the
+default style.
+
+When you move the cursor to the right, the predicted part up to the cursor
+becomes the typed part as if you actually typed it. Moving the cursor to the
+left does _not_ turn the typed part back to the prediction. Use deletion
+commands such as backward-delete-char to delete typed command fragment.
+
+The prediction algorithm suggests command fragments on the basis of the
+link:interact.html#history[command history]. The algorithm considers recent
+history entries more probable. It also takes command succession patterns into
+account. A predicted command fragment is not always a complete valid command
+because less probable part of the fragment is excluded from prediction.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
