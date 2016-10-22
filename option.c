@@ -184,6 +184,9 @@ bool shopt_le_visiblebell = false;
 bool shopt_le_promptsp = true;
 /* If set, the right prompt is always visible on the screen. */
 bool shopt_le_alwaysrp = false;
+/* If set, auto-suggest the most probable command line as the user enters a
+ * command line. */
+bool shopt_le_predict = false;
 /* If set, debugging information is printed during command completion. */
 bool shopt_le_compdebug = false;
 #endif
@@ -226,6 +229,7 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
     { 0,    0,    L"leconvmeta",     &shopt_le_yesconvmeta, true, },
     { 0,    0,    L"lenoconvmeta",   &shopt_le_noconvmeta,  true, },
+    { 0,    0,    L"lepredict",      &shopt_le_predict,     true, },
     { 0,    0,    L"lepromptsp",     &shopt_le_promptsp,    true, },
     { 0,    0,    L"levisiblebell",  &shopt_le_visiblebell, true, },
 #endif

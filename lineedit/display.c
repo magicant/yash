@@ -339,6 +339,8 @@ static void clear_to_end_of_screen(void);
 static void clear_editline(void);
 static void maybe_print_promptsp(void);
 static void update_editline(void);
+static bool current_display_is_uptodate(size_t index)
+    __attribute__((pure));
 static void check_cand_overwritten(void);
 static void update_styler(void);
 static void reset_style_before_moving(void);
@@ -398,6 +400,9 @@ static wchar_t *current_editline = NULL;
  * If the nth character of `current_editline' is positioned at line `l', column
  * `c', then cursor_positions[n] == l * le_columns + c. */
 static int *cursor_positions = NULL;
+/* The current index in the edit line that divides the line into two (cf.
+ * `le_main_buffer'). */
+static size_t current_length = 0;
 /* The line number of the last edit line (or the search buffer). */
 static int last_edit_line;
 /* True when the terminal's current font setting is the one set by the styler
@@ -667,8 +672,8 @@ void update_editline(void)
 	 * skip the unchanged part at the beginning of the line. */
 	assert(cursor_positions != NULL);
 
-	while (current_editline[index] != L'\0'
-		&& current_editline[index] == le_main_buffer.contents[index])
+	while (current_editline[index] != L'\0' &&
+		current_display_is_uptodate(index))
 	    index++;
 
 	/* return if nothing has changed */
@@ -700,9 +705,12 @@ void update_editline(void)
 	    = lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
 	if (index == le_main_buffer.length)
 	    break;
+	if (styler_active && index >= le_main_length)
+	    lebuf_print_sgr0(), styler_active = false;
 	lebuf_putwchar(c, true);
 	index++;
     }
+    current_length = le_main_length;
 
     fillip_cursor();
 
@@ -721,6 +729,16 @@ void update_editline(void)
     /* clear the remaining of the current line if we're overwriting the
      * candidate area. */
     check_cand_overwritten();
+}
+
+bool current_display_is_uptodate(size_t index)
+{
+    if (current_editline[index] != le_main_buffer.contents[index])
+	return false;
+    if ((index == current_length || index == le_main_length) &&
+	    current_length != le_main_length)
+	return false;
+    return true;
 }
 
 /* Sets the `candoverwritten' flag and clears to the end of line if the current

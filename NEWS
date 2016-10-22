@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.44
 
+  +  Command line prediction and the '--le-predict' option.
   *  In the "test" built-in, the unary "-o" operator was returning the
      wrong answer if the given option name was negated with the "no"
      prefix (e.g. "test -o noclobber").

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.h: main editing module */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 
 extern xwcsbuf_T le_main_buffer;
-extern size_t le_main_index;
+extern size_t le_main_length, le_main_index;
 
 enum le_search_direction_T { FORWARD, BACKWARD, };
 /* FORWARD:  find the oldest candidate from the ones newer than the current
@@ -65,6 +65,7 @@ extern le_command_func_T
     cmd_eof_if_empty, /*C*/
     cmd_eof_or_delete, /*C*/
     cmd_accept_with_hash, /*C*/
+    cmd_accept_prediction, /*C*/
     cmd_setmode_viinsert, /*C*/
     cmd_setmode_vicommand, /*C*/
     cmd_setmode_emacs, /*C*/

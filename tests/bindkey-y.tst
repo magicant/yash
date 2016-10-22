@@ -18,6 +18,7 @@ eof
 eof-if-empty
 eof-or-delete
 accept-with-hash
+accept-prediction
 setmode-viinsert
 setmode-vicommand
 setmode-emacs

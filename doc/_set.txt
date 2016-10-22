@@ -141,6 +141,7 @@ This prevents the shell from exiting when you accidentally hit Ctrl-D.
 [[so-lecompdebug]]le-comp-debug::
 [[so-leconvmeta]]le-conv-meta::
 [[so-lenoconvmeta]]le-no-conv-meta::
+[[so-lepredict]]le-predict::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
 See link:lineedit.html#options[shell options on line-editing].

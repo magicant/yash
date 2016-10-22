@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* trie.c: trie library for lineedit */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "../common.h"
 #include "trie.h"
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -66,6 +67,8 @@ static int foreachw(const trienode_T *t,
 	void *v,
 	xwcsbuf_T *buf)
     __attribute__((nonnull(1,2,4)));
+static const trieentry_T *most_probable_child(const trienode_T *node)
+    __attribute__((nonnull,pure));
 
 
 /* Creates a new empty trie. */
@@ -401,6 +404,75 @@ void trie_destroy(trienode_T *node)
 	    trie_destroy(node->entries[i].child);
 	free(node);
     }
+}
+
+
+/********** Functions for prediction **********/
+
+/* Adds the given probability value `p' to each node on the given key string
+ * `keywcs'. */
+trienode_T *trie_add_probability(
+	trienode_T *node, const wchar_t *keywcs, double p)
+{
+    if (node->valuevalid) {
+	node->value.probability += p;
+    } else {
+	node->valuevalid = true;
+	node->value.probability = p;
+    }
+
+    if (keywcs[0] == L'\0')
+	return node;
+
+    ssize_t index = searchw(node, keywcs[0]);
+    if (index < 0) {
+	index = -(index + 1);
+	node = insert_entry(node, (size_t) index,
+		(triekey_T) { .as_wchar = keywcs[0] });
+    }
+    node->entries[index].child = trie_add_probability(
+	    node->entries[index].child, &keywcs[1], p);
+    return node;
+}
+
+/* Returns the most probable key as a newly-malloced wide string. */
+wchar_t *trie_probable_key(const trienode_T *trie)
+{
+    // Find the most probable initial.
+    const trieentry_T *entry = most_probable_child(trie);
+    if (entry == NULL)
+	return xwcsdup(L"");
+
+    double threshold = entry->child->value.probability / 2;
+
+    // Traverse nodes that have the most probability to construct the final
+    // result. Stop traversal when the probability falls below the threshold.
+    xwcsbuf_T key;
+    wb_init(&key);
+
+    while (entry != NULL && entry->child->value.probability >= threshold) {
+	wb_wccat(&key, entry->key.as_wchar);
+	entry = most_probable_child(entry->child);
+    }
+
+    return wb_towcs(&key);
+}
+
+/* Find the given node's child that have the most probability value.
+ * Returns NULL iff the node has no children. */
+const trieentry_T *most_probable_child(const trienode_T *node)
+{
+    double max_probability = -HUGE_VAL;
+    const trieentry_T *entry = NULL;
+    for (size_t i = 0; i < node->count; i++) {
+	assert(node->entries[i].child->valuevalid);
+	double probability = node->entries[i].child->value.probability;
+	if (probability > max_probability) {
+	    max_probability = probability;
+	    entry = &node->entries[i];
+	}
+    }
+    return entry;
 }
 
 

@@ -2,7 +2,7 @@
 
 # Completion script for the "set" built-in command.
 # Completion function "completion/set" is used for the "ksh" and "yash"
-# commands as well. Supports AT&T ksh 20100621, yash 2.41.
+# commands as well. Supports AT&T ksh 20100621, yash 2.44.
 
 function completion/set {
 
@@ -263,6 +263,7 @@ function completion/set::getopt {
 		"histspace; don't save a command starting with a space in the history"
 		"leconvmeta; always treat meta-key flags in line-editing"
 		"lenoconvmeta; never treat meta-key flags in line-editing"
+		"lepredict; suggest a command fragment while line-editing"
 		"levisiblebell; alert with a flash, not a bell"
 		"lepromptsp; ensure the prompt is printed at the beginning of a line"
 		"lealwaysrp; always show the right prompt during line-editing"
