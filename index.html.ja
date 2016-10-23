@@ -6,7 +6,6 @@
 <meta http-equiv="Content-Script-Type" content="text/javascript">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <meta name="author" content="まじかんと">
-<meta name="description" content="POSIX コマンドライン端末用シェル yash の案内">
 <link rel="start" href="/">
 <link rel="stylesheet" type="text/css" href="/defaultstyle.css">
 <link rel="stylesheet" type="text/css" href="/simple.css" title="Simple">
@@ -18,42 +17,62 @@
 
 <h1 id="title">Yash</h1>
 
-<h2 id="summary">概要</h2>
-<p>このプログラムは C 言語 (C99: ISO/IEC 9899:1999, JIS X 3010:2003) で書いた
-Unix 系 OS 用コマンドライン端末シェルです。
-<p>これはもともと筆者が学科の課題で作ったプログラムでしたが、
-日常の使用に堪えうるものとするために一から再開発中です。
-<p>このシェルは POSIX.1-2008 に (ほぼ) 準拠しています。POSIX
-準拠を謳っている他のシェル (bash や zsh) よりも精確な POSIX 準拠を目指しています。
+<p id="summary">このプログラムは C 言語 (C99: ISO/IEC 9899:1999, JIS X 3010:2003) で書いた
+Unix 系 OS 用コマンドライン端末シェルです。Yash
+は世界で最も正確な POSIX 規格準拠を目指しながらも、対話シェルおよびシェルスクリプト実行プログラムとして便利な機能を備えています。
+<ul>
+<li>グローバルエイリアス
+<li>配列
+<li>ソケットリダイレクト・パイプリダイレクト・プロセスリダイレクト
+<li>ブレース展開・拡張パス名展開
+<li>数式展開での小数の計算
+<li>プロンプトコマンド
+<li>コマンドが見付からないときのハンドラー
+<li>コマンドライン補完 (100 個以上のコマンドに対する補完設定付き)
+<!--li>コマンド履歴に基づくコマンドラインの推定-->
+</ul>
 <p>このプログラムは <a href="http://www.gnu.org/licenses/gpl.html">GNU General
 Public License</a> (Version 2) の元で自由に再配布・変更などができます。
 <strong>その代わり、プログラムの利用は全て各自の自己責任の下で行っていただくことに
 なります。作者はプログラムの瑕疵に対して一切責任を取りません。</strong>
-<p>なお、yash という名前のシェルは他にも存在かもしれませんが、特に関係はありません。
+<p>なお、yash という名前のシェルは他にも存在するかもしれませんが、特に関係はありません。
 <p><a href="//osdn.jp/"><img id="sfbanner" src="//osdn.jp/sflogo.php?group_id=3863&amp;type=2" alt="OSDN"></a>: このプログラムは
 OSDN のプロジェクトの一つとして開発されています。
 (→<a href="//osdn.jp/projects/yash/">プロジェクト概要ページ</a>)
+
+<h2 id="progress">開発状況</h2>
+<p>Yash は既に POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+を全てサポートしています (ただし<a href="https://github.com/magicant/yash/blob/trunk/README.ja">制限事項</a>を除く)。
+<p>Yash は安定しています。バグ修正のためのバージョンアップはおおよそ三箇月に一度リリースされます。
 
 <h2 id="requirements">要件</h2>
 <p>Software Development Utilities オプションと C-Language Development Utilities
 オプションを備えた任意の POSIX.1-2001 環境でビルド・実行できるはずです。
 
-<h2 id="progress">開発の進捗状況</h2>
-<p>すでに POSIX 準拠シェルとして最低限必要な機能は揃っており、
-一般的なシェルスクリプトを問題なく実行できます。
-また、対話モードにおけるコマンドラインの基本的な編集・補完機能も実装済みです。
-現在は、補完機能を充実させるための追加スクリプトの作成等をおこなっています。</p>
-
-<h2 id="downloads">ダウンロード</h2>
+<h2 id="downloads">インストール</h2>
 <script type="text/javascript">
 var sfjp_widget_width = '300px'
 var sfjp_widget_customcss = true
 </script>
 <script src="//osdn.jp/projects/yash/releases/compact.js" type="text/javascript" charset="utf-8"></script>
-<p>プログラムのソースコードは<a href="//osdn.jp/projects/yash/releases/">リリースページ</a> (または<a href="releases">リリース一覧</a>) からダウンロード可能です。<a href="//osdn.jp/projects/yash/howto/install">Yash のインストール方法</a>もご覧下さい。</p>
-<p><a href="doc/ja/">マニュアル</a>はオンラインでも参照できます。
+<p>プログラムのソースコードは<a href="//osdn.jp/projects/yash/releases/">リリースページ</a> (または<a href="releases">リリース一覧</a>) からダウンロード可能です。
+<p><a href="https://getfedora.org/">Fedora</a> では、<kbd>sudo dnf install yash</kbd> で yash のパッケージをインストールできます。<a href="https://www.debian.org/">Debian</a> と <a href="https://www.ubuntu.com/">Ubuntu</a> では <kbd>sudo apt-get install yash</kbd> で yash のパッケージをインストールできます。macOS では <a href="https://www.macports.org/">MacPorts</a> と <a href="http://brew.sh/">Homebrew</a> が yash を提供しています。
+<p><a href="doc/ja/">マニュアル</a>は <kbd>man yash</kbd> で参照できます。
 <!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="http://homepage2.nifty.com/magicant/author.html"
 >作者</a>にメール等で連絡してください。</p-->
+
+<h2 id="configuration">基本設定</h2>
+
+<h3>初期化スクリプト</h3>
+<p>Yash がログインシェルとして起動されたとき、~/.yash_profile を読み込みます。
+このファイルはシェルスクリプトとして実行されます。この中で export コマンドを使うことで環境変数を設定できます。
+<p>Yash が対話シェルとして起動されたとき、(~/.yash_profile も読み込む場合はその後で) ~/.yashrc を読み込みます。この中でエイリアス、プロンプト、コマンド行編集のキーバインド設定、コマンドが見付からないときのハンドラー等を設定します。<a
+href="https://github.com/magicant/yash/blob/trunk/misc/yashrc">サンプルの
+yashrc</a> を参考に自分用の ~/.yashrc を設定してください。
+
+<h3>Yash をログインシェルにする</h3>
+<p>多くの Unix 系 OS では、ログインシェルとして使用可能なシェルは /etc/shells ファイルに名前が挙げられている必要があります。このファイルを編集し、yash へのパスがファイルに含まれているようにしてください。
+<p>その後、端末で <kbd>chsh</kbd> コマンドを実行してログインシェルを yash に変更してください。環境によってはこれ以外の方法でログインシェルを設定するようになっているかもしれません。詳しくはお使いの環境のマニュアルを参照ください。
 
 <h2 id="others">関連情報</h2>
 <p>誰でも編集できる <a href="//osdn.jp/projects/yash/wiki/FrontPage">Yash Wiki</a> を公開中です。</p>
@@ -63,7 +82,7 @@ var sfjp_widget_customcss = true
 
 
 <address id="about_this_document">
-© 2007-2015 <a href="mailto:magicant@users.osdn.me">Magicant</a> / 最終更新 2015-05-30
+© 2007-2016 <a href="mailto:magicant@users.osdn.me">Magicant</a> / 最終更新 2016-10-23
 </address>
 
 </body>

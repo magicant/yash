@@ -6,7 +6,6 @@
 <meta http-equiv="Content-Script-Type" content="text/javascript">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <meta name="author" content="magicant">
-<meta name="description" content="Yash: yet another shell - the most POSIX-compliant shell in the world">
 <link rel="start" href="/">
 <link rel="stylesheet" type="text/css" href="/defaultstyle.css">
 <link rel="stylesheet" type="text/css" href="/simple.css" title="Simple">
@@ -23,41 +22,69 @@
 
 <h1 id="title">Yash</h1>
 
-<p>Yash, yet another shell, is a POSIX-compliant command line shell
-written by <span class='surname'>Watanabe</span> Yuki (aka magicant) in C99 (ISO/IEC 9899:1999).
-It was originally written as a work on a university course assignment but
-the code has been re-written from scratch to meet the requirement of POSIX.
-Yash is intended to be the most POSIX-compliant shell in the world.
+<p id="summary">Yash, yet another shell,
+is a POSIX-compliant command line shell written in C99 (ISO/IEC 9899:1999).
+Yash is intended to be the most POSIX-compliant shell in the world
+while supporting features for daily interactive and scripting use.
+Notable features are:
+<ul>
+<li>Global aliases
+<li>Arrays
+<li>Socket redirection, pipeline redirection, and process redirection
+<li>Brace expansion and extended globbing
+<li>Fractional numbers in arithmetic expansion
+<li>Prompt command and command-not-found handler
+<li>Command line completion with predefined completion scripts for more than 100 commands
+<!--li>Command line prediction based on command history-->
+</ul>
 <p>Yash can be modified/redistributed under the terms of the <a
 href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>
 (Version 2) but the use of this program is
 <strong>without any warranty</strong>.
-<p><a href="//osdn.jp/"><img id="sfbanner"
-src="//osdn.jp/sflogo.php?group_id=3863&amp;type=2"
+<p><a href="//osdn.net/"><img id="sfbanner"
+src="//osdn.net/sflogo.php?group_id=3863&amp;type=2"
 alt="OSDN"></a>:
 Yash is an OSDN-hosted project. See also the
-<a href="//osdn.jp/projects/yash/">project summary page</a>.
+<a href="//osdn.net/projects/yash/">project summary page</a>.
+
+<h2 id="progress">Current Development Status</h2>
+<p>Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+except for the limitations listed in <a
+href="https://github.com/magicant/yash/blob/trunk/README">README</a>.
+<p>Yash is stable. A maintenance update is released every three months or so.
 
 <h2 id="requirements">Requirements</h2>
 <p>Yash is supposed to build and run on any POSIX.1-2001 environment
 with the Software Development Utilities and the C-Language Development Utilities
 options.
+Currently, yash is mainly tested on Fedora, macOS, and Cygwin.
 
-<h2 id="progress">Current Development Status</h2>
-<p>Most of the basic functions required by POSIX have already been implemented,
-so that yash is now capable of running common shell scripts.
-Basic line-editing and command completion have also been developed.
-The author is currently developing auxiliary scripts to make command completion
-more usable.
-
-<h2 id="downloads">Downloads</h2>
+<h2 id="downloads">Installation</h2>
 <p>The source tarball can be downloaded from the
-<a href="//osdn.jp/projects/yash/releases/">release page</a>
+<a href="//osdn.net/projects/yash/releases/">release page</a>
 (or the <a href="releases">release list</a>).
-<p>The <a href="doc/">manual</a> is available online.
+<p>On <a href="https://getfedora.org/">Fedora</a>, the yash package can be installed by <kbd>sudo dnf install yash</kbd>. On <a href="https://www.debian.org/">Debian</a> and <a href="https://www.ubuntu.com/">Ubuntu</a>, the yash package can be installed by <kbd>sudo apt-get install yash</kbd>. For macOS, <a href="https://www.macports.org/">MacPorts</a> and <a href="http://brew.sh/">Homebrew</a> provide yash installation.
+<p>After installation, enter <kbd>yash</kbd> in the terminal to start yash.
+The <a href="doc/">manual</a> can be viewed by <kbd>man yash</kbd>.
+
+<h2 id="configuration">Basic Configuration</h2>
+
+<h3>Initialization scripts</h3>
+<p>When yash is started as a login shell, it reads ~/.yash_profile.
+This file is a shell script in which you define environment variables using the export command.
+<p>When yash is started for an interactive use, it reads ~/.yashrc (after reading ~/.yash_profile if it is a login shell also).
+In this file, you make other configurations such as aliases, prompt strings, key bindings for command line editing, and command-not-found handler.
+Use the <a href="https://github.com/magicant/yash/blob/trunk/misc/yashrc"
+>sample yashrc</a> as a template for your ~/.yashrc.
+
+<h3>Making yash your login shell</h3>
+<p>In many Unix-like OSes, a shell must be listed in /etc/shells to be set as a login shell. Edit this file and ensure that the path to yash is written in the file.
+<p>Then, run the <kbd>chsh</kbd> command in the terminal and follow instructions from the command.
+Depending on your system, you may have to use another command to change the login shell.
+See documentation on your system.
 
 <address id="about_this_document">
-© 2009-2015 <a href="mailto:magicant@users.osdn.me">magicant</a> / Last modified: 2015-05-31
+© 2009-2016 <a href="mailto:magicant@users.osdn.me">magicant</a> / Last modified: 2016-10-23
 </address>
 
 </body>
