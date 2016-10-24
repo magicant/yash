@@ -1,6 +1,5 @@
-This document indicates which part of IEEE Std 1003.1, 2013 edition, which is
-informally referred to as POSIX 2013 in this document, is covered by which
-test file.
+This document indicates which part of IEEE Std 1003.1, 2016 edition is covered
+by which test file.
 
 
 Volume 3: Shell & Utilities
@@ -21,6 +20,8 @@ Volume 3: Shell & Utilities
  * alias-p.tst
 
 2.5.3 Shell Variables
+  IFS
+    * fsplit-p.tst
   LINENO
     * lineno-p.tst
     * lineno-y.tst
