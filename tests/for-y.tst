@@ -100,6 +100,15 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 'semicolon after newline'
+for i
+; do :; done
+__IN__
+syntax error: `;' cannot appear on a new line
+__ERR__
+#'
+#`
+
 test_Oe -e 2 'words followed by done'
 for i in a b c; done
 __IN__

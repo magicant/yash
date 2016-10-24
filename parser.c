@@ -2153,7 +2153,7 @@ command_T *parse_for(parsestate_T *ps)
     }
     result->c_forname = name;
 
-    skip_to_next_token(ps);
+    bool on_next_line = skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"in")) {
 	redir_T *redirs = NULL;
@@ -2170,6 +2170,8 @@ command_T *parse_for(parsestate_T *ps)
 	result->c_forwords = NULL;
 	if (ps->src.contents[ps->index] == L';') {
 	    ps->index++;
+	    if (on_next_line)
+		serror(ps, Ngt("`;' cannot appear on a new line"));
 	}
     }
     skip_to_next_token(ps);
