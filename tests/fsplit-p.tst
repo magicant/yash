@@ -3,6 +3,25 @@
 posix="true"
 setup -d
 
+test_o 'default IFS (no inherited environment variable)'
+printf "[%s]\n" "$IFS"
+__IN__
+[ 	
+]
+__OUT__
+
+(
+export IFS=X
+
+test_o 'default IFS (overriding environment variable)'
+printf "[%s]\n" "$IFS"
+__IN__
+[ 	
+]
+__OUT__
+
+)
+
 test_oE -e 0 'field splitting applies to results of expansions'
 IFS=' 0' a='1 2'
 bracket -${a}- -$(echo '3 4')- -`echo '5 6'`- -$((708))-
