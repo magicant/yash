@@ -32,14 +32,6 @@ __ERR__
 #'
 #`
 
-test_Oe -e 2 'semicolon after variable name (-o POSIX)'
-for i; do echo $i; done
-__IN__
-syntax error: `;' is not allowed just after the identifier in a for loop
-__ERR__
-#'
-#`
-
 )
 
 test_oE 'assignment is persistent and local (+o POSIX)'

@@ -120,6 +120,22 @@ __IN__
 in
 __OUT__
 
+test_oE -e 0 'default words, do separated by semicolon' -s A B
+for i; do echo $i; done
+__IN__
+A
+B
+__OUT__
+
+test_oE -e 0 'default words, do separated by semicolon and newlines' -s A B
+for i ;
+
+do echo $i; done
+__IN__
+A
+B
+__OUT__
+
 test_x -e 0 'exit status with no words'
 false
 for i do

@@ -323,11 +323,9 @@ For loop syntax::
 The {{word}} list after the +in+ token may be empty, but the semicolon (or
 newline) before the +do+ token is required even in that case. The {{word}}s
 are not treated as keywords, but you need to <<quotes,quote>> separator
-characters (such as +&+ and +|+) to include them as part of a {{word}}. If you
-omit the +in+ token and the following {{word}}s, you must also omit the
-semicolon before the +do+ token. However, the shell does not complain about
-the existence of the semicolon if not in the link:posix.html[POSIXly-correct
-mode]. The {{command}} list may be empty if not in the POSIXly-correct mode.
+characters (such as +&+ and +|+) to include them as part of a {{word}}. The
+{{command}} list may be empty if not in the link:posix.html[POSIXly-correct
+mode].
 
 The {{varname}} must be a portable (ASCII-only) name in the POSIXly-correct
 mode.

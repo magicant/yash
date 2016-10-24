@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: yash 2.42\n"
+"Project-Id-Version: yash 2.44\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2016-08-25 22:56+0900\n"
-"PO-Revision-Date: 2016-08-25 23:06+0900\n"
+"PO-Revision-Date: 2016-10-24 17:23+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -1071,10 +1071,6 @@ msgstr "「%ls」は有効な識別子ではありません"
 #: parser.c:2164
 msgid "redirections are not allowed after `in'"
 msgstr "「in」の後にリダイレクトは書けません"
-
-#: parser.c:2174
-msgid "`;' is not allowed just after the identifier in a for loop"
-msgstr "for ループの識別子の直後に「;」を置いてはいけません"
 
 #: parser.c:2248 parser.c:2323 parser.c:2368
 #, c-format

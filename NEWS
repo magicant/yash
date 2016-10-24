@@ -14,6 +14,9 @@ Yash 2.44
   *  In the "test" built-in, the unary "-o" operator was returning the
      wrong answer if the given option name was negated with the "no"
      prefix (e.g. "test -o noclobber").
+  =  Partial support for POSIX.1-2008 Technical Corrigendum 2 (2016).
+    .  In a for loop without the "in" keyword, the variable name and
+       the "do" keyword can now be separated by a semicolon.
 
 ----------------------------------------------------------------------
 Yash 2.43

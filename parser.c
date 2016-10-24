@@ -2170,9 +2170,6 @@ command_T *parse_for(parsestate_T *ps)
 	result->c_forwords = NULL;
 	if (ps->src.contents[ps->index] == L';') {
 	    ps->index++;
-	    if (posixly_correct)
-		serror(ps, Ngt("`;' is not allowed "
-			    "just after the identifier in a for loop"));
 	}
     }
     skip_to_next_token(ps);
