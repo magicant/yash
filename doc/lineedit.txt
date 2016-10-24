@@ -278,12 +278,12 @@ ifndef::basebackend-html[`\#`, `\^D`]
 --
 
 accept-with-hash::
-Like the accept-line command, but:
+If the current line does not begin with a hash sign (+#+) or there is no
+argument specified for this command, a hash sign is inserted at the beginning
+of the line. Otherwise, the beginning hash sign is removed from the line.
+Finally, the line is accepted like the accept-line command.
 +
 --
-- A hash sign (+#+) is inserted at the beginning of the line if there is none.
-- Otherwise, the hash sign is removed from the beginning of the line.
-
 vi-command::
 ifdef::basebackend-html[+++<kbd>#</kbd>+++]
 ifndef::basebackend-html[`#`]
