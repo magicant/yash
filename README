@@ -3,25 +3,86 @@ http://yash.osdn.jp/
 =======================
 
 
-Yash is a command line shell that conforms to the POSIX.1 standard
-(IEEE Std 1003.1, 2013 Edition) for the most part. Actually, it is
-much more POSIX-compliant than other shell like bash and zsh.
+Yash, yet another shell, is a POSIX-compliant command line shell
+written in C99 (ISO/IEC 9899:1999). Yash is intended to be the most
+POSIX-compliant shell in the world while supporting features for daily
+interactive and scripting use. Notable features are:
 
-Yash also has its own features beyond POSIX, such as:
-  * global aliases
-  * random numbers
-  * socket redirections and other special redirections
-  * right prompt
-  * command line completion and prediction
+ * Global aliases
+ * Arrays
+ * Socket redirection, pipeline redirection, and process redirection
+ * Brace expansion and extended globbing
+ * Fractional numbers in arithmetic expansion
+ * Prompt command and command-not-found handler
+ * Command line completion with predefined completion scripts for more
+   than 100 commands
+ * Command line prediction based on command history
+
+Yash can be modified/redistributed under the terms of the GNU General
+Public License (Version 2) but the use of this program is without any
+warranty. See the "COPYING" file for the full text of GPL.
+
+Yash is an OSDN-hosted project. See also the project summary page at
+<https://osdn.net/projects/yash/>.
 
 
-Yash is free software distributed under the terms of GNU General
-Public License (GPL) version 2. You can copy, modify, use, and/or
-distribute this software as long as you obey the terms of GPL, but
-note that there is NO WARRANTY. See the "COPYING" file for the full
-text of GPL.
+===== Current Development Status =====
+
+Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+except for the limitations listed below.
+
+Yash is stable. A maintenance update is released every three months or
+so. For the change history, see the "NEWS" file.
+
+
+===== Requirements =====
+
+Yash is supposed to build and run on any POSIX.1-2001 environment with
+the Software Development Utilities and the C-Language Development
+Utilities options.
+
+Currently, yash is mainly tested on Fedora, macOS, and Cygwin.
+
+
+===== Installation =====
 
 See the "INSTALL" file to see how to build and install yash.
+
+After installation, the manual can be viewed by
+
+  $ man yash
+
+The manual is also available online at <https://yash.osdn.jp/doc/>.
+
+
+===== Basic Configuration =====
+
+Below is a description of basic configuration that you might want to
+see after installation to get started with yash. For configuration
+details, see the manual.
+
+--- Initialization scripts ---
+
+When yash is started as a login shell, it reads ~/.yash_profile. This
+file is a shell script in which you define environment variables using
+the export command.
+
+When yash is started for an interactive use, it reads ~/.yashrc (after
+reading ~/.yash_profile if it is a login shell also). In this file,
+you make other configurations such as aliases, prompt strings, key
+bindings for command line editing, and command-not-found handler.
+Use the "misc/yashrc" file as a template for your ~/.yashrc.
+
+--- Making yash your login shell ---
+
+In many Unix-like OSes, a shell must be listed in /etc/shells to be
+set as a login shell. Edit this file and ensure that the path to yash
+is written in the file.
+
+Then, run the "chsh" command in the terminal and follow instructions
+from the command. Depending on your system, you may have to use
+another command to change the login shell. See documentation on your
+system.
 
 
 ===== Implementation Notes =====
@@ -66,11 +127,16 @@ See the "INSTALL" file to see how to build and install yash.
 
 ===== Contributions =====
 
-Comments, suggestions, and bug reports are welcome.
+Comments, suggestions, and bug reports are welcome at:
+
+ * Issue tracking system
+   <https://osdn.net/projects/yash/ticket/>
+ * Discussion forum
+   <https://osdn.net/projects/yash/forums/>
 
 If you are interested in translation, please refer to
-https://osdn.jp/projects/yash/wiki/HowToTranslate
+<https://osdn.net/projects/yash/wiki/HowToTranslate>.
 
 
 ======================
-Magicant <magicant@users.osdn.me>
+Watanabe, Yuki <magicant@users.osdn.me>
