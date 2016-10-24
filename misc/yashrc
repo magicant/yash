@@ -11,7 +11,7 @@ fi
 
 # set some options
 set --braceexpand --extendedglob --noclobber --nounset \
-	--notifyle --histspace --le-noconvmeta
+	--notifyle --histspace --le-noconvmeta --le-predict
 
 # if the shell is executed in a terminal emulator, set $TERM accordingly
 case $(ps -o comm= -p $PPID 2>/dev/null) in
@@ -119,7 +119,8 @@ fi
 # define some variables
 export SHLVL
 if [ ~ -ef . ]; then PWD=~; fi
-HISTFILE=~/.yash_history HISTSIZE=5000 HISTRMDUP=500
+# HISTRMDUP makes command line prediction less accurate.
+HISTFILE=~/.yash_history HISTSIZE=5000 # HISTRMDUP=500
 MAILCHECK=0
 : ${EDITOR:=vi} ${FCEDIT:=$EDITOR}
 : ${LOGNAME:=$(logname)}
