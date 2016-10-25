@@ -20,6 +20,10 @@ Yash 2.44
   =  Partial support for POSIX.1-2008 Technical Corrigendum 2 (2016).
     .  In a for loop without the "in" keyword, the variable name and
        the "do" keyword can now be separated by a semicolon.
+    .  The standard input of an asynchronous list is now implicitly
+       redirected to /dev/null when job control is off. Previously,
+       this was done when the shell was interactive in the POSIXly-
+       correct mode.
 
 ----------------------------------------------------------------------
 Yash 2.43

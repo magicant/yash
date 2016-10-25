@@ -82,6 +82,7 @@ Command Search and Execution
 2.9.3 Lists
  * andor-p.tst
  * async-p.tst
+ * job-p.tst
 
 2.9.4 Compound Commands
  * case-p.tst

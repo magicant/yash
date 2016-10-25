@@ -45,12 +45,15 @@ __IN__
 1
 __OUT__
 
-test_oE 'stdin of asynchronous list is null' +i
+test_oE 'stdin of asynchronous list is null without job control' +m
 cat& wait
 echo this line should not be consumed by cat
 __IN__
 this line should not be consumed by cat
 __OUT__
+
+# This test is in job-p.tst.
+#test_oE 'stdin of asynchronous list is not modified with job control' -m
 
 test_oE -e 0 'asynchronous list ignores SIGINT'
 sh -c 'kill -s INT $$; echo ok' &

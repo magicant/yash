@@ -29,9 +29,6 @@ When the shell is interactive:
   and SIGPIPE, the shell reports the fact to the standard error.
 - The filename token is subject to link:expand.html#glob[pathname expansion]
   in link:redir.html#file[file redirection].
-- The standard input of an link:syntax.html#async[asynchronous command] is not
-  automatically redirected to /dev/null (in the
-  link:posix.html[POSIXly-correct mode] only).
 - The shell does not exit when it encounters a syntax or expansion error
   during command execution. (cf. link:exec.html#exit[Termination of the
   shell])

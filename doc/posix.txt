@@ -70,9 +70,6 @@ When the POSIXly-correct mode is enabled:
   be found.
 - link:syntax.html#async[asynchronous commands] ignore the SIGINT and SIGQUIT
   signals even when link:job.html[job control] is active.
-  The standard input of asynchronous commands is redirected to /dev/null if
-  the shell is not link:interact.html[interactive], regardless of whether job
-  control is active or not.
 - Some link:builtin.html[built-ins] behave differently.
   Especially, some command-line options cannot be used.
 - A link:interact.html[non-interactive] shell exits when a

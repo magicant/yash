@@ -197,10 +197,8 @@ the standard input of an asynchronous and/or list is automatically redirected
 to /dev/null. Signal handlers of the and/or list for the SIGINT and SIGQUIT
 signals are set to ``ignore'' the signal so that the execution of the and/or
 list cannot be stopped by those signals.
-(In the link:posix.html[POSIXly-correct mode], the standard input is
-redirected if and only if the shell is link:interact.html[interactive],
-regardless of whether job control is on. Moreover, the SIGINT and SIGQUIT
-signals are ignored even if job control is on.)
+(In the link:posix.html[POSIXly-correct mode], the SIGINT and SIGQUIT signals
+are ignored even if job control is on.)
 
 When the execution of an asynchronous and/or list is started, the shell
 remembers its process ID. You can obtain the ID by referencing the

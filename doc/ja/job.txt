@@ -13,7 +13,7 @@ dfn:[ジョブ制御]とは、複数のコマンドを同時に実行し、必�
 - ジョブがlink:syntax.html#async[同期的]に実行される場合、そのジョブの実行中はそのジョブのプロセスグループが端末のフォアグラウンドプロセスグループになります。ジョブの実行が終了 (または停止) すると、再びシェルがフォアグラウンドになります。
 - link:expand.html#cmdsub[コマンド置換]のコマンドを実行するlink:exec.html#subshell[サブシェル]もまた独立したプロセスグループに属します。しかしシェルはこれをジョブとしては扱わないため、停止・再開させることはできません。
 - シェルがlink:interact.html[対話モード]の場合、プロンプトを出す前に毎回コマンド +link:_jobs.html[jobs] -n+ を実行するのと同様にしてジョブの状態変化を報告します。
-- link:syntax.html#async[非同期コマンド]の標準入力が自動的に /dev/null にリダイレクトされません。(link:posix.html[POSIX 準拠モード]のときを除く)
+- link:syntax.html#async[非同期コマンド]の標準入力が自動的に /dev/null にリダイレクトされません。
 - SIGTSTP シグナルを受けても、シェルは停止しません。
 - link:params.html#sp-hyphen[特殊パラメータ +-+] の値に +m+ が含まれます。
 - link:_wait.html[Wait 組込みコマンド]で待っているジョブが終了したとき、そのことを示すメッセージを出力します。(link:interact.html[対話モード]の時のみ。link:posix.html[POSIX 準拠モード]を除く)

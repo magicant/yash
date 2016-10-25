@@ -7,7 +7,7 @@
 dfn:[Job control] is a function of the shell that executes multiple commands
 simultaneously and suspends/resumes the commands.
 
-When control is active:
+When job control is active:
 
 - Every link:syntax.html#pipelines[pipeline] executed by the shell becomes a
   dfn:[job].
@@ -31,8 +31,7 @@ When control is active:
   before every command line prompt as if the command
   +link:_jobs.html[jobs] -n+ is executed.
 - The standard input of an link:syntax.html#async[asynchronous command] is not
-  automatically redirected to /dev/null (unless in the 
-  link:posix.html[POSIXly-correct mode]).
+  automatically redirected to /dev/null.
 - The shell does not exit when it receives the SIGTSTP signal.
 - The value of the link:params.html#sp-hyphen[+-+ special parameter] contains
   +m+.

@@ -894,15 +894,12 @@ void clear_savefd(savefd_T *save)
 }
 
 /* Redirects the standard input to "/dev/null" if job control is off and the
- * standard input is not yet redirected.
- * If `posixly_correct' is true, the condition is slightly different:
- * "if non-interactive" rather than "if job control is off". */
+ * standard input is not yet redirected. */
 void maybe_redirect_stdin_to_devnull(void)
 {
     int fd;
 
-    if ((posixly_correct ? is_interactive : do_job_control)
-	    || is_stdin_redirected)
+    if (do_job_control || is_stdin_redirected)
 	return;
 
     if (xclose(STDIN_FILENO) < 0)
