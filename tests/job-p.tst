@@ -26,4 +26,32 @@ __IN__
 echo this line should be printed by tail
 __OUT__
 
+# These tests are in async-p.tst.
+#test_oE -e 0 'asynchronous list ignores SIGINT'
+#test_oE -e 0 'asynchronous list ignores SIGQUIT'
+
+test_oE 'asynchronous list retains SIGINT trap with job control' -m
+sh -c 'kill -s INT $$; echo not printed' &
+wait $!
+kill -l $?
+trap '' INT
+sh -c 'kill -s INT $$; echo ok' &
+wait $!
+__IN__
+INT
+ok
+__OUT__
+
+test_oE 'asynchronous list retains SIGQUIT trap with job control' -m
+sh -c 'kill -s QUIT $$; echo not printed' &
+wait $!
+kill -l $?
+trap '' QUIT
+sh -c 'kill -s QUIT $$; echo ok' &
+wait $!
+__IN__
+QUIT
+ok
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

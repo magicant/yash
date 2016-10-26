@@ -24,6 +24,8 @@ Yash 2.44
        redirected to /dev/null when job control is off. Previously,
        this was done when the shell was interactive in the POSIXly-
        correct mode.
+    .  The SIGINT and SIGQUIT signals on an asynchronous list are now
+       ignored only when job control is off.
 
 ----------------------------------------------------------------------
 Yash 2.43

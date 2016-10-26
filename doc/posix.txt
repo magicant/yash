@@ -68,8 +68,6 @@ When the POSIXly-correct mode is enabled:
 - In link:exec.html#search[command search], a link:builtin.html#types[regular
   built-in] needs to have a corresponding external command for the built-in to
   be found.
-- link:syntax.html#async[asynchronous commands] ignore the SIGINT and SIGQUIT
-  signals even when link:job.html[job control] is active.
 - Some link:builtin.html[built-ins] behave differently.
   Especially, some command-line options cannot be used.
 - A link:interact.html[non-interactive] shell exits when a

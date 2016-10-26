@@ -69,6 +69,10 @@ __IN__
 ok
 __OUT__
 
+# These tests are in job-p.tst.
+#test_oE 'asynchronous list retains SIGINT trap with job control' -m
+#test_oE 'asynchronous list retains SIGQUIT trap with job control' -m
+
 test_o 'exit status of asynchronous list'
 true&
 echo $?

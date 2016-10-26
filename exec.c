@@ -998,7 +998,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 		put_foreground(pgid);
 	}
 	if (sigtype & t_quitint)
-	    if (posixly_correct || !save_doing_job_control_now)
+	    if (!save_doing_job_control_now)
 		ignore_sigquit_and_sigint();
 	if (sigtype & t_tstp)
 	    if (save_doing_job_control_now)

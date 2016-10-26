@@ -97,6 +97,7 @@ Command Search and Execution
 
 2.11 Signals and Error Handling
  * async-p.tst
+ * job-p.tst
  * signal-p.tst
  * wait-p.tst
 
