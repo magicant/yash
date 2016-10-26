@@ -10,7 +10,7 @@ __END__
 test_interactive_subshell_signal_ignore() {
     testcase "$1" "SIG$2 kills interactive shell's subshell" -i \
 	3<<__IN__ 4<<\__OUT__
-(sh -c 'kill -s $2 \$PPID'; echo not reached)
+("$TESTEE" -c 'kill -s $2 \$PPID'; echo not reached)
 echo -
 __IN__
 -
@@ -26,7 +26,7 @@ test_interactive_subshell_signal_ignore "$LINENO" TERM
 test_job_controlling_subshell_signal_ignore() {
     testcase "$1" "SIG$2 stops job-controlling shell's subshell" -im \
 	3<<__IN__ 4<<\__OUT__
-(sh -c 'kill -s $2 \$PPID'; echo resumed)
+("$TESTEE" -c 'kill -s $2 \$PPID'; echo resumed)
 echo -
 fg >/dev/null
 __IN__
@@ -412,7 +412,7 @@ test_interactive_job_controlling_shell_job_signal_stop "$LINENO" STOP
 test_oe 'SIGINT interrupts interactive shell (+m)' -i +m --rcfile=./eraseps
 for i in 1 2 3; do
     echo $i
-    sh -c 'kill -s INT $$'
+    "$TESTEE" -c 'kill -s INT $$'
     echo not reached
 done
 echo - >&2
@@ -434,7 +434,7 @@ __ERR__
 test_oe 'SIGINT interrupts interactive shell (-m)' -im --rcfile=./eraseps
 for i in 1 2 3; do
     echo $i
-    sh -c 'kill -s INT $$'
+    "$TESTEE" -c 'kill -s INT $$'
     echo not reached
 done
 echo - >&2
@@ -455,7 +455,7 @@ __ERR__
 
 test_oE -e 0 'SIGINT spares asynchronous list (-i +m)' \
     -i +m --rcfile=./eraseps
-sh -c 'kill -s INT $$; echo ok' &
+"$TESTEE" -c 'kill -s INT $$; echo ok' &
 wait $!
 __IN__
 ok
@@ -463,7 +463,7 @@ __OUT__
 
 test_oE -e 0 'SIGQUIT spares asynchronous list (-i +m)' \
     -i +m --rcfile=./eraseps
-sh -c 'kill -s QUIT $$; echo ok' &
+"$TESTEE" -c 'kill -s QUIT $$; echo ok' &
 wait $!
 __IN__
 ok
@@ -471,7 +471,7 @@ __OUT__
 
 test_oE 'SIGTERM kills asynchronous list (-i +m)' \
     -i +m --rcfile=./eraseps
-sh -c 'kill -s TERM $$; echo not reached' &
+"$TESTEE" -c 'kill -s TERM $$; echo not reached' &
 wait $!
 kill -l $?
 __IN__

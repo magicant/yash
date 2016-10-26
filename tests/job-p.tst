@@ -31,11 +31,11 @@ __OUT__
 #test_oE -e 0 'asynchronous list ignores SIGQUIT'
 
 test_oE 'asynchronous list retains SIGINT trap with job control' -m
-sh -c 'kill -s INT $$; echo not printed' &
+"$TESTEE" -c 'kill -s INT $$; echo not printed' &
 wait $!
 kill -l $?
 trap '' INT
-sh -c 'kill -s INT $$; echo ok' &
+"$TESTEE" -c 'kill -s INT $$; echo ok' &
 wait $!
 __IN__
 INT
@@ -43,11 +43,11 @@ ok
 __OUT__
 
 test_oE 'asynchronous list retains SIGQUIT trap with job control' -m
-sh -c 'kill -s QUIT $$; echo not printed' &
+"$TESTEE" -c 'kill -s QUIT $$; echo not printed' &
 wait $!
 kill -l $?
 trap '' QUIT
-sh -c 'kill -s QUIT $$; echo ok' &
+"$TESTEE" -c 'kill -s QUIT $$; echo ok' &
 wait $!
 __IN__
 QUIT

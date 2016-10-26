@@ -149,12 +149,12 @@ __OUT__
 
 test_OE -e 0 'ignore trap is inherited to external command'
 trap '' USR1
-sh -c 'kill -s USR1 $$'
+"$TESTEE" -c 'kill -s USR1 $$'
 __IN__
 
 test_oE -e 0 'command trap is reset in external command'
 trap 'echo trapped' USR1
-sh -c 'kill -s USR1 $$'
+"$TESTEE" -c 'kill -s USR1 $$'
 kill -l $?
 __IN__
 USR1
@@ -162,7 +162,7 @@ __OUT__
 
 test_oE 'default traps remain in subshell'
 trap - USR1
-(sh -c 'kill -s USR1 $$')
+("$TESTEE" -c 'kill -s USR1 $$')
 kill -l $?
 __IN__
 USR1
@@ -170,12 +170,12 @@ __OUT__
 
 test_OE -e 0 'ignored traps remain in subshell'
 trap '' USR1
-(sh -c 'kill -s USR1 $$')
+("$TESTEE" -c 'kill -s USR1 $$')
 __IN__
 
 test_oE 'command traps are reset in subshell'
 trap 'echo trapped' USR1
-(sh -c 'kill -s USR1 $PPID'; :)
+("$TESTEE" -c 'kill -s USR1 $PPID'; :)
 kill -l $?
 __IN__
 USR1
@@ -183,7 +183,7 @@ __OUT__
 
 test_oE -e 0 'setting new trap in subshell'
 trap 'echo X' USR1
-(trap 'echo trapped' USR1; sh -c 'kill -s USR1 $PPID'; :)
+(trap 'echo trapped' USR1; "$TESTEE" -c 'kill -s USR1 $PPID'; :)
 __IN__
 trapped
 __OUT__

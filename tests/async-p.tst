@@ -56,14 +56,14 @@ __OUT__
 #test_oE 'stdin of asynchronous list is not modified with job control' -m
 
 test_oE -e 0 'asynchronous list ignores SIGINT'
-sh -c 'kill -s INT $$; echo ok' &
+"$TESTEE" -c 'kill -s INT $$; echo ok' &
 wait $!
 __IN__
 ok
 __OUT__
 
 test_oE -e 0 'asynchronous list ignores SIGQUIT'
-sh -c 'kill -s QUIT $$; echo ok' &
+"$TESTEE" -c 'kill -s QUIT $$; echo ok' &
 wait $!
 __IN__
 ok
