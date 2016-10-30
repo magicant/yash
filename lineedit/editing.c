@@ -2469,10 +2469,9 @@ wchar_t *predict(void)
 
     // Create probability distribution trie.
     trie_T *t = trie_create();
-    size_t i = 0;
+#define N 4
+    size_t hits[N] = {0};
     for (const histlink_T *l = Histlist; (l = l->prev) != Histlist; ) {
-	i++;
-
 	const histentry_T *e = (const histentry_T *) l;
 	const char *mbssuffix = matchstrprefix(e->value, mbsprefix);
 	if (mbssuffix == NULL || mbssuffix[0] == '\0')
@@ -2485,7 +2484,10 @@ wchar_t *predict(void)
 	const wchar_t *cmdsuffix = matchwcsprefix(cmd, le_main_buffer.contents);
 	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0') {
 	    size_t k = count_matching_previous_commands(e);
-	    t = trie_add_probability(t, cmdsuffix, (k + 1.0) / i);
+	    assert(k < N);
+	    for (size_t i = 0; i <= k; i++)
+		hits[i]++;
+	    t = trie_add_probability(t, cmdsuffix, 1.0 / (hits[k] + 1));
 	}
 	free(cmd);
     }
@@ -2499,6 +2501,7 @@ wchar_t *predict(void)
     return suffix;
 }
 
+// Counts N-1 at most
 size_t count_matching_previous_commands(const histentry_T *e)
 {
     size_t count = 0;
@@ -2511,9 +2514,12 @@ size_t count_matching_previous_commands(const histentry_T *e)
 	if (strcmp(e1->value, e2->value) != 0)
 	    break;
 	count++;
+	if (count >= N - 1)
+	    break;
     }
     return count;
 }
+#undef N
 
 /* Clears the second part of `le_main_buffer'.
  * Commands that modify the buffer usually need to call this function. However,
