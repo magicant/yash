@@ -43,6 +43,7 @@ link:_cd.html#options[Cd コマンドで使えるオプション]に加えて以
 [[notes]]
 == 補足
 
-POSIX には pushd コマンドに関する規定はありません。
+Pushd コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では pushd コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

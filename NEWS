@@ -26,6 +26,9 @@ Yash 2.44
        correct mode.
     .  The SIGINT and SIGQUIT signals on an asynchronous list are now
        ignored only when job control is off.
+    .  The "bindkey", "complete", "dirs", "disown", "hash", "help",
+       "history", "popd", "pushd", "suspend", "type", "typeset", and
+       "ulimit" built-ins are now semi-special built-ins.
 
 ----------------------------------------------------------------------
 Yash 2.43

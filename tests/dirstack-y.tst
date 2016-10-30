@@ -12,6 +12,12 @@ ln -s .. testdir/parent
 
 ##### dirs
 
+test_oE -e 0 'dirs is a semi-special built-in'
+command -V dirs
+__IN__
+dirs: a semi-special built-in
+__OUT__
+
 testcase "$LINENO" -e 0 'printing unset directory stack' \
     3<<\__IN__ 4<<__OUT__ 5</dev/null
 unset DIRSTACK
@@ -175,6 +181,12 @@ __ERR__
 #`
 
 ##### pushd
+
+test_oE -e 0 'pushd is a semi-special built-in'
+command -V pushd
+__IN__
+pushd: a semi-special built-in
+__OUT__
 
 testcase "$LINENO" 'pushing directory' \
     3<<\__IN__ 4<<__OUT__ 5</dev/null
@@ -665,6 +677,12 @@ pushd: too many operands are specified
 __ERR__
 
 ##### popd
+
+test_oE -e 0 'popd is a semi-special built-in'
+command -V popd
+__IN__
+popd: a semi-special built-in
+__OUT__
 
 test_Oe -e n 'popping default directory from empty stack'
 popd

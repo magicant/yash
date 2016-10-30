@@ -513,6 +513,10 @@ test_OE -e 0 'intrinsic built-in getopts can be invoked without $PATH'
 getopts o o -o
 __IN__
 
+test_OE -e 0 'intrinsic built-in hash can be invoked without $PATH'
+hash -r
+__IN__
+
 test_OE -e 0 'intrinsic built-in jobs can be invoked without $PATH'
 jobs
 __IN__
@@ -535,6 +539,14 @@ __IN__
 
 test_OE -e 0 'intrinsic built-in true can be invoked without $PATH'
 true
+__IN__
+
+test_E -e 0 'intrinsic built-in type can be invoked without $PATH'
+type type
+__IN__
+
+test_E -e 0 'intrinsic built-in ulimit can be invoked without $PATH'
+ulimit
 __IN__
 
 test_OE -e 0 'intrinsic built-in umask can be invoked without $PATH'

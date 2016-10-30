@@ -4,6 +4,12 @@ if ! testee -c 'command -bv complete' >/dev/null; then
     skip="true"
 fi
 
+test_oE -e 0 'complete is a semi-special built-in'
+command -V complete
+__IN__
+complete: a semi-special built-in
+__OUT__
+
 test_Oe -e 2 'invalid option'
 complete --no-such-option
 __IN__

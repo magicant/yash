@@ -157,6 +157,7 @@ Complete コマンドのオペランドは、各オペランドがそれぞれ�
 [[notes]]
 == 補足
 
-POSIX には complete コマンドに関する規定はありません。
+Complete コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では complete コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

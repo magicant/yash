@@ -62,6 +62,7 @@ The exit status of the dirs built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The dirs built-in is not defined in the POSIX standard.
+The dirs built-in is a link:builtin.html#types[semi-special built-in]. In the
+POSIX standard, it is defined as a command with unspecified behavior.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

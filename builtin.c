@@ -97,7 +97,7 @@ void init_builtin(void)
     DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help, false_syntax,
 	    NULL);
 #if YASH_ENABLE_HELP
-    DEFBUILTIN("help", help_builtin, BI_REGULAR, help_help, help_syntax,
+    DEFBUILTIN("help", help_builtin, BI_SEMISPECIAL, help_help, help_syntax,
 	    help_option);
 #endif
 
@@ -109,7 +109,7 @@ void init_builtin(void)
 	    cd_options);
     DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help, pwd_syntax,
 	    pwd_options);
-    DEFBUILTIN("hash", hash_builtin, BI_REGULAR, hash_help, hash_syntax,
+    DEFBUILTIN("hash", hash_builtin, BI_SEMISPECIAL, hash_help, hash_syntax,
 	    hash_options);
     DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help, umask_syntax,
 	    umask_options);
@@ -121,7 +121,7 @@ void init_builtin(void)
 	    unalias_syntax, all_help_options);
 
     /* defined in "variable.c" */
-    DEFBUILTIN("typeset", typeset_builtin, BI_REGULAR, typeset_help,
+    DEFBUILTIN("typeset", typeset_builtin, BI_SEMISPECIAL, typeset_help,
 	    typeset_syntax, typeset_options);
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
 	    export_syntax, typeset_options);
@@ -140,11 +140,11 @@ void init_builtin(void)
     DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help, read_syntax,
 	    read_options);
 #if YASH_ENABLE_DIRSTACK
-    DEFBUILTIN("pushd", pushd_builtin, BI_REGULAR, pushd_help, pushd_syntax,
+    DEFBUILTIN("pushd", pushd_builtin, BI_SEMISPECIAL, pushd_help, pushd_syntax,
 	    pushd_options);
-    DEFBUILTIN("popd", popd_builtin, BI_REGULAR, popd_help, popd_syntax,
+    DEFBUILTIN("popd", popd_builtin, BI_SEMISPECIAL, popd_help, popd_syntax,
 	    help_option);
-    DEFBUILTIN("dirs", dirs_builtin, BI_REGULAR, dirs_help, dirs_syntax,
+    DEFBUILTIN("dirs", dirs_builtin, BI_SEMISPECIAL, dirs_help, dirs_syntax,
 	    dirs_options);
 #endif
 
@@ -163,14 +163,14 @@ void init_builtin(void)
 	    help_option);
     DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help, wait_syntax,
 	    help_option);
-    DEFBUILTIN("disown", disown_builtin, BI_REGULAR, disown_help, disown_syntax,
-	    all_help_options);
+    DEFBUILTIN("disown", disown_builtin, BI_SEMISPECIAL, disown_help,
+	    disown_syntax, all_help_options);
 
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
     DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help, fc_syntax,
 	    fc_options);
-    DEFBUILTIN("history", history_builtin, BI_REGULAR, history_help,
+    DEFBUILTIN("history", history_builtin, BI_SEMISPECIAL, history_help,
 	    history_syntax, history_options);
 #endif
 
@@ -188,7 +188,7 @@ void init_builtin(void)
 	    exec_options);
     DEFBUILTIN("command", command_builtin, BI_SEMISPECIAL, command_help,
 	    command_syntax, command_options);
-    DEFBUILTIN("type", command_builtin, BI_REGULAR, type_help, type_syntax,
+    DEFBUILTIN("type", command_builtin, BI_SEMISPECIAL, type_help, type_syntax,
 	    command_options);
     DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help, times_syntax,
 	    help_option);
@@ -196,13 +196,13 @@ void init_builtin(void)
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help, exit_syntax,
 	    force_help_options);
-    DEFBUILTIN("suspend", suspend_builtin, BI_REGULAR, suspend_help,
+    DEFBUILTIN("suspend", suspend_builtin, BI_SEMISPECIAL, suspend_help,
 	    suspend_syntax, force_help_options);
 
     /* defined in "builtins/ulimit.c" */
 #if YASH_ENABLE_ULIMIT
-    DEFBUILTIN("ulimit", ulimit_builtin, BI_REGULAR, ulimit_help, ulimit_syntax,
-	    ulimit_options);
+    DEFBUILTIN("ulimit", ulimit_builtin, BI_SEMISPECIAL, ulimit_help,
+	    ulimit_syntax, ulimit_options);
 #endif
 
     /* defined in "builtins/printf.c" */
@@ -220,13 +220,13 @@ void init_builtin(void)
 
     /* defined in "lineedit/complete.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("complete", complete_builtin, BI_REGULAR, complete_help,
+    DEFBUILTIN("complete", complete_builtin, BI_SEMISPECIAL, complete_help,
 	    complete_syntax, complete_options);
 #endif
 
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("bindkey", bindkey_builtin, BI_REGULAR, bindkey_help,
+    DEFBUILTIN("bindkey", bindkey_builtin, BI_SEMISPECIAL, bindkey_help,
 	    bindkey_syntax, bindkey_options);
 #endif
 

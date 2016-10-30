@@ -1,5 +1,11 @@
 # typeset-y.tst: yash-specific test of the typeset built-in
 
+test_oE -e 0 'typeset is a semi-special built-in'
+command -V typeset
+__IN__
+typeset: a semi-special built-in
+__OUT__
+
 test_oE -e 0 'defining variable in global namespace' -e
 typeset a=1
 echo $a

@@ -30,14 +30,14 @@ v{yashversion},
 - link:_alias.html[+alias+] &#43;
 - link:_array.html[+array+]
 - link:_bg.html[+bg+] &#43;
-- link:_bindkey.html[+bindkey+]
+- link:_bindkey.html[+bindkey+] &#43;
 - link:_break.html[+break+] *
 - link:_cd.html[+cd+] &#43;
 - link:_command.html[+command+] &#43;
-- link:_complete.html[+complete+]
+- link:_complete.html[+complete+] &#43;
 - link:_continue.html[+continue+] *
-- link:_dirs.html[+dirs+]
-- link:_disown.html[+disown+]
+- link:_dirs.html[+dirs+] &#43;
+- link:_disown.html[+disown+] &#43;
 - link:_echo.html[+echo+]
 - link:_eval.html[+eval+] *
 - link:_exec.html[+exec+] *
@@ -47,28 +47,28 @@ v{yashversion},
 - link:_fc.html[+fc+] &#43;
 - link:_fg.html[+fg+] &#43;
 - link:_getopts.html[+getopts+] &#43;
-- link:_hash.html[+hash+]
-- link:_help.html[+help+]
-- link:_history.html[+history+]
+- link:_hash.html[+hash+] &#43;
+- link:_help.html[+help+] &#43;
+- link:_history.html[+history+] &#43;
 - link:_jobs.html[+jobs+] &#43;
 - link:_kill.html[+kill+] &#43;
-- link:_popd.html[+popd+]
+- link:_popd.html[+popd+] &#43;
 - link:_printf.html[+printf+]
-- link:_pushd.html[+pushd+]
+- link:_pushd.html[+pushd+] &#43;
 - link:_pwd.html[+pwd+] &#43;
 - link:_read.html[+read+] &#43;
 - link:_readonly.html[+readonly+] *
 - link:_return.html[+return+] *
 - link:_set.html[+set+] *
 - link:_shift.html[+shift+] *
-- link:_suspend.html[+suspend+]
+- link:_suspend.html[+suspend+] &#43;
 - link:_test.html[+test+]
 - link:_times.html[+times+] *
 - link:_trap.html[+trap+] *
 - link:_true.html[+true+] &#43;
-- link:_type.html[+type+]
-- link:_typeset.html[+typeset+]
-- link:_ulimit.html[+ulimit+]
+- link:_type.html[+type+] &#43;
+- link:_typeset.html[+typeset+] &#43;
+- link:_ulimit.html[+ulimit+] &#43;
 - link:_umask.html[+umask+] &#43;
 - link:_unalias.html[+unalias+] &#43;
 - link:_unset.html[+unset+] *

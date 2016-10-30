@@ -77,4 +77,6 @@ command paths from the cache as if +hash -r+ was executed.
 The POSIX standard defines the +-r+ option only:
 other options cannot be used in the link:posix.html[POSIXly-correct mode].
 
+The hash built-in is a link:builtin.html#types[semi-special built-in].
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

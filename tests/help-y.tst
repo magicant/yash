@@ -4,6 +4,12 @@ if ! testee --version --verbose | grep -Fqx ' * help'; then
     skip="true"
 fi
 
+test_oE -e 0 'help is a semi-special built-in'
+command -V help
+__IN__
+help: a semi-special built-in
+__OUT__
+
 test_oE -e 0 'without arguments, the help for the help itself is printed'
 help
 __IN__

@@ -187,6 +187,7 @@ occurred.
 [[notes]]
 == Notes
 
-The complete built-in is not defined in the POSIX standard.
+The complete built-in is a link:builtin.html#types[semi-special built-in]. In
+the POSIX standard, it is defined as a command with unspecified behavior.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

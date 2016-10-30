@@ -32,6 +32,7 @@ Suspend コマンドの終了ステータスは、SIGSTOP シグナルをシェ�
 [[notes]]
 == 補足
 
-POSIX には suspend コマンドに関する規定はありません。
+Suspend コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では suspend コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

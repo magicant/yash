@@ -38,8 +38,8 @@ command false
 __IN__
 
 test_E -e 0 'command ignores function (regular built-in)'
-hash () { false; }
-command hash
+echo () { false; }
+command echo
 __IN__
 
 test_OE -e 0 'command ignores function (external command)'
@@ -186,19 +186,19 @@ command -V :
 __IN__
 
 test_x -e 0 'exit status of describing regular built-in (-v)'
-command -v hash
+command -v echo
 __IN__
 
 test_x -e 0 'exit status of describing regular built-in (-V)'
-command -V hash
+command -V echo
 __IN__
 
 test_E -e 0 'output of describing regular built-in (-v)'
-command -v hash | grep '^/'
+command -v echo | grep '^/'
 __IN__
 
 test_x -e 0 'output of describing regular built-in (-V)'
-command -V hash | grep -F "$(command -v hash)"
+command -V echo | grep -F "$(command -v echo)"
 __IN__
 
 test_x -e 0 'exit status of describing external command (-v, no slash)'

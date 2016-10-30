@@ -66,4 +66,6 @@ link:params.html#sv-path[+PATH+ 変数]の値が変わった時は、記憶し�
 
 POSIX が規定しているオプションは +-r+ だけです。よって他のオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
+Hash コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+
 // vim: set filetype=asciidoc expandtab:

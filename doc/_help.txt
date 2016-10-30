@@ -29,7 +29,8 @@ The exit status of the help built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The help built-in is not defined in the POSIX standard.
+The help built-in is a link:builtin.html#types[semi-special built-in]. In the
+POSIX standard, it is defined as a command with unspecified behavior.
 
 Many built-ins of yash accept the +--help+ option that prints the same
 description.

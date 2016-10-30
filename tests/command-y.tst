@@ -82,7 +82,8 @@ __OUT__
 
 # `newgrp' is not a semi-special built-in in yash.
 test_oE -e 0 'describing semi-special built-ins (-V)'
-command -V bg cd command false fg getopts jobs kill pwd read true umask wait
+command -V bg cd command false fg getopts hash jobs kill pwd read true type \
+    ulimit umask wait
 __IN__
 bg: a semi-special built-in
 cd: a semi-special built-in
@@ -90,23 +91,27 @@ command: a semi-special built-in
 false: a semi-special built-in
 fg: a semi-special built-in
 getopts: a semi-special built-in
+hash: a semi-special built-in
 jobs: a semi-special built-in
 kill: a semi-special built-in
 pwd: a semi-special built-in
 read: a semi-special built-in
 true: a semi-special built-in
+type: a semi-special built-in
+ulimit: a semi-special built-in
 umask: a semi-special built-in
 wait: a semi-special built-in
 __OUT__
 
-test_OE 'describing regular built-ins (-V)'
-testreg() {
-    command -V $1 | grep -v "^$1: a regular built-in "
-}
-testreg typeset
-testreg disown
-testreg type
+(
+if ! testee -c 'command -bv echo' >/dev/null; then
+    skip="true"
+fi
+
+test_OE 'describing regular built-in (-V)'
+command -V echo | grep -v "^echo: a regular built-in "
 __IN__
+)
 
 test_OE -e 0 'describing external command (-V)'
 command -V cat | grep -q '^cat: an external command at'
@@ -162,8 +167,8 @@ bg
 __OUT__
 
 test_E -e 0 'describing regular built-in with -b option'
-command -vb hash &&
-command --identify --builtin-command hash
+command -vb array &&
+command --identify --builtin-command array
 __IN__
 
 test_E -e 0 'describing external command with -e option'

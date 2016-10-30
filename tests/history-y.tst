@@ -4,9 +4,11 @@ if ! testee -c 'command -bv history' >/dev/null; then
     skip="true"
 fi
 
-test_E -e 0 'history is a regular built-in'
-command -V history | grep '^history: a regular built-in '
+test_oE -e 0 'history is a semi-special built-in'
+command -V history
 __IN__
+history: a semi-special built-in
+__OUT__
 
 cat >rcfile1 <<\__END__
 PS1= PS2= HISTFILE=$PWD/$histfile HISTSIZE=$histsize

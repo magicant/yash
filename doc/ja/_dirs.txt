@@ -44,6 +44,7 @@ dfn:[ディレクトリスタック]とは、作業ディレクトリの変更�
 [[notes]]
 == 補足
 
-POSIX には dirs コマンドに関する規定はありません。
+Dirs コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では dirs コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

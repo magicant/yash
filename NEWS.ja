@@ -24,6 +24,9 @@ Yash 2.44
        いた。
     .  非同期リストで SIGINT と SIGQUIT を自動的に無視するのはジョブ
        制御が無効な時だけになった
+    .  "bindkey", "complete", "dirs", "disown", "hash", "help",
+       "history", "popd", "pushd", "suspend", "type", "typeset",
+       "ulimit" は準特殊組込みコマンドになった
 
 ----------------------------------------------------------------------
 Yash 2.43

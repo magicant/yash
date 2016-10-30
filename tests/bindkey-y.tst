@@ -4,6 +4,12 @@ if ! testee -c 'command -bv bindkey' >/dev/null; then
     skip="true"
 fi
 
+test_oE -e 0 'bindkey is a semi-special built-in'
+command -V bindkey
+__IN__
+bindkey: a semi-special built-in
+__OUT__
+
 sort -k 1 >commands <<\__END__
 noop
 alert

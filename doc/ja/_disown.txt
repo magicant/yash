@@ -38,6 +38,7 @@ Disown コマンドはシェルが管理しているジョブを削除します�
 [[notes]]
 == 補足
 
-POSIX には disown コマンドに関する規定はありません。
+Disown コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では disown コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

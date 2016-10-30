@@ -62,7 +62,8 @@ History コマンドはlink:interact.html#history[コマンド履歴]の内容�
 [[notes]]
 == 補足
 
-POSIX には history コマンドに関する規定はありません。
+History コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では history コマンドの動作は規定されていません。
 
 link:lineedit.html[行編集]の動作中は履歴の内容を変更することはできません。
 
