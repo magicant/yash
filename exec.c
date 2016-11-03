@@ -235,12 +235,11 @@ void reset_execstate(void)
 }
 
 /* Saves the current `execstate' and returns it.
- * `execstate' is re-initialized. */
+ * You typically call `reset_execstate' after calling this function. */
 struct execstate_T *save_execstate(void)
 {
     struct execstate_T *save = xmalloc(sizeof execstate);
     *save = execstate;
-    reset_execstate();
     return save;
 }
 
@@ -1589,6 +1588,7 @@ bool autoload_completion_function_file(
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
+    reset_execstate();
     posixly_correct = false;
     open_new_environment(false);
     set_positional_parameters((void *[]) { (void *) cmdname, NULL });
@@ -1622,6 +1622,7 @@ bool call_completion_function(const wchar_t *funcname)
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
+    reset_execstate();
     posixly_correct = false;
 
     le_compdebug("executing completion function \"%ls\"", funcname);
