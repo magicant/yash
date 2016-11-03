@@ -1,23 +1,37 @@
 # break-y.tst: yash-specific test of the break built-in
 
-echo break >break
+echo 'break; echo \$?=$?' >break
 
-# TODO
-test_OE 'breaking out of dot'
-for i in 1; do
+test_oe 'breaking out of dot'
+for i in 1 2; do
+    echo $i
     . ./break
-    echo not reached
 done
 __IN__
+1
+$?=2
+2
+$?=2
+__OUT__
+break: not in a loop
+break: not in a loop
+__ERR__
 
-#TODO
-test_OE 'breaking out of function'
-b() { break; }
-for i in 1; do
+test_oe 'breaking out of function'
+b() { break; echo \$?=$?; }
+for i in 1 2; do
+    echo $i
     b
-    echo not reached
 done
 __IN__
+1
+$?=2
+2
+$?=2
+__OUT__
+break: not in a loop
+break: not in a loop
+__ERR__
 
 test_oe 'breaking out of subshell'
 for i in 1; do
@@ -74,6 +88,17 @@ for i in 1; do
     echo not reached 2
 done
 __IN__
+
+test_o 'breaking loop out of auxiliary not allowed'
+COMMAND_NOT_FOUND_HANDLER=(break 'echo reached 1 $?')
+for i in 1; do
+    ./_no_such_command_
+    echo reached 2 $?
+done
+__IN__
+reached 1 0
+reached 2 127
+__OUT__
 
 test_OE 'breaking iteration out of eval'
 eval -i 'eval "break -i"; echo not reached 1' 'echo not reached 2'

@@ -1368,8 +1368,8 @@ void exec_fall_back_on_sh(
 void exec_function_body(
 	command_T *body, void *const *args, bool finally_exit, bool complete)
 {
-    bool save_noreturn = execstate.noreturn;
-    execstate.noreturn = false;
+    execstate_T *saveexecstate = save_execstate();
+    reset_execstate(false);
 
     open_new_environment(false);
     set_positional_parameters(args);
@@ -1380,10 +1380,10 @@ void exec_function_body(
     (void) complete;
 #endif
     exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
-    cancel_return();
     close_current_environment();
 
-    execstate.noreturn = save_noreturn;
+    cancel_return();
+    restore_execstate(saveexecstate);
 }
 
 /* Calls `execve' until it doesn't return EINTR. */
@@ -1539,7 +1539,15 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
     /* copy the array values in case they are unset during execution */
     save_get_variable_values(&gv);
 
+    /* prevent "break" and "continue" */
+    execstate_T *saveexecstate = save_execstate();
+    // reset_execstate(false); /* don't reset `execstate.noreturn' */
+    execstate.loopnest = 0;
+
     int result = exec_iteration(gv.values, codename);
+
+    restore_execstate(saveexecstate);
+
     plfree(gv.values, free);
     return result;
 }
@@ -1952,8 +1960,11 @@ int dot_builtin(int argc, void **argv)
 	goto error;
     }
 
+    execstate_T *saveexecstate = save_execstate();
+    reset_execstate(false);
     exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
     cancel_return();
+    restore_execstate(saveexecstate);
     remove_shellfd(fd);
     xclose(fd);
     free(mbsfilename);

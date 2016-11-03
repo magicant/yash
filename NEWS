@@ -11,6 +11,8 @@ History of Yash
 Yash 2.44
 
   +  Command line prediction and the '--le-predict' option.
+  *  The "return" built-in was wrongly refusing to return from a
+     script sourced by the "." built-in in an interactive shell.
   *  In the "test" built-in, the unary "-o" operator was returning the
      wrong answer if the given option name was negated with the "no"
      prefix (e.g. "test -o noclobber").
@@ -18,6 +20,8 @@ Yash 2.44
      the variable name, if any, now must appear on the same line as
      the variable name.
   =  Partial support for POSIX.1-2008 Technical Corrigendum 2 (2016).
+     This affects the shell's behavior only in the POSIXly-correct
+     mode unless marked with (*).
     .  In a for loop without the "in" keyword, the variable name and
        the "do" keyword can now be separated by a semicolon.
     .  The standard input of an asynchronous list is now implicitly
@@ -29,6 +33,8 @@ Yash 2.44
     .  The "bindkey", "complete", "dirs", "disown", "hash", "help",
        "history", "popd", "pushd", "suspend", "type", "typeset", and
        "ulimit" built-ins are now semi-special built-ins.
+    .  The "break" and "continue" built-ins now interrupt lexically
+       enclosing loops only. (*)
 
 ----------------------------------------------------------------------
 Yash 2.43

@@ -1,27 +1,37 @@
 # continue-y.tst: yash-specific test of the continue built-in
 
-echo continue >continue
+echo 'continue; echo \$?=$?' >continue
 
-#TODO
-test_oE 'continuing out of dot'
+test_oe 'continuing out of dot'
 for i in 1 2; do
     echo $i
     . ./continue
-    echo not reached
 done
 __IN__
 1
+$?=2
 2
+$?=2
 __OUT__
+continue: not in a loop
+continue: not in a loop
+__ERR__
 
-#TODO
-test_OE 'continuing out of function'
-b() { continue; }
-for i in 1; do
-    b
-    echo not reached
+test_oe 'continuing out of function'
+c() { continue; echo \$?=$?; }
+for i in 1 2; do
+    echo $i
+    c
 done
 __IN__
+1
+$?=2
+2
+$?=2
+__OUT__
+continue: not in a loop
+continue: not in a loop
+__ERR__
 
 test_oe 'continuing out of subshell'
 for i in 1; do
@@ -77,6 +87,17 @@ for i in 1; do
     echo not reached 2
 done
 __IN__
+
+test_o 'continuing loop out of auxiliary not allowed'
+COMMAND_NOT_FOUND_HANDLER=(continue 'echo reached 1 $?')
+for i in 1; do
+    ./_no_such_command_
+    echo reached 2 $?
+done
+__IN__
+reached 1 0
+reached 2 127
+__OUT__
 
 test_oE 'continuing iteration out of eval'
 eval -i 'eval "continue -i"; echo not reached' 'echo continued'

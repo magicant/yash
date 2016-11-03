@@ -12,6 +12,11 @@ __IN__
 continued 1
 __OUT__
 
+test_O -e 7 'returning from function, interactive' -i +m
+func() { return 7; echo not reached; }
+func
+__IN__
+
 #####
 
 cat <<\__END__ >return
@@ -45,6 +50,14 @@ test_o 'returning from rcfile script' \
 __IN__
 noreturn
 in return
+__OUT__
+
+test_o 'returning from dot script, interactive' -i +m
+. ./return
+. ./noreturn
+__IN__
+in return
+noreturn
 __OUT__
 
 #####

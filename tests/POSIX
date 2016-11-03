@@ -120,12 +120,14 @@ Command Search and Execution
 
 break
  * break-p.tst
+ * break-y.tst
 
 colon
  * nop-p.tst
 
 continue
  * continue-p.tst
+ * continue-y.tst
 
 dot
  * dot-p.tst
