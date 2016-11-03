@@ -203,7 +203,6 @@ static bool suppresserrexit = false;
 
 /* state of currently executed loop */
 static execstate_T execstate;
-/* Note that `execstate' is not reset when a subshell forks. */
 
 /* This flag is set when a special built-in is executed as such. */
 bool special_builtin_executed;
