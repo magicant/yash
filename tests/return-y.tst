@@ -75,6 +75,11 @@ fn() {
 fn
 __IN__
 
+test_O -e 127 'returning from auxiliary (iteration)'
+COMMAND_NOT_FOUND_HANDLER=('return 1' 'echo not reached $?')
+./_no_such_command_
+__IN__
+
 #####
 
 test_oE 'using -n option'

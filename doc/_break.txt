@@ -56,4 +56,13 @@ The break built-in is a link:builtin.html#types[special built-in].
 The POSIX standard defines no options for the break built-in;
 the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
 
+Treatment of currently executed loops that are not lexically enclosing the
+break built-in is unspecified in POSIX. Examples of such loops include:
+
+- A loop invoking a function in which the break built-in is used.
+- A loop in which a link:_trap.html[trap] action is executed in which the
+  break built-in is used.
+
+Yash does not allow breaking such loops.
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

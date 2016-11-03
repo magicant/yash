@@ -354,18 +354,11 @@ for i in 1; do
 done
 __IN__
 
+# This is a questionable case. Is this really a "lexically enclosing" loop as
+# defined in POSIX? Most shells (other than mksh) support this case.
 test_OE 'breaking out of eval'
 for i in 1; do
     eval break
-    echo not reached
-done
-__IN__
-
-echo break >break
-
-test_OE 'breaking out of dot'
-for i in 1; do
-    . ./break
     echo not reached
 done
 __IN__
@@ -441,14 +434,6 @@ for i in 1; do
 	    echo not reached in case
     esac
     echo not reached after esac
-done
-__IN__
-
-test_OE 'breaking out of function'
-b() { break; }
-for i in 1; do
-    b
-    echo not reached
 done
 __IN__
 

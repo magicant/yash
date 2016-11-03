@@ -1,5 +1,28 @@
 # continue-y.tst: yash-specific test of the continue built-in
 
+echo continue >continue
+
+#TODO
+test_oE 'continuing out of dot'
+for i in 1 2; do
+    echo $i
+    . ./continue
+    echo not reached
+done
+__IN__
+1
+2
+__OUT__
+
+#TODO
+test_OE 'continuing out of function'
+b() { continue; }
+for i in 1; do
+    b
+    echo not reached
+done
+__IN__
+
 test_oe 'continuing out of subshell'
 for i in 1; do
     (continue) || echo ok

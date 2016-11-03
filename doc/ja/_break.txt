@@ -43,4 +43,11 @@ Break コマンドはlink:builtin.html#types[特殊組込みコマンド]です�
 
 POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
+POSIX では、break コマンドを構文的に取り囲んでいないループの扱いを規定していません。例えば以下のような場合が該当します:
+
+- ループの中でlink:exec.html#function[関数]が実行され、その中で break コマンドが実行される
+- ループの実行中にlink:_trap.html[トラップ]が実行され、その中で break コマンドが実行される
+
+Yash では、このようなループは break の対象に出来ません。
+
 // vim: set filetype=asciidoc expandtab:

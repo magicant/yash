@@ -1,5 +1,24 @@
 # break-y.tst: yash-specific test of the break built-in
 
+echo break >break
+
+# TODO
+test_OE 'breaking out of dot'
+for i in 1; do
+    . ./break
+    echo not reached
+done
+__IN__
+
+#TODO
+test_OE 'breaking out of function'
+b() { break; }
+for i in 1; do
+    b
+    echo not reached
+done
+__IN__
+
 test_oe 'breaking out of subshell'
 for i in 1; do
     (break) || echo ok
