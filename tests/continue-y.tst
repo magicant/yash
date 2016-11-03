@@ -1,5 +1,28 @@
 # continue-y.tst: yash-specific test of the continue built-in
 
+test_oe 'continuing out of subshell'
+for i in 1; do
+    (continue) || echo ok
+done
+__IN__
+ok
+__OUT__
+continue: not in a loop
+__ERR__
+
+test_oe 'continuing out of trap'
+trap 'continue || echo trapped' USR1
+for i in 1; do
+    kill -USR1 $$
+    echo ok
+done
+__IN__
+trapped
+ok
+__OUT__
+continue: not in a loop
+__ERR__
+
 test_oE 'continuing iteration, unnested, short option'
 eval -i 'echo 1' 'continue -i; echo not reached' 'echo continued'
 __IN__
@@ -38,10 +61,10 @@ __IN__
 continued
 __OUT__
 
-echo 'continue -i' >continue
+echo 'continue -i' >continue-i
 
 test_oE 'continuing iteration out of dot'
-eval -i '. ./continue; echo not reached' 'echo continued'
+eval -i '. ./continue-i; echo not reached' 'echo continued'
 __IN__
 continued
 __OUT__

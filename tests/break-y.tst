@@ -1,5 +1,28 @@
 # break-y.tst: yash-specific test of the break built-in
 
+test_oe 'breaking out of subshell'
+for i in 1; do
+    (break) || echo ok
+done
+__IN__
+ok
+__OUT__
+break: not in a loop
+__ERR__
+
+test_oe 'breaking out of trap'
+trap 'break || echo trapped' USR1
+for i in 1; do
+    kill -USR1 $$
+    echo ok
+done
+__IN__
+trapped
+ok
+__OUT__
+break: not in a loop
+__ERR__
+
 test_oE 'breaking iteration, unnested, short option'
 eval -i 'echo 1' \
     '(exit 13); break -i; echo not reached 1' \
@@ -37,10 +60,10 @@ test_OE 'breaking iteration out of eval'
 eval -i 'eval "break -i"; echo not reached 1' 'echo not reached 2'
 __IN__
 
-echo 'break -i' >break
+echo 'break -i' >break-i
 
 test_OE 'breaking iteration out of dot'
-eval -i '. ./break; echo not reached 1' 'echo not reached 2'
+eval -i '. ./break-i; echo not reached 1' 'echo not reached 2'
 __IN__
 
 test_OE 'breaking iteration out of loop'
