@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.h: command execution */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2016 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ extern _Bool special_builtin_executed;
 extern _Bool is_executing_auxiliary;
 
 struct execstate_T;
-extern void reset_execstate(void);
+extern void reset_execstate(_Bool reset_iteration);
 extern struct execstate_T *save_execstate(void)
     __attribute__((malloc,warn_unused_result));
 extern void restore_execstate(struct execstate_T *save)

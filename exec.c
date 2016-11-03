@@ -225,13 +225,12 @@ static xwcsbuf_T xtrace_buffer = { .contents = NULL };
 
 
 /* Resets `execstate' to the initial state. */
-void reset_execstate(void)
+void reset_execstate(bool reset_iteration)
 {
-    execstate = (struct execstate_T) {
-	.loopnest = 0,
-	.noreturn = false,
-	.iterating = false,
-    };
+    execstate.loopnest = 0;
+    execstate.noreturn = false;
+    if (reset_iteration)
+	execstate.iterating = false;
 }
 
 /* Saves the current `execstate' and returns it.
@@ -1010,7 +1009,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 #if YASH_ENABLE_HISTORY
 	    close_history_file();
 #endif
-	    reset_execstate();
+	    reset_execstate(true);
 	}
 	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
 	clear_shellfds(sigtype & t_leave);
@@ -1588,7 +1587,7 @@ bool autoload_completion_function_file(
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
-    reset_execstate();
+    reset_execstate(true);
     posixly_correct = false;
     open_new_environment(false);
     set_positional_parameters((void *[]) { (void *) cmdname, NULL });
@@ -1622,7 +1621,7 @@ bool call_completion_function(const wchar_t *funcname)
     struct execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
-    reset_execstate();
+    reset_execstate(true);
     posixly_correct = false;
 
     le_compdebug("executing completion function \"%ls\"", funcname);

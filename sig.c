@@ -728,7 +728,7 @@ int handle_traps(void)
 		    le_suspend_readline();
 #endif
 		    struct execstate_T *execstate = save_execstate();
-		    reset_execstate();
+		    reset_execstate(true);
 		    signum = handled_signal = s->no;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -752,7 +752,7 @@ int handle_traps(void)
 		    le_suspend_readline();
 #endif
 		    struct execstate_T *execstate = save_execstate();
-		    reset_execstate();
+		    reset_execstate(true);
 		    signum = handled_signal = sigrtmin + i;
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
@@ -794,7 +794,7 @@ void execute_exit_trap(void)
 #endif
 	savelaststatus = laststatus;
 	command = xwcsdup(command);
-	reset_execstate();
+	reset_execstate(true);
 	exec_wcs(command, "EXIT trap", false);
 	free(command);
 	savelaststatus = -1;
