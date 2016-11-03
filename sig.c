@@ -732,6 +732,7 @@ int handle_traps(void)
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
 		    free(command);
+		    cancel_return();
 		    restore_execstate(execstate);
 		    laststatus = savelaststatus;
 		}
@@ -754,6 +755,7 @@ int handle_traps(void)
 		    command = xwcsdup(command);
 		    exec_wcs(command, "trap", false);
 		    free(command);
+		    cancel_return();
 		    restore_execstate(execstate);
 		    laststatus = savelaststatus;
 		}
