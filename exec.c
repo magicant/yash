@@ -235,15 +235,15 @@ void reset_execstate(bool reset_iteration)
 
 /* Saves the current `execstate' and returns it.
  * You typically call `reset_execstate' after calling this function. */
-struct execstate_T *save_execstate(void)
+execstate_T *save_execstate(void)
 {
-    struct execstate_T *save = xmalloc(sizeof execstate);
+    execstate_T *save = xmalloc(sizeof execstate);
     *save = execstate;
     return save;
 }
 
 /* Restores `execstate' to `save' and frees `save'. */
-void restore_execstate(struct execstate_T *save)
+void restore_execstate(execstate_T *save)
 {
     execstate = *save;
     free(save);
@@ -1584,7 +1584,7 @@ bool autoload_completion_function_file(
 	return false;
     }
 
-    struct execstate_T *saveexecstate = save_execstate();
+    execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     reset_execstate(true);
@@ -1618,7 +1618,7 @@ bool call_completion_function(const wchar_t *funcname)
 	return false;
     }
 
-    struct execstate_T *saveexecstate = save_execstate();
+    execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
     bool saveposix = posixly_correct;
     reset_execstate(true);
