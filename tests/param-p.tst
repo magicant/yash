@@ -449,6 +449,10 @@ __OUT__
 test_oE 'special parameter @, quoted'
 bracket "$@"
 bracket "=$@="
+null=
+bracket "$null""$@"
+bracket "$@""$null"
+bracket "$null""$@""$null"
 set a
 bracket "$@"
 bracket "=$@="
@@ -465,6 +469,9 @@ bracket "$@$@"
 __IN__
 
 [==]
+[]
+[]
+[]
 [a]
 [=a=]
 [a][b  b][cc]
@@ -502,6 +509,19 @@ __IN__
 
 [a]
 [a][b  b][cc]
+__OUT__
+
+test_oE '${foo:-"$@"}'
+set a 'b  b' cc
+bracket ${foo:-"$@"}
+foo=
+bracket ${foo:-"$@"}
+foo=bar
+bracket ${foo:-"$@"}
+__IN__
+[a][b  b][cc]
+[a][b  b][cc]
+[bar]
 __OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
