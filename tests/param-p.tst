@@ -435,11 +435,15 @@ test_oE 'special parameter *, unquoted'
 bracket $*
 set a
 bracket $*
-# POSIX is silent on how multiple positional parameters are concatenated
-# when the $* parameter expansion is not quoted.
+set a 'b  b' cc
+bracket $*
+IFS=
+bracket $*
 __IN__
 
 [a]
+[a][b][b][cc]
+[a][b  b][cc]
 __OUT__
 
 test_oE 'special parameter @, quoted'
@@ -472,15 +476,20 @@ __IN__
 [][][]
 __OUT__
 
+# Expansion of unquoted $@ is the same as that of unquoted $*
 test_oE 'special parameter @, unquoted'
 bracket $@
 set a
 bracket $@
-# POSIX is silent on how multiple positional parameters are concatenated
-# when the $@ parameter expansion is not quoted.
+set a 'b  b' cc
+bracket $@
+IFS=
+bracket $@
 __IN__
 
 [a]
+[a][b][b][cc]
+[a][b  b][cc]
 __OUT__
 
 test_oE '${1+"$@"}'

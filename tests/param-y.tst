@@ -4,15 +4,19 @@ setup -d
 
 test_oE '${#*}'
 set 1 22 '3  3'
+bracket ${#*}
 bracket "${#*}"
 __IN__
+[1][2][4]
 [9]
 __OUT__
 
 test_oE '${#@}'
 set 1 22 '3  3'
+bracket ${#@}
 bracket "${#@}"
 __IN__
+[1][2][4]
 [1][2][4]
 __OUT__
 

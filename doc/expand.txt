@@ -205,11 +205,11 @@ If the interpretation of {{index}} is one of +*+, +@+, and +#+,
 it is treated as follows:
 
 +*+::
-If {{parameter}} is an array, all values of the array are concatenated into a
-single string. If {{parameter}} is the +&#x2A;+ or +@+ special parameter, all
-positional parameters are concatenated into a string. See the description of
-the link:params.html#sp-asterisk[+&#x2A;+ special parameter] for how the
-values/positional parameters are separated in the result string.
+If {{parameter}} is an array, all the array values are
+link:expand.html#split[field-split] or concatenated in the same manner as
+the link:params.html#sp-asterisk[+&#x2A;+ special parameter].
+If {{parameter}} is the +&#x2A;+ or +@+ special parameter, the positional
+parameters are likewise field-split or concatenated.
 In other cases, the interpretation of {{index}} is treated as if the
 interpretation is the two integers 1 and -1.
 

@@ -35,6 +35,8 @@ Yash 2.44
        "ulimit" built-ins are now semi-special built-ins.
     .  The "break" and "continue" built-ins now interrupt lexically
        enclosing loops only. (*)
+    .  Unquoted $* and $@ now expand to separate positional
+       parameters, even if $IFS is an empty string. (*)
 
 ----------------------------------------------------------------------
 Yash 2.43

@@ -899,16 +899,12 @@ subst:
     }
 
     /* concatenate the elements of `values' */
-    if (concat)
+    if (concat && indq)
 	values = concatenate_values_into_array(values, false);
 
     /* PT_NUMBER */
     if (p->pe_type & PT_NUMBER)
 	subst_length_each(values);
-
-    /* concatenate the elements of `values' */
-    if (!indq)
-	values = concatenate_values_into_array(values, false);
 
     /* backslash escape */
     for (size_t i = 0; values[i] != NULL; i++)

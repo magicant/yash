@@ -75,6 +75,7 @@ parameter is the empty string. When there is more than one positional
 parameter, the value is a concatenation of all the positional parameters, each
 of which is separated as follows:
 +
+--
 - If the <<sv-ifs,+IFS+>> variable exists and its value is not empty,
   positional parameters are each separated by the first character of the
   value of the +IFS+ variable. 
@@ -82,23 +83,30 @@ of which is separated as follows:
   are just concatenated without any separator.
 - If the +IFS+ variable does not exist, positional parameters are each
   separated by a space character.
+--
++
+If link:expand.html#split[field-splitting] is applied to an expansion result
+of this parameter, the value is first split into the original positional
+parameters and then further split depending on the current +IFS+ variable.
+The first splitting is performed even if the +IFS+ variable is empty.
 
 [[sp-at]]+@+::
 This special parameter represents the whole <<positional,positional
 parameters>> like the +*+ special parameter above. The difference between the
 two is the results of expansion that occurs between a pair of
 link:syntax.html#quotes[double-quotation marks]. If the +@+ special parameter
-is expanded inside double-quotations, positional parameters are
-link:expand.html#split[field-split] rather than concatenated (in spite of the
-quotation). If there are no positional parameters, the expansion yields no
-word rather than an empty word.
+is expanded inside double-quotations, the result is
+link:expand.html#split[field-split] into the exact positional parameter
+values. If there are no positional parameters, the expansion yields no word
+rather than an empty word. (Even if the expansion is double-quoted, the result
+is not always a single word.)
 +
 --
 - When there are no positional parameters, the command words +echo 1 "$@" 2+
-  is expanded to the three words +echo+, +1+, and +2+.
+  are expanded to the three words +echo+, +1+, and +2+.
 - When positional
   parameters are the three words +1+, +2  2+, and +3+, the command words
-  +echo "$@"+ is expanded to the four words +echo+, +1+, +2  2+, and +3+,
+  +echo "$@"+ are expanded to the four words +echo+, +1+, +2  2+, and +3+,
   and the words +echo "a$@b"+ to the four words +echo+, +a1+, +2  2+, and
   +3b+.
 --
