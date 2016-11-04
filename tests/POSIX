@@ -19,6 +19,9 @@ Volume 3: Shell & Utilities
 2.3.1 Alias Substitution
  * alias-p.tst
 
+2.5.2 Special Parameters
+ * param-p.tst
+
 2.5.3 Shell Variables
   IFS
     * fsplit-p.tst

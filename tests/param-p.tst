@@ -372,7 +372,7 @@ trapped
 __OUT__
 
 # Special parameter 0 is tested in sh-p.tst
-#test_oE 'special parameter !'
+#test_oE 'special parameter 0'
 
 test_oE 'special parameter *, quoted, unset IFS'
 unset IFS
