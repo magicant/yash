@@ -66,14 +66,12 @@ __OUT__
 # Tested in builtins-p.tst
 #test_oE 'assignment is persistent for special built-in'
 
-test_oE 'assignment is persistent for function'
+test_oE 'assigned variable is visible inside function'
 f() { echo function $a; }
 a=1
 a=2 f
-bracket "$a"
 __IN__
 function 2
-[2]
 __OUT__
 
 test_oE 'assignment is temporary for regular command'

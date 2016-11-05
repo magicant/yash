@@ -72,6 +72,7 @@ Volume 3: Shell & Utilities
  * error-p.tst
 
 2.9.1 Simple Commands
+ * builtins-p.tst
  * redir-p.tst
  * simple-p.tst
 

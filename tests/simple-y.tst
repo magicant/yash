@@ -9,6 +9,32 @@ __IN__
 [1-2-3][1][2][3]
 __OUT__
 
+test_oE 'assignment is exported during and after special built-in execution'
+a=1 eval 'sh -c "echo \$a"'
+sh -c "echo \$a"
+__IN__
+1
+1
+__OUT__
+
+test_oE 'assignment persists after function returns'
+f() { :; }
+a=1
+a=2 f
+echo $a
+__IN__
+2
+__OUT__
+
+test_oE 'assignment is exported during and after function execution'
+f() { sh -c 'echo $a'; }
+a=1 f
+sh -c 'echo $a'
+__IN__
+1
+1
+__OUT__
+
 # The behavior for this case is POSIXly-unspecified, but many other existing
 # shells behave this way.
 test_O 'assigning to read-only variable: exit for empty command'
