@@ -1157,7 +1157,7 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_syntax_error(Exit_ERROR);
+		return special_builtin_error(Exit_ERROR);
 	}
     }
 
@@ -1221,8 +1221,7 @@ int trap_builtin(int argc, void **argv)
 	} else {
 	    command = ARGV(xoptind++);
 	    if (xoptind == argc)
-		return special_builtin_syntax_error(
-			insufficient_operands_error(2));
+		return special_builtin_error(insufficient_operands_error(2));
 
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;

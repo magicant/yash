@@ -1644,7 +1644,7 @@ int typeset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_syntax_error(Exit_ERROR);
+		return special_builtin_error(Exit_ERROR);
 	}
     }
 
@@ -1660,16 +1660,16 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (function && global && wcscmp(ARGV(0), L"typeset") == 0)
-	return special_builtin_syntax_error(
+	return special_builtin_error(
 		mutually_exclusive_option_error(L'f', L'g'));
     if (function && export)
-	return special_builtin_syntax_error(
+	return special_builtin_error(
 		mutually_exclusive_option_error(L'f', L'x'));
     if (function && unexport)
-	return special_builtin_syntax_error(
+	return special_builtin_error(
 		mutually_exclusive_option_error(L'f', L'X'));
     if (export && unexport)
-	return special_builtin_syntax_error(
+	return special_builtin_error(
 		mutually_exclusive_option_error(L'x', L'X'));
 
     if (xoptind == argc) {
@@ -2254,7 +2254,7 @@ int unset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_syntax_error(Exit_ERROR);
+		return special_builtin_error(Exit_ERROR);
 	}
     }
 
@@ -2355,22 +2355,22 @@ int shift_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_syntax_error(Exit_ERROR);
+		return special_builtin_error(Exit_ERROR);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return special_builtin_syntax_error(Exit_ERROR);
+	return special_builtin_error(Exit_ERROR);
 
     long count;
     if (xoptind < argc) {
 	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-	    return special_builtin_syntax_error(Exit_ERROR);
+	    return special_builtin_error(Exit_ERROR);
 	} else if (posixly_correct && count < 0) {
 	    xerror(0, Ngt("%ls: the operand value must not be negative"),
 		    ARGV(xoptind));
-	    return special_builtin_syntax_error(Exit_ERROR);
+	    return special_builtin_error(Exit_ERROR);
 	}
     } else {
 	count = 1;
