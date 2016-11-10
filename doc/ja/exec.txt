@@ -73,7 +73,7 @@ link:_trap.html[Trap 組込みコマンド]でシェル終了時のハンドラ�
 link:interact.html[対話モード]でないシェルの実行中に下記エラーが発生した場合、シェルは直ちに終了します。このときシェルの終了ステータスは非 0 です。
 
 - 文法エラーのためコマンドを解釈できないとき (link:invoke.html#init[シェルの初期化]中を除く)
-- link:posix.html[POSIX 準拠モード]で、link:builtin.html#types[特殊組込みコマンド]のオプションやオペランドの使い方が間違っているとき
+- link:posix.html[POSIX 準拠モード]で、link:builtin.html#types[特殊組込みコマンド]の実行中にエラーが発生したとき
 - POSIX 準拠モードで、特殊組込みコマンドに対してlink:redir.html[リダイレクト]エラーが発生したとき
 - link:syntax.html#simple[単純コマンド]で代入エラーが発生したとき
 - link:expand.html[展開]エラーが発生したとき (シェルの初期化中を除く)

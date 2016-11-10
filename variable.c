@@ -1750,7 +1750,8 @@ int typeset_builtin(int argc, void **argv)
 	} while (++xoptind < argc);
     }
 
-    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ?
+	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
 }
 
 /* Prints the specified variable to the standard output.
@@ -2272,7 +2273,8 @@ int unset_builtin(int argc, void **argv)
 	}
     }
 
-    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ?
+	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
 }
 
 /* Unsets the specified function.

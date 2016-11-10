@@ -219,7 +219,7 @@ __IN__
 trapped
 __OUT__
 
-test_o -d 'invalid signal is not syntax error'
+test_o -d 'invalid signal does not kill non-interactive shell'
 trap '' '' || echo reached
 __IN__
 reached

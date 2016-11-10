@@ -167,9 +167,8 @@ following errors, the shell immediately exits with a non-zero exit status:
 
 - A command cannot be parsed due to an syntax error (except during
   link:invoke.html#init[shell initialization]).
-- A link:builtin.html#types[special built-in] is executed in the
-  link:posix.html[POSIXly-correct mode] and the command arguments do not meet
-  the syntax of the built-in's arguments.
+- An error occurs during execution of a link:builtin.html#types[special
+  built-in] in the link:posix.html[POSIXly-correct mode].
 - A link:redir.html[redirection] error occurs in a
   link:syntax.html#simple[simple command] whose command name is a special
   built-in and the shell is in the POSIXly-correct mode.

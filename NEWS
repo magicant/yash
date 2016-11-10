@@ -39,6 +39,8 @@ Yash 2.44
        parameters, even if $IFS is an empty string. (*)
     .  On an assignment error, a non-interactive shell now always
        exits, regardless of command type. (*)
+    .  When any error occurs in a special built-in in non-interactive
+       shell, the shell now exits, regardless of error type.
 
 ----------------------------------------------------------------------
 Yash 2.43

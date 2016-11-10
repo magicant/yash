@@ -112,11 +112,13 @@ __OUT__
 test_O -d -e n 'read-only variable cannot be deleted (default)'
 readonly a=
 unset a
+echo not reached # special built-in error kills non-interactive shell
 __IN__
 
 test_O -d -e n 'read-only variable cannot be deleted (-v)'
 readonly a=
 unset -v a
+echo not reached # special built-in error kills non-interactive shell
 __IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

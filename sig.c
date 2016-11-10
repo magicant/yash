@@ -1171,7 +1171,7 @@ int trap_builtin(int argc, void **argv)
 	    if (!sigismember(&printed, s->no)) {
 		sigaddset(&printed, s->no);
 		if (!print_trap(s->name, trap_command[sigindex(s->no)]))
-		    return Exit_FAILURE;
+		    return special_builtin_error(Exit_FAILURE);
 	    }
 	}
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1180,7 +1180,7 @@ int trap_builtin(int argc, void **argv)
 	    if (sigrtmin + i > sigrtmax)
 		break;
 	    if (!print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]))
-		return Exit_FAILURE;
+		return special_builtin_error(Exit_FAILURE);
 	}
 #endif
     } else if (print) {
@@ -1201,12 +1201,12 @@ int trap_builtin(int argc, void **argv)
 		int index = signum - sigrtmin;
 		if (index < RTSIZE)
 		    if (!print_trap(name, rttrap_command[index]))
-			return Exit_FAILURE;
+			return special_builtin_error(Exit_FAILURE);
 	    } else
 #endif
 	    {
 		if (!print_trap(name, trap_command[sigindex(signum)]))
-		    return Exit_FAILURE;
+		    return special_builtin_error(Exit_FAILURE);
 	    }
 	} while (++xoptind < argc);
     } else {

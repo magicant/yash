@@ -690,7 +690,8 @@ int set_shell_option(const struct option_T *option, bool enable,
     }
 #endif
 
-    return (*option->optp == enable) ? Exit_SUCCESS : Exit_FAILURE;
+    return (*option->optp == enable) ?
+	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
 }
 
 #if YASH_ENABLE_LINEEDIT
@@ -916,7 +917,7 @@ int set_builtin_print_current_settings(void)
 
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
 	if (!xprintf("%-15ls %s\n", o->longopt, vals[(bool) *o->optp]))
-	    return Exit_FAILURE;
+	    return special_builtin_error(Exit_FAILURE);
     }
 
     return Exit_SUCCESS;
@@ -927,7 +928,7 @@ int set_builtin_print_restoring_commands(void)
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
 	if (o->resettable)
 	    if (!xprintf("set %co %ls\n", *o->optp ? '-' : '+', o->longopt))
-		return Exit_FAILURE;
+		return special_builtin_error(Exit_FAILURE);
     }
 
     return Exit_SUCCESS;

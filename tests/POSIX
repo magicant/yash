@@ -60,6 +60,12 @@ Volume 3: Shell & Utilities
 2.8.1 Consequences of Shell Errors
   Shell language syntax error
    * error-p.tst
+  Special built-in utility error
+   * dot-p.tst
+   * export-p.tst
+   * readonly-p.tst
+   * trap-p.tst
+   * unset-p.tst
   Redirection error
    * error-p.tst
    * error-y.tst
@@ -67,8 +73,6 @@ Volume 3: Shell & Utilities
    * error-p.tst
   Expansion error
    * error-p.tst
-  Dot script not found
-   * dot-p.tst
 
 2.8.2 Exit Status for Commands
  * error-p.tst

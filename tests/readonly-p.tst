@@ -23,4 +23,10 @@ __OUT__
 # because of pre-defined read-only variables.
 #test_x 'reusing printed read-only variables'
 
+test_O -d -e n 'read-only variable cannot be re-assigned'
+readonly a=1
+readonly a=2
+echo not reached # special built-in error kills non-interactive shell
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

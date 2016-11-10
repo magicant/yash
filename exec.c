@@ -2435,7 +2435,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     clock = sysconf(_SC_CLK_TCK);
     if (times(&tms) == (clock_t) -1) {
 	xerror(errno, Ngt("cannot get the time data"));
-	return Exit_FAILURE;
+	return special_builtin_error(Exit_FAILURE);
     }
     format_time(tms.tms_utime, sum, sus);
     format_time(tms.tms_stime, ssm, sss);
@@ -2445,7 +2445,8 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 
     xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
 	    sum, sus, ssm, sss, cum, cus, csm, css);
-    return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
+    return (yash_error_message_count == 0) ?
+	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
 }
 
 #if YASH_ENABLE_HELP

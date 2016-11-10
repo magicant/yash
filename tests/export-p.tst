@@ -41,4 +41,10 @@ A
 B
 __OUT__
 
+test_O -d -e n 'read-only variable cannot be re-assigned'
+readonly a=1
+export a=2
+echo not reached # special built-in error kills non-interactive shell
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
