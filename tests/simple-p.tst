@@ -94,21 +94,6 @@ readonly a=A
 a=B
 __IN__
 
-test_o 'assigning to read-only variable: non-exit for regular command'
-readonly a=A
-a=B printf ''
-# It is unspecified whether printf is executed after the assignment error.
-echo reached
-__IN__
-reached
-__OUT__
-
-test_O 'assigning to read-only variable: exit for special built-in'
-readonly a=A
-a=B :
-echo not reached
-__IN__
-
 test_O -d -e n 'assigning to read-only variable in subshell'
 readonly a=A
 (a=B)

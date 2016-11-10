@@ -170,11 +170,10 @@ following errors, the shell immediately exits with a non-zero exit status:
 - A link:builtin.html#types[special built-in] is executed in the
   link:posix.html[POSIXly-correct mode] and the command arguments do not meet
   the syntax of the built-in's arguments.
-- An error occurs during redirection or assignment in a
+- A link:redir.html[redirection] error occurs in a
   link:syntax.html#simple[simple command] whose command name is a special
   built-in and the shell is in the POSIXly-correct mode.
-- An error occurs during assignment in a simple command without a command
-  name.
+- An assignment error occurs in a simple command.
 - An error occurs during link:expand.html[expansion] (except during shell
   initialization).
 

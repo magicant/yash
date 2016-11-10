@@ -37,6 +37,8 @@ Yash 2.44
        enclosing loops only. (*)
     .  Unquoted $* and $@ now expand to separate positional
        parameters, even if $IFS is an empty string. (*)
+    .  On an assignment error, a non-interactive shell now always
+       exits, regardless of command type. (*)
 
 ----------------------------------------------------------------------
 Yash 2.43

@@ -201,20 +201,6 @@ __IN__
 __OUT__
 }
 
-# $1 = line no.
-# $2 = built-in name
-test_nonspecial_builtin_assign() {
-    testcase "$1" -d \
-    "assignment error on non-special built-in $2 spares shell${posix:+" (POSIX)"}" \
-	3<<__IN__ 4<<\__OUT__
-readonly a=a
-a=b $2
-echo \$?
-__IN__
-2
-__OUT__
-}
-
 (
 posix="true"
 
@@ -375,43 +361,6 @@ test_nonspecial_builtin_redirect "$LINENO" unalias
 test_nonspecial_builtin_redirect "$LINENO" wait
 test_nonspecial_builtin_redirect "$LINENO" ./_no_such_command_
 
-test_nonspecial_builtin_assign "$LINENO" [
-test_nonspecial_builtin_assign "$LINENO" alias
-test_nonspecial_builtin_assign "$LINENO" array
-test_nonspecial_builtin_assign "$LINENO" bg
-test_nonspecial_builtin_assign "$LINENO" bindkey
-test_nonspecial_builtin_assign "$LINENO" cat # example of external command
-test_nonspecial_builtin_assign "$LINENO" cd
-test_nonspecial_builtin_assign "$LINENO" command
-test_nonspecial_builtin_assign "$LINENO" complete
-test_nonspecial_builtin_assign "$LINENO" dirs
-test_nonspecial_builtin_assign "$LINENO" disown
-test_nonspecial_builtin_assign "$LINENO" echo
-test_nonspecial_builtin_assign "$LINENO" false
-test_nonspecial_builtin_assign "$LINENO" fc
-test_nonspecial_builtin_assign "$LINENO" fg
-test_nonspecial_builtin_assign "$LINENO" getopts
-test_nonspecial_builtin_assign "$LINENO" hash
-test_nonspecial_builtin_assign "$LINENO" help
-test_nonspecial_builtin_assign "$LINENO" history
-test_nonspecial_builtin_assign "$LINENO" jobs
-test_nonspecial_builtin_assign "$LINENO" kill
-test_nonspecial_builtin_assign "$LINENO" popd
-test_nonspecial_builtin_assign "$LINENO" printf
-test_nonspecial_builtin_assign "$LINENO" pushd
-test_nonspecial_builtin_assign "$LINENO" pwd
-test_nonspecial_builtin_assign "$LINENO" read
-test_nonspecial_builtin_assign "$LINENO" suspend
-test_nonspecial_builtin_assign "$LINENO" test
-test_nonspecial_builtin_assign "$LINENO" true
-test_nonspecial_builtin_assign "$LINENO" type
-test_nonspecial_builtin_assign "$LINENO" typeset
-test_nonspecial_builtin_assign "$LINENO" ulimit
-test_nonspecial_builtin_assign "$LINENO" umask
-test_nonspecial_builtin_assign "$LINENO" unalias
-test_nonspecial_builtin_assign "$LINENO" wait
-test_nonspecial_builtin_assign "$LINENO" ./_no_such_command_
-
 )
 
 # $1 = line no.
@@ -446,20 +395,6 @@ test_special_builtin_redirect() {
 	"redirection error on special built-in $2 spares shell" \
 	3<<__IN__ 4<<\__OUT__
 $2 <_no_such_file_
-echo \$?
-__IN__
-2
-__OUT__
-}
-
-# $1 = line no.
-# $2 = built-in name
-test_special_builtin_assign() {
-    testcase "$1" -d \
-	"assignment error on special built-in $2 spares shell" \
-	3<<__IN__ 4<<\__OUT__
-readonly a=a
-a=b $2
 echo \$?
 __IN__
 2
@@ -603,58 +538,5 @@ test_nonspecial_builtin_redirect "$LINENO" umask
 test_nonspecial_builtin_redirect "$LINENO" unalias
 test_nonspecial_builtin_redirect "$LINENO" wait
 test_nonspecial_builtin_redirect "$LINENO" ./_no_such_command_
-
-test_special_builtin_assign "$LINENO" :
-test_special_builtin_assign "$LINENO" .
-test_special_builtin_assign "$LINENO" break
-test_special_builtin_assign "$LINENO" continue
-test_special_builtin_assign "$LINENO" eval
-test_special_builtin_assign "$LINENO" exec
-test_special_builtin_assign "$LINENO" exit
-test_special_builtin_assign "$LINENO" export
-test_special_builtin_assign "$LINENO" readonly
-test_special_builtin_assign "$LINENO" return
-test_special_builtin_assign "$LINENO" set
-test_special_builtin_assign "$LINENO" shift
-test_special_builtin_assign "$LINENO" times
-test_special_builtin_assign "$LINENO" trap
-test_special_builtin_assign "$LINENO" unset
-
-test_nonspecial_builtin_assign "$LINENO" [
-test_nonspecial_builtin_assign "$LINENO" alias
-test_nonspecial_builtin_assign "$LINENO" array
-test_nonspecial_builtin_assign "$LINENO" bg
-test_nonspecial_builtin_assign "$LINENO" bindkey
-test_nonspecial_builtin_assign "$LINENO" cat # example of external command
-test_nonspecial_builtin_assign "$LINENO" cd
-test_nonspecial_builtin_assign "$LINENO" command
-test_nonspecial_builtin_assign "$LINENO" complete
-test_nonspecial_builtin_assign "$LINENO" dirs
-test_nonspecial_builtin_assign "$LINENO" disown
-test_nonspecial_builtin_assign "$LINENO" echo
-test_nonspecial_builtin_assign "$LINENO" false
-test_nonspecial_builtin_assign "$LINENO" fc
-test_nonspecial_builtin_assign "$LINENO" fg
-test_nonspecial_builtin_assign "$LINENO" getopts
-test_nonspecial_builtin_assign "$LINENO" hash
-test_nonspecial_builtin_assign "$LINENO" help
-test_nonspecial_builtin_assign "$LINENO" history
-test_nonspecial_builtin_assign "$LINENO" jobs
-test_nonspecial_builtin_assign "$LINENO" kill
-test_nonspecial_builtin_assign "$LINENO" popd
-test_nonspecial_builtin_assign "$LINENO" printf
-test_nonspecial_builtin_assign "$LINENO" pushd
-test_nonspecial_builtin_assign "$LINENO" pwd
-test_nonspecial_builtin_assign "$LINENO" read
-test_nonspecial_builtin_assign "$LINENO" suspend
-test_nonspecial_builtin_assign "$LINENO" test
-test_nonspecial_builtin_assign "$LINENO" true
-test_nonspecial_builtin_assign "$LINENO" type
-test_nonspecial_builtin_assign "$LINENO" typeset
-test_nonspecial_builtin_assign "$LINENO" ulimit
-test_nonspecial_builtin_assign "$LINENO" umask
-test_nonspecial_builtin_assign "$LINENO" unalias
-test_nonspecial_builtin_assign "$LINENO" wait
-test_nonspecial_builtin_assign "$LINENO" ./_no_such_command_
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

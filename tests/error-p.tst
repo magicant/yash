@@ -57,11 +57,34 @@ __IN__
 
 ###############################################################################
 
+test_O 'assignment error without command kills non-interactive shell'
+readonly a=a
+a=b
+printf 'not reached\n'
+__IN__
+
+test_o 'assignment error without command in subshell'
+readonly a=a
+(a=b; printf 'not reached\n')
+[ $? -ne 0 ]
+echo $?
+__IN__
+0
+__OUT__
+
+test_o 'assignment error without command spares interactive shell' -i +m
+readonly a=a
+a=b
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
 # $1 = line no.
-# $2 = built-in name
-test_special_builtin_assign() {
+# $2 = command name
+test_assign() {
     testcase "$1" -d \
-	"assignment error on special built-in $2 kills non-interactive shell" \
+	"assignment error on command $2 kills non-interactive shell" \
 	3<<__IN__ 4</dev/null
 readonly a=a
 a=b $2
@@ -70,10 +93,10 @@ __IN__
 }
 
 # $1 = line no.
-# $2 = built-in name
-test_special_builtin_assign_s() {
+# $2 = command name
+test_assign_s() {
     testcase "$1" -d \
-	"assignment error on special built-in $2 in subshell" \
+	"assignment error on command $2 in subshell" \
 	3<<__IN__ 4<<\__OUT__
 readonly a=a
 (a=b $2; echo not reached)
@@ -85,10 +108,10 @@ __OUT__
 }
 
 # $1 = line no.
-# $2 = built-in name
-test_special_builtin_assign_i() {
+# $2 = command name
+test_assign_i() {
     testcase "$1" -d \
-	"assignment error on special built-in $2 spares interactive shell" \
+	"assignment error on command $2 spares interactive shell" \
 	-i +m 3<<__IN__ 4<<\__OUT__
 readonly a=a
 a=b $2
@@ -97,6 +120,160 @@ __IN__
 reached
 __OUT__
 }
+
+test_assign   "$LINENO" :
+test_assign_s "$LINENO" :
+test_assign_i "$LINENO" :
+test_assign   "$LINENO" .
+test_assign_s "$LINENO" .
+test_assign_i "$LINENO" .
+test_assign   "$LINENO" [
+test_assign_s "$LINENO" [
+test_assign_i "$LINENO" [
+test_assign   "$LINENO" alias
+test_assign_s "$LINENO" alias
+test_assign_i "$LINENO" alias
+test_assign   "$LINENO" array
+test_assign_s "$LINENO" array
+test_assign_i "$LINENO" array
+test_assign   "$LINENO" bg
+test_assign_s "$LINENO" bg
+test_assign_i "$LINENO" bg
+test_assign   "$LINENO" bindkey
+test_assign_s "$LINENO" bindkey
+test_assign_i "$LINENO" bindkey
+test_assign   "$LINENO" break
+test_assign_s "$LINENO" break
+test_assign_i "$LINENO" break
+test_assign   "$LINENO" cat # example of external command
+test_assign_s "$LINENO" cat
+test_assign_i "$LINENO" cat
+test_assign   "$LINENO" cd
+test_assign_s "$LINENO" cd
+test_assign_i "$LINENO" cd
+test_assign   "$LINENO" command
+test_assign_s "$LINENO" command
+test_assign_i "$LINENO" command
+test_assign   "$LINENO" complete
+test_assign_s "$LINENO" complete
+test_assign_i "$LINENO" complete
+test_assign   "$LINENO" continue
+test_assign_s "$LINENO" continue
+test_assign_i "$LINENO" continue
+test_assign   "$LINENO" dirs
+test_assign_s "$LINENO" dirs
+test_assign_i "$LINENO" dirs
+test_assign   "$LINENO" disown
+test_assign_s "$LINENO" disown
+test_assign_i "$LINENO" disown
+test_assign   "$LINENO" echo
+test_assign_s "$LINENO" echo
+test_assign_i "$LINENO" echo
+test_assign   "$LINENO" eval
+test_assign_s "$LINENO" eval
+test_assign_i "$LINENO" eval
+test_assign   "$LINENO" exec
+test_assign_s "$LINENO" exec
+test_assign_i "$LINENO" exec
+test_assign   "$LINENO" exit
+test_assign_s "$LINENO" exit
+test_assign_i "$LINENO" exit
+test_assign   "$LINENO" export
+test_assign_s "$LINENO" export
+test_assign_i "$LINENO" export
+test_assign   "$LINENO" false
+test_assign_s "$LINENO" false
+test_assign_i "$LINENO" false
+test_assign   "$LINENO" fc
+test_assign_s "$LINENO" fc
+test_assign_i "$LINENO" fc
+test_assign   "$LINENO" fg
+test_assign_s "$LINENO" fg
+test_assign_i "$LINENO" fg
+test_assign   "$LINENO" getopts
+test_assign_s "$LINENO" getopts
+test_assign_i "$LINENO" getopts
+test_assign   "$LINENO" hash
+test_assign_s "$LINENO" hash
+test_assign_i "$LINENO" hash
+test_assign   "$LINENO" help
+test_assign_s "$LINENO" help
+test_assign_i "$LINENO" help
+test_assign   "$LINENO" history
+test_assign_s "$LINENO" history
+test_assign_i "$LINENO" history
+test_assign   "$LINENO" jobs
+test_assign_s "$LINENO" jobs
+test_assign_i "$LINENO" jobs
+test_assign   "$LINENO" kill
+test_assign_s "$LINENO" kill
+test_assign_i "$LINENO" kill
+test_assign   "$LINENO" popd
+test_assign_s "$LINENO" popd
+test_assign_i "$LINENO" popd
+test_assign   "$LINENO" printf
+test_assign_s "$LINENO" printf
+test_assign_i "$LINENO" printf
+test_assign   "$LINENO" pushd
+test_assign_s "$LINENO" pushd
+test_assign_i "$LINENO" pushd
+test_assign   "$LINENO" pwd
+test_assign_s "$LINENO" pwd
+test_assign_i "$LINENO" pwd
+test_assign   "$LINENO" read
+test_assign_s "$LINENO" read
+test_assign_i "$LINENO" read
+test_assign   "$LINENO" readonly
+test_assign_s "$LINENO" readonly
+test_assign_i "$LINENO" readonly
+test_assign   "$LINENO" return
+test_assign_s "$LINENO" return
+test_assign_i "$LINENO" return
+test_assign   "$LINENO" set
+test_assign_s "$LINENO" set
+test_assign_i "$LINENO" set
+test_assign   "$LINENO" shift
+test_assign_s "$LINENO" shift
+test_assign_i "$LINENO" shift
+test_assign   "$LINENO" suspend
+test_assign_s "$LINENO" suspend
+test_assign_i "$LINENO" suspend
+test_assign   "$LINENO" test
+test_assign_s "$LINENO" test
+test_assign_i "$LINENO" test
+test_assign   "$LINENO" times
+test_assign_s "$LINENO" times
+test_assign_i "$LINENO" times
+test_assign   "$LINENO" trap
+test_assign_s "$LINENO" trap
+test_assign_i "$LINENO" trap
+test_assign   "$LINENO" true
+test_assign_s "$LINENO" true
+test_assign_i "$LINENO" true
+test_assign   "$LINENO" type
+test_assign_s "$LINENO" type
+test_assign_i "$LINENO" type
+test_assign   "$LINENO" typeset
+test_assign_s "$LINENO" typeset
+test_assign_i "$LINENO" typeset
+test_assign   "$LINENO" ulimit
+test_assign_s "$LINENO" ulimit
+test_assign_i "$LINENO" ulimit
+test_assign   "$LINENO" umask
+test_assign_s "$LINENO" umask
+test_assign_i "$LINENO" umask
+test_assign   "$LINENO" unalias
+test_assign_s "$LINENO" unalias
+test_assign_i "$LINENO" unalias
+test_assign   "$LINENO" unset
+test_assign_s "$LINENO" unset
+test_assign_i "$LINENO" unset
+test_assign   "$LINENO" wait
+test_assign_s "$LINENO" wait
+test_assign_i "$LINENO" wait
+test_assign   "$LINENO" ./_no_such_command_
+test_assign_s "$LINENO" ./_no_such_command_
+test_assign_i "$LINENO" ./_no_such_command_
 
 # $1 = line no.
 # $2 = built-in name
@@ -136,93 +313,48 @@ reached
 __OUT__
 }
 
-test_special_builtin_assign     "$LINENO" :
-test_special_builtin_assign_s   "$LINENO" :
-test_special_builtin_assign_i   "$LINENO" :
 test_special_builtin_redirect   "$LINENO" :
 test_special_builtin_redirect_s "$LINENO" :
 test_special_builtin_redirect_i "$LINENO" :
-test_special_builtin_assign     "$LINENO" .
-test_special_builtin_assign_s   "$LINENO" .
-test_special_builtin_assign_i   "$LINENO" .
 test_special_builtin_redirect   "$LINENO" .
 test_special_builtin_redirect_s "$LINENO" .
 test_special_builtin_redirect_i "$LINENO" .
-test_special_builtin_assign     "$LINENO" break
-test_special_builtin_assign_s   "$LINENO" break
-test_special_builtin_assign_i   "$LINENO" break
 test_special_builtin_redirect   "$LINENO" break
 test_special_builtin_redirect_s "$LINENO" break
 test_special_builtin_redirect_i "$LINENO" break
-test_special_builtin_assign     "$LINENO" continue
-test_special_builtin_assign_s   "$LINENO" continue
-test_special_builtin_assign_i   "$LINENO" continue
 test_special_builtin_redirect   "$LINENO" continue
 test_special_builtin_redirect_s "$LINENO" continue
 test_special_builtin_redirect_i "$LINENO" continue
-test_special_builtin_assign     "$LINENO" eval
-test_special_builtin_assign_s   "$LINENO" eval
-test_special_builtin_assign_i   "$LINENO" eval
 test_special_builtin_redirect   "$LINENO" eval
 test_special_builtin_redirect_s "$LINENO" eval
 test_special_builtin_redirect_i "$LINENO" eval
-test_special_builtin_assign     "$LINENO" exec
-test_special_builtin_assign_s   "$LINENO" exec
-test_special_builtin_assign_i   "$LINENO" exec
 test_special_builtin_redirect   "$LINENO" exec
 test_special_builtin_redirect_s "$LINENO" exec
 test_special_builtin_redirect_i "$LINENO" exec
-test_special_builtin_assign     "$LINENO" exit
-test_special_builtin_assign_s   "$LINENO" exit
-test_special_builtin_assign_i   "$LINENO" exit
 test_special_builtin_redirect   "$LINENO" exit
 test_special_builtin_redirect_s "$LINENO" exit
 test_special_builtin_redirect_i "$LINENO" exit
-test_special_builtin_assign     "$LINENO" export
-test_special_builtin_assign_s   "$LINENO" export
-test_special_builtin_assign_i   "$LINENO" export
 test_special_builtin_redirect   "$LINENO" export
 test_special_builtin_redirect_s "$LINENO" export
 test_special_builtin_redirect_i "$LINENO" export
-test_special_builtin_assign     "$LINENO" readonly
-test_special_builtin_assign_s   "$LINENO" readonly
-test_special_builtin_assign_i   "$LINENO" readonly
 test_special_builtin_redirect   "$LINENO" readonly
 test_special_builtin_redirect_s "$LINENO" readonly
 test_special_builtin_redirect_i "$LINENO" readonly
-test_special_builtin_assign     "$LINENO" return
-test_special_builtin_assign_s   "$LINENO" return
-test_special_builtin_assign_i   "$LINENO" return
 test_special_builtin_redirect   "$LINENO" return
 test_special_builtin_redirect_s "$LINENO" return
 test_special_builtin_redirect_i "$LINENO" return
-test_special_builtin_assign     "$LINENO" set
-test_special_builtin_assign_s   "$LINENO" set
-test_special_builtin_assign_i   "$LINENO" set
 test_special_builtin_redirect   "$LINENO" set
 test_special_builtin_redirect_s "$LINENO" set
 test_special_builtin_redirect_i "$LINENO" set
-test_special_builtin_assign     "$LINENO" shift
-test_special_builtin_assign_s   "$LINENO" shift
-test_special_builtin_assign_i   "$LINENO" shift
 test_special_builtin_redirect   "$LINENO" shift
 test_special_builtin_redirect_s "$LINENO" shift
 test_special_builtin_redirect_i "$LINENO" shift
-test_special_builtin_assign     "$LINENO" times
-test_special_builtin_assign_s   "$LINENO" times
-test_special_builtin_assign_i   "$LINENO" times
 test_special_builtin_redirect   "$LINENO" times
 test_special_builtin_redirect_s "$LINENO" times
 test_special_builtin_redirect_i "$LINENO" times
-test_special_builtin_assign     "$LINENO" trap
-test_special_builtin_assign_s   "$LINENO" trap
-test_special_builtin_assign_i   "$LINENO" trap
 test_special_builtin_redirect   "$LINENO" trap
 test_special_builtin_redirect_s "$LINENO" trap
 test_special_builtin_redirect_i "$LINENO" trap
-test_special_builtin_assign     "$LINENO" unset
-test_special_builtin_assign_s   "$LINENO" unset
-test_special_builtin_assign_i   "$LINENO" unset
 test_special_builtin_redirect   "$LINENO" unset
 test_special_builtin_redirect_s "$LINENO" unset
 test_special_builtin_redirect_i "$LINENO" unset

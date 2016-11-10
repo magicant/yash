@@ -2,14 +2,6 @@
 
 posix="true"
 
-test_o 'assignment error on special built-in does not kill shell'
-readonly a=a
-a=b command :
-echo reached
-__IN__
-reached
-__OUT__
-
 test_o 'redirection error on special built-in does not kill shell'
 command : <_no_such_file_
 echo reached

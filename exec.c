@@ -859,8 +859,7 @@ pid_t exec_process(
 	/* On assignment error, the command is not executed. */
 	print_xtrace(NULL);
 	laststatus = Exit_ASSGNERR;
-	if (posixly_correct && !is_interactive_now &&
-		cmdinfo.type == CT_SPECIALBUILTIN)
+	if (!is_interactive_now)
 	    finally_exit = true;
 	goto done3;
     }
