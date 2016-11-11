@@ -1,4 +1,4 @@
-# (C) 2013-2014 magicant
+# (C) 2013-2016 magicant
 
 # Completion script for the "git-submodule" command.
 # Supports Git 1.8.1.4.
@@ -60,7 +60,7 @@ function completion/git::submodule:add:arg {
 	command -f completion//parseoptions
 	case $ARGOPT in
 		(-)
-			command -f completion//completeoptions
+			command -f completion//completeoptions -e
 			;;
 #		(b|--branch)
 #			;;
