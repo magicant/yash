@@ -1,5 +1,5 @@
 # run-test.sh: runs a set of test cases
-# (C) 2015 magicant
+# (C) 2016 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,15 +77,17 @@ test_file="${2:?test file not specified}"
 
 exec >|"${test_file%.*}.trs"
 
+export LC_CTYPE="${LC_ALL-${LC_CTYPE-$LANG}}"
+export LANG=C
 unset -v CDPATH COLUMNS COMMAND_NOT_FOUND_HANDLER DIRSTACK ECHO_STYLE ENV
-unset -v FCEDIT HANDLED HISTFILE HISTRMDUP HISTSIZE HOME IFS LINES MAIL
+unset -v FCEDIT HANDLED HISTFILE HISTRMDUP HISTSIZE HOME IFS LC_ALL
+unset -v LC_COLLATE LC_MESSAGES LC_MONETARY LC_NUMERIC LC_TIME LINES MAIL
 unset -v MAILCHECK MAILPATH NLSPATH OLDPWD OPTARG PROMPT_COMMAND
 unset -v PS1 PS1R PS1S PS2 PS2R PS2S PS3 PS3R PS3S PS4 PS4R PS4S 
 unset -v RANDOM TERM YASH_AFTER_CD YASH_LOADPATH YASH_LE_TIMEOUT YASH_VERSION
 unset -v A B C D E F G H I J K L M N O P Q R S T U V W X Y Z _
 unset -v a b c d e f g h i j k l m n o p q r s t u v w x y z
 unset -v posix skip
-export LC_ALL=C
 export -X LINENO OPTIND
 
 ##### Prepare temporary directory
