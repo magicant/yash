@@ -608,6 +608,7 @@ void set_completion_variables(void)
 	    SCOPE_LOCAL, false);
     set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src), SCOPE_LOCAL, false);
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
+    set_variable(L VAR_CDPATH, xwcsdup(L""), SCOPE_LOCAL, false);
 }
 
 /* Performs command name completion in the default settings. */
