@@ -500,7 +500,8 @@ function completion/git::completefilteredpath {
 		esac
 	done 2>/dev/null <(
 		if [ "$#" -eq 0 ]; then
-			git diff --name-only HEAD
+			git diff --name-only HEAD \
+				${pathprefix:+-- "$pathprefix"}
 		else
 			git status --porcelain "${@[2,-1]}" -- "$dir/" |
 			grep "${1-}" |
