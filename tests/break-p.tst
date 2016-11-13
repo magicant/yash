@@ -166,6 +166,33 @@ out outer 3
 done 0
 __OUT__
 
+test_oE 'breaking one until loop in function, nested in until loop'
+func() {
+    until false; do
+	echo in inner $i
+	break 1
+	echo out inner $i
+    done
+    echo out func
+}
+i=1
+until [ $i -gt 2 ]; do
+    echo in outer $i
+    func
+    echo out outer $i
+    i=$((i+1))
+done
+__IN__
+in outer 1
+in inner 1
+out func
+out outer 1
+in outer 2
+in inner 2
+out func
+out outer 2
+__OUT__
+
 test_oE 'breaking two for loops, outermost'
 for i in 1 2 3; do
     echo in $i

@@ -246,6 +246,7 @@ execstate_T *save_execstate(void)
 void restore_execstate(execstate_T *save)
 {
     execstate = *save;
+    breakloopnest = execstate.loopnest;
     free(save);
 }
 
