@@ -121,6 +121,7 @@ typedef enum exception_T {
 /* state of currently executed loop */
 typedef struct execstate_T {
     unsigned loopnest;      /* level of nested loops */
+    unsigned breakloopnest; /* target level of "break" */
     bool noreturn;          /* true when the "return" built-in is not allowed */
     bool iterating;         /* true when iterative execution is ongoing */
 } execstate_T;
@@ -201,9 +202,6 @@ static bool suppresserrexit = false;
 
 /* state of currently executed loop */
 static execstate_T execstate;
-/* Target of "break".
- * A loop should break if `breakloopnest < execstate.loopnest'. */
-static unsigned breakloopnest;
 /* exceptional jump to be done (other than "break") */
 static exception_T exception;
 
@@ -228,6 +226,7 @@ static xwcsbuf_T xtrace_buffer = { .contents = NULL };
 void reset_execstate(bool reset_iteration)
 {
     execstate.loopnest = 0;
+    execstate.breakloopnest = 0;
     execstate.noreturn = false;
     if (reset_iteration)
 	execstate.iterating = false;
@@ -246,7 +245,6 @@ execstate_T *save_execstate(void)
 void restore_execstate(execstate_T *save)
 {
     execstate = *save;
-    breakloopnest = execstate.loopnest;
     free(save);
 }
 
@@ -266,7 +264,7 @@ void cancel_return(void)
 /* Returns true iff we're breaking/continuing/returning now. */
 bool need_break(void)
 {
-    return breakloopnest < execstate.loopnest
+    return execstate.breakloopnest < execstate.loopnest
 	|| exception != E_NONE
 	|| is_interrupted();
 }
@@ -398,7 +396,7 @@ void exec_for(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FOR);
     execstate.loopnest++;
-    breakloopnest = execstate.loopnest;
+    execstate.breakloopnest = execstate.loopnest;
 
     int count;
     void **words;
@@ -420,16 +418,16 @@ void exec_for(const command_T *c, bool finally_exit)
 	words = v.values;
     }
 
-#define CHECK_LOOP                            \
-    if (breakloopnest < execstate.loopnest) { \
-	goto done;                            \
-    } else if (exception == E_CONTINUE) {     \
-	exception = E_NONE;                   \
-	continue;                             \
-    } else if (exception != E_NONE) {         \
-	goto done;                            \
-    } else if (is_interrupted()) {            \
-	goto done;                            \
+#define CHECK_LOOP                                      \
+    if (execstate.breakloopnest < execstate.loopnest) { \
+	goto done;                                      \
+    } else if (exception == E_CONTINUE) {               \
+	exception = E_NONE;                             \
+	continue;                                       \
+    } else if (exception != E_NONE) {                   \
+	goto done;                                      \
+    } else if (is_interrupted()) {                      \
+	goto done;                                      \
     } else (void) 0
 
     int i;
@@ -466,7 +464,7 @@ void exec_while(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_WHILE);
     execstate.loopnest++;
-    breakloopnest = execstate.loopnest;
+    execstate.breakloopnest = execstate.loopnest;
 
     int status = Exit_SUCCESS;
     for (;;) {
@@ -1504,7 +1502,7 @@ int exec_iteration(void *const *commands, const char *codename)
 	    case E_NONE:
 		break;
 	}
-	if (breakloopnest < execstate.loopnest || is_interrupted())
+	if (execstate.breakloopnest < execstate.loopnest || is_interrupted())
 	    goto done;
     }
 done:
@@ -1803,10 +1801,10 @@ int break_builtin(int argc, void **argv)
 	if (count > execstate.loopnest)
 	    count = execstate.loopnest;
 	if (wcscmp(ARGV(0), L"break") == 0) {
-	    breakloopnest = execstate.loopnest - count;
+	    execstate.breakloopnest = execstate.loopnest - count;
 	} else {
 	    assert(wcscmp(ARGV(0), L"continue") == 0);
-	    breakloopnest = execstate.loopnest - count + 1;
+	    execstate.breakloopnest = execstate.loopnest - count + 1;
 	    exception = E_CONTINUE;
 	}
 	return Exit_SUCCESS;
