@@ -993,6 +993,9 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
     if (has_token(ps, L"!")) {
 	neg = true;
 	ps->index += 1;
+	if (posixly_correct && ps->src.contents[ps->index] == L'(')
+	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
+			"is not supported"));
 	do {
 	    skip_blanks_and_comment(ps);
 	    c = parse_commands_in_pipeline(ps);

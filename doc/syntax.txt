@@ -141,6 +141,11 @@ A pipeline can be prefixed by +!+, in which case the exit status of the
 pipeline is _reversed_: the exit status of the pipeline is 1 if that of the
 last subcommand is 0, and 0 otherwise.
 
+Korn shell treats a word of the form +!(...)+ as an extended pathname
+expansion pattern that is not defined in POSIX.
+In the link:posix.html[POSIXly-correct mode], the tokens +!+ and +(+ must be
+separated by one or more white spaces.
+
 [NOTE]
 When the execution of a pipeline finishes, at least the execution of the last
 subcommand has finished since the exit status of the last subcommand defines
