@@ -292,7 +292,7 @@ static void cancel_undo(int offset);
 
 static void check_reset_completion(void);
 
-static bool update_buffer_with_prediction(void);
+static void update_buffer_with_prediction(void);
 static wchar_t *predict(void)
     __attribute__((malloc,warn_unused_result));
 static size_t count_matching_previous_commands(const histentry_T *e1)
@@ -2443,18 +2443,18 @@ void check_reset_completion(void)
 
 /* Removes any existing prediction and appends a new prediction to the main
  * buffer. */
-bool update_buffer_with_prediction(void)
+void update_buffer_with_prediction(void)
 {
     // XXX We could omit unnecessary re-prediction.
     clear_prediction();
 
     wchar_t *suffix = predict();
     if (suffix == NULL)
-	return false;
+	return;
 
     le_main_length = le_main_buffer.length;
     wb_catfree(&le_main_buffer, suffix);
-    return true;
+    return;
 }
 
 /* Returns a command string fragment the user is most likely to append to the
