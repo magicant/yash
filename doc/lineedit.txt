@@ -1813,6 +1813,9 @@ becomes the typed part as if you actually typed it. Moving the cursor to the
 left does _not_ turn the typed part back to the prediction. Use deletion
 commands such as backward-delete-char to delete typed command fragment.
 
+The predicted part of the command is shown only when the cursor is at the end
+of the typed part.
+
 The prediction algorithm suggests command fragments on the basis of the
 link:interact.html#history[command history]. The algorithm considers recent
 history entries more probable. It also takes command succession patterns into

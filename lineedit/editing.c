@@ -2441,12 +2441,15 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
-/* Removes any existing prediction and appends a new prediction to the main
- * buffer. */
+/* Removes any existing prediction and, if the cursor is at the end of line,
+ * appends a new prediction to the main buffer. */
 void update_buffer_with_prediction(void)
 {
     // XXX We could omit unnecessary re-prediction.
     clear_prediction();
+
+    if (le_main_index < active_length())
+	return;
 
     wchar_t *suffix = predict();
     if (suffix == NULL)
