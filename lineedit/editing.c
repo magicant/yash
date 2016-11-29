@@ -2476,6 +2476,11 @@ wchar_t *predict(void)
     size_t hits[N] = {0};
     for (const histlink_T *l = Histlist; (l = l->prev) != Histlist; ) {
 	const histentry_T *e = (const histentry_T *) l;
+	size_t k = count_matching_previous_commands(e);
+	assert(k < N);
+	for (size_t i = 0; i <= k; i++)
+	    hits[i]++;
+
 	const char *mbssuffix = matchstrprefix(e->value, mbsprefix);
 	if (mbssuffix == NULL || mbssuffix[0] == '\0')
 	    continue;
@@ -2485,13 +2490,8 @@ wchar_t *predict(void)
 	    continue;
 
 	const wchar_t *cmdsuffix = matchwcsprefix(cmd, le_main_buffer.contents);
-	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0') {
-	    size_t k = count_matching_previous_commands(e);
-	    assert(k < N);
-	    for (size_t i = 0; i <= k; i++)
-		hits[i]++;
+	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0')
 	    t = trie_add_probability(t, cmdsuffix, 1.0 / (hits[k] + 1));
-	}
 	free(cmd);
     }
 
