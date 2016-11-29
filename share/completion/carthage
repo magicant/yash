@@ -222,7 +222,7 @@ function completion/carthage::outdated:arg {
 }
 
 function completion/carthage::update:arg {
-	command -f completion/carthage::build:arg "$@"
+	command -f completion/carthage::bootstrap:arg "$@"
 }
 
 
