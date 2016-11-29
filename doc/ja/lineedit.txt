@@ -1510,8 +1510,6 @@ INTR, EOF, KILL, ERASE の四つは stty コマンドなどで設定される端
 
 補完関数は普通のlink:exec.html#function[関数]と同様に (link:params.html#positional[位置パラメータ]なしで) 実行されます。ただし、補完関数の実行時には以下のlink:exec.html#localvar[ローカル変数]が自動的に設定されます。
 
-link:params.html#sv-cdpath[+CDPATH+]::
-空文字列
 link:params.html#sv-ifs[+IFS+]::
 空白文字・タブ・改行の三文字 (シェル起動時のデフォルト)
 +WORDS+::

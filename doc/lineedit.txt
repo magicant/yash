@@ -1757,8 +1757,6 @@ arguments.
 The following link:exec.html#localvar[local variables] are automatically
 defined while executing completion functions:
 
-link:params.html#sv-cdpath[+CDPATH+]::
-The value is an empty string.
 link:params.html#sv-ifs[+IFS+]::
 The value is the three characters of a space, a tab, and a newline, which are
 the default value of the variable.

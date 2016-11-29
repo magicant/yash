@@ -11,8 +11,6 @@ History of Yash
 Yash 2.44
 
   +  Command line prediction and the '--le-predict' option.
-  =  The $CDPATH variable is now reset while executing completion
-     functions.
   *  Updated completion script for: carthage, git, git-revert,
      git-submodule
   *  The "return" built-in was wrongly refusing to return from a
