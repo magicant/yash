@@ -65,7 +65,7 @@ extern void trie_destroy(trie_T *t);
 
 extern trie_T *trie_add_probability(trie_T *t, const wchar_t *keywcs, double p)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern wchar_t *trie_probable_key(const trie_T *t)
+extern wchar_t *trie_probable_key(const trie_T *t, const wchar_t *skipkey)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 

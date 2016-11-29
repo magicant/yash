@@ -435,11 +435,23 @@ trienode_T *trie_add_probability(
     return node;
 }
 
-/* Returns the most probable key as a newly-malloced wide string. */
-wchar_t *trie_probable_key(const trienode_T *trie)
+/* Returns the most probable key as a newly-malloced wide string.
+ * Only keys that start with `skipkey' are considered. The `skipkey' prefix is
+ * not included in the result.
+ * Returns an empty string if no keys start with `skipkey'. */
+wchar_t *trie_probable_key(const trienode_T *node, const wchar_t *skipkey)
 {
+    // Skip the prefix to ignore.
+    while (*skipkey != L'\0') {
+	ssize_t index = searchw(node, *skipkey);
+	if (index < 0)
+	    return xwcsdup(L"");
+	node = node->entries[index].child;
+	skipkey++;
+    }
+
     // Find the most probable initial.
-    const trieentry_T *entry = most_probable_child(trie);
+    const trieentry_T *entry = most_probable_child(node);
     if (entry == NULL)
 	return xwcsdup(L"");
 

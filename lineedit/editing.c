@@ -202,6 +202,9 @@ static bool reset_completion;
 /* The next value of `reset_completion'. */
 static bool next_reset_completion;
 
+/* Probability distribution tree for command prediction. */
+static trie_T *prediction_tree = NULL;
+
 
 static void reset_state(void);
 static void reset_count(void);
@@ -293,8 +296,7 @@ static void cancel_undo(int offset);
 static void check_reset_completion(void);
 
 static void update_buffer_with_prediction(void);
-static wchar_t *predict(void)
-    __attribute__((malloc,warn_unused_result));
+static void create_prediction_tree(void);
 static size_t count_matching_previous_commands(const histentry_T *e1)
     __attribute__((nonnull,pure));
 static void clear_prediction(void);
@@ -364,8 +366,10 @@ void le_editing_init(void)
     reset_state();
     set_overwriting(false);
 
-    if (shopt_le_predict)
+    if (shopt_le_predict) {
+	create_prediction_tree();
 	update_buffer_with_prediction();
+    }
 }
 
 /* Finalizes the editing module when editing is finished.
@@ -382,6 +386,7 @@ wchar_t *le_editing_finalize(void)
     free(main_history_value);
 
     clear_prediction();
+    trie_destroy(prediction_tree), prediction_tree = NULL;
     wb_wccat(&le_main_buffer, L'\n');
     return wb_towcs(&le_main_buffer);
 }
@@ -2445,32 +2450,21 @@ void check_reset_completion(void)
  * appends a new prediction to the main buffer. */
 void update_buffer_with_prediction(void)
 {
-    // XXX We could omit unnecessary re-prediction.
     clear_prediction();
 
     if (le_main_index < active_length())
 	return;
-
-    wchar_t *suffix = predict();
-    if (suffix == NULL)
-	return;
-
     le_main_length = le_main_buffer.length;
+
+    wchar_t *suffix = trie_probable_key(
+	    prediction_tree, le_main_buffer.contents);
     wb_catfree(&le_main_buffer, suffix);
-    return;
 }
 
-/* Returns a command string fragment the user is most likely to append to the
- * current main buffer contents. */
-wchar_t *predict(void)
+/* Create a probability distribution tree for command prediction based on the
+ * current history. The result is set to `prediction_tree'. */
+void create_prediction_tree(void)
 {
-    assert(le_main_length >= le_main_buffer.length);
-
-    char *mbsprefix = malloc_wcsntombs(le_main_buffer.contents, le_main_length);
-    if (mbsprefix == NULL)
-	return NULL;
-
-    // Create probability distribution trie.
     trie_T *t = trie_create();
 #define N 4
     size_t hits[N] = {0};
@@ -2481,27 +2475,14 @@ wchar_t *predict(void)
 	for (size_t i = 0; i <= k; i++)
 	    hits[i]++;
 
-	const char *mbssuffix = matchstrprefix(e->value, mbsprefix);
-	if (mbssuffix == NULL || mbssuffix[0] == '\0')
-	    continue;
-
 	wchar_t *cmd = malloc_mbstowcs(e->value);
 	if (cmd == NULL)
 	    continue;
-
-	const wchar_t *cmdsuffix = matchwcsprefix(cmd, le_main_buffer.contents);
-	if (cmdsuffix != NULL && cmdsuffix[0] != L'\0')
-	    t = trie_add_probability(t, cmdsuffix, 1.0 / (hits[k] + 1));
+	t = trie_add_probability(t, cmd, 1.0 / (hits[k] + 1));
 	free(cmd);
     }
 
-    // Find the result.
-    wchar_t *suffix = trie_probable_key(t);
-
-    trie_destroy(t);
-    free(mbsprefix);
-
-    return suffix;
+    prediction_tree = t;
 }
 
 // Counts N-1 at most
