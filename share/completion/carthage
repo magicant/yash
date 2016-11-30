@@ -90,6 +90,7 @@ function completion/carthage::completedependencies {
 	complete -P "$PREFIX" -- $(
 		set -o glob -o nullglob
 		exec 2>/dev/null
+		typeset CDPATH=
 		cd -P "./$(git rev-parse --show-cdup)Carthage/Checkouts" || exit
 		candidates=(*/)
 		candidates=("${candidates%/}")

@@ -473,8 +473,9 @@ function completion/git::completefilteredpath {
 
 	typeset dir="$(dirname -- "${TARGETWORD}X")"
 
-	if ! (  d1=$(                git rev-parse --show-toplevel) &&
-		d2=$(cd -- "$dir" && git rev-parse --show-toplevel) &&
+	if ! (  typeset CDPATH= &&
+		d1=$(                   git rev-parse --show-toplevel) &&
+		d2=$(cd -P -- "$dir" && git rev-parse --show-toplevel) &&
 		test "$d1" = "$d2") 2>/dev/null
 	then
 		# don't complete paths in submodule
@@ -482,7 +483,8 @@ function completion/git::completefilteredpath {
 	fi
 
 	typeset pathprefix="$({
-		cd -- "$dir" && git rev-parse --show-prefix
+		typeset CDPATH= && cd -P -- "$dir" &&
+		git rev-parse --show-prefix
 	} 2>/dev/null)"
 
 	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
@@ -532,14 +534,16 @@ function completion/git::completeobject {
 }
 
 function completion/git::completeremote {
+	# XXX should complete on the basis of git-config
 	typeset remote
 	while read -r remote; do
 		complete -P "$PREFIX" -- "$remote" # XXX description
 	done 2>/dev/null <(
 		gitdir=$(git rev-parse --git-dir) || exit
 		git remote
-		(cd -- "$gitdir/remotes" && ls -A)
-		(cd -- "$gitdir/branches" && ls -A)
+		typeset CDPATH=
+		(cd -P -- "$gitdir/remotes" && ls -A)
+		(cd -P -- "$gitdir/branches" && ls -A)
 	)
 }
 

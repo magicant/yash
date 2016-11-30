@@ -87,6 +87,7 @@ function completion/cd::completedir {
 		typeset IFS=/
 		complete -T -P "$PREFIX$dirname" -S / -- $(
 			set -o errexit -o glob -o nullglob
+			typeset CDPATH=
 			if [ "$dirname" ]; then
 				command cd -L -- "$dirname" >/dev/null 2>&1
 			fi
