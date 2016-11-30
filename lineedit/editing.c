@@ -295,11 +295,11 @@ static void cancel_undo(int offset);
 
 static void check_reset_completion(void);
 
-static void update_buffer_with_prediction(void);
 static void create_prediction_tree(void);
 static size_t count_matching_previous_commands(const histentry_T *e1)
     __attribute__((nonnull,pure));
 static void clear_prediction(void);
+static void update_buffer_with_prediction(void);
 
 static void vi_replace_char(wchar_t c);
 static void vi_exec_alias(wchar_t c);
@@ -2446,21 +2446,6 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
-/* Removes any existing prediction and, if the cursor is at the end of line,
- * appends a new prediction to the main buffer. */
-void update_buffer_with_prediction(void)
-{
-    clear_prediction();
-
-    if (le_main_index < active_length())
-	return;
-    le_main_length = le_main_buffer.length;
-
-    wchar_t *suffix = trie_probable_key(
-	    prediction_tree, le_main_buffer.contents);
-    wb_catfree(&le_main_buffer, suffix);
-}
-
 /* Create a probability distribution tree for command prediction based on the
  * current history. The result is set to `prediction_tree'. */
 void create_prediction_tree(void)
@@ -2515,6 +2500,21 @@ void clear_prediction(void)
     if (le_main_length < le_main_buffer.length)
 	wb_truncate(&le_main_buffer, le_main_length);
     le_main_length = SIZE_MAX;
+}
+
+/* Removes any existing prediction and, if the cursor is at the end of line,
+ * appends a new prediction to the main buffer. */
+void update_buffer_with_prediction(void)
+{
+    clear_prediction();
+
+    if (le_main_index < active_length())
+	return;
+    le_main_length = le_main_buffer.length;
+
+    wchar_t *suffix = trie_probable_key(
+	    prediction_tree, le_main_buffer.contents);
+    wb_catfree(&le_main_buffer, suffix);
 }
 
 
