@@ -158,7 +158,10 @@ testee() (
     if ! "$use_valgrind"; then
 	exec ${posix:+-a sh} "$testee" "$@"
     else
+	test -r "$abs_suppressions" || abs_suppressions=
 	exec valgrind --leak-check=full --vgdb=no --log-fd=17 \
+	    ${abs_suppressions:+--suppressions="$abs_suppressions"} \
+	    --gen-suppressions=all \
 	    "$testee" ${posix:+-o posix} "$@" \
 	    17>>"${valgrind_file-0.valgrind}"
     fi
@@ -368,6 +371,7 @@ alias test_OE='testcase "$LINENO" 3<<\__IN__ 4</dev/null 5</dev/null'
 # lastly removes the temporary directory.
 (
 abs_test_file="$(absolute "$test_file")"
+abs_suppressions="$(absolute valgrind.supp)"
 cd "$work_dir"
 
 export TESTEE="$testee"

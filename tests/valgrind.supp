@@ -1,0 +1,7 @@
+{
+   re_compile_fastmap_iter/re_compile_fastmap/regcomp
+   Memcheck:Cond
+   fun:re_compile_fastmap_iter*
+   fun:re_compile_fastmap
+   fun:regcomp
+}
