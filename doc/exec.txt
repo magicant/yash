@@ -35,7 +35,7 @@ link:syntax.html#simple[A simple command] is executed as follows:
 +
 --
 - If there is no command name or the name denotes a
-link:builtin.html#types[special built-in] or <<function,function>>, the
+link:builtin.html#types[special built-in], the
 assignments are permanent: the assigned values remain after the command
 has finished (until the variable is reassigned).
 - Otherwise, the assignments are temporary: the assigned values only last
@@ -45,6 +45,12 @@ during the execution of this simple command.
 The assigned variables are automatically link:params.html#variables[exported]
 when the command name is specified or the
 link:_set.html#so-allexport[all-export option] is enabled.
++
+[NOTE]
+In other shells, assignments may behave differently: For special built-ins and
+functions, assigned variables may not be exported. For functions, assigned
+variables may be persistent, that is, may remain even after the execution of
+the simple command.
 
 . If there is no command name, the command execution ends with the exit status
   of zero (unless there are any link:expand.html#cmdsub[command substitutions]

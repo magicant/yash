@@ -28,6 +28,8 @@ Yash 2.44
        a white space when followed by a parenthesis "(".
     .  In a for loop without the "in" keyword, the variable name and
        the "do" keyword can now be separated by a semicolon.
+    .  Variables that are assigned in a simple command whose command
+       is a function no longer persist after the function finishes.
     .  The standard input of an asynchronous list is now implicitly
        redirected to /dev/null when job control is off. Previously,
        this was done when the shell was interactive in the POSIXly-

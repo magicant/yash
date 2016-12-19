@@ -159,8 +159,6 @@ static void search_command(
     __attribute__((nonnull));
 static inline bool is_special_builtin(const char *cmdname)
     __attribute__((nonnull,pure));
-static inline bool assignment_is_temporary(enum cmdtype_T type)
-    __attribute__((const));
 static bool command_not_found_handler(void *const *argv)
     __attribute__((nonnull));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
@@ -849,7 +847,7 @@ pid_t exec_process(
      * whether we have to open a temporary environment. */
     search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
     special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
-    temp = c->c_assigns != NULL && assignment_is_temporary(cmdinfo.type);
+    temp = c->c_assigns != NULL && !special_builtin_executed;
     if (temp)
 	open_new_environment(true);
 
@@ -1103,22 +1101,6 @@ bool is_special_builtin(const char *cmdname)
 {
     const builtin_T *bi = get_builtin(cmdname);
     return bi != NULL && bi->type == BI_SPECIAL;
-}
-
-/* Determines whether the assignments should be temporary according to `type'.*/
-bool assignment_is_temporary(enum cmdtype_T type)
-{
-    switch (type) {
-	case CT_SPECIALBUILTIN:
-	case CT_FUNCTION:
-	    return false;
-	case CT_NONE:
-	case CT_SEMISPECIALBUILTIN:
-	case CT_REGULARBUILTIN:
-	case CT_EXTERNALPROGRAM:
-	    return true;
-    }
-    assert(false);
 }
 
 /* Executes $COMMAND_NOT_FOUND_HANDLER if any.

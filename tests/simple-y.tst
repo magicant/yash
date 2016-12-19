@@ -17,21 +17,19 @@ __IN__
 1
 __OUT__
 
-test_oE 'assignment persists after function returns'
+test_oE 'assignment does not persist after function returns'
 f() { :; }
 a=1
 a=2 f
 echo $a
 __IN__
-2
+1
 __OUT__
 
-test_oE 'assignment is exported during and after function execution'
+test_oE 'assignment is exported during function execution'
 f() { sh -c 'echo $a'; }
 a=1 f
-sh -c 'echo $a'
 __IN__
-1
 1
 __OUT__
 
