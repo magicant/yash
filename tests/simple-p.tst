@@ -89,9 +89,17 @@ __IN__
 A
 __OUT__
 
-test_O -d -e n 'assigning to read-only variable: exit status and message'
+test_O -d -e n 'assigning to read-only variable: exit with message (empty)'
 readonly a=A
 a=B
+echo not reached
+__IN__
+
+test_O -d -e n 'assigning to read-only variable: exit with message (function)'
+func() { echo not reached function; }
+readonly a=A
+a=B func
+echo not reached command
 __IN__
 
 test_O -d -e n 'assigning to read-only variable in subshell'
