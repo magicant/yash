@@ -63,7 +63,7 @@ htmldir = @htmldir@
 default_loadpath = @default_loadpath@
 enable_nls = @enable_nls@
 
-all: $(TARGET) tester mofiles docs
+all: $(TARGET) share/config tester mofiles docs
 
 .c.o:
 	@rm -f $@
@@ -95,6 +95,21 @@ configm.h: Makefile
 		printf '#endif\n'; \
 		} >$@
 	-@echo done
+share/config: Makefile
+	-@printf 'creating %s...' '$@'
+	@{ printf '# $@: created by Makefile\n'; \
+		printf "prefix='%s'\n" '$(prefix)'; \
+		printf "exec_prefix='%s'\n" '$(exec_prefix)'; \
+		printf "bindir='%s'\n" '$(bindir)'; \
+		printf "datarootdir='%s'\n" '$(datarootdir)'; \
+		printf "datadir='%s'\n" '$(datadir)'; \
+		printf "yashdatadir='%s'\n" '$(yashdatadir)'; \
+		printf "localedir='%s'\n" '$(localedir)'; \
+		printf "mandir='%s'\n" '$(mandir)'; \
+		printf "docdir='%s'\n" '$(docdir)'; \
+		printf "htmldir='%s'\n" '$(htmldir)'; \
+		} >$@
+	-@echo done
 
 test tests check: _PHONY $(TARGET)
 	@+(cd tests && $(MAKE))
@@ -117,10 +132,10 @@ install-binary: $(TARGET) installdirs-binary
 	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
 install-binary-strip: installdirs-binary
 	@+$(MAKE) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' install-binary
-install-data: installdirs-data-main
-	@for file in share/completion/*; do \
-		echo $(INSTALL_DATA) $$file $(DESTDIR)$(yashdatadir)/completion || true; \
-		$(INSTALL_DATA) $$file $(DESTDIR)$(yashdatadir)/completion; \
+install-data: share/config installdirs-data-main
+	@(cd share && find . -type f) | while read -r file; do \
+		echo $(INSTALL_DATA) share/$$file $(DESTDIR)$(yashdatadir)/$$file || true; \
+		$(INSTALL_DATA) share/$$file $(DESTDIR)$(yashdatadir)/$$file; \
 	done
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 	@+(cd doc && $(MAKE) install-rec)
@@ -139,10 +154,11 @@ uninstall: uninstall-binary uninstall-data
 uninstall-binary:
 	rm -f $(DESTDIR)$(bindir)/$(TARGET)
 uninstall-data:
-	@(cd share && for file in completion/*; do \
+	@(cd share && find . -type f) | while read -r file; do \
 		echo rm -f $(DESTDIR)$(yashdatadir)/$$file || true; \
 		rm -f $(DESTDIR)$(yashdatadir)/$$file; \
-	done)
+	done
+	rm -f $(DESTDIR)$(yashdatadir)/config
 	-rmdir $(DESTDIR)$(yashdatadir)/completion
 	-rmdir $(DESTDIR)$(yashdatadir)
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
@@ -163,8 +179,11 @@ $(DISTDIR): _PHONY
 	done
 	mkdir -m 755 $@/share
 	mkdir -m 755 $@/share/completion
-	umask 022; \
-	for file in share/completion/*; do cp $$file $@/share/completion; done
+	@find share -type f | (umask 022; while read -r file; do \
+		echo cp $$file $@/$$file || true; \
+		cp $$file $@/$$file; \
+	done)
+	rm -f $@/share/config
 	find $@ | xargs touch -c -r $@
 # Only pax and compress conform to POSIX.
 dist:
@@ -250,7 +269,7 @@ clean: _clean
 	-@+(cd po       && $(MAKE) clean)
 	-@+(cd tests    && $(MAKE) clean)
 _clean: _mostlyclean
-	-rm -rf $(TARGET) $(DISTS)
+	-rm -rf $(TARGET) share/config $(DISTS)
 distclean:
 	-@+(cd builtins && $(MAKE) distclean)
 	-@+(cd doc      && $(MAKE) distclean)

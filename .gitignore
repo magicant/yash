@@ -34,6 +34,8 @@ yash.txt
 /po/en@boldquot.po
 /po/en@boldquot.ih
 
+/share/config
+
 /tests/checkfg
 /tests/resetsig
 /tests/summary.log
