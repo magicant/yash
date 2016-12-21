@@ -11,6 +11,8 @@ History of Yash
 Yash 2.44
 
   +  Command line prediction and the '--le-predict' option.
+  =  During shell startup, $YASH_LOADPATH is now initialized only if
+     not set in the environment.
   *  Updated completion script for: carthage, git, git-revert,
      git-submodule
   *  The "return" built-in was wrongly refusing to return from a

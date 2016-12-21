@@ -172,6 +172,28 @@ test_O -d -e 127 'reading non-existing file' ./_no_such_file_
 __IN__
 
 (
+unset YASH_LOADPATH
+
+test_o 'LOADPATH is set to default if missing'
+echo ${YASH_LOADPATH:+set}
+__IN__
+set
+__OUT__
+
+)
+
+(
+export YASH_LOADPATH=/foo/bar:/baz
+
+test_o 'LOADPATH is not modified if exists in environment'
+echo ${YASH_LOADPATH:-unset}
+__IN__
+/foo/bar:/baz
+__OUT__
+
+)
+
+(
 export HOME="${PWD%/}/home$LINENO"
 mkdir "$HOME"
 echo echo profile >"$HOME/.yash_profile"
