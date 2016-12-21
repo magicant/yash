@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
+#include <wctype.h>
 #include "../strbuf.h"
 #include "../util.h"
 
@@ -459,10 +460,15 @@ wchar_t *trie_probable_key(const trienode_T *node, const wchar_t *skipkey)
 
     // Traverse nodes that have the most probability to construct the final
     // result. Stop traversal when the probability falls below the threshold.
+    // As an exception, traverse blanks regardless of probability so that the
+    // user doesn't have to type a space before continuing typing a word that
+    // follows.
     xwcsbuf_T key;
     wb_init(&key);
 
-    while (entry != NULL && entry->child->value.probability >= threshold) {
+    while (entry != NULL &&
+	    (entry->child->value.probability >= threshold ||
+	     iswblank(entry->key.as_wchar))) {
 	wb_wccat(&key, entry->key.as_wchar);
 	entry = most_probable_child(entry->child);
     }
