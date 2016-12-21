@@ -318,6 +318,48 @@ __OUT__
 )
 
 (
+# Ensure $PWD is safe to assign to $YASH_LOADPATH
+case $PWD in (*[:%]*)
+    skip="true"
+esac
+
+export HOME="${PWD%/}/home$LINENO"
+export YASH_LOADPATH="$HOME/loadpath"
+export ENV='${PWD%/}/_no_such_file_'
+mkdir -p "$HOME/loadpath/initialization"
+echo echo default >"$HOME/loadpath/initialization/default"
+
+test_oE 'startup: -ci +m, LOADPATH fallback for missing yashrc' \
+    -ci +m 'echo $-'
+__IN__
+default
+ci
+__OUT__
+
+test_oE 'startup: -ci +m, no LOADPATH fallback in POSIX mode' \
+    --posix -ci +m 'echo $-'
+__IN__
+ci
+__OUT__
+
+test_oE 'startup: -ci +m, no LOADPATH fallback with specified rcfile' \
+    -ci +m --rcfile=_no_such_file_ 'echo $-'
+__IN__
+ci
+__OUT__
+
+echo echo yashrc >"$HOME/.yashrc"
+
+test_oE 'startup: -ci +m, no LOADPATH fallback if ~/.yashrc found' \
+    -ci +m 'echo $-'
+__IN__
+yashrc
+ci
+__OUT__
+
+)
+
+(
 export HOME="${PWD%/}/home$LINENO"
 mkdir "$HOME"
 cat >"$HOME/.yash_profile" <<\__END__

@@ -45,7 +45,7 @@ Yash の起動時のコマンドライン引数は POSIX に準拠していま�
     +--profile={{ファイル名}}+ オプションが指定されていない場合は、 link:expand.html#tilde[~]/.yash_profile がデフォルトのファイルとして使われます。
  .. シェルが対話モードの場合は、 +--rcfile={{ファイル名}}+ オプションで指定したファイルを読み込んで実行します。(ただし +--norcfile+ オプションが指定されている場合を除く)
     +
-    +--rcfile+ オプションが指定されていない場合は、非 POSIX 準拠モードではファイル link:expand.html#tilde[~]/.yashrc がデフォルトのファイルとして使われます。POSIX 準拠モードでは、 link:params.html#sv-env[+ENV+ 環境変数]の値がlink:expand.html#params[パラメータ展開]され、その結果をファイル名と見なしてファイルを読み込みます。
+    +--rcfile+ オプションが指定されていない場合は、非 POSIX 準拠モードではファイル link:expand.html#tilde[~]/.yashrc がデフォルトのファイルとして使われます。&#x7e;/.yashrc が読み込めない場合は、ファイル initialization/default を link:params.html#sv-yash_loadpath[+YASH_LOADPATH+] から探して読み込みます。POSIX 準拠モードでは、 link:params.html#sv-env[+ENV+ 環境変数]の値がlink:expand.html#params[パラメータ展開]され、その結果をファイル名と見なしてファイルを読み込みます。
 
 [NOTE]
 Yash は /etc/profile や /etc/yashrc や link:expand.html#tilde[~]/.profile を自動的に読むことはありません。

@@ -96,13 +96,16 @@ Yash initializes itself as follows:
  .. If in the interactive mode, the shell reads the file specified by the
     +--rcfile={{filename}}+ option unless the +--norcfile+ option is specified.
     +
-    If the +--rcfile={{filename}}+ option is not specified, the shell
-    - reads link:expand.html#tilde[~]/.yashrc as a default if not in the
-      POSIXly-correct mode; or
-    - performs link:expand.html[parameter expansion] on the value of the
+    If the +--rcfile={{filename}}+ option is not specified, the shell instead
+    reads the following files:
+    - If not in the POSIXly-correct mode, the shell reads
+      link:expand.html#tilde[~]/.yashrc. If it cannot be read, the shell
+      searches link:params.html#sv-yash_loadpath[+YASH_LOADPATH+] for a file
+      named initialization/default.
+    - If in the POSIXly-correct mode, the shell performs
+      link:expand.html[parameter expansion] on the value of the
       link:params.html#sv-env[+ENV+ environment variable] and treats the
-      expansion result as the name of the file to read if in the
-      POSIXly-correct mode.
+      expansion result as the name of the file to read.
 
 [NOTE]
 Yash never automatically reads /etc/profile, /etc/yashrc, nor

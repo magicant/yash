@@ -57,9 +57,10 @@ static struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
 static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
-static void execute_file_in_home(const wchar_t *path)
+static bool execute_file_in_home(const wchar_t *path)
     __attribute__((nonnull));
-static void execute_file(const wchar_t *path);
+static bool execute_file(const wchar_t *path);
+static bool execute_file_mbs(const char *path);
 static void print_help(void);
 static void print_version(void);
 
@@ -266,7 +267,8 @@ void execute_profile(const wchar_t *profile)
 
 /* Executes the initialization file.
  * `rcfile' is the filename to source.
- * If `rcfile' is NULL, it defaults to "$HOME/.yashrc".
+ * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" and if the file cannot be
+ * read it falls back to "initialization/default" from $YASH_LOADPATH.
  * In the POSIXly-correct mode, `rcfile' is ignored and "$ENV" is used. */
 void execute_rcfile(const wchar_t *rcfile)
 {
@@ -280,18 +282,25 @@ void execute_rcfile(const wchar_t *rcfile)
 	return;
     }
 
-    if (rcfile != NULL)
+    if (rcfile != NULL) {
 	execute_file(rcfile);
-    else
-	execute_file_in_home(L".yashrc");
+	return;
+    }
+    if (execute_file_in_home(L".yashrc"))
+	return;
+
+    char *path = which("initialization/default", get_path_array(PA_LOADPATH),
+	    is_readable_regular);
+    execute_file_mbs(path);
+    free(path);
 }
 
 /* Executes the specified file. The `path' must be relative to $HOME. */
-void execute_file_in_home(const wchar_t *path)
+bool execute_file_in_home(const wchar_t *path)
 {
     const wchar_t *home = getvar(L VAR_HOME);
     if (home == NULL || home[0] == L'\0')
-	return;
+	return false;
 
     xwcsbuf_T fullpath;
     wb_init(&fullpath);
@@ -300,30 +309,42 @@ void execute_file_in_home(const wchar_t *path)
 	wb_wccat(&fullpath, L'/');
     wb_cat(&fullpath, path);
 
-    execute_file(fullpath.contents);
+    bool executed = execute_file(fullpath.contents);
 
     wb_destroy(&fullpath);
+
+    return executed;
 }
 
-/* Executes the specified file if `path' is non-NULL. */
-void execute_file(const wchar_t *path)
+/* Executes the specified file if `path' is non-NULL.
+ * Returns true iff the file was found. */
+bool execute_file(const wchar_t *path)
 {
     if (path == NULL)
-	return;
+	return false;
 
     char *mbspath = malloc_wcstombs(path);
-    if (mbspath == NULL)
-	return;
-
-    int fd = move_to_shellfd(open(mbspath, O_RDONLY));
-    if (fd >= 0) {
-	exec_input(fd, mbspath, XIO_SUBST_ALIAS);
-	cancel_return();
-	remove_shellfd(fd);
-	xclose(fd);
-    }
-
+    bool executed = execute_file_mbs(mbspath);
     free(mbspath);
+    return executed;
+}
+
+/* Executes the specified file if `path' is non-NULL.
+ * Returns true iff the file was found. */
+bool execute_file_mbs(const char *path)
+{
+    if (path == NULL)
+	return false;
+
+    int fd = move_to_shellfd(open(path, O_RDONLY));
+    if (fd < 0)
+	return false;
+
+    exec_input(fd, path, XIO_SUBST_ALIAS);
+    cancel_return();
+    remove_shellfd(fd);
+    xclose(fd);
+    return true;
 }
 
 /* Exits the shell with the specified exit status.

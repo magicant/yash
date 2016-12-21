@@ -11,6 +11,8 @@ Yash 更新履歴
 Yash 2.44
 
   +  コマンドライン推定と '--le-predict' オプション
+  +  ~/.yashrc ファイルが見付からないときはデフォルトの初期化ファイル
+     を読み込むようになった
   =  シェルの起動時、$YASH_LOADPATH は環境変数に存在しない場合のみ
      初期化するようになった
   *  補完スクリプトを修正: carthage, git, git-revert, git-submodule
