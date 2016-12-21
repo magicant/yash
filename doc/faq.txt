@@ -4,13 +4,6 @@
 //:title: Yash manual - FAQ and troubleshooting
 :description: Frequently asked questions and troubleshooting for yash.
 
-[[yashrc]]
-== The default prompt is too simple...
-
-Without a yashrc file, yash is almost the same as a raw POSIX shell. Put the
-link:https://github.com/magicant/yash/blob/trunk/misc/yashrc[sample yashrc] in
-your home directory (~/.yashrc) and customize it as you like.
-
 [[unicode]]
 == How can I use Unicode (non-ASCII) characters?
 

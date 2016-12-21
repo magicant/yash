@@ -71,7 +71,8 @@ When yash is started for an interactive use, it reads ~/.yashrc (after
 reading ~/.yash_profile if it is a login shell also). In this file,
 you make other configurations such as aliases, prompt strings, key
 bindings for command line editing, and command-not-found handler.
-Use the "misc/yashrc" file as a template for your ~/.yashrc.
+Use the "share/initialization/sample" file as a template for your
+~/.yashrc.
 
 --- Making yash your login shell ---
 

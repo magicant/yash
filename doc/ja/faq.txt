@@ -4,12 +4,6 @@
 //:title: Yash マニュアル - よくある質問 / 困ったときは
 :description: Yash についてのよくある質問とその答え
 
-[[yashrc]]
-== デフォルトのプロンプトが簡素過ぎる
-
-Yashrc ファイルが無いと、yash はほとんどただの POSIX と変わりません。
-link:https://github.com/magicant/yash/blob/trunk/misc/yashrc[サンプル yashrc] を自分のホームディレクトリ内 (~/.yashrc) に置いてカスタマイズしてください。
-
 [[unicode]]
 == Unicode (非 ASCII) 文字を使うには?
 
