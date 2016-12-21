@@ -1,0 +1,28 @@
+##### Default Yashrc #####
+# This file is automatically loaded when yash starts up and a user-specific
+# initialization script cannot be read from ~/.yashrc.
+# This file is in the public domain.
+
+# print introduction
+(
+command . --autoload config 2>/dev/null || yashdatadir='?'
+cat <<__END__
+Welcome to yash!
+
+You are seeing this message because a user-specific initialization script is
+not found at ~/.yashrc. The current session has been loaded with common
+settings that should be useful for many users. To suppress this message, copy
+a sample initialization script from ${yashdatadir}/initialization/sample
+to ~/.yashrc and make any customization in it if you want. For bare default
+settings, put an empty file at ~/.yashrc. Without ~/.yashrc, you will see this
+message again next time you start yash.
+
+For more instructions, see the manual at <https://yash.osdn.jp/doc/>.
+
+__END__
+)
+
+# load a sample initialization script
+. --autoload initialization/sample
+
+# vim: set et sw=2 sts=2 tw=78 ft=sh:

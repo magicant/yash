@@ -124,7 +124,7 @@ man html:
 	-@+(cd doc && $(MAKE) $@-rec)
 
 INSTALLBINDIRS = $(DESTDIR)$(bindir)
-INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(mandir)
+INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization $(DESTDIR)$(mandir)
 INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS) $(DESTDIR)$(htmldir)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
@@ -160,6 +160,7 @@ uninstall-data:
 	done
 	rm -f $(DESTDIR)$(yashdatadir)/config
 	-rmdir $(DESTDIR)$(yashdatadir)/completion
+	-rmdir $(DESTDIR)$(yashdatadir)/initialization
 	-rmdir $(DESTDIR)$(yashdatadir)
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
 	@+(cd doc && $(MAKE) $@-rec)
@@ -177,8 +178,10 @@ $(DISTDIR): _PHONY
 	for d in $(DIRS); do \
 		(cd $$d && $(MAKE) DISTTARGETDIR=$@/$$d copy-distfiles) || exit; \
 	done
-	mkdir -m 755 $@/share
-	mkdir -m 755 $@/share/completion
+	@find share -type d | while read -r dir; do \
+		echo mkdir -m 755 $@/$$dir || true; \
+		mkdir -m 755 $@/$$dir; \
+	done
 	@find share -type f | (umask 022; while read -r file; do \
 		echo cp $$file $@/$$file || true; \
 		cp $$file $@/$$file; \

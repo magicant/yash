@@ -1,0 +1,289 @@
+##### Common Yashrc #####
+# This file is in the public domain.
+
+# enable bash-like extended expansion
+set --brace-expand
+
+# enable recursive pathname expansion
+set --extended-glob
+
+# prevent redirections from overwriting existing files
+set --no-clobber
+
+# don't implicitly expand non-existent variables to empty strings
+set --no-unset
+
+# if yash is built with command history enabled...
+if command --identify --builtin-command history >/dev/null; then
+
+  # don't save commands starting with a space in history
+  set --hist-space
+
+fi
+
+# if yash is built with line-editing enabled...
+if command --identify --builtin-command bindkey >/dev/null; then
+
+  # print job status update ASAP, but only while line-editing
+  set --notify-le
+
+  # some terminfo data are broken; meta flags have to be ignored for UTF-8
+  set --le-no-conv-meta
+
+  # enable command line prediction
+  set --le-predict
+
+  # most users are more familiar with emacs mode than vi mode
+  if [ -o vi ]; then
+    set --emacs
+  fi
+
+  # some useful key bindings
+  bindkey --emacs '\^N' beginning-search-forward
+  bindkey --emacs '\^O' clear-candidates
+  bindkey --emacs '\^P' beginning-search-backward
+  bindkey --emacs '\N' complete-next-column
+  bindkey --emacs '\P' complete-prev-column
+
+  # key bindings for vi mode, some of which are from emacs mode
+  bindkey --vi-insert '\^A' beginning-of-line
+  bindkey --vi-insert '\^B' backward-char
+  bindkey --vi-insert '\^D' eof-or-delete
+  bindkey --vi-insert '\#'  eof-or-delete
+  bindkey --vi-insert '\^E' end-of-line
+  bindkey --vi-insert '\^F' forward-char
+  bindkey --vi-insert '\^K' forward-kill-line
+  bindkey --vi-insert '\^N' beginning-search-forward
+  bindkey --vi-insert '\^O' clear-candidates
+  bindkey --vi-insert '\^P' beginning-search-backward
+  bindkey --vi-insert '\^U' backward-kill-line
+  bindkey --vi-insert '\$'  backward-kill-line
+  bindkey --vi-insert '\^W' backward-delete-viword
+  bindkey --vi-insert '\^Y' put-left
+  bindkey --vi-insert '\N' complete-next-column
+  bindkey --vi-insert '\P' complete-prev-column
+  bindkey --vi-command '\^N' beginning-search-forward
+  bindkey --vi-command '\^P' beginning-search-backward
+
+fi
+
+# some useful shortcuts
+alias -- -='cd -'
+alias la='ls -a' ll='ls -l' lla='ll -a'
+alias r='fc -s'
+
+# avoid removing/overwriting existing files by accident
+cp() if [ -t 0 ]; then command cp -i "$@"; else command cp "$@"; fi
+mv() if [ -t 0 ]; then command mv -i "$@"; else command mv "$@"; fi
+rm() if [ -t 0 ]; then command rm -i "$@"; else command rm "$@"; fi
+
+# normally yash is more POSIX-compliant than /bin/sh :-)
+sh() { yash --posix "$@"; }
+
+# if the terminal supports color...
+if [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+
+  # make command output colorful
+  if ls --color=auto -d / >/dev/null 2>&1; then
+    ls() { command ls --color=auto "$@"; }
+  fi
+  if grep --color=auto -q X <<<X 2>/dev/null; then
+    grep() { command grep --color=auto "$@"; }
+  fi
+  if ggrep --color=auto -q X <<<X 2>/dev/null; then
+    ggrep() { command ggrep --color=auto "$@"; }
+  fi
+
+fi
+
+# if vim is available...
+if command --identify vim >/dev/null 2>&1; then
+
+  # prefer vim over vi
+  vi() { vim "$@"; }
+  view() { vim -R "$@"; }
+
+fi
+
+# an alias that opens a file
+if command --identify xdg-open >/dev/null 2>&1; then
+  alias o='xdg-open'
+elif command --identify cygstart >/dev/null 2>&1; then
+  alias o='cygstart'
+elif [ "$(uname)" = Darwin ] 2>/dev/null; then
+  alias o='open'
+fi
+
+# define some basic variables if missing
+: ${PAGER:=less} ${EDITOR:=vi} ${FCEDIT:=$EDITOR}
+: ${LOGNAME:=$(logname)} ${HOSTNAME:=$(uname -n)}
+
+# disable confusing treatment of arguments in the echo command
+: ${ECHO_STYLE:=RAW}
+
+# variables needed for command history
+HISTFILE=~/.yash_history HISTSIZE=5000
+# HISTRMDUP makes prediction less accurate
+# HISTRMDUP=500
+
+# default mail check interval is too long
+MAILCHECK=0
+
+# emulate bash's $SHLVL
+if [ "${_old_shlvl+set}" != set ]; then
+  _old_shlvl=${SHLVL-}
+fi
+SHLVL=$((_old_shlvl+1)) 2>/dev/null || SHLVL=1
+export SHLVL
+
+# initialize event handlers
+COMMAND_NOT_FOUND_HANDLER=()
+PROMPT_COMMAND=()
+YASH_AFTER_CD=()
+
+# define prompt
+if [ -n "${SSH_CONNECTION-}" ]; then
+  _hc='\fy.'     # yellow hostname for SSH remote
+else
+  _hc='\fg.'     # green hostname for local
+fi
+if [ "$(id -u)" -eq 0 ]; then
+  _uc='\fr.'     # red username for root
+  _2c='\fr.'     # red PS2 for root
+else
+  _uc=$_hc _hc=  # same username color as hostname for non-root user
+  _2c=           # PS2 in normal color for non-root user
+fi
+# The main prompt ($PS1) contains the username, hostname, working directory,
+# last exit status (only if non-zero), and $SHLVL (only if non-one).
+PS1=$_uc'${LOGNAME}'$_hc'@${HOSTNAME%%.*}\fd. '\
+'${${${PWD:/~/\~}##*/}:-$PWD} ${{?:/0/}:+\\fr.$?\\fd. }${{SHLVL-0}:/1}\$ '
+PS1R='\fc.${_vcs_info}'
+PS1S='\fo.'
+PS2=$_2c'> '
+PS2R=
+PS2S=$PS1S
+PS4='\fm.+ '
+PS4S='\fmo.'
+unset _hc _uc _2c
+
+# find escape sequence to change terminal window title
+case "$TERM" in
+  (xterm|xterm[+-]*|gnome|gnome[+-]*|putty|putty[+-]*)
+    _tsl='\033]0;' _fsl='\033\\' ;;
+  (cygwin)
+    _tsl='\033];' _fsl='\a' ;;
+  (*)
+    _tsl=$( (tput tsl 0; echo) 2>/dev/null |
+    sed -e 's;\\;\\\\;g' -e 's;;\\033;g' -e 's;;\\a;g' -e 's;%;%%;g')
+    _fsl=$( (tput fsl  ; echo) 2>/dev/null |
+    sed -e 's;\\;\\\\;g' -e 's;;\\033;g' -e 's;;\\a;g' -e 's;%;%%;g') ;;
+esac
+# if terminal window title can be changed...
+if [ "$_tsl" ] && [ "$_fsl" ]; then
+
+  # set terminal window title on each prompt
+  _set_term_title()
+  if [ -t 2 ]; then
+    printf "$_tsl"'%s@%s:%s'"$_fsl" "${LOGNAME}" "${HOSTNAME%%.*}" \
+      "${${PWD:/$HOME/\~}/#$HOME\//\~\/}" >&2
+  fi
+  PROMPT_COMMAND=("$PROMPT_COMMAND" '_set_term_title')
+
+  # reset window title when changing host or user
+  ssh() {
+    if [ -t 2 ]; then printf "$_tsl"'ssh %s'"$_fsl" "$*" >&2; fi
+    command ssh "$@"
+  }
+  su() {
+    if [ -t 2 ]; then printf "$_tsl"'su %s'"$_fsl" "$*" >&2; fi
+    command su "$@"
+  }
+  sudo() {
+    if [ -t 2 ]; then printf "$_tsl"'sudo %s'"$_fsl" "$*" >&2; fi
+    command sudo "$@"
+  }
+
+fi
+
+# define function that updates $_vcs_info and $_vcs_root
+_update_vcs_info() {
+  typeset type branch
+  {
+    read --raw-mode type
+    read --raw-mode _vcs_root
+    read --raw-mode branch
+  } <(
+    typeset COMMAND_NOT_FOUND_HANDLER=
+    while true; do
+      if [ -e .git ] || [ . -ef "${GIT_WORK_TREE-}" ]; then
+        printf 'git\n%s\n' "${GIT_WORK_TREE:-$PWD}"
+        (git branch --no-color | sed -n '/^\*/s/^..//p') 2>/dev/null
+        exit
+      elif [ -d .hg ]; then
+        printf 'hg\n%s\n' "$PWD"
+        exec cat .hg/branch 2>/dev/null
+      elif [ -d .svn ]; then
+        printf 'svn\n'
+        _vcs_root=$(svn info --show-item=wc-root 2>/dev/null)
+        printf '%s\n' "$_vcs_root"
+        path=$(svn info --show-item=relative-url 2>/dev/null)
+        case $path in
+          (*/branches/*)
+            printf '%s\n' "${${path#*/branches/}%%/*}"
+        esac
+        exit
+      fi
+      if [ / -ef . ] || [ . -ef .. ]; then
+        exit
+      fi
+      cd -P ..
+    done
+  )
+  case "$type#$branch" in
+    (hg#default) _vcs_info='hg';;
+    (git#master) _vcs_info='git';;
+    (*#        ) _vcs_info="$type";;
+    (*         ) _vcs_info="$type@$branch";;
+  esac
+}
+# update $_vcs_info on each prompt
+PROMPT_COMMAND=("$PROMPT_COMMAND" '_update_vcs_info')
+
+# these aliases choose a version controlling program for the current directory
+alias _vcs='${${_vcs_info:?not in a version-controlled directory}%%@*}'
+alias ci='_vcs commit'
+alias co='_vcs checkout'
+alias di='_vcs diff'
+alias log='_vcs log'
+alias st='_vcs status'
+alias up='_vcs update'
+
+# when a directory name is entered as a command, treat as "cd"
+_autocd()
+if [ -d "$1" ]; then
+  HANDLED=true
+  cd -- "$@"
+  break -i
+fi
+COMMAND_NOT_FOUND_HANDLER=("$COMMAND_NOT_FOUND_HANDLER" '_autocd "$@"')
+
+# treat command names starting with % as "fg"
+_autofg()
+if [ $# -eq 1 ]; then
+  case $1 in (%*)
+    HANDLED=true
+    fg "$1"
+    break -i
+  esac
+fi
+COMMAND_NOT_FOUND_HANDLER=("$COMMAND_NOT_FOUND_HANDLER" '_autofg "$@"')
+
+# print file type when executing non-executable files
+_file_type()
+if [ -e "$1" ] && ! [ -d "$1" ]; then
+  file -- "$1"
+fi
+COMMAND_NOT_FOUND_HANDLER=("$COMMAND_NOT_FOUND_HANDLER" '_file_type "$@"')
+
+# vim: set et sw=2 sts=2 tw=78 ft=sh:
