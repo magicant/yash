@@ -25,9 +25,9 @@ Yash 2.44
   *  In a for loop without the "in" keyword, a semicolon that delimits
      the variable name, if any, now must appear on the same line as
      the variable name.
-  =  Partial support for POSIX.1-2008 Technical Corrigendum 2 (2016).
+  =  Support for POSIX.1-2008 Technical Corrigendum 2 (2016).
      This affects the shell's behavior only in the POSIXly-correct
-     mode unless marked with (*).
+     mode unless marked with (*) in the following:
     .  In a pipeline, the reserved word "!" must now be delimited by
        a white space when followed by a parenthesis "(".
     .  In a for loop without the "in" keyword, the variable name and

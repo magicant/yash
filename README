@@ -28,7 +28,7 @@ Yash is an OSDN-hosted project. See also the project summary page at
 
 ===== Current Development Status =====
 
-Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
 except for the limitations listed below.
 
 Yash is stable. A maintenance update is released every three months or
