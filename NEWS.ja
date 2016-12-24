@@ -15,7 +15,8 @@ Yash 2.44
      を読み込むようになった
   =  シェルの起動時、$YASH_LOADPATH は環境変数に存在しない場合のみ
      初期化するようになった
-  *  補完スクリプトを修正: carthage, git, git-revert, git-submodule
+  *  補完スクリプトを修正: carthage, git, git-log, git-revert,
+     git-submodule
   *  対話シェルで "." 組込みで読み込んだスクリプトから "return" で戻る
      ことができなかった
   *  "test" 組込みで単項 -o 演算子に "no" を付けたオプション名を指定

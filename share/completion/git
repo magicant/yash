@@ -657,7 +657,7 @@ function completion/git::--format:arg {
 	typeset word="${TARGETWORD#"$PREFIX"}"
 	word=${word//%%}
 	case $word in
-	(format:*%*)
+	(format:*%*|tformat:*%*)
 		word=%${word##*%}
 		typeset PREFIX="${TARGETWORD%"$word"}" #>>#
 		complete -T -P "$PREFIX" -D "full commit ID" '%H'
@@ -701,7 +701,7 @@ function completion/git::--format:arg {
 		complete -T -P "$PREFIX" -D "enable line wrapping" '%w'
 		complete -T -P "$PREFIX" -D "%" '%%'
 		;; #<<#
-	(format:*)
+	(*:*)
 		;;
 	(*) #>>#
 		complete -P "$PREFIX" -D "commit ID and title" oneline
@@ -711,7 +711,8 @@ function completion/git::--format:arg {
 		complete -P "$PREFIX" -D "commit ID, author, date, committer, date, and full log message" fuller
 		complete -P "$PREFIX" -D "imitate email" email
 		complete -P "$PREFIX" -D "raw commit object" raw
-		complete -P "$PREFIX" -D "specify a format" -T format:
+		complete -P "$PREFIX" -D "specify a format (newline-separated)" -T format:
+		complete -P "$PREFIX" -D "specify a format (newline-terminated)" -T tformat:
 		#<<#
 		typeset name value
 		while read -r name value; do

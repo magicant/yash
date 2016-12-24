@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2016 magicant
 
 # Completion script for the "git-log" command.
-# Supports Git 1.7.7.
+# Supports Git 2.11.0.
 
 function completion/git-log {
 	WORDS=(git log "${WORDS[2,-1]}")
@@ -34,9 +34,11 @@ function completion/git::log:getopt {
 	"--decorate::; show ref names of commits"
 	"--follow; show history beyond filename renaming"
 	"--full-diff; show diffs for all files affected in each commit"
+	"L:; specify a range in a file to trace history"
 	"--log-size; print its size before printing log messages"
 	"--no-decorate; like --decorate=no"
 	"--source; show from which ref each commit was reached"
+	"--use-mailmap; canonicalize authors, committers and emails"
 	) #<#
 	if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
 			. -AL completion/git-rev-list; then
@@ -48,19 +50,26 @@ function completion/git::log:getopt {
 	fi
 }
 
-function completion/git::log:compopt {
+function completion/git::log:compopt
 	case $ARGOPT in
 		(--decorate) #>>#
+			complete -P "$PREFIX" -D "like short, only if outputting to a terminal" auto
 			complete -P "$PREFIX" -D "show full ref names" full
 			complete -P "$PREFIX" -D "show ref names without prefixes" short
 			complete -P "$PREFIX" -D "don't show ref names" no
 			;; #<<#
+		(L)
+			case $TARGETWORD in (?*:*)
+				typeset w="${TARGETWORD#?*:}"
+				typeset PREFIX="${TARGETWORD%"$w"}"
+				command -f completion/git::completepath -r
+			esac
+			;;
 		(*)
 			command -f completion/git::rev-list:compopt ||
 			command -f completion/git::diff:compopt
 			;;
 	esac
-}
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:
