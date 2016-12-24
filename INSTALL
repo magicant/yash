@@ -305,6 +305,11 @@ When an option specified in invocation of the shell or a built-in
 command is ambiguous, a list of option names that match the specified
 ambiguous name is printed if this macro is defined as a non-zero.
 
+#define MAX_PREDICTION_SAMPLE 10000
+This macro must be defined as a non-negative integer.
+This macro specifies the maximum number of history entries that are
+considered in computing a command line prediction candidate.
+
 #define SHELLFDMINMAX 100
 This macro must be defined as an integer that is not less than 10.
 When the shell opens a file that is not directly used by user

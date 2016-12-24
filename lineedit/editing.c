@@ -2446,6 +2446,10 @@ void check_reset_completion(void)
 
 /********** Prediction Commands **********/
 
+#ifndef MAX_PREDICTION_SAMPLE
+#define MAX_PREDICTION_SAMPLE 10000
+#endif /* ifndef MAX_PREDICTION_SAMPLE */
+
 /* Create a probability distribution tree for command prediction based on the
  * current history. The result is set to `prediction_tree'. */
 void create_prediction_tree(void)
@@ -2459,6 +2463,8 @@ void create_prediction_tree(void)
 	assert(k < N);
 	for (size_t i = 0; i <= k; i++)
 	    hits[i]++;
+	if (hits[0] >= MAX_PREDICTION_SAMPLE)
+	    break;
 
 	wchar_t *cmd = malloc_mbstowcs(e->value);
 	if (cmd == NULL)
