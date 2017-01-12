@@ -79,6 +79,12 @@ rm() if [ -t 0 ]; then command rm -i "$@"; else command rm "$@"; fi
 
 # normally yash is more POSIX-compliant than /bin/sh :-)
 sh() { yash --posix "$@"; }
+yash() { command yash "$@"; }
+# By re-defining 'yash' using the 'command' built-in, the 'jobs' built-in
+# prints a command name that exposes the arguments like
+# 'yash --posix -n foo.sh' rather than a command name that hides the
+# arguments like 'yash --posix "${@}"'. This applies to the 'yash' command
+# invoked via the 'sh' function.
 
 # if the terminal supports color...
 if [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
@@ -102,6 +108,7 @@ if command --identify vim >/dev/null 2>&1; then
   # prefer vim over vi
   vi() { vim "$@"; }
   view() { vim -R "$@"; }
+  vim() { command vim "$@"; } # Re-definition hack. See above.
 
 fi
 
