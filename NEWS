@@ -22,6 +22,8 @@ Yash 2.44
   *  In the "test" built-in, the unary "-o" operator was returning the
      wrong answer if the given option name was negated with the "no"
      prefix (e.g. "test -o noclobber").
+  *  The "wait" built-in now returns an exit status of 1 if any
+     operand is invalid, ignoring results for any other operands.
   *  In a for loop without the "in" keyword, a semicolon that delimits
      the variable name, if any, now must appear on the same line as
      the variable name.

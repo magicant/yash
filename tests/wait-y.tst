@@ -1,6 +1,16 @@
 # wait-y.tst: yash-specific test of the wait built-in
 ../checkfg || skip="true" # %SEQUENTIAL%
 
+test_x -e 1 'invalid job specification overrides exit status of valid job (1)'
+exit 42 &
+wait X $!
+__IN__
+
+test_x -e 1 'invalid job specification overrides exit status of valid job (2)'
+exit 42 &
+wait $! X
+__IN__
+
 mkfifo sync
 
 test_x -e 127 'job is forgotten after awaited' -im

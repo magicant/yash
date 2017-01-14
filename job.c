@@ -1295,11 +1295,9 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
-    if (status != 0)
-	return status;
     if (yash_error_message_count != 0)
 	return Exit_FAILURE;
-    return Exit_SUCCESS;
+    return status;
 }
 
 /* Finds a job specified by the argument and waits for it.

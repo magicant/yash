@@ -228,6 +228,7 @@ unalias
 
 wait
  * wait-p.tst
+ * wait-y.tst
 
 
 vim: set tw=78:
