@@ -83,7 +83,7 @@ __OUT__
 # `newgrp' is not a semi-special built-in in yash.
 test_oE -e 0 'describing semi-special built-ins (-V)'
 command -V bg cd command false fg getopts hash jobs kill pwd read true type \
-    ulimit umask wait
+    umask wait
 __IN__
 bg: a semi-special built-in
 cd: a semi-special built-in
@@ -98,10 +98,22 @@ pwd: a semi-special built-in
 read: a semi-special built-in
 true: a semi-special built-in
 type: a semi-special built-in
-ulimit: a semi-special built-in
 umask: a semi-special built-in
 wait: a semi-special built-in
 __OUT__
+
+(
+if ! testee -c 'command -bv ulimit' >/dev/null; then
+    skip="true"
+fi
+
+test_oE -e 0 'describing semi-special built-in ulimit (-V)'
+command -V ulimit
+__IN__
+ulimit: a semi-special built-in
+__OUT__
+
+)
 
 (
 if ! testee -c 'command -bv echo' >/dev/null; then

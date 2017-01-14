@@ -318,7 +318,7 @@ test_OE -e 0 'intrinsic built-in alias can be invoked without $PATH'
 alias a=a
 __IN__
 
-# Test of the bg built-in requires job control.
+# Tested in builtins-y.tst.
 #test_OE -e 0 'intrinsic built-in bg can be invoked without $PATH'
 
 test_OE -e 0 'intrinsic built-in cd can be invoked without $PATH'
@@ -333,9 +333,8 @@ test_OE 'intrinsic built-in false can be invoked without $PATH'
 false
 __IN__
 
-#TODO: test_OE -e 0 'intrinsic built-in fc can be invoked without $PATH'
-
-# Test of the fg built-in requires job control.
+# Tested in builtins-y.tst.
+#test_OE -e 0 'intrinsic built-in fc can be invoked without $PATH'
 #test_OE -e 0 'intrinsic built-in fg can be invoked without $PATH'
 
 test_OE -e 0 'intrinsic built-in getopts can be invoked without $PATH'
@@ -374,9 +373,8 @@ test_E -e 0 'intrinsic built-in type can be invoked without $PATH'
 type type
 __IN__
 
-test_E -e 0 'intrinsic built-in ulimit can be invoked without $PATH'
-ulimit
-__IN__
+# Tested in builtins-y.tst.
+#test_E -e 0 'intrinsic built-in ulimit can be invoked without $PATH'
 
 test_OE -e 0 'intrinsic built-in umask can be invoked without $PATH'
 umask 000

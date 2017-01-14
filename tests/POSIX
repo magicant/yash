@@ -84,6 +84,7 @@ Volume 3: Shell & Utilities
 
 Command Search and Execution
  * builtins-p.tst
+ * builtins-y.tst
  * simple-p.tst
 
 2.9.2 Pipelines
