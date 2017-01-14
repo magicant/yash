@@ -1,4 +1,4 @@
-# (C) 2010-2013 magicant
+# (C) 2010-2017 magicant
 
 # Completion script for the "ssh" command.
 # Completion function "completion/ssh" is used for the "scp" and "sftp" commands
@@ -259,7 +259,8 @@ function completion/ssh::completehostname {
 	typeset key values file words host
 	while read -Ar key values; do
 		case $key in ([Hh][Oo][Ss][Tt])
-			complete -P "$PREFIX" -R '\*' "$@" -- "$values"
+			complete -P "$PREFIX" -R '*[*?]*' -R '!*' "$@" -- \
+				"$values"
 		esac
 	done <(sed -e 's/#.*//' -e 's/[Hh][Oo][Ss][Tt][[:blank:]]*=/host /' "$config" 2>/dev/null)
 	# currently, we always read known-hosts files from the default location

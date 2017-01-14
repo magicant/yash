@@ -16,7 +16,7 @@ Yash 2.44
   =  During shell startup, $YASH_LOADPATH is now initialized only if
      not set in the environment.
   *  Updated completion script for: carthage, git, git-log,
-     git-revert, git-submodule
+     git-revert, git-submodule, ssh
   *  The "return" built-in was wrongly refusing to return from a
      script sourced by the "." built-in in an interactive shell.
   *  In the "test" built-in, the unary "-o" operator was returning the
