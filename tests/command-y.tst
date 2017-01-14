@@ -178,11 +178,6 @@ bg
 bg
 __OUT__
 
-test_E -e 0 'describing regular built-in with -b option'
-command -vb array &&
-command --identify --builtin-command array
-__IN__
-
 test_E -e 0 'describing external command with -e option'
 command -ve cat &&
 command --identify --external-command cat
