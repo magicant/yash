@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -609,28 +609,23 @@ wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
 	return NULL;
     }
     if (!posixly_correct) {
-	size_t INIT(index, SIZE_MAX / 2);
-	if (username[0] == L'+') {
-	    if (username[1] == L'\0') {
-		home = getvar(L VAR_PWD);
-		goto finish;
+	if (username[0] == L'+' && username[1] == L'\0') {
+	    home = getvar(L VAR_PWD);
+	    goto finish;
+	}
+	if (username[0] == L'-' && username[1] == L'\0') {
+	    home = getvar(L VAR_OLDPWD);
+	    goto finish;
+	}
 #if YASH_ENABLE_DIRSTACK
-	    } else if (parse_dirstack_index(username, &index, &home, false)
+	if (username[0] == L'+' || username[0] == L'-') {
+	    size_t index;
+	    if (parse_dirstack_index(username, &index, &home, false)
 		    && index != SIZE_MAX) {
 		goto finish;
-#endif
-	    }
-	} else if (username[0] == L'-') {
-	    if (username[1] == L'\0') {
-		home = getvar(L VAR_OLDPWD);
-		goto finish;
-#if YASH_ENABLE_DIRSTACK
-	    } else if (parse_dirstack_index(username, &index, &home, false)
-		    && index != SIZE_MAX) {
-		goto finish;
-#endif
 	    }
 	}
+#endif
     }
     home = get_home_directory(username, false);
 finish:
