@@ -80,6 +80,8 @@ static bool jobs_builtin_print_job(size_t jobnumber,
 	bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
+static int wait_for_job_by_jobspec(const wchar_t *jobspec)
+    __attribute__((nonnull));
 static bool wait_builtin_has_job(bool jobcontrol);
 
 
@@ -1271,47 +1273,16 @@ int wait_builtin(int argc, void **argv)
 	}
     }
 
-    job_T *job;
     if (xoptind < argc) {
 	/* wait for the specified jobs */
-	do {
-	    const wchar_t *jobspec = ARGV(xoptind);
-	    size_t jobnumber;
-	    if (jobspec[0] == L'%') {
-		jobnumber = get_jobnumber_from_name(&jobspec[1]);
-	    } else {
-		long pid;
-		if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
-		    xerror(0, Ngt("`%ls' is not a valid job specification"),
-			    jobspec);
-		    continue;
-		}
-		jobnumber = get_jobnumber_from_pid(pid);
+	for (; xoptind < argc; xoptind++) {
+	    int jobstatus = wait_for_job_by_jobspec(ARGV(xoptind));
+	    if (jobstatus < 0) {
+		status = -jobstatus;
+		break;
 	    }
-	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("job specification `%ls' is ambiguous"),
-			ARGV(xoptind));
-	    } else if (jobnumber == 0
-		    || (job = joblist.contents[jobnumber]) == NULL
-		    || job->j_legacy) {
-		status = Exit_NOTFOUND;
-	    } else {
-		status = wait_for_job(jobnumber, jobcontrol, jobcontrol, true);
-		if (status == 0) {
-		    status = calc_status_of_job(job);
-		} else {
-		    assert(TERMSIGOFFSET >= 128);
-		    status += TERMSIGOFFSET;
-		    break;
-		}
-		if (job->j_status != JS_RUNNING) {
-		    if (jobcontrol && is_interactive_now && !posixly_correct)
-			print_job_status(jobnumber, false, false, true, stdout);
-		    else if (job->j_status == JS_DONE)
-			remove_job(jobnumber);
-		}
-	    }
-	} while (++xoptind < argc);
+	    status = jobstatus;
+	}
     } else {
 	/* wait for all jobs */
 	while (wait_builtin_has_job(jobcontrol)) {
@@ -1329,6 +1300,49 @@ int wait_builtin(int argc, void **argv)
     if (yash_error_message_count != 0)
 	return Exit_FAILURE;
     return Exit_SUCCESS;
+}
+
+/* Finds a job specified by the argument and waits for it.
+ * Returns a negated exit status if interrupted. */
+int wait_for_job_by_jobspec(const wchar_t *jobspec)
+{
+    size_t jobnumber;
+    if (jobspec[0] == L'%') {
+	jobnumber = get_jobnumber_from_name(&jobspec[1]);
+    } else {
+	long pid;
+	if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
+	    xerror(0, Ngt("`%ls' is not a valid job specification"), jobspec);
+	    return Exit_FAILURE;
+	}
+	jobnumber = get_jobnumber_from_pid(pid);
+    }
+    if (jobnumber >= joblist.length) {
+	xerror(0, Ngt("job specification `%ls' is ambiguous"), jobspec);
+	return Exit_FAILURE;
+    }
+
+    job_T *job;
+    if (jobnumber == 0
+	    || (job = joblist.contents[jobnumber]) == NULL
+	    || job->j_legacy)
+	return Exit_NOTFOUND;
+
+    int signal = wait_for_job(jobnumber,
+	    doing_job_control_now, doing_job_control_now, true);
+    if (signal != 0) {
+	assert(TERMSIGOFFSET >= 128);
+	return -(signal + TERMSIGOFFSET);
+    }
+
+    int status = calc_status_of_job(job);
+    if (job->j_status != JS_RUNNING) {
+	if (doing_job_control_now && is_interactive_now && !posixly_correct)
+	    print_job_status(jobnumber, false, false, true, stdout);
+	else if (job->j_status == JS_DONE)
+	    remove_job(jobnumber);
+    }
+    return status;
 }
 
 /* Checks if the shell has any job to wait for. */
