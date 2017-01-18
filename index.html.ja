@@ -29,7 +29,7 @@ Unix 系 OS 用コマンドライン端末シェルです。Yash
 <li>プロンプトコマンド
 <li>コマンドが見付からないときのハンドラー
 <li>コマンドライン補完 (100 個以上のコマンドに対する補完設定付き)
-<!--li>コマンド履歴に基づくコマンドラインの推定-->
+<li>コマンド履歴に基づくコマンドラインの推定
 </ul>
 <p>このプログラムは <a href="http://www.gnu.org/licenses/gpl.html">GNU General
 Public License</a> (Version 2) の元で自由に再配布・変更などができます。
@@ -41,9 +41,13 @@ OSDN のプロジェクトの一つとして開発されています。
 (→<a href="//osdn.jp/projects/yash/">プロジェクト概要ページ</a>)
 
 <h2 id="progress">開発状況</h2>
-<p>Yash は既に POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+<p>Yash は既に POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
 を全てサポートしています (ただし<a href="https://github.com/magicant/yash/blob/trunk/README.ja">制限事項</a>を除く)。
-<p>Yash は安定しています。バグ修正のためのバージョンアップはおおよそ三箇月に一度リリースされます。
+<p>Yash は安定しています。バグ修正のためのバージョンアップはおおよそ三箇月に一度リリースされます。(<a
+href="https://github.com/magicant/yash/blob/trunk/NEWS.ja">更新履歴</a>)
+<p>ソースコードは <a href="//osdn.jp/projects/yash/scm/svn/">Subversion
+レポジトリー</a>で管理されています。<a href="https://github.com/magicant/yash"
+>GitHub</a> にもミラーされています。
 
 <h2 id="requirements">要件</h2>
 <p>Software Development Utilities オプションと C-Language Development Utilities
@@ -67,8 +71,8 @@ var sfjp_widget_customcss = true
 <p>Yash がログインシェルとして起動されたとき、~/.yash_profile を読み込みます。
 このファイルはシェルスクリプトとして実行されます。この中で export コマンドを使うことで環境変数を設定できます。
 <p>Yash が対話シェルとして起動されたとき、(~/.yash_profile も読み込む場合はその後で) ~/.yashrc を読み込みます。この中でエイリアス、プロンプト、コマンド行編集のキーバインド設定、コマンドが見付からないときのハンドラー等を設定します。<a
-href="https://github.com/magicant/yash/blob/trunk/misc/yashrc">サンプルの
-yashrc</a> を参考に自分用の ~/.yashrc を設定してください。
+href="https://github.com/magicant/yash/blob/trunk/share/initialization/sample"
+>サンプルの yashrc</a> を参考に自分用の ~/.yashrc を設定してください。
 
 <h3>Yash をログインシェルにする</h3>
 <p>多くの Unix 系 OS では、ログインシェルとして使用可能なシェルは /etc/shells ファイルに名前が挙げられている必要があります。このファイルを編集し、yash へのパスがファイルに含まれているようにしてください。
@@ -82,7 +86,7 @@ yashrc</a> を参考に自分用の ~/.yashrc を設定してください。
 
 
 <address id="about_this_document">
-© 2007-2016 <a href="mailto:magicant@users.osdn.me">Magicant</a> / 最終更新 2016-10-23
+© 2007-2017 <a href="mailto:magicant@users.osdn.me">Magicant</a> / 最終更新 2017-01-18
 </address>
 
 </body>

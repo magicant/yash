@@ -35,7 +35,7 @@ Notable features are:
 <li>Fractional numbers in arithmetic expansion
 <li>Prompt command and command-not-found handler
 <li>Command line completion with predefined completion scripts for more than 100 commands
-<!--li>Command line prediction based on command history-->
+<li>Command line prediction based on command history
 </ul>
 <p>Yash can be modified/redistributed under the terms of the <a
 href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>
@@ -48,10 +48,15 @@ Yash is an OSDN-hosted project. See also the
 <a href="//osdn.net/projects/yash/">project summary page</a>.
 
 <h2 id="progress">Current Development Status</h2>
-<p>Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2013 Edition)
+<p>Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
 except for the limitations listed in <a
 href="https://github.com/magicant/yash/blob/trunk/README">README</a>.
 <p>Yash is stable. A maintenance update is released every three months or so.
+For the change history, see <a
+href="https://github.com/magicant/yash/blob/trunk/NEWS">NEWS</a>.
+<p>The source code is versioned in the <a
+href="//osdn.net/projects/yash/scm/svn/">Subversion repository</a> and mirrored
+on <a href="https://github.com/magicant/yash">GitHub</a>.
 
 <h2 id="requirements">Requirements</h2>
 <p>Yash is supposed to build and run on any POSIX.1-2001 environment
@@ -74,7 +79,8 @@ The <a href="doc/">manual</a> can be viewed by <kbd>man yash</kbd>.
 This file is a shell script in which you define environment variables using the export command.
 <p>When yash is started for an interactive use, it reads ~/.yashrc (after reading ~/.yash_profile if it is a login shell also).
 In this file, you make other configurations such as aliases, prompt strings, key bindings for command line editing, and command-not-found handler.
-Use the <a href="https://github.com/magicant/yash/blob/trunk/misc/yashrc"
+Use the <a
+href="https://github.com/magicant/yash/blob/trunk/share/initialization/sample"
 >sample yashrc</a> as a template for your ~/.yashrc.
 
 <h3>Making yash your login shell</h3>
@@ -84,7 +90,7 @@ Depending on your system, you may have to use another command to change the logi
 See documentation on your system.
 
 <address id="about_this_document">
-© 2009-2016 <a href="mailto:magicant@users.osdn.me">magicant</a> / Last modified: 2016-10-23
+© 2009-2017 <a href="mailto:magicant@users.osdn.me">magicant</a> / Last modified: 2017-01-18
 </address>
 
 </body>
