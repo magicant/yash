@@ -9,7 +9,7 @@ link:http://pubs.opengroup.org/onlinepubs/9699919799/[POSIX.1-2008], Shell &
 Utilities for the most part, but some functionalities disobey POSIX for
 usability.
 When full POSIX-conformance is needed, you can enable the dfn:[POSIXly-correct
-mode] to make yash obey POSIX as mush as possible.
+mode] to make yash obey POSIX as much as possible.
 
 If yash is started with the name ``sh'', the POSIXly-correct mode is
 automatically enabled.
