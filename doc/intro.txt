@@ -4,7 +4,7 @@
 //:title: Yash manual - Introduction
 :description: This is the introduction page of the yash manual.
 
-dfn:[Yet anther shell] (yash) is a command line shell for UNIX-like operating
+dfn:[Yet another shell] (yash) is a command line shell for UNIX-like operating
 systems. The shell conforms to the POSIX.1-2008 standard (for the most parts),
 and actually is more conforming than other POSIX-conforming shells. Moreover,
 it has many features that are used for interactive use, such as command
