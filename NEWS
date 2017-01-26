@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.45
+
+  +  Updated completion script for: git
+
+----------------------------------------------------------------------
 Yash 2.44
 
   +  Command line prediction and the '--le-predict' option.

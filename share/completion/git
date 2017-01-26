@@ -1,4 +1,4 @@
-# (C) 2011-2016 magicant
+# (C) 2011-2017 magicant
 
 # Completion script for the "git" command.
 # Supports Git 2.9.2.
@@ -328,13 +328,14 @@ function completion/git::completeref {
 		set -- --all
 
 		# complete commit ID
-		if grep -Eq '^[[:xdigit:]]{2,7}$' <<<"$targetword" 2>/dev/null; then
+		if grep -Eq '^[[:xdigit:]]*$' <<<"$targetword" 2>/dev/null; then
 			typeset id message
 			while read -r id message; do
 				complete -P "$PREFIX" -D "$message" \
 					${usesuffix:+-S "$suffix" -T} -- "$id"
-			done 2>/dev/null <(git rev-list --all --oneline |
-				grep "^$targetword")
+			done 2>/dev/null \
+				<(git rev-list --all --oneline --date-order |
+				grep "^$targetword" | head)
 		fi
 	fi
 
