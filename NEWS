@@ -11,6 +11,8 @@ History of Yash
 Yash 2.45
 
   +  Updated completion script for: git
+  *  In arithmetic expansion, unset variables now successfully expand
+     to a value of "0".
 
 ----------------------------------------------------------------------
 Yash 2.44

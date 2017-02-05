@@ -3,10 +3,11 @@
 setup -d
 
 test_oE -e 0 'single variable'
-zero=0.0 one=1.0 nonnumeric='hello  world'
-echoraw $((zero)) $((one)) "$((nonnumeric))"
+unset unset
+empty= zero=0.0 one=1.0 nonnumeric='hello  world'
+echoraw "[$((empty))]" $((zero)) $((one)) "$((nonnumeric))" $((unset))
 __IN__
-0.0 1.0 hello  world
+[] 0.0 1.0 hello  world 0
 __OUT__
 
 test_oE 'integer: prefix ++'

@@ -19,14 +19,14 @@ __IN__
 0 1 100 1 -1
 __OUT__
 
-test_oE -e 0 'unset variable is considered 0 (+u)'
+test_oE -e 0 'unset variable is considered 0 (direct, +u)'
 unset x
 echoraw $((x))
 __IN__
 0
 __OUT__
 
-test_oE -e 0 'unset variable is considered 0 (-u)' -u
+test_oE -e 0 'unset variable is considered 0 (direct, -u)' -u
 unset x
 echoraw $((x))
 __IN__
@@ -174,6 +174,22 @@ readonly a=3
 echoraw $((a=5))
 echoraw not reached
 __IN__
+
+test_oE -e 0 'unset variable is considered 0 (assignment, +u)'
+unset x
+echoraw $((a=x)) && echoraw $a
+__IN__
+0
+0
+__OUT__
+
+test_oE -e 0 'unset variable is considered 0 (assignment, -u)' -u
+unset x
+echoraw $((a=x)) && echoraw $a
+__IN__
+0
+0
+__OUT__
 
 test_oE 'operator precedence: unary and multiplicatives'
 echoraw $((!0*3)) $((~-1*3)) $((!1/2)) $((!1%1))

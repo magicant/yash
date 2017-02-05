@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -312,7 +312,9 @@ wchar_t *value_to_string(const value_T *value)
 		wmemcpy(name, value->v_var.contents, value->v_var.length);
 		name[value->v_var.length] = L'\0';
 		const wchar_t *var = getvar(name);
-		return (var != NULL) ? xwcsdup(var) : NULL;
+		if (var != NULL)
+		    return xwcsdup(var);
+		return malloc_wprintf(L"%ld", 0L);
 	    }
     }
     assert(false);
