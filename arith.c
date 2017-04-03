@@ -29,20 +29,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <sys/types.h>
-/* #include <wctype.h> */
+#include <wctype.h>
 #include "option.h"
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-/* Must not include <ctype.h> or <wctype.h> because symbol names conflict.
- * (to[a-z]*) */
-
-
-/* we declare these functions instead of including <wctype.h> */
-extern int iswalpha(wint_t wc);
-extern int iswalnum(wint_t wc);
-extern int iswdigit(wint_t wc);
-extern int iswspace(wint_t wc);
 
 
 typedef struct word_T {
@@ -65,7 +56,7 @@ typedef struct value_T {
 #define v_double value.doublevalue
 #define v_var    value.varvalue
 
-typedef enum tokentype_T {
+typedef enum atokentype_T {
     TT_NULL, TT_INVALID,
     /* symbols */
     TT_LPAREN, TT_RPAREN, TT_TILDE, TT_EXCL, TT_PERCENT,
@@ -80,16 +71,16 @@ typedef enum tokentype_T {
     TT_NUMBER,
     /* identifiers */
     TT_IDENTIFIER,
-} tokentype_T;
-typedef struct token_T {
-    tokentype_T type;
+} atokentype_T;
+typedef struct atoken_T {
+    atokentype_T type;
     word_T word;  /* valid only for numbers and identifiers */
-} token_T;
+} atoken_T;
 
 typedef struct evalinfo_T {
     const wchar_t *exp;  /* expression to parse and calculate */
     size_t index;        /* index of next token */
-    token_T token;       /* current token */
+    atoken_T atoken;     /* current token */
     bool parseonly;      /* only parse the expression: don't calculate */
     bool error;          /* true if there is an error */
     char *savelocale;    /* original LC_NUMERIC locale */
@@ -105,13 +96,13 @@ static bool do_assignment(const word_T *word, const value_T *value)
 static wchar_t *value_to_string(const value_T *value)
     __attribute__((nonnull));
 static bool do_binary_calculation(
-	evalinfo_T *info, tokentype_T ttype,
+	evalinfo_T *info, atokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
     __attribute__((nonnull));
-static long do_long_calculation1(tokentype_T ttype, long v1, long v2);
-static long do_long_calculation2(tokentype_T ttype, long v1, long v2);
-static double do_double_calculation(tokentype_T ttype, double v1, double v2);
-static long do_double_comparison(tokentype_T ttype, double v1, double v2);
+static long do_long_calculation1(atokentype_T ttype, long v1, long v2);
+static long do_long_calculation2(atokentype_T ttype, long v1, long v2);
+static double do_double_calculation(atokentype_T ttype, double v1, double v2);
+static long do_double_comparison(atokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_logical_or(evalinfo_T *info, value_T *result)
@@ -138,7 +129,7 @@ static void parse_prefix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_postfix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
-static void do_increment_or_decrement(tokentype_T ttype, value_T *value)
+static void do_increment_or_decrement(atokentype_T ttype, value_T *value)
     __attribute__((nonnull));
 static void parse_primary(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
@@ -154,7 +145,7 @@ static valuetype_T coerce_type(evalinfo_T *info,
 static void next_token(evalinfo_T *info)
     __attribute__((nonnull));
 static bool fail_if_will_divide_by_zero(
-	tokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
+	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 
 
@@ -173,10 +164,10 @@ wchar_t *evaluate_arithmetic(wchar_t *exp)
     wchar_t *resultstr;
     if (info.error) {
 	resultstr = NULL;
-    } else if (info.token.type == TT_NULL) {
+    } else if (info.atoken.type == TT_NULL) {
 	resultstr = value_to_string(&result);
     } else {
-	if (info.token.type != TT_INVALID)
+	if (info.atoken.type != TT_INVALID)
 	    xerror(0, Ngt("arithmetic: invalid syntax"));
 	resultstr = NULL;
     }
@@ -199,7 +190,7 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
     bool ok;
     if (info.error) {
 	ok = false;
-    } else if (info.token.type == TT_NULL) {
+    } else if (info.atoken.type == TT_NULL) {
 	if (result.type == VT_LONG) {
 #if LONG_MAX > SSIZE_MAX
 	    if (result.v_long > (long) SSIZE_MAX)
@@ -218,7 +209,7 @@ bool evaluate_index(wchar_t *exp, ssize_t *valuep)
 	    ok = false;
 	}
     } else {
-	if (info.token.type != TT_INVALID)
+	if (info.atoken.type != TT_INVALID)
 	    xerror(0, Ngt("arithmetic: invalid syntax"));
 	ok = false;
     }
@@ -250,7 +241,7 @@ void parse_assignment(evalinfo_T *info, value_T *result)
 {
     parse_conditional(info, result);
 
-    tokentype_T ttype = info->token.type;
+    atokentype_T ttype = info->atoken.type;
     switch (ttype) {
 	case TT_EQUAL:          case TT_PLUSEQUAL:   case TT_MINUSEQUAL:
 	case TT_ASTEREQUAL:     case TT_SLASHEQUAL:  case TT_PERCENTEQUAL:
@@ -325,7 +316,7 @@ wchar_t *value_to_string(const value_T *value)
  * assigned to `*result' unless there is an error.
  * Returns true iff successful. */
 bool do_binary_calculation(
-	evalinfo_T *info, tokentype_T ttype,
+	evalinfo_T *info, atokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
 {
     switch (ttype) {
@@ -378,7 +369,7 @@ bool do_binary_calculation(
 
 /* Does unary or binary long calculation according to the specified operator
  * token. Division by zero is not allowed. */
-long do_long_calculation1(tokentype_T ttype, long v1, long v2)
+long do_long_calculation1(atokentype_T ttype, long v1, long v2)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
@@ -398,7 +389,7 @@ long do_long_calculation1(tokentype_T ttype, long v1, long v2)
 
 /* Does unary or binary long calculation according to the specified operator
  * token. */
-long do_long_calculation2(tokentype_T ttype, long v1, long v2)
+long do_long_calculation2(atokentype_T ttype, long v1, long v2)
 {
     switch (ttype) {
 	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
@@ -430,7 +421,7 @@ long do_long_calculation2(tokentype_T ttype, long v1, long v2)
 
 /* Does unary or binary double calculation according to the specified operator
  * token. */
-double do_double_calculation(tokentype_T ttype, double v1, double v2)
+double do_double_calculation(atokentype_T ttype, double v1, double v2)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
@@ -449,7 +440,7 @@ double do_double_calculation(tokentype_T ttype, double v1, double v2)
 }
 
 /* Does double comparison according to the specified operator token. */
-long do_double_comparison(tokentype_T ttype, double v1, double v2)
+long do_double_comparison(atokentype_T ttype, double v1, double v2)
 {
     switch (ttype) {
 	case TT_LESS:
@@ -482,7 +473,7 @@ void parse_conditional(evalinfo_T *info, value_T *result)
 
 	result2 = info->parseonly ? &dummy : result;
 	parse_logical_or(info, result2);
-	if (info->token.type != TT_QUESTION)
+	if (info->atoken.type != TT_QUESTION)
 	    break;
 
 	bool cond, valid = true;
@@ -501,7 +492,7 @@ void parse_conditional(evalinfo_T *info, value_T *result)
 
 	result2 = info->parseonly ? &dummy : result;
 	parse_assignment(info, result2);
-	if (info->token.type != TT_COLON) {
+	if (info->atoken.type != TT_COLON) {
 	    xerror(0, Ngt("arithmetic: `%ls' is missing"), L":");
 	    info->error = true;
 	    result->type = VT_INVALID;
@@ -524,7 +515,7 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
 
     parse_logical_and(info, result);
-    while (info->token.type == TT_PIPEPIPE) {
+    while (info->atoken.type == TT_PIPEPIPE) {
 	bool value, valid = true;
 
 	coerce_number(info, result);
@@ -560,7 +551,7 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
     bool saveparseonly = info->parseonly;
 
     parse_inclusive_or(info, result);
-    while (info->token.type == TT_AMPAMP) {
+    while (info->atoken.type == TT_AMPAMP) {
 	bool value, valid = true;
 
 	coerce_number(info, result);
@@ -595,7 +586,7 @@ void parse_inclusive_or(evalinfo_T *info, value_T *result)
 {
     parse_exclusive_or(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_PIPE:
@@ -615,7 +606,7 @@ void parse_exclusive_or(evalinfo_T *info, value_T *result)
 {
     parse_and(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_HAT:
@@ -635,7 +626,7 @@ void parse_and(evalinfo_T *info, value_T *result)
 {
     parse_equality(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_AMP:
@@ -657,7 +648,7 @@ void parse_equality(evalinfo_T *info, value_T *result)
 {
     parse_relational(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_EQUALEQUAL:
@@ -697,7 +688,7 @@ void parse_relational(evalinfo_T *info, value_T *result)
 {
     parse_shift(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_LESS:
@@ -736,7 +727,7 @@ void parse_shift(evalinfo_T *info, value_T *result)
 {
     parse_additive(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_LESSLESS:
@@ -759,7 +750,7 @@ void parse_additive(evalinfo_T *info, value_T *result)
 {
     parse_multiplicative(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_PLUS:
@@ -783,7 +774,7 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
 {
     parse_prefix(info, result);
     for (;;) {
-	tokentype_T ttype = info->token.type;
+	atokentype_T ttype = info->atoken.type;
 	value_T rhs;
 	switch (ttype) {
 	    case TT_ASTER:
@@ -806,7 +797,7 @@ void parse_multiplicative(evalinfo_T *info, value_T *result)
  *              | "~" PrefixExp | "!" PrefixExp */
 void parse_prefix(evalinfo_T *info, value_T *result)
 {
-    tokentype_T ttype = info->token.type;
+    atokentype_T ttype = info->atoken.type;
     switch (ttype) {
 	case TT_PLUSPLUS:
 	case TT_MINUSMINUS:
@@ -827,7 +818,7 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 		/* TRANSLATORS: This error message is shown when the operand of
 		 * the "++" or "--" operator is not a variable. */
 		xerror(0, Ngt("arithmetic: operator `%ls' requires a variable"),
-			(info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
+			(info->atoken.type == TT_PLUSPLUS) ? L"++" : L"--");
 		info->error = true;
 		result->type = VT_INVALID;
 	    }
@@ -884,20 +875,20 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 {
     parse_primary(info, result);
     for (;;) {
-	switch (info->token.type) {
+	switch (info->atoken.type) {
 	    case TT_PLUSPLUS:
 	    case TT_MINUSMINUS:
 		if (posixly_correct) {
 		    xerror(0,
 			    Ngt("arithmetic: operator `%ls' is not supported"),
-			    (info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
+			    (info->atoken.type == TT_PLUSPLUS) ? L"++" : L"--");
 		    info->error = true;
 		    result->type = VT_INVALID;
 		} else if (result->type == VT_VAR) {
 		    word_T saveword = result->v_var;
 		    coerce_number(info, result);
 		    value_T value = *result;
-		    do_increment_or_decrement(info->token.type, &value);
+		    do_increment_or_decrement(info->atoken.type, &value);
 		    if (!do_assignment(&saveword, &value)) {
 			info->error = true;
 			result->type = VT_INVALID;
@@ -905,7 +896,7 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 		} else if (result->type != VT_INVALID) {
 		    xerror(0, Ngt("arithmetic: "
 				"operator `%ls' requires a variable"),
-			    (info->token.type == TT_PLUSPLUS) ? L"++" : L"--");
+			    (info->atoken.type == TT_PLUSPLUS) ? L"++" : L"--");
 		    info->error = true;
 		    result->type = VT_INVALID;
 		}
@@ -920,7 +911,7 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 /* Increment or decrement the specified value.
  * `ttype' must be either TT_PLUSPLUS or TT_MINUSMINUS and the `value' must be
  * `coerce_number'ed. */
-void do_increment_or_decrement(tokentype_T ttype, value_T *value)
+void do_increment_or_decrement(atokentype_T ttype, value_T *value)
 {
     if (ttype == TT_PLUSPLUS) {
 	switch (value->type) {
@@ -943,11 +934,11 @@ void do_increment_or_decrement(tokentype_T ttype, value_T *value)
  *   PrimaryExp := "(" AssignmentExp ")" | Number | Identifier */
 void parse_primary(evalinfo_T *info, value_T *result)
 {
-    switch (info->token.type) {
+    switch (info->atoken.type) {
 	case TT_LPAREN:
 	    next_token(info);
 	    parse_assignment(info, result);
-	    if (info->token.type == TT_RPAREN) {
+	    if (info->atoken.type == TT_RPAREN) {
 		next_token(info);
 	    } else {
 		xerror(0, Ngt("arithmetic: `%ls' is missing"), L")");
@@ -961,7 +952,7 @@ void parse_primary(evalinfo_T *info, value_T *result)
 	    break;
 	case TT_IDENTIFIER:
 	    result->type = VT_VAR;
-	    result->v_var = info->token.word;
+	    result->v_var = info->atoken.word;
 	    next_token(info);
 	    break;
 	default:
@@ -977,7 +968,7 @@ void parse_primary(evalinfo_T *info, value_T *result)
 /* Parses the current word as a number literal. */
 void parse_as_number(evalinfo_T *info, value_T *result)
 {
-    word_T *word = &info->token.word;
+    word_T *word = &info->atoken.word;
     wchar_t wordstr[word->length + 1];
     wcsncpy(wordstr, word->contents, word->length);
     wordstr[word->length] = L'\0';
@@ -1101,28 +1092,28 @@ void next_token(evalinfo_T *info)
     wchar_t c = info->exp[info->index];
     switch (c) {
 	case L'\0':
-	    info->token.type = TT_NULL;
+	    info->atoken.type = TT_NULL;
 	    return;
 	case L'(':
-	    info->token.type = TT_LPAREN;
+	    info->atoken.type = TT_LPAREN;
 	    info->index++;
 	    break;
 	case L')':
-	    info->token.type = TT_RPAREN;
+	    info->atoken.type = TT_RPAREN;
 	    info->index++;
 	    break;
 	case L'~':
-	    info->token.type = TT_TILDE;
+	    info->atoken.type = TT_TILDE;
 	    info->index++;
 	    break;
 	case L'!':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_EXCLEQUAL;
+		    info->atoken.type = TT_EXCLEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_EXCL;
+		    info->atoken.type = TT_EXCL;
 		    info->index += 1;
 		    break;
 	    }
@@ -1130,11 +1121,11 @@ void next_token(evalinfo_T *info)
 	case L'%':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_PERCENTEQUAL;
+		    info->atoken.type = TT_PERCENTEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_PERCENT;
+		    info->atoken.type = TT_PERCENT;
 		    info->index += 1;
 		    break;
 	    }
@@ -1142,15 +1133,15 @@ void next_token(evalinfo_T *info)
 	case L'+':
 	    switch (info->exp[info->index + 1]) {
 		case L'+':
-		    info->token.type = TT_PLUSPLUS;
+		    info->atoken.type = TT_PLUSPLUS;
 		    info->index += 2;
 		    break;
 		case L'=':
-		    info->token.type = TT_PLUSEQUAL;
+		    info->atoken.type = TT_PLUSEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_PLUS;
+		    info->atoken.type = TT_PLUS;
 		    info->index += 1;
 		    break;
 	    }
@@ -1158,15 +1149,15 @@ void next_token(evalinfo_T *info)
 	case L'-':
 	    switch (info->exp[info->index + 1]) {
 		case L'-':
-		    info->token.type = TT_MINUSMINUS;
+		    info->atoken.type = TT_MINUSMINUS;
 		    info->index += 2;
 		    break;
 		case L'=':
-		    info->token.type = TT_MINUSEQUAL;
+		    info->atoken.type = TT_MINUSEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_MINUS;
+		    info->atoken.type = TT_MINUS;
 		    info->index += 1;
 		    break;
 	    }
@@ -1174,11 +1165,11 @@ void next_token(evalinfo_T *info)
 	case L'*':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_ASTEREQUAL;
+		    info->atoken.type = TT_ASTEREQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_ASTER;
+		    info->atoken.type = TT_ASTER;
 		    info->index += 1;
 		    break;
 	    }
@@ -1186,11 +1177,11 @@ void next_token(evalinfo_T *info)
 	case L'/':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_SLASHEQUAL;
+		    info->atoken.type = TT_SLASHEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_SLASH;
+		    info->atoken.type = TT_SLASH;
 		    info->index += 1;
 		    break;
 	    }
@@ -1204,7 +1195,7 @@ void next_token(evalinfo_T *info)
 		bool equal = info->exp[info->index] == L'=';
 		if (equal)
 		    info->index++;
-		info->token.type = twin
+		info->atoken.type = twin
 		    ? equal ? TT_LESSLESSEQUAL : TT_LESSLESS
 		    : equal ? TT_LESSEQUAL : TT_LESS;
 	    }
@@ -1218,7 +1209,7 @@ void next_token(evalinfo_T *info)
 		bool equal = info->exp[info->index] == L'=';
 		if (equal)
 		    info->index++;
-		info->token.type = twin
+		info->atoken.type = twin
 		    ? equal ? TT_GREATERGREATEREQUAL : TT_GREATERGREATER
 		    : equal ? TT_GREATEREQUAL : TT_GREATER;
 	    }
@@ -1226,11 +1217,11 @@ void next_token(evalinfo_T *info)
 	case L'=':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_EQUALEQUAL;
+		    info->atoken.type = TT_EQUALEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_EQUAL;
+		    info->atoken.type = TT_EQUAL;
 		    info->index += 1;
 		    break;
 	    }
@@ -1238,15 +1229,15 @@ void next_token(evalinfo_T *info)
 	case L'&':
 	    switch (info->exp[info->index + 1]) {
 		case L'&':
-		    info->token.type = TT_AMPAMP;
+		    info->atoken.type = TT_AMPAMP;
 		    info->index += 2;
 		    break;
 		case L'=':
-		    info->token.type = TT_AMPEQUAL;
+		    info->atoken.type = TT_AMPEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_AMP;
+		    info->atoken.type = TT_AMP;
 		    info->index += 1;
 		    break;
 	    }
@@ -1254,15 +1245,15 @@ void next_token(evalinfo_T *info)
 	case L'|':
 	    switch (info->exp[info->index + 1]) {
 		case L'|':
-		    info->token.type = TT_PIPEPIPE;
+		    info->atoken.type = TT_PIPEPIPE;
 		    info->index += 2;
 		    break;
 		case L'=':
-		    info->token.type = TT_PIPEEQUAL;
+		    info->atoken.type = TT_PIPEEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_PIPE;
+		    info->atoken.type = TT_PIPE;
 		    info->index += 1;
 		    break;
 	    }
@@ -1270,21 +1261,21 @@ void next_token(evalinfo_T *info)
 	case L'^':
 	    switch (info->exp[info->index + 1]) {
 		case L'=':
-		    info->token.type = TT_HATEQUAL;
+		    info->atoken.type = TT_HATEQUAL;
 		    info->index += 2;
 		    break;
 		default:
-		    info->token.type = TT_HAT;
+		    info->atoken.type = TT_HAT;
 		    info->index += 1;
 		    break;
 	    }
 	    break;
 	case L'?':
-	    info->token.type = TT_QUESTION;
+	    info->atoken.type = TT_QUESTION;
 	    info->index++;
 	    break;
 	case L':':
-	    info->token.type = TT_COLON;
+	    info->atoken.type = TT_COLON;
 	    info->index++;
 	    break;
 	case L'_':
@@ -1303,23 +1294,23 @@ parse_num:
 		    if (c == L'E' || c == L'e')
 			goto parse_num;
 		}
-		info->token.type = TT_NUMBER;
-		info->token.word.contents = &info->exp[startindex];
-		info->token.word.length = info->index - startindex;
+		info->atoken.type = TT_NUMBER;
+		info->atoken.word.contents = &info->exp[startindex];
+		info->atoken.word.length = info->index - startindex;
 	    } else if (iswalpha(c)) {
 parse_identifier:;
 		size_t startindex = info->index;
 		do
 		    c = info->exp[++info->index];
 		while (c == L'_' || iswalnum(c));
-		info->token.type = TT_IDENTIFIER;
-		info->token.word.contents = &info->exp[startindex];
-		info->token.word.length = info->index - startindex;
+		info->atoken.type = TT_IDENTIFIER;
+		info->atoken.word.contents = &info->exp[startindex];
+		info->atoken.word.length = info->index - startindex;
 	    } else {
 		xerror(0, Ngt("arithmetic: `%lc' is not "
 			    "a valid number or operator"), (wint_t) c);
 		info->error = true;
-		info->token.type = TT_INVALID;
+		info->atoken.type = TT_INVALID;
 	    }
 	    break;
     }
@@ -1330,7 +1321,7 @@ parse_identifier:;
  * returns true. Otherwise, just returns false.
  * `rhs->type' must not be VT_VAR. */
 bool fail_if_will_divide_by_zero(
-	tokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
+	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
 {
     switch (op) {
     case TT_SLASH:
