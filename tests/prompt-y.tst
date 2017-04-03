@@ -1,5 +1,7 @@
 # prompt-y.tst: yash-specific test of input processing
 
+mkfifo fifo
+
 (
 
 if [ "$(id -u)" -eq 0 ]; then
@@ -108,8 +110,8 @@ $
 ! !! $ 
 __ERR__
 
-# TODO: Test of \j, \[, \], and \f is missing
-# \$ is tested in another test case below
+# TODO: Test of \[, \], and \f is missing
+# \j and \$ are tested in other test cases below
 test_e 'backslash notations in PS1' -i +m
 PS1='\a \e \n \r $(printf \\\\)\ $'; echo >&2
 echo >&2; exit
@@ -129,6 +131,36 @@ __IN__
 $ 
 $   
   \ >
+__ERR__
+
+test_e '\j in PS1: shows job count' -i +m
+PS1='\j$'; echo >&2
+:&         echo >&2
+:&&:&      echo >&2
+wait $!;   echo >&2
+wait;      echo >&2
+           echo >&2; exit
+__IN__
+$ 
+0$
+1$
+2$
+1$
+0$
+__ERR__
+
+test_e '\j in PS1 and -b option' -ib +m
+PS1='\j$';  echo >&2
+exec >fifo& echo >&2
+cat fifo
+wait $!;    echo >&2
+            echo >&2; exit
+__IN__
+$ 
+0$
+1$[1] + Done                 exec 1>fifo
+0$
+0$
 __ERR__
 
 user_id="$(id -u)"

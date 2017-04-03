@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -321,9 +321,14 @@ void apply_curstop(void)
 size_t job_count(void)
 {
     size_t count = 0;
-    for (size_t i = 0; i < joblist.length; i++)
-	if (joblist.contents[i] != NULL)
-	    count++;
+    for (size_t i = 0; i < joblist.length; i++) {
+	const job_T *job = joblist.contents[i];
+	if (job == NULL)
+	    continue;
+	if (job->j_status == JS_DONE && !job->j_statuschanged)
+	    continue; // Ignore finished jobs that have already been reported.
+	count++;
+    }
     return count;
 }
 
