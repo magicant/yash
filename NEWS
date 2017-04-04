@@ -15,6 +15,8 @@ Yash 2.45
      notation included finished jobs that have not yet waited for.
      That was confusing, so the job count no longer includes finished
      jobs that have once had its "Done" status reported to the user.
+  =  The "jobs" built-in, with the -n option, no longer clears
+     finished jobs that are not being reported.
   *  In arithmetic expansion, unset variables now successfully expand
      to a value of "0".
 

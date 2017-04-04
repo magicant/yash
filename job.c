@@ -749,7 +749,7 @@ int print_job_status(size_t jobnumber,
     if (job == NULL || job->j_nonotify)
 	return result;
     if (changedonly && !job->j_statuschanged)
-	goto done;
+	return result;
 
     char current;
     if      (jobnumber == current_jobnumber)  current = '+';
@@ -805,7 +805,6 @@ int print_job_status(size_t jobnumber,
 	}
     }
     job->j_statuschanged = false;
-done:
     if (remove_done && job->j_status == JS_DONE)
 	remove_job(jobnumber);
 
@@ -1352,17 +1351,15 @@ int wait_for_job_by_jobspec(const wchar_t *jobspec)
 bool wait_builtin_has_job(bool jobcontrol)
 {
     /* print/remove already-finished jobs */
-    if (jobcontrol && is_interactive_now && !posixly_correct) {
-	for (size_t i = 1; i < joblist.length; i++)
-	    print_job_status(i, true, false, true, stdout);
-    } else {
-	for (size_t i = 1; i < joblist.length; i++) {
-	    job_T *job = joblist.contents[i];
-	    if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
-		remove_job(i);
-	}
+    for (size_t i = 1; i < joblist.length; i++) {
+	job_T *job = joblist.contents[i];
+	if (jobcontrol && is_interactive_now && !posixly_correct)
+	    print_job_status(i, true, false, false, stdout);
+	if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
+	    remove_job(i);
     }
 
+    /* see if we have jobs to wait for. */
     for (size_t i = 1; i < joblist.length; i++) {
 	job_T *job = joblist.contents[i];
 	if (job != NULL && (!jobcontrol || job->j_status == JS_RUNNING))
