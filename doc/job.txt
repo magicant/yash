@@ -71,10 +71,13 @@ link:lineedit.html[line-editing].
 
 A job is removed from the shell's job list when:
 
-- it has finished and the ``finished'' status is reported,
+- it has finished and the link:_jobs.html[jobs built-in] reported it,
 - the link:_wait.html[wait built-in] successfully waited for the job to
   finish, or
 - the link:_disown.html[disown built-in] removed the job.
+
+Jobs are not removed from the list when an interactive shell automatically
+reports the status of jobs.
 
 [NOTE]
 The word ``stop'' is synonymous to ``suspend'' in the context of job control.
