@@ -1,7 +1,7 @@
-# (C) 2016 magicant
+# (C) 2016-2017 magicant
 
 # Completion script for the "carthage" command.
-# Supports Carthage 0.17.2.
+# Supports Carthage 0.20.
 
 function completion/carthage {
 
@@ -25,6 +25,7 @@ function completion/carthage {
 
 function completion/carthage::getbuildoptions {
 	OPTIONS=("$OPTIONS" #>#
+	"--cache-builds; reuse cached builds"
 	"--configuration:"
 	"--derived-data:"
 	"--platform:"
@@ -66,7 +67,7 @@ function completion/carthage::completeoptarg
 			typeset word="${TARGETWORD#"$PREFIX"}"
 			word=${word##*,}
 			PREFIX=${TARGETWORD%"$word"}
-			complete -P "$PREFIX" all Mac iOS watchOS tvOS
+			complete -P "$PREFIX" all macOS iOS watchOS tvOS
 			;;
 		(--toolchain)
 			# TODO Complete toolchain

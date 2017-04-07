@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.45
 
-  +  Updated completion script for: git
+  +  Updated completion script for: carthage ,git
   =  In prompt strings $PS1 and $PS2, the job count printed by the \j
      notation included finished jobs that have not yet waited for.
      That was confusing, so the job count no longer includes finished
