@@ -1,0 +1,5 @@
+workdir=$(dirname -- "$0")
+YASH_LOADPATH=("${workdir}/share")
+. --autoload initialization/sample
+
+# vim: set et sw=2 sts=2 tw=78 ft=sh:

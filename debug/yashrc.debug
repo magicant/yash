@@ -1,0 +1,19 @@
+workdir=$(dirname -- "$0")
+YASH_LOADPATH=("${workdir}/share")
+PS1='\fy.[debug] \$$$ -$- j\j h\! ?$?\n'"$PS1"
+PS1S='\fg.'
+PS2='\fy.'"$PS2"
+PS2S='\fg.'
+trap 'echo SIGUSR1 received!!!' USR1
+
+FCEDIT=vim HISTFILE=/tmp/yash-debug-history-$LOGNAME HISTSIZE=15 HISTRMDUP=3
+CDPATH=.:~:/usr/
+
+p()
+if [ $# -gt 0 ]; then
+  printf '%s\n' "$@"
+fi
+
+set -abefuC --nocaseglob --dotglob --histspace --markdirs --nullglob
+
+# vim: set et sw=2 sts=2 tw=78 ft=sh:
