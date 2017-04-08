@@ -19,6 +19,27 @@ if command --identify --builtin-command history >/dev/null; then
   # don't save commands starting with a space in history
   set --hist-space
 
+  # prevent clearing history by accident
+  history()
+  if [ -t 0 ] && (
+    for arg do
+      case "${arg}" in
+        (-[drsw]?* | --*=*) ;;
+        (-*c*) exit;;
+      esac
+    done
+    false
+  ) then
+    printf 'history: seems you are trying to clear the whole history.\n' >&2
+    printf 'are you sure? (yes/no) ' >&2
+    case "$(head -n 1)" in
+      ([Yy]*) command history "$@";;
+      (*)     printf 'history: cancelled.\n' >&2;;
+    esac
+  else
+    command history "$@"
+  fi
+
 fi
 
 # if yash is built with line-editing enabled...

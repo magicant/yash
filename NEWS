@@ -19,6 +19,8 @@ Yash 2.45
      finished jobs that are not being reported.
   *  In arithmetic expansion, unset variables now successfully expand
      to a value of "0".
+  .  Updated the default initialization script (yashrc):
+    +  Confirm before clearing the whole history by "history -c'.
 
 ----------------------------------------------------------------------
 Yash 2.44
