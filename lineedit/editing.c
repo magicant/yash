@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2423,6 +2423,51 @@ void cmd_complete_max(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     le_complete(lecr_longest_common_prefix);
+
+    reset_state();
+}
+
+/* Like `cmd_complete_max' for a first key stroke, then like `cmd_complete'. */
+void cmd_complete_max_then_list(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
+    check_reset_completion();
+
+    le_complete(last_command.func != cmd_complete_max_then_list
+	    ? lecr_longest_common_prefix : lecr_normal);
+
+    reset_state();
+}
+
+/* Like `cmd_complete_max' for a first key stroke, then like
+ * `cmd_complete_next_candidate'. */
+void cmd_complete_max_then_next_candidate(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
+    check_reset_completion();
+
+    if (last_command.func != cmd_complete_max_then_next_candidate)
+	le_complete(lecr_longest_common_prefix);
+    else
+	le_complete_select_candidate(get_count(1));
+
+    reset_state();
+}
+
+/* Like `cmd_complete_max' for a first key stroke, then like
+ * `cmd_complete_prev_candidate'. */
+void cmd_complete_max_then_prev_candidate(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    clear_prediction();
+    check_reset_completion();
+
+    if (last_command.func != cmd_complete_max_then_prev_candidate)
+	le_complete(lecr_longest_common_prefix);
+    else
+	le_complete_select_candidate(-get_count(1));
 
     reset_state();
 }

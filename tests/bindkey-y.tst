@@ -100,6 +100,9 @@ complete-prev-page
 complete-list
 complete-all
 complete-max
+complete-max-then-list
+complete-max-then-next-candidate
+complete-max-then-prev-candidate
 clear-candidates
 vi-replace-char
 vi-insert-beginning

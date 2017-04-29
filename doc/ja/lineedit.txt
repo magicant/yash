@@ -834,6 +834,18 @@ ifndef::basebackend-html[`\^[*`]
 complete-max::
 現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。
 
+complete-max-then-list::
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete コマンドと同様に候補の一覧を表示します。
+
+complete-max-then-next-candidate::
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete-next-candidate コマンドと同様に候補を選択します。
+
+complete-max-then-prev-candidate::
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete-prev-candidate コマンドと同様に候補を選択します。
+
 clear-candidates::
 補完候補の一覧を消去します。
 

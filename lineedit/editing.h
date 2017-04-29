@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.h: main editing module */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -150,6 +150,9 @@ extern le_command_func_T
     cmd_complete_list, /*C*/
     cmd_complete_all, /*C*/
     cmd_complete_max, /*C*/
+    cmd_complete_max_then_list, /*C*/
+    cmd_complete_max_then_next_candidate, /*C*/
+    cmd_complete_max_then_prev_candidate, /*C*/
     cmd_clear_candidates; /*C*/
 
 /* vi-mode specific commands */

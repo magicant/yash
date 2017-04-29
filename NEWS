@@ -10,6 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.45
 
+  +  [line-editing] new line-editing commands:
+        complete-max-then-list, complete-max-then-next-candidate,
+        complete-max-then-prev-candidate
   +  Updated completion script for: carthage ,git
   =  In prompt strings $PS1 and $PS2, the job count printed by the \j
      notation included finished jobs that have not yet waited for.

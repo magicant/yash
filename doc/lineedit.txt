@@ -968,6 +968,18 @@ complete-max::
 Complete a word just before the cursor position with the longest prefix of all
 possible completion candidates.
 
+complete-max-then-list::
+Works like the complete-max command for the first use, then like the complete
+command when used successively.
+
+complete-max-then-next-candidate::
+Works like the complete-max command for the first use, then like the
+complete-next-candidate command when used successively.
+
+complete-max-then-prev-candidate::
+Works like the complete-max command for the first use, then like the
+complete-prev-candidate command when used successively.
+
 clear-candidates::
 Clear the list of completion candidates.
 
