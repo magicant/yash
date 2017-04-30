@@ -13,7 +13,6 @@ Yash 2.45
   +  [line-editing] new line-editing commands:
         complete-max-then-list, complete-max-then-next-candidate,
         complete-max-then-prev-candidate
-  +  Updated completion script for: carthage ,git
   =  In prompt strings $PS1 and $PS2, the job count printed by the \j
      notation included finished jobs that have not yet waited for.
      That was confusing, so the job count no longer includes finished
@@ -24,6 +23,9 @@ Yash 2.45
      to a value of "0".
   .  Updated the default initialization script (yashrc):
     +  Confirm before clearing the whole history by "history -c'.
+  .  Updated completion scripts:
+    +  carthage: --cache-builds option
+    *  git: at most 10 candidates are now proposed for a commit hash.
 
 ----------------------------------------------------------------------
 Yash 2.44
