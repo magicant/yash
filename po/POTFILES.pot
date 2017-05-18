@@ -1,0 +1,1663 @@
+# Copyright (C) 2010-2016 Magicant
+# This file is distributed under the same license as the yash package.
+# WATANABE Yuki <magicant@users.osdn.me>, 2010-2016.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: yash\n"
+"Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
+"POT-Creation-Date: 2016-09-10 02:17-0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.8\n"
+"X-Poedit-Basepath: ..\n"
+"PO-Revision-Date: \n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: alias.c:395
+#, c-format
+msgid "%ls: an alias for `%ls'\n"
+msgstr ""
+
+#: alias.c:492 alias.c:543
+#, c-format
+msgid "no such alias `%ls'"
+msgstr ""
+
+#: alias.c:495
+#, c-format
+msgid "`%ls' is not a valid alias name"
+msgstr ""
+
+#: alias.c:504
+msgid "define or print aliases"
+msgstr ""
+
+#: alias.c:507
+msgid "\talias [-gp] [name[=value]...]\n"
+msgstr ""
+
+#: alias.c:551
+msgid "undefine aliases"
+msgstr ""
+
+#: alias.c:554
+msgid ""
+"\tunalias name...\n"
+"\tunalias -a\n"
+msgstr ""
+
+#: arith.c:180 arith.c:222
+msgid "arithmetic: invalid syntax"
+msgstr ""
+
+#: arith.c:217
+msgid "the index is not an integer"
+msgstr ""
+
+#. TRANSLATORS: This error message is shown when the target
+#. * of an assignment is not a variable.
+#: arith.c:273
+msgid "arithmetic: cannot assign to a number"
+msgstr ""
+
+#: arith.c:503 arith.c:951
+#, c-format
+msgid "arithmetic: `%ls' is missing"
+msgstr ""
+
+#: arith.c:814 arith.c:890
+#, c-format
+msgid "arithmetic: operator `%ls' is not supported"
+msgstr ""
+
+#. TRANSLATORS: This error message is shown when the operand of
+#. * the "++" or "--" operator is not a variable.
+#: arith.c:827 arith.c:904
+#, c-format
+msgid "arithmetic: operator `%ls' requires a variable"
+msgstr ""
+
+#: arith.c:966
+msgid "arithmetic: a value is missing"
+msgstr ""
+
+#: arith.c:1003 arith.c:1047
+#, c-format
+msgid "arithmetic: `%ls' is not a valid number"
+msgstr ""
+
+#: arith.c:1317
+#, c-format
+msgid "arithmetic: `%lc' is not a valid number or operator"
+msgstr ""
+
+#: arith.c:1360
+msgid "arithmetic: division by zero"
+msgstr ""
+
+#: builtin.c:247
+#, c-format
+msgid "the -%lc option cannot be used with the -%lc option"
+msgstr ""
+
+#: builtin.c:273
+#, c-format
+msgid "this command requires an operand"
+msgid_plural "this command requires %zu operands"
+msgstr[0] ""
+msgstr[1] ""
+
+#. TRANSLATORS: This message is printed when a command that takes no
+#. * operand was invoked with some operands.
+#: builtin.c:286
+msgid "no operand is expected"
+msgstr ""
+
+#. TRANSLATORS: This message is printed when a command was invoked with
+#. * the wrong number of operands.
+#: builtin.c:290
+msgid "too many operands are specified"
+msgstr ""
+
+#: builtin.c:342 yash.c:372
+msgid "Try `man yash' for details.\n"
+msgstr ""
+
+#: builtin.c:357
+#, c-format
+msgid "no such built-in `%ls'"
+msgstr ""
+
+#. TRANSLATORS: This is printed before syntax info of a built-in.
+#: builtin.c:365
+#, c-format
+msgid ""
+"Syntax:\n"
+"%s\n"
+msgstr ""
+
+#. TRANSLATORS: This text is printed before a list of options.
+#: builtin.c:384 builtin.c:404
+msgid "Options:\n"
+msgstr ""
+
+#: builtin.c:543
+msgid "do nothing"
+msgstr ""
+
+#: builtin.c:546
+msgid "\t: [...]\n"
+msgstr ""
+
+#: builtin.c:550
+msgid "do nothing successfully"
+msgstr ""
+
+#: builtin.c:553
+msgid "\ttrue\n"
+msgstr ""
+
+#: builtin.c:557
+msgid "do nothing unsuccessfully"
+msgstr ""
+
+#: builtin.c:560
+msgid "\tfalse\n"
+msgstr ""
+
+#: builtin.c:585
+msgid "print usage of built-in commands"
+msgstr ""
+
+#: builtin.c:588
+msgid "\thelp [built-in...]\n"
+msgstr ""
+
+#: builtins/printf.c:206 builtins/printf.c:332 history.c:1458 job.c:1079
+#: path.c:1379 util.c:286
+msgid "cannot print to the standard output"
+msgstr ""
+
+#: builtins/printf.c:267
+msgid "print arguments"
+msgstr ""
+
+#: builtins/printf.c:270
+msgid "\techo [string...]\n"
+msgstr ""
+
+#: builtins/printf.c:411
+msgid "cannot parse the format"
+msgstr ""
+
+#: builtins/printf.c:520
+msgid "the conversion specifier is missing"
+msgstr ""
+
+#: builtins/printf.c:524
+#, c-format
+msgid "`%lc' is not a valid conversion specifier"
+msgstr ""
+
+#: builtins/printf.c:529
+#, c-format
+msgid "invalid flag for conversion specifier `%lc'"
+msgstr ""
+
+#: builtins/printf.c:659
+#, c-format
+msgid "`%ls' is not a valid number"
+msgstr ""
+
+#: builtins/printf.c:693 builtins/test.c:556 builtins/test.c:562
+#: builtins/ulimit.c:229 exec.c:1704 exec.c:1777 history.c:1714 sig.c:1397
+#: variable.c:2086 variable.c:2146 variable.c:2185 variable.c:2368 yash.c:612
+#, c-format
+msgid "`%ls' is not a valid integer"
+msgstr ""
+
+#: builtins/printf.c:758
+msgid "print a formatted string"
+msgstr ""
+
+#: builtins/printf.c:761
+msgid "\tprintf format [value...]\n"
+msgstr ""
+
+#: builtins/test.c:82 builtins/test.c:425 parser.c:1235 parser.c:1682
+#: parser.c:1767 parser.c:1795 parser.c:2183 parser.c:2255 parser.c:2342
+#: parser.c:2732
+#, c-format
+msgid "`%ls' is missing"
+msgstr ""
+
+#: builtins/test.c:113
+#, c-format
+msgid "`%ls' is not a valid operator"
+msgstr ""
+
+#: builtins/test.c:138
+#, c-format
+msgid "`%ls' is not a unary operator"
+msgstr ""
+
+#: builtins/test.c:159 builtins/test.c:627 builtins/test.c:635 exec.c:1913
+#: exec.c:2048 exec.c:2057 history.c:1492 lineedit/keymap.c:476 path.c:1106
+#: path.c:1173 strbuf.c:573 strbuf.c:596
+msgid "unexpected error"
+msgstr ""
+
+#: builtins/test.c:364
+#, c-format
+msgid "`%ls' is not a binary operator"
+msgstr ""
+
+#: builtins/test.c:416
+#, c-format
+msgid "an expression is missing after `%ls'"
+msgstr ""
+
+#: builtins/test.c:682
+msgid "evaluate a conditional expression"
+msgstr ""
+
+#: builtins/test.c:685
+msgid ""
+"\ttest expression\n"
+"\t[ expression ]\n"
+msgstr ""
+
+#: builtins/ulimit.c:65
+msgid "file size (blocks)"
+msgstr ""
+
+#: builtins/ulimit.c:73
+msgid "core file size (blocks)"
+msgstr ""
+
+#: builtins/ulimit.c:75
+msgid "data segment size (kbytes)"
+msgstr ""
+
+#: builtins/ulimit.c:78
+msgid "max nice"
+msgstr ""
+
+#: builtins/ulimit.c:83
+msgid "pending signals"
+msgstr ""
+
+#: builtins/ulimit.c:87
+msgid "locked memory (kbytes)"
+msgstr ""
+
+#: builtins/ulimit.c:91
+msgid "resident set size (kbytes)"
+msgstr ""
+
+#: builtins/ulimit.c:94
+msgid "open files"
+msgstr ""
+
+#: builtins/ulimit.c:97
+msgid "message queue size (bytes)"
+msgstr ""
+
+#: builtins/ulimit.c:101
+msgid "real-time priority"
+msgstr ""
+
+#: builtins/ulimit.c:104
+msgid "stack size (kbytes)"
+msgstr ""
+
+#: builtins/ulimit.c:106
+msgid "CPU time (seconds)"
+msgstr ""
+
+#: builtins/ulimit.c:109
+msgid "user processes"
+msgstr ""
+
+#: builtins/ulimit.c:113
+msgid "memory (kbytes)"
+msgstr ""
+
+#: builtins/ulimit.c:117
+msgid "file locks"
+msgstr ""
+
+#: builtins/ulimit.c:170 builtins/ulimit.c:245
+#, c-format
+msgid "cannot get the current limit for the resource type of `%s'"
+msgstr ""
+
+#: builtins/ulimit.c:217
+msgid "the soft limit cannot exceed the hard limit"
+msgstr ""
+
+#: builtins/ulimit.c:222
+msgid "failed to set the limit"
+msgstr ""
+
+#: builtins/ulimit.c:251
+#, c-format
+msgid "-%lc: %-30s "
+msgstr ""
+
+#: builtins/ulimit.c:263
+msgid "unlimited"
+msgstr ""
+
+#: builtins/ulimit.c:270
+msgid "set or print a resource limitation"
+msgstr ""
+
+#: builtins/ulimit.c:273
+msgid ""
+"\tulimit -a [-H|-S]\n"
+"\tulimit [-H|-S] [-efilnqrstuvx] [limit]\n"
+msgstr ""
+
+#: exec.c:752
+msgid "cannot open a pipe"
+msgstr ""
+
+#: exec.c:981
+msgid "cannot make a child process"
+msgstr ""
+
+#: exec.c:1206 exec.c:2072 exec.c:2299
+#, c-format
+msgid "no such command `%s'"
+msgstr ""
+
+#: exec.c:1260
+#, c-format
+msgid "cannot execute command `%s'"
+msgstr ""
+
+#: exec.c:1261
+#, c-format
+msgid "cannot execute command `%s' (%s)"
+msgstr ""
+
+#: exec.c:1361
+#, c-format
+msgid "cannot invoke a new shell to execute script `%s'"
+msgstr ""
+
+#: exec.c:1416 exec.c:1438
+msgid "cannot open a pipe for the command substitution"
+msgstr ""
+
+#: exec.c:1475
+msgid "command substitution"
+msgstr ""
+
+#: exec.c:1714
+msgid "cannot be used in the interactive mode"
+msgstr ""
+
+#: exec.c:1724
+msgid "return from a function or script"
+msgstr ""
+
+#: exec.c:1727
+msgid "\treturn [-n] [exit_status]\n"
+msgstr ""
+
+#: exec.c:1759
+msgid "not in an iteration"
+msgstr ""
+
+#: exec.c:1780
+#, c-format
+msgid "%u is not a positive integer"
+msgstr ""
+
+#: exec.c:1790
+msgid "not in a loop"
+msgstr ""
+
+#: exec.c:1809
+msgid "exit a loop"
+msgstr ""
+
+#: exec.c:1812
+msgid ""
+"\tbreak [count]\n"
+"\tbreak -i\n"
+msgstr ""
+
+#: exec.c:1817
+msgid "continue a loop"
+msgstr ""
+
+#: exec.c:1820
+msgid ""
+"\tcontinue [count]\n"
+"\tcontinue -i\n"
+msgstr ""
+
+#: exec.c:1860
+msgid "evaluate arguments as a command"
+msgstr ""
+
+#: exec.c:1863
+msgid "\teval [-i] [argument...]\n"
+msgstr ""
+
+#: exec.c:1922
+#, c-format
+msgid "file `%s' was not found in $YASH_LOADPATH"
+msgstr ""
+
+#: exec.c:1932
+#, c-format
+msgid "file `%s' was not found in $PATH"
+msgstr ""
+
+#: exec.c:1949 redir.c:279 yash.c:205
+#, c-format
+msgid "cannot open file `%s'"
+msgstr ""
+
+#: exec.c:1974
+msgid "read a file and execute commands"
+msgstr ""
+
+#: exec.c:1977
+msgid "\t. [-AL] file [argument...]\n"
+msgstr ""
+
+#: exec.c:2025 yash.c:599
+#, c-format
+msgid "You have a stopped job!"
+msgid_plural "You have %zu stopped jobs!"
+msgstr[0] ""
+msgstr[1] ""
+
+#: exec.c:2029
+msgid "  Use the -f option to exec anyway.\n"
+msgstr ""
+
+#: exec.c:2119
+msgid "replace the shell process with an external command"
+msgstr ""
+
+#: exec.c:2122
+msgid "\texec [-cf] [-a name] [command [argument...]]\n"
+msgstr ""
+
+#: exec.c:2182
+msgid "the -a or -k option must be used with the -v option"
+msgstr ""
+
+#: exec.c:2276
+#, c-format
+msgid "%ls: a shell keyword\n"
+msgstr ""
+
+#: exec.c:2305
+#, c-format
+msgid "%s: a special built-in\n"
+msgstr ""
+
+#: exec.c:2309
+#, c-format
+msgid "%s: a semi-special built-in\n"
+msgstr ""
+
+#: exec.c:2321
+#, c-format
+msgid "%s: a regular built-in (not found in $PATH)\n"
+msgstr ""
+
+#: exec.c:2322
+#, c-format
+msgid "%s: a regular built-in at %s\n"
+msgstr ""
+
+#: exec.c:2329
+#, c-format
+msgid "%s: a function\n"
+msgstr ""
+
+#: exec.c:2345
+#, c-format
+msgid "%s: an external command at %s\n"
+msgstr ""
+
+#: exec.c:2367
+#, c-format
+msgid "%s: an external command at %s/%s\n"
+msgstr ""
+
+#: exec.c:2376
+msgid "execute or identify a command"
+msgstr ""
+
+#: exec.c:2379
+msgid ""
+"\tcommand [-befp] command [argument...]\n"
+"\tcommand -v|-V [-abefkp] command...\n"
+msgstr ""
+
+#: exec.c:2384
+msgid "identify a command"
+msgstr ""
+
+#: exec.c:2387
+msgid "\ttype command...\n"
+msgstr ""
+
+#: exec.c:2425
+msgid "cannot get the time data"
+msgstr ""
+
+#: exec.c:2441
+msgid "print CPU time usage"
+msgstr ""
+
+#: exec.c:2444
+msgid "\ttimes\n"
+msgstr ""
+
+#: expand.c:349 expand.c:355 expand.c:373 redir.c:456
+msgid "redirection"
+msgstr ""
+
+#: expand.c:363
+#, c-format
+msgid "filename `%ls' matches more than one file"
+msgstr ""
+
+#: expand.c:665
+msgid "the parameter index is invalid"
+msgstr ""
+
+#: expand.c:821
+msgid "a nested parameter expansion cannot be assigned"
+msgstr ""
+
+#: expand.c:824
+#, c-format
+msgid "cannot assign to parameter `%ls' in parameter expansion"
+msgstr ""
+
+#: expand.c:830
+#, c-format
+msgid ""
+"the specified index does not support assignment in the parameter expansion "
+"of array `%ls'"
+msgstr ""
+
+#: expand.c:870 expand.c:1054
+#, c-format
+msgid "parameter `%ls' is not set"
+msgstr ""
+
+#: expand.c:1050
+msgid "the parameter value is empty"
+msgstr ""
+
+#: expand.c:1053
+#, c-format
+msgid "parameter `%ls' is not set or has an empty value"
+msgstr ""
+
+#: history.c:1274
+msgid "the -n or -v option must be used with the -l option"
+msgstr ""
+
+#: history.c:1280 history.c:1659
+msgid "cannot be used during line-editing"
+msgstr ""
+
+#: history.c:1296
+msgid "the command history is empty"
+msgstr ""
+
+#: history.c:1319 history.c:1774
+#, c-format
+msgid "no such history entry `%ls'"
+msgstr ""
+
+#: history.c:1421
+#, c-format
+msgid "no such history entry beginning with `%ls'"
+msgstr ""
+
+#: history.c:1529 lineedit/editing.c:2665
+msgid "cannot create a temporary file to edit history"
+msgstr ""
+
+#: history.c:1534 lineedit/editing.c:2670
+#, c-format
+msgid "cannot open temporary file `%s'"
+msgstr ""
+
+#: history.c:1542 lineedit/editing.c:2678
+msgid "cannot invoke the editor to edit history"
+msgstr ""
+
+#: history.c:1545 history.c:1571 lineedit/editing.c:2681 redir.c:795
+#, c-format
+msgid "failed to remove temporary file `%s'"
+msgstr ""
+
+#: history.c:1563
+msgid "the editor returned a non-zero exit status"
+msgstr ""
+
+#: history.c:1568
+#, c-format
+msgid "cannot read commands from file `%s'"
+msgstr ""
+
+#: history.c:1626
+msgid "list or re-execute command history"
+msgstr ""
+
+#: history.c:1629
+msgid ""
+"\tfc [-qr] [-e editor] [first [last]]\n"
+"\tfc -s [-q] [old=new] [first]\n"
+"\tfc -l [-nrv] [first [last]]\n"
+msgstr ""
+
+#: history.c:1821
+#, c-format
+msgid "cannot read history from file `%ls'"
+msgstr ""
+
+#: history.c:1855
+#, c-format
+msgid "cannot write history to file `%ls'"
+msgstr ""
+
+#: history.c:1876
+msgid "manage command history"
+msgstr ""
+
+#: history.c:1879
+msgid "\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [count]\n"
+msgstr ""
+
+#: input.c:160 lineedit/lineedit.c:221
+msgid "cannot read input"
+msgstr ""
+
+#: input.c:259 input.c:277 input.c:286
+msgid "prompt"
+msgstr ""
+
+#: job.c:520 job.c:1031 job.c:1137 job.c:1292 job.c:1402
+#, c-format
+msgid "job specification `%ls' is ambiguous"
+msgstr ""
+
+#: job.c:525 job.c:1034 job.c:1142 job.c:1405
+#, c-format
+msgid "no such job `%ls'"
+msgstr ""
+
+#: job.c:528 job.c:1144
+#, c-format
+msgid "`%ls' is not a job-controlled job"
+msgstr ""
+
+#: job.c:670 job.c:713
+msgid "Running"
+msgstr ""
+
+#: job.c:673
+#, c-format
+msgid "Stopped(SIG%ls)"
+msgstr ""
+
+#: job.c:684
+msgid "Done"
+msgstr ""
+
+#: job.c:687
+#, c-format
+msgid "Done(%d)"
+msgstr ""
+
+#: job.c:695
+#, c-format
+msgid "Killed (SIG%ls: core dumped)"
+msgstr ""
+
+#: job.c:698
+#, c-format
+msgid "Killed (SIG%ls)"
+msgstr ""
+
+#. TRANSLATORS: the translated format string can be different
+#. * from the original only in the number of spaces. This is required
+#. * for POSIX compliance.
+#: job.c:760
+#, c-format
+msgid "[%zu] %c %-20s %ls\n"
+msgstr ""
+
+#. TRANSLATORS: the translated format string can be different
+#. * from the original only in the number of spaces. This is required
+#. * for POSIX compliance.
+#: job.c:779
+#, c-format
+msgid "[%zu] %c %5jd %-20s   %ls\n"
+msgstr ""
+
+#. TRANSLATORS: the translated format string can be different
+#. * from the original only in the number of spaces. This is required
+#. * for POSIX compliance.
+#: job.c:793
+#, c-format
+msgid "      %5jd %-20s | %ls\n"
+msgstr ""
+
+#: job.c:844
+#, c-format
+msgid "The process was killed by SIG%ls: %s\n"
+msgstr ""
+
+#: job.c:847
+#, c-format
+msgid "The process was killed by SIG%ls\n"
+msgstr ""
+
+#: job.c:1024 job.c:1130 job.c:1285 job.c:1396
+#, c-format
+msgid "`%ls' is not a valid job specification"
+msgstr ""
+
+#: job.c:1088
+msgid "print info about jobs"
+msgstr ""
+
+#: job.c:1091
+msgid "\tjobs [-lnprs] [job...]\n"
+msgstr ""
+
+#: job.c:1117
+msgid "job control is disabled"
+msgstr ""
+
+#: job.c:1153 job.c:1412
+msgid "there is no current job"
+msgstr ""
+
+#: job.c:1155
+msgid "the current job is not a job-controlled job"
+msgstr ""
+
+#: job.c:1194
+#, c-format
+msgid "job %%%zu has already terminated"
+msgstr ""
+
+#: job.c:1240
+msgid "run jobs in the foreground"
+msgstr ""
+
+#: job.c:1243
+msgid "\tfg [job...]\n"
+msgstr ""
+
+#: job.c:1247
+msgid "run jobs in the background"
+msgstr ""
+
+#: job.c:1250
+msgid "\tbg [job...]\n"
+msgstr ""
+
+#: job.c:1359
+msgid "wait for jobs to terminate"
+msgstr ""
+
+#: job.c:1362
+msgid "\twait [job or process_id...]\n"
+msgstr ""
+
+#: job.c:1422
+msgid "disown jobs"
+msgstr ""
+
+#: job.c:1425
+msgid ""
+"\tdisown [job...]\n"
+"\tdisown -a\n"
+msgstr ""
+
+#: lineedit/complete.c:1512
+#, c-format
+msgid "more than one -%lc option is specified"
+msgstr ""
+
+#: lineedit/complete.c:1524
+msgid "the complete built-in can be used during command line completion only"
+msgstr ""
+
+#: lineedit/complete.c:1537
+#, c-format
+msgid "the specified prefix `%ls' does not match the target word `%ls'"
+msgstr ""
+
+#: lineedit/complete.c:1585
+msgid "generate completion candidates"
+msgstr ""
+
+#: lineedit/complete.c:1588
+msgid ""
+"\tcomplete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
+"\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"
+msgstr ""
+
+#: lineedit/display.c:1348
+#, c-format
+msgid "Candidate %zu of %zu; Page %zu of %zu"
+msgstr ""
+
+#: lineedit/display.c:1364
+msgid "No candidates"
+msgstr ""
+
+#: lineedit/editing.c:2735
+msgid "lineedit"
+msgstr ""
+
+#: lineedit/keymap.c:422
+msgid "option combination is invalid"
+msgstr ""
+
+#: lineedit/keymap.c:429
+msgid "no option is specified"
+msgstr ""
+
+#: lineedit/keymap.c:463
+msgid "cannot bind an empty key sequence"
+msgstr ""
+
+#: lineedit/keymap.c:487
+#, c-format
+msgid "no such editing command `%ls'"
+msgstr ""
+
+#: lineedit/keymap.c:521
+#, c-format
+msgid "key sequence `%ls' is not bound"
+msgstr ""
+
+#: lineedit/keymap.c:567
+msgid "set or print key bindings for line-editing"
+msgstr ""
+
+#: lineedit/keymap.c:570
+msgid ""
+"\tbindkey -aev [key_sequence [command]]\n"
+"\tbindkey -l\n"
+msgstr ""
+
+#: mail.c:164 mail.c:237
+msgid "You have new mail."
+msgstr ""
+
+#: option.c:405 xgetopt.c:414
+#, c-format
+msgid "the -%lc option requires an argument"
+msgstr ""
+
+#: option.c:452 option.c:571 sig.c:1341 xgetopt.c:382
+#, c-format
+msgid "`%ls' is not a valid option"
+msgstr ""
+
+#: option.c:594 xgetopt.c:417
+#, c-format
+msgid "the --%ls option requires an argument"
+msgstr ""
+
+#: option.c:608 xgetopt.c:431
+#, c-format
+msgid "%ls: the --%ls option does not take an argument"
+msgstr ""
+
+#: option.c:617 xgetopt.c:392
+#, c-format
+msgid "option `%ls' is ambiguous"
+msgstr ""
+
+#: option.c:641
+#, c-format
+msgid "the %ls option cannot be changed once the shell has been initialized"
+msgstr ""
+
+#: option.c:900
+msgid "on"
+msgstr ""
+
+#: option.c:901
+msgid "off"
+msgstr ""
+
+#: option.c:925
+msgid "set shell options and positional parameters"
+msgstr ""
+
+#: option.c:928
+msgid ""
+"\tset [option...] [--] [new_positional_parameter...]\n"
+"\tset -o|+o  # print current settings\n"
+msgstr ""
+
+#: parser.c:600
+msgid "syntax error: "
+msgstr ""
+
+#: parser.c:880
+msgid "`;' or `&' is missing"
+msgstr ""
+
+#: parser.c:1076
+msgid "a command is missing at the end of input"
+msgstr ""
+
+#: parser.c:1078
+#, c-format
+msgid "a command is missing before `%lc'"
+msgstr ""
+
+#: parser.c:1111
+#, c-format
+msgid "invalid use of `%lc'"
+msgstr ""
+
+#: parser.c:1359
+msgid "the redirection target is missing"
+msgstr ""
+
+#: parser.c:1366
+msgid "the end-of-here-document indicator is missing"
+msgstr ""
+
+#: parser.c:1385
+msgid "unclosed process redirection"
+msgstr ""
+
+#: parser.c:1490
+msgid "the double quotation is not closed"
+msgstr ""
+
+#: parser.c:1507
+msgid "the single quotation is not closed"
+msgstr ""
+
+#: parser.c:1660
+msgid "the parameter name is missing or invalid"
+msgstr ""
+
+#: parser.c:1672 parser.c:1677
+msgid "the index is missing"
+msgstr ""
+
+#: parser.c:1702 parser.c:1715
+#, c-format
+msgid "invalid character `%lc' in parameter expansion"
+msgstr ""
+
+#: parser.c:1711 parser.c:1725 parser.c:1769
+#, c-format
+msgid "invalid use of `%lc' in parameter expansion"
+msgstr ""
+
+#: parser.c:1869
+msgid "the backquoted command substitution is not closed"
+msgstr ""
+
+#: parser.c:2061 parser.c:2094 parser.c:2187 parser.c:2223
+#, c-format
+msgid "commands are missing between `%ls' and `%ls'"
+msgstr ""
+
+#: parser.c:2107 parser.c:2214
+#, c-format
+msgid "commands are missing after `%ls'"
+msgstr ""
+
+#: parser.c:2150
+msgid "an identifier is required after `for'"
+msgstr ""
+
+#: parser.c:2152
+#, c-format
+msgid "`%ls' is not a valid identifier"
+msgstr ""
+
+#: parser.c:2164
+msgid "redirections are not allowed after `in'"
+msgstr ""
+
+#: parser.c:2174
+msgid "`;' is not allowed just after the identifier in a for loop"
+msgstr ""
+
+#: parser.c:2248 parser.c:2323 parser.c:2368
+#, c-format
+msgid "a word is required after `%ls'"
+msgstr ""
+
+#: parser.c:2314
+msgid "an unquoted `esac' cannot be the first case pattern"
+msgstr ""
+
+#: parser.c:2326
+#, c-format
+msgid "encountered an invalid character `%lc' in the case pattern"
+msgstr ""
+
+#: parser.c:2354 parser.c:2690 parser.c:2693
+#, c-format
+msgid "`%ls' cannot be used as a command name"
+msgstr ""
+
+#: parser.c:2386 parser.c:2428
+msgid "a function body must be a compound command"
+msgstr ""
+
+#: parser.c:2419
+msgid "`(' must be followed by `)' in a function definition"
+msgstr ""
+
+#: parser.c:2456
+msgid "the end-of-here-document indicator contains a newline"
+msgstr ""
+
+#: parser.c:2483 parser.c:2517
+#, c-format
+msgid "the here-document content is not closed by `%ls'"
+msgstr ""
+
+#: parser.c:2569
+#, c-format
+msgid "here-document content for %s%ls is missing"
+msgstr ""
+
+#: parser.c:2681
+#, c-format
+msgid "encountered `%ls' without a matching `('"
+msgstr ""
+
+#: parser.c:2684
+#, c-format
+msgid "encountered `%ls' without a matching `{'"
+msgstr ""
+
+#: parser.c:2687
+#, c-format
+msgid "`%ls' is used outside `case'"
+msgstr ""
+
+#: parser.c:2696 parser.c:2717
+#, c-format
+msgid "encountered `%ls' without a matching `if' and/or `then'"
+msgstr ""
+
+#: parser.c:2700
+#, c-format
+msgid "encountered `%ls' without a matching `if' or `elif'"
+msgstr ""
+
+#: parser.c:2705
+#, c-format
+msgid "encountered `%ls' without a matching `for', `while', or `until'"
+msgstr ""
+
+#: parser.c:2709
+#, c-format
+msgid "encountered `%ls' without a matching `do'"
+msgstr ""
+
+#: parser.c:2714
+#, c-format
+msgid "encountered `%ls' without a matching `case'"
+msgstr ""
+
+#: parser.c:2730
+#, c-format
+msgid "(maybe you missed `%ls'?)"
+msgstr ""
+
+#: path.c:1021
+msgid "$HOME is not set"
+msgstr ""
+
+#: path.c:1030 variable.c:3020
+msgid "$OLDPWD is not set"
+msgstr ""
+
+#: path.c:1060
+msgid "$PWD has an invalid value"
+msgstr ""
+
+#: path.c:1069 path.c:1080 path.c:1374
+msgid "cannot determine the current directory"
+msgstr ""
+
+#: path.c:1147
+#, c-format
+msgid "`%ls'"
+msgstr ""
+
+#: path.c:1178
+#, c-format
+msgid "`%s'"
+msgstr ""
+
+#: path.c:1325
+msgid "change the working directory"
+msgstr ""
+
+#: path.c:1328
+msgid "\tcd [-L|-P] [directory]\n"
+msgstr ""
+
+#: path.c:1386
+msgid "print the working directory"
+msgstr ""
+
+#: path.c:1389
+msgid "\tpwd [-L|-P]\n"
+msgstr ""
+
+#: path.c:1444
+#, c-format
+msgid "no such user `%ls'"
+msgstr ""
+
+#: path.c:1466
+#, c-format
+msgid "`%ls': a command name must not contain `/'"
+msgstr ""
+
+#: path.c:1474
+#, c-format
+msgid "command `%s' was not found in $PATH"
+msgstr ""
+
+#: path.c:1523
+msgid "remember, forget, or report command locations"
+msgstr ""
+
+#: path.c:1526
+msgid ""
+"\thash command...\n"
+"\thash -r [command...]\n"
+"\thash [-a]  # print remembered paths\n"
+"\thash -d user...\n"
+"\thash -d -r [user...]\n"
+"\thash -d  # print remembered paths\n"
+msgstr ""
+
+#: path.c:1633 path.c:1716
+#, c-format
+msgid "`%ls' is not a valid mask specification"
+msgstr ""
+
+#: path.c:1743
+msgid "print or set the file creation mask"
+msgstr ""
+
+#: path.c:1746
+msgid ""
+"\tumask mode\n"
+"\tumask [-S]\n"
+msgstr ""
+
+#: redir.c:70
+#, c-format
+msgid "error in closing file descriptor %d"
+msgstr ""
+
+#: redir.c:91
+#, c-format
+msgid "cannot copy file descriptor %d to %d"
+msgstr ""
+
+#: redir.c:280
+msgid "disabling job control"
+msgstr ""
+
+#: redir.c:328
+msgid "redirection: invalid file descriptor"
+msgstr ""
+
+#: redir.c:331 redir.c:608 redir.c:680
+#, c-format
+msgid "redirection: file descriptor %d is unavailable"
+msgstr ""
+
+#: redir.c:379
+#, c-format
+msgid "redirection: cannot open file `%s'"
+msgstr ""
+
+#: redir.c:468
+#, c-format
+msgid "cannot save file descriptor %d"
+msgstr ""
+
+#: redir.c:558
+#, c-format
+msgid "socket redirection: cannot resolve the address of `%s': %s"
+msgstr ""
+
+#: redir.c:602 redir.c:617 redir.c:672
+#, c-format
+msgid "redirection: %s"
+msgstr ""
+
+#: redir.c:625
+#, c-format
+msgid "redirection: file descriptor %d is not readable"
+msgstr ""
+
+#: redir.c:637
+#, c-format
+msgid "redirection: file descriptor %d is not writable"
+msgstr ""
+
+#: redir.c:675
+#, c-format
+msgid "redirection: %d>>|%d: the input and output file descriptors are same"
+msgstr ""
+
+#: redir.c:719
+#, c-format
+msgid "redirection: %d>>|%d"
+msgstr ""
+
+#: redir.c:737 redir.c:777 redir.c:798
+msgid "cannot write the here-document contents to the temporary file"
+msgstr ""
+
+#: redir.c:790
+msgid "cannot create a temporary file for the here-document"
+msgstr ""
+
+#: redir.c:803
+msgid "cannot seek the temporary file for the here-document"
+msgstr ""
+
+#: redir.c:817
+msgid "redirection: cannot open a pipe for the process redirection"
+msgstr ""
+
+#: redir.c:856
+msgid "process redirection"
+msgstr ""
+
+#: sig.c:497
+msgid "cannot send SIGSTOP signal"
+msgstr ""
+
+#: sig.c:597
+msgid "too many files are opened for yash to handle"
+msgstr ""
+
+#: sig.c:809
+#, c-format
+msgid "SIG%ls cannot be trapped"
+msgstr ""
+
+#: sig.c:824
+#, c-format
+msgid "real-time signal SIG%ls is not supported"
+msgstr ""
+
+#: sig.c:840
+#, c-format
+msgid "SIG%ls cannot be reset"
+msgstr ""
+
+#: sig.c:1191 sig.c:1233 sig.c:1311 sig.c:1376
+#, c-format
+msgid "no such signal `%ls'"
+msgstr ""
+
+#: sig.c:1262
+msgid "set or print signal handlers"
+msgstr ""
+
+#: sig.c:1265
+msgid ""
+"\ttrap [action signal...]\n"
+"\ttrap signal_number [signal...]\n"
+"\ttrap -p [signal...]\n"
+msgstr ""
+
+#: sig.c:1299
+msgid "the signal name is not specified"
+msgstr ""
+
+#: sig.c:1305
+#, c-format
+msgid "%ls: the signal name must be specified without `SIG'"
+msgstr ""
+
+#: sig.c:1445
+msgid "send a signal to processes"
+msgstr ""
+
+#: sig.c:1448
+msgid ""
+"\tkill [-signal|-s signal|-n number] process...\n"
+"\tkill -l [-v] [number...]\n"
+msgstr ""
+
+#: util.c:254
+msgid "unknown error"
+msgstr ""
+
+#: variable.c:372 variable.c:377
+msgid "failed to set $PWD"
+msgstr ""
+
+#: variable.c:401
+#, c-format
+msgid "no such array $%ls"
+msgstr ""
+
+#: variable.c:404 variable.c:606 variable.c:1708 variable.c:2314
+#: variable.c:3066
+#, c-format
+msgid "$%ls is read-only"
+msgstr ""
+
+#: variable.c:421
+#, c-format
+msgid "failed to unset environment variable $%s"
+msgstr ""
+
+#: variable.c:425
+#, c-format
+msgid "failed to set environment variable $%s"
+msgstr ""
+
+#: variable.c:700
+#, c-format
+msgid "index %zu is out of range (the actual size of array $%ls is %zu)"
+msgstr ""
+
+#: variable.c:1243
+#, c-format
+msgid "function `%ls' cannot be redefined because it is read-only"
+msgstr ""
+
+#: variable.c:1423 variable.c:3152
+msgid "the directory stack is empty"
+msgstr ""
+
+#: variable.c:1461 variable.c:3004 variable.c:3248
+msgid "$PWD is not set"
+msgstr ""
+
+#: variable.c:1473
+#, c-format
+msgid "index %ls is out of range"
+msgstr ""
+
+#: variable.c:1732
+#, c-format
+msgid "no such variable $%ls"
+msgstr ""
+
+#: variable.c:1747
+#, c-format
+msgid "no such function `%ls'"
+msgstr ""
+
+#: variable.c:1935
+msgid "set or print variables"
+msgstr ""
+
+#: variable.c:1938
+msgid "\ttypeset [-fgprxX] [name[=value]...]\n"
+msgstr ""
+
+#: variable.c:1941
+msgid "export variables as environment variables"
+msgstr ""
+
+#: variable.c:1944
+msgid "\texport [-prX] [name[=value]...]\n"
+msgstr ""
+
+#: variable.c:1947
+msgid "make variables read-only"
+msgstr ""
+
+#: variable.c:1950
+msgid "\treadonly [-fpxX] [name[=value]...]\n"
+msgstr ""
+
+#: variable.c:1998
+msgid "more than one option cannot be used at once"
+msgstr ""
+
+#: variable.c:2017
+#, c-format
+msgid "`%ls' is not a valid array name"
+msgstr ""
+
+#: variable.c:2209
+#, c-format
+msgid "index %ls is out of range (the actual size of array $%ls is %zu)"
+msgstr ""
+
+#: variable.c:2216
+msgid "manipulate an array"
+msgstr ""
+
+#: variable.c:2219
+msgid ""
+"\tarray                  # print arrays\n"
+"\tarray name [value...]  # set array values\n"
+"\tarray -d name [index...]\n"
+"\tarray -i name index [value...]\n"
+"\tarray -s name index value\n"
+msgstr ""
+
+#: variable.c:2289
+#, c-format
+msgid "function `%ls' is read-only"
+msgstr ""
+
+#: variable.c:2325
+msgid "remove variables or functions"
+msgstr ""
+
+#: variable.c:2328
+msgid "\tunset [-fv] [name...]\n"
+msgstr ""
+
+#: variable.c:2371
+#, c-format
+msgid "%ls: the operand value must not be negative"
+msgstr ""
+
+#: variable.c:2387 variable.c:3063
+#, c-format
+msgid "$%ls is not an array"
+msgstr ""
+
+#: variable.c:2404
+#, c-format
+msgid "%ld: cannot shift so many (there is only one positional parameter)"
+msgid_plural ""
+"%ld: cannot shift so many (there are only %zu positional parameters)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: variable.c:2410
+#, c-format
+msgid "%ld: cannot shift so many (there is only one array element)"
+msgid_plural "%ld: cannot shift so many (there are only %zu array elements)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: variable.c:2434
+msgid "remove some positional parameters or array elements"
+msgstr ""
+
+#: variable.c:2437
+msgid "\tshift [-A array_name] [count]\n"
+msgstr ""
+
+#: variable.c:2468 variable.c:2692
+#, c-format
+msgid "`%ls' is not a valid variable name"
+msgstr ""
+
+#: variable.c:2471
+#, c-format
+msgid "`%ls' is not a valid option specification"
+msgstr ""
+
+#: variable.c:2529
+#, c-format
+msgid "%ls: `-%lc' is not a valid option\n"
+msgstr ""
+
+#: variable.c:2552
+#, c-format
+msgid "%ls: the -%lc option's argument is missing\n"
+msgstr ""
+
+#: variable.c:2575
+msgid "$OPTIND has an invalid value"
+msgstr ""
+
+#: variable.c:2630
+msgid "parse command options"
+msgstr ""
+
+#: variable.c:2633
+msgid "\tgetopts options variable [argument...]\n"
+msgstr ""
+
+#: variable.c:2935
+msgid "read a line from the standard input"
+msgstr ""
+
+#: variable.c:2938
+msgid "\tread [-Aer] [-P|-p] variable...\n"
+msgstr ""
+
+#: variable.c:3118
+msgid "push a directory into the directory stack"
+msgstr ""
+
+#: variable.c:3121
+msgid "\tpushd [-L|-P] [directory]\n"
+msgstr ""
+
+#: variable.c:3161 variable.c:3237
+#, c-format
+msgid "`%ls' is not a valid index"
+msgstr ""
+
+#: variable.c:3184
+msgid "pop a directory from the directory stack"
+msgstr ""
+
+#: variable.c:3187
+msgid "\tpopd [index]\n"
+msgstr ""
+
+#: variable.c:3275
+msgid "print the directory stack"
+msgstr ""
+
+#: variable.c:3278
+msgid "\tdirs [-cv] [index...]\n"
+msgstr ""
+
+#: yash.c:111
+#, c-format
+msgid "%s: cannot convert the argument `%s' into a wide character string"
+msgstr ""
+
+#: yash.c:115
+#, c-format
+msgid "%s: the argument is replaced with an empty string\n"
+msgstr ""
+
+#: yash.c:178
+msgid "the -c option is specified but no command is given"
+msgstr ""
+
+#: yash.c:362
+#, c-format
+msgid ""
+"Syntax:\n"
+"\t%s [option...] [filename [argument...]]\n"
+"\t%s [option...] -c command [command_name [argument...]]\n"
+"\t%s [option...] -s [argument...]\n"
+msgstr ""
+
+#: yash.c:379
+#, c-format
+msgid "Yet another shell, version %s\n"
+msgstr ""
+
+#: yash.c:381
+msgid ""
+"This is free software licensed under GNU GPL version 2.\n"
+"You can modify and redistribute it, but there is NO WARRANTY.\n"
+msgstr ""
+
+#: yash.c:385
+msgid ""
+"\n"
+"Enabled features:\n"
+msgstr ""
+
+#: yash.c:527
+msgid "Use `exit' to leave the shell.\n"
+msgstr ""
+
+#: yash.c:603
+msgid "  Use `exit' again to exit anyway.\n"
+msgstr ""
+
+#: yash.c:625
+msgid "exit the shell"
+msgstr ""
+
+#: yash.c:628
+msgid "\texit [-f] [exit_status]\n"
+msgstr ""
+
+#: yash.c:658
+msgid ""
+"refusing to suspend because of a possible deadlock.\n"
+"Use the -f option to suspend anyway."
+msgstr ""
+
+#: yash.c:672
+msgid "suspend the shell"
+msgstr ""
+
+#: yash.c:675
+msgid "\tsuspend [-f]\n"
+msgstr ""
