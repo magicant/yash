@@ -157,7 +157,8 @@ wait $!;    echo >&2
             echo >&2; exit
 __IN__
 $ 
-0$
+0$[1] + Running              exec 1>fifo
+
 1$[1] + Done                 exec 1>fifo
 0$
 0$

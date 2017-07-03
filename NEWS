@@ -21,6 +21,8 @@ Yash 2.45
      finished jobs that are not being reported.
   *  In arithmetic expansion, unset variables now successfully expand
      to a value of "0".
+  *  With the "-o notify" option, job status change was not being
+     printed until the shell receives a SIGCHLD.
   .  Updated the default initialization script (yashrc):
     +  Confirm before clearing the whole history by "history -c'.
   .  Updated completion scripts:

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -654,38 +654,31 @@ enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
 /* Handles SIGCHLD if caught. */
 void handle_sigchld(void)
 {
-    static bool print_status = false;
-
     if (sigchld_received) {
         sigchld_received = false;
         do_wait();
-	print_status = true;
     }
 
-    if (print_status) {
-	/* print job status if the notify option is set */
+    /* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
-	if (le_state & LE_STATE_ACTIVE) {
-	    if (!(le_state & LE_STATE_COMPLETING)) {
-		if (shopt_notify || shopt_notifyle) {
-		    le_suspend_readline();
-		    print_status = false;
-		    print_job_status_all();
-		    le_resume_readline();
-		}
+    if (le_state & LE_STATE_ACTIVE) {
+	if (!(le_state & LE_STATE_COMPLETING)) {
+	    if (shopt_notify || shopt_notifyle) {
+		le_suspend_readline();
+		print_job_status_all();
+		le_resume_readline();
 	    }
-	} else
-#endif
-	if (shopt_notify) {
-	    sigset_t ss, savess;
-	    sigemptyset(&ss);
-	    sigaddset(&ss, SIGTTOU);
-	    sigemptyset(&savess);
-	    sigprocmask(SIG_BLOCK, &ss, &savess);
-	    print_status = false;
-	    print_job_status_all();
-	    sigprocmask(SIG_SETMASK, &savess, NULL);
 	}
+    } else
+#endif
+    if (shopt_notify) {
+	sigset_t ss, savess;
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGTTOU);
+	sigemptyset(&savess);
+	sigprocmask(SIG_BLOCK, &ss, &savess);
+	print_job_status_all();
+	sigprocmask(SIG_SETMASK, &savess, NULL);
     }
 }
 
