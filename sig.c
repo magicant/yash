@@ -659,26 +659,28 @@ void handle_sigchld(void)
         do_wait();
     }
 
-    /* print job status if the notify option is set */
+    if (any_job_status_has_changed()) {
+	/* print job status if the notify option is set */
 #if YASH_ENABLE_LINEEDIT
-    if (le_state & LE_STATE_ACTIVE) {
-	if (!(le_state & LE_STATE_COMPLETING)) {
-	    if (shopt_notify || shopt_notifyle) {
-		le_suspend_readline();
-		print_job_status_all();
-		le_resume_readline();
+	if (le_state & LE_STATE_ACTIVE) {
+	    if (!(le_state & LE_STATE_COMPLETING)) {
+		if (shopt_notify || shopt_notifyle) {
+		    le_suspend_readline();
+		    print_job_status_all();
+		    le_resume_readline();
+		}
 	    }
-	}
-    } else
+	} else
 #endif
-    if (shopt_notify) {
-	sigset_t ss, savess;
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGTTOU);
-	sigemptyset(&savess);
-	sigprocmask(SIG_BLOCK, &ss, &savess);
-	print_job_status_all();
-	sigprocmask(SIG_SETMASK, &savess, NULL);
+	if (shopt_notify) {
+	    sigset_t ss, savess;
+	    sigemptyset(&ss);
+	    sigaddset(&ss, SIGTTOU);
+	    sigemptyset(&savess);
+	    sigprocmask(SIG_BLOCK, &ss, &savess);
+	    print_job_status_all();
+	    sigprocmask(SIG_SETMASK, &savess, NULL);
+	}
     }
 }
 

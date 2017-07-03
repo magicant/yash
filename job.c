@@ -731,6 +731,18 @@ char *get_job_status_string(const job_T *job, bool *needfree)
     assert(false);
 }
 
+/* Returns true iff there is any job whose status has been changed but not yet
+ * reported. If this function returns false, `print_job_status_all' is nop. */
+bool any_job_status_has_changed(void)
+{
+    for (size_t i = 1; i < joblist.length; i++) {
+	const job_T *job = get_job(i);
+	if (job != NULL && !job->j_nonotify && job->j_statuschanged)
+	    return true;
+    }
+    return false;
+}
+
 /* Prints the status of the specified job.
  * If `remove_done' is true, finished jobs are removed from the job list after
  * the status is printed.

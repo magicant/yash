@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,6 +94,8 @@ extern void ensure_foreground(void);
 extern int calc_status_of_job(const job_T *job)
     __attribute__((pure,nonnull));
 
+extern _Bool any_job_status_has_changed(void)
+    __attribute__((pure));
 extern void print_job_status_all(void);
 extern void notify_signaled_job(size_t jobnumber);
 
