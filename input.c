@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,8 +58,8 @@ static inline wchar_t get_euid_marker(void)
 
 /* An input function that inputs from a wide string.
  * `inputinfo' must be a pointer to a `struct input_wcs_info_T'.
- * Reads all characters from `inputinfo->src' and appends it to buffer `buf'.
- * `inputinfo->src' is assigned NULL. */
+ * Reads the next line from `inputinfo->src' and appends it to buffer `buf'.
+ * `inputinfo->src' is assigned NULL if there are no more lines remaining. */
 inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_wcs_info_T *info = inputinfo;
@@ -68,11 +68,17 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     if (src == NULL)
 	return INPUT_EOF;
 
-    bool isempty = (src[0] == L'\0');
+    const wchar_t *newlinep = wcschr(src, L'\n');
+    if (newlinep != NULL) {
+	const wchar_t *nextlinep = &newlinep[1];
+	wb_ncat_force(buf, src, nextlinep - src);
+	info->src = nextlinep;
+	return INPUT_OK;
+    }
 
+    bool isempty = (src[0] == L'\0');
     wb_cat(buf, src);
     info->src = NULL;
-
     return isempty ? INPUT_EOF : INPUT_OK;
 }
 

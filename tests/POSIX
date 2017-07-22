@@ -15,6 +15,7 @@ Volume 3: Shell & Utilities
 
 2.3 Token Recognition
  * comment-p.tst
+ * input-p.tst
 
 2.3.1 Alias Substitution
  * alias-p.tst

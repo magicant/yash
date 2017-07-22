@@ -1,5 +1,7 @@
 # input-p.tst: test of input processing for any POSIX-compliant shell
 
+posix="true"
+
 # Note that this test case depends on the fact that run-test.sh passes the
 # input using a regular file. The test would fail if the input was not
 # seekable. See also the "Input files" section in POSIX.1-2008, 1.4 Utility
@@ -69,5 +71,29 @@ echo \
 __IN__
 1 2
 __OUT__
+
+printf 'alias false=:\nfalse\n' >inputfile.sh
+
+test_x -e 0 'shell input is line-wise (file)' ./inputfile.sh
+__IN__
+
+test_x -e 0 'shell input is line-wise (standard input)'
+alias false=:
+false
+__IN__
+
+test_x -e 0 'shell input is line-wise (-c)' -c 'alias false=:
+false'
+__IN__
+
+test_x -e 0 'shell input is line-wise (command substitution)'
+x=$(alias false=:
+false)
+__IN__
+
+test_x -e 0 'shell input is line-wise (eval)'
+eval 'alias false=:
+false'
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
