@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -362,6 +362,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    if (!shopt_clobber && !is_irregular_file(filename)) {
 		flags = O_WRONLY | O_CREAT | O_EXCL;
 	    } else {
+		/* falls thru! */
 	case RT_CLOBBER:
 		flags = O_WRONLY | O_CREAT | O_TRUNC;
 	    }

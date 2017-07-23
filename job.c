@@ -374,8 +374,8 @@ start:
 		    waitpidoption &= ~WCONTINUED;
 		    goto start;
 		}
-		/* falls thru! */
 #endif
+		; /* falls thru! */
 	    default:
 		xerror(errno, "waitpid");
 		return;
