@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2664,7 +2664,13 @@ struct reading_option_T {
  */
 int read_builtin(int argc, void **argv)
 {
-    struct reading_option_T ro = { 0 };
+    struct reading_option_T ro = {
+	.array = false,
+	.lineedit = false,
+	.ps1 = false,
+	.raw = false,
+	.prompt = NULL,
+    };
 
     const struct xgetopt_T *opt;
     xoptind = 0;
