@@ -1206,7 +1206,7 @@ start:
     pl_init(&splitpoints);
     pl_add(&splitpoints, c);
     nest = 0;
-    while ((c = escaped_wcspbrk(c, L"{,}")) != L'\0') {
+    while ((c = escaped_wcspbrk(c, L"{,}")) != NULL) {
 	switch (*c++) {
 	    case L'{':
 		nest++;
