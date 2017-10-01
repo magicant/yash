@@ -99,6 +99,16 @@ __IN__
 a
 __OUT__
 
+test_oE -e 0 'global aliases apply just once'
+alias -g a='a a '
+echo a
+alias echo='echo '
+echo a
+__IN__
+a a
+a a
+__OUT__
+
 test_oE -e 0 'printing all aliases (without -p)'
 alias a=A b=B c=C
 alias -g x=X y=Y z=Z

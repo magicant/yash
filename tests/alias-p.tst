@@ -304,9 +304,15 @@ alias c=cat e='echo '
 e c c cat
 alias c='cat '
 e c c cat
+alias echo='e x x ' x=.
+echo echo
+alias x='x . '
+echo echo
 __IN__
 cat c cat
 cat cat cat
+. x echo . x
+x . x . echo x . x .
 __OUT__
 
 test_oE 'aliases cannot substitute reserved words'

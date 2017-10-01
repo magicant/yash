@@ -67,7 +67,9 @@ typedef struct aliaslist_T {
  * infinite recursive substitution of an alias. When an alias is substituted,
  * the alias and the end index of the substituted string are saved in the list.
  * Substitution of the same alias is not performed before the saved index,
- * thus preventing recursive substitution. */
+ * thus preventing recursive substitution.
+ * `aliaslist_T' is also used to indicate which command words are subject to
+ * substitution after another substitution that ends with a blank. */
 
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
@@ -87,6 +89,8 @@ static void add_to_aliaslist(
 static size_t remove_expired_aliases(aliaslist_T **list, size_t index)
     __attribute__((nonnull));
 static void shift_index(aliaslist_T *list, ptrdiff_t inc);
+static bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
+    __attribute__((nonnull));
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
@@ -271,8 +275,24 @@ void shift_index(aliaslist_T *list, ptrdiff_t inc)
     }
 }
 
+/* Tests if the character just before `i` in `buf' is a blank and all the
+ * characters between `i' and `j' are blanks. */
+bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
+{
+    assert(i <= j);
+    assert(j <= buf->length);
+
+    if (i == 0)
+	return false;
+    for (i--; i < j; i++)
+	if (!iswblank(buf->contents[i]))
+	    return false;
+    return true;
+}
+
 /* Performs alias substitution at index `i' in buffer `buf'.
- * If AF_NONGLOBAL is not in `flags', only global aliases are substituted.
+ * If AF_NONGLOBAL is not in `flags' and `i' is not after another substitution
+ * that ends with a blank, only global aliases are substituted.
  * If AF_NORECUR is not in `flags', substitution is repeated until there is
  * no more alias applicable.
  * Returns true iff any alias was substituted. */
@@ -281,13 +301,17 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 {
     if (aliases.count == 0)
 	return false;
+
+    size_t lastlimitindex = remove_expired_aliases(list, i);
+    if (is_after_blank(lastlimitindex, i, buf))
+	flags |= AF_NONGLOBAL;
+
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
 	return false;
 
     bool subst = false;
 
-substitute_alias:
-    remove_expired_aliases(list, i);
+substitute_alias:;
 
     /* count the length of the alias name */
     size_t j = i;
@@ -319,17 +343,6 @@ substitute_alias:
 		    (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 	    subst = true;
 
-	    /* substitute the following word if AF_BLANKEND is set */
-	    /* see note below */
-	    if ((alias->flags & AF_BLANKEND) && !(alias->flags & AF_GLOBAL)) {
-		size_t ii = i + alias->valuelen;
-		aliaslist_T *savelist = clone_aliaslist(*list);
-		while (iswblank(buf->contents[ii]))
-		    ii++;
-		substitute_alias(buf, ii, &savelist, flags);
-		destroy_aliaslist(savelist);
-	    }
-
 	    /* add the alias to the list to track recursion */
 	    add_to_aliaslist(list, alias, i + alias->valuelen);
 
@@ -343,12 +356,6 @@ substitute_alias:
     }
     return subst;
 }
-/* When the value of the alias ends with a blank, we substitute the following
- * word if and only if the alias is not global. This is required to prevent
- * infinite substitution that would happen in some cases such as:
- *    alias -g a='a a '
- *    echo a
- */
 
 /* Returns true iff the specified string starts with any number of digits
  * followed by L'<' or L'>'. */
