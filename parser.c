@@ -292,26 +292,26 @@ wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
     return (wchar_t *) s;
 }
 
-/* Returns true iff the specified string constitutes a valid identifier that
+/* Returns true if the specified string constitutes a valid identifier that
  * is made up of characters accepted by `predicate'. */
 bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
 {
     return s[0] != L'\0' && skip_name(s, predicate)[0] == L'\0';
 }
 
-/* Returns true iff the specified string constitutes a valid portable name. */
+/* Returns true if the specified string constitutes a valid portable name. */
 bool is_portable_name(const wchar_t *s)
 {
     return is_name_by_predicate(s, is_portable_name_char);
 }
 
-/* Returns true iff the specified string constitutes a valid identifier. */
+/* Returns true if the specified string constitutes a valid identifier. */
 bool is_name(const wchar_t *s)
 {
     return is_name_by_predicate(s, is_name_char);
 }
 
-/* Returns true iff the string is a reserved word. */
+/* Returns true if the string is a reserved word. */
 bool is_keyword(const wchar_t *s)
 {
     /* List of keywords:
@@ -726,7 +726,7 @@ start:
  * comments and newlines, up to the next token.
  * This function calls `read_more_input' if the next token cannot be found in
  * the current line.
- * Returns true iff at least one newline token is skipped. */
+ * Returns true if at least one newline token is skipped. */
 bool skip_to_next_token(parsestate_T *ps)
 {
     bool newline = false;
@@ -2576,7 +2576,7 @@ void reject_pending_heredocs(parsestate_T *ps)
 /* Parses a string.
  * Parameter expansions, command substitutions and arithmetic expansions are
  * recognized, but single and double quotes are not treated as quotes.
- * Command substitutions enclosed by backquotes are recognized iff `backquote'
+ * Command substitutions enclosed by backquotes are recognized if `backquote'
  * is true. If `stoponnewline' is true, stops parsing right after the next
  * newline is parsed. Otherwise, parsing continues up to the end of file.
  * The results are assigned ot `*lastp'.
@@ -2638,7 +2638,7 @@ done:
  * All the members of `info' except `lastinputresult' must have been initialized
  * beforehand.
  * This function reads and parses the input to the end of file.
- * Iff successful, the result is assigned to `*resultp' and true is returned.
+ * If successful, the result is assigned to `*resultp' and true is returned.
  * If the input is empty, NULL is assigned.
  * On error, the value of `*resultp' is undefined. */
 bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
