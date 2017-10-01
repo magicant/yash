@@ -46,13 +46,8 @@
 #endif
 
 
-typedef enum {
-    AF_BLANKEND  = 1 << 0,  /* alias value ends with a blank */
-    AF_GLOBAL    = 1 << 1,  /* is a global alias */
-} aliasflags_T;
-
 typedef struct alias_T {
-    aliasflags_T flags;
+    bool isglobal;
     refcount_T refcount;
     size_t valuelen;     /* length of `value' */
     wchar_t value[];
@@ -140,13 +135,9 @@ void define_alias(
     alias_T *alias = xmallocs(sizeof *alias,
 	    add(add(namelen, valuelen), 2), sizeof *alias->value);
 
-    alias->flags = 0;
+    alias->isglobal = global;
     alias->refcount = 1;
     alias->valuelen = valuelen;
-    if (global)
-	alias->flags |= AF_GLOBAL;
-    if (iswblank(equal[valuelen]))  // `(equal + 1)[valuelen - 1]'
-	alias->flags |= AF_BLANKEND;
     wmemcpy(alias->value, equal + 1, valuelen);
     alias->value[valuelen] = L'\0';
     wmemcpy(alias->value + valuelen + 1, nameandvalue, namelen);
@@ -230,7 +221,7 @@ size_t remove_expired_aliases(aliaslist_T **list, size_t index)
     /* List items are ordered by index; we don't have to check all the items. */
     while (item != NULL && item->limitindex <= index) {
 	assert(lastlimitindex <= item->limitindex);
-	if (!(item->alias->flags & AF_GLOBAL))
+	if (!item->alias->isglobal)
 	    lastlimitindex = item->limitindex;
 
 	aliaslist_T *next = item->next;
@@ -311,7 +302,7 @@ substitute_alias:;
 
 	/* check if we should do substitution */
 	if (alias != NULL
-		&& ((flags & AF_NONGLOBAL) | (alias->flags & AF_GLOBAL))
+		&& ((flags & AF_NONGLOBAL) || alias->isglobal)
 		&& !contained_in_list(*list, alias)) {
 
 	    /* do substitution */
@@ -357,7 +348,7 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 
     if (!prefix)
 	format = "%ls=%ls\n";
-    else if (alias->flags & AF_GLOBAL)
+    else if (alias->isglobal)
 	if (name[0] == L'-')
 	    format = "alias -g -- %ls=%ls\n";
 	else
@@ -381,7 +372,7 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 {
     const alias_T *alias = ht_get(&aliases, aliasname).value;
 
-    if (alias == NULL || (alias->flags & AF_GLOBAL))
+    if (alias == NULL || alias->isglobal)
 	return false;
 
     if (!user_friendly)
@@ -409,8 +400,7 @@ void generate_alias_candidates(const le_compopt_T *compopt)
 
     while ((kv = ht_next(&aliases, &i)).key != NULL) {
 	const alias_T *alias = kv.value;
-	le_candgentype_T type =
-	    (alias->flags & AF_GLOBAL) ? CGT_GALIAS : CGT_NALIAS;
+	le_candgentype_T type = alias->isglobal ? CGT_GALIAS : CGT_NALIAS;
 
 	if (compopt->type & type)
 	    if (le_wmatch_comppatterns(compopt, kv.key))
