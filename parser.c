@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1143,8 +1143,7 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 	    break;
 	}
 	if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
-	    substitute_alias(
-		    &ps->src, ps->index, &ps->aliases, AF_NONGLOBAL);
+	    substitute_alias(&ps->src, ps->index, &ps->aliases, AF_NONGLOBAL);
 	    skip_blanks_and_comment(ps);
 	}
     }
@@ -1400,11 +1399,10 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 	    break;
 	case AT_GLOBAL:
 	case AT_ALL:
-	    if (count_name_length(ps, is_alias_name_char) > 0) {
-		substaliasflags_T flags =
-		    (type == AT_GLOBAL) ? 0 : AF_NONGLOBAL;
-		substitute_alias(&ps->src, ps->index, &ps->aliases, flags);
-	    }
+	    if (count_name_length(ps, is_alias_name_char) > 0)
+		substitute_alias(
+			&ps->src, ps->index, &ps->aliases,
+			(type == AT_GLOBAL) ? 0 : AF_NONGLOBAL);
 	    skip_blanks_and_comment(ps);
 	    break;
 	}
