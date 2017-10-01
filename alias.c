@@ -79,8 +79,6 @@ static void define_alias(
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
-static aliaslist_T *clone_aliaslist(const aliaslist_T *list)
-    __attribute__((malloc,warn_unused_result));
 static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
     __attribute__((pure));
 static void add_to_aliaslist(
@@ -187,27 +185,6 @@ const wchar_t *get_alias_value(const wchar_t *aliasname)
 	return alias->value;
     else
 	return NULL;
-}
-
-/* Creates a copy of the specified alias list. */
-aliaslist_T *clone_aliaslist(const aliaslist_T *list)
-{
-    aliaslist_T  *result = NULL;
-    aliaslist_T **lastp  = &result;
-
-    while (list != NULL) {
-	aliaslist_T *copy = xmalloc(sizeof *copy);
-
-	copy->next = NULL;
-	copy->alias = list->alias;
-	refcount_increment(&copy->alias->refcount);
-	copy->limitindex = list->limitindex;
-
-	*lastp = copy;
-	lastp = &copy->next;
-	list = list->next;
-    }
-    return result;
 }
 
 /* Frees the specified alias list and its contents. */
