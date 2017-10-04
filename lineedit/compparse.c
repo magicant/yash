@@ -220,12 +220,7 @@ void skip_blanks_and_newlines(void)
  * substituted because it is the word being completed. */
 bool csubstitute_alias(substaliasflags_T flags)
 {
-    size_t len = 0;
-    while (is_alias_name_char(BUF[INDEX + len]))
-	len++;
-    if (len == 0 || INDEX + len == LEN)
-	return false;
-    return substitute_alias(&pi->buf, INDEX, &pi->aliaslist, flags);
+    return substitute_alias(&pi->buf, INDEX, &pi->aliaslist, flags | AF_NOEOF);
 }
 
 /* Parses a command from the current position. */
