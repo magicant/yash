@@ -261,8 +261,8 @@ bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
 /* Performs alias substitution at index `i' in buffer `buf'.
  * If AF_NONGLOBAL is not in `flags' and `i' is not after another substitution
  * that ends with a blank, only global aliases are substituted.
- * If AF_NORECUR is not in `flags', substitution is repeated until there is
- * no more alias applicable.
+ * The substitution is not recursive: the resultant string may be another alias
+ * that should be substituted by calling `substitute_alias' again.
  * Returns true iff any alias was substituted. */
 bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 	aliaslist_T **restrict list, substaliasflags_T flags)
@@ -278,8 +278,6 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 	return false;
 
     bool subst = false;
-
-substitute_alias:;
 
     /* count the length of the alias name */
     size_t j = i;
@@ -314,13 +312,6 @@ substitute_alias:;
 
 	    /* add the alias to the list to track recursion */
 	    add_to_aliaslist(list, alias, i + alias->valuelen);
-
-	    /* recursively substitute alias */
-	    if (!(flags & AF_NORECUR)) {
-		while (iswblank(buf->contents[i]))
-		    i++;
-		goto substitute_alias;
-	    }
 	}
     }
     return subst;

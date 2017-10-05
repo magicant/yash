@@ -28,8 +28,7 @@ struct aliaslist_T;
 
 typedef enum {
     AF_NONGLOBAL = 1 << 0,
-    AF_NORECUR   = 1 << 1,
-    AF_NOEOF     = 1 << 2,
+    AF_NOEOF     = 1 << 1,
 } substaliasflags_T;
 
 extern void init_alias(void);

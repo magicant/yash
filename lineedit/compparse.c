@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -278,7 +278,7 @@ bool has_token(const wchar_t *token)
 bool cparse_simple_command(void)
 {
 cparse_simple_command:
-    if (csubstitute_alias(AF_NONGLOBAL | AF_NORECUR))
+    if (csubstitute_alias(AF_NONGLOBAL))
 	return false;
 
     size_t saveindex;
@@ -317,14 +317,14 @@ cparse_simple_command:
 	    wordfree(w);
 	}
 
-	skip_blanks();
-	if (csubstitute_alias(0))
+	do {
 	    skip_blanks();
-	if (ctryparse_redirect()) {
-	    plfree(pl_toary(&pwords), free);
-	    return true;
-	}
-	skip_blanks();
+	    if (ctryparse_redirect()) {
+		plfree(pl_toary(&pwords), free);
+		return true;
+	    }
+	    skip_blanks();
+	} while (csubstitute_alias(0));
     }
 }
 
@@ -332,14 +332,17 @@ cparse_simple_command:
  * Global aliases are substituted if necessary. */
 bool cparse_redirections(void)
 {
-    size_t saveindex;
-    do {
+    for (;;) {
 	skip_blanks();
-	saveindex = INDEX;
+	size_t saveindex = INDEX;
 	if (ctryparse_redirect())
 	    return true;
-    } while (saveindex != INDEX || csubstitute_alias(0));
-    return false;
+	if (saveindex == INDEX) {
+	    skip_blanks();
+	    if (!csubstitute_alias(0))
+		return false;
+	}
+    }
 }
 
 /* Parses an assignment if any.
@@ -372,9 +375,9 @@ bool ctryparse_assignment(void)
 	pl_init(&pwords);
 	INDEX++;
 	for (;;) {
-	    skip_blanks();
-	    if (csubstitute_alias(0))
+	    do
 		skip_blanks();
+	    while (csubstitute_alias(0));
 
 	    if (BUF[INDEX] != L'\0' && is_token_delimiter_char(BUF[INDEX])) {
 		if (BUF[INDEX] == L')')
@@ -464,9 +467,9 @@ bool cparse_for_command(void)
 {
     assert(wcsncmp(&BUF[INDEX], L"for", 3) == 0);
     INDEX += 3;
-    skip_blanks();
-    if (csubstitute_alias(0))
+    do
 	skip_blanks();
+    while (csubstitute_alias(0));
 
     /* parse variable name */
     wordunit_T *w = cparse_word(is_token_delimiter_char, TT_NONE, CTXT_VAR);
@@ -484,9 +487,9 @@ bool cparse_for_command(void)
 	pl_init(&pwords);
 	INDEX += 2;
 	for (;;) {
-	    skip_blanks();
-	    if (csubstitute_alias(0))
+	    do
 		skip_blanks();
+	    while (csubstitute_alias(0));
 
 	    if (BUF[INDEX] == L';' || BUF[INDEX] == L'\n') {
 		plfree(pl_toary(&pwords), free);
@@ -535,9 +538,9 @@ bool cparse_case_command(void)
 {
     assert(wcsncmp(&BUF[INDEX], L"case", 4) == 0);
     INDEX += 4;
-    skip_blanks();
-    if (csubstitute_alias(0))
+    do
 	skip_blanks();
+    while (csubstitute_alias(0));
 
     /* parse matched word */
     wordunit_T *w =
