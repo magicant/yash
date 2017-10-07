@@ -2151,6 +2151,7 @@ command_T *parse_for(parsestate_T *ps)
     }
     result->c_forname = name;
 
+parse_in:;
     bool on_next_line = skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"in")) {
@@ -2164,6 +2165,8 @@ command_T *parse_for(parsestate_T *ps)
 	}
 	if (ps->src.contents[ps->index] == L';')
 	    ps->index++;
+    } else if (psubstitute_alias(ps, 0)) {
+	goto parse_in;
     } else {
 	result->c_forwords = NULL;
 	if (ps->src.contents[ps->index] == L';') {
@@ -2172,17 +2175,23 @@ command_T *parse_for(parsestate_T *ps)
 		serror(ps, Ngt("`;' cannot appear on a new line"));
 	}
     }
+
+parse_do:
     skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"do"))
 	ps->index += 2;
+    else if (psubstitute_alias(ps, 0))
+	goto parse_do;
     else
 	serror(ps, Ngt("`%ls' is missing"), L"do");
 	// print_errmsg_token_missing(ps, L"do");
+
     result->c_forcmds = parse_compound_list(ps);
     if (posixly_correct && result->c_forcmds == NULL)
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 		L"do", L"done");
+
     ensure_buffer(ps, 5);
     if (has_token(ps, L"done"))
 	ps->index += 4;
@@ -2243,16 +2252,21 @@ command_T *parse_case(parsestate_T *ps)
     result->c_casword = parse_word(ps, true);
     if (result->c_casword == NULL)
 	serror(ps, Ngt("a word is required after `%ls'"), L"case");
+
+parse_in:
     skip_to_next_token(ps);
     ensure_buffer(ps, 3);
     if (has_token(ps, L"in")) {
 	ps->index += 2;
 	result->c_casitems = parse_case_list(ps);
+    } else if (psubstitute_alias(ps, 0)) {
+	goto parse_in;
     } else {
 	serror(ps, Ngt("`%ls' is missing"), L"in");
 	// print_errmsg_token_missing(ps, L"in");
 	result->c_casitems = NULL;
     }
+
     ensure_buffer(ps, 5);
     if (has_token(ps, L"esac"))
 	ps->index += 4;
@@ -2272,6 +2286,8 @@ caseitem_T *parse_case_list(parsestate_T *ps)
 	ensure_buffer(ps, 5);
 	if (has_token(ps, L"esac"))
 	    break;
+	if (psubstitute_alias(ps, 0))
+	    continue;
 
 	caseitem_T *ci = xmalloc(sizeof *ci);
 	*lastp = ci;
@@ -2328,6 +2344,7 @@ void **parse_case_patterns(parsestate_T *ps)
 	}
 	pl_add(&wordlist, parse_word(ps, true));
 	skip_blanks_and_comment(ps);
+	psubstitute_alias_recursive(ps, 0);
 	ensure_buffer(ps, 1);
 	if (ps->src.contents[ps->index] == L'|') {
 	    predecessor = L"|";
@@ -2365,25 +2382,34 @@ command_T *parse_function(parsestate_T *ps)
 	serror(ps, Ngt("a word is required after `%ls'"), L"function");
     skip_blanks_and_comment(ps);
 
-    /* parse parentheses */
+    bool paren = false;
+parse_parentheses:;
     size_t saveindex = ps->index;
     if (ps->src.contents[ps->index] == L'(') {
 	ps->index++;
+parse_close_parenthesis:
 	skip_blanks_and_comment(ps);
 	if (ps->src.contents[ps->index] == L')')
-	    ps->index++;
+	    paren = true, ps->index++;
+	else if (psubstitute_alias(ps, AF_NONGLOBAL))
+	    goto parse_close_parenthesis;
 	else
 	    ps->index = saveindex;
     }
     skip_to_next_token(ps);
 
-    /* parse function body */
+parse_function_body:;
     const wchar_t *t = check_opening_token(ps);
-    if (t == NULL) {
+    if (t != NULL) {
+	result->c_funcbody = parse_compound_command(ps, t);
+    } else if (psubstitute_alias(ps, 0)) {
+	if (paren)
+	    goto parse_function_body;
+	else
+	    goto parse_parentheses;
+    } else {
 	serror(ps, Ngt("a function body must be a compound command"));
 	result->c_funcbody = NULL;
-    } else {
-	result->c_funcbody = parse_compound_command(ps, t);
     }
 
     return result;
