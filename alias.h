@@ -41,6 +41,10 @@ extern _Bool substitute_alias(
 	struct xwcsbuf_T *restrict buf, size_t i,
 	struct aliaslist_T **restrict list, substaliasflags_T flags)
     __attribute__((nonnull));
+extern _Bool substitute_alias_range(
+	struct xwcsbuf_T *restrict buf, size_t i, size_t j,
+	struct aliaslist_T **restrict list, substaliasflags_T flags)
+    __attribute__((nonnull));
 extern _Bool print_alias_if_defined(
 	const wchar_t *aliasname, _Bool user_friendly)
     __attribute__((nonnull));

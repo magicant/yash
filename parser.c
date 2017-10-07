@@ -853,8 +853,9 @@ const wchar_t *check_closing_token(parsestate_T *ps)
 /* Performs alias substitution with the given parse state. */
 bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
 {
-    return count_name_length(ps, is_alias_name_char) > 0
-	&& substitute_alias(&ps->src, ps->index, &ps->aliases, flags);
+    size_t len = count_name_length(ps, is_alias_name_char);
+    return substitute_alias_range(
+	    &ps->src, ps->index, ps->index + len, &ps->aliases, flags);
 }
 
 /* Performs alias substitution recursively. This should not be used where the
