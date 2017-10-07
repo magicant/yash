@@ -411,6 +411,10 @@ static const wchar_t *check_opening_token(parsestate_T *ps)
     __attribute__((nonnull));
 static const wchar_t *check_closing_token(parsestate_T *ps)
     __attribute__((nonnull));
+static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
+    __attribute__((nonnull));
+static void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T f)
+    __attribute__((nonnull));
 static and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     __attribute__((nonnull,malloc,warn_unused_result));
 static and_or_T *parse_compound_list(parsestate_T *ps)
@@ -846,6 +850,22 @@ const wchar_t *check_closing_token(parsestate_T *ps)
     return NULL;
 }
 
+/* Performs alias substitution with the given parse state. */
+bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
+{
+    return count_name_length(ps, is_alias_name_char) > 0
+	&& substitute_alias(&ps->src, ps->index, &ps->aliases, flags);
+}
+
+/* Performs alias substitution recursively. This should not be used where the
+ * substitution result may be recognized as a keyword, since keywords should not
+ * be alias-substituted. */
+void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
+{
+    while (psubstitute_alias(ps, flags))
+	skip_blanks_and_comment(ps);
+}
+
 /* Parses commands.
  * If `toeol' is true, commands are parsed up to the end of the current input;
  * otherwise, up to the next closing token.
@@ -1085,11 +1105,9 @@ command_T *parse_command(parsestate_T *ps)
     if (t != NULL)
 	return parse_compound_command(ps, t);
 
-    if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
-	if (substitute_alias(&ps->src, ps->index, &ps->aliases, AF_NONGLOBAL)) {
-	    ps->reparse = true;
-	    return NULL;
-	}
+    if (ps->enable_alias && psubstitute_alias(ps, AF_NONGLOBAL)) {
+	ps->reparse = true;
+	return NULL;
     }
 
     command_T *result = tryparse_function(ps);
@@ -1139,11 +1157,8 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 	} else {
 	    break;
 	}
-	if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
-	    while (substitute_alias(&ps->src, ps->index, &ps->aliases,
-			AF_NONGLOBAL))
-		skip_blanks_and_comment(ps);
-	}
+	if (ps->enable_alias)
+	    psubstitute_alias_recursive(ps, AF_NONGLOBAL);
     }
     return redirlastp;
 }
@@ -1167,9 +1182,7 @@ void **parse_words_and_redirects(
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
 	if (!first && ps->enable_alias)
-	    if (count_name_length(ps, is_alias_name_char) > 0)
-		while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
-		    skip_blanks_and_comment(ps);
+	    psubstitute_alias_recursive(ps, 0);
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1191,9 +1204,7 @@ void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
 {
     for (;;) {
 	if (ps->enable_alias)
-	    if (count_name_length(ps, is_alias_name_char) > 0)
-		while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
-		    skip_blanks_and_comment(ps);
+	    psubstitute_alias_recursive(ps, 0);
 
 	redir_T *redir = tryparse_redirect(ps);
 	if (redir == NULL)
@@ -1391,9 +1402,7 @@ parse_command:
 wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
 {
     if (globalaliases && ps->enable_alias)
-	if (count_name_length(ps, is_alias_name_char) > 0)
-	    while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
-		skip_blanks_and_comment(ps);
+	psubstitute_alias_recursive(ps, 0);
 
     return parse_word_to(ps, is_token_delimiter_char);
 }

@@ -19,6 +19,8 @@ Yash 2.46
      was a different behavior from many other shells.
   *  After alias substitution where the alias value ends with a blank,
      global aliases were being applied twice, which is now just once.
+  *  Line continuations no longer prevent recursive alias
+     substitution.
 
 ----------------------------------------------------------------------
 Yash 2.45
