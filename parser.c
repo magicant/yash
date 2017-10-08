@@ -381,8 +381,6 @@ typedef struct parsestate_T {
  * aliases: a list of alias substitutions that were performed at the current
  *         position. */
 
-typedef enum { AT_NONE, AT_GLOBAL, AT_ALL, } aliastype_T;
-
 static void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
 static inputresult_T read_more_input(parsestate_T *ps)
@@ -440,7 +438,7 @@ static void **parse_words_to_paren(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
+static wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1175,7 +1173,7 @@ void **parse_words_and_redirects(
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
-	} else if ((word = parse_word(ps, AT_NONE)) != NULL) {
+	} else if ((word = parse_word(ps, false)) != NULL) {
 	    pl_add(&wordlist, word);
 	    skip_blanks_and_comment(ps);
 	    first = false;
@@ -1224,7 +1222,7 @@ assign_T *tryparse_assignment(parsestate_T *ps)
     ensure_buffer(ps, 1);
     if (posixly_correct || ps->src.contents[ps->index] != L'(') {
 	result->a_type = A_SCALAR;
-	result->a_scalar = parse_word(ps, AT_NONE);
+	result->a_scalar = parse_word(ps, false);
     } else {
 	ps->index++;
 	skip_to_next_token(ps);
@@ -1248,7 +1246,7 @@ void **parse_words_to_paren(parsestate_T *ps)
 
     pl_init(&list);
     while (ps->src.contents[ps->index] != L')') {
-	wordunit_T *word = parse_word(ps, AT_GLOBAL);
+	wordunit_T *word = parse_word(ps, true);
 	if (word != NULL)
 	    pl_add(&list, word);
 	else
@@ -1355,7 +1353,7 @@ reparse:
     }
     skip_blanks_and_comment(ps);
     if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
-	result->rd_filename = parse_word(ps, AT_GLOBAL);
+	result->rd_filename = parse_word(ps, true);
 	if (result->rd_filename == NULL) {
 	    serror(ps, Ngt("the redirection target is missing"));
 	    free(result);
@@ -1388,24 +1386,14 @@ parse_command:
     return result;
 }
 
-/* Expands an alias, if any, and parses a word at the current position.
- * `type' specifies the type of aliases to be expanded.  */
-wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
+/* Parses a word at the current position. If `globalaliases' is true, global
+ * aliases are substituted before the word is parsed. */
+wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
 {
-    if (ps->enable_alias) {
-	switch (type) {
-	case AT_NONE:
-	    break;
-	case AT_GLOBAL:
-	case AT_ALL:
-	    if (count_name_length(ps, is_alias_name_char) > 0) {
-		substaliasflags_T f = (type == AT_GLOBAL) ? 0 : AF_NONGLOBAL;
-		while (substitute_alias(&ps->src, ps->index, &ps->aliases, f))
-		    skip_blanks_and_comment(ps);
-	    }
-	    break;
-	}
-    }
+    if (globalaliases && ps->enable_alias)
+	if (count_name_length(ps, is_alias_name_char) > 0)
+	    while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
+		skip_blanks_and_comment(ps);
 
     return parse_word_to(ps, is_token_delimiter_char);
 }
@@ -1979,7 +1967,7 @@ fail:
 wchar_t *parse_word_as_wcs(parsestate_T *ps)
 {
     size_t startindex = ps->index;
-    wordfree(parse_word(ps, AT_GLOBAL));
+    wordfree(parse_word(ps, true));
     assert(startindex <= ps->index);
     return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
 }
@@ -2242,7 +2230,7 @@ command_T *parse_case(parsestate_T *ps)
     result->c_type = CT_CASE;
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
-    result->c_casword = parse_word(ps, AT_GLOBAL);
+    result->c_casword = parse_word(ps, true);
     if (result->c_casword == NULL)
 	serror(ps, Ngt("a word is required after `%ls'"), L"case");
     skip_to_next_token(ps);
@@ -2328,7 +2316,7 @@ void **parse_case_patterns(parsestate_T *ps)
 	    }
 	    break;
 	}
-	pl_add(&wordlist, parse_word(ps, AT_GLOBAL));
+	pl_add(&wordlist, parse_word(ps, true));
 	skip_blanks_and_comment(ps);
 	ensure_buffer(ps, 1);
 	if (ps->src.contents[ps->index] == L'|') {
@@ -2362,7 +2350,7 @@ command_T *parse_function(parsestate_T *ps)
     result->c_type = CT_FUNCDEF;
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
-    result->c_funcname = parse_word(ps, AT_GLOBAL);
+    result->c_funcname = parse_word(ps, true);
     if (result->c_funcname == NULL)
 	serror(ps, Ngt("a word is required after `%ls'"), L"function");
     skip_blanks_and_comment(ps);
