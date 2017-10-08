@@ -658,6 +658,7 @@ void line_continuation(parsestate_T *ps, size_t index)
     assert(ps->src.contents[index] == L'\\' &&
 	    ps->src.contents[index + 1] == L'\n');
     wb_remove(&ps->src, index, 2);
+    shift_aliaslist_index(ps->aliases, index + 1, -2);
     ps->info->lineno++;
     if (ps->src.contents[index] == L'\0')
 	read_more_input(ps);

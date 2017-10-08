@@ -84,6 +84,14 @@ __IN__
 c b a -A- -B- -C- A B C -
 __OUT__
 
+test_oE -e 0 'global alias (substituting to line continuation)'
+alias --global eeee='echo\
+'
+eeee eeee
+__IN__
+echo
+__OUT__
+
 test_oE -e 0 'global alias (substituting to single-quotation)'
 alias --global sq="'"
 printf '[%s]\n' sq  A   ' sq;'

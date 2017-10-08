@@ -86,7 +86,6 @@ static bool remove_expired_aliases(
     __attribute__((nonnull));
 static bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
     __attribute__((nonnull));
-static void shift_index(aliaslist_T *list, size_t i, ptrdiff_t inc);
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
@@ -267,11 +266,13 @@ bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
 
 /* Increases the limit index by `inc' for each item whose index is larger
  * than `i'. */
-void shift_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
+void shift_aliaslist_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
 {
     while (list != NULL) {
-	if (list->limitindex > i)
+	if (list->limitindex > i) {
+	    assert(inc >= 0 || (size_t) -inc <= list->limitindex);
 	    list->limitindex += inc;
+	}
 	list = list->next;
     }
 }
@@ -335,7 +336,8 @@ bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
 
     /* do substitution */
     wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
-    shift_index(*list, i, (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
+    shift_aliaslist_index(
+	    *list, i, (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 
     /* add the alias to the list to track recursion */
     add_to_aliaslist(list, alias, i + alias->valuelen);
