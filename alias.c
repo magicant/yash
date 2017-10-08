@@ -276,13 +276,25 @@ void shift_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
     }
 }
 
-/* Performs alias substitution at index `i' in buffer `buf'.
+/* Performs alias substitution on the word starting at index `i' in buffer
+ * `buf'. */
+bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
+	aliaslist_T **restrict list, substaliasflags_T flags)
+{
+    size_t j = i;
+    while (is_alias_name_char(buf->contents[j]))
+	j++;
+    return substitute_alias_range(buf, i, j, list, flags);
+}
+
+/* Performs alias substitution on the word in the index range `[i, j)` in buffer
+ * `buf'.
  * If AF_NONGLOBAL is not in `flags' and `i' is not after another substitution
  * that ends with a blank, only global aliases are substituted.
  * The substitution is not recursive: the resultant string may be another alias
  * that should be substituted by calling `substitute_alias' again.
  * Returns true iff any alias was substituted. */
-bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
+bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
 	aliaslist_T **restrict list, substaliasflags_T flags)
 {
     if (aliases.count == 0)
@@ -294,14 +306,8 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
 	return false;
 
-    /* count the length of the alias name */
-    size_t j = i;
-    while (is_alias_name_char(buf->contents[j]))
-	j++;
-    /* `i' is the starting index of the alias name and `j' is the ending index*/
-
     /* check if there is an alias name */
-    if (i == j)
+    if (i >= j)
 	return false;
     if (flags & AF_NOEOF)
 	if (j == buf->length)
