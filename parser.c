@@ -1088,8 +1088,7 @@ command_T *parse_command(parsestate_T *ps)
 	return parse_compound_command(ps, t);
 
     if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
-	substaliasflags_T flags = AF_NONGLOBAL | AF_NORECUR;
-	if (substitute_alias(&ps->src, ps->index, &ps->aliases, flags)) {
+	if (substitute_alias(&ps->src, ps->index, &ps->aliases, AF_NONGLOBAL)) {
 	    ps->reparse = true;
 	    return NULL;
 	}
@@ -1143,8 +1142,9 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 	    break;
 	}
 	if (ps->enable_alias && count_name_length(ps, is_alias_name_char) > 0) {
-	    substitute_alias(&ps->src, ps->index, &ps->aliases, AF_NONGLOBAL);
-	    skip_blanks_and_comment(ps);
+	    while (substitute_alias(&ps->src, ps->index, &ps->aliases,
+			AF_NONGLOBAL))
+		skip_blanks_and_comment(ps);
 	}
     }
     return redirlastp;
@@ -1168,12 +1168,10 @@ void **parse_words_and_redirects(
     pl_init(&wordlist);
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
-	if (!first && ps->enable_alias) {
-	    if (count_name_length(ps, is_alias_name_char) > 0) {
-		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
-		skip_blanks_and_comment(ps);
-	    }
-	}
+	if (!first && ps->enable_alias)
+	    if (count_name_length(ps, is_alias_name_char) > 0)
+		while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
+		    skip_blanks_and_comment(ps);
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
 	    redirlastp = &redir->next;
@@ -1196,7 +1194,8 @@ void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
     for (;;) {
 	if (ps->enable_alias)
 	    if (count_name_length(ps, is_alias_name_char) > 0)
-		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
+		while (substitute_alias(&ps->src, ps->index, &ps->aliases, 0))
+		    skip_blanks_and_comment(ps);
 
 	redir_T *redir = tryparse_redirect(ps);
 	if (redir == NULL)
@@ -1399,11 +1398,11 @@ wordunit_T *parse_word(parsestate_T *ps, aliastype_T type)
 	    break;
 	case AT_GLOBAL:
 	case AT_ALL:
-	    if (count_name_length(ps, is_alias_name_char) > 0)
-		substitute_alias(
-			&ps->src, ps->index, &ps->aliases,
-			(type == AT_GLOBAL) ? 0 : AF_NONGLOBAL);
-	    skip_blanks_and_comment(ps);
+	    if (count_name_length(ps, is_alias_name_char) > 0) {
+		substaliasflags_T f = (type == AT_GLOBAL) ? 0 : AF_NONGLOBAL;
+		while (substitute_alias(&ps->src, ps->index, &ps->aliases, f))
+		    skip_blanks_and_comment(ps);
+	    }
 	    break;
 	}
     }
