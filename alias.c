@@ -64,7 +64,8 @@ typedef struct aliaslist_T {
  * Substitution of the same alias is not performed before the saved index,
  * thus preventing recursive substitution.
  * `aliaslist_T' is also used to indicate which command words are subject to
- * substitution after another substitution that ends with a blank. */
+ * substitution after another substitution that ends with a blank.
+ * Alias list items are sorted in the order of `limitindex'. */
 
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
@@ -74,16 +75,18 @@ static void define_alias(
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
-static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
+static bool contained_in_list(
+	const aliaslist_T *list, const alias_T *alias, size_t i)
     __attribute__((pure));
 static void add_to_aliaslist(
 	aliaslist_T **list, alias_T *alias, size_t limitindex)
     __attribute__((nonnull));
-static size_t remove_expired_aliases(aliaslist_T **list, size_t index)
+static bool remove_expired_aliases(
+	aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
     __attribute__((nonnull));
-static void shift_index(aliaslist_T *list, ptrdiff_t inc);
 static bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
     __attribute__((nonnull));
+static void shift_index(aliaslist_T *list, size_t i, ptrdiff_t inc);
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
@@ -181,15 +184,20 @@ const wchar_t *get_alias_value(const wchar_t *aliasname)
 /* Frees the specified alias list and its contents. */
 void destroy_aliaslist(aliaslist_T *list)
 {
-    remove_expired_aliases(&list, SIZE_MAX);
-    assert(list == NULL);
+    while (list != NULL) {
+	aliaslist_T *next = list->next;
+	free_alias(list->alias);
+	free(list);
+	list = next;
+    }
 }
 
-/* Checks if the specified alias list contains the specified alias. */
-bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
+/* Checks if the specified alias list contains the specified alias.
+ * List items whose limit index is less than `i' are ignored. */
+bool contained_in_list(const aliaslist_T *list, const alias_T *alias, size_t i)
 {
     while (list != NULL) {
-	if (list->alias == alias)
+	if (list->limitindex >= i && list->alias == alias)
 	    return true;
 	list = list->next;
     }
@@ -199,30 +207,39 @@ bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
 /* Adds an alias to an alias list with the specified limit index. */
 void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
 {
-    aliaslist_T *oldhead = *list;
-    aliaslist_T *newelem = xmalloc(sizeof *newelem);
+    /* Find where to insert the new item. Remember, the list is sorted in the
+     * order of `limitindex'. */
+    while (*list != NULL && (*list)->limitindex < limitindex)
+	list = &(*list)->next;
 
-    assert(oldhead == NULL || limitindex <= oldhead->limitindex);
-    newelem->next = oldhead;
+    aliaslist_T *newelem = xmalloc(sizeof *newelem);
+    newelem->next = *list;
     newelem->alias = alias;
     refcount_increment(&newelem->alias->refcount);
     newelem->limitindex = limitindex;
     *list = newelem;
 }
 
-/* Removes items whose `limitindex' is less than or equal to `index'.
- * Returns `limitindex' of the last removed non-global alias if any were
- * removed. Returns 0 if no such aliases were removed. */
-size_t remove_expired_aliases(aliaslist_T **list, size_t index)
+/* Removes items that are no longer significant. An item is significant if (1)
+ * its limit index is larger than `index', or (2) it is a non-global alias and
+ * all the characters are blank between the indexes `limitindex-1' and `index'.
+ * Returns true iff a significant item of type (2) is left. */
+/* If this function returns true, the `index' is just after the result of alias
+ * substitution that ends with a blank, in which case the next word should be
+ * checked for another substitution. */
+bool remove_expired_aliases(
+	aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
 {
-    size_t lastlimitindex = 0;
     aliaslist_T *item = *list;
+    bool afterblank = false;
 
     /* List items are ordered by index; we don't have to check all the items. */
     while (item != NULL && item->limitindex <= index) {
-	assert(lastlimitindex <= item->limitindex);
-	if (!item->alias->isglobal)
-	    lastlimitindex = item->limitindex;
+	if (!item->alias->isglobal
+		&& is_after_blank(item->limitindex, index, buf)) {
+	    afterblank = true;
+	    break;
+	}
 
 	aliaslist_T *next = item->next;
 	free_alias(item->alias);
@@ -230,17 +247,7 @@ size_t remove_expired_aliases(aliaslist_T **list, size_t index)
 	item = next;
     }
     *list = item;
-
-    return lastlimitindex;
-}
-
-/* Increases the index of each item in the specified list by `inc'. */
-void shift_index(aliaslist_T *list, ptrdiff_t inc)
-{
-    while (list != NULL) {
-	list->limitindex += inc;
-	list = list->next;
-    }
+    return afterblank;
 }
 
 /* Tests if the character just before `i` in `buf' is a blank and all the
@@ -258,6 +265,17 @@ bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
     return true;
 }
 
+/* Increases the limit index by `inc' for each item whose index is larger
+ * than `i'. */
+void shift_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
+{
+    while (list != NULL) {
+	if (list->limitindex > i)
+	    list->limitindex += inc;
+	list = list->next;
+    }
+}
+
 /* Performs alias substitution at index `i' in buffer `buf'.
  * If AF_NONGLOBAL is not in `flags' and `i' is not after another substitution
  * that ends with a blank, only global aliases are substituted.
@@ -270,8 +288,7 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
     if (aliases.count == 0)
 	return false;
 
-    size_t lastlimitindex = remove_expired_aliases(list, i);
-    if (is_after_blank(lastlimitindex, i, buf))
+    if (remove_expired_aliases(list, i, buf))
 	flags |= AF_NONGLOBAL;
 
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
@@ -302,11 +319,11 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 	/* check if we should do substitution */
 	if (alias != NULL
 		&& ((flags & AF_NONGLOBAL) || alias->isglobal)
-		&& !contained_in_list(*list, alias)) {
+		&& !contained_in_list(*list, alias, i)) {
 
 	    /* do substitution */
 	    wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
-	    shift_index(*list,
+	    shift_index(*list, i,
 		    (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 	    subst = true;
 
