@@ -342,6 +342,29 @@ __IN__
 f
 __OUT__
 
+test_oE 'alias substitution to parentheses in function definition'
+alias f='f ' p='()'
+f p
+{ echo F; }
+f
+alias g='g( ' q=')'
+g q
+{ echo G; }
+\g
+__IN__
+F
+G
+__OUT__
+
+test_oE 'alias substitution to command in function definition'
+alias f='f() ' g=
+f g
+{ echo F; }
+\f
+__IN__
+F
+__OUT__
+
 test_oE 'IO_NUMBER cannot be aliased'
 alias 3=:
 3>/dev/null echo \>

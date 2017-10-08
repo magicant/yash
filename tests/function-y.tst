@@ -11,14 +11,11 @@ __ERR__
 #'
 #`
 
-# XXX Maybe the error message could be improved.
 test_Oe -e 2 'invalid character - in function name'
 a-b() { echo foo; }
 __IN__
-syntax error: invalid use of `('
+syntax error: invalid function name
 __ERR__
-#'
-#`
 
 )
 
@@ -164,10 +161,7 @@ test_Oe -e 2 'function definition as function body'
 foo() bar() { :; }
 __IN__
 syntax error: a function body must be a compound command
-syntax error: invalid use of `('
 __ERR__
-#'
-#`
 
 test_Oe -e 2 'function followed by EOF'
 function
