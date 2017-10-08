@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.c: alias substitution */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,8 +84,8 @@ static bool contained_in_list(const aliaslist_T *list, const alias_T *alias)
 static void add_to_aliaslist(
 	aliaslist_T **list, alias_T *alias, size_t limitindex)
     __attribute__((nonnull));
-static aliaslist_T *remove_expired_aliases(aliaslist_T *list, size_t index)
-    __attribute__((warn_unused_result));
+static size_t remove_expired_aliases(aliaslist_T **list, size_t index)
+    __attribute__((nonnull));
 static void shift_index(aliaslist_T *list, ptrdiff_t inc);
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
@@ -209,7 +209,7 @@ aliaslist_T *clone_aliaslist(const aliaslist_T *list)
 /* Frees the specified alias list and its contents. */
 void destroy_aliaslist(aliaslist_T *list)
 {
-    list = remove_expired_aliases(list, SIZE_MAX);
+    remove_expired_aliases(&list, SIZE_MAX);
     assert(list == NULL);
 }
 
@@ -238,17 +238,28 @@ void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
     *list = newelem;
 }
 
-/* Removes items whose `limitindex' is less than or equal to `index'. */
-aliaslist_T *remove_expired_aliases(aliaslist_T *list, size_t index)
+/* Removes items whose `limitindex' is less than or equal to `index'.
+ * Returns `limitindex' of the last removed non-global alias if any were
+ * removed. Returns 0 if no such aliases were removed. */
+size_t remove_expired_aliases(aliaslist_T **list, size_t index)
 {
+    size_t lastlimitindex = 0;
+    aliaslist_T *item = *list;
+
     /* List items are ordered by index; we don't have to check all the items. */
-    while (list != NULL && list->limitindex <= index) {
-	aliaslist_T *next = list->next;
-	free_alias(list->alias);
-	free(list);
-	list = next;
+    while (item != NULL && item->limitindex <= index) {
+	assert(lastlimitindex <= item->limitindex);
+	if (!(item->alias->flags & AF_GLOBAL))
+	    lastlimitindex = item->limitindex;
+
+	aliaslist_T *next = item->next;
+	free_alias(item->alias);
+	free(item);
+	item = next;
     }
-    return list;
+    *list = item;
+
+    return lastlimitindex;
 }
 
 /* Increases the index of each item in the specified list by `inc'. */
@@ -276,7 +287,7 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
     bool subst = false;
 
 substitute_alias:
-    *list = remove_expired_aliases(*list, i);
+    remove_expired_aliases(list, i);
 
     /* count the length of the alias name */
     size_t j = i;
