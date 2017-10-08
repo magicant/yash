@@ -294,8 +294,6 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
 	return false;
 
-    bool subst = false;
-
     /* count the length of the alias name */
     size_t j = i;
     while (is_alias_name_char(buf->contents[j]))
@@ -303,35 +301,40 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
     /* `i' is the starting index of the alias name and `j' is the ending index*/
 
     /* check if there is an alias name */
-    if (i < j && (!(flags & AF_NOEOF) || j < buf->length)
-	    && is_token_delimiter_char(buf->contents[j])
-	    && !is_redir_fd(buf->contents + i)) {
+    if (i == j)
+	return false;
+    if (flags & AF_NOEOF)
+	if (j == buf->length)
+	    return false;
+    if (!is_token_delimiter_char(buf->contents[j]))
+	return false;
+    if (is_redir_fd(buf->contents + i))
+	return false;
 
-	alias_T *alias;
-	wchar_t savechar;
+    alias_T *alias;
 
-	/* get alias definition */
-	savechar = buf->contents[j];
-	buf->contents[j] = L'\0';
-	alias = ht_get(&aliases, buf->contents + i).value;
-	buf->contents[j] = savechar;
+    /* get alias definition */
+    wchar_t savechar = buf->contents[j];
+    buf->contents[j] = L'\0';
+    alias = ht_get(&aliases, buf->contents + i).value;
+    buf->contents[j] = savechar;
 
-	/* check if we should do substitution */
-	if (alias != NULL
-		&& ((flags & AF_NONGLOBAL) || alias->isglobal)
-		&& !contained_in_list(*list, alias, i)) {
+    /* check if we should do substitution */
+    if (alias == NULL)
+	return false;
+    if (!(flags & AF_NONGLOBAL) && !alias->isglobal)
+	return false;
+    if (contained_in_list(*list, alias, i))
+	return false;
 
-	    /* do substitution */
-	    wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
-	    shift_index(*list, i,
-		    (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
-	    subst = true;
+    /* do substitution */
+    wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
+    shift_index(*list, i, (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 
-	    /* add the alias to the list to track recursion */
-	    add_to_aliaslist(list, alias, i + alias->valuelen);
-	}
-    }
-    return subst;
+    /* add the alias to the list to track recursion */
+    add_to_aliaslist(list, alias, i + alias->valuelen);
+
+    return true;
 }
 
 /* Returns true iff the specified string starts with any number of digits
