@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.h: alias substitution */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2017 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ struct aliaslist_T;
 typedef enum {
     AF_NONGLOBAL = 1 << 0,
     AF_NORECUR   = 1 << 1,
+    AF_NOEOF     = 1 << 2,
 } substaliasflags_T;
 
 extern void init_alias(void);

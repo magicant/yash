@@ -288,7 +288,8 @@ substitute_alias:;
     /* `i' is the starting index of the alias name and `j' is the ending index*/
 
     /* check if there is an alias name */
-    if (i < j && is_token_delimiter_char(buf->contents[j])
+    if (i < j && (!(flags & AF_NOEOF) || j < buf->length)
+	    && is_token_delimiter_char(buf->contents[j])
 	    && !is_redir_fd(buf->contents + i)) {
 
 	alias_T *alias;
