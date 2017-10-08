@@ -1194,7 +1194,7 @@ void **parse_words_and_redirects(
 void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
 {
     for (;;) {
-	if (!posixly_correct && ps->enable_alias)
+	if (ps->enable_alias)
 	    if (count_name_length(ps, is_alias_name_char) > 0)
 		substitute_alias(&ps->src, ps->index, &ps->aliases, 0);
 

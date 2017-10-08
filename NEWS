@@ -13,6 +13,12 @@ Yash 2.46
   *  The shell now reads and executes all shell commands line by line.
      Previously, commands that are not from a file or the standard
      input were parsed all at once before being executed.
+  *  After alias substitution where the alias value ends with a blank,
+     the next word is also subject to alias substitution, but
+     previously this substitution was being applied only once, which
+     was a different behavior from many other shells.
+  *  After alias substitution where the alias value ends with a blank,
+     global aliases were being applied twice, which is now just once.
 
 ----------------------------------------------------------------------
 Yash 2.45
