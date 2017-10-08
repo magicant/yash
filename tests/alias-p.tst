@@ -257,9 +257,66 @@ __IN__
 2
 __OUT__
 
+test_oE 'alias substitution to in (for)'
+alias forx='for x ' i='in 0' in='in 0'
+forx i a; do echo $x; done
+forx in a; do echo $x; done
+__IN__
+0
+a
+a
+__OUT__
+
+test_oE 'alias substitution to do/done (for)'
+alias forx='for x in 1; ' fory='for y in 2; do echo $y; ' d=do dn=done
+forx d echo $x; dn
+fory dn
+__IN__
+1
+2
+__OUT__
+
 test_oE 'alias substitution to case/esac keywords'
-alias c='case a in a) :' e='esac </dev/null | cat -'
+alias c='case a in a) :' e='esac </dev/null | cat -' eb='echo B;; '
 c X; echo A; e
+c X; eb e
+__IN__
+A
+B
+__OUT__
+
+test_oE 'alias substitution to in (case)'
+alias c='case a ' i='in a) :'
+c i X; echo A; esac
+__IN__
+A
+__OUT__
+
+test_oE 'alias substitution to case pattern'
+alias c='case a in ' a=b p='(a)'
+c a) echo 1-1;; a) echo 1-2;; esac
+c p echo 2; esac
+alias c='case a in x) ;; '
+c p echo 3; esac
+alias c='case a in x| '
+c a) echo 4-1;; a) echo 4-2;; esac
+__IN__
+1-2
+2
+3
+4-2
+__OUT__
+
+test_oE 'alias substitution to | (case)'
+alias c='case a in x ' p='|a) echo A; esac'
+c p
+__IN__
+A
+__OUT__
+
+test_oE 'alias substitution to ) (case)'
+alias c='case a in a ' p=') echo A; esac'
+c p
 __IN__
 A
 __OUT__

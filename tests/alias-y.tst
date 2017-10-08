@@ -34,6 +34,49 @@ __IN__
 
 __OUT__
 
+test_oE 'alias substitution after function keyword'
+alias fn='function ' f=g
+fn f { echo F; }
+g
+__IN__
+F
+__OUT__
+
+test_oE 'alias substitution after function name with grouping'
+alias fn='function f ' p='()' g='{ echo G; }'
+fn p { echo F; }
+f
+fn g
+f
+__IN__
+F
+G
+__OUT__
+
+test_oE 'alias substitution after function name with empty parentheses body'
+alias fn='function f ' p='() '
+fn p p
+{ echo this is not function body; }
+__IN__
+this is not function body
+__OUT__
+
+test_oE 'alias substitution after function open parenthesis'
+alias fn='function f (' p=')'
+fn p { echo F; }
+f
+__IN__
+F
+__OUT__
+
+test_oE 'alias substitution after function parentheses'
+alias fn='function f() ' g='{ echo G; }'
+fn g
+f
+__IN__
+G
+__OUT__
+
 test_oE -e 0 'global aliases'
 alias -g A=a B=b C=c -- ---=-
 echo C B A -A- -B- -C- \A "B" 'C' ---

@@ -10,6 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.46
 
+  =  Global aliases are now substituted in all locations, including
+     part of compound commands where only operators are syntactically
+     acceptable.
   *  The shell now reads and executes all shell commands line by line.
      Previously, commands that are not from a file or the standard
      input were parsed all at once before being executed.
