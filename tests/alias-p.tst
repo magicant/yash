@@ -432,7 +432,7 @@ __IN__
 ok
 __OUT__
 
-test_oE 'line continuation between alias names'
+test_oE 'line continuation between alias names (1)'
 alias echo='\
 echo\
  ' foo='\
@@ -442,6 +442,25 @@ echo           \
 foo
 __IN__
 X
+__OUT__
+
+test_oE 'line continuation between alias names (2)'
+alias eeee='echo\
+ '
+eeee eeee
+__IN__
+echo
+__OUT__
+
+test_oE 'alias substitution to line continuation'
+alias bs='\' bsnl='\
+'
+bs
+ echo foo
+bsnl echo bar
+__IN__
+foo
+bar
 __OUT__
 
 test_oE 'characters allowed in alias name'
