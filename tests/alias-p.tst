@@ -274,6 +274,8 @@ __IN__
 A
 __OUT__
 
+)
+
 test_oE 'alias substitution to function definition'
 alias def='f()' f='func'
 def
@@ -350,6 +352,18 @@ __IN__
 ok
 __OUT__
 
+test_oE 'line continuation between alias names'
+alias echo='\
+echo\
+ ' foo='\
+bar\
+' bar=X
+echo           \
+foo
+__IN__
+X
+__OUT__
+
 test_oE 'characters allowed in alias name'
 alias Aa0_!%,@=echo
 Aa0_!%,@ ok
@@ -377,7 +391,5 @@ func
 __IN__
 ok
 __OUT__
-
-)
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
