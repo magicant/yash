@@ -248,6 +248,8 @@ static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
+static bool is_literal_function_name(const wordunit_T *wu)
+    __attribute__((pure));
 
 
 /* Checks if the specified character can be used in a portable variable name.
@@ -354,6 +356,22 @@ bool is_keyword(const wchar_t *s)
 	default:
 	    return false;
     }
+}
+
+bool is_literal_function_name(const wordunit_T *wu)
+{
+    if (wu == NULL)
+	return false;
+    if (wu->next != NULL)
+	return false;
+    if (wu->wu_type != WT_STRING)
+	return false;
+
+    const wchar_t *s = wu->wu_string;
+    if (iswdigit(s[0]))
+	return false;
+
+    return (posixly_correct ? is_portable_name : is_name)(s);
 }
 
 
@@ -485,8 +503,8 @@ static void **parse_case_patterns(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_function(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *tryparse_function(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
+static command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
+    __attribute__((nonnull,warn_unused_result));
 static void read_heredoc_contents(parsestate_T *ps, redir_T *redir)
     __attribute__((nonnull));
 static void read_heredoc_contents_without_expansion(
@@ -1111,24 +1129,16 @@ command_T *parse_command(parsestate_T *ps)
 	return NULL;
     }
 
-    command_T *result = tryparse_function(ps);
-    if (result != NULL)
-	return result;
-
     /* parse as a simple command */
-    redir_T **redirlastp;
-    result = xmalloc(sizeof *result);
+    command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_lineno = ps->info->lineno;
     result->c_type = CT_SIMPLE;
-    redirlastp = parse_assignments_and_redirects(ps, result);
+    redir_T **redirlastp = parse_assignments_and_redirects(ps, result);
     result->c_words = parse_words_and_redirects(ps, redirlastp, true);
 
-    ensure_buffer(ps, 1);
-    if (ps->src.contents[ps->index] == L'(')
-	serror(ps, Ngt("invalid use of `%lc'"), (wint_t) L'(');
-    return result;
+    return try_reparse_as_function(ps, result);
 }
 
 /* Parses assignments and redirections.
@@ -2415,60 +2425,62 @@ parse_function_body:;
     return result;
 }
 
-/* Parses a function definition if any.
- * This function may process line continuations, which increase the line
- * number. */
-command_T *tryparse_function(parsestate_T *ps)
+/* Parses (part of) a function definition command that does not start with the
+ * "function" keyword. This function must be called just after a simple command
+ * has been parsed, which is given as `c'. If the next character is '(', it
+ * should signify a function definition, so this function continues parsing the
+ * rest of it. Otherwise, `c' is returned intact.
+ * If successful, `c' is directly modified to the function definition parsed. */
+command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
 {
-    size_t saveindex = ps->index;
-    unsigned long lineno = ps->info->lineno;
+    // ensure_buffer(ps, 1);
+    if (ps->src.contents[ps->index] != L'(') // not a function definition?
+	return c;
 
-    if (iswdigit(ps->src.contents[ps->index]))
-	goto fail;
+    /* If this is a function definition, there must be exactly one command word
+     * before '('. */
+    assert(c->c_type == CT_SIMPLE);
+    if (c->c_redirs != NULL || c->c_assigns != NULL
+	    || c->c_words[0] == NULL || c->c_words[1] != NULL) {
+	serror(ps, Ngt("invalid use of `%lc'"), (wint_t) L'(');
+	return c;
+    }
 
-    size_t namelen = count_name_length(ps,
-	    posixly_correct ? is_portable_name_char : is_name_char);
-    ps->index += namelen;
-    if (namelen == 0 || !is_token_delimiter_char(ps->src.contents[ps->index]))
-	goto fail;
-    skip_blanks_and_comment(ps);
+    /* The name must be valid. */
+    wordunit_T *name = c->c_words[0];
+    if (!is_literal_function_name(name)) {
+	serror(ps, Ngt("invalid function name"));
+	return c;
+    }
 
-    /* parse parentheses */
-    if (ps->src.contents[ps->index] != L'(')
-	goto fail;
+    /* Skip '('. */
     ps->index++;
     skip_blanks_and_comment(ps);
+
+    /* Parse ')'. */
+    psubstitute_alias_recursive(ps, 0);
+    // ensure_buffer(ps, 1);
     if (ps->src.contents[ps->index] != L')') {
 	serror(ps, Ngt("`(' must be followed by `)' in a function definition"));
-	return NULL;
+	return c;
     }
     ps->index++;
+parse_function_body:
     skip_to_next_token(ps);
 
-    /* parse function body */
     const wchar_t *t = check_opening_token(ps);
     if (t == NULL) {
+	if (psubstitute_alias(ps, 0))
+	    goto parse_function_body;
 	serror(ps, Ngt("a function body must be a compound command"));
-	return NULL;
+	return c;
     }
-    command_T *body = parse_compound_command(ps, t);
-    command_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->refcount = 1;
-    result->c_type = CT_FUNCDEF;
-    result->c_lineno = lineno;
-    result->c_redirs = NULL;
-    result->c_funcname = xmalloc(sizeof *result->c_funcname);
-    result->c_funcname->next = NULL;
-    result->c_funcname->wu_type = WT_STRING;
-    result->c_funcname->wu_string =
-	xwcsndup(&ps->src.contents[saveindex], namelen);
-    result->c_funcbody = body;
-    return result;
+    free(c->c_words);
 
-fail:
-    ps->index = saveindex;
-    return NULL;
+    c->c_type = CT_FUNCDEF;
+    c->c_funcname = name;
+    c->c_funcbody = parse_compound_command(ps, t);
+    return c;
 }
 
 /* Reads the contents of a here-document. */
@@ -3132,9 +3144,7 @@ void print_function_definition(
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    if (c->c_funcname->next != NULL
-	    || c->c_funcname->wu_type != WT_STRING
-	    || !is_name(c->c_funcname->wu_string))
+    if (!is_literal_function_name(c->c_funcname))
 	wb_cat(&pr->buffer, L"function ");
     print_word(pr, c->c_funcname, indent);
     wb_cat(&pr->buffer, L"()");
