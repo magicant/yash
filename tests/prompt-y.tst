@@ -149,6 +149,11 @@ $
 0$
 __ERR__
 
+# This test case occasionally fails, perhaps when the shell did not receive the
+# SIGCHLD signal for the 'exec >fifo' child process earlier than that for
+# 'cat'. I have found no good workaround for this, so please just retry if this
+# fails.
+# See: https://osdn.net/tracker.php?id=37560
 test_e '\j in PS1 and -b option' -ib +m
 PS1='\j$';  echo >&2
 exec >fifo& echo >&2
