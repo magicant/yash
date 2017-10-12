@@ -108,6 +108,11 @@ Command Search and Execution
 2.9.5 Function Definition Command
  * function-p.tst
 
+2.10.2 Shell Grammar Rules
+ * alias-p.tst
+ * case-p.tst
+ * case-y.tst
+
 2.11 Signals and Error Handling
  * async-p.tst
  * job-p.tst
