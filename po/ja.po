@@ -6,10 +6,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: yash 2.44\n"
+"Project-Id-Version: yash 2.46\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2017-10-28 12:56+0900\n"
-"PO-Revision-Date: 2017-01-14 17:23+0900\n"
+"PO-Revision-Date: 2017-10-28 13:09+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -1105,7 +1105,7 @@ msgstr "「%lc」の使い方が正しくありません"
 
 #: parser.c:2453
 msgid "invalid function name"
-msgstr ""
+msgstr "無効な関数名です"
 
 #: parser.c:2465
 msgid "`(' must be followed by `)' in a function definition"
