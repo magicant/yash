@@ -392,13 +392,18 @@ otherwise, {{commands}} are parsed only when the command substitution is
 parsed.
 
 If command substitution is of the form +&#x60;{{commands}}&#x60;+,
-the {{commands}} are not parsed when the command substitution is parsed.
+the {{commands}} are not parsed when the command substitution is parsed;
+the {{commands}} are parsed each time the command substitution is expanded.
 The end of {{commands}} is detected by the first backquote character (+`+)
 after the beginning of {{commands}} that is not
 link:syntax.html#quotes[quoted] by a backslash.
 Backquotes that are part of {{commands}} (typically used for nested command
 substitution) must be quoted by backslashes.
-The {{commands}} are parsed each time the command substitution is expanded.
+In {{commands}}, backslashes are treated as quotes only when preceding a
+dollar (+$+), backquote, newline, or another backslash. Additionally, if the
+command substitution occurs inside double quotes, double quotes in
+{{commands}} must be quoted with a backslash. Those backslashes are removed
+before {{commands}} are parsed.
 
 [[arith]]
 == Arithmetic expansion
