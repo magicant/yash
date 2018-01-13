@@ -1790,8 +1790,9 @@ void print_variable(
 }
 
 /* Prints the specified scalar variable to the standard output.
- * If `is_name(name)' is not true, the quoted name must be given as `qname';
- * otherwise, `qname' must be NULL.
+ * `namequote' must equal `is_name(name)'. If `argv0' is "set" and `namequote'
+ * is true, the variable is not printed since it cannot be assigned in the
+ * normal assignment syntax.
  * An error message is printed to the standard error on error. */
 void print_scalar(const wchar_t *name, bool namequote,
 	const variable_T *var, const wchar_t *argv0)
