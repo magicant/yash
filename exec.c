@@ -216,7 +216,11 @@ bool is_executing_auxiliary = false;
 /* the last assignment. */
 static const assign_T *last_assign;
 
-/* a buffer for xtrace. */
+/* a buffer for xtrace.
+ * When assignments are performed while executing a simple command, the trace
+ * is appended to this buffer. Each trace of an assignment must be prefixed
+ * with a space to separate it with the previous one. The first space will be
+ * trimmed when the buffer is flushed to the standard error. */
 static xwcsbuf_T xtrace_buffer = { .contents = NULL };
 
 
@@ -1285,8 +1289,11 @@ void print_xtrace(void *const *argv)
 	    for (void *const *a = argv; *a != NULL; a++) {
 		if (!first)
 		    fputc(' ', stderr);
-		fprintf(stderr, "%ls", (wchar_t *) *a);
 		first = false;
+
+		wchar_t *quoted = quote_as_word(*a);
+		fprintf(stderr, "%ls", quoted);
+		free(quoted);
 	    }
 	}
 	fputc('\n', stderr);

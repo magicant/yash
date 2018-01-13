@@ -768,7 +768,10 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 void xtrace_variable(const wchar_t *name, const wchar_t *value)
 {
     xwcsbuf_T *buf = get_xtrace_buffer();
-    wb_wprintf(buf, L" %ls=%ls", name, value);
+    wb_wccat(buf, L' ');
+    wb_cat(buf, name);
+    wb_wccat(buf, L'=');
+    wb_quote_as_word(buf, value);
 }
 
 /* Pushes a trace of the specified array assignment to the xtrace buffer. */
@@ -779,7 +782,7 @@ void xtrace_array(const wchar_t *name, void *const *values)
     wb_wprintf(buf, L" %ls=(", name);
     if (*values != NULL) {
 	for (;;) {
-	    wb_cat(buf, *values);
+	    wb_quote_as_word(buf, *values);
 	    values++;
 	    if (*values == NULL)
 		break;

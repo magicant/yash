@@ -60,9 +60,9 @@ PS4='ps4 ${x}:' x='${y}'
 echo 1; echo '2  2' 3
 __IN__
 + echo 0
-ps4 ${y}:PS4=ps4 ${x}: x=${y}
+ps4 ${y}:PS4='ps4 ${x}:' x='${y}'
 ps4 ${y}:echo 1
-ps4 ${y}:echo 2  2 3
+ps4 ${y}:echo '2  2' 3
 __ERR__
 
 (
