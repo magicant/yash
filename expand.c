@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1659,22 +1659,59 @@ wchar_t *unescapefree(wchar_t *s)
     }
 }
 
-/* Quotes the specified string by single quotes.
- * If the string contains single quotes, they are backslashed. */
-wchar_t *quote_sq(const wchar_t *s)
+/* Quotes the specified string using backslashes and single-quotes. The result
+ * is suitable for re-parsing as a shell command word that would expand to the
+ * original string. The result is a newly malloced string. */
+wchar_t *quote_as_word(const wchar_t *s)
 {
     xwcsbuf_T buf;
     wb_init(&buf);
-    wb_wccat(&buf, L'\'');
-    for (size_t i = 0; s[i] != L'\0'; i++) {
-	if (s[i] != L'\'') {
-	    wb_wccat(&buf, s[i]);
-	} else {
-	    wb_ncat_force(&buf, L"'\\''", 4);
-	}
-    }
-    wb_wccat(&buf, L'\'');
+    wb_quote_as_word(&buf, s);
     return wb_towcs(&buf);
+}
+
+/* Quotes string `s' using backslashes and single-quotes. The result
+ * is suitable for re-parsing as a shell command word that would expand to the
+ * original string. The result is appended to the given buffer, which must
+ * have been initialized before calling this function. */
+xwcsbuf_T *wb_quote_as_word(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+{
+    if (*s == L'\0') {
+	wb_wccat(buf, L'\'');
+	wb_wccat(buf, L'\'');
+	return buf;
+    }
+
+    while (*s != L'\0') {
+	if (*s == L'\'') {
+	    wb_wccat(buf, L'\\');
+	    wb_wccat(buf, L'\'');
+	    s++;
+	    continue;
+	}
+
+	const wchar_t *end = s;
+	while (*end == L'.' || *end == L'-' || *end == L'_' || *end == L'/' ||
+		iswalnum(*end))
+	    end++;
+	if (*end == L'\0' || *end == L'\'') {
+	    /* No characters have to be quoted until `*end'. */
+	    wb_ncat_force(buf, s, end - s);
+	    s = end;
+	    continue;
+	}
+
+	/* Quote characters until the next single-quote or end-of-string. */
+	wb_ensuremax(buf, buf->length + (end - s) + 2);
+	wb_wccat(buf, L'\'');
+	while (*s != L'\0' && *s != L'\'') {
+	    wb_wccat(buf, *s);
+	    s++;
+	}
+	wb_wccat(buf, L'\'');
+    }
+
+    return buf;
 }
 
 /* Removes quotes (', ", \). The result is a newly malloced string. */

@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.47
+
+  =  When the shell prints aliases, variables, key bindings, etc. they
+     are now printed with less quotes.
+
+----------------------------------------------------------------------
 Yash 2.46
 
   =  Global aliases are now substituted in all locations, including

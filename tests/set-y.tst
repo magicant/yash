@@ -20,9 +20,9 @@ yashtest0=
 set | grep '^yashtest'
 __IN__
 yashtest0=''
-yashtest1='foo'
+yashtest1=foo
 yashtest2='"double"'
-yashtest3=''\''single'\'''
+yashtest3=\'single\'
 yashtest4='back\slash'
 __OUT__
 

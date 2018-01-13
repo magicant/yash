@@ -164,8 +164,8 @@ alias a='foo'
 command -va a &&
 command --identify --alias a
 __IN__
-alias a='foo'
-alias a='foo'
+alias a=foo
+alias a=foo
 __OUT__
 
 test_oE -e 0 'describing built-ins with -b option'

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.c: alias substitution */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -362,7 +362,7 @@ bool is_redir_fd(const wchar_t *s)
  * Returns true iff successful. */
 bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
 {
-    wchar_t *qvalue = quote_sq(alias->value);
+    wchar_t *qvalue = quote_as_word(alias->value);
     const char *format;
     bool success;
 

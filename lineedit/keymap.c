@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -546,7 +546,7 @@ int print_binding_main(
 	format = "bindkey -%c -- %ls %s\n";
     else
 	format = "bindkey -%c %ls %s\n";
-    keyseqquote = quote_sq(keyseq);
+    keyseqquote = quote_as_word(keyseq);
     commandname = get_command_name(cmd);
     xprintf(format, modechar, keyseqquote, commandname);
     free(keyseqquote);

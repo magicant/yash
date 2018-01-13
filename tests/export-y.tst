@@ -6,8 +6,8 @@ test_oE -e 0 'printing specific exported variables'
 export a=A f=FOO
 export -p a f
 __IN__
-export a='A'
-export f='FOO'
+export a=A
+export f=FOO
 __OUT__
 
 test_OE -e 0 'without argument, -p is assumed'
@@ -27,7 +27,7 @@ test_oE 'exporting with -p'
 export -p a=A
 export -p a
 __IN__
-export a='A'
+export a=A
 __OUT__
 
 test_oE 'un-exporting'

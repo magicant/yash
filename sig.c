@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1249,7 +1249,7 @@ bool print_trap(const wchar_t *signame, const wchar_t *command)
     if (command == NULL)
 	return true;
 
-    wchar_t *q = quote_sq(command);
+    wchar_t *q = quote_as_word(command);
     bool ok = xprintf("trap -- %ls %ls\n", q, signame);
     free(q);
     return ok;

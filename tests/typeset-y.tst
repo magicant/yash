@@ -55,15 +55,15 @@ test_oE -e 0 'printing all variables (no option)' -e
 typeset >/dev/null
 typeset | grep -q '^typeset -x PATH='
 yash_typeset_test=foo
-typeset | grep -Fx "typeset yash_typeset_test='foo'"
+typeset | grep -Fx "typeset yash_typeset_test=foo"
 readonly yash_readonly_test=bar
 export yash_export_test=baz
-typeset | grep -Fx "typeset -r yash_readonly_test='bar'"
-typeset | grep -Fx "typeset -x yash_export_test='baz'"
+typeset | grep -Fx "typeset -r yash_readonly_test=bar"
+typeset | grep -Fx "typeset -x yash_export_test=baz"
 __IN__
-typeset yash_typeset_test='foo'
-typeset -r yash_readonly_test='bar'
-typeset -x yash_export_test='baz'
+typeset yash_typeset_test=foo
+typeset -r yash_readonly_test=bar
+typeset -x yash_export_test=baz
 __OUT__
 
 test_oE -e 0 'only local variables are printed by default (no option)' -e
@@ -74,7 +74,7 @@ echo ---
 g
 __IN__
 ---
-typeset a='1'
+typeset a=1
 __OUT__
 
 test_oE 'printing all variables (-g)'
@@ -86,9 +86,9 @@ f() {
 yash_typeset_test_g=3
 f | grep '^typeset.* yash_typeset_test_.='
 __IN__
-typeset yash_typeset_test_a='1'
-typeset yash_typeset_test_b='2'
-typeset yash_typeset_test_g='3'
+typeset yash_typeset_test_a=1
+typeset yash_typeset_test_b=2
+typeset yash_typeset_test_g=3
 __OUT__
 
 test_oE 'defining read-only variables (-r)' -e
@@ -129,15 +129,15 @@ test_oE -e 0 'printing all variables (-p)' -e
 typeset -p >/dev/null
 typeset -p | grep -q '^typeset -x PATH='
 yash_typeset_test=foo
-typeset -p | grep -Fx "typeset yash_typeset_test='foo'"
+typeset -p | grep -Fx "typeset yash_typeset_test=foo"
 readonly yash_readonly_test=bar
 export yash_export_test=baz
-typeset -p | grep -Fx "typeset -r yash_readonly_test='bar'"
-typeset -p | grep -Fx "typeset -x yash_export_test='baz'"
+typeset -p | grep -Fx "typeset -r yash_readonly_test=bar"
+typeset -p | grep -Fx "typeset -x yash_export_test=baz"
 __IN__
-typeset yash_typeset_test='foo'
-typeset -r yash_readonly_test='bar'
-typeset -x yash_export_test='baz'
+typeset yash_typeset_test=foo
+typeset -r yash_readonly_test=bar
+typeset -x yash_export_test=baz
 __OUT__
 
 test_oE -e 0 'only local variables are printed by default (-p)' -e
@@ -148,15 +148,15 @@ echo ---
 g
 __IN__
 ---
-typeset a='1'
+typeset a=1
 __OUT__
 
 test_oE -e 0 'printing specific variables (-p)' -e
 a=1 b=2 c=3
 typeset -p a b
 __IN__
-typeset a='1'
-typeset b='2'
+typeset a=1
+typeset b=2
 __OUT__
 
 test_oE -e 0 'printing array variable (p)' -e
@@ -166,7 +166,7 @@ typeset -p a b
 __IN__
 a=()
 typeset a
-b=('1' '2  2' '3')
+b=(1 '2  2' 3)
 typeset -x b
 __OUT__
 
@@ -175,7 +175,7 @@ a=1
 typeset -p a b=2
 echo $a $b
 __IN__
-typeset a='1'
+typeset a=1
 1 2
 __OUT__
 
@@ -188,9 +188,9 @@ f() {
 yash_typeset_test_g=3
 f | grep '^typeset.* yash_typeset_test_.='
 __IN__
-typeset yash_typeset_test_a='1'
-typeset yash_typeset_test_b='2'
-typeset yash_typeset_test_g='3'
+typeset yash_typeset_test_a=1
+typeset yash_typeset_test_b=2
+typeset yash_typeset_test_g=3
 __OUT__
 
 test_oE -e 0 'printing read-only variables (-rp)' -e
@@ -198,7 +198,7 @@ typeset -r a=1
 b=2
 typeset -rp a b
 __IN__
-typeset -r a='1'
+typeset -r a=1
 __OUT__
 
 test_oE -e n 'defining read-only variables (-rp)' -e
@@ -214,7 +214,7 @@ typeset -x a=1
 b=2
 typeset -xp a b
 __IN__
-typeset -x a='1'
+typeset -x a=1
 __OUT__
 
 test_oE -e 0 'defining exported variables (-xp)' -e
@@ -231,8 +231,8 @@ a=1
 typeset -x b=2
 typeset -Xp a b
 __IN__
-typeset a='1'
-typeset -x b='2'
+typeset a=1
+typeset -x b=2
 __OUT__
 
 test_oE -e 0 'printing global exported variables (-gxp)' -e
@@ -245,8 +245,8 @@ func() {
 }
 func
 __IN__
-typeset -x h='2'
-typeset -x m='4'
+typeset -x h=2
+typeset -x m=4
 __OUT__
 
 test_oE 'defining global exported variables (-gxp)' -e
@@ -264,7 +264,7 @@ typeset -x x=exported
 typeset -rx b=both
 typeset -rxp n r x b
 __IN__
-typeset -xr b='both'
+typeset -xr b=both
 __OUT__
 
 test_oE 'defining read-only exported variables (-rxp)' -e
@@ -281,7 +281,7 @@ typeset -r a=1
 b=2
 typeset -rXp a b
 __IN__
-typeset -r a='1'
+typeset -r a=1
 __OUT__
 
 test_oE -e n 'defining read-only un-exported variables (-rXp)' -e
@@ -376,7 +376,7 @@ test_oE -e 0 'printing function with non-portable name (-fp)' -e
 function f=/\'g() { }
 typeset -fp "f=/'g"
 __IN__
-function 'f=/'\''g'()
+function 'f=/'\'g()
 {
 }
 __OUT__

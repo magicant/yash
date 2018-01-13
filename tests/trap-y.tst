@@ -95,7 +95,7 @@ trap 'echo 1 &
 echo 2 ;' USR2
 trap
 __IN__
-trap -- 'echo "a"'\''b'\''\c' USR1
+trap -- 'echo "a"'\'b\''\c' USR1
 trap -- 'echo 1 &
 echo 2 ;' USR2
 __OUT__
@@ -107,10 +107,10 @@ echo 2 ;' USR2
 trap -p
 trap --print
 __IN__
-trap -- 'echo "a"'\''b'\''\c' USR1
+trap -- 'echo "a"'\'b\''\c' USR1
 trap -- 'echo 1 &
 echo 2 ;' USR2
-trap -- 'echo "a"'\''b'\''\c' USR1
+trap -- 'echo "a"'\'b\''\c' USR1
 trap -- 'echo 1 &
 echo 2 ;' USR2
 __OUT__

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1775,7 +1775,7 @@ void print_variable(
 	return;
 
     if (!is_name(name))
-	name = qname = quote_sq(name);
+	name = qname = quote_as_word(name);
 
     switch (var->v_type & VF_MASK) {
 	case VF_SCALAR:
@@ -1802,7 +1802,7 @@ void print_scalar(const wchar_t *name, bool namequote,
     xstrbuf_T opts;
 
     if (var->v_value != NULL)
-	quotedvalue = quote_sq(var->v_value);
+	quotedvalue = quote_as_word(var->v_value);
     else
 	quotedvalue = NULL;
     switch (argv0[0]) {
@@ -1848,7 +1848,7 @@ void print_array(
 	return;
     if (var->v_valc > 0) {
 	for (size_t i = 0; ; ) {
-	    wchar_t *qvalue = quote_sq(var->v_vals[i]);
+	    wchar_t *qvalue = quote_as_word(var->v_vals[i]);
 	    bool ok = xprintf("%ls", qvalue);
 	    free(qvalue);
 	    if (!ok)
@@ -1905,7 +1905,7 @@ void print_function(
 
     wchar_t *qname = NULL;
     if (!is_name(name))
-	name = qname = quote_sq(name);
+	name = qname = quote_as_word(name);
 
     wchar_t *value = command_to_wcs(func->f_body, true);
     const char *format = (qname == NULL) ? "%ls()\n%ls" : "function %ls()\n%ls";

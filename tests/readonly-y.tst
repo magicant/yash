@@ -6,16 +6,16 @@ setup 'readonly a=foo b=bar c=baz'
 test_oE -e 0 'printing all read-only variables'
 readonly -p
 __IN__
-readonly a='foo'
-readonly b='bar'
-readonly c='baz'
+readonly a=foo
+readonly b=bar
+readonly c=baz
 __OUT__
 
 test_oE -e 0 'printing specific read-only variables'
 readonly -p a b
 __IN__
-readonly a='foo'
-readonly b='bar'
+readonly a=foo
+readonly b=bar
 __OUT__
 
 test_OE -e 0 'without argument, -p is assumed (variables)'
@@ -48,7 +48,7 @@ test_oE 'making read-only with -p (variables)'
 readonly -p a=A
 readonly -p a
 __IN__
-readonly a='A'
+readonly a=A
 __OUT__
 
 test_Oe -e 1 'assigning to read-only variable'

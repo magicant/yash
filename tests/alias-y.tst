@@ -165,12 +165,12 @@ alias a=A b=B c=C
 alias -g x=X y=Y z=Z
 alias
 __IN__
-a='A'
-b='B'
-c='C'
-x='X'
-y='Y'
-z='Z'
+a=A
+b=B
+c=C
+x=X
+y=Y
+z=Z
 __OUT__
 
 test_oE -e 0 'printing all aliases (hyphen & quotation, without -p)'
@@ -178,7 +178,7 @@ alias -- -="'"
 alias -g -- ---='"'
 alias
 __IN__
--=''\'''
+-=\'
 ---='"'
 __OUT__
 
@@ -187,12 +187,12 @@ alias a=A b=B c=C
 alias -g x=X y=Y z=Z
 alias -p
 __IN__
-alias a='A'
-alias b='B'
-alias c='C'
-alias -g x='X'
-alias -g y='Y'
-alias -g z='Z'
+alias a=A
+alias b=B
+alias c=C
+alias -g x=X
+alias -g y=Y
+alias -g z=Z
 __OUT__
 
 test_oE -e 0 'printing all aliases (with --prefix)'
@@ -200,12 +200,12 @@ alias a=A b=B c=C
 alias -g x=X y=Y z=Z
 alias --prefix
 __IN__
-alias a='A'
-alias b='B'
-alias c='C'
-alias -g x='X'
-alias -g y='Y'
-alias -g z='Z'
+alias a=A
+alias b=B
+alias c=C
+alias -g x=X
+alias -g y=Y
+alias -g z=Z
 __OUT__
 
 test_oE -e 0 'printing all aliases (hyphen & quotation, with -p)'
@@ -213,7 +213,7 @@ alias -- -="'"
 alias -g -- ---='"'
 alias -p
 __IN__
-alias -- -=''\'''
+alias -- -=\'
 alias -g -- ---='"'
 __OUT__
 
@@ -226,15 +226,15 @@ END
 test_oE -e 0 'printing specific global alias (without -p)'
 alias \a e
 __IN__
-a='A'
-e='echo'
+a=A
+e=echo
 __OUT__
 
 test_oE -e 0 'printing specific global alias (with -p)'
 alias -p \a e
 __IN__
-alias -g a='A'
-alias e='echo'
+alias -g a=A
+alias e=echo
 __OUT__
 
 test_OE -e 0 '"unalias -a" removes global aliases'

@@ -21,7 +21,7 @@ typeset -p a
 }
 __IN__
 1
-typeset a='A'
+typeset a=A
 __OUT__
 
 test_oE 'input ending with backslash - not raw mode'
@@ -32,7 +32,7 @@ typeset -p a
 }
 __IN__
 1
-typeset a='A'
+typeset a=A
 __OUT__
 
 test_oE 'input ending with backslash - raw mode'
@@ -108,7 +108,7 @@ echo $?
 typeset -p a
 __IN__
 0
-a=('A')
+a=(A)
 typeset a
 __OUT__
 
@@ -132,9 +132,9 @@ echo $?
 typeset -p a b c
 __IN__
 0
-typeset a='A'
-typeset b='B'
-c=('C')
+typeset a=A
+typeset b=B
+c=(C)
 typeset c
 __OUT__
 
@@ -147,9 +147,9 @@ echo $?
 typeset -p a b c
 __IN__
 0
-typeset a='A'
-typeset b='B'
-c=('C' 'D' 'E\EE')
+typeset a=A
+typeset b=B
+c=(C D 'E\EE')
 typeset c
 __OUT__
 
@@ -161,8 +161,8 @@ echo $?
 typeset -p a b c d
 __IN__
 0
-typeset a='A'
-typeset b='B'
+typeset a=A
+typeset b=B
 typeset c=''
 d=()
 typeset d
@@ -176,9 +176,9 @@ echo $?
 typeset -p a b c
 __IN__
 0
-typeset a='A'
-typeset b='B'
-c=('C')
+typeset a=A
+typeset b=B
+c=(C)
 typeset c
 __OUT__
 
@@ -220,7 +220,7 @@ __ERR__
 test_oE -e 0 'empty variable name'
 echo foo | { read ''; readonly ''; readonly; }
 __IN__
-readonly ''='foo'
+readonly ''=foo
 __OUT__
 
 test_Oe -e 2 'invalid option'

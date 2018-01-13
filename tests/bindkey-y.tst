@@ -218,10 +218,10 @@ bindkey -v 'a' self-insert
 __IN__
 
 test_oE -e 0 'printing bound key (vi-insert)'
-bindkey -v 'a' self-insert
-bindkey -v 'a'
+bindkey -v a self-insert
+bindkey -v a
 __IN__
-bindkey -v 'a' self-insert
+bindkey -v a self-insert
 __OUT__
 
 test_OE -e 0 'unbinding key (vi-insert)'
@@ -238,16 +238,16 @@ __ERR__
 
 sort >vi_command <<\__END__
 bindkey -a '\^[' noop
-bindkey -a '1' digit-argument
-bindkey -a '2' digit-argument
-bindkey -a '3' digit-argument
-bindkey -a '4' digit-argument
-bindkey -a '5' digit-argument
-bindkey -a '6' digit-argument
-bindkey -a '7' digit-argument
-bindkey -a '8' digit-argument
-bindkey -a '9' digit-argument
-bindkey -a '0' bol-or-digit
+bindkey -a 1 digit-argument
+bindkey -a 2 digit-argument
+bindkey -a 3 digit-argument
+bindkey -a 4 digit-argument
+bindkey -a 5 digit-argument
+bindkey -a 6 digit-argument
+bindkey -a 7 digit-argument
+bindkey -a 8 digit-argument
+bindkey -a 9 digit-argument
+bindkey -a 0 bol-or-digit
 bindkey -a '\^J' accept-line
 bindkey -a '\^M' accept-line
 bindkey -a '\!' abort-line
@@ -255,77 +255,77 @@ bindkey -a '\^C' abort-line
 bindkey -a '\#' eof-if-empty
 bindkey -a '\^D' eof-if-empty
 bindkey -a '#' accept-with-hash
-bindkey -a 'i' setmode-viinsert
+bindkey -a i setmode-viinsert
 bindkey -a '\I' setmode-viinsert
 bindkey -a '\^L' redraw-all
-bindkey -a 'l' forward-char
+bindkey -a l forward-char
 bindkey -a ' ' forward-char
 bindkey -a '\R' forward-char
-bindkey -a 'h' backward-char
+bindkey -a h backward-char
 bindkey -a '\L' backward-char
 bindkey -a '\B' backward-char
 bindkey -a '\?' backward-char
 bindkey -a '\^H' backward-char
-bindkey -a 'W' forward-bigword
-bindkey -a 'E' end-of-bigword
-bindkey -a 'B' backward-bigword
-bindkey -a 'w' forward-viword
-bindkey -a 'e' end-of-viword
-bindkey -a 'b' backward-viword
+bindkey -a W forward-bigword
+bindkey -a E end-of-bigword
+bindkey -a B backward-bigword
+bindkey -a w forward-viword
+bindkey -a e end-of-viword
+bindkey -a b backward-viword
 bindkey -a '\H' beginning-of-line
 bindkey -a '$' end-of-line
 bindkey -a '\E' end-of-line
 bindkey -a '|' go-to-column
 bindkey -a '^' first-nonblank
-bindkey -a 'f' find-char
-bindkey -a 'F' find-char-rev
-bindkey -a 't' till-char
-bindkey -a 'T' till-char-rev
+bindkey -a f find-char
+bindkey -a F find-char-rev
+bindkey -a t till-char
+bindkey -a T till-char-rev
 bindkey -a ';' refind-char
 bindkey -a ',' refind-char-rev
-bindkey -a 'x' kill-char
+bindkey -a x kill-char
 bindkey -a '\X' kill-char
-bindkey -a 'X' backward-kill-char
-bindkey -a 'P' put-before
-bindkey -a 'p' put
-bindkey -a 'u' undo
-bindkey -a 'U' undo-all
+bindkey -a X backward-kill-char
+bindkey -a P put-before
+bindkey -a p put
+bindkey -a u undo
+bindkey -a U undo-all
 bindkey -a '\^R' cancel-undo
-bindkey -a '.' redo
-bindkey -a 'r' vi-replace-char
-bindkey -a 'I' vi-insert-beginning
-bindkey -a 'a' vi-append
-bindkey -a 'A' vi-append-to-eol
-bindkey -a 'R' vi-replace
+bindkey -a . redo
+bindkey -a r vi-replace-char
+bindkey -a I vi-insert-beginning
+bindkey -a a vi-append
+bindkey -a A vi-append-to-eol
+bindkey -a R vi-replace
 bindkey -a '~' vi-switch-case-char
-bindkey -a 'y' vi-yank
-bindkey -a 'Y' vi-yank-to-eol
-bindkey -a 'd' vi-delete
-bindkey -a 'D' forward-kill-line
-bindkey -a 'c' vi-change
-bindkey -a 'C' vi-change-to-eol
-bindkey -a 'S' vi-change-line
-bindkey -a 's' vi-substitute
-bindkey -a '_' vi-append-last-bigword
+bindkey -a y vi-yank
+bindkey -a Y vi-yank-to-eol
+bindkey -a d vi-delete
+bindkey -a D forward-kill-line
+bindkey -a c vi-change
+bindkey -a C vi-change-to-eol
+bindkey -a S vi-change-line
+bindkey -a s vi-substitute
+bindkey -a _ vi-append-last-bigword
 bindkey -a '@' vi-exec-alias
-bindkey -a 'v' vi-edit-and-accept
+bindkey -a v vi-edit-and-accept
 bindkey -a '=' vi-complete-list
 bindkey -a '*' vi-complete-all
 bindkey -a '\\' vi-complete-max
 bindkey -a '?' vi-search-forward
-bindkey -a '/' vi-search-backward
-bindkey -a 'G' oldest-history-bol
-bindkey -a 'g' return-history-bol
-bindkey -a 'j' next-history-bol
+bindkey -a / vi-search-backward
+bindkey -a G oldest-history-bol
+bindkey -a g return-history-bol
+bindkey -a j next-history-bol
 bindkey -a '+' next-history-bol
 bindkey -a '\D' next-history-bol
 bindkey -a '\^N' next-history-bol
-bindkey -a 'k' prev-history-bol
-bindkey -a -- '-' prev-history-bol
+bindkey -a k prev-history-bol
+bindkey -a -- - prev-history-bol
 bindkey -a '\U' prev-history-bol
 bindkey -a '\^P' prev-history-bol
-bindkey -a 'n' search-again
-bindkey -a 'N' search-again-rev
+bindkey -a n search-again
+bindkey -a N search-again-rev
 __END__
 
 testcase "$LINENO" 'printing default vi-command bindings: output' \
@@ -338,14 +338,14 @@ bindkey -a
 __IN__
 
 test_OE -e 0 'binding key (vi-command)'
-bindkey -a 'a' self-insert
+bindkey -a a self-insert
 __IN__
 
 test_oE -e 0 'printing bound key (vi-command)'
-bindkey -a 'a' self-insert
-bindkey -a 'a'
+bindkey -a a self-insert
+bindkey -a a
 __IN__
-bindkey -a 'a' self-insert
+bindkey -a a self-insert
 __OUT__
 
 test_OE -e 0 'unbinding key (vi-command)'

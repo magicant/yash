@@ -103,8 +103,8 @@ __END__
 test_oE -e 0 'printing all arrays (some defined)'
 array
 __IN__
-a=('1' '2  2' '3')
-b=('ABC')
+a=(1 '2  2' 3)
+b=(ABC)
 e=()
 __OUT__
 
@@ -147,9 +147,9 @@ array --delete -- c 2 5 -2 11 -100
 array --delete -- e -1 0 1
 array
 __IN__
-a=('1' '2  2' '3')
+a=(1 '2  2' 3)
 b=()
-c=('1' '3' '4' '6' '7' '8' '10')
+c=(1 3 4 6 7 8 10)
 e=()
 __OUT__
 

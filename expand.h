@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.h: word expansion */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +56,7 @@ extern wchar_t *extract_fields(
 	struct plist_T *restrict dest)
     __attribute__((nonnull));
 
+struct xwcsbuf_T;
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *escapefree(
@@ -65,8 +66,11 @@ extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *unescapefree(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
-extern wchar_t *quote_sq(const wchar_t *s)
+extern wchar_t *quote_as_word(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern struct xwcsbuf_T *wb_quote_as_word(
+	struct xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+    __attribute__((nonnull));
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 
