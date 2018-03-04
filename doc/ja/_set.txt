@@ -67,12 +67,16 @@ link:builtin.html#argsyntax[長いオプション]の名前に含まれる英数
 このオプションが有効な時、link:expand.html#split[単語分割]で最後の単語が空になっても削除しません。
 
 [[so-errexit]]err-exit (+-e+)::
-このオプションが有効な時、実行したlink:syntax.html#pipelines[パイプライン]の終了ステータスが 0 でなければ、シェルは直ちに終了します。ただし、以下の場合を除きます。
+このオプションが有効な時、実行したlink:syntax.html#pipelines[パイプライン]の終了ステータスが 0 でなければ、シェルは直ちに終了します。ただし、以下の抑止条件に当てはまる場合を除きます。
 
 - そのコマンドが link:syntax.html#if[if 文]の分岐や
   link:syntax.html#while-until[while/until 文]のループ条件の判定に使われる場合
 - パイプラインの先頭に +!+ が付いている場合
 - パイプラインがサブシェルlink:syntax.html#grouping[グルーピング]以外の単独のlink:syntax.html#compound[複合コマンド]から構成される場合
+
+[[so-errreturn]]err-return::
+このオプションは err-exit オプションと同様ですが、終了ステータスが 0 でないときにシェルが終了する代わりに link:_return.html[return 組込みコマンド]が発動します。
+Err-exit オプションと異なり、抑止条件はlink:exec.html#function[関数]・サブシェルlink:syntax.html#grouping[グルーピング]・link:_dot.html[スクリプトファイル]の中では無視されます。
 
 [[so-exec]]exec (`+n`)::
 このオプションが無効な時、シェルはコマンドの解釈だけを行い、実際にはコマンドを実行しません。このオプションはシェルスクリプトの文法チェックをするのに便利です。このオプションはシェルの起動時に最初から有効になっています。link:interact.html[対話モード]では、このオプションに関わらずコマンドは常に実行されます。

@@ -1,8 +1,8 @@
-# (C) 2011-2016 magicant
+# (C) 2011-2018 magicant
 
 # Completion script for the "set" built-in command.
 # Completion function "completion/set" is used for the "ksh" and "yash"
-# commands as well. Supports AT&T ksh 20100621, yash 2.44.
+# commands as well. Supports AT&T ksh 20100621, yash 2.47.
 
 function completion/set {
 
@@ -258,6 +258,7 @@ function completion/set::getopt {
 		"curstop; a background job becomes the current job when stopped"
 		"dotglob; don't treat a period at the beginning of a filename specially"
 		"emptylastfield; don't remove empty last field in field splitting"
+		"errreturn; return immediately when a command's exit status is non-zero"
 		"extendedglob; enable recursive pathname expansion"
 		"hashondef; cache full paths of commands in a function when defined"
 		"histspace; don't save a command starting with a space in the history"

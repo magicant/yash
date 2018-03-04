@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -144,8 +144,11 @@ static void exec_funcdef(const command_T *c, bool finally_exit)
 static void exec_commands(command_T *c, exec_T type);
 static bool is_errexit_condition(void)
     __attribute__((pure));
-static inline bool is_errexit_condition_for(const command_T *c)
-    __attribute__((nonnull,pure));
+static bool is_errreturn_condition(void)
+    __attribute__((pure));
+static void apply_errexit_errreturn(const command_T *c);
+static bool is_err_condition_for(const command_T *c)
+    __attribute__((pure));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static pid_t exec_process(
@@ -194,9 +197,9 @@ static int lastcmdsubstatus;
 pid_t lastasyncpid;
 
 /* This flag is set to true while the shell is executing the condition of an if-
- * statement, an and-or list, etc. to suppress the effect of the "errexit"
- * option. */
-static bool suppresserrexit = false;
+ * statement, an and-or list, etc. to suppress the effect of the "errexit" and
+ * "errreturn" options. */
+static bool suppresserrexit = false, suppresserrreturn = false;
 
 /* state of currently executed loop */
 static execstate_T execstate;
@@ -297,8 +300,10 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	if (!first && p->pl_cond == (laststatus != Exit_SUCCESS))
 	    continue;
 
-	bool savesee = suppresserrexit;
-	suppresserrexit |= p->pl_neg || p->next != NULL;
+	bool savesee = suppresserrexit, saveser = suppresserrreturn;
+	bool suppress = p->pl_neg || p->next != NULL;
+	suppresserrexit |= suppress;
+	suppresserrreturn |= suppress;
 
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set && !shopt_pipefail;
@@ -310,7 +315,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 		laststatus = Exit_SUCCESS;
 	}
 
-	suppresserrexit = savesee;
+	suppresserrexit = savesee, suppresserrreturn = saveser;
     }
     if (finally_exit)
 	exit_shell();
@@ -386,10 +391,10 @@ bool exec_condition(const and_or_T *c)
     if (c == NULL)
 	return true;
 
-    bool savesee = suppresserrexit;
-    suppresserrexit = true;
+    bool savesee = suppresserrexit, saveser = suppresserrreturn;
+    suppresserrexit = suppresserrreturn = true;
     exec_and_or_lists(c, false);
-    suppresserrexit = savesee;
+    suppresserrexit = savesee, suppresserrreturn = saveser;
     return laststatus == Exit_SUCCESS;
 }
 
@@ -407,8 +412,7 @@ void exec_for(const command_T *c, bool finally_exit)
 	/* expand the words between "in" and "do" of the for command. */
 	if (!expand_line(c->c_forwords, &count, &words)) {
 	    laststatus = Exit_EXPERROR;
-	    if (is_errexit_condition())
-		exit_shell_with_status(laststatus);
+	    apply_errexit_errreturn(NULL);
 	    goto finish;
 	}
     } else {
@@ -540,8 +544,7 @@ done:
 
 fail:
     laststatus = Exit_EXPERROR;
-    if (is_errexit_condition())
-	exit_shell_with_status(laststatus);
+    apply_errexit_errreturn(NULL);
     goto done;
 }
 
@@ -651,9 +654,7 @@ void exec_commands(command_T *c, exec_T type)
 
     handle_signals();
 
-    if (is_errexit_condition_for(c)) {
-	exit_shell_with_status(laststatus);
-    }
+    apply_errexit_errreturn(c);
 
     comsfree(c);
 }
@@ -674,11 +675,30 @@ bool is_errexit_condition(void)
     return true;
 }
 
-/* Returns true if the shell should exit because of the `errexit' option. */
-bool is_errexit_condition_for(const command_T *c)
+/* Returns true if the shell should return because of the `errreturn' option. */
+bool is_errreturn_condition(void)
 {
-    if (!is_errexit_condition())
+    if (!shopt_errreturn || suppresserrreturn || execstate.noreturn)
 	return false;
+    return laststatus != Exit_SUCCESS;
+}
+
+/* Tests the current condition for "errexit" and "errreturn" and then performs
+ * exit or return if applicable. */
+void apply_errexit_errreturn(const command_T *c)
+{
+    if (is_errexit_condition() && is_err_condition_for(c))
+	exit_shell_with_status(laststatus);
+    if (is_errreturn_condition() && is_err_condition_for(c))
+	exception = E_RETURN;
+}
+
+/* Returns true if "errexit" and "errreturn" should be applied to the given
+ * command. */
+bool is_err_condition_for(const command_T *c)
+{
+    if (c == NULL)
+	return true;
 
     /* If this is a multi-command pipeline, the commands are executed in
      * subshells. Otherwise, we need to check the type of the command. */
@@ -814,8 +834,7 @@ pid_t exec_process(
     if (!open_redirections(c->c_redirs, &savefd)) {
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
-	if (is_errexit_condition())
-	    exit_shell_with_status(laststatus);
+	apply_errexit_errreturn(NULL);
 	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
 		argc > 0 && is_special_builtin(argv0))
 	    finally_exit = true;
@@ -1014,6 +1033,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
 	clear_shellfds(sigtype & t_leave);
 	is_interactive_now = false;
+	suppresserrreturn = false;
     }
     return cpid;
 }
@@ -1358,6 +1378,9 @@ void exec_function_body(
     execstate_T *saveexecstate = save_execstate();
     reset_execstate(false);
 
+    bool saveser = suppresserrreturn;
+    suppresserrreturn = false;
+
     open_new_environment(false);
     set_positional_parameters(args);
 #if YASH_ENABLE_LINEEDIT
@@ -1370,6 +1393,7 @@ void exec_function_body(
     close_current_environment();
 
     cancel_return();
+    suppresserrreturn = saveser;
     restore_execstate(saveexecstate);
 }
 
@@ -1949,8 +1973,14 @@ int dot_builtin(int argc, void **argv)
 
     execstate_T *saveexecstate = save_execstate();
     reset_execstate(false);
+
+    bool saveser = suppresserrreturn;
+    suppresserrreturn = false;
+
     exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
+
     cancel_return();
+    suppresserrreturn = saveser;
     restore_execstate(saveexecstate);
     remove_shellfd(fd);
     xclose(fd);

@@ -399,6 +399,7 @@ curstop         on
 dotglob         off
 emptylastfield  off
 errexit         off
+errreturn       off
 exec            on
 extendedglob    off
 glob            on
@@ -452,6 +453,7 @@ set -o curstop
 set +o dotglob
 set +o emptylastfield
 set +o errexit
+set +o errreturn
 set -o exec
 set +o extendedglob
 set -o glob

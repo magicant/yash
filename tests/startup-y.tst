@@ -550,6 +550,7 @@ Options:
 	         -o emacs
 	         -o emptylastfield
 	-e       -o errexit
+	         -o errreturn
 	+n       -o exec
 	         -o extendedglob
 	+f       -o glob

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,6 +93,9 @@ bool shopt_hashondef = false;
 /* If set, when a command returns a non-zero status, the shell exits.
  * Corresponds to the -e/--errexit option. */
 bool shopt_errexit = false;
+/* Like `shopt_errexit', but instead of exiting the shell, the "return"
+ * built-in is executed on a non-zero status. */
+bool shopt_errreturn = false;
 /* If set, the last non-zero exit status in a pipeline becomes the exit status
  * of the whole pipeline. Otherwise, the last command in the pipeline always
  * defines the exit status of the whole pipeline. Corresponds to the --pipefail
@@ -215,6 +218,7 @@ static const struct option_T shell_options[] = {
 #endif
     { 0,    0,    L"emptylastfield", &shopt_emptylastfield, true, },
     { L'e', 0,    L"errexit",        &shopt_errexit,        true, },
+    { 0,    0,    L"errreturn",      &shopt_errreturn,      true, },
     { 0,    L'n', L"exec",           &shopt_exec,           true, },
     { 0,    0,    L"extendedglob",   &shopt_extendedglob,   true, },
     { 0,    L'f', L"glob",           &shopt_glob,           true, },

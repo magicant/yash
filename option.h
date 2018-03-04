@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.h: option settings */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,8 +42,8 @@ extern _Bool shopt_cmdline, shopt_stdin;
 extern _Bool do_job_control, shopt_notify, shopt_notifyle,
        shopt_curasync, shopt_curbg, shopt_curstop;
 extern _Bool shopt_allexport, shopt_hashondef;
-extern _Bool shopt_errexit, shopt_pipefail, shopt_unset, shopt_exec,
-       shopt_ignoreeof, shopt_verbose, shopt_xtrace;
+extern _Bool shopt_errexit, shopt_errreturn, shopt_pipefail, shopt_unset,
+       shopt_exec, shopt_ignoreeof, shopt_verbose, shopt_xtrace;
 extern _Bool shopt_traceall;
 #if YASH_ENABLE_HISTORY
 extern _Bool shopt_histspace;

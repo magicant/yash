@@ -98,13 +98,21 @@ field even if it is empty.
 
 [[so-errexit]]err-exit (+-e+)::
 When enabled, if a link:syntax.html#pipelines[pipeline] ends with a non-zero
-exit status, the shell immediately exits unless:
+exit status, the shell immediately exits unless the following suppress
+condition is met:
 
 - the pipeline is a condition of an link:syntax.html#if[if command] or
   link:syntax.html#while-until[while or until loop];
 - the pipeline is prefixed by +!+; or
 - the pipeline is a single link:syntax.html#compound[compound command] other
   than a subshell link:syntax.html#grouping[grouping].
+
+[[so-errreturn]]err-return::
+This option is like the err-exit option, but the link:_return.html[return
+built-in] is executed instead of the shell exiting on a non-zero exit status.
+Unlike err-exit, the suppress condition does not apply inside a
+link:exec.html#function[function],
+subshell link:syntax.html#grouping[grouping], or link:_dot.html[script file].
 
 [[so-exec]]exec (`+n`)::
 (Enabled by default)
