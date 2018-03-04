@@ -77,7 +77,6 @@ test_sending_signal_kill "$LINENO" SEGV '-s '
 test_sending_signal_kill "$LINENO" TERM '-s '
 test_sending_signal_kill "$LINENO" USR1 '-s '
 test_sending_signal_kill "$LINENO" USR2 '-s '
-test_sending_signal_kill "$LINENO" ABRT '-s '
 
 test_sending_signal_kill "$LINENO" ABRT -
 test_sending_signal_kill "$LINENO" ALRM -
@@ -93,7 +92,6 @@ test_sending_signal_kill "$LINENO" SEGV -
 test_sending_signal_kill "$LINENO" TERM -
 test_sending_signal_kill "$LINENO" USR1 -
 test_sending_signal_kill "$LINENO" USR2 -
-test_sending_signal_kill "$LINENO" ABRT -
 
 # $1 = LINENO, $2 = signal name w/o SIG, $3 = prefix for $2
 test_sending_signal_ignore() {
