@@ -1958,17 +1958,17 @@ int dot_builtin(int argc, void **argv)
 	path = mbsfilename;
     }
 
-    if (has_args) {
-	open_new_environment(false);
-	set_positional_parameters(&argv[xoptind]);
-    }
-
     int fd = move_to_shellfd(open(path, O_RDONLY));
     if (path != mbsfilename)
 	free(path);
     if (fd < 0) {
 	xerror(errno, Ngt("cannot open file `%s'"), mbsfilename);
 	goto error;
+    }
+
+    if (has_args) {
+	open_new_environment(false);
+	set_positional_parameters(&argv[xoptind]);
     }
 
     execstate_T *saveexecstate = save_execstate();

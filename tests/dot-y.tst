@@ -38,6 +38,14 @@ a x y
 1 2 3
 __OUT__
 
+test_o 'positional parameters removed on error'
+set foo
+command . ./_no_such_file_ bar
+echo "$*"
+__IN__
+foo
+__OUT__
+
 (
 setup 'alias true=false'
 
