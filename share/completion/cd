@@ -1,4 +1,4 @@
-# (C) 2010-2016 magicant
+# (C) 2010-2018 magicant
 
 # Completion script for the "cd" built-in command.
 # Completion function "completion/cd" is used for the "dirs", "pushd", "popd"
@@ -86,7 +86,7 @@ function completion/cd::completedir {
 	if $logical; then
 		typeset IFS=/
 		complete -T -P "$PREFIX$dirname" -S / -- $(
-			set -o errexit -o glob -o nullglob
+			set -o errreturn -o glob -o nullglob
 			typeset CDPATH=
 			if [ "$dirname" ]; then
 				command cd -L -- "$dirname" >/dev/null 2>&1
