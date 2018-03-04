@@ -205,7 +205,10 @@ hash
  * hash-y.tst
 
 kill
- * kill-p.tst
+ * kill1-p.tst
+ * kill2-p.tst
+ * kill3-p.tst
+ * kill4-p.tst
 
 read
  * read-p.tst
