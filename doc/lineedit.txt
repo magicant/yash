@@ -1791,8 +1791,9 @@ experience.
 
 While a completion function is being executed:
 
-- the link:posix.html[POSIXly-correct mode] is temporarily disabled,
-- the link:_set.html#so-errexit[err-exit option] is temporarily disabled, and
+- the link:posix.html[POSIXly-correct mode] and the
+  link:_set.html#so-errreturn[err-return option] are temporarily disabled,
+- the link:_set.html#so-errexit[err-exit option] is temporarily ignored, and
 - link:_trap.html[traps] are not executed.
 
 [[prediction]]

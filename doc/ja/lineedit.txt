@@ -1533,7 +1533,7 @@ link:params.html#sv-ifs[+IFS+]::
 
 補完関数の実行中は、端末に対して入出力を行ってはなりません (端末の表示が乱れてしまいます)。スムーズな補完を行うために、補完の実行中に長い時間のかかる処理を行うのは避けてください。
 
-補完の実行中は、link:posix.html[POSIX 準拠モード]が強制的に解除されます。また link:_set.html#so-errexit[errexit オプション]は無効となり、link:_trap.html[トラップ]は実行されません。
+補完の実行中は、link:posix.html[POSIX 準拠モード]と link:_set.html#so-errreturn[err-return オプション]が強制的に解除されます。また link:_set.html#so-errexit[err-exit オプション]は無視され、link:_trap.html[トラップ]は実行されません。
 
 [[prediction]]
 == コマンドライン推定

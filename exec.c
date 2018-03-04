@@ -1639,9 +1639,9 @@ bool call_completion_function(const wchar_t *funcname)
 
     execstate_T *saveexecstate = save_execstate();
     int savelaststatus = laststatus;
-    bool saveposix = posixly_correct;
+    bool saveposix = posixly_correct, saveerrreturn = shopt_errreturn;
     reset_execstate(true);
-    posixly_correct = false;
+    posixly_correct = false, shopt_errreturn = false;
 
     le_compdebug("executing completion function \"%ls\"", funcname);
 
@@ -1650,7 +1650,7 @@ bool call_completion_function(const wchar_t *funcname)
     le_compdebug("finished executing completion function \"%ls\"", funcname);
     le_compdebug("  with the exit status of %d", laststatus);
 
-    posixly_correct = saveposix;
+    posixly_correct = saveposix, shopt_errreturn = saveerrreturn;
     laststatus = savelaststatus;
     cancel_return();
     restore_execstate(saveexecstate);
