@@ -17,6 +17,10 @@ Yash 2.47
      are now printed with less quotes.
   *  The "." built-in no longer leaves temporary positional parameters
      after a file-not-found error.
+  *  The ">" redirection with the noclobber option is now more
+     reliable than before. Previously, there was little possibility of
+     overwriting an existing regular file in case another process
+     simultaneously replaces the file.
 
 ----------------------------------------------------------------------
 Yash 2.46

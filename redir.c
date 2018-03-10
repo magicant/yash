@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -359,7 +359,7 @@ bool open_redirections(const redir_T *r, savefd_T **save)
 	    flags = O_RDONLY;
 	    goto openwithflags;
 	case RT_OUTPUT:
-	    if (!shopt_clobber && !is_irregular_file(filename)) {
+	    if (!shopt_clobber) {
 		flags = O_WRONLY | O_CREAT | O_EXCL;
 	    } else {
 		/* falls thru! */
@@ -482,14 +482,43 @@ void save_fd(int fd, savefd_T **save)
 
 /* Opens the redirected file.
  * `path' and `oflag' are the first and second arguments to the `open' function.
+ * If `oflag' contains the O_EXCL flag, this function may retry without the flag
+ * to allow opening an existing non-regular file.
  * If socket redirection is enabled and `path' begins with "/dev/tcp/" or
  * "/dev/udp/", a socket is opened.
  * Returns a new file descriptor if successful. Otherwise, `errno' is set and
  * -1 is returned. */
 int open_file(const char *path, int oflag)
 {
-    int fd = open(path, oflag,
-	    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    const mode_t mode =
+	S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+
+start:;
+    int fd = open(path, oflag, mode);
+
+    // Support the no-clobber mode.
+    if ((oflag & O_EXCL) && fd < 0 && errno == EEXIST) {
+	fd = open(path, oflag & ~(O_CREAT | O_EXCL | O_TRUNC), mode);
+	if (fd < 0) {
+	    if (errno == ENOENT) {
+		// A file existed on the first open but not on the second.
+		// Somebody must have removed it between the two opens.
+		// Start over as we might be able to create one this time.
+		goto start;
+	    }
+	} else {
+	    struct stat st;
+	    if (fstat(fd, &st) >= 0 && S_ISREG(st.st_mode)) {
+		// We opened the FD without the O_CREAT flag, so this regular
+		// file was created by somebody else. Failure.
+		xclose(fd);
+		fd = -1;
+		errno = EEXIST;
+	    }
+	}
+    }
+
+    // Support socket redirection.
 #if YASH_ENABLE_SOCKET
     if (fd < 0) {
 	const char *hostandport = matchstrprefix(path, "/dev/tcp/");
@@ -502,6 +531,7 @@ int open_file(const char *path, int oflag)
 	    fd = open_socket(hostandport, SOCK_DGRAM);
     }
 #endif /* YASH_ENABLE_SOCKET */
+
     return fd;
 }
 
