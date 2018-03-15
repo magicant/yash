@@ -87,7 +87,7 @@ fi
 
 IFS='
 '
-until rmdir "$queue_dir" 2>/dev/null; do
+until [ "$interrupted" ] || rmdir "$queue_dir" 2>/dev/null; do
     if ! [ -d "$queue_dir" ]; then
 	printf '%s: the queue directory was unexpectedly removed.\n' "$0" >&2
 	exit 69 # sysexits.h EX_UNAVAILABLE
