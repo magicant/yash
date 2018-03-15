@@ -1,5 +1,5 @@
 # enqueue.sh: runs a task sequentially
-# (C) 2015 magicant
+# (C) 2015-2018 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +43,9 @@ cleanup() {
     fi
     rm -fr "$tmp_file"
     if [ "$interrupted" ]; then
+	trap - "$interrupted"
 	kill -s "$interrupted" $$
+	exit 1
     fi
 }
 trap cleanup EXIT
