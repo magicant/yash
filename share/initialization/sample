@@ -14,6 +14,21 @@
 #alias --global L='|$PAGER'
 #alias --global N='>/dev/null 2>&1' N1='>/dev/null' N2='2>/dev/null'
 
+# Uncomment to enable direnv support. (jq required)
+#_update_direnv() {
+#  eval "$(
+#    direnv export json |
+#    jq -r 'to_entries | .[] |
+#    if .value == null then
+#      @sh "unset \(.key)"
+#    else
+#      @sh "export \(.key)=\(.value)"
+#    end'
+#  )"
+#}
+#_update_direnv
+#YASH_AFTER_CD=("$YASH_AFTER_CD" '_update_direnv')
+
 # And add your own customization below.
 
 

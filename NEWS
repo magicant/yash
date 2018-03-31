@@ -21,6 +21,8 @@ Yash 2.47
      reliable than before. Previously, there was little possibility of
      overwriting an existing regular file in case another process
      simultaneously replaces the file.
+  .  Updated the sample initialization script (yashrc):
+    +  Example code for enabling "direnv".
 
 ----------------------------------------------------------------------
 Yash 2.46

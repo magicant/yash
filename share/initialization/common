@@ -242,20 +242,21 @@ _update_vcs_info() {
     read --raw-mode _vcs_root
     read --raw-mode branch
   } <(
+    exec 2>/dev/null
     typeset COMMAND_NOT_FOUND_HANDLER=
     while true; do
       if [ -e .git ] || [ . -ef "${GIT_WORK_TREE-}" ]; then
         printf 'git\n%s\n' "${GIT_WORK_TREE:-$PWD}"
-        (git branch --no-color | sed -n '/^\*/s/^..//p') 2>/dev/null
+        git branch --no-color | sed -n '/^\*/s/^..//p'
         exit
       elif [ -d .hg ]; then
         printf 'hg\n%s\n' "$PWD"
-        exec cat .hg/branch 2>/dev/null
+        exec cat .hg/branch
       elif [ -d .svn ]; then
         printf 'svn\n'
-        _vcs_root=$(svn info --show-item=wc-root 2>/dev/null)
+        _vcs_root=$(svn info --show-item=wc-root)
         printf '%s\n' "$_vcs_root"
-        path=$(svn info --show-item=relative-url 2>/dev/null)
+        path=$(svn info --show-item=relative-url)
         case $path in
           (*/branches/*)
             printf '%s\n' "${${path#*/branches/}%%/*}"
