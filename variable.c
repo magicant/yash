@@ -1652,19 +1652,29 @@ int typeset_builtin(int argc, void **argv)
 	}
     }
 
-    if (wcscmp(ARGV(0), L"export") == 0) {
-	global = true;
-	if (!unexport)
-	    export = true;
-    } else if (wcscmp(ARGV(0), L"readonly") == 0) {
-	global = readonly = true;
-    } else if (wcscmp(ARGV(0), L"set") == 0) {
-	global = true;
-    } else {
-	assert(wcscmp(ARGV(0), L"typeset") == 0);
+    switch (ARGV(0)[0]) {
+	case L'e':
+	    assert(wcscmp(ARGV(0), L"export") == 0);
+	    global = true;
+	    if (!unexport)
+		export = true;
+	    break;
+	case L'r':
+	    assert(wcscmp(ARGV(0), L"readonly") == 0);
+	    global = readonly = true;
+	    break;
+	case L's':
+	    assert(wcscmp(ARGV(0), L"set") == 0);
+	    global = true;
+	    break;
+	case L't':
+	    assert(wcscmp(ARGV(0), L"typeset") == 0);
+	    break;
+	default:
+	    assert(false);
     }
 
-    if (function && global && wcscmp(ARGV(0), L"typeset") == 0)
+    if (function && global && ARGV(0)[0] == L't' /*typeset*/)
 	return special_builtin_error(
 		mutually_exclusive_option_error(L'f', L'g'));
     if (function && export)
