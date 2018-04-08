@@ -26,6 +26,15 @@ yashtest3=\'single\'
 yashtest4='back\slash'
 __OUT__
 
+test_oE 'printing all variables: inside function'
+yashtest1=global
+f() { typeset yashtest2=local; set; }
+f | grep '^yashtest'
+__IN__
+yashtest1=global
+yashtest2=local
+__OUT__
+
 test_oE 'setting one positional parameter (no --)' -e
 set foo
 bracket "$@"

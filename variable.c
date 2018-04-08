@@ -1658,9 +1658,10 @@ int typeset_builtin(int argc, void **argv)
 	    export = true;
     } else if (wcscmp(ARGV(0), L"readonly") == 0) {
 	global = readonly = true;
+    } else if (wcscmp(ARGV(0), L"set") == 0) {
+	global = true;
     } else {
-	assert(wcscmp(ARGV(0), L"typeset") == 0
-	    || wcscmp(ARGV(0), L"set") == 0);
+	assert(wcscmp(ARGV(0), L"typeset") == 0);
     }
 
     if (function && global && wcscmp(ARGV(0), L"typeset") == 0)

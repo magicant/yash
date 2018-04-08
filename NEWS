@@ -15,6 +15,8 @@ Yash 2.47
      disambiguate presence of special characters.
   =  When the shell prints aliases, variables, key bindings, etc. they
      are now printed with less quotes.
+  *  The "set" built-in without any argument now prints not only local
+     variables but also global.
   *  The "." built-in no longer leaves temporary positional parameters
      after a file-not-found error.
   *  The ">" redirection with the noclobber option is now more
