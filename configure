@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2017 magicant
+# (C) 2007-2018 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ temptxt="./.temp.txt"
 dirs=". builtins doc doc/ja lineedit po tests"
 
 target="yash"
-version="2.46"
+version="2.47"
 copyright="Copyright (C) 2007-2017 magicant"
 
 # object files to be linked as `yash'
