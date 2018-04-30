@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.48
+
+  .  Updated the sample initialization script (yashrc):
+    *  Window title update should now work on more terminals.
+
+----------------------------------------------------------------------
 Yash 2.47
 
   +  '--errreturn' option.
