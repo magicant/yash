@@ -377,6 +377,7 @@ mode], this variable does not work as a random number generator.
 This variable specifies the type of the terminal in which the shell is
 running.
 The value affects the behavior of link:lineedit.html[line-editing].
+This variable has to be exported to take effect.
 
 [[sv-yash_after_cd]]+YASH_AFTER_CD+::
 The shell interprets and executes the value of this variable after each time
