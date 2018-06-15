@@ -107,6 +107,11 @@ yash() { command yash "$@"; }
 # arguments like 'yash --posix "${@}"'. This applies to the 'yash' command
 # invoked via the 'sh' function.
 
+# ensure job control works as expected
+case $- in (*m*)
+  trap - TSTP TTIN TTOU
+esac
+
 # if the terminal supports color...
 if [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
 

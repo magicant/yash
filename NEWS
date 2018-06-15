@@ -12,6 +12,8 @@ Yash 2.48
 
   .  Updated the sample initialization script (yashrc):
     *  Window title update should now work on more terminals.
+    *  Any predefined handlers for SIGTSTP, SIGTTIN, and SIGTTOU are
+       now cancelled so that jobs can be suspended properly.
 
 ----------------------------------------------------------------------
 Yash 2.47
