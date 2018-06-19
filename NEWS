@@ -14,6 +14,8 @@ Yash 2.48
     *  Window title update should now work on more terminals.
     *  Any predefined handlers for SIGTSTP, SIGTTIN, and SIGTTOU are
        now cancelled so that jobs can be suspended properly.
+  .  Updated completion scripts:
+    *  git: pathnames are now correctly completed with the latest Git.
 
 ----------------------------------------------------------------------
 Yash 2.47

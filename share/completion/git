@@ -1,4 +1,4 @@
-# (C) 2011-2017 magicant
+# (C) 2011-2018 magicant
 
 # Completion script for the "git" command.
 # Supports Git 2.9.2.
@@ -433,8 +433,7 @@ function completion/git::completepath {
 			(*)    opt= ;;
 		esac
 		complete -P "$PREFIX" $opt -- "${path##*/}"
-	done 2>/dev/null \
-		<(git ls-tree --full-tree "$tree" -- "$lspath")
+	done 2>/dev/null <(git ls-tree --full-tree "$tree" -- "${lspath:-.}")
 
 }
 
