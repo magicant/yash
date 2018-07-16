@@ -30,7 +30,7 @@ dirs=". builtins doc doc/ja lineedit po tests"
 
 target="yash"
 version="2.47"
-copyright="Copyright (C) 2007-2017 magicant"
+copyright="Copyright (C) 2007-2018 magicant"
 
 # object files to be linked as `yash'
 objs='$(MAIN_OBJS)'
@@ -1570,7 +1570,9 @@ fi
 if [ x"${CTAGSARGS+set}" != x"set" ]
 then
     checking "if ctags accepts --recurse option"
-    checkby ${ctags} --recurse -f /dev/null /dev/null
+    rm -fr "${temptxt}"
+    printf 'int f(int){}\n' >|"${tempsrc}"
+    checkby ${ctags} --recurse -f "${temptxt}" "${tempsrc}"
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
@@ -1582,7 +1584,9 @@ fi
 if [ x"${ETAGSARGS+set}" != x"set" ]
 then
     checking "if etags accepts --recurse option"
-    checkby ${etags} --recurse -o /dev/null /dev/null >/dev/null 2>&1
+    rm -fr "${temptxt}"
+    printf 'int f(int){}\n' >|"${tempsrc}"
+    checkby ${etags} --recurse -o "${temptxt}" "${tempsrc}"
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
