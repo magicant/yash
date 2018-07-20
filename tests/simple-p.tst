@@ -164,7 +164,7 @@ foo=bar f
 __OUT__
 
 test_o 'redirection can appear between any tokens in simple command'
-</dev/null foo=bar </dev/null sh </dev/null -c 'echo $1' X <//dev/null 1 </dev/null
+</dev/null foo=bar </dev/null sh </dev/null -c 'echo $1' X </dev/null 1 </dev/null
 __IN__
 1
 __OUT__
