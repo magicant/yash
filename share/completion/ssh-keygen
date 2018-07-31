@@ -1,7 +1,7 @@
-# (C) 2011-2013 magicant
+# (C) 2011-2018 magicant
 
 # Completion script for the "ssh-keygen" command.
-# Supports OpenSSH 6.2.
+# Supports OpenSSH 7.7.
 
 function completion/ssh-keygen {
 
@@ -14,6 +14,7 @@ function completion/ssh-keygen {
 	"C:; specify the comment of the key"
 	"c; change the comment of RSA1 private/public keys"
 	"D:; download the RSA public keys from the specified PKCS#11 library"
+	"E:; specify the hash algorithm for fingerprint"
 	"e; print the key in the portable format"
 	"F:; specify the host name to search the known hosts file for"
 	"f:; specify the key file to operate on"
@@ -23,6 +24,10 @@ function completion/ssh-keygen {
 	"h; create a host certificate when signing a key"
 	"I:; specify the key identity used when signing a key"
 	"i; print the key in the non-portable format"
+	"J:; specify a max number of lines processed (with -T)"
+	"j:; specify the start line number (with -T)"
+	"K:; specify the file to print the last line number to (with -T)"
+	"k; generate a KRL file"
 	"L; print the contents of a certificate"
 	"l; print the fingerprint of the public key file"
 	"M:; specify the memory size in megabytes used when generating candidate moduli"
@@ -30,8 +35,10 @@ function completion/ssh-keygen {
 	"N:; specify the new passphrase"
 	"n:; specify principals included in a certificate when signing a key"
 	"O:; specify a certificate option when signing a key"
+	"o; use the new format to save the private key"
 	"P:; specify the (current) passphrase"
 	"p; change the passphrase of the private key"
+	"Q; test if keys have been revoked in a KRL"
 	"q; make ssh-keygen quiet"
 	"R:; specify the host name to remove from the known hosts file"
 	"r:; print the SSHFP fingerprint resource record of the specified host name"
@@ -39,6 +46,8 @@ function completion/ssh-keygen {
 	"s:; specify the CA key file to sign the public key with"
 	"T:; test DH group exchange candidate primes"
 	"t:; specify the key type"
+	"U; use a CA key in ssh-agent (with -s)"
+	"u; update a KRL"
 	"V:; specify the validity interval of the signed certificate"
 	"v; print debugging messages"
 	"W:; specify the DH generator"
@@ -53,6 +62,9 @@ function completion/ssh-keygen {
 		;;
 	([abMSVz])
 		;;
+	(E)
+		complete -P "$PREFIX" md5 sha256
+		;;
 	([FR])
 		complete -P "$PREFIX" -h
 		;;
@@ -64,11 +76,9 @@ function completion/ssh-keygen {
 	(O)
 		#TODO
 		;;
-	(t) #>>#
-		complete -P "$PREFIX" -D 'RSA, protocol version 1' rsa1
-		complete -P "$PREFIX" -D 'RSA, protocol version 2' rsa
-		complete -P "$PREFIX" -D 'DSA, protocol version 2' dsa
-		;; #<<#
+	(t)
+		complete -P "$PREFIX" dsa ecdsa ed25519 rsa
+		;;
 	(W)
 		complete 2 3 5
 		;;

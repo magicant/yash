@@ -16,6 +16,7 @@ Yash 2.48
        now cancelled so that jobs can be suspended properly.
   .  Updated completion scripts:
     *  git: pathnames are now correctly completed with the latest Git.
+    =  ssh-keygen: support new options in OpenSSH 7.7.
 
 ----------------------------------------------------------------------
 Yash 2.47
