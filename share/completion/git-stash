@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2018 magicant
 
 # Completion script for the "git-stash" command.
-# Supports Git 1.7.7.
+# Supports Git 2.18.0.
 
 function completion/git-stash {
 	WORDS=(git stash "${WORDS[2,-1]}")
@@ -17,12 +17,20 @@ function completion/git::stash:arg
 		complete -P "$PREFIX" -D "remove stash contents without restoring it" drop
 		complete -P "$PREFIX" -D "list existing stashes" list
 		complete -P "$PREFIX" -D "restore stash contents and remove it from the stash list" pop
-		complete -P "$PREFIX" -D "save local changes in a new stash and reset to HEAD" save
+		complete -P "$PREFIX" -D "save local changes in a new stash and reset to HEAD" push
+		complete -P "$PREFIX" save
 		complete -P "$PREFIX" -D "show stash contents" show
-	else #<<#
+		complete -P "$PREFIX" -D "add an existing commit to the stash list" store
+		#<<#
+		command -f completion/git::stash:push:arg
+	else
 		WORDS=("${WORDS[2,-1]}")
 		if command -vf "completion/git::stash:${WORDS[1]}:arg" >/dev/null 2>&1; then
 			command -f "completion/git::stash:${WORDS[1]}:arg"
+		else
+			case ${WORDS[1]} in (-*)
+				command -f completion/git::stash:push:arg
+			esac
 		fi
 	fi
 
@@ -81,7 +89,7 @@ function completion/git::stash:pop:arg {
 		) #<#
 	esac
 
-	command -f completion//parseoptions
+	command -f completion//parseoptions -n
 	case $ARGOPT in
 		(-)
 			command -f completion//completeoptions
@@ -93,26 +101,51 @@ function completion/git::stash:pop:arg {
 
 }
 
-function completion/git::stash:save:arg {
+function completion/git::stash:push:arg {
 
 	OPTIONS=( #>#
 	"a --all; stash all files including ignored/untracked files"
-	"--keep-index; keep the index intact"
+	"k --keep-index; keep the index intact"
 	"p --patch; interactively choose patch hunks to stash"
 	"q --quiet; print error messages only"
 	"--no-keep-index; stash and reset the index"
 	"u --include-untracked; stash untracked files as well as tracked files"
 	) #<#
-
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		('')
-#			;;
+	case ${WORDS[1]} in (push|-*)
+		OPTIONS=("$OPTIONS" #>#
+		"m: --message:; specify the stash message"
+		) #<#
 	esac
 
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			if [ "${WORDS[#]}" -le 1 ]; then
+				WORDS=(push "$WORDS")
+			fi
+			command -f completion//completeoptions
+			;;
+		('')
+			case ${WORDS[1]} in (-*)
+				typeset i
+				for i in "${WORDS}"; do
+					if [ "$i" = -- ]; then
+						WORDS=(push "$WORDS")
+						break
+					fi
+				done
+			esac
+			case ${WORDS[1]} in (push)
+				command -f completion/git::completefilteredpath '' \
+					--ignore-submodules=dirty
+			esac
+			;;
+	esac
+
+}
+
+function completion/git::stash:save:arg {
+	command -f completion/git::stash:push:arg
 }
 
 function completion/git::stash:show:arg {
