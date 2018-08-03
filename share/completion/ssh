@@ -1,16 +1,16 @@
-# (C) 2010-2017 magicant
+# (C) 2010-2018 magicant
 
 # Completion script for the "ssh" command.
 # Completion function "completion/ssh" is used for the "scp" and "sftp" commands
 # as well.
-# Supports OpenSSH 6.2.
+# Supports OpenSSH 7.7.
 
 function completion/ssh {
 
 	typeset OPTIONS ARGOPT PREFIX
 	OPTIONS=( #>#
-	"1; use the protocol version 1 only"
-	"2; use the protocol version 2 only"
+	#"1; use the protocol version 1 only"
+	#"2; use the protocol version 2 only"
 	"4; use IPv4 addresses only"
 	"6; use IPv6 addresses only"
 	"C; enable data compression"
@@ -26,12 +26,16 @@ function completion/ssh {
 		OPTIONS=("$OPTIONS" #>#
 		"A; enable authentication agent forwarding"
 		"a; disable authentication agent forwarding"
+		"B:; specify the network interface to connect from"
 		"b:; specify the local IP address to connect from"
 		"D:; specify a port for local dynamic application-level port forwarding"
+		"E:; specify the log file"
 		"e:; specify the escape character"
 		"f; run in the background after authentication"
+		"G; print the configuration"
 		"g; allow remote hosts to connect to local forwarded ports"
 		"I:; specify the PKCS#11 shared library"
+		"J:; specify jump hosts"
 		"K; enable GSSAPI-based authentication and forwarding"
 		"k; disable GSSAPI-based authentication and forwarding"
 		"L:; specify a local port and a remote host/port to forward"
@@ -42,6 +46,7 @@ function completion/ssh {
 		"n; redirect the standard input of the remote command to /dev/null"
 		"O:; specify a command to control the master process"
 		"p:; specify the port to connect to"
+		"Q:; specify the feature to query"
 		"q; suppress warning and diagnostic messages"
 		"R:; specify a remote port and a local host/port to forward"
 		"S:; specify the control socket for connection sharing"
@@ -61,11 +66,11 @@ function completion/ssh {
 		OPTIONS=("$OPTIONS" #>#
 		"3; copy via local host between remote source and destination"
 		"B; batch mode: don't ask for passwords/phrases"
-		"l:; specify the max bandwidth in Kbps"
 		) #<#
 		;;
 	(sftp)
 		OPTIONS=("$OPTIONS" #>#
+		"a; continue on interruption"
 		"B:; specify the buffer size in bytes"
 		"b:; batch mode: specify the file to read commands from"
 		"D:; specify the path of local sftp server to connect to"
@@ -79,6 +84,7 @@ function completion/ssh {
 	esac
 	case ${WORDS[1]} in (scp|sftp)
 		OPTIONS=("$OPTIONS" #>#
+		"l:; specify the max bandwidth in Kbps"
 		"P:; specify the port to connect to"
 		"p; preserve file attributes"
 		"q; suppress progress bar and warning and diagnostic messages"
@@ -114,6 +120,10 @@ function completion/ssh {
 	(I)
 		#TODO
 		;;
+	(J)
+		PREFIX=${TARGETWORD%"${${TARGETWORD#"$PREFIX"}##*,}"}
+		command -f completion/${WORDS[1]}::operand
+		;;
 	(L)
 		#TODO
 		;;
@@ -137,6 +147,16 @@ function completion/ssh {
 	(o)
 		#TODO
 		;;
+	(Q) #>>#
+		complete -P "$PREFIX" -D "supported symmetric ciphers" cipher
+		complete -P "$PREFIX" -D "supported symmetric ciphers that support authenticated encryption" cipher-auth
+		complete -P "$PREFIX" -D "key exchange algorithms" kex
+		complete -P "$PREFIX" -D "key types" key
+		complete -P "$PREFIX" -D "certificate key types" key-cert
+		complete -P "$PREFIX" -D "non-certificate key types" key-plain
+		complete -P "$PREFIX" -D "supported message integrity codes" mac
+		complete -P "$PREFIX" -D "supported SSH protocol versions" protocol-version
+		;; #<<#
 	(R)
 		#TODO
 		;;
@@ -165,7 +185,7 @@ function completion/ssh {
 }
 
 function completion/ssh::operand {
-	typeset config ssh sshopts
+	typeset config ssh sshopts cmd="${WORDS[1]}"
 	command -f completion/ssh::parseconfig
 	if [ ${WORDS[#]} -gt 0 ]; then
 		# complete the command
@@ -177,51 +197,37 @@ function completion/ssh::operand {
 }
 
 function completion/scp::operand {
-	typeset config ssh sshopts
+	typeset config ssh sshopts cmd="${WORDS[1]}"
 	command -f completion/ssh::parseconfig
-	case $TARGETWORD in (*:*)
-		typeset host="${TARGETWORD%%:*}"
-		case $host in
-		(*/*) # ignore the host name containing a slash
+
+	case $TARGETWORD in
+	(${cmd}://*/*)
+		typeset path="${TARGETWORD#"${cmd}"://*/}"
+		command -f completion/ssh::completeremotepath
+		;;
+	(${cmd}://*)
+		command -f completion/ssh::completehostname -T -S /
+		;;
+	(*:*)
+		case ${TARGETWORD%%:*} in
+		(*/*) # a host name cannot contain a slash
+			command -f completion/ssh::completelocalpath
 			;;
-		(*) # complete file names on the remote host
-			PREFIX=${host}:
-			typeset path="${TARGETWORD#"$PREFIX"}"
-			typeset dir
-			case $path in
-				(*/*) dir=${path%/*}/ ;;
-				(*)   dir= ;;
-			esac
-			typeset filter flags= name="${path##*/}"
-			filter=()
-			case $name in # TODO check if --dotglob option is set
-				(.*) filter=(-A '.*') ;;
-				(*)  filter=(-R '.*') ;;
-			esac
-			typeset f
-			while read -r f; do
-				case $f in
-					(*/) flags='-T' ;;
-					(*)  flags=     ;;
-				esac
-				complete -P "$PREFIX$dir" "$filter" $flags -- "$f"
-			done <("$ssh" "$sshopts" -o BatchMode=yes -- "$host" "ls -ap -- '${${dir:-.}//\'/\'\\\'\'}'" <>/dev/null 2>&0)
-			return
+		(*)
+			typeset path="${TARGETWORD#*:}"
+			command -f completion/ssh::completeremotepath
 			;;
 		esac
+		;;
+	(*)
+		command -f completion/ssh::completehostname -T -S :
+		command -f completion/ssh::completelocalpath
+		;;
 	esac
-	command -f completion/ssh::completehostname -T -S :
-	if [ "${1-}" != nolocalfile ]; then
-		typeset slash=false
-		case $TARGETWORD in (*/*)
-			slash=
-		esac
-		complete ${slash:+-R '*:*'} -f
-	fi
 }
 
 function completion/sftp::operand {
-	command -f completion/scp::operand nolocalfile
+	command -f completion/scp::operand
 }
 
 function completion/ssh::parseconfig {
@@ -233,12 +239,12 @@ function completion/ssh::parseconfig {
 			(-F*)
 				sshopts=("$sshopts" "${WORDS[i]}")
 				config=${WORDS[i]#-F} ;;
-			(-[1246Cio]*)
+			(-[1246BCiJo]*)
 				sshopts=("$sshopts" "${WORDS[i]}") ;;
 			(-P*)
 				sshopts=("$sshopts" -p"${WORDS[i]#-P}") ;;
 			(-S*)
-				case ${WORDS[1]} in (scp)
+				case ${WORDS[1]} in (scp|sftp)
 					ssh=${WORDS[1]#-S}
 				esac
 				;;
@@ -255,7 +261,12 @@ function completion/ssh::parseconfig {
 }
 
 function completion/ssh::completehostname {
-	PREFIX=${TARGETWORD%${TARGETWORD#*@}}
+	case ${TARGETWORD#"$PREFIX"} in (${cmd}://*)
+		PREFIX=${PREFIX}${cmd}://
+	esac
+	case ${TARGETWORD#"$PREFIX"} in (*@*)
+		PREFIX=${TARGETWORD%"${${TARGETWORD#"$PREFIX"}#*@}"}
+	esac
 	typeset key values file words host
 	while read -Ar key values; do
 		case $key in ([Hh][Oo][Ss][Tt])
@@ -297,6 +308,39 @@ function completion/ssh::completehostname {
 		done <"$file"
 	done
 }
+
+function completion/ssh::completeremotepath
+	case $cmd in (scp|sftp)
+		PREFIX=${TARGETWORD%"$path"}
+		typeset host="${${PREFIX%[/:]}/#${cmd}:\/\//ssh:\/\/}"
+		typeset name="${path##*/}"
+		typeset dir="${path%"$name"}"
+		typeset filter f flags
+		if [ -o dotglob ]; then
+			filter=()
+		else
+			case $name in
+				(.*) filter=(-A '.*') ;;
+				(*)  filter=(-R '.*') ;;
+			esac
+		fi
+		while read -r f; do
+			case $f in
+				(*/) flags='-T' ;;
+				(*)  flags=     ;;
+			esac
+			complete -P "$PREFIX$dir" "$filter" $flags -- "$f"
+		done <("$ssh" "$sshopts" -o BatchMode=yes -- "$host" "ls -ap -- '${${dir:-.}//\'/\'\\\'\'}'" <>/dev/null 2>&0)
+	esac
+
+function completion/ssh::completelocalpath
+	case $cmd in (scp)
+		typeset slash=false
+		case $TARGETWORD in (*/*)
+			slash=
+		esac
+		complete ${slash:+-R '*:*'} -f
+	esac
 
 
 # vim: set ft=sh ts=8 sts=8 sw=8 noet:

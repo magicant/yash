@@ -17,7 +17,7 @@ Yash 2.48
   .  Updated completion scripts:
     *  git: pathnames are now correctly completed with the latest Git.
     +  git-stash: support new options in Git 2.18.0.
-    =  ssh-keygen: support new options in OpenSSH 7.7.
+    =  ssh, ssh-keygen: support new options in OpenSSH 7.7.
 
 ----------------------------------------------------------------------
 Yash 2.47
