@@ -1,0 +1,43 @@
+# (C) 2018 magicant
+
+# Completion script for the "ping" command.
+# Supports common options from iputils s20180629, FreeBSD 11.2, OpenBSD 6.3,
+# NetBSD 7.1, SunOS 5.11.
+
+function completion/ping {
+
+	typeset type="$(uname 2>/dev/null)"
+
+	typeset OPTIONS ARGOPT PREFIX
+	OPTIONS=( #>#
+	"d; use an SO_DEBUG socket"
+	"n; don't resolve the host name"
+	"R; record route"
+	"v; verbose"
+	) #<#
+
+	case $type in (Linux|*BSD)
+		OPTIONS=("$OPTIONS" #>#
+		"c:; specify the number of packets to send"
+		"f; flood ping"
+		"I:; specify a source address"
+		"i:; specify an interval between packets sent"
+		"L; suppress multicast loopback"
+		"l:; specify the number of initial packets sent at once"
+		"p:; specify padding bytes"
+		"q; quiet"
+		"s:; specify the number of data bytes in a packet"
+		) #<#
+	esac
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+	(-)
+		command -f completion//completeoptions
+		;;
+	esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
