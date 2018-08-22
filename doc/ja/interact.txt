@@ -95,6 +95,8 @@ link:lineedit.html[行編集]を使用している場合、この記法は端末
 
 また、プロンプトのフォントだけでなく、入力するコマンドのフォントを変えることもできます。link:params.html#sv-ps1s[+PS1S+] (または link:params.html#sv-ps2s[+PS2S+]) 変数に上述のフォントを指定するシーケンスを指定することで、コマンド入力時のコマンドのフォントが変わります。
 
+link:posix.html[POSIX 準拠モード]でないときは、上記の変数は名前に +YASH_+ を付けた名前 (例えば link:params.html#sv-yash_ps1[+YASH_PS1+]) で定義することもできます。これにより、POSIX 準拠モードとは異なるプロンプトを使い分けることができます。
+
 link:posix.html[POSIX 準拠モード]でないときは、プロンプトを出す前に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]の値がコマンドとして実行されます。
 
 [[history]]

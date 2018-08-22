@@ -177,7 +177,7 @@ ifndef::basebackend-html[`eval -i -- "${PROMPT_COMMAND-}"`]
 [[sv-ps1]]+PS1+::
 この変数の値は、対話モードのシェルが出力する標準のコマンドプロンプトを指定します。この値の書式についてはlink:interact.html#prompt[プロンプト]の項を参照してください。
 +
-この変数はシェルの起動時に +\$&#x20;+ に初期化されます。(link:posix.html[POSIX 準拠モード] なら実効ユーザ ID が 0 かどうかによって +$&#x20;+ と +#&#x20;+ のどちらか)
+この変数はシェルの起動時に実効ユーザ ID が 0 かどうかによって +$&#x20;+ と +#&#x20;+ のどちらかに初期化されます。
 
 [[sv-ps1r]]+PS1R+::
 この変数の値は、対話モードのシェルがコマンドを読み込む際に、入力されるコマンドの右側に表示されるプロンプトを指定します。この値の書式についてはlink:interact.html#prompt[プロンプト]の項を参照してください。
@@ -229,6 +229,16 @@ link:_dot.html[ドット組込みコマンド]で読み込むスクリプトフ�
 
 [[sv-yash_le_timeout]]+YASH_LE_TIMEOUT+::
 この変数はlink:lineedit.html[行編集]機能で曖昧な文字シーケンスが入力されたときに、入力文字を確定させるためにシェルが待つ時間をミリ秒単位で指定します。行編集を行う際にこの変数が存在しなければ、デフォルトとして 100 ミリ秒が指定されます。
+
+[[sv-yash_ps1]]+YASH_PS1+::
+[[sv-yash_ps1r]]+YASH_PS1R+::
+[[sv-yash_ps1s]]+YASH_PS1S+::
+[[sv-yash_ps2]]+YASH_PS2+::
+[[sv-yash_ps2r]]+YASH_PS2R+::
+[[sv-yash_ps2s]]+YASH_PS2S+::
+[[sv-yash_ps4]]+YASH_PS4+::
+[[sv-yash_ps4s]]+YASH_PS4S+::
+link:posix.html[POSIX 準拠モード]ではないとき、これらの変数は名前に +YASH_+ が付かない +PS1+ 等の変数の代わりに優先して使われます。POSIX 準拠モードではこれらの変数は無視されます。link:interact.html#prompt[プロンプト]で yash 固有の記法を使用する場合はこれらの変数を使用すると POSIX 準拠モードで yash 固有の記法が解釈されずに表示が乱れるのを避けることができます。
 
 [[sv-yash_version]]+YASH_VERSION+::
 この変数はシェルの起動時にシェルのバージョン番号に初期化されます。

@@ -15,21 +15,6 @@ fi
 # implementations, so we don't test it in input-p.tst.
 posix="true"
 
-(
-setup -d
-
-test_o 'default prompt strings (POSIX)' -i +m
-bracket "$PS1"
-bracket "$PS2"
-bracket "$PS4"
-__IN__
-[$ ]
-[> ]
-[+ ]
-__OUT__
-
-)
-
 test_e 'expansion in PS1 (POSIX)' -i +m
 PS1='ps1 %'; a=A; echo >&2
 PS1='${a} @'; echo >&2
@@ -100,7 +85,25 @@ __ERR__
 
 )
 
+test_e 'YASH_PSx is ignored in POSIX mode' -i +m
+PS1='NO1' YASH_PS1='YES1' PS2='NO2' YASH_PS2='YES2'; echo >&2
+\
+echo >&2; exit
+__IN__
+$ 
+NO1NO2
+__ERR__
+
 )
+
+test_e 'YASH_PSx precedes PSx (non-POSIX)' -i +m
+PS1='NO1' YASH_PS1='YES1' PS2='NO2' YASH_PS2='YES2'; echo >&2
+\
+echo >&2; exit
+__IN__
+$ 
+YES1YES2
+__ERR__
 
 test_e 'expansion and substitution in PS1' -i +m
 PS1='${PWD##"$PWD"}$(echo \?)'; echo >&2
@@ -219,9 +222,7 @@ if [ "$user_id" -ne 0 ]; then
     skip="true"
 fi
 
-posix="true"
-
-test_o 'default prompt strings (POSIX, root)' -i +m
+test_o 'default prompt strings (root)' -i +m
 bracket "$PS1"
 bracket "$PS2"
 bracket "$PS4"
@@ -233,15 +234,22 @@ __OUT__
 
 )
 
-test_o 'default prompt strings' -i +m
+(
+if [ "$user_id" -eq 0 ]; then
+    skip="true"
+fi
+
+test_o 'default prompt strings (non-root)' -i +m
 bracket "$PS1"
 bracket "$PS2"
 bracket "$PS4"
 __IN__
-[\$ ]
+[$ ]
 [> ]
 [+ ]
 __OUT__
+
+)
 
 )
 

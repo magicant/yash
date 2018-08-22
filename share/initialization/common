@@ -187,18 +187,21 @@ else
   _uc=$_hc _hc=  # same username color as hostname for non-root user
   _2c=           # PS2 in normal color for non-root user
 fi
-# The main prompt ($PS1) contains the username, hostname, working directory,
-# last exit status (only if non-zero), and $SHLVL (only if non-one).
-PS1=$_uc'${LOGNAME}'$_hc'@${HOSTNAME%%.*}\fd. '\
+# The main prompt ($YASH_PS1) contains the username, hostname, working
+# directory, last exit status (only if non-zero), and $SHLVL (only if
+# non-one).
+YASH_PS1=$_uc'${LOGNAME}'$_hc'@${HOSTNAME%%.*}\fd. '\
 '${${${PWD:/~/\~}##*/}:-$PWD} ${{?:/0/}:+\\fr.$?\\fd. }${{SHLVL-0}:/1}\$ '
-PS1R='\fc.${_vcs_info}'
-PS1S='\fo.'
-PS2=$_2c'> '
-PS2R=
-PS2S=$PS1S
-PS4='\fm.+ '
-PS4S='\fmo.'
+YASH_PS1R='\fc.${_vcs_info}'
+YASH_PS1S='\fo.'
+YASH_PS2=$_2c'> '
+#YASH_PS2R=
+YASH_PS2S=$YASH_PS1S
+YASH_PS4='\fm.+ '
+YASH_PS4S='\fmo.'
 unset _hc _uc _2c
+# No escape sequences allowed in the POSIXly-correct mode.
+PS1='${LOGNAME}@${HOSTNAME%%.*} '$PS1
 
 # find escape sequence to change terminal window title
 case "$TERM" in

@@ -10,7 +10,12 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.48
 
+  +  The prompt string now can be defined with the $YASH_PS...
+     variables.
+  =  The default value of $PS1 has been changed.
   .  Updated the sample initialization script (yashrc):
+    =  The prompt strings are now defined with the $YASH_PS...
+       variables.
     *  Window title update should now work on more terminals.
     *  Any predefined handlers for SIGTSTP, SIGTTIN, and SIGTTOU are
        now cancelled so that jobs can be suspended properly.

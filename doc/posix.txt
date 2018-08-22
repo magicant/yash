@@ -80,6 +80,8 @@ When the POSIXly-correct mode is enabled:
   The values of the link:params.html#sv-ps1[+PS1+],
   link:params.html#sv-ps2[+PS2+], and link:params.html#sv-ps4[+PS4+] variables
   are parsed differently.
+  Prompt variables with a +YASH_+ prefix (e.g.
+  link:params.html#sv-yash_ps1[+YASH_PS1+]) are not used.
 - In link:interact.html#mailcheck[mail checking], a notification message is
   printed if the file has been modified, regardless of whether the file is
   empty.

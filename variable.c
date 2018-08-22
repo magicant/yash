@@ -302,8 +302,7 @@ void init_variables(void)
 
     /* set $PS1~4 */
     {
-	const wchar_t *ps1 =
-	    !posixly_correct ? L"\\$ " : (geteuid() != 0) ? L"$ " : L"# ";
+	const wchar_t *ps1 = (geteuid() != 0) ? L"$ " : L"# ";
 	set_variable(L VAR_PS1, xwcsdup(ps1),   SCOPE_GLOBAL, false);
 	set_variable(L VAR_PS2, xwcsdup(L"> "), SCOPE_GLOBAL, false);
 	set_variable(L VAR_PS4, xwcsdup(L"+ "), SCOPE_GLOBAL, false);

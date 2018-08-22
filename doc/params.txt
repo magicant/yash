@@ -307,10 +307,8 @@ of the +?+ special parameter in the next command.
 This variable specifies the main command prompt string printed by an
 link:interact.html[interactive] shell.
 See link:interact.html#prompt[Prompts] for the format of the variable value.
-The value is initialized to +\$&#x20;+ when the shell is started.
-(In the link:posix.html[POSIXly-correct mode], the initial value is either
-+$&#x20;+ or +#&#x20;+ depending on whether the effective user ID of the shell
-process is zero or not.)
+The value is initialized to either +$&#x20;+ or +#&#x20;+ depending on whether
+the effective user ID of the shell process is zero or not.
 
 [[sv-ps1r]]+PS1R+::
 This variable specifies the auxiliary prompt string printed to the right of
@@ -405,6 +403,22 @@ while link:lineedit.html[line-editing].
 The value must be specified in milliseconds.
 If you do not define this variable, the default value of 100 milliseconds is
 assumed.
+
+[[sv-yash_ps1]]+YASH_PS1+::
+[[sv-yash_ps1r]]+YASH_PS1R+::
+[[sv-yash_ps1s]]+YASH_PS1S+::
+[[sv-yash_ps2]]+YASH_PS2+::
+[[sv-yash_ps2r]]+YASH_PS2R+::
+[[sv-yash_ps2s]]+YASH_PS2S+::
+[[sv-yash_ps4]]+YASH_PS4+::
+[[sv-yash_ps4s]]+YASH_PS4S+::
+When not in the link:posix.html[POSIXly-correct mode], if any of these
+variables is defined, it takes precedence over the corresponding variable
+without the +YASH_+ prefix in the name (e.g. +PS1+).
+These variables are ignored in the POSIXly-correct mode.
+You should define them to include yash-specific notations in the
+link:interact.html#prompt[prompt], so that unhandled notations do not mangle
+the prompt in the POSIXly-correct mode.
 
 [[sv-yash_version]]+YASH_VERSION+::
 The value is initialized to the version number of the shell

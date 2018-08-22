@@ -169,6 +169,11 @@ variables, each corresponding to the
 link:params.html#sv-ps1[+PS1+] and link:params.html#sv-ps2[+PS2+] variables.
 The value can contain the +\f{{fontspecs}}.+ notation only.
 
+When the shell is not in the link:posix.html[POSIXly-correct mode], the prompt
+variables can be defined with a name prefixed with +YASH_+ (e.g.
+link:params.html#sv-yash_ps1[+YASH_PS1+]). This allows using a different
+prompt string than that in the POSIXly-correct mode.
+
 When the shell is not in the link:posix.html[POSIXly-correct mode],
 the value of the link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable]
 is executed before each prompt.

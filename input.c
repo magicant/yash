@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,10 @@
 #endif
 
 
+static wchar_t *expand_prompt_variable(wchar_t num, wchar_t suffix)
+    __attribute__((malloc,warn_unused_result));
+static const wchar_t *get_prompt_variable(wchar_t num, wchar_t suffix)
+    __attribute__((pure));
 static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t get_euid_marker(void)
@@ -249,22 +253,16 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 struct promptset_T get_prompt(int type)
 {
     struct promptset_T result;
-    wchar_t name[5] = { L'P', L'S', L'\0', L'\0', L'\0' };
 
+    wchar_t num;
     switch (type) {
-	case 1:   name[2] = L'1';  break;
-	case 2:   name[2] = L'2';  break;
-	case 4:   name[2] = L'4';  break;
+	case 1:   num = L'1';  break;
+	case 2:   num = L'2';  break;
+	case 4:   num = L'4';  break;
 	default:  assert(false);
     }
 
-    const wchar_t *ps = getvar(name);
-    if (ps == NULL)
-	ps = L"";
-
-    wchar_t *prompt = parse_and_expand_string(ps, gt("prompt"), false);
-    if (prompt == NULL)
-	prompt = xwcsdup(L"");
+    wchar_t *prompt = expand_prompt_variable(num, L'\0');
     if (posixly_correct) {
 	if (type == 1)
 	    result.main = expand_ps1_posix(prompt);
@@ -275,27 +273,43 @@ struct promptset_T get_prompt(int type)
 	result.styler = xwcsdup(L"");
     } else {
 	result.main = prompt;
-
-	name[3] = L'R';
-	ps = getvar(name);
-	if (ps == NULL)
-	    ps = L"";
-	prompt = parse_and_expand_string(ps, gt("prompt"), false);
-	if (prompt == NULL)
-	    prompt = xwcsdup(L"");
-	result.right = prompt;
-
-	name[3] = L'S';
-	ps = getvar(name);
-	if (ps == NULL)
-	    ps = L"";
-	prompt = parse_and_expand_string(ps, gt("prompt"), false);
-	if (prompt == NULL)
-	    prompt = xwcsdup(L"");
-	result.styler = prompt;
+	result.right = expand_prompt_variable(num, L'R');
+	result.styler = expand_prompt_variable(num, L'S');
     }
 
     return result;
+}
+
+/* Expands the result of `get_prompt_variable' for a prompt.
+ * The result is a newly-malloced string. */
+wchar_t *expand_prompt_variable(wchar_t num, wchar_t suffix)
+{
+    const wchar_t *var = get_prompt_variable(num, suffix);
+    wchar_t *expanded = parse_and_expand_string(var, gt("prompt"), false);
+    return expanded != NULL ? expanded : xwcsdup(L"");
+}
+
+/* Returns the value of the variable "YASH_PSxy", where x is `num' and y is
+ * `suffix'. If it is unset or the shell is in the POSIXly-correct mode, returns
+ * the value of "PSxy". If it is also unset, returns an empty string. */
+const wchar_t *get_prompt_variable(wchar_t num, wchar_t suffix)
+{
+    wchar_t name[] = L"YASH_PS\0\0";
+    name[7] = num;
+    name[8] = suffix;
+
+    const wchar_t *value;
+    if (!posixly_correct) {
+	value = getvar(name);
+	if (value != NULL)
+	    return value;
+    }
+
+    value = getvar(&name[5]);
+    if (value != NULL)
+	return value;
+
+    return L"";
 }
 
 /* Expands the contents of the PS1 variable in the posixly correct way.
