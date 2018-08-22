@@ -1,10 +1,12 @@
 # prompt-y.tst: yash-specific test of input processing
 
+user_id="$(id -u)"
+
 mkfifo fifo
 
 (
 
-if [ "$(id -u)" -eq 0 ]; then
+if [ "$user_id" -eq 0 ]; then
     skip="true"
 fi
 
@@ -169,8 +171,6 @@ $
 0$
 __ERR__
 
-user_id="$(id -u)"
-
 (
 if [ "$user_id" -ne 0 ]; then
     skip="true"
@@ -222,7 +222,7 @@ __ERR__
 setup -d
 
 (
-if [ "$(id -u)" -ne 0 ]; then
+if [ "$user_id" -ne 0 ]; then
     skip="true"
 fi
 
