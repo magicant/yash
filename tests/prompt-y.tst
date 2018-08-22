@@ -171,27 +171,16 @@ $
 0$
 __ERR__
 
-(
-if [ "$user_id" -ne 0 ]; then
-    skip="true"
-fi
-
-test_e '\$ in PS1 and PS2 (root)' -i +m
-PS1='\$ ' PS2='\$_'; echo >&2
-e\
-c\
-ho >&2; exit
+test_e 'prompt command' -i +m
+PROMPT_COMMAND='printf 1 >&2'; echo >&2
+PROMPT_COMMAND=('printf 1 >&2'
+'printf 2 >&2; printf 3 >&2; (exit 2)'); echo $? >&2; (exit 1)
+echo $? >&2; exit
 __IN__
 $ 
-# #_#_
+1$ > 0
+123$ 1
 __ERR__
-
-)
-
-(
-if [ "$user_id" -eq 0 ]; then
-    skip="true"
-fi
 
 test_e '\$ in PS1 and PS2 (non-root)' -i +m
 PS1='\$ ' PS2='\$_'; echo >&2
@@ -205,15 +194,19 @@ __ERR__
 
 )
 
-test_e 'prompt command' -i +m
-PROMPT_COMMAND='printf 1 >&2'; echo >&2
-PROMPT_COMMAND=('printf 1 >&2'
-'printf 2 >&2; printf 3 >&2; (exit 2)'); echo $? >&2; (exit 1)
-echo $? >&2; exit
+(
+if [ "$user_id" -ne 0 ]; then
+    skip="true"
+fi
+
+test_e '\$ in PS1 and PS2 (root)' -i +m
+PS1='\$ ' PS2='\$_'; echo >&2
+e\
+c\
+ho >&2; exit
 __IN__
-$ 
-1$ > 0
-123$ 1
+# 
+# #_#_
 __ERR__
 
 )
