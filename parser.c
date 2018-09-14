@@ -1932,6 +1932,9 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 		continue;
 	    }
 	    break;
+	case L'\n':
+	    ps->info->lineno++;
+	    break;
 	case L'$':
 	case L'`':
 	    MAKE_WORDUNIT_STRING;

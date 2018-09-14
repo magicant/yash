@@ -13,6 +13,8 @@ Yash 2.48
   +  The prompt string now can be defined with the $YASH_PS...
      variables.
   =  The default value of $PS1 has been changed.
+  *  The line number is now correctly counted in arithmetic
+     expansions that contain newlines.
   .  Updated the sample initialization script (yashrc):
     =  The prompt strings are now defined with the $YASH_PS...
        variables.

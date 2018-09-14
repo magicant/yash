@@ -25,4 +25,23 @@ __IN__
 4
 __OUT__
 
+test_oE -e 0 'LINENO after expansions' -s
+: $(echo foo
+echo \
+baz)
+echo $LINENO
+: ${foo#
+bar \
+baz}
+echo $LINENO
+: $((1
++ \
+2))
+echo $LINENO
+__IN__
+4
+8
+12
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
