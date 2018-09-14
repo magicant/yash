@@ -367,11 +367,7 @@ bool is_literal_function_name(const wordunit_T *wu)
     if (wu->wu_type != WT_STRING)
 	return false;
 
-    const wchar_t *s = wu->wu_string;
-    if (iswdigit(s[0]))
-	return false;
-
-    return (posixly_correct ? is_portable_name : is_name)(s);
+    return (posixly_correct ? is_portable_name : is_name)(wu->wu_string);
 }
 
 
