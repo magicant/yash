@@ -868,6 +868,9 @@ const wchar_t *check_closing_token(parsestate_T *ps)
 /* Performs alias substitution with the given parse state. */
 bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
 {
+    if (!ps->enable_alias)
+	return false;
+
     size_t len = count_name_length(ps, is_alias_name_char);
     return substitute_alias_range(
 	    &ps->src, ps->index, ps->index + len, &ps->aliases, flags);
@@ -1121,7 +1124,7 @@ command_T *parse_command(parsestate_T *ps)
     if (t != NULL)
 	return parse_compound_command(ps, t);
 
-    if (ps->enable_alias && psubstitute_alias(ps, AF_NONGLOBAL)) {
+    if (psubstitute_alias(ps, AF_NONGLOBAL)) {
 	ps->reparse = true;
 	return NULL;
     }
@@ -1165,8 +1168,7 @@ redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
 	} else {
 	    break;
 	}
-	if (ps->enable_alias)
-	    psubstitute_alias_recursive(ps, AF_NONGLOBAL);
+	psubstitute_alias_recursive(ps, AF_NONGLOBAL);
     }
     return redirlastp;
 }
@@ -1189,7 +1191,7 @@ void **parse_words_and_redirects(
     pl_init(&wordlist);
     while (ensure_buffer(ps, 1),
 	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
-	if (!first && ps->enable_alias)
+	if (!first)
 	    psubstitute_alias_recursive(ps, 0);
 	if ((redir = tryparse_redirect(ps)) != NULL) {
 	    *redirlastp = redir;
@@ -1211,8 +1213,7 @@ void **parse_words_and_redirects(
 void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
 {
     for (;;) {
-	if (ps->enable_alias)
-	    psubstitute_alias_recursive(ps, 0);
+	psubstitute_alias_recursive(ps, 0);
 
 	redir_T *redir = tryparse_redirect(ps);
 	if (redir == NULL)
@@ -1409,7 +1410,7 @@ parse_command:
  * aliases are substituted before the word is parsed. */
 wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
 {
-    if (globalaliases && ps->enable_alias)
+    if (globalaliases)
 	psubstitute_alias_recursive(ps, 0);
 
     return parse_word_to(ps, is_token_delimiter_char);
