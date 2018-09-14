@@ -117,7 +117,7 @@ read_input:  /* if there's nothing in the buffer, read the next input */
 		    assert(false);
 		case W_INTERRUPTED:
 		    // Ignore interruption and continue reading, because:
-		    //  1) POSIX does not require to do so, and
+		    //  1) POSIX does not require to handle interruption, and
 		    //  2) the buffer for canonical-mode editing cannot be
 		    //     controlled from the shell.
 		    goto read_input;

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.h: functions for input of command line */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +64,9 @@ extern inputresult_T read_input(
  * Input is done line-wise: the buffer contents are always terminated by a
  * newline character (L'\n') except when the end of file is reached and the last
  * line does not have a newline.
+ * An input function should not read more than one line at a time, as commands
+ * (which may contain alias definitions) should be executed as soon as possible,
+ * before the next line is parsed.
  * The result is indicated by a value of the `inputresult_T' type. If the return
  * value is other than INPUT_OK, the buffer is unchanged.
  * The input function may be called even after it returned a value other than

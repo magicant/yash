@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -388,7 +388,7 @@ typedef struct parsestate_T {
     struct aliaslist_T *aliases;
 } parsestate_T;
 /* info: contains parameter that affect the behavior of parsing.
- * error: set to true when an parsing error occurs.
+ * error: set to true when a parsing error occurs.
  * src: a buffer that contains the source code to parse.
  * index: the index to the string in `src'.
  *         indicates the character position that is being parsed.
