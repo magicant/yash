@@ -271,18 +271,20 @@ a
 __OUT__
 
 test_oE 'alias substitution to do/done (for)'
-alias forx='for x in 1; ' fory='for y in 2; do echo $y; ' d=do dn=done for=do
-forx d echo $x; dn
-fory dn
+alias forx='for x in 1; ' fory='for y in 2; do echo $y; ' for='
+ do' dn='
+ done'
 forx for echo $x; dn
+fory dn
 __IN__
 1
 2
-1
 __OUT__
 
 test_oE 'alias substitution to case/esac keywords'
-alias c='case a in a) :' e='esac </dev/null | cat -' eb='echo B;; '
+alias c='case a in a) :' e='
+ esac </dev/null | cat -' eb='
+ echo B;; '
 c X; echo A; e
 c X; eb e
 __IN__
@@ -291,14 +293,13 @@ B
 __OUT__
 
 test_oE 'alias substitution to in (case)'
-alias c='case a ' i='in a) :' in= case='in a) :'
-c i X; echo A; esac
+alias c='case a ' case='
+ in a) :' in=
+c case X; echo A; esac
 c in a) echo B; esac
-c case X; echo C; esac
 __IN__
 A
 B
-C
 __OUT__
 
 test_oE 'alias substitution to case pattern'
