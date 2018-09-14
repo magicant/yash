@@ -2112,23 +2112,16 @@ command_T *parse_if(parsestate_T *ps)
 	    serror(ps, Ngt("commands are missing after `%ls'"),
 		    after_else ? L"else" : L"then");
 	ensure_buffer(ps, 5);
-	if (!after_else) {
-	    if (has_token(ps, L"else")) {
-		ps->index += 4;
-		after_else = true;
-	    } else if (has_token(ps, L"elif")) {
-		ps->index += 4;
-	    } else if (has_token(ps, L"fi")) {
-		ps->index += 2;
-		break;
-	    } else {
-		print_errmsg_token_missing(ps, L"fi");
-	    }
+	if (!after_else && has_token(ps, L"else")) {
+	    ps->index += 4;
+	    after_else = true;
+	} else if (!after_else && has_token(ps, L"elif")) {
+	    ps->index += 4;
+	} else if (has_token(ps, L"fi")) {
+	    ps->index += 2;
+	    break;
 	} else {
-	    if (has_token(ps, L"fi"))
-		ps->index += 2;
-	    else
-		print_errmsg_token_missing(ps, L"fi");
+	    print_errmsg_token_missing(ps, L"fi");
 	    break;
 	}
     }
