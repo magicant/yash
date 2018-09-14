@@ -104,6 +104,32 @@ y 5
 b 6
 __OUT__
 
+# In this test the character sequence "$((" looks like the beginning of an
+# arithmetic expansion, but it does not have the corresponding "))", so the
+# expansion is re-parsed as a command substitution.
+test_oE -e 0 'LINENO after arithmetic-expansion-like command substitution' -s
+: $(($(
+\
+)) )
+echo $LINENO
+__IN__
+4
+__OUT__
+# ))
+
+# XXX This is like the above, but it is much harder to fix...
+: <<\__OUT__
+test_oE -e 0 'LINENO in arithmetic-expansion-like command substitution' -s
+echo $((echo $(
+echo $LINENO \
+)) )
+echo $LINENO
+__IN__
+2
+4
+__OUT__
+# ))
+
 test_oE -e 0 'LINENO in interactive shell is reset for each command line'
 echo $LINENO
 for i in 1; do

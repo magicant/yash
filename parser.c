@@ -401,6 +401,8 @@ static inputresult_T read_more_input(parsestate_T *ps)
     __attribute__((nonnull));
 static void line_continuation(parsestate_T *ps, size_t index)
     __attribute__((nonnull));
+static void rewind_index(parsestate_T *ps, size_t to)
+    __attribute__((nonnull));
 static void ensure_buffer(parsestate_T *ps, size_t n)
     __attribute__((nonnull));
 static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
@@ -660,6 +662,31 @@ void line_continuation(parsestate_T *ps, size_t index)
 	read_more_input(ps);
 }
 
+/* Rewind `ps->index` to `oldindex' and decrease `ps->info->lineno' accordingly.
+ *
+ * You MUST use this function when rewinding the index in order to correctly
+ * rewind the line number. The following pattern of code does not work because
+ * it does not account for line continuations that have been removed from
+ * `ps->src'.
+ *
+ *    size_t oldindex = ps->index;
+ *    unsigned long oldlineno = ps->info->lineno;
+ *
+ *    do_something_incrementing_index_and_lineno(ps);
+ *
+ *    ps->index = oldindex;
+ *    ps->info->lineno = oldlineno;
+ * */
+void rewind_index(parsestate_T *ps, size_t oldindex)
+{
+    while (oldindex < ps->index) {
+	ps->index--;
+	assert(ps->index < ps->src.length);
+	if (ps->src.contents[ps->index] == L'\n')
+	    ps->info->lineno--;
+    }
+}
+
 /* If a line continuation is found within `n' characters from the current
  * position `ps->index', removes the backslash-newline pair and reads the next
  * line.
@@ -700,7 +727,7 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 	ps->index++;
 
     size_t result = ps->index - saveindex;
-    ps->index = saveindex;
+    rewind_index(ps, saveindex);
     return result;
 }
 
@@ -1978,7 +2005,7 @@ end:
 
 fail:
     wordfree(first);
-    ps->index = saveindex;
+    rewind_index(ps, saveindex);
     return NULL;
 }
 
@@ -2398,7 +2425,7 @@ parse_close_parenthesis:
 	else if (psubstitute_alias(ps, AF_NONGLOBAL))
 	    goto parse_close_parenthesis;
 	else
-	    ps->index = saveindex;
+	    rewind_index(ps, saveindex);
     }
     skip_to_next_token(ps);
 
