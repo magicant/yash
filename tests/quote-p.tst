@@ -282,6 +282,93 @@ __IN__
 bar
 __OUT__
 
+test_oE 'line continuation in parameter expansion'
+f=foo
+# echo $f ${f} ${#f} ${f#f} ${f:+x}
+echo \
+\
+$\
+\
+f $\
+\
+{\
+\
+f\
+\
+} $\
+{\
+\
+#\
+f\
+} $\
+{\
+f\
+\
+#\
+\
+f\
+\
+} $\
+{\
+f\
+\
+:\
+\
++\
+\
+x\
+\
+}
+__IN__
+foo foo 3 oo x
+__OUT__
+
+test_oE 'line continuation in arithmetic expansion'
+echo \
+$\
+\
+(\
+\
+(\
+\
+1\
+\
+ \
+ + \
+ \
+2\
+\
+)\
+\
+)
+__IN__
+3
+__OUT__
+
+test_oE 'line continuation in command substitution $(...)'
+echo \
+$\
+\
+(\
+\
+echo 1\
+\
+)
+__IN__
+1
+__OUT__
+
+test_oE 'line continuation in command substitution `...`'
+echo \
+`\
+\
+echo 1\
+\
+`
+__IN__
+1
+__OUT__
+
 test_oE 'single quotes'
 bracket 'abc' '"a"' 'a\\b' 'a''''''b'
 bracket 'a

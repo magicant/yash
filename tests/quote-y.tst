@@ -29,6 +29,54 @@ __IN__
 foo
 __OUT__
 
+test_oE 'line continuation in parameter expansion'
+f=foo
+# echo ${#?} ${${f}} ${f[1,2]:+x}
+echo \
+$\
+{\
+\
+#\
+\
+?\
+\
+} $\
+\
+{\
+\
+$\
+\
+{\
+\
+f\
+\
+}\
+\
+} $\
+{\
+f\
+\
+[\
+\
+1\
+\
+,\
+\
+2\
+\
+]\
+\
+:\
+\
++\
+\
+x\
+\
+}
+__IN__
+1 foo x
+__OUT__
+
 test_Oe -e 2 'unclosed single quotation'
 echo 'foo
 -
