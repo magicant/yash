@@ -2014,8 +2014,10 @@ fail:
  * This function never returns NULL, but may return an empty string. */
 wchar_t *parse_word_as_wcs(parsestate_T *ps)
 {
+    psubstitute_alias_recursive(ps, 0);
+
     size_t startindex = ps->index;
-    wordfree(parse_word(ps, true));
+    wordfree(parse_word(ps, false));
     assert(startindex <= ps->index);
     return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
 }

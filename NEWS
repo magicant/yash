@@ -15,6 +15,10 @@ Yash 2.48
   =  The default value of $PS1 has been changed.
   *  The line number is now correctly counted in arithmetic
      expansions that contain newlines.
+  *  The variable name token in the for command and the word following
+     a here-document redirection operator are now correctly parsed
+     even when it resulted from an alias substitution whose value
+     begins with a blank.
   .  Updated the sample initialization script (yashrc):
     =  The prompt strings are now defined with the $YASH_PS...
        variables.

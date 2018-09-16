@@ -204,6 +204,15 @@ __IN__
 here-document
 __OUT__
 
+test_oE 'alias substitution to here-document operand'
+alias c=' cat << ' e=' \END '
+c e
+here-document
+END
+__IN__
+here-document
+__OUT__
+
 test_oE 'alias substitution to !'
 alias e='! echo'
 if e if; then echo then; else echo else; fi
@@ -255,6 +264,13 @@ f echo $i; done
 __IN__
 1
 2
+__OUT__
+
+test_oE 'alias substitution to word (for)'
+alias f=' for ' w=' in ' in=' x '
+f w in 1; do echo $x; done
+__IN__
+1
 __OUT__
 
 test_oE 'alias substitution to in (for)'
