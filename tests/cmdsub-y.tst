@@ -1,9 +1,19 @@
 # cmdsub-y.tst: yash-specific test of command substitution
 
-test_oE 'disambiguation with arithmetic expansion'
+test_oE 'disambiguation with arithmetic expansion, single line'
 echo $((echo foo); (echo bar))
 __IN__
 foo bar
+__OUT__
+
+test_oE 'disambiguation with arithmetic expansion, with here-document'
+echo $((cat <<END
++
+END
+)
+(echo - foo))
+__IN__
++ - foo
 __OUT__
 
 test_Oe -e 2 'unclosed command substitution $()'
