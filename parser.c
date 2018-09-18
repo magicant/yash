@@ -891,14 +891,11 @@ void ensure_buffer(parsestate_T *ps, size_t n)
  * variable/alias name under the current position is fully available. */
 size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 {
-    size_t saveindex = ps->index;
-    while (maybe_line_continuations(ps, ps->index),
-	    isnamechar(ps->src.contents[ps->index]))
-	ps->index++;
-
-    size_t result = ps->index - saveindex;
-    rewind_index(ps, saveindex);
-    return result;
+    size_t index = ps->index;
+    while (maybe_line_continuations(ps, index),
+	    isnamechar(ps->src.contents[index]))
+	index++;
+    return index - ps->index;
 }
 
 /* Advances the current position `ps->index', skipping blank characters,
