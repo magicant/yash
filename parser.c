@@ -266,11 +266,15 @@ static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
+static tokentype_T identify_reserved_word_string(const wchar_t *s)
+    __attribute__((pure,nonnull));
 static bool is_single_string_word(const wordunit_T *wu)
     __attribute__((pure));
 static bool is_digits_only(const wordunit_T *wu)
     __attribute__((pure));
 static bool is_name_word(const wordunit_T *wu)
+    __attribute__((pure));
+static tokentype_T identify_reserved_word(const wordunit_T *wu)
     __attribute__((pure));
 
 
@@ -335,8 +339,9 @@ bool is_name(const wchar_t *s)
     return is_name_by_predicate(s, is_name_char);
 }
 
-/* Returns true iff the string is a reserved word. */
-bool is_keyword(const wchar_t *s)
+/* Converts a string to the corresponding token type. Returns TT_WORD for
+ * non-reserved words. */
+tokentype_T identify_reserved_word_string(const wchar_t *s)
 {
     /* List of keywords:
      *    case do done elif else esac fi for function if in then until while
@@ -345,39 +350,77 @@ bool is_keyword(const wchar_t *s)
      *    select [[ ]] */
     switch (s[0]) {
 	case L'c':
-	    return s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0';
+	    if (s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0')
+		return TT_CASE;
+	    break;
 	case L'd':
-	    return s[1] == L'o' && (s[2] == L'\0' ||
-		    (s[2] == L'n' && s[3] == L'e' && s[4] == L'\0'));
+	    if (s[1] == L'o') {
+		if (s[2] == L'\0')
+		    return TT_DO;
+		if (s[2] == L'n' && s[3] == L'e' && s[4] == L'\0')
+		    return TT_DONE;
+	    }
+	    break;
 	case L'e':
-	    return ((s[1] == L'l'
-			&& ((s[2] == L's' && s[3] == L'e')
-			    || (s[2] == L'i' && s[3] == L'f')))
-		    || (s[1] == L's' && s[2] == L'a' && s[3] == L'c'))
-		&& s[4] == L'\0';
+	    if (s[1] == L'l') {
+		if (s[2] == L's' && s[3] == L'e' && s[4] == L'\0')
+		    return TT_ELSE;
+		if (s[2] == L'i' && s[3] == L'f' && s[4] == L'\0')
+		    return TT_ELIF;
+	    }
+	    if (s[1] == L's' && s[2] == L'a' && s[3] == L'c' && s[4] == L'\0')
+		return TT_ESAC;
+	    break;
 	case L'f':
-	    return (s[1] == L'i' && s[2] == L'\0')
-		|| (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0')
-		|| (s[1] == L'u' && s[2] == L'n' && s[3] == L'c'
-			&& s[4] == L't' && s[5] == L'i' && s[6] == L'o'
-			&& s[7] == L'n' && s[8] == L'\0');
+	    if (s[1] == L'i' && s[2] == L'\0')
+		return TT_FI;
+	    if (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0')
+		return TT_FOR;
+	    if (s[1] == L'u' && s[2] == L'n' && s[3] == L'c' && s[4] == L't' &&
+		    s[5] == L'i' && s[6] == L'o' && s[7] == L'n' &&
+		    s[8] == L'\0')
+		return TT_FUNCTION;
+	    break;
 	case L'i':
-	    return (s[1] == L'f' || s[1] == L'n') && s[2] == L'\0';
+	    if (s[1] == L'f' && s[2] == L'\0')
+		return TT_IF;
+	    if (s[1] == L'n' && s[2] == L'\0')
+		return TT_IN;
+	    break;
 	case L't':
-	    return s[1] == L'h' && s[2] == L'e' && s[3] == L'n' && s[4]== L'\0';
+	    if (s[1] == L'h' && s[2] == L'e' && s[3] == L'n' && s[4]== L'\0')
+		return TT_THEN;
+	    break;
 	case L'u':
-	    return s[1] == L'n' && s[2] == L't' && s[3] == L'i' && s[4] == L'l'
-		&& s[5] == L'\0';
+	    if (s[1] == L'n' && s[2] == L't' && s[3] == L'i' && s[4] == L'l' &&
+		    s[5] == L'\0')
+		return TT_UNTIL;
+	    break;
 	case L'w':
-	    return s[1] == L'h' && s[2] == L'i' && s[3] == L'l' && s[4] == L'e'
-		&& s[5] == L'\0';
+	    if (s[1] == L'h' && s[2] == L'i' && s[3] == L'l' && s[4] == L'e' &&
+		    s[5] == L'\0')
+		return TT_WHILE;
+	    break;
 	case L'{':
+	    if (s[1] == L'\0')
+		return TT_LBRACE;
+	    break;
 	case L'}':
+	    if (s[1] == L'\0')
+		return TT_RBRACE;
+	    break;
 	case L'!':
-	    return s[1] == L'\0';
-	default:
-	    return false;
+	    if (s[1] == L'\0')
+		return TT_BANG;
+	    break;
     }
+    return TT_WORD;
+}
+
+/* Returns true iff the string is a reserved word. */
+bool is_keyword(const wchar_t *s)
+{
+    return identify_reserved_word_string(s) != TT_WORD;
 }
 
 bool is_single_string_word(const wordunit_T *wu)
@@ -404,6 +447,15 @@ bool is_name_word(const wordunit_T *wu)
 	return false;
 
     return (posixly_correct ? is_portable_name : is_name)(wu->wu_string);
+}
+
+/* Converts a word to the corresponding token type. Returns TT_WORD for
+ * non-reserved words. */
+tokentype_T identify_reserved_word(const wordunit_T *wu)
+{
+    if (!is_single_string_word(wu))
+	return TT_WORD;
+    return identify_reserved_word_string(wu->wu_string);
 }
 
 
