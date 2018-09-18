@@ -1182,15 +1182,19 @@ const wchar_t *check_opening_token(parsestate_T *ps)
 }
 
 /* Performs alias substitution with the given parse state. Proceeds to the
- * next token if substitution occurred. */
+ * next token if substitution occurred. This function does not substitute an
+ * IO_NUMBER token, but do a keyword token. */
 bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
 {
     if (!ps->enable_alias)
 	return false;
+    if (ps->tokentype == TT_IO_NUMBER)
+	return false;
+    if (!is_single_string_word(ps->token))
+	return false;
 
-    size_t len = count_name_length(ps, is_alias_name_char);
     bool substituted = substitute_alias_range(
-	    &ps->src, ps->index, ps->index + len, &ps->aliases, flags);
+	    &ps->src, ps->index, ps->next_index, &ps->aliases, flags);
     if (substituted) {
 	/* parse the result of the substitution. */
 	ps->next_index = ps->index;

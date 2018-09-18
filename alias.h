@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.h: alias substitution */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,6 @@ typedef enum {
 } substaliasflags_T;
 
 extern void init_alias(void);
-extern _Bool is_alias_name_char(wchar_t c)
-    __attribute__((pure));
 extern const wchar_t *get_alias_value(const wchar_t *aliasname)
     __attribute__((nonnull,pure));
 extern void destroy_aliaslist(struct aliaslist_T *list);
