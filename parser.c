@@ -494,6 +494,8 @@ static inputresult_T read_more_input(parsestate_T *ps)
     __attribute__((nonnull));
 static void line_continuation(parsestate_T *ps, size_t index)
     __attribute__((nonnull));
+static void maybe_line_continuations(parsestate_T *ps, size_t index)
+    __attribute__((nonnull));
 static void rewind_index(parsestate_T *ps, size_t to)
     __attribute__((nonnull));
 static void ensure_buffer(parsestate_T *ps, size_t n)
@@ -759,6 +761,17 @@ void line_continuation(parsestate_T *ps, size_t index)
     ps->info->lineno++;
     if (ps->src.contents[index] == L'\0')
 	read_more_input(ps);
+}
+
+/* Removes line continuations at the specified index.
+ * The next line will be read if the removed line continuation is at the end of
+ * the buffer. */
+void maybe_line_continuations(parsestate_T *ps, size_t index)
+{
+    assert(index <= ps->src.length);
+    while (ps->src.contents[index] == L'\\' &&
+	    ps->src.contents[index + 1] == L'\n')
+	line_continuation(ps, index);
 }
 
 /* Rewind `ps->index` to `oldindex' and decrease `ps->info->lineno' accordingly.
