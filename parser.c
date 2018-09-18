@@ -609,8 +609,7 @@ static wordunit_T *tryparse_arith(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *parse_word_as_wcs(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_compound_command(
-	parsestate_T *ps, const wchar_t *command)
+static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_group(parsestate_T *ps, commandtype_T type)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1429,7 +1428,7 @@ command_T *parse_command(parsestate_T *ps)
 	serror(ps, get_errmsg_unexpected_token(L"in"), L"in");
 	return NULL;
     } else if (ps->tokentype == TT_LPAREN) {
-	return parse_compound_command(ps, L"(");
+	return parse_compound_command(ps);
     } else if (is_command_delimiter_tokentype(ps->tokentype)) {
 	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
 	    serror(ps, Ngt("a command is missing at the end of input"));
@@ -1439,9 +1438,9 @@ command_T *parse_command(parsestate_T *ps)
 	return NULL;
     }
 
-    t = check_opening_token(ps);
-    if (t != NULL)
-	return parse_compound_command(ps, t);
+    command_T *result = parse_compound_command(ps);
+    if (result != NULL)
+	return result;
 
     if (psubstitute_alias(ps, AF_NONGLOBAL)) {
 	ps->reparse = true;
@@ -1449,7 +1448,7 @@ command_T *parse_command(parsestate_T *ps)
     }
 
     /* parse as a simple command */
-    command_T *result = xmalloc(sizeof *result);
+    result = xmalloc(sizeof *result);
     result->next = NULL;
     result->refcount = 1;
     result->c_lineno = ps->info->lineno;
@@ -2327,50 +2326,46 @@ wchar_t *parse_word_as_wcs(parsestate_T *ps)
 }
 
 /* Parses a compound command.
- * `command' is the name of the command to parse such as "(" and "if". */
-command_T *parse_compound_command(parsestate_T *ps, const wchar_t *command)
+ * `command' is the name of the command to parse such as "(" and "if".
+ * Returns NULL iff the current token does not start a compound command. */
+command_T *parse_compound_command(parsestate_T *ps)
 {
     command_T *result;
-    switch (command[0]) {
-    case L'(':
+    switch (ps->tokentype) {
+    case TT_LPAREN:
 	result = parse_group(ps, CT_SUBSHELL);
 	break;
-    case L'{':
+    case TT_LBRACE:
 	result = parse_group(ps, CT_GROUP);
 	break;
-    case L'i':
+    case TT_IF:
 	result = parse_if(ps);
 	break;
-    case L'f':
-	switch (command[1]) {
-	    case L'o':
-		result = parse_for(ps);
-		break;
-	    case L'u':
-		result = parse_function(ps);
-		break;
-	    default:
-		assert(false);
-	}
+    case TT_FOR:
+	result = parse_for(ps);
 	break;
-    case L'w':
+    case TT_FUNCTION:
+	result = parse_function(ps);
+	break;
+    case TT_WHILE:
 	result = parse_while(ps, true);
 	break;
-    case L'u':
+    case TT_UNTIL:
 	result = parse_while(ps, false);
 	break;
-    case L'c':
+    case TT_CASE:
 	result = parse_case(ps);
 	break;
     default:
-	assert(false);
+	return NULL;
     }
     parse_redirect_list(ps, &result->c_redirs);
     return result;
 }
 
 /* Parses a command group.
- * `type' must be either CT_GROUP or CT_SUBSHELL. */
+ * `type' must be either CT_GROUP or CT_SUBSHELL.
+ * The current token must be the starting "(" or "{". Never returns NULL. */
 command_T *parse_group(parsestate_T *ps, commandtype_T type)
 {
     tokentype_T starttt, endtt;
@@ -2408,7 +2403,8 @@ command_T *parse_group(parsestate_T *ps, commandtype_T type)
     return result;
 }
 
-/* Parses a if command */
+/* Parses an if command.
+ * The current token must be the starting "if". Never returns NULL. */
 command_T *parse_if(parsestate_T *ps)
 {
     assert(ps->tokentype == TT_IF);
@@ -2462,7 +2458,8 @@ command_T *parse_if(parsestate_T *ps)
     return result;
 }
 
-/* Parses a for command. */
+/* Parses a for command.
+ * The current token must be the starting "for". Never returns NULL. */
 command_T *parse_for(parsestate_T *ps)
 {
     assert(ps->tokentype == TT_FOR);
@@ -2535,7 +2532,8 @@ parse_do:
 
 /* Parses a while/until command.
  * `whltype' must be true for the while command and false for the until command.
- */
+ * The current token must be the starting "while" or "until". Never returns
+ * NULL. */
 command_T *parse_while(parsestate_T *ps, bool whltype)
 {
     if (whltype)
@@ -2575,7 +2573,8 @@ command_T *parse_while(parsestate_T *ps, bool whltype)
     return result;
 }
 
-/* Parses a case command. */
+/* Parses a case command.
+ * The current token must be the starting "case". Never returns NULL. */
 command_T *parse_case(parsestate_T *ps)
 {
     assert(ps->tokentype == TT_CASE);
@@ -2693,7 +2692,8 @@ void **parse_case_patterns(parsestate_T *ps)
     return pl_toary(&wordlist);
 }
 
-/* Parses a function definition that starts with the "function" keyword. */
+/* Parses a function definition that starts with the "function" keyword.
+ * The current token must be "function". Never returns NULL. */
 command_T *parse_function(parsestate_T *ps)
 {
     if (posixly_correct)
@@ -2735,17 +2735,15 @@ parse_close_parenthesis:
 parse_function_body:
     parse_newline_list(ps);
 
-    const wchar_t *t = check_opening_token(ps);
-    if (t != NULL) {
-	result->c_funcbody = parse_compound_command(ps, t);
-    } else if (psubstitute_alias(ps, 0)) {
-	if (paren)
-	    goto parse_function_body;
-	else
-	    goto parse_parentheses;
-    } else {
+    result->c_funcbody = parse_compound_command(ps);
+    if (result->c_funcbody == NULL) {
+	if (psubstitute_alias(ps, 0)) {
+	    if (paren)
+		goto parse_function_body;
+	    else
+		goto parse_parentheses;
+	}
 	serror(ps, Ngt("a function body must be a compound command"));
-	result->c_funcbody = NULL;
     }
 
     return result;
@@ -2789,21 +2787,19 @@ command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
     }
     next_token(ps);
 
+    free(c->c_words);
+    c->c_type = CT_FUNCDEF;
+    c->c_funcname = name;
+
 parse_function_body:
     parse_newline_list(ps);
-
-    const wchar_t *t = check_opening_token(ps);
-    if (t == NULL) {
+    c->c_funcbody = parse_compound_command(ps);
+    if (c->c_funcbody == NULL) {
 	if (psubstitute_alias(ps, 0))
 	    goto parse_function_body;
 	serror(ps, Ngt("a function body must be a compound command"));
-	return c;
     }
-    free(c->c_words);
 
-    c->c_type = CT_FUNCDEF;
-    c->c_funcname = name;
-    c->c_funcbody = parse_compound_command(ps, t);
     return c;
 }
 
