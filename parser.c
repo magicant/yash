@@ -248,7 +248,7 @@ static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
-static bool is_literal_function_name(const wordunit_T *wu)
+static bool is_name_word(const wordunit_T *wu)
     __attribute__((pure));
 
 
@@ -358,7 +358,7 @@ bool is_keyword(const wchar_t *s)
     }
 }
 
-bool is_literal_function_name(const wordunit_T *wu)
+bool is_name_word(const wordunit_T *wu)
 {
     if (wu == NULL)
 	return false;
@@ -2471,7 +2471,7 @@ command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
 
     /* The name must be valid. */
     wordunit_T *name = c->c_words[0];
-    if (!is_literal_function_name(name)) {
+    if (!is_name_word(name)) {
 	serror(ps, Ngt("invalid function name"));
 	return c;
     }
@@ -3167,7 +3167,7 @@ void print_function_definition(
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    if (!is_literal_function_name(c->c_funcname))
+    if (!is_name_word(c->c_funcname))
 	wb_cat(&pr->buffer, L"function ");
     print_word(pr, c->c_funcname, indent);
     wb_cat(&pr->buffer, L"()");
