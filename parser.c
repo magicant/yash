@@ -549,32 +549,20 @@ static void maybe_line_continuations(parsestate_T *ps, size_t index)
     __attribute__((nonnull));
 static void rewind_index(parsestate_T *ps, size_t to)
     __attribute__((nonnull));
-static void ensure_buffer(parsestate_T *ps, size_t n)
-    __attribute__((nonnull));
 static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
     __attribute__((nonnull));
-static void skip_blanks_and_comment(parsestate_T *ps)
-    __attribute__((nonnull));
 static void next_token(parsestate_T *ps)
-    __attribute__((nonnull));
-static bool skip_to_next_token(parsestate_T *ps)
     __attribute__((nonnull));
 static void next_line(parsestate_T *ps)
     __attribute__((nonnull));
 static bool parse_newline_list(parsestate_T *ps)
     __attribute__((nonnull));
-static bool is_command_delimiter_char(wchar_t c)
-    __attribute__((const));
 static bool is_comma_or_closing_bracket(wchar_t c)
     __attribute__((const));
 static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_closing_brace(wchar_t c)
     __attribute__((const));
-static bool has_token(const parsestate_T *ps, const wchar_t *t)
-    __attribute__((pure,nonnull));
-static const wchar_t *check_opening_token(parsestate_T *ps)
-    __attribute__((nonnull));
 static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
     __attribute__((nonnull));
 static void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T f)
@@ -606,9 +594,7 @@ static void **parse_words_to_paren(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
+static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
 static void skip_to_next_single_quote(parsestate_T *ps)
     __attribute__((nonnull));
@@ -627,8 +613,6 @@ static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
 static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wchar_t *parse_word_as_wcs(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -856,35 +840,6 @@ void rewind_index(parsestate_T *ps, size_t oldindex)
     }
 }
 
-/* If a line continuation is found within `n' characters from the current
- * position `ps->index', removes the backslash-newline pair and reads the next
- * line.
- * If a backslash that is not a line continuation is found within `n' characters
- * from the current position, this function does nothing. */
-/* For quickness, `n' should be as small as possible. */
-void ensure_buffer(parsestate_T *ps, size_t n)
-{
-    size_t index = ps->index;
-    if (ps->src.contents[index] == L'\0')
-	read_more_input(ps);
-    while (index - ps->index < n) {
-	switch (ps->src.contents[index]) {
-	case L'\0':  case L'\'':
-	    return;
-	case L'\\':
-	    if (ps->src.contents[index + 1] != L'\n')
-		return;
-	    line_continuation(ps, index);
-	    if (ps->info->lastinputresult != INPUT_OK)
-		return;
-	    break;
-	default:
-	    index++;
-	    break;
-	}
-    }
-}
-
 /* Returns the length of the name at the current position.
  * Whether a character can be part of the name is determined by `isnamechar'.
  * This function processes line continuations and reads so many lines that the
@@ -896,41 +851,6 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 	    isnamechar(ps->src.contents[index]))
 	index++;
     return index - ps->index;
-}
-
-/* Advances the current position `ps->index', skipping blank characters,
- * comments, and line continuations.
- * This function calls `read_more_input' if the current line has not been read
- * or when a line continuation is encountered.
- * The current position is advanced to the next non-blank character.
- * Line continuations are actually removed rather than skipped. */
-/* Note that a newline is not a blank character. After a comment was skipped,
- * the position will be at the newline character (or EOF) that follows. */
-void skip_blanks_and_comment(parsestate_T *ps)
-{
-    if (ps->src.contents[ps->index] == L'\0')
-	if (read_more_input(ps) != INPUT_OK)
-	    return;
-
-start:
-    /* skip blanks */
-    while (iswblank(ps->src.contents[ps->index]))
-	ps->index++;
-
-    /* skip a comment */
-    if (ps->src.contents[ps->index] == L'#') {
-	do {
-	    ps->index++;
-	} while (ps->src.contents[ps->index] != L'\n' &&
-		ps->src.contents[ps->index] != L'\0');
-    }
-
-    /* remove line continuation */
-    if (ps->src.contents[ps->index] == L'\\' &&
-	    ps->src.contents[ps->index + 1] == L'\n') {
-	line_continuation(ps, ps->index);
-	goto start;
-    }
 }
 
 /* Moves to the next token, updating `index', `next_index', `tokentype', and
@@ -1036,7 +956,7 @@ skip_blanks:
 	    /* Okay, the next token seems to be a word, possibly being a
 	     * reserved word or an IO_NUMBER token. */
 	    ps->index = index;
-	    wordunit_T *token = parse_word_to(ps, is_token_delimiter_char);
+	    wordunit_T *token = parse_word(ps, is_token_delimiter_char);
 	    index = ps->index;
 
 	    wordfree(ps->token);
@@ -1058,25 +978,6 @@ skip_blanks:
 
     ps->index = startindex;
     ps->next_index = index;
-}
-
-/* Advances the current position `ps->index', skipping blank characters,
- * comments and newlines, up to the next token.
- * This function calls `read_more_input' if the next token cannot be found in
- * the current line.
- * Returns true iff at least one newline token is skipped. */
-bool skip_to_next_token(parsestate_T *ps)
-{
-    bool newline = false;
-
-    skip_blanks_and_comment(ps);
-    while (ps->info->lastinputresult == INPUT_OK &&
-	    ps->src.contents[ps->index] == L'\n') {
-	newline = true;
-	next_line(ps);
-	skip_blanks_and_comment(ps);
-    }
-    return newline;
 }
 
 /* Parses the newline token at the current position and proceeds to the next
@@ -1123,18 +1024,6 @@ bool is_token_delimiter_char(wchar_t c)
     }
 }
 
-/* Checks if the specified character delimits a simple command. */
-bool is_command_delimiter_char(wchar_t c)
-{
-    switch (c) {
-	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
-	case L'(':   case L')':
-	    return true;
-	default:
-	    return false;
-    }
-}
-
 bool is_comma_or_closing_bracket(wchar_t c)
 {
     return c == L']' || c == L',';
@@ -1150,36 +1039,6 @@ bool is_closing_brace(wchar_t c)
     return c == L'}';
 }
 
-/* Checks if token `t' exists at the current position in `ps->src'.
- * `t' must not be a proper substring of another operator token. (For example,
- * `t' cannot be L"&" because it is a proper substring of another operator token
- * L"&&". However, L"do" is OK for `t' even though it is a substring of the
- * keyword L"done", which is not an operator token.)
- * This function does not handle line continuations. The caller may need to call
- * `ensure_buffer(wcslen(t))' before calling this function. */
-bool has_token(const parsestate_T *ps, const wchar_t *t)
-{
-    const wchar_t *c = matchwcsprefix(&ps->src.contents[ps->index], t);
-    return c != NULL && is_token_delimiter_char(*c);
-}
-
-/* Checks if there is an 'opening' token such as "(", "{", and "if" at the
- * current position. If there is one, the token string is returned.
- * Otherwise, NULL is returned.
- * This function calls `ensure_buffer(ps, 9)'. */
-const wchar_t *check_opening_token(parsestate_T *ps)
-{
-    ensure_buffer(ps, 9);
-    if (ps->src.contents[ps->index] == L'(') return L"(";
-    if (has_token(ps, L"{"))        return L"{";
-    if (has_token(ps, L"if"))       return L"if";
-    if (has_token(ps, L"for"))      return L"for";
-    if (has_token(ps, L"while"))    return L"while";
-    if (has_token(ps, L"until"))    return L"until";
-    if (has_token(ps, L"case"))     return L"case";
-    if (has_token(ps, L"function")) return L"function";
-    return NULL;
-}
 
 /* Performs alias substitution with the given parse state. Proceeds to the
  * next token if substitution occurred. This function does not substitute an
@@ -1213,8 +1072,7 @@ void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
 
 /* Parses commands.
  * If `toeol' is true, commands are parsed up to the end of the current input;
- * otherwise, up to the next closing token.
- * You don't have to call `skip_blanks_and_comment' beforehand. */
+ * otherwise, up to the next closing token. */
 and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 {
     and_or_T *first = NULL, **lastp = &first;
@@ -1282,8 +1140,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     return first;
 }
 
-/* Parses commands until a closing token is found.
- * You don't have to call `skip_blanks_and_comment' beforehand. */
+/* Parses commands until a closing token is found. */
 and_or_T *parse_compound_list(parsestate_T *ps)
 {
     return parse_command_list(ps, false);
@@ -1728,23 +1585,13 @@ parse_command:
     return result;
 }
 
-/* Parses a word at the current position. If `globalaliases' is true, global
- * aliases are substituted before the word is parsed. */
-wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
-{
-    if (globalaliases)
-	psubstitute_alias_recursive(ps, 0);
-
-    return parse_word_to(ps, is_token_delimiter_char);
-}
-
 /* Parses a word at the current position.
  * `testfunc' is a function that determines if a character is a word delimiter.
  * The parsing proceeds up to an unescaped character for which `testfunc'
  * returns false.
  * It is not an error if there is no characters to be a word, in which case
  * NULL is returned. */
-wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
+wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first;
     bool indq = false;  /* in double quotes? */
@@ -2000,12 +1847,12 @@ parse_name:;
     // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'[') {
 	ps->index++;
-	pe->pe_start = parse_word_to(ps, is_comma_or_closing_bracket);
+	pe->pe_start = parse_word(ps, is_comma_or_closing_bracket);
 	if (pe->pe_start == NULL)
 	    serror(ps, Ngt("the index is missing"));
 	if (ps->src.contents[ps->index] == L',') {
 	    ps->index++;
-	    pe->pe_end = parse_word_to(ps, is_comma_or_closing_bracket);
+	    pe->pe_end = parse_word(ps, is_comma_or_closing_bracket);
 	    if (pe->pe_end == NULL)
 		serror(ps, Ngt("the index is missing"));
 	}
@@ -2082,18 +1929,18 @@ parse_match:
 	ps->index += 1;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-	pe->pe_match = parse_word_to(ps, is_closing_brace);
+	pe->pe_match = parse_word(ps, is_closing_brace);
 	goto check_closing_brace;
     } else {
-	pe->pe_match = parse_word_to(ps, is_slash_or_closing_brace);
-	// maybe_line_continuations(ps, ps->index); // called in parse_word_to
+	pe->pe_match = parse_word(ps, is_slash_or_closing_brace);
+	// maybe_line_continuations(ps, ps->index); // called in parse_word
 	if (ps->src.contents[ps->index] != L'/')
 	    goto check_closing_brace;
     }
 
 parse_subst:
     ps->index++;
-    pe->pe_subst = parse_word_to(ps, is_closing_brace);
+    pe->pe_subst = parse_word(ps, is_closing_brace);
 
 check_closing_brace:
     // maybe_line_continuations(ps, ps->index); // already called above
@@ -2315,19 +2162,6 @@ not_arithmetic_expansion:
     wordfree(first);
     rewind_index(ps, saveindex);
     return NULL;
-}
-
-/* Returns a word token at the current index as a newly malloced string.
- * The current position is advanced to the character that just follows the word.
- * This function never returns NULL, but may return an empty string. */
-wchar_t *parse_word_as_wcs(parsestate_T *ps)
-{
-    psubstitute_alias_recursive(ps, 0);
-
-    size_t startindex = ps->index;
-    wordfree(parse_word_to(ps, is_token_delimiter_char));
-    assert(startindex <= ps->index);
-    return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
 }
 
 /* Parses a compound command.
