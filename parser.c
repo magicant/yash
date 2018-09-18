@@ -284,6 +284,8 @@ static tokentype_T identify_reserved_word(const wordunit_T *wu)
     __attribute__((pure));
 static bool is_command_delimiter_tokentype(tokentype_T tt)
     __attribute__((const));
+static bool is_closing_tokentype(tokentype_T tt)
+    __attribute__((const));
 
 
 /* Checks if the specified character can be used in a portable variable name.
@@ -486,6 +488,27 @@ bool is_command_delimiter_tokentype(tokentype_T tt)
     }
 }
 
+/* Determines if the specified token is a 'closing' token such as ")", "}", and
+ * "fi". Closing tokens delimit and/or lists. */
+bool is_closing_tokentype(tokentype_T tt)
+{
+    switch (tt) {
+	case TT_RPAREN:
+	case TT_RBRACE:
+	case TT_THEN:
+	case TT_ELIF:
+	case TT_ELSE:
+	case TT_FI:
+	case TT_DO:
+	case TT_DONE:
+	case TT_DOUBLE_SEMICOLON:
+	case TT_ESAC:
+	    return true;
+	default:
+	    return false;
+    }
+}
+
 
 /********** Parser **********/
 
@@ -551,8 +574,6 @@ static bool is_closing_brace(wchar_t c)
 static bool has_token(const parsestate_T *ps, const wchar_t *t)
     __attribute__((pure,nonnull));
 static const wchar_t *check_opening_token(parsestate_T *ps)
-    __attribute__((nonnull));
-static const wchar_t *check_closing_token(parsestate_T *ps)
     __attribute__((nonnull));
 static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
     __attribute__((nonnull));
@@ -645,7 +666,9 @@ static wordunit_T **parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline,
 	wordunit_T **lastp)
     __attribute__((nonnull));
-static const char *get_errmsg_unexpected_token(const wchar_t *t)
+static const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
+    __attribute__((const));
+static void print_errmsg_token_unexpected(parsestate_T *ps)
     __attribute__((nonnull));
 static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
     __attribute__((nonnull));
@@ -1158,30 +1181,6 @@ const wchar_t *check_opening_token(parsestate_T *ps)
     return NULL;
 }
 
-/* Checks if there is a 'closing' token such as ")", "}", and "fi" at the
- * current position. If there is one, the token string is returned.
- * Otherwise, NULL is returned.
- * This function calls `ensure_buffer(ps, 5)'. */
-/* Closing tokens delimit and/or lists. */
-const wchar_t *check_closing_token(parsestate_T *ps)
-{
-    ensure_buffer(ps, 5);
-    if (ps->src.contents[ps->index] == L')')
-	return L")";
-    if (ps->src.contents[ps->index] == L';' &&
-	    ps->src.contents[ps->index + 1] == L';')
-	return L";;";
-    if (has_token(ps, L"}"))    return L"}";
-    if (has_token(ps, L"then")) return L"then";
-    if (has_token(ps, L"else")) return L"else";
-    if (has_token(ps, L"elif")) return L"elif";
-    if (has_token(ps, L"fi"))   return L"fi";
-    if (has_token(ps, L"do"))   return L"do";
-    if (has_token(ps, L"done")) return L"done";
-    if (has_token(ps, L"esac")) return L"esac";
-    return NULL;
-}
-
 /* Performs alias substitution with the given parse state. Proceeds to the
  * next token if substitution occurred. */
 bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
@@ -1242,7 +1241,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    if (ps->tokentype == TT_END_OF_INPUT) {
 		break;
 	    } else if (ps->tokentype == TT_RPAREN) {
-		serror(ps, get_errmsg_unexpected_token(L")"), L")");
+		print_errmsg_token_unexpected(ps);
 		break;
 	    } else if (need_separator) {
 		serror(ps, Ngt("`;' or `&' is missing"));
@@ -1252,7 +1251,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    if (parse_newline_list(ps))
 		need_separator = false;
 	    if (need_separator || ps->tokentype == TT_END_OF_INPUT ||
-		    check_closing_token(ps))
+		    is_closing_tokentype(ps->tokentype))
 		break;
 	}
 
@@ -1416,25 +1415,9 @@ command_T *parse_command(parsestate_T *ps)
 {
     ps->reparse = false;
 
-    /* Note: `check_closing_token' calls `ensure_buffer(ps, 5)'. */
-    const wchar_t *t = check_closing_token(ps);
-    if (t != NULL) {
-	serror(ps, get_errmsg_unexpected_token(t), t);
-	return NULL;
-    } else if (ps->tokentype == TT_BANG) {
-	serror(ps, get_errmsg_unexpected_token(L"!"), L"!");
-	return NULL;
-    } else if (ps->tokentype == TT_IN) {
-	serror(ps, get_errmsg_unexpected_token(L"in"), L"in");
-	return NULL;
-    } else if (ps->tokentype == TT_LPAREN) {
-	return parse_compound_command(ps);
-    } else if (is_command_delimiter_tokentype(ps->tokentype)) {
-	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
-	    serror(ps, Ngt("a command is missing at the end of input"));
-	else
-	    serror(ps, Ngt("a command is missing before `%lc'"),
-		    (wint_t) ps->src.contents[ps->index]);
+    if (ps->tokentype == TT_BANG || ps->tokentype == TT_IN ||
+	    is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
 	return NULL;
     }
 
@@ -1455,6 +1438,18 @@ command_T *parse_command(parsestate_T *ps)
     result->c_type = CT_SIMPLE;
     redir_T **redirlastp = parse_assignments_and_redirects(ps, result);
     result->c_words = parse_words_and_redirects(ps, redirlastp, true);
+
+    if (result->c_words[0] == NULL && result->c_assigns == NULL &&
+	    result->c_redirs == NULL) {
+	/* an empty command */
+	comsfree(result);
+	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
+	    serror(ps, Ngt("a command is missing at the end of input"));
+	else
+	    serror(ps, Ngt("a command is missing before `%lc'"),
+		    (wint_t) ps->src.contents[ps->index]);
+	return NULL;
+    }
 
     return try_reparse_as_function(ps, result);
 }
@@ -1707,16 +1702,15 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 parse_here_document_tag:
     next_token(ps);
     psubstitute_alias_recursive(ps, 0);
-    if (ps->token == NULL) {
-	serror(ps, Ngt("the end-of-here-document indicator is missing"));
-	free(result);
-	return NULL;
-    }
     result->rd_hereend =
 	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
     result->rd_herecontent = NULL;
-    pl_add(&ps->pending_heredocs, result);
-    next_token(ps);
+    if (ps->token == NULL) {
+	serror(ps, Ngt("the end-of-here-document indicator is missing"));
+    } else {
+	pl_add(&ps->pending_heredocs, result);
+	next_token(ps);
+    }
     return result;
 
 parse_command:
@@ -3031,60 +3025,56 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 
 /***** Auxiliaries about Error Messages *****/
 
-const char *get_errmsg_unexpected_token(const wchar_t *t)
+const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
 {
-    switch (t[0]) {
-	case L')':
-	    assert(wcscmp(t, L")") == 0);
+    switch (tokentype) {
+	case TT_RPAREN:
 	    return Ngt("encountered `%ls' without a matching `('");
-	case L'}':
-	    assert(wcscmp(t, L"}") == 0);
+	case TT_RBRACE:
 	    return Ngt("encountered `%ls' without a matching `{'");
-	case L';':
-	    assert(wcscmp(t, L";;") == 0);
+	case TT_DOUBLE_SEMICOLON:
 	    return Ngt("`%ls' is used outside `case'");
-	case L'!':
-	    assert(wcscmp(t, L"!") == 0);
+	case TT_BANG:
 	    return Ngt("`%ls' cannot be used as a command name");
-	case L'i':
-	    assert(wcscmp(t, L"in") == 0);
+	case TT_IN:
 	    return Ngt("`%ls' cannot be used as a command name");
-	case L'f':
-	    assert(wcscmp(t, L"fi") == 0);
+	case TT_FI:
 	    return Ngt("encountered `%ls' "
 		    "without a matching `if' and/or `then'");
-	case L't':
-	    assert(wcscmp(t, L"then") == 0);
+	case TT_THEN:
 	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
-	case L'd':
-	    assert(t[1] == L'o');
-	    if (t[2] == L'\0') {
-		assert(wcscmp(t, L"do") == 0);
-		return Ngt("encountered `%ls' "
-			"without a matching `for', `while', or `until'");
-	    } else {
-		assert(wcscmp(t, L"done") == 0);
-		return Ngt("encountered `%ls' without a matching `do'");
-	    }
-	case L'e':
-	    if (t[1] == L's') {
-		assert(wcscmp(t, L"esac") == 0);
-		return Ngt("encountered `%ls' without a matching `case'");
-	    } else {
-		assert(wcscmp(t, L"else") == 0 || wcscmp(t, L"elif") == 0);
-		return Ngt("encountered `%ls' "
+	case TT_DO:
+	    return Ngt("encountered `%ls' "
+		    "without a matching `for', `while', or `until'");
+	case TT_DONE:
+	    return Ngt("encountered `%ls' without a matching `do'");
+	case TT_ESAC:
+	    return Ngt("encountered `%ls' without a matching `case'");
+	case TT_ELIF:
+	case TT_ELSE:
+	    return Ngt("encountered `%ls' "
 			"without a matching `if' and/or `then'");
-	    }
 	default:
 	    assert(false);
     }
 }
 
+void print_errmsg_token_unexpected(parsestate_T *ps)
+{
+    assert(ps->index <= ps->next_index);
+    size_t length = ps->next_index - ps->index;
+    wchar_t token[length + 1];
+    wcsncpy(token, &ps->src.contents[ps->index], length);
+    token[length] = L'\0';
+
+    const char *message = get_errmsg_unexpected_tokentype(ps->tokentype);
+    serror(ps, message, token);
+}
+
 void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
 {
-    const wchar_t *atoken = check_closing_token(ps);
-    if (atoken != NULL) {
-	serror(ps, get_errmsg_unexpected_token(atoken), atoken);
+    if (is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
 	serror(ps, Ngt("(maybe you missed `%ls'?)"), t);
     } else {
 	serror(ps, Ngt("`%ls' is missing"), t);
