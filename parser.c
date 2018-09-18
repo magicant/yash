@@ -49,6 +49,8 @@
 static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
+static void wordunitfree(wordunit_T *wu)
+    __attribute__((nonnull));
 static void wordfree_vp(void *w);
 static void assignsfree(assign_T *a);
 static void redirsfree(redir_T *r);
@@ -144,26 +146,30 @@ void caseitemsfree(caseitem_T *i)
     }
 }
 
+void wordunitfree(wordunit_T *wu)
+{
+    switch (wu->wu_type) {
+	case WT_STRING:
+	    free(wu->wu_string);
+	    break;
+	case WT_PARAM:
+	    paramfree(wu->wu_param);
+	    break;
+	case WT_CMDSUB:
+	    embedcmdfree(wu->wu_cmdsub);
+	    break;
+	case WT_ARITH:
+	    wordfree(wu->wu_arith);
+	    break;
+    }
+    free(wu);
+}
+
 void wordfree(wordunit_T *w)
 {
     while (w != NULL) {
-	switch (w->wu_type) {
-	    case WT_STRING:
-		free(w->wu_string);
-		break;
-	    case WT_PARAM:
-		paramfree(w->wu_param);
-		break;
-	    case WT_CMDSUB:
-		embedcmdfree(w->wu_cmdsub);
-		break;
-	    case WT_ARITH:
-		wordfree(w->wu_arith);
-		break;
-	}
-
 	wordunit_T *next = w->next;
-	free(w);
+	wordunitfree(w);
 	w = next;
     }
 }
