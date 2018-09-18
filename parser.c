@@ -276,6 +276,8 @@ static bool is_name_word(const wordunit_T *wu)
     __attribute__((pure));
 static tokentype_T identify_reserved_word(const wordunit_T *wu)
     __attribute__((pure));
+static bool is_command_delimiter_tokentype(tokentype_T tt)
+    __attribute__((const));
 
 
 /* Checks if the specified character can be used in a portable variable name.
@@ -456,6 +458,26 @@ tokentype_T identify_reserved_word(const wordunit_T *wu)
     if (!is_single_string_word(wu))
 	return TT_WORD;
     return identify_reserved_word_string(wu->wu_string);
+}
+
+/* Determines if the given token delimits a simple command. */
+bool is_command_delimiter_tokentype(tokentype_T tt)
+{
+    switch (tt) {
+	case TT_END_OF_INPUT:
+	case TT_NEWLINE:
+	case TT_SEMICOLON:
+	case TT_DOUBLE_SEMICOLON:
+	case TT_AMP:
+	case TT_AMPAMP:
+	case TT_PIPE:
+	case TT_PIPEPIPE:
+	case TT_LPAREN:
+	case TT_RPAREN:
+	    return true;
+	default:
+	    return false;
+    }
 }
 
 
