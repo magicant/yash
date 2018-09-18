@@ -248,6 +248,10 @@ static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
+static bool is_single_string_word(const wordunit_T *wu)
+    __attribute__((pure));
+static bool is_digits_only(const wordunit_T *wu)
+    __attribute__((pure));
 static bool is_name_word(const wordunit_T *wu)
     __attribute__((pure));
 
@@ -358,13 +362,27 @@ bool is_keyword(const wchar_t *s)
     }
 }
 
+bool is_single_string_word(const wordunit_T *wu)
+{
+    return wu != NULL && wu->next == NULL && wu->wu_type == WT_STRING;
+}
+
+/* Tests if a word is made up of digits only. */
+bool is_digits_only(const wordunit_T *wu)
+{
+    if (!is_single_string_word(wu))
+	return false;
+
+    const wchar_t *s = wu->wu_string;
+    assert(s[0] != L'\0');
+    while (iswdigit(*s))
+	s++;
+    return *s == L'\0';
+}
+
 bool is_name_word(const wordunit_T *wu)
 {
-    if (wu == NULL)
-	return false;
-    if (wu->next != NULL)
-	return false;
-    if (wu->wu_type != WT_STRING)
+    if (!is_single_string_word(wu))
 	return false;
 
     return (posixly_correct ? is_portable_name : is_name)(wu->wu_string);
