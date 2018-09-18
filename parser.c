@@ -510,6 +510,8 @@ static bool skip_to_next_token(parsestate_T *ps)
     __attribute__((nonnull));
 static void next_line(parsestate_T *ps)
     __attribute__((nonnull));
+static bool parse_newline_list(parsestate_T *ps)
+    __attribute__((nonnull));
 static bool is_command_delimiter_char(wchar_t c)
     __attribute__((const));
 static bool is_comma_or_closing_bracket(wchar_t c)
@@ -1027,7 +1029,8 @@ bool skip_to_next_token(parsestate_T *ps)
 }
 
 /* Parses the newline token at the current position and proceeds to the next
- * line. The contents of pending here-documents are read if any. */
+ * line. The contents of pending here-documents are read if any. The current
+ * token is cleared. */
 void next_line(parsestate_T *ps)
 {
     assert(ps->src.contents[ps->index] == L'\n');
@@ -1037,6 +1040,24 @@ void next_line(parsestate_T *ps)
     for (size_t i = 0; i < ps->pending_heredocs.length; i++)
 	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
     pl_clear(&ps->pending_heredocs, 0);
+
+    wordfree(ps->token);
+    ps->token = NULL;
+    ps->tokentype = TT_UNKNOWN;
+    ps->next_index = ps->index;
+}
+
+/* Processes a sequence of newline tokens. Returns true if at least one newline
+ * token has been processed; false if none. */
+bool parse_newline_list(parsestate_T *ps)
+{
+    bool found = false;
+    while (ps->tokentype == TT_NEWLINE) {
+	found = true;
+	next_line(ps);
+	next_token(ps);
+    }
+    return found;
 }
 
 /* Checks if the specified character is a token separator. */
