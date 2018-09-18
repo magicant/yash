@@ -297,8 +297,20 @@ __ERR__
 test_Oe -e 2 'redirection in words'
 for i in a </dev/null b; do echo $i; done
 __IN__
-syntax error: redirections are not allowed after `in'
+syntax error: `do' is missing
+syntax error: encountered `do' without a matching `for', `while', or `until'
+syntax error: (maybe you missed `done'?)
 __ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
 #'
 #`
 

@@ -282,8 +282,6 @@ static bool is_name_word(const wordunit_T *wu)
     __attribute__((pure));
 static tokentype_T identify_reserved_word(const wordunit_T *wu)
     __attribute__((pure));
-static bool is_command_delimiter_tokentype(tokentype_T tt)
-    __attribute__((const));
 static bool is_closing_tokentype(tokentype_T tt)
     __attribute__((const));
 
@@ -468,26 +466,6 @@ tokentype_T identify_reserved_word(const wordunit_T *wu)
     return identify_reserved_word_string(wu->wu_string);
 }
 
-/* Determines if the given token delimits a simple command. */
-bool is_command_delimiter_tokentype(tokentype_T tt)
-{
-    switch (tt) {
-	case TT_END_OF_INPUT:
-	case TT_NEWLINE:
-	case TT_SEMICOLON:
-	case TT_DOUBLE_SEMICOLON:
-	case TT_AMP:
-	case TT_AMPAMP:
-	case TT_PIPE:
-	case TT_PIPEPIPE:
-	case TT_LPAREN:
-	case TT_RPAREN:
-	    return true;
-	default:
-	    return false;
-    }
-}
-
 /* Determines if the specified token is a 'closing' token such as ")", "}", and
  * "fi". Closing tokens delimit and/or lists. */
 bool is_closing_tokentype(tokentype_T tt)
@@ -581,16 +559,14 @@ static command_T *parse_commands_in_pipeline(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
+static void **parse_simple_command_tokens(
+	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
     __attribute__((nonnull,malloc,warn_unused_result));
-static void **parse_words_and_redirects(
-	parsestate_T *ps, redir_T **redirlastp, bool first)
+static void **parse_words(parsestate_T *ps, bool skip_newlines)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
     __attribute__((nonnull));
 static assign_T *tryparse_assignment(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void **parse_words_to_paren(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1297,8 +1273,10 @@ command_T *parse_command(parsestate_T *ps)
     result->refcount = 1;
     result->c_lineno = ps->info->lineno;
     result->c_type = CT_SIMPLE;
-    redir_T **redirlastp = parse_assignments_and_redirects(ps, result);
-    result->c_words = parse_words_and_redirects(ps, redirlastp, true);
+    result->c_assigns = NULL;
+    result->c_redirs = NULL;
+    result->c_words = parse_simple_command_tokens(
+	    ps, &result->c_assigns, &result->c_redirs);
 
     if (result->c_words[0] == NULL && result->c_assigns == NULL &&
 	    result->c_redirs == NULL) {
@@ -1315,67 +1293,72 @@ command_T *parse_command(parsestate_T *ps)
     return try_reparse_as_function(ps, result);
 }
 
-/* Parses assignments and redirections.
- * Tokens but the first one are subject to any-type alias substitution,
- * including the word just after the parsed assignments and redirections.
- * The results are assigned to `c->c_assigns' and `c->c_redirs'.
- * The return value is a pointer to the `next' member of the last resultant
- * redirection (redir_T). If no redirections were parsed, the result value is a
- * pointer to `c->c_redirs'. */
-redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
+/* Parses assignments, redirections, and words.
+ * Assignments are parsed before words are parsed. Tokens are subject to
+ * any-type alias substitution until the first word is parsed, except for the
+ * first token which is parsed intact. The other words are subject to global
+ * alias substitution. Redirections can appear anywhere.
+ * Parsed Assignments and redirections are assigned to `*assigns' and `redirs',
+ * respectively. They must have been initialized NULL (or anything) before
+ * calling this function. Parsed words are returned as a newly-malloced
+ * NULL-terminated array of pointers to newly-malloced wordunit_T's. */
+void **parse_simple_command_tokens(
+	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
 {
-    assign_T **assgnlastp = &c->c_assigns;
-    redir_T **redirlastp = &c->c_redirs;
-    assign_T *assgn;
-    redir_T *redir;
+    bool is_first = true;
+    plist_T words;
+    pl_init(&words);
 
-    c->c_assigns = NULL;
-    c->c_redirs = NULL;
-    while (!is_command_delimiter_tokentype(ps->tokentype)) {
-	if ((redir = tryparse_redirect(ps)) != NULL) {
-	    *redirlastp = redir;
-	    redirlastp = &redir->next;
-	} else if ((assgn = tryparse_assignment(ps)) != NULL) {
-	    *assgnlastp = assgn;
-	    assgnlastp = &assgn->next;
-	} else {
-	    break;
-	}
-	psubstitute_alias_recursive(ps, AF_NONGLOBAL);
+next:
+    if (is_first)
+	is_first = false;
+    else
+	psubstitute_alias_recursive(ps, words.length == 0 ? AF_NONGLOBAL : 0);
+
+    redir_T *redir = tryparse_redirect(ps);
+    if (redir != NULL) {
+	*redirs = redir;
+	redirs = &redir->next;
+	goto next;
     }
-    return redirlastp;
+
+    if (words.length == 0) {
+	assign_T *assign = tryparse_assignment(ps);
+	if (assign != NULL) {
+	    *assigns = assign;
+	    assigns = &assign->next;
+	    goto next;
+	}
+    }
+
+    if (ps->token != NULL) {
+	pl_add(&words, ps->token), ps->token = NULL;
+	next_token(ps);
+	goto next;
+    }
+
+    return pl_toary(&words);
 }
 
-/* Parses words and redirections.
- * The parsing result of redirections is assigned to `*redirlastp'
- * The parsing result of assignments is returned as an array of pointers to
- * word units that are cast to (void *).
- * `*redirlastp' must have been initialized to NULL beforehand.
- * All words are subject to global alias substitution. If `first' is true,
- * however, alias substitution is not performed on the first word. */
-void **parse_words_and_redirects(
-	parsestate_T *ps, redir_T **redirlastp, bool first)
+/* Parses words.
+ * The resultant words are returned as a newly-malloced NULL-terminated array of
+ * pointers to word units that are cast to (void *).
+ * All words are subject to global alias substitution.
+ * If `skip_newlines' is true, newline operators are skipped.
+ * Words are parsed until an operator token is found. */
+void **parse_words(parsestate_T *ps, bool skip_newlines)
 {
     plist_T wordlist;
-    redir_T *redir;
-    wordunit_T *word;
 
-    assert(*redirlastp == NULL);
     pl_init(&wordlist);
-    while (!is_command_delimiter_tokentype(ps->tokentype)) {
-	if (!first)
-	    psubstitute_alias_recursive(ps, 0);
-	if ((redir = tryparse_redirect(ps)) != NULL) {
-	    *redirlastp = redir;
-	    redirlastp = &redir->next;
-	} else if ((word = ps->token) != NULL) {
-	    ps->token = NULL;
-	    pl_add(&wordlist, word);
-	    next_token(ps);
-	    first = false;
-	} else {
+    for (;;) {
+	psubstitute_alias_recursive(ps, 0);
+	if (skip_newlines && parse_newline_list(ps))
+	    continue;
+	if (ps->token == NULL)
 	    break;
-	}
+	pl_add(&wordlist, ps->token), ps->token = NULL;
+	next_token(ps);
     }
     return pl_toary(&wordlist);
 }
@@ -1439,35 +1422,13 @@ assign_T *tryparse_assignment(parsestate_T *ps)
 	/* array assignment */
 	next_token(ps);
 	result->a_type = A_ARRAY;
-	result->a_array = parse_words_to_paren(ps);
+	result->a_array = parse_words(ps, true);
 	if (ps->tokentype == TT_RPAREN)
 	    next_token(ps);
 	else
 	    serror(ps, Ngt("`%ls' is missing"), L")");
     }
     return result;
-}
-
-/* Parses words until the next closing parentheses.
- * Delimiter characters other than ')' and '\n' are not allowed.
- * Returns a newly malloced array of pointers to newly malloced `wordunit_T's.*/
-void **parse_words_to_paren(parsestate_T *ps)
-{
-    plist_T list;
-
-    pl_init(&list);
-    while (psubstitute_alias_recursive(ps, 0), ps->tokentype != TT_RPAREN) {
-	if (ps->tokentype == TT_NEWLINE) {
-	    next_line(ps);
-	    next_token(ps);
-	    continue;
-	}
-	if (ps->token == NULL)
-	    break;
-	pl_add(&list, ps->token), ps->token = NULL;
-	next_token(ps);
-    }
-    return pl_toary(&list);
 }
 
 /* If there is a redirection at the current position, parses and returns it.
@@ -2323,13 +2284,8 @@ command_T *parse_for(parsestate_T *ps)
 parse_in:;
     bool on_next_line = parse_newline_list(ps);
     if (ps->tokentype == TT_IN) {
-	redir_T *redirs = NULL;
 	next_token(ps);
-	result->c_forwords = parse_words_and_redirects(ps, &redirs, false);
-	if (redirs != NULL) {
-	    serror(ps, Ngt("redirections are not allowed after `in'"));
-	    redirsfree(redirs);
-	}
+	result->c_forwords = parse_words(ps, false);
 	if (ps->tokentype == TT_SEMICOLON)
 	    next_token(ps);
     } else if (psubstitute_alias(ps, 0)) {
