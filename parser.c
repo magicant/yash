@@ -504,6 +504,8 @@ static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
     __attribute__((nonnull));
 static void skip_blanks_and_comment(parsestate_T *ps)
     __attribute__((nonnull));
+static void next_token(parsestate_T *ps)
+    __attribute__((nonnull));
 static bool skip_to_next_token(parsestate_T *ps)
     __attribute__((nonnull));
 static void next_line(parsestate_T *ps)
@@ -876,6 +878,133 @@ start:
 	line_continuation(ps, ps->index);
 	goto start;
     }
+}
+
+/* Moves to the next token, updating `index', `next_index', `tokentype', and
+ * `token' of the parse state.
+ * The existing `token' is freed. */
+void next_token(parsestate_T *ps)
+{
+    wordfree(ps->token);
+    ps->token = NULL;
+
+    size_t index = ps->next_index;
+    if (index == ps->src.length)
+	read_more_input(ps);
+
+skip_blanks:
+    while (iswblank(ps->src.contents[index]))
+	index++;
+
+    if (ps->src.contents[index] == L'\\' &&
+	    ps->src.contents[index + 1] == L'\n') {
+	line_continuation(ps, index);
+	goto skip_blanks;
+    }
+
+    /* skip any comment */
+    if (ps->src.contents[index] == L'#')
+	index += wcscspn(&ps->src.contents[index + 1], L"\n") + 1;
+
+    size_t startindex = index;
+
+    switch (ps->src.contents[index]) {
+	case L'\0': ps->tokentype = TT_END_OF_INPUT;          break;
+	case L'\n': ps->tokentype = TT_NEWLINE;      index++; break;
+	case L'(':  ps->tokentype = TT_LPAREN;       index++; break;
+	case L')':  ps->tokentype = TT_RPAREN;       index++; break;
+	case L';':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L';') {
+		ps->tokentype = TT_DOUBLE_SEMICOLON;
+		index++;
+	    } else {
+		ps->tokentype = TT_SEMICOLON;
+	    }
+	    break;
+	case L'&':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L'&') {
+		ps->tokentype = TT_AMPAMP;
+		index++;
+	    } else {
+		ps->tokentype = TT_AMP;
+	    }
+	    break;
+	case L'|':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L'|') {
+		ps->tokentype = TT_PIPEPIPE;
+		index++;
+	    } else {
+		ps->tokentype = TT_PIPE;
+	    }
+	    break;
+	case L'<':
+	    maybe_line_continuations(ps, ++index);
+	    switch (ps->src.contents[index]) {
+		default:   ps->tokentype = TT_LESS;                 break;
+		case L'>': ps->tokentype = TT_LESSGREATER; index++; break;
+		case L'(': ps->tokentype = TT_LESSLPAREN;  index++; break;
+		case L'&': ps->tokentype = TT_LESSAMP;     index++; break;
+		case L'<':
+		    maybe_line_continuations(ps, ++index);
+		    switch (ps->src.contents[index]) {
+			default:
+			    ps->tokentype = TT_LESSLESS;              break;
+			case L'-':
+			    ps->tokentype = TT_LESSLESSDASH; index++; break;
+			case L'<':
+			    ps->tokentype = TT_LESSLESSLESS; index++; break;
+		    }
+		    break;
+	    }
+	    break;
+	case L'>':
+	    maybe_line_continuations(ps, ++index);
+	    switch (ps->src.contents[index]) {
+		default:   ps->tokentype = TT_GREATER;                 break;
+		case L'(': ps->tokentype = TT_GREATERLPAREN;  index++; break;
+		case L'&': ps->tokentype = TT_GREATERAMP;     index++; break;
+		case L'|': ps->tokentype = TT_GREATERPIPE;    index++; break;
+		case L'>':
+		    maybe_line_continuations(ps, ++index);
+		    if (ps->src.contents[index] == L'|') {
+			ps->tokentype = TT_GREATERGREATERPIPE;
+			index++;
+		    } else {
+			ps->tokentype = TT_GREATERGREATER;
+		    }
+		    break;
+	    }
+	    break;
+
+	default:
+	    /* Okay, the next token seems to be a word, possibly being a
+	     * reserved word or an IO_NUMBER token. */
+	    ps->index = index;
+	    wordunit_T *token = parse_word(ps, false);
+	    index = ps->index;
+
+	    wordfree(ps->token);
+	    ps->token = token;
+
+	    /* Is this an IO_NUMBER token? */
+	    if (ps->src.contents[index] == L'<' ||
+		    ps->src.contents[index] == L'>') {
+		if (is_digits_only(ps->token)) {
+		    ps->tokentype = TT_IO_NUMBER;
+		    break;
+		}
+	    }
+
+	    /* Is this a reserved word? */
+	    ps->tokentype = identify_reserved_word(ps->token);
+	    break;
+    }
+
+    ps->index = startindex;
+    ps->next_index = index;
 }
 
 /* Advances the current position `ps->index', skipping blank characters,
