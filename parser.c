@@ -823,6 +823,8 @@ void line_continuation(parsestate_T *ps, size_t index)
 void maybe_line_continuations(parsestate_T *ps, size_t index)
 {
     assert(index <= ps->src.length);
+    if (index == ps->src.length)
+	read_more_input(ps);
     while (ps->src.contents[index] == L'\\' &&
 	    ps->src.contents[index + 1] == L'\n')
 	line_continuation(ps, index);
@@ -890,7 +892,8 @@ void ensure_buffer(parsestate_T *ps, size_t n)
 size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 {
     size_t saveindex = ps->index;
-    while (ensure_buffer(ps, 1), isnamechar(ps->src.contents[ps->index]))
+    while (maybe_line_continuations(ps, ps->index),
+	    isnamechar(ps->src.contents[ps->index]))
 	ps->index++;
 
     size_t result = ps->index - saveindex;
@@ -1761,7 +1764,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
         }                                                                \
     } while (0)
 
-    while (ensure_buffer(ps, 1),
+    while (maybe_line_continuations(ps, ps->index),
 	    indq || !testfunc(ps->src.contents[ps->index])) {
 
 	switch (ps->src.contents[ps->index]) {
@@ -1854,11 +1857,12 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
 {
     switch (ps->src.contents[ps->index++]) {
     case L'$':
-	ensure_buffer(ps, 2);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'{':
 	    return parse_paramexp_in_brace(ps);
 	case L'(':
+	    maybe_line_continuations(ps, ps->index + 1);
 	    if (ps->src.contents[ps->index + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith(ps);
 		if (wu != NULL)
@@ -1885,7 +1889,7 @@ wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     paramexp_T *pe;
     size_t namelen;  /* parameter name length */
 
-    ensure_buffer(ps, 1);
+    maybe_line_continuations(ps, ps->index);
     switch (ps->src.contents[ps->index]) {
 	case L'@':  case L'*':  case L'#':  case L'?':
 	case L'-':  case L'$':  case L'!':
@@ -1932,13 +1936,15 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     ps->index++;
 
     /* parse PT_NUMBER */
-    ensure_buffer(ps, 3);
+    maybe_line_continuations(ps, ps->index);
     if (ps->src.contents[ps->index] == L'#') {
+	maybe_line_continuations(ps, ps->index + 1);
 	switch (ps->src.contents[ps->index + 1]) {
 	    case L'\0': case L'}':
 	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
 		break;
 	    case L'-':  case L'?':  case L'#':
+		maybe_line_continuations(ps, ps->index + 2);
 		if (ps->src.contents[ps->index + 2] != L'}')
 		    break;
 		/* falls thru! */
@@ -1950,21 +1956,22 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     }
 
     /* parse nested expansion */
-    // ensure_buffer(2);  // we've already called `ensure_buffer'
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brace(ps);
     } else if (!posixly_correct
 	    && (ps->src.contents[ps->index] == L'`'
 		|| (ps->src.contents[ps->index] == L'$'
-		    && (ps->src.contents[ps->index + 1] == L'{'
+		    && (maybe_line_continuations(ps, ps->index + 1),
+			ps->src.contents[ps->index + 1] == L'{'
 			|| ps->src.contents[ps->index + 1] == L'(')))) {
 	size_t neststartindex = ps->index;
 	pe->pe_nest = parse_special_word_unit(ps, false);
-	if (ps->index != neststartindex)
-	    pe->pe_type |= PT_NEST;
-	else
+	if (ps->index == neststartindex)
 	    goto parse_name;
+	pe->pe_type |= PT_NEST;
+	maybe_line_continuations(ps, ps->index);
     } else {
 parse_name:;
 	/* no nesting: parse parameter name normally */
@@ -1975,7 +1982,7 @@ parse_name:;
 		ps->index++;
 		break;
 	    default:
-		while (ensure_buffer(ps, 1),
+		while (maybe_line_continuations(ps, ps->index),
 			is_name_char(ps->src.contents[ps->index]))
 		    ps->index++;
 		break;
@@ -1989,7 +1996,7 @@ parse_name:;
     }
 
     /* parse indices */
-    ensure_buffer(ps, 3);
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'[') {
 	ps->index++;
 	pe->pe_start = parse_word_to(ps, is_comma_or_closing_bracket);
@@ -2001,20 +2008,22 @@ parse_name:;
 	    if (pe->pe_end == NULL)
 		serror(ps, Ngt("the index is missing"));
 	}
-	if (ps->src.contents[ps->index] == L']')
-	    ps->index++;
-	else
+	if (ps->src.contents[ps->index] == L']') {
+	    maybe_line_continuations(ps, ++ps->index);
+	} else {
 	    serror(ps, Ngt("`%ls' is missing"), L"]");
-	ensure_buffer(ps, 3);
+	}
     }
 
     /* parse PT_COLON */
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (ps->src.contents[ps->index] == L':') {
 	pe->pe_type |= PT_COLON;
-	ps->index++;
+	maybe_line_continuations(ps, ++ps->index);
     }
 
     /* parse '-', '+', '#', etc. */
+    // maybe_line_continuations(ps, ps->index); // already called above
     switch (ps->src.contents[ps->index]) {
     case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
     case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
@@ -2043,13 +2052,14 @@ parse_name:;
     }
 
 parse_match:
+    maybe_line_continuations(ps, ps->index + 1);
     if (pe->pe_type & PT_COLON) {
 	if ((pe->pe_type & PT_MASK) == PT_SUBST)
 	    pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
 	else
 	    serror(ps, Ngt("invalid use of `%lc' in parameter expansion"),
 		    (wint_t) L':');
-	ps->index += 1;
+	maybe_line_continuations(ps, ++ps->index);
     } else if (ps->src.contents[ps->index] ==
 	    ps->src.contents[ps->index + 1]) {
 	if ((pe->pe_type & PT_MASK) == PT_MATCH)
@@ -2075,7 +2085,7 @@ parse_match:
 	goto check_closing_brace;
     } else {
 	pe->pe_match = parse_word_to(ps, is_slash_or_closing_brace);
-	ensure_buffer(ps, 1);
+	// maybe_line_continuations(ps, ps->index); // called in parse_word_to
 	if (ps->src.contents[ps->index] != L'/')
 	    goto check_closing_brace;
     }
@@ -2085,7 +2095,7 @@ parse_subst:
     pe->pe_subst = parse_word_to(ps, is_closing_brace);
 
 check_closing_brace:
-    ensure_buffer(ps, 1);
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (ps->src.contents[ps->index] == L'}')
 	ps->index++;
     else
@@ -2113,7 +2123,7 @@ wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
     result->wu_type = WT_CMDSUB;
     result->wu_cmdsub = extract_command_in_paren(ps);
 
-    ensure_buffer(ps, 1);
+    maybe_line_continuations(ps, ps->index);
     if (ps->src.contents[ps->index] == L')')
 	ps->index++;
     else
@@ -2188,7 +2198,7 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
     assert(ps->src.contents[ps->index - 1] == L'`');
     wb_init(&buf);
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    serror(ps,
@@ -2241,7 +2251,7 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
     int nestparen = 0;
 
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    serror(ps, Ngt("`%ls' is missing"), L"))");
@@ -2276,7 +2286,7 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	    nestparen--;
 	    if (nestparen >= 0)
 		break;
-	    ensure_buffer(ps, 2);
+	    maybe_line_continuations(ps, ps->index + 1);
 	    switch (ps->src.contents[ps->index + 1]) {
 		case L')':
 		    MAKE_WORDUNIT_STRING;
@@ -2934,7 +2944,7 @@ wordunit_T **parse_string_without_quotes(
     size_t startindex = ps->index;
 
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    goto done;
