@@ -242,6 +242,24 @@ void embedcmdfree(embedcmd_T c)
 
 /********** Auxiliary Functions for Parser **********/
 
+typedef enum tokentype_T {
+    TT_UNKNOWN,
+    TT_END_OF_INPUT,
+    TT_WORD,
+    TT_IO_NUMBER,
+    /* operators */
+    TT_NEWLINE,
+    TT_AMP, TT_AMPAMP, TT_LPAREN, TT_RPAREN, TT_SEMICOLON, TT_DOUBLE_SEMICOLON,
+    TT_PIPE, TT_PIPEPIPE, TT_LESS, TT_LESSLESS, TT_LESSAMP, TT_LESSLESSDASH,
+    TT_LESSLESSLESS, TT_LESSGREATER, TT_LESSLPAREN, TT_GREATER,
+    TT_GREATERGREATER, TT_GREATERGREATERPIPE, TT_GREATERPIPE, TT_GREATERAMP,
+    TT_GREATERLPAREN,
+    /* reserved words */
+    TT_IF, TT_THEN, TT_ELSE, TT_ELIF, TT_FI, TT_DO, TT_DONE, TT_CASE, TT_ESAC,
+    TT_WHILE, TT_UNTIL, TT_FOR, TT_LBRACE, TT_RBRACE, TT_BANG, TT_IN,
+    TT_FUNCTION,
+} tokentype_T;
+
 static wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
@@ -397,6 +415,8 @@ typedef struct parsestate_T {
     bool error;
     struct xwcsbuf_T src;
     size_t index;
+    tokentype_T tokentype;
+    wordunit_T *token;
     struct plist_T pending_heredocs;
     bool enable_alias, reparse;
     struct aliaslist_T *aliases;
@@ -573,6 +593,8 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
+	.tokentype = TT_UNKNOWN,
+	.token = NULL,
 	.enable_alias = info->enable_alias,
 	.reparse = false,
 	.aliases = NULL,
@@ -594,6 +616,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
     destroy_aliaslist(ps.aliases);
+    wordfree(ps.token);
 
     switch (ps.info->lastinputresult) {
 	case INPUT_OK:
@@ -2721,6 +2744,8 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
+	.tokentype = TT_UNKNOWN,
+	.token = NULL,
 	.enable_alias = false,
 	.reparse = false,
 	.aliases = NULL,
@@ -2738,6 +2763,8 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
     pl_destroy(&ps.pending_heredocs);
     assert(ps.aliases == NULL);
     //destroy_aliaslist(ps.aliases);
+    wordfree(ps.token);
+
     if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
 	wordfree(*resultp);
 	return false;
