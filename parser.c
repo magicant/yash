@@ -2251,7 +2251,8 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	ensure_buffer(ps, 1);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
-	    goto fail;
+	    serror(ps, Ngt("`%ls' is missing"), L"))");
+	    goto end;
 	case L'\\':
 	    if (ps->src.contents[ps->index + 1] != L'\0') {
 		assert(ps->src.contents[ps->index + 1] != L'\n');
@@ -2280,30 +2281,33 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	    break;
 	case L')':
 	    nestparen--;
-	    if (nestparen < 0) {
-		ensure_buffer(ps, 2);
-		if (ps->src.contents[ps->index + 1] == L')')
+	    if (nestparen >= 0)
+		break;
+	    ensure_buffer(ps, 2);
+	    switch (ps->src.contents[ps->index + 1]) {
+		case L')':
+		    MAKE_WORDUNIT_STRING;
+		    ps->index += 2;
 		    goto end;
-		else
-		    goto fail;
+		case L'\0':
+		    serror(ps, Ngt("`%ls' is missing"), L")");
+		    goto end;
+		default:
+		    goto not_arithmetic_expansion;
 	    }
-	    break;
 	default:
 	    break;
 	}
 	ps->index++;
     }
-end:
-    MAKE_WORDUNIT_STRING;
-    ps->index += 2;
-
+end:;
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_ARITH;
     result->wu_arith = first;
     return result;
 
-fail:
+not_arithmetic_expansion:
     wordfree(first);
     rewind_index(ps, saveindex);
     return NULL;
