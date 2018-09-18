@@ -471,6 +471,8 @@ typedef struct parsestate_T {
     struct xwcsbuf_T src;
     /* the position of the current character or `token' */
     size_t index;
+    /* the index just past the current `token' */
+    size_t next_index;
     /* type of the current `token' */
     tokentype_T tokentype;
     /* the current token (NULL when `tokentype' is an operator token) */
@@ -648,6 +650,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
+	.next_index = 0,
 	.tokentype = TT_UNKNOWN,
 	.token = NULL,
 	.enable_alias = info->enable_alias,
@@ -2799,6 +2802,7 @@ bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
+	.next_index = 0,
 	.tokentype = TT_UNKNOWN,
 	.token = NULL,
 	.enable_alias = false,
