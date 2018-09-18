@@ -611,7 +611,7 @@ static wchar_t *parse_word_as_wcs(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_group(parsestate_T *ps, commandtype_T type)
+static command_T *parse_group(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_if(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -2333,10 +2333,8 @@ command_T *parse_compound_command(parsestate_T *ps)
     command_T *result;
     switch (ps->tokentype) {
     case TT_LPAREN:
-	result = parse_group(ps, CT_SUBSHELL);
-	break;
     case TT_LBRACE:
-	result = parse_group(ps, CT_GROUP);
+	result = parse_group(ps);
 	break;
     case TT_IF:
 	result = parse_if(ps);
@@ -2364,26 +2362,27 @@ command_T *parse_compound_command(parsestate_T *ps)
 }
 
 /* Parses a command group.
- * `type' must be either CT_GROUP or CT_SUBSHELL.
  * The current token must be the starting "(" or "{". Never returns NULL. */
-command_T *parse_group(parsestate_T *ps, commandtype_T type)
+command_T *parse_group(parsestate_T *ps)
 {
-    tokentype_T starttt, endtt;
+    commandtype_T type;
+    tokentype_T endtt;
     const wchar_t *starts, *ends;
 
-    switch (type) {
-	case CT_GROUP:
-	    starttt = TT_LBRACE, endtt = TT_RBRACE;
+    switch (ps->tokentype) {
+	case TT_LBRACE:
+	    type = CT_GROUP;
+	    endtt = TT_RBRACE;
 	    starts = L"{", ends = L"}";
 	    break;
-	case CT_SUBSHELL:
-	    starttt = TT_LPAREN, endtt = TT_RPAREN;
+	case TT_LPAREN:
+	    type = CT_SUBSHELL;
+	    endtt = TT_RPAREN;
 	    starts = L"(", ends = L")";
 	    break;
 	default:
 	    assert(false);
     }
-    assert(ps->tokentype == starttt);
     next_token(ps);
 
     command_T *result = xmalloc(sizeof *result);
