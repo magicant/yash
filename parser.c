@@ -463,27 +463,28 @@ tokentype_T identify_reserved_word(const wordunit_T *wu)
 
 /* Holds data that are used in parsing. */
 typedef struct parsestate_T {
+    /* contains parameters that affect the behavior of parsing */
     parseparam_T *info;
+    /* true iff any parsing error occurred */
     bool error;
+    /* the source code being parsed */
     struct xwcsbuf_T src;
+    /* the position of the current character or `token' */
     size_t index;
+    /* type of the current `token' */
     tokentype_T tokentype;
+    /* the current token (NULL when `tokentype' is an operator token) */
     wordunit_T *token;
+    /* here-documents whose contents have not been read */
     struct plist_T pending_heredocs;
-    bool enable_alias, reparse;
+    /* false when alias substitution is suppressed */
+    bool enable_alias;
+    /* true when alias substitution has occurred */
+    bool reparse;
+    /* record of alias substitutions that are responsible for the current
+     * `startindex' */
     struct aliaslist_T *aliases;
 } parsestate_T;
-/* info: contains parameter that affect the behavior of parsing.
- * error: set to true when a parsing error occurs.
- * src: a buffer that contains the source code to parse.
- * index: the index to the string in `src'.
- *         indicates the character position that is being parsed.
- * pending_heredocs: a list of here-documents whose contents have not been read.
- * enable_alias: indicates if alias substitution should be performed.
- * reparse: indicates that the current word must be re-parsed because
- *         alias substitution has been performed at the current position.
- * aliases: a list of alias substitutions that were performed at the current
- *         position. */
 
 static void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
@@ -622,7 +623,9 @@ static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
  * structure. It is set to true when `serror' is called. */
 /* Every function named `parse_*' advances the current position (the `index'
  * value of the parsestate_T structure) to the index of the first character
- * that has not yet been parsed. */
+ * that has not yet been parsed. Syntax parser functions also update the
+ * current `token' and `tokentype' to the first unconsumed token, in which
+ * case `index' points to the first character of the `token'. */
 
 
 /* The main entry point to the parser.
