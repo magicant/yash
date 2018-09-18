@@ -617,7 +617,7 @@ static command_T *parse_if(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_for(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_while(parsestate_T *ps, bool whltype)
+static command_T *parse_while(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_case(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -2346,10 +2346,8 @@ command_T *parse_compound_command(parsestate_T *ps)
 	result = parse_function(ps);
 	break;
     case TT_WHILE:
-	result = parse_while(ps, true);
-	break;
     case TT_UNTIL:
-	result = parse_while(ps, false);
+	result = parse_while(ps);
 	break;
     case TT_CASE:
 	result = parse_case(ps);
@@ -2530,15 +2528,16 @@ parse_do:
 }
 
 /* Parses a while/until command.
- * `whltype' must be true for the while command and false for the until command.
  * The current token must be the starting "while" or "until". Never returns
  * NULL. */
-command_T *parse_while(parsestate_T *ps, bool whltype)
+command_T *parse_while(parsestate_T *ps)
 {
-    if (whltype)
-	assert(ps->tokentype == TT_WHILE);
-    else
-	assert(ps->tokentype == TT_UNTIL);
+    bool whltype;
+    switch (ps->tokentype) {
+	case TT_WHILE:  whltype = true;   break;
+	case TT_UNTIL:  whltype = false;  break;
+	default:        assert(false);
+    }
     next_token(ps);
 
     command_T *result = xmalloc(sizeof *result);
