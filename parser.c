@@ -1039,7 +1039,7 @@ skip_blanks:
 	    /* Okay, the next token seems to be a word, possibly being a
 	     * reserved word or an IO_NUMBER token. */
 	    ps->index = index;
-	    wordunit_T *token = parse_word(ps, false);
+	    wordunit_T *token = parse_word_to(ps, is_token_delimiter_char);
 	    index = ps->index;
 
 	    wordfree(ps->token);
@@ -2324,7 +2324,7 @@ wchar_t *parse_word_as_wcs(parsestate_T *ps)
     psubstitute_alias_recursive(ps, 0);
 
     size_t startindex = ps->index;
-    wordfree(parse_word(ps, false));
+    wordfree(parse_word_to(ps, is_token_delimiter_char));
     assert(startindex <= ps->index);
     return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
 }
