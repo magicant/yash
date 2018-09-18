@@ -519,6 +519,13 @@ typedef struct parsestate_T {
 
 static void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
+static const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
+    __attribute__((const));
+static void print_errmsg_token_unexpected(parsestate_T *ps)
+    __attribute__((nonnull));
+static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
+    __attribute__((nonnull));
+
 static inputresult_T read_more_input(parsestate_T *ps)
     __attribute__((nonnull));
 static void line_continuation(parsestate_T *ps, size_t index)
@@ -529,22 +536,47 @@ static void rewind_index(parsestate_T *ps, size_t to)
     __attribute__((nonnull));
 static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
     __attribute__((nonnull));
+
 static void next_token(parsestate_T *ps)
     __attribute__((nonnull));
+static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void skip_to_next_single_quote(parsestate_T *ps)
+    __attribute__((nonnull));
+static wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static embedcmd_T extract_command_in_paren(parsestate_T *ps)
+    __attribute__((nonnull,warn_unused_result));
+static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *tryparse_arith(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+
 static void next_line(parsestate_T *ps)
     __attribute__((nonnull));
 static bool parse_newline_list(parsestate_T *ps)
     __attribute__((nonnull));
+
 static bool is_comma_or_closing_bracket(wchar_t c)
     __attribute__((const));
 static bool is_slash_or_closing_brace(wchar_t c)
     __attribute__((const));
 static bool is_closing_brace(wchar_t c)
     __attribute__((const));
+
 static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
     __attribute__((nonnull));
 static void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T f)
     __attribute__((nonnull));
+
 static and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     __attribute__((nonnull,malloc,warn_unused_result));
 static and_or_T *parse_compound_list(parsestate_T *ps)
@@ -570,26 +602,6 @@ static assign_T *tryparse_assignment(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void skip_to_next_single_quote(parsestate_T *ps)
-    __attribute__((nonnull));
-static wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static embedcmd_T extract_command_in_paren(parsestate_T *ps)
-    __attribute__((nonnull,warn_unused_result));
-static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *tryparse_arith(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_group(parsestate_T *ps)
@@ -610,6 +622,7 @@ static command_T *parse_function(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
     __attribute__((nonnull,warn_unused_result));
+
 static void read_heredoc_contents(parsestate_T *ps, redir_T *redir)
     __attribute__((nonnull));
 static void read_heredoc_contents_without_expansion(
@@ -626,15 +639,11 @@ static wordunit_T **parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline,
 	wordunit_T **lastp)
     __attribute__((nonnull));
-static const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
-    __attribute__((const));
-static void print_errmsg_token_unexpected(parsestate_T *ps)
-    __attribute__((nonnull));
-static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
-    __attribute__((nonnull));
 
 #define QUOTES L"\"'\\"
 
+
+/***** Entry points *****/
 
 /* The functions below may return non-NULL even on error.
  * The error condition must be tested by the `error' flag of the parsestate_T
@@ -717,6 +726,52 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
     assert(false);
 }
 
+/* Parses a string recognizing parameter expansions, command substitutions of
+ * the form "$(...)" and arithmetic expansions.
+ * All the members of `info' except `lastinputresult' must have been initialized
+ * beforehand.
+ * This function reads and parses the input to the end of file.
+ * Iff successful, the result is assigned to `*resultp' and true is returned.
+ * If the input is empty, NULL is assigned.
+ * On error, the value of `*resultp' is undefined. */
+bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
+{
+    parsestate_T ps = {
+	.info = info,
+	.error = false,
+	.index = 0,
+	.next_index = 0,
+	.tokentype = TT_UNKNOWN,
+	.token = NULL,
+	.enable_alias = false,
+	.reparse = false,
+	.aliases = NULL,
+    };
+    wb_init(&ps.src);
+
+    ps.info->lastinputresult = INPUT_OK;
+    read_more_input(&ps);
+    pl_init(&ps.pending_heredocs);
+
+    resultp = parse_string_without_quotes(&ps, false, false, resultp);
+    *resultp = NULL;
+
+    wb_destroy(&ps.src);
+    pl_destroy(&ps.pending_heredocs);
+    assert(ps.aliases == NULL);
+    //destroy_aliaslist(ps.aliases);
+    wordfree(ps.token);
+
+    if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
+	wordfree(*resultp);
+	return false;
+    } else {
+	return true;
+    }
+}
+
+/***** Error message utility *****/
+
 /* Prints the specified error message to the standard error.
  * `format' is passed to `gettext' in this function.
  * `format' need not to have a trailing newline since a newline is automatically
@@ -739,6 +794,64 @@ void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     }
     ps->error = true;
 }
+
+const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
+{
+    switch (tokentype) {
+	case TT_RPAREN:
+	    return Ngt("encountered `%ls' without a matching `('");
+	case TT_RBRACE:
+	    return Ngt("encountered `%ls' without a matching `{'");
+	case TT_DOUBLE_SEMICOLON:
+	    return Ngt("`%ls' is used outside `case'");
+	case TT_BANG:
+	    return Ngt("`%ls' cannot be used as a command name");
+	case TT_IN:
+	    return Ngt("`%ls' cannot be used as a command name");
+	case TT_FI:
+	    return Ngt("encountered `%ls' "
+		    "without a matching `if' and/or `then'");
+	case TT_THEN:
+	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
+	case TT_DO:
+	    return Ngt("encountered `%ls' "
+		    "without a matching `for', `while', or `until'");
+	case TT_DONE:
+	    return Ngt("encountered `%ls' without a matching `do'");
+	case TT_ESAC:
+	    return Ngt("encountered `%ls' without a matching `case'");
+	case TT_ELIF:
+	case TT_ELSE:
+	    return Ngt("encountered `%ls' "
+			"without a matching `if' and/or `then'");
+	default:
+	    assert(false);
+    }
+}
+
+void print_errmsg_token_unexpected(parsestate_T *ps)
+{
+    assert(ps->index <= ps->next_index);
+    size_t length = ps->next_index - ps->index;
+    wchar_t token[length + 1];
+    wcsncpy(token, &ps->src.contents[ps->index], length);
+    token[length] = L'\0';
+
+    const char *message = get_errmsg_unexpected_tokentype(ps->tokentype);
+    serror(ps, message, token);
+}
+
+void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
+{
+    if (is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
+	serror(ps, Ngt("(maybe you missed `%ls'?)"), t);
+    } else {
+	serror(ps, Ngt("`%ls' is missing"), t);
+    }
+}
+
+/***** Input buffer manipulators *****/
 
 /* Reads the next line of input and returns the result type, which is assigned
  * to `ps->info->lastinputresult'.
@@ -828,6 +941,8 @@ size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 	index++;
     return index - ps->index;
 }
+
+/***** Tokenizer *****/
 
 /* Moves to the next token, updating `index', `next_index', `tokentype', and
  * `token' of the parse state.
@@ -954,596 +1069,6 @@ skip_blanks:
 
     ps->index = startindex;
     ps->next_index = index;
-}
-
-/* Parses the newline token at the current position and proceeds to the next
- * line. The contents of pending here-documents are read if any. The current
- * token is cleared. */
-void next_line(parsestate_T *ps)
-{
-    assert(ps->src.contents[ps->index] == L'\n');
-    ps->index++;
-    ps->info->lineno++;
-
-    for (size_t i = 0; i < ps->pending_heredocs.length; i++)
-	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
-    pl_clear(&ps->pending_heredocs, 0);
-
-    wordfree(ps->token);
-    ps->token = NULL;
-    ps->tokentype = TT_UNKNOWN;
-    ps->next_index = ps->index;
-}
-
-/* Processes a sequence of newline tokens. Returns true if at least one newline
- * token has been processed; false if none. */
-bool parse_newline_list(parsestate_T *ps)
-{
-    bool found = false;
-    while (ps->tokentype == TT_NEWLINE) {
-	found = true;
-	next_line(ps);
-	next_token(ps);
-    }
-    return found;
-}
-
-/* Checks if the specified character is a token separator. */
-bool is_token_delimiter_char(wchar_t c)
-{
-    switch (c) {
-	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
-	case L'<':   case L'>':   case L'(':   case L')':
-	    return true;
-	default:
-	    return iswblank(c);
-    }
-}
-
-bool is_comma_or_closing_bracket(wchar_t c)
-{
-    return c == L']' || c == L',';
-}
-
-bool is_slash_or_closing_brace(wchar_t c)
-{
-    return c == L'/' || c == L'}';
-}
-
-bool is_closing_brace(wchar_t c)
-{
-    return c == L'}';
-}
-
-
-/* Performs alias substitution with the given parse state. Proceeds to the
- * next token if substitution occurred. This function does not substitute an
- * IO_NUMBER token, but do a keyword token. */
-bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
-{
-    if (!ps->enable_alias)
-	return false;
-    if (ps->tokentype == TT_IO_NUMBER)
-	return false;
-    if (!is_single_string_word(ps->token))
-	return false;
-
-    bool substituted = substitute_alias_range(
-	    &ps->src, ps->index, ps->next_index, &ps->aliases, flags);
-    if (substituted) {
-	/* parse the result of the substitution. */
-	ps->next_index = ps->index;
-	next_token(ps);
-    }
-    return substituted;
-}
-
-/* Performs alias substitution recursively. This should not be used where the
- * substitution result may be recognized as a keyword, since keywords should not
- * be alias-substituted. */
-void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
-{
-    while (psubstitute_alias(ps, flags)) ;
-}
-
-/* Parses commands.
- * If `toeol' is true, commands are parsed up to the end of the current input;
- * otherwise, up to the next closing token. */
-and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
-{
-    and_or_T *first = NULL, **lastp = &first;
-    bool saveerror = ps->error;
-    bool need_separator = false;
-    /* For a command to be parsed after another, it must be separated by L"&",
-     * L";", or newlines. */
-
-    if (!toeol && !ps->info->interactive)
-	ps->error = false;
-    if (ps->tokentype == TT_UNKNOWN)
-	next_token(ps);
-
-    while (!ps->error) {
-	if (toeol) {
-	    if (ps->tokentype == TT_NEWLINE) {
-		next_line(ps);
-		need_separator = false;
-		if (ps->next_index != ps->src.length) {
-		    next_token(ps);
-		    continue;
-		}
-		wordfree(ps->token);
-		ps->token = NULL;
-		ps->index = ps->next_index;
-		ps->tokentype = TT_END_OF_INPUT;
-	    }
-	    if (ps->tokentype == TT_END_OF_INPUT) {
-		break;
-	    } else if (ps->tokentype == TT_RPAREN) {
-		print_errmsg_token_unexpected(ps);
-		break;
-	    } else if (need_separator) {
-		serror(ps, Ngt("`;' or `&' is missing"));
-		break;
-	    }
-	} else {
-	    if (parse_newline_list(ps))
-		need_separator = false;
-	    if (need_separator || ps->tokentype == TT_END_OF_INPUT ||
-		    is_closing_tokentype(ps->tokentype))
-		break;
-	}
-
-	and_or_T *ao = parse_and_or_list(ps);
-	if (ao != NULL) {
-	    *lastp = ao;
-	    lastp = &ao->next;
-	}
-	if (ps->reparse) {
-	    assert(ao == NULL);
-	    continue;
-	}
-
-	if (ps->tokentype != TT_AMP && ps->tokentype != TT_SEMICOLON) {
-	    need_separator = true;
-	} else {
-	    need_separator = false;
-	    next_token(ps);
-	}
-    }
-    if (!toeol)
-	ps->error |= saveerror;
-    ps->reparse = false;
-    return first;
-}
-
-/* Parses commands until a closing token is found. */
-and_or_T *parse_compound_list(parsestate_T *ps)
-{
-    return parse_command_list(ps, false);
-}
-
-/* Parses one and/or list.
- * The result reflects the trailing "&" or ";", but `ps->index' points to the
- * delimiter "&" or ";" when the function returns.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-and_or_T *parse_and_or_list(parsestate_T *ps)
-{
-    pipeline_T *p = parse_pipelines_in_and_or(ps);
-    if (ps->reparse) {
-	assert(p == NULL);
-	return NULL;
-    }
-
-    and_or_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->ao_pipelines = p;
-    result->ao_async = (ps->tokentype == TT_AMP);
-    return result;
-}
-
-/* Parses all pipelines in one and/or list.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
-{
-    pipeline_T *first = NULL, **lastp = &first;
-    bool cond = false;
-
-    for (;;) {
-	pipeline_T *p = parse_pipeline(ps);
-	if (p != NULL) {
-	    p->pl_cond = cond;
-	    *lastp = p;
-	    lastp = &p->next;
-	}
-	if (ps->reparse) {
-	    assert(p == NULL);
-	    if (first != NULL)
-		goto next;
-	    else
-		break;
-	}
-
-	if (ps->tokentype == TT_AMPAMP)
-	    cond = true;
-	else if (ps->tokentype == TT_PIPEPIPE)
-	    cond = false;
-	else
-	    break;
-	next_token(ps);
-next:
-	parse_newline_list(ps);
-    }
-    return first;
-}
-
-/* Parses one pipeline.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-pipeline_T *parse_pipeline(parsestate_T *ps)
-{
-    bool neg;
-    command_T *c;
-
-    if (ps->tokentype == TT_BANG) {
-	neg = true;
-	if (posixly_correct && ps->src.contents[ps->next_index] == L'(')
-	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
-			"is not supported"));
-	next_token(ps);
-	do {
-	    c = parse_commands_in_pipeline(ps);
-	    if (ps->reparse)
-		assert(c == NULL);
-	} while (ps->reparse);
-    } else {
-	neg = false;
-	c = parse_commands_in_pipeline(ps);
-	if (ps->reparse) {
-	    assert(c == NULL);
-	    return NULL;
-	}
-    }
-
-    pipeline_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->pl_commands = c;
-    result->pl_neg = neg;
-    result->pl_cond = false;
-    return result;
-}
-
-/* Parses the body of the pipeline.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-command_T *parse_commands_in_pipeline(parsestate_T *ps)
-{
-    command_T *first = NULL, **lastp = &first;
-
-    for (;;) {
-	command_T *c = parse_command(ps);
-	if (c != NULL) {
-	    *lastp = c;
-	    lastp = &c->next;
-	}
-	if (ps->reparse) {
-	    assert(c == NULL);
-	    if (first != NULL)
-		goto next;
-	    else
-		break;
-	}
-
-	if (ps->tokentype != TT_PIPE)
-	    break;
-
-	next_token(ps);
-next:
-	parse_newline_list(ps);
-    }
-    return first;
-}
-
-/* Parses one command.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-command_T *parse_command(parsestate_T *ps)
-{
-    ps->reparse = false;
-
-    if (ps->tokentype == TT_BANG || ps->tokentype == TT_IN ||
-	    is_closing_tokentype(ps->tokentype)) {
-	print_errmsg_token_unexpected(ps);
-	return NULL;
-    }
-
-    command_T *result = parse_compound_command(ps);
-    if (result != NULL)
-	return result;
-
-    if (psubstitute_alias(ps, AF_NONGLOBAL)) {
-	ps->reparse = true;
-	return NULL;
-    }
-
-    /* parse as a simple command */
-    result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->refcount = 1;
-    result->c_lineno = ps->info->lineno;
-    result->c_type = CT_SIMPLE;
-    result->c_assigns = NULL;
-    result->c_redirs = NULL;
-    result->c_words = parse_simple_command_tokens(
-	    ps, &result->c_assigns, &result->c_redirs);
-
-    if (result->c_words[0] == NULL && result->c_assigns == NULL &&
-	    result->c_redirs == NULL) {
-	/* an empty command */
-	comsfree(result);
-	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
-	    serror(ps, Ngt("a command is missing at the end of input"));
-	else
-	    serror(ps, Ngt("a command is missing before `%lc'"),
-		    (wint_t) ps->src.contents[ps->index]);
-	return NULL;
-    }
-
-    return try_reparse_as_function(ps, result);
-}
-
-/* Parses assignments, redirections, and words.
- * Assignments are parsed before words are parsed. Tokens are subject to
- * any-type alias substitution until the first word is parsed, except for the
- * first token which is parsed intact. The other words are subject to global
- * alias substitution. Redirections can appear anywhere.
- * Parsed Assignments and redirections are assigned to `*assigns' and `redirs',
- * respectively. They must have been initialized NULL (or anything) before
- * calling this function. Parsed words are returned as a newly-malloced
- * NULL-terminated array of pointers to newly-malloced wordunit_T's. */
-void **parse_simple_command_tokens(
-	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
-{
-    bool is_first = true;
-    plist_T words;
-    pl_init(&words);
-
-next:
-    if (is_first)
-	is_first = false;
-    else
-	psubstitute_alias_recursive(ps, words.length == 0 ? AF_NONGLOBAL : 0);
-
-    redir_T *redir = tryparse_redirect(ps);
-    if (redir != NULL) {
-	*redirs = redir;
-	redirs = &redir->next;
-	goto next;
-    }
-
-    if (words.length == 0) {
-	assign_T *assign = tryparse_assignment(ps);
-	if (assign != NULL) {
-	    *assigns = assign;
-	    assigns = &assign->next;
-	    goto next;
-	}
-    }
-
-    if (ps->token != NULL) {
-	pl_add(&words, ps->token), ps->token = NULL;
-	next_token(ps);
-	goto next;
-    }
-
-    return pl_toary(&words);
-}
-
-/* Parses words.
- * The resultant words are returned as a newly-malloced NULL-terminated array of
- * pointers to word units that are cast to (void *).
- * All words are subject to global alias substitution.
- * If `skip_newlines' is true, newline operators are skipped.
- * Words are parsed until an operator token is found. */
-void **parse_words(parsestate_T *ps, bool skip_newlines)
-{
-    plist_T wordlist;
-
-    pl_init(&wordlist);
-    for (;;) {
-	psubstitute_alias_recursive(ps, 0);
-	if (skip_newlines && parse_newline_list(ps))
-	    continue;
-	if (ps->token == NULL)
-	    break;
-	pl_add(&wordlist, ps->token), ps->token = NULL;
-	next_token(ps);
-    }
-    return pl_toary(&wordlist);
-}
-
-/* Parses as many redirections as possible.
- * The parsing result is assigned to `*redirlastp'
- * `*redirlastp' must have been initialized to NULL beforehand. */
-void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
-{
-    for (;;) {
-	psubstitute_alias_recursive(ps, 0);
-
-	redir_T *redir = tryparse_redirect(ps);
-	if (redir == NULL)
-	    break;
-	*lastp = redir;
-	lastp = &redir->next;
-    }
-}
-
-/* Re-parses the current token as an assignment word. If successful, the token
- * is consumed and the assignment is returned. For an array assignment, all
- * tokens up to (and including) the closing parenthesis are consumed. If
- * unsuccessful, the current token is not modified and NULL is returned. */
-assign_T *tryparse_assignment(parsestate_T *ps)
-{
-    if (ps->token == NULL)
-	return NULL;
-    if (ps->token->wu_type != WT_STRING)
-	return NULL;
-
-    const wchar_t *nameend = skip_name(ps->token->wu_string, is_name_char);
-    size_t namelen = nameend - ps->token->wu_string;
-    if (namelen == 0 || *nameend != L'=')
-	return NULL;
-
-    assign_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->a_name = xwcsndup(ps->token->wu_string, namelen);
-
-    /* remove the name and '=' from the token */
-    size_t index_after_first_token = ps->next_index;
-    wordunit_T *first_token = ps->token;
-    ps->token = NULL;
-    wmemmove(first_token->wu_string, &nameend[1], wcslen(&nameend[1]) + 1);
-    if (first_token->wu_string[0] == L'\0') {
-	wordunit_T *wu = first_token->next;
-	wordunitfree(first_token);
-	first_token = wu;
-    }
-
-    next_token(ps);
-
-    if (posixly_correct || first_token != NULL ||
-	    ps->index != index_after_first_token ||
-	    ps->tokentype != TT_LPAREN) {
-	/* scalar assignment */
-	result->a_type = A_SCALAR;
-	result->a_scalar = first_token;
-    } else {
-	/* array assignment */
-	next_token(ps);
-	result->a_type = A_ARRAY;
-	result->a_array = parse_words(ps, true);
-	if (ps->tokentype == TT_RPAREN)
-	    next_token(ps);
-	else
-	    serror(ps, Ngt("`%ls' is missing"), L")");
-    }
-    return result;
-}
-
-/* If there is a redirection at the current position, parses and returns it.
- * Otherwise, returns NULL without moving the position. */
-redir_T *tryparse_redirect(parsestate_T *ps)
-{
-    int fd;
-
-    if (ps->tokentype == TT_IO_NUMBER) {
-	unsigned long lfd;
-	wchar_t *endptr;
-
-	assert(ps->token != NULL);
-	assert(ps->token->wu_type == WT_STRING);
-	assert(ps->token->next == NULL);
-	errno = 0;
-	lfd = wcstoul(ps->token->wu_string, &endptr, 10);
-	if (errno != 0 || lfd > INT_MAX)
-	    fd = -1;  /* invalid fd */
-	else
-	    fd = (int) lfd;
-	assert(*endptr == L'\0');
-	next_token(ps);
-    } else if (ps->src.contents[ps->index] == L'<') {
-	fd = STDIN_FILENO;
-    } else if (ps->src.contents[ps->index] == L'>') {
-	fd = STDOUT_FILENO;
-    } else {
-	return NULL;
-    }
-
-    redir_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->rd_fd = fd;
-    switch (ps->tokentype) {
-	case TT_LESS:
-	    result->rd_type = RT_INPUT;
-	    break;
-	case TT_LESSGREATER:
-	    result->rd_type = RT_INOUT;
-	    break;
-	case TT_LESSAMP:
-	    result->rd_type = RT_DUPIN;
-	    break;
-	case TT_GREATER:
-	    result->rd_type = RT_OUTPUT;
-	    break;
-	case TT_GREATERGREATER:
-	    result->rd_type = RT_APPEND;
-	    break;
-	case TT_GREATERPIPE:
-	    result->rd_type = RT_CLOBBER;
-	    break;
-	case TT_GREATERAMP:
-	    result->rd_type = RT_DUPOUT;
-	    break;
-	case TT_GREATERGREATERPIPE:
-	    if (posixly_correct)
-		serror(ps, Ngt("pipe redirection is not supported"));
-	    result->rd_type = RT_PIPE;
-	    break;
-	case TT_LESSLPAREN:
-	    result->rd_type = RT_PROCIN;
-	    goto parse_command;
-	case TT_GREATERLPAREN:
-	    result->rd_type = RT_PROCOUT;
-	    goto parse_command;
-	case TT_LESSLESS:
-	    result->rd_type = RT_HERE;
-	    goto parse_here_document_tag;
-	case TT_LESSLESSDASH:
-	    result->rd_type = RT_HERERT;
-	    goto parse_here_document_tag;
-	case TT_LESSLESSLESS:
-	    if (posixly_correct)
-		serror(ps, Ngt("here-string is not supported"));
-	    result->rd_type = RT_HERESTR;
-	    break;
-	default:
-	    assert(false);
-    }
-
-    /* parse redirection target file token */
-    next_token(ps);
-    psubstitute_alias_recursive(ps, 0);
-    result->rd_filename = ps->token, ps->token = NULL;
-    if (result->rd_filename != NULL)
-	next_token(ps);
-    else
-	serror(ps, Ngt("the redirection target is missing"));
-    return result;
-
-parse_here_document_tag:
-    next_token(ps);
-    psubstitute_alias_recursive(ps, 0);
-    result->rd_hereend =
-	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
-    result->rd_herecontent = NULL;
-    if (ps->token == NULL) {
-	serror(ps, Ngt("the end-of-here-document indicator is missing"));
-    } else {
-	pl_add(&ps->pending_heredocs, result);
-	next_token(ps);
-    }
-    return result;
-
-parse_command:
-    if (posixly_correct)
-	serror(ps, Ngt("process redirection is not supported"));
-    result->rd_command = extract_command_in_paren(ps);
-    if (ps->tokentype == TT_RPAREN)
-	next_token(ps);
-    else
-	serror(ps, Ngt("unclosed process redirection"));
-    return result;
 }
 
 /* Parses a word at the current position.
@@ -2125,6 +1650,603 @@ not_arithmetic_expansion:
     return NULL;
 }
 
+/***** Newline token parser *****/
+
+/* Parses the newline token at the current position and proceeds to the next
+ * line. The contents of pending here-documents are read if any. The current
+ * token is cleared. */
+void next_line(parsestate_T *ps)
+{
+    assert(ps->src.contents[ps->index] == L'\n');
+    ps->index++;
+    ps->info->lineno++;
+
+    for (size_t i = 0; i < ps->pending_heredocs.length; i++)
+	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
+    pl_clear(&ps->pending_heredocs, 0);
+
+    wordfree(ps->token);
+    ps->token = NULL;
+    ps->tokentype = TT_UNKNOWN;
+    ps->next_index = ps->index;
+}
+
+/* Processes a sequence of newline tokens. Returns true if at least one newline
+ * token has been processed; false if none. */
+bool parse_newline_list(parsestate_T *ps)
+{
+    bool found = false;
+    while (ps->tokentype == TT_NEWLINE) {
+	found = true;
+	next_line(ps);
+	next_token(ps);
+    }
+    return found;
+}
+
+/***** Character classifiers *****/
+
+/* Checks if the specified character is a token separator. */
+bool is_token_delimiter_char(wchar_t c)
+{
+    switch (c) {
+	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
+	case L'<':   case L'>':   case L'(':   case L')':
+	    return true;
+	default:
+	    return iswblank(c);
+    }
+}
+
+bool is_comma_or_closing_bracket(wchar_t c)
+{
+    return c == L']' || c == L',';
+}
+
+bool is_slash_or_closing_brace(wchar_t c)
+{
+    return c == L'/' || c == L'}';
+}
+
+bool is_closing_brace(wchar_t c)
+{
+    return c == L'}';
+}
+
+/***** Aliases *****/
+
+/* Performs alias substitution with the given parse state. Proceeds to the
+ * next token if substitution occurred. This function does not substitute an
+ * IO_NUMBER token, but do a keyword token. */
+bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
+{
+    if (!ps->enable_alias)
+	return false;
+    if (ps->tokentype == TT_IO_NUMBER)
+	return false;
+    if (!is_single_string_word(ps->token))
+	return false;
+
+    bool substituted = substitute_alias_range(
+	    &ps->src, ps->index, ps->next_index, &ps->aliases, flags);
+    if (substituted) {
+	/* parse the result of the substitution. */
+	ps->next_index = ps->index;
+	next_token(ps);
+    }
+    return substituted;
+}
+
+/* Performs alias substitution recursively. This should not be used where the
+ * substitution result may be recognized as a keyword, since keywords should not
+ * be alias-substituted. */
+void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
+{
+    while (psubstitute_alias(ps, flags)) ;
+}
+
+/***** Syntax parser functions *****/
+
+/* Parses commands.
+ * If `toeol' is true, commands are parsed up to the end of the current input;
+ * otherwise, up to the next closing token. */
+and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
+{
+    and_or_T *first = NULL, **lastp = &first;
+    bool saveerror = ps->error;
+    bool need_separator = false;
+    /* For a command to be parsed after another, it must be separated by L"&",
+     * L";", or newlines. */
+
+    if (!toeol && !ps->info->interactive)
+	ps->error = false;
+    if (ps->tokentype == TT_UNKNOWN)
+	next_token(ps);
+
+    while (!ps->error) {
+	if (toeol) {
+	    if (ps->tokentype == TT_NEWLINE) {
+		next_line(ps);
+		need_separator = false;
+		if (ps->next_index != ps->src.length) {
+		    next_token(ps);
+		    continue;
+		}
+		wordfree(ps->token);
+		ps->token = NULL;
+		ps->index = ps->next_index;
+		ps->tokentype = TT_END_OF_INPUT;
+	    }
+	    if (ps->tokentype == TT_END_OF_INPUT) {
+		break;
+	    } else if (ps->tokentype == TT_RPAREN) {
+		print_errmsg_token_unexpected(ps);
+		break;
+	    } else if (need_separator) {
+		serror(ps, Ngt("`;' or `&' is missing"));
+		break;
+	    }
+	} else {
+	    if (parse_newline_list(ps))
+		need_separator = false;
+	    if (need_separator || ps->tokentype == TT_END_OF_INPUT ||
+		    is_closing_tokentype(ps->tokentype))
+		break;
+	}
+
+	and_or_T *ao = parse_and_or_list(ps);
+	if (ao != NULL) {
+	    *lastp = ao;
+	    lastp = &ao->next;
+	}
+	if (ps->reparse) {
+	    assert(ao == NULL);
+	    continue;
+	}
+
+	if (ps->tokentype != TT_AMP && ps->tokentype != TT_SEMICOLON) {
+	    need_separator = true;
+	} else {
+	    need_separator = false;
+	    next_token(ps);
+	}
+    }
+    if (!toeol)
+	ps->error |= saveerror;
+    ps->reparse = false;
+    return first;
+}
+
+/* Parses commands until a closing token is found. */
+and_or_T *parse_compound_list(parsestate_T *ps)
+{
+    return parse_command_list(ps, false);
+}
+
+/* Parses one and/or list.
+ * The result reflects the trailing "&" or ";", but `ps->index' points to the
+ * delimiter "&" or ";" when the function returns.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+and_or_T *parse_and_or_list(parsestate_T *ps)
+{
+    pipeline_T *p = parse_pipelines_in_and_or(ps);
+    if (ps->reparse) {
+	assert(p == NULL);
+	return NULL;
+    }
+
+    and_or_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->ao_pipelines = p;
+    result->ao_async = (ps->tokentype == TT_AMP);
+    return result;
+}
+
+/* Parses all pipelines in one and/or list.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
+{
+    pipeline_T *first = NULL, **lastp = &first;
+    bool cond = false;
+
+    for (;;) {
+	pipeline_T *p = parse_pipeline(ps);
+	if (p != NULL) {
+	    p->pl_cond = cond;
+	    *lastp = p;
+	    lastp = &p->next;
+	}
+	if (ps->reparse) {
+	    assert(p == NULL);
+	    if (first != NULL)
+		goto next;
+	    else
+		break;
+	}
+
+	if (ps->tokentype == TT_AMPAMP)
+	    cond = true;
+	else if (ps->tokentype == TT_PIPEPIPE)
+	    cond = false;
+	else
+	    break;
+	next_token(ps);
+next:
+	parse_newline_list(ps);
+    }
+    return first;
+}
+
+/* Parses one pipeline.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+pipeline_T *parse_pipeline(parsestate_T *ps)
+{
+    bool neg;
+    command_T *c;
+
+    if (ps->tokentype == TT_BANG) {
+	neg = true;
+	if (posixly_correct && ps->src.contents[ps->next_index] == L'(')
+	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
+			"is not supported"));
+	next_token(ps);
+	do {
+	    c = parse_commands_in_pipeline(ps);
+	    if (ps->reparse)
+		assert(c == NULL);
+	} while (ps->reparse);
+    } else {
+	neg = false;
+	c = parse_commands_in_pipeline(ps);
+	if (ps->reparse) {
+	    assert(c == NULL);
+	    return NULL;
+	}
+    }
+
+    pipeline_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->pl_commands = c;
+    result->pl_neg = neg;
+    result->pl_cond = false;
+    return result;
+}
+
+/* Parses the body of the pipeline.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+command_T *parse_commands_in_pipeline(parsestate_T *ps)
+{
+    command_T *first = NULL, **lastp = &first;
+
+    for (;;) {
+	command_T *c = parse_command(ps);
+	if (c != NULL) {
+	    *lastp = c;
+	    lastp = &c->next;
+	}
+	if (ps->reparse) {
+	    assert(c == NULL);
+	    if (first != NULL)
+		goto next;
+	    else
+		break;
+	}
+
+	if (ps->tokentype != TT_PIPE)
+	    break;
+
+	next_token(ps);
+next:
+	parse_newline_list(ps);
+    }
+    return first;
+}
+
+/* Parses one command.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+command_T *parse_command(parsestate_T *ps)
+{
+    ps->reparse = false;
+
+    if (ps->tokentype == TT_BANG || ps->tokentype == TT_IN ||
+	    is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
+	return NULL;
+    }
+
+    command_T *result = parse_compound_command(ps);
+    if (result != NULL)
+	return result;
+
+    if (psubstitute_alias(ps, AF_NONGLOBAL)) {
+	ps->reparse = true;
+	return NULL;
+    }
+
+    /* parse as a simple command */
+    result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->refcount = 1;
+    result->c_lineno = ps->info->lineno;
+    result->c_type = CT_SIMPLE;
+    result->c_assigns = NULL;
+    result->c_redirs = NULL;
+    result->c_words = parse_simple_command_tokens(
+	    ps, &result->c_assigns, &result->c_redirs);
+
+    if (result->c_words[0] == NULL && result->c_assigns == NULL &&
+	    result->c_redirs == NULL) {
+	/* an empty command */
+	comsfree(result);
+	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
+	    serror(ps, Ngt("a command is missing at the end of input"));
+	else
+	    serror(ps, Ngt("a command is missing before `%lc'"),
+		    (wint_t) ps->src.contents[ps->index]);
+	return NULL;
+    }
+
+    return try_reparse_as_function(ps, result);
+}
+
+/* Parses assignments, redirections, and words.
+ * Assignments are parsed before words are parsed. Tokens are subject to
+ * any-type alias substitution until the first word is parsed, except for the
+ * first token which is parsed intact. The other words are subject to global
+ * alias substitution. Redirections can appear anywhere.
+ * Parsed Assignments and redirections are assigned to `*assigns' and `redirs',
+ * respectively. They must have been initialized NULL (or anything) before
+ * calling this function. Parsed words are returned as a newly-malloced
+ * NULL-terminated array of pointers to newly-malloced wordunit_T's. */
+void **parse_simple_command_tokens(
+	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
+{
+    bool is_first = true;
+    plist_T words;
+    pl_init(&words);
+
+next:
+    if (is_first)
+	is_first = false;
+    else
+	psubstitute_alias_recursive(ps, words.length == 0 ? AF_NONGLOBAL : 0);
+
+    redir_T *redir = tryparse_redirect(ps);
+    if (redir != NULL) {
+	*redirs = redir;
+	redirs = &redir->next;
+	goto next;
+    }
+
+    if (words.length == 0) {
+	assign_T *assign = tryparse_assignment(ps);
+	if (assign != NULL) {
+	    *assigns = assign;
+	    assigns = &assign->next;
+	    goto next;
+	}
+    }
+
+    if (ps->token != NULL) {
+	pl_add(&words, ps->token), ps->token = NULL;
+	next_token(ps);
+	goto next;
+    }
+
+    return pl_toary(&words);
+}
+
+/* Parses words.
+ * The resultant words are returned as a newly-malloced NULL-terminated array of
+ * pointers to word units that are cast to (void *).
+ * All words are subject to global alias substitution.
+ * If `skip_newlines' is true, newline operators are skipped.
+ * Words are parsed until an operator token is found. */
+void **parse_words(parsestate_T *ps, bool skip_newlines)
+{
+    plist_T wordlist;
+
+    pl_init(&wordlist);
+    for (;;) {
+	psubstitute_alias_recursive(ps, 0);
+	if (skip_newlines && parse_newline_list(ps))
+	    continue;
+	if (ps->token == NULL)
+	    break;
+	pl_add(&wordlist, ps->token), ps->token = NULL;
+	next_token(ps);
+    }
+    return pl_toary(&wordlist);
+}
+
+/* Parses as many redirections as possible.
+ * The parsing result is assigned to `*redirlastp'
+ * `*redirlastp' must have been initialized to NULL beforehand. */
+void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
+{
+    for (;;) {
+	psubstitute_alias_recursive(ps, 0);
+
+	redir_T *redir = tryparse_redirect(ps);
+	if (redir == NULL)
+	    break;
+	*lastp = redir;
+	lastp = &redir->next;
+    }
+}
+
+/* Re-parses the current token as an assignment word. If successful, the token
+ * is consumed and the assignment is returned. For an array assignment, all
+ * tokens up to (and including) the closing parenthesis are consumed. If
+ * unsuccessful, the current token is not modified and NULL is returned. */
+assign_T *tryparse_assignment(parsestate_T *ps)
+{
+    if (ps->token == NULL)
+	return NULL;
+    if (ps->token->wu_type != WT_STRING)
+	return NULL;
+
+    const wchar_t *nameend = skip_name(ps->token->wu_string, is_name_char);
+    size_t namelen = nameend - ps->token->wu_string;
+    if (namelen == 0 || *nameend != L'=')
+	return NULL;
+
+    assign_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->a_name = xwcsndup(ps->token->wu_string, namelen);
+
+    /* remove the name and '=' from the token */
+    size_t index_after_first_token = ps->next_index;
+    wordunit_T *first_token = ps->token;
+    ps->token = NULL;
+    wmemmove(first_token->wu_string, &nameend[1], wcslen(&nameend[1]) + 1);
+    if (first_token->wu_string[0] == L'\0') {
+	wordunit_T *wu = first_token->next;
+	wordunitfree(first_token);
+	first_token = wu;
+    }
+
+    next_token(ps);
+
+    if (posixly_correct || first_token != NULL ||
+	    ps->index != index_after_first_token ||
+	    ps->tokentype != TT_LPAREN) {
+	/* scalar assignment */
+	result->a_type = A_SCALAR;
+	result->a_scalar = first_token;
+    } else {
+	/* array assignment */
+	next_token(ps);
+	result->a_type = A_ARRAY;
+	result->a_array = parse_words(ps, true);
+	if (ps->tokentype == TT_RPAREN)
+	    next_token(ps);
+	else
+	    serror(ps, Ngt("`%ls' is missing"), L")");
+    }
+    return result;
+}
+
+/* If there is a redirection at the current position, parses and returns it.
+ * Otherwise, returns NULL without moving the position. */
+redir_T *tryparse_redirect(parsestate_T *ps)
+{
+    int fd;
+
+    if (ps->tokentype == TT_IO_NUMBER) {
+	unsigned long lfd;
+	wchar_t *endptr;
+
+	assert(ps->token != NULL);
+	assert(ps->token->wu_type == WT_STRING);
+	assert(ps->token->next == NULL);
+	errno = 0;
+	lfd = wcstoul(ps->token->wu_string, &endptr, 10);
+	if (errno != 0 || lfd > INT_MAX)
+	    fd = -1;  /* invalid fd */
+	else
+	    fd = (int) lfd;
+	assert(*endptr == L'\0');
+	next_token(ps);
+    } else if (ps->src.contents[ps->index] == L'<') {
+	fd = STDIN_FILENO;
+    } else if (ps->src.contents[ps->index] == L'>') {
+	fd = STDOUT_FILENO;
+    } else {
+	return NULL;
+    }
+
+    redir_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->rd_fd = fd;
+    switch (ps->tokentype) {
+	case TT_LESS:
+	    result->rd_type = RT_INPUT;
+	    break;
+	case TT_LESSGREATER:
+	    result->rd_type = RT_INOUT;
+	    break;
+	case TT_LESSAMP:
+	    result->rd_type = RT_DUPIN;
+	    break;
+	case TT_GREATER:
+	    result->rd_type = RT_OUTPUT;
+	    break;
+	case TT_GREATERGREATER:
+	    result->rd_type = RT_APPEND;
+	    break;
+	case TT_GREATERPIPE:
+	    result->rd_type = RT_CLOBBER;
+	    break;
+	case TT_GREATERAMP:
+	    result->rd_type = RT_DUPOUT;
+	    break;
+	case TT_GREATERGREATERPIPE:
+	    if (posixly_correct)
+		serror(ps, Ngt("pipe redirection is not supported"));
+	    result->rd_type = RT_PIPE;
+	    break;
+	case TT_LESSLPAREN:
+	    result->rd_type = RT_PROCIN;
+	    goto parse_command;
+	case TT_GREATERLPAREN:
+	    result->rd_type = RT_PROCOUT;
+	    goto parse_command;
+	case TT_LESSLESS:
+	    result->rd_type = RT_HERE;
+	    goto parse_here_document_tag;
+	case TT_LESSLESSDASH:
+	    result->rd_type = RT_HERERT;
+	    goto parse_here_document_tag;
+	case TT_LESSLESSLESS:
+	    if (posixly_correct)
+		serror(ps, Ngt("here-string is not supported"));
+	    result->rd_type = RT_HERESTR;
+	    break;
+	default:
+	    assert(false);
+    }
+
+    /* parse redirection target file token */
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+    result->rd_filename = ps->token, ps->token = NULL;
+    if (result->rd_filename != NULL)
+	next_token(ps);
+    else
+	serror(ps, Ngt("the redirection target is missing"));
+    return result;
+
+parse_here_document_tag:
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+    result->rd_hereend =
+	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
+    result->rd_herecontent = NULL;
+    if (ps->token == NULL) {
+	serror(ps, Ngt("the end-of-here-document indicator is missing"));
+    } else {
+	pl_add(&ps->pending_heredocs, result);
+	next_token(ps);
+    }
+    return result;
+
+parse_command:
+    if (posixly_correct)
+	serror(ps, Ngt("process redirection is not supported"));
+    result->rd_command = extract_command_in_paren(ps);
+    if (ps->tokentype == TT_RPAREN)
+	next_token(ps);
+    else
+	serror(ps, Ngt("unclosed process redirection"));
+    return result;
+}
+
 /* Parses a compound command.
  * `command' is the name of the command to parse such as "(" and "if".
  * Returns NULL iff the current token does not start a compound command. */
@@ -2596,6 +2718,8 @@ parse_function_body:
     return c;
 }
 
+/***** Here-document contents *****/
+
 /* Reads the contents of a here-document. */
 void read_heredoc_contents(parsestate_T *ps, redir_T *r)
 {
@@ -2777,109 +2901,6 @@ wordunit_T **parse_string_without_quotes(
 done:
     MAKE_WORDUNIT_STRING;
     return lastp;
-}
-
-/* Parses a string recognizing parameter expansions, command substitutions of
- * the form "$(...)" and arithmetic expansions.
- * All the members of `info' except `lastinputresult' must have been initialized
- * beforehand.
- * This function reads and parses the input to the end of file.
- * Iff successful, the result is assigned to `*resultp' and true is returned.
- * If the input is empty, NULL is assigned.
- * On error, the value of `*resultp' is undefined. */
-bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
-{
-    parsestate_T ps = {
-	.info = info,
-	.error = false,
-	.index = 0,
-	.next_index = 0,
-	.tokentype = TT_UNKNOWN,
-	.token = NULL,
-	.enable_alias = false,
-	.reparse = false,
-	.aliases = NULL,
-    };
-    wb_init(&ps.src);
-
-    ps.info->lastinputresult = INPUT_OK;
-    read_more_input(&ps);
-    pl_init(&ps.pending_heredocs);
-
-    resultp = parse_string_without_quotes(&ps, false, false, resultp);
-    *resultp = NULL;
-
-    wb_destroy(&ps.src);
-    pl_destroy(&ps.pending_heredocs);
-    assert(ps.aliases == NULL);
-    //destroy_aliaslist(ps.aliases);
-    wordfree(ps.token);
-
-    if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
-	wordfree(*resultp);
-	return false;
-    } else {
-	return true;
-    }
-}
-
-
-/***** Auxiliaries about Error Messages *****/
-
-const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
-{
-    switch (tokentype) {
-	case TT_RPAREN:
-	    return Ngt("encountered `%ls' without a matching `('");
-	case TT_RBRACE:
-	    return Ngt("encountered `%ls' without a matching `{'");
-	case TT_DOUBLE_SEMICOLON:
-	    return Ngt("`%ls' is used outside `case'");
-	case TT_BANG:
-	    return Ngt("`%ls' cannot be used as a command name");
-	case TT_IN:
-	    return Ngt("`%ls' cannot be used as a command name");
-	case TT_FI:
-	    return Ngt("encountered `%ls' "
-		    "without a matching `if' and/or `then'");
-	case TT_THEN:
-	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
-	case TT_DO:
-	    return Ngt("encountered `%ls' "
-		    "without a matching `for', `while', or `until'");
-	case TT_DONE:
-	    return Ngt("encountered `%ls' without a matching `do'");
-	case TT_ESAC:
-	    return Ngt("encountered `%ls' without a matching `case'");
-	case TT_ELIF:
-	case TT_ELSE:
-	    return Ngt("encountered `%ls' "
-			"without a matching `if' and/or `then'");
-	default:
-	    assert(false);
-    }
-}
-
-void print_errmsg_token_unexpected(parsestate_T *ps)
-{
-    assert(ps->index <= ps->next_index);
-    size_t length = ps->next_index - ps->index;
-    wchar_t token[length + 1];
-    wcsncpy(token, &ps->src.contents[ps->index], length);
-    token[length] = L'\0';
-
-    const char *message = get_errmsg_unexpected_tokentype(ps->tokentype);
-    serror(ps, message, token);
-}
-
-void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
-{
-    if (is_closing_tokentype(ps->tokentype)) {
-	print_errmsg_token_unexpected(ps);
-	serror(ps, Ngt("(maybe you missed `%ls'?)"), t);
-    } else {
-	serror(ps, Ngt("`%ls' is missing"), t);
-    }
 }
 
 
