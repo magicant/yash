@@ -276,8 +276,17 @@ for i in 1 2& do echo $i; done
 __IN__
 syntax error: `do' is missing
 syntax error: a command is missing before `&'
-syntax error: `done' is missing
+syntax error: encountered `do' without a matching `for', `while', or `until'
+syntax error: (maybe you missed `done'?)
 __ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
 #'
 #`
 #'

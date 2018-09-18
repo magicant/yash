@@ -177,7 +177,6 @@ function |
 __IN__
 syntax error: a word is required after `function'
 syntax error: a function body must be a compound command
-syntax error: a command is missing at the end of input
 __ERR__
 #'
 #`

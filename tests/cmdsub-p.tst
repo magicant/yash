@@ -183,6 +183,7 @@ __OUT__
 # script before finding the end of arithmetic expansion and reports a syntax
 # error, even if it could have been parsed as a well-formed command
 # substitution.
+(skip="true" # FIXME
 test_O -d -e n 'ambiguity with arithmetic expansion'
 echoraw $((cat <<EOF
 +((((
@@ -193,5 +194,6 @@ cat <<EOF
 EOF
 ))
 __IN__
+)
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
