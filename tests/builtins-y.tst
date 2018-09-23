@@ -14,7 +14,7 @@ posix="true"
 setup 'PATH=; unset PATH'
 
 test_OE -e 0 'intrinsic built-in bg can be invoked without $PATH' -em
-:&
+"$TESTEE" -c 'kill -STOP $$'&
 bg >/dev/null
 wait
 __IN__
