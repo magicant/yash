@@ -1220,7 +1220,6 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
  * If there is no parameter, the position is put back to L'$'. */
 wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
 {
-    paramexp_T *pe;
     size_t namelen;  /* parameter name length */
 
     maybe_line_continuations(ps, ps->index);
@@ -1237,8 +1236,8 @@ wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     else
 	namelen = count_name_length(ps, is_portable_name_char);
 
-success:
-    pe = xmalloc(sizeof *pe);
+success:;
+    paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = PT_NONE;
     pe->pe_name = xwcsndup(&ps->src.contents[ps->index], namelen);
     pe->pe_start = pe->pe_end = pe->pe_match = pe->pe_subst = NULL;
@@ -1452,16 +1451,18 @@ end:;
  */
 wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
 {
-    wordunit_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->wu_type = WT_CMDSUB;
-    result->wu_cmdsub = extract_command_in_paren(ps);
+    embedcmd_T cmd = extract_command_in_paren(ps);
 
     maybe_line_continuations(ps, ps->index);
     if (ps->src.contents[ps->index] == L')')
 	ps->index++;
     else
 	serror(ps, Ngt("`%ls' is missing"), L")");
+
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_CMDSUB;
+    result->wu_cmdsub = cmd;
     return result;
 }
 
@@ -1523,13 +1524,9 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
  * are left intact. */
 wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
 {
-    xwcsbuf_T buf;
-    wordunit_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->wu_type = WT_CMDSUB;
-    result->wu_cmdsub.is_preparsed = false;
-
     assert(ps->src.contents[ps->index - 1] == L'`');
+
+    xwcsbuf_T buf;
     wb_init(&buf);
     for (;;) {
 	maybe_line_continuations(ps, ps->index);
@@ -1563,7 +1560,11 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
 	    break;
 	}
     }
-end:
+end:;
+    wordunit_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->wu_type = WT_CMDSUB;
+    result->wu_cmdsub.is_preparsed = false;
     result->wu_cmdsub.value.unparsed = wb_towcs(&buf);
     return result;
 }
@@ -2317,20 +2318,24 @@ command_T *parse_group(parsestate_T *ps)
     }
     next_token(ps);
 
-    command_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->refcount = 1;
-    result->c_type = type;
-    result->c_lineno = ps->info->lineno;
-    result->c_redirs = NULL;
-    result->c_subcmds = parse_compound_list(ps);
-    if (posixly_correct && result->c_subcmds == NULL)
+    unsigned long lineno = ps->info->lineno;
+    and_or_T *cmd = parse_compound_list(ps);
+
+    if (posixly_correct && cmd == NULL)
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 		starts, ends);
     if (ps->tokentype == endtt)
 	next_token(ps);
     else
 	print_errmsg_token_missing(ps, ends);
+
+    command_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->refcount = 1;
+    result->c_type = type;
+    result->c_lineno = lineno;
+    result->c_redirs = NULL;
+    result->c_subcmds = cmd;
     return result;
 }
 
