@@ -56,8 +56,6 @@ When the POSIXly-correct mode is enabled:
   link:expand.html#glob[pathname expansion] yielded more than one or no
   pathname, it is not immediately treated as an error. Instead, the shell
   tries to treat the word before the expansion as a pathname.
-- It is an error if the contents of a link:redir.html#here[here document] is
-  not terminated by an end token.
 - link:redir.html#socket[Socket redirection], link:redir.html#here[here
   strings], link:redir.html#pipe[pipe redirection], and
   link:redir.html#process[process redirection] cannot be used.
