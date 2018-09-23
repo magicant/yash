@@ -27,11 +27,8 @@ __ERR__
 test_Oe -e 2 'unclosed command substitution $(('
 echo $((echo not reached
 __IN__
-syntax error: `)' is missing
-syntax error: `)' is missing
+syntax error: `))' is missing
 __ERR__
-#'
-#`
 #'
 #`
 #))

@@ -139,7 +139,7 @@ done
 echo $LINENO
 __IN__
 1
-4
+3
 6
 __OUT__
 

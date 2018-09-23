@@ -49,6 +49,8 @@
 static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
+static void wordunitfree(wordunit_T *wu)
+    __attribute__((nonnull));
 static void wordfree_vp(void *w);
 static void assignsfree(assign_T *a);
 static void redirsfree(redir_T *r);
@@ -144,26 +146,30 @@ void caseitemsfree(caseitem_T *i)
     }
 }
 
+void wordunitfree(wordunit_T *wu)
+{
+    switch (wu->wu_type) {
+	case WT_STRING:
+	    free(wu->wu_string);
+	    break;
+	case WT_PARAM:
+	    paramfree(wu->wu_param);
+	    break;
+	case WT_CMDSUB:
+	    embedcmdfree(wu->wu_cmdsub);
+	    break;
+	case WT_ARITH:
+	    wordfree(wu->wu_arith);
+	    break;
+    }
+    free(wu);
+}
+
 void wordfree(wordunit_T *w)
 {
     while (w != NULL) {
-	switch (w->wu_type) {
-	    case WT_STRING:
-		free(w->wu_string);
-		break;
-	    case WT_PARAM:
-		paramfree(w->wu_param);
-		break;
-	    case WT_CMDSUB:
-		embedcmdfree(w->wu_cmdsub);
-		break;
-	    case WT_ARITH:
-		wordfree(w->wu_arith);
-		break;
-	}
-
 	wordunit_T *next = w->next;
-	free(w);
+	wordunitfree(w);
 	w = next;
     }
 }
@@ -242,14 +248,42 @@ void embedcmdfree(embedcmd_T c)
 
 /********** Auxiliary Functions for Parser **********/
 
+typedef enum tokentype_T {
+    TT_UNKNOWN,
+    TT_END_OF_INPUT,
+    TT_WORD,
+    TT_IO_NUMBER,
+    /* operators */
+    TT_NEWLINE,
+    TT_AMP, TT_AMPAMP, TT_LPAREN, TT_RPAREN, TT_SEMICOLON, TT_DOUBLE_SEMICOLON,
+    TT_PIPE, TT_PIPEPIPE, TT_LESS, TT_LESSLESS, TT_LESSAMP, TT_LESSLESSDASH,
+    TT_LESSLESSLESS, TT_LESSGREATER, TT_LESSLPAREN, TT_GREATER,
+    TT_GREATERGREATER, TT_GREATERGREATERPIPE, TT_GREATERPIPE, TT_GREATERAMP,
+    TT_GREATERLPAREN,
+    /* reserved words */
+    TT_IF, TT_THEN, TT_ELSE, TT_ELIF, TT_FI, TT_DO, TT_DONE, TT_CASE, TT_ESAC,
+    TT_WHILE, TT_UNTIL, TT_FOR, TT_LBRACE, TT_RBRACE, TT_BANG, TT_IN,
+    TT_FUNCTION,
+} tokentype_T;
+
 static wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_name_by_predicate(const wchar_t *s, bool predicate(wchar_t))
     __attribute__((pure,nonnull));
 static bool is_portable_name(const wchar_t *s)
     __attribute__((pure,nonnull));
-static bool is_literal_function_name(const wordunit_T *wu)
+static tokentype_T identify_reserved_word_string(const wchar_t *s)
+    __attribute__((pure,nonnull));
+static bool is_single_string_word(const wordunit_T *wu)
     __attribute__((pure));
+static bool is_digits_only(const wordunit_T *wu)
+    __attribute__((pure));
+static bool is_name_word(const wordunit_T *wu)
+    __attribute__((pure));
+static tokentype_T identify_reserved_word(const wordunit_T *wu)
+    __attribute__((pure));
+static bool is_closing_tokentype(tokentype_T tt)
+    __attribute__((const));
 
 
 /* Checks if the specified character can be used in a portable variable name.
@@ -313,8 +347,9 @@ bool is_name(const wchar_t *s)
     return is_name_by_predicate(s, is_name_char);
 }
 
-/* Returns true iff the string is a reserved word. */
-bool is_keyword(const wchar_t *s)
+/* Converts a string to the corresponding token type. Returns TT_WORD for
+ * non-reserved words. */
+tokentype_T identify_reserved_word_string(const wchar_t *s)
 {
     /* List of keywords:
      *    case do done elif else esac fi for function if in then until while
@@ -323,51 +358,133 @@ bool is_keyword(const wchar_t *s)
      *    select [[ ]] */
     switch (s[0]) {
 	case L'c':
-	    return s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0';
+	    if (s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0')
+		return TT_CASE;
+	    break;
 	case L'd':
-	    return s[1] == L'o' && (s[2] == L'\0' ||
-		    (s[2] == L'n' && s[3] == L'e' && s[4] == L'\0'));
+	    if (s[1] == L'o') {
+		if (s[2] == L'\0')
+		    return TT_DO;
+		if (s[2] == L'n' && s[3] == L'e' && s[4] == L'\0')
+		    return TT_DONE;
+	    }
+	    break;
 	case L'e':
-	    return ((s[1] == L'l'
-			&& ((s[2] == L's' && s[3] == L'e')
-			    || (s[2] == L'i' && s[3] == L'f')))
-		    || (s[1] == L's' && s[2] == L'a' && s[3] == L'c'))
-		&& s[4] == L'\0';
+	    if (s[1] == L'l') {
+		if (s[2] == L's' && s[3] == L'e' && s[4] == L'\0')
+		    return TT_ELSE;
+		if (s[2] == L'i' && s[3] == L'f' && s[4] == L'\0')
+		    return TT_ELIF;
+	    }
+	    if (s[1] == L's' && s[2] == L'a' && s[3] == L'c' && s[4] == L'\0')
+		return TT_ESAC;
+	    break;
 	case L'f':
-	    return (s[1] == L'i' && s[2] == L'\0')
-		|| (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0')
-		|| (s[1] == L'u' && s[2] == L'n' && s[3] == L'c'
-			&& s[4] == L't' && s[5] == L'i' && s[6] == L'o'
-			&& s[7] == L'n' && s[8] == L'\0');
+	    if (s[1] == L'i' && s[2] == L'\0')
+		return TT_FI;
+	    if (s[1] == L'o' && s[2] == L'r' && s[3] == L'\0')
+		return TT_FOR;
+	    if (s[1] == L'u' && s[2] == L'n' && s[3] == L'c' && s[4] == L't' &&
+		    s[5] == L'i' && s[6] == L'o' && s[7] == L'n' &&
+		    s[8] == L'\0')
+		return TT_FUNCTION;
+	    break;
 	case L'i':
-	    return (s[1] == L'f' || s[1] == L'n') && s[2] == L'\0';
+	    if (s[1] == L'f' && s[2] == L'\0')
+		return TT_IF;
+	    if (s[1] == L'n' && s[2] == L'\0')
+		return TT_IN;
+	    break;
 	case L't':
-	    return s[1] == L'h' && s[2] == L'e' && s[3] == L'n' && s[4]== L'\0';
+	    if (s[1] == L'h' && s[2] == L'e' && s[3] == L'n' && s[4]== L'\0')
+		return TT_THEN;
+	    break;
 	case L'u':
-	    return s[1] == L'n' && s[2] == L't' && s[3] == L'i' && s[4] == L'l'
-		&& s[5] == L'\0';
+	    if (s[1] == L'n' && s[2] == L't' && s[3] == L'i' && s[4] == L'l' &&
+		    s[5] == L'\0')
+		return TT_UNTIL;
+	    break;
 	case L'w':
-	    return s[1] == L'h' && s[2] == L'i' && s[3] == L'l' && s[4] == L'e'
-		&& s[5] == L'\0';
+	    if (s[1] == L'h' && s[2] == L'i' && s[3] == L'l' && s[4] == L'e' &&
+		    s[5] == L'\0')
+		return TT_WHILE;
+	    break;
 	case L'{':
+	    if (s[1] == L'\0')
+		return TT_LBRACE;
+	    break;
 	case L'}':
+	    if (s[1] == L'\0')
+		return TT_RBRACE;
+	    break;
 	case L'!':
-	    return s[1] == L'\0';
-	default:
-	    return false;
+	    if (s[1] == L'\0')
+		return TT_BANG;
+	    break;
     }
+    return TT_WORD;
 }
 
-bool is_literal_function_name(const wordunit_T *wu)
+/* Returns true iff the string is a reserved word. */
+bool is_keyword(const wchar_t *s)
 {
-    if (wu == NULL)
+    return identify_reserved_word_string(s) != TT_WORD;
+}
+
+bool is_single_string_word(const wordunit_T *wu)
+{
+    return wu != NULL && wu->next == NULL && wu->wu_type == WT_STRING;
+}
+
+/* Tests if a word is made up of digits only. */
+bool is_digits_only(const wordunit_T *wu)
+{
+    if (!is_single_string_word(wu))
 	return false;
-    if (wu->next != NULL)
-	return false;
-    if (wu->wu_type != WT_STRING)
+
+    const wchar_t *s = wu->wu_string;
+    assert(s[0] != L'\0');
+    while (iswdigit(*s))
+	s++;
+    return *s == L'\0';
+}
+
+bool is_name_word(const wordunit_T *wu)
+{
+    if (!is_single_string_word(wu))
 	return false;
 
     return (posixly_correct ? is_portable_name : is_name)(wu->wu_string);
+}
+
+/* Converts a word to the corresponding token type. Returns TT_WORD for
+ * non-reserved words. */
+tokentype_T identify_reserved_word(const wordunit_T *wu)
+{
+    if (!is_single_string_word(wu))
+	return TT_WORD;
+    return identify_reserved_word_string(wu->wu_string);
+}
+
+/* Determines if the specified token is a 'closing' token such as ")", "}", and
+ * "fi". Closing tokens delimit and/or lists. */
+bool is_closing_tokentype(tokentype_T tt)
+{
+    switch (tt) {
+	case TT_RPAREN:
+	case TT_RBRACE:
+	case TT_THEN:
+	case TT_ELIF:
+	case TT_ELSE:
+	case TT_FI:
+	case TT_DO:
+	case TT_DONE:
+	case TT_DOUBLE_SEMICOLON:
+	case TT_ESAC:
+	    return true;
+	default:
+	    return false;
+    }
 }
 
 
@@ -375,92 +492,54 @@ bool is_literal_function_name(const wordunit_T *wu)
 
 /* Holds data that are used in parsing. */
 typedef struct parsestate_T {
+    /* contains parameters that affect the behavior of parsing */
     parseparam_T *info;
+    /* true iff any parsing error occurred */
     bool error;
+    /* the source code being parsed */
     struct xwcsbuf_T src;
+    /* the position of the current character or `token' */
     size_t index;
+    /* the index just past the current `token' */
+    size_t next_index;
+    /* type of the current `token' */
+    tokentype_T tokentype;
+    /* the current token (NULL when `tokentype' is an operator token) */
+    wordunit_T *token;
+    /* here-documents whose contents have not been read */
     struct plist_T pending_heredocs;
-    bool enable_alias, reparse;
+    /* false when alias substitution is suppressed */
+    bool enable_alias;
+    /* true when alias substitution has occurred */
+    bool reparse;
+    /* record of alias substitutions that are responsible for the current
+     * `startindex' */
     struct aliaslist_T *aliases;
 } parsestate_T;
-/* info: contains parameter that affect the behavior of parsing.
- * error: set to true when a parsing error occurs.
- * src: a buffer that contains the source code to parse.
- * index: the index to the string in `src'.
- *         indicates the character position that is being parsed.
- * pending_heredocs: a list of here-documents whose contents have not been read.
- * enable_alias: indicates if alias substitution should be performed.
- * reparse: indicates that the current word must be re-parsed because
- *         alias substitution has been performed at the current position.
- * aliases: a list of alias substitutions that were performed at the current
- *         position. */
 
 static void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
+static const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
+    __attribute__((const));
+static void print_errmsg_token_unexpected(parsestate_T *ps)
+    __attribute__((nonnull));
+static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
+    __attribute__((nonnull));
+
 static inputresult_T read_more_input(parsestate_T *ps)
     __attribute__((nonnull));
 static void line_continuation(parsestate_T *ps, size_t index)
     __attribute__((nonnull));
-static void rewind_index(parsestate_T *ps, size_t to)
+static void maybe_line_continuations(parsestate_T *ps, size_t index)
     __attribute__((nonnull));
-static void ensure_buffer(parsestate_T *ps, size_t n)
+static void rewind_index(parsestate_T *ps, size_t to)
     __attribute__((nonnull));
 static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
     __attribute__((nonnull));
-static void skip_blanks_and_comment(parsestate_T *ps)
+
+static void next_token(parsestate_T *ps)
     __attribute__((nonnull));
-static bool skip_to_next_token(parsestate_T *ps)
-    __attribute__((nonnull));
-static void next_line(parsestate_T *ps)
-    __attribute__((nonnull));
-static bool is_command_delimiter_char(wchar_t c)
-    __attribute__((const));
-static bool is_comma_or_closing_bracket(wchar_t c)
-    __attribute__((const));
-static bool is_slash_or_closing_brace(wchar_t c)
-    __attribute__((const));
-static bool is_closing_brace(wchar_t c)
-    __attribute__((const));
-static bool has_token(const parsestate_T *ps, const wchar_t *t)
-    __attribute__((pure,nonnull));
-static const wchar_t *check_opening_token(parsestate_T *ps)
-    __attribute__((nonnull));
-static const wchar_t *check_closing_token(parsestate_T *ps)
-    __attribute__((nonnull));
-static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
-    __attribute__((nonnull));
-static void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T f)
-    __attribute__((nonnull));
-static and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static and_or_T *parse_compound_list(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static and_or_T *parse_and_or_list(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static pipeline_T *parse_pipeline(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_commands_in_pipeline(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_command(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void **parse_words_and_redirects(
-	parsestate_T *ps, redir_T **redirlastp, bool first)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
-    __attribute__((nonnull));
-static assign_T *tryparse_assignment(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static void **parse_words_to_paren(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static redir_T *tryparse_redirect(parsestate_T *ps)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
+static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
 static void skip_to_next_single_quote(parsestate_T *ps)
     __attribute__((nonnull));
@@ -480,18 +559,58 @@ static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wchar_t *parse_word_as_wcs(parsestate_T *ps)
+
+static void next_line(parsestate_T *ps)
+    __attribute__((nonnull));
+static bool parse_newline_list(parsestate_T *ps)
+    __attribute__((nonnull));
+
+static bool is_comma_or_closing_bracket(wchar_t c)
+    __attribute__((const));
+static bool is_slash_or_closing_brace(wchar_t c)
+    __attribute__((const));
+static bool is_closing_brace(wchar_t c)
+    __attribute__((const));
+
+static bool psubstitute_alias(parsestate_T *ps, substaliasflags_T f)
+    __attribute__((nonnull));
+static void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T f)
+    __attribute__((nonnull));
+
+static and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_compound_command(
-	parsestate_T *ps, const wchar_t *command)
+static and_or_T *parse_compound_list(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_group(parsestate_T *ps, commandtype_T type)
+static and_or_T *parse_and_or_list(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static pipeline_T *parse_pipeline(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static command_T *parse_commands_in_pipeline(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static command_T *parse_command(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void **parse_simple_command_tokens(
+	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void **parse_words(parsestate_T *ps, bool skip_newlines)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
+    __attribute__((nonnull));
+static assign_T *tryparse_assignment(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static redir_T *tryparse_redirect(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static command_T *parse_compound_command(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static command_T *parse_group(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_if(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_for(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static command_T *parse_while(parsestate_T *ps, bool whltype)
+static command_T *parse_while(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_case(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -503,6 +622,7 @@ static command_T *parse_function(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
     __attribute__((nonnull,warn_unused_result));
+
 static void read_heredoc_contents(parsestate_T *ps, redir_T *redir)
     __attribute__((nonnull));
 static void read_heredoc_contents_without_expansion(
@@ -519,20 +639,20 @@ static wordunit_T **parse_string_without_quotes(
 	parsestate_T *ps, bool backquote, bool stoponnewline,
 	wordunit_T **lastp)
     __attribute__((nonnull));
-static const char *get_errmsg_unexpected_token(const wchar_t *t)
-    __attribute__((nonnull));
-static void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
-    __attribute__((nonnull));
 
 #define QUOTES L"\"'\\"
 
+
+/***** Entry points *****/
 
 /* The functions below may return non-NULL even on error.
  * The error condition must be tested by the `error' flag of the parsestate_T
  * structure. It is set to true when `serror' is called. */
 /* Every function named `parse_*' advances the current position (the `index'
  * value of the parsestate_T structure) to the index of the first character
- * that has not yet been parsed. */
+ * that has not yet been parsed. Syntax parser functions also update the
+ * current `token' and `tokentype' to the first unconsumed token, in which
+ * case `index' points to the first character of the `token'. */
 
 
 /* The main entry point to the parser.
@@ -555,6 +675,9 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 	.info = info,
 	.error = false,
 	.index = 0,
+	.next_index = 0,
+	.tokentype = TT_UNKNOWN,
+	.token = NULL,
 	.enable_alias = info->enable_alias,
 	.reparse = false,
 	.aliases = NULL,
@@ -576,6 +699,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
     destroy_aliaslist(ps.aliases);
+    wordfree(ps.token);
 
     switch (ps.info->lastinputresult) {
 	case INPUT_OK:
@@ -602,6 +726,52 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
     assert(false);
 }
 
+/* Parses a string recognizing parameter expansions, command substitutions of
+ * the form "$(...)" and arithmetic expansions.
+ * All the members of `info' except `lastinputresult' must have been initialized
+ * beforehand.
+ * This function reads and parses the input to the end of file.
+ * Iff successful, the result is assigned to `*resultp' and true is returned.
+ * If the input is empty, NULL is assigned.
+ * On error, the value of `*resultp' is undefined. */
+bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
+{
+    parsestate_T ps = {
+	.info = info,
+	.error = false,
+	.index = 0,
+	.next_index = 0,
+	.tokentype = TT_UNKNOWN,
+	.token = NULL,
+	.enable_alias = false,
+	.reparse = false,
+	.aliases = NULL,
+    };
+    wb_init(&ps.src);
+
+    ps.info->lastinputresult = INPUT_OK;
+    read_more_input(&ps);
+    pl_init(&ps.pending_heredocs);
+
+    resultp = parse_string_without_quotes(&ps, false, false, resultp);
+    *resultp = NULL;
+
+    wb_destroy(&ps.src);
+    pl_destroy(&ps.pending_heredocs);
+    assert(ps.aliases == NULL);
+    //destroy_aliaslist(ps.aliases);
+    wordfree(ps.token);
+
+    if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
+	wordfree(*resultp);
+	return false;
+    } else {
+	return true;
+    }
+}
+
+/***** Error message utility *****/
+
 /* Prints the specified error message to the standard error.
  * `format' is passed to `gettext' in this function.
  * `format' need not to have a trailing newline since a newline is automatically
@@ -624,6 +794,64 @@ void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     }
     ps->error = true;
 }
+
+const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
+{
+    switch (tokentype) {
+	case TT_RPAREN:
+	    return Ngt("encountered `%ls' without a matching `('");
+	case TT_RBRACE:
+	    return Ngt("encountered `%ls' without a matching `{'");
+	case TT_DOUBLE_SEMICOLON:
+	    return Ngt("`%ls' is used outside `case'");
+	case TT_BANG:
+	    return Ngt("`%ls' cannot be used as a command name");
+	case TT_IN:
+	    return Ngt("`%ls' cannot be used as a command name");
+	case TT_FI:
+	    return Ngt("encountered `%ls' "
+		    "without a matching `if' and/or `then'");
+	case TT_THEN:
+	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
+	case TT_DO:
+	    return Ngt("encountered `%ls' "
+		    "without a matching `for', `while', or `until'");
+	case TT_DONE:
+	    return Ngt("encountered `%ls' without a matching `do'");
+	case TT_ESAC:
+	    return Ngt("encountered `%ls' without a matching `case'");
+	case TT_ELIF:
+	case TT_ELSE:
+	    return Ngt("encountered `%ls' "
+			"without a matching `if' and/or `then'");
+	default:
+	    assert(false);
+    }
+}
+
+void print_errmsg_token_unexpected(parsestate_T *ps)
+{
+    assert(ps->index <= ps->next_index);
+    size_t length = ps->next_index - ps->index;
+    wchar_t token[length + 1];
+    wcsncpy(token, &ps->src.contents[ps->index], length);
+    token[length] = L'\0';
+
+    const char *message = get_errmsg_unexpected_tokentype(ps->tokentype);
+    serror(ps, message, token);
+}
+
+void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
+{
+    if (is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
+	serror(ps, Ngt("(maybe you missed `%ls'?)"), t);
+    } else {
+	serror(ps, Ngt("`%ls' is missing"), t);
+    }
+}
+
+/***** Input buffer manipulators *****/
 
 /* Reads the next line of input and returns the result type, which is assigned
  * to `ps->info->lastinputresult'.
@@ -662,7 +890,21 @@ void line_continuation(parsestate_T *ps, size_t index)
 	read_more_input(ps);
 }
 
+/* Removes line continuations at the specified index.
+ * The next line will be read if the removed line continuation is at the end of
+ * the buffer. */
+void maybe_line_continuations(parsestate_T *ps, size_t index)
+{
+    assert(index <= ps->src.length);
+    if (index == ps->src.length)
+	read_more_input(ps);
+    while (ps->src.contents[index] == L'\\' &&
+	    ps->src.contents[index + 1] == L'\n')
+	line_continuation(ps, index);
+}
+
 /* Rewind `ps->index` to `oldindex' and decrease `ps->info->lineno' accordingly.
+ * Note that `ps->next_index' is not updated in this function.
  *
  * You MUST use this function when rewinding the index in order to correctly
  * rewind the line number. The following pattern of code does not work because
@@ -687,760 +929,146 @@ void rewind_index(parsestate_T *ps, size_t oldindex)
     }
 }
 
-/* If a line continuation is found within `n' characters from the current
- * position `ps->index', removes the backslash-newline pair and reads the next
- * line.
- * If a backslash that is not a line continuation is found within `n' characters
- * from the current position, this function does nothing. */
-/* For quickness, `n' should be as small as possible. */
-void ensure_buffer(parsestate_T *ps, size_t n)
-{
-    size_t index = ps->index;
-    if (ps->src.contents[index] == L'\0')
-	read_more_input(ps);
-    while (index - ps->index < n) {
-	switch (ps->src.contents[index]) {
-	case L'\0':  case L'\'':
-	    return;
-	case L'\\':
-	    if (ps->src.contents[index + 1] != L'\n')
-		return;
-	    line_continuation(ps, index);
-	    if (ps->info->lastinputresult != INPUT_OK)
-		return;
-	    break;
-	default:
-	    index++;
-	    break;
-	}
-    }
-}
-
 /* Returns the length of the name at the current position.
  * Whether a character can be part of the name is determined by `isnamechar'.
  * This function processes line continuations and reads so many lines that the
  * variable/alias name under the current position is fully available. */
 size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 {
-    size_t saveindex = ps->index;
-    while (ensure_buffer(ps, 1), isnamechar(ps->src.contents[ps->index]))
-	ps->index++;
-
-    size_t result = ps->index - saveindex;
-    rewind_index(ps, saveindex);
-    return result;
+    size_t index = ps->index;
+    while (maybe_line_continuations(ps, index),
+	    isnamechar(ps->src.contents[index]))
+	index++;
+    return index - ps->index;
 }
 
-/* Advances the current position `ps->index', skipping blank characters,
- * comments, and line continuations.
- * This function calls `read_more_input' if the current line has not been read
- * or when a line continuation is encountered.
- * The current position is advanced to the next non-blank character.
- * Line continuations are actually removed rather than skipped. */
-/* Note that a newline is not a blank character. After a comment was skipped,
- * the position will be at the newline character (or EOF) that follows. */
-void skip_blanks_and_comment(parsestate_T *ps)
+/***** Tokenizer *****/
+
+/* Moves to the next token, updating `index', `next_index', `tokentype', and
+ * `token' of the parse state.
+ * The existing `token' is freed. */
+void next_token(parsestate_T *ps)
 {
-    if (ps->src.contents[ps->index] == L'\0')
-	if (read_more_input(ps) != INPUT_OK)
-	    return;
+    wordfree(ps->token);
+    ps->token = NULL;
 
-start:
-    /* skip blanks */
-    while (iswblank(ps->src.contents[ps->index]))
-	ps->index++;
+    size_t index = ps->next_index;
+    if (index == ps->src.length)
+	read_more_input(ps);
 
-    /* skip a comment */
-    if (ps->src.contents[ps->index] == L'#') {
-	do {
-	    ps->index++;
-	} while (ps->src.contents[ps->index] != L'\n' &&
-		ps->src.contents[ps->index] != L'\0');
+skip_blanks:
+    while (iswblank(ps->src.contents[index]))
+	index++;
+
+    if (ps->src.contents[index] == L'\\' &&
+	    ps->src.contents[index + 1] == L'\n') {
+	line_continuation(ps, index);
+	goto skip_blanks;
     }
 
-    /* remove line continuation */
-    if (ps->src.contents[ps->index] == L'\\' &&
-	    ps->src.contents[ps->index + 1] == L'\n') {
-	line_continuation(ps, ps->index);
-	goto start;
-    }
-}
+    /* skip any comment */
+    if (ps->src.contents[index] == L'#')
+	index += wcscspn(&ps->src.contents[index + 1], L"\n") + 1;
 
-/* Advances the current position `ps->index', skipping blank characters,
- * comments and newlines, up to the next token.
- * This function calls `read_more_input' if the next token cannot be found in
- * the current line.
- * Returns true iff at least one newline token is skipped. */
-bool skip_to_next_token(parsestate_T *ps)
-{
-    bool newline = false;
+    size_t startindex = index;
 
-    skip_blanks_and_comment(ps);
-    while (ps->info->lastinputresult == INPUT_OK &&
-	    ps->src.contents[ps->index] == L'\n') {
-	newline = true;
-	next_line(ps);
-	skip_blanks_and_comment(ps);
-    }
-    return newline;
-}
-
-/* Parses the newline token at the current position and proceeds to the next
- * line. The contents of pending here-documents are read if any. */
-void next_line(parsestate_T *ps)
-{
-    assert(ps->src.contents[ps->index] == L'\n');
-    ps->index++;
-    ps->info->lineno++;
-
-    for (size_t i = 0; i < ps->pending_heredocs.length; i++)
-	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
-    pl_clear(&ps->pending_heredocs, 0);
-}
-
-/* Checks if the specified character is a token separator. */
-bool is_token_delimiter_char(wchar_t c)
-{
-    switch (c) {
-	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
-	case L'<':   case L'>':   case L'(':   case L')':
-	    return true;
-	default:
-	    return iswblank(c);
-    }
-}
-
-/* Checks if the specified character delimits a simple command. */
-bool is_command_delimiter_char(wchar_t c)
-{
-    switch (c) {
-	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
-	case L'(':   case L')':
-	    return true;
-	default:
-	    return false;
-    }
-}
-
-bool is_comma_or_closing_bracket(wchar_t c)
-{
-    return c == L']' || c == L',';
-}
-
-bool is_slash_or_closing_brace(wchar_t c)
-{
-    return c == L'/' || c == L'}';
-}
-
-bool is_closing_brace(wchar_t c)
-{
-    return c == L'}';
-}
-
-/* Checks if token `t' exists at the current position in `ps->src'.
- * `t' must not be a proper substring of another operator token. (For example,
- * `t' cannot be L"&" because it is a proper substring of another operator token
- * L"&&". However, L"do" is OK for `t' even though it is a substring of the
- * keyword L"done", which is not an operator token.)
- * This function does not handle line continuations. The caller may need to call
- * `ensure_buffer(wcslen(t))' before calling this function. */
-bool has_token(const parsestate_T *ps, const wchar_t *t)
-{
-    const wchar_t *c = matchwcsprefix(&ps->src.contents[ps->index], t);
-    return c != NULL && is_token_delimiter_char(*c);
-}
-
-/* Checks if there is an 'opening' token such as "(", "{", and "if" at the
- * current position. If there is one, the token string is returned.
- * Otherwise, NULL is returned.
- * This function calls `ensure_buffer(ps, 9)'. */
-const wchar_t *check_opening_token(parsestate_T *ps)
-{
-    ensure_buffer(ps, 9);
-    if (ps->src.contents[ps->index] == L'(') return L"(";
-    if (has_token(ps, L"{"))        return L"{";
-    if (has_token(ps, L"if"))       return L"if";
-    if (has_token(ps, L"for"))      return L"for";
-    if (has_token(ps, L"while"))    return L"while";
-    if (has_token(ps, L"until"))    return L"until";
-    if (has_token(ps, L"case"))     return L"case";
-    if (has_token(ps, L"function")) return L"function";
-    return NULL;
-}
-
-/* Checks if there is a 'closing' token such as ")", "}", and "fi" at the
- * current position. If there is one, the token string is returned.
- * Otherwise, NULL is returned.
- * This function calls `ensure_buffer(ps, 5)'. */
-/* Closing tokens delimit and/or lists. */
-const wchar_t *check_closing_token(parsestate_T *ps)
-{
-    ensure_buffer(ps, 5);
-    if (ps->src.contents[ps->index] == L')')
-	return L")";
-    if (ps->src.contents[ps->index] == L';' &&
-	    ps->src.contents[ps->index + 1] == L';')
-	return L";;";
-    if (has_token(ps, L"}"))    return L"}";
-    if (has_token(ps, L"then")) return L"then";
-    if (has_token(ps, L"else")) return L"else";
-    if (has_token(ps, L"elif")) return L"elif";
-    if (has_token(ps, L"fi"))   return L"fi";
-    if (has_token(ps, L"do"))   return L"do";
-    if (has_token(ps, L"done")) return L"done";
-    if (has_token(ps, L"esac")) return L"esac";
-    return NULL;
-}
-
-/* Performs alias substitution with the given parse state. */
-bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
-{
-    if (!ps->enable_alias)
-	return false;
-
-    size_t len = count_name_length(ps, is_alias_name_char);
-    return substitute_alias_range(
-	    &ps->src, ps->index, ps->index + len, &ps->aliases, flags);
-}
-
-/* Performs alias substitution recursively. This should not be used where the
- * substitution result may be recognized as a keyword, since keywords should not
- * be alias-substituted. */
-void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
-{
-    while (psubstitute_alias(ps, flags))
-	skip_blanks_and_comment(ps);
-}
-
-/* Parses commands.
- * If `toeol' is true, commands are parsed up to the end of the current input;
- * otherwise, up to the next closing token.
- * You don't have to call `skip_blanks_and_comment' beforehand. */
-and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
-{
-    and_or_T *first = NULL, **lastp = &first;
-    bool saveerror = ps->error;
-    bool need_separator = false;
-    /* For a command to be parsed after another, it must be separated by L"&",
-     * L";", or newlines. */
-
-    if (!toeol && !ps->info->interactive)
-	ps->error = false;
-    while (!ps->error) {
-	if (toeol) {
-	    skip_blanks_and_comment(ps);
-	    if (ps->src.contents[ps->index] == L'\n') {
-		next_line(ps);
-		need_separator = false;
-		if (ps->src.contents[ps->index] != L'\0')
-		    continue;
+    switch (ps->src.contents[index]) {
+	case L'\0': ps->tokentype = TT_END_OF_INPUT;          break;
+	case L'\n': ps->tokentype = TT_NEWLINE;      index++; break;
+	case L'(':  ps->tokentype = TT_LPAREN;       index++; break;
+	case L')':  ps->tokentype = TT_RPAREN;       index++; break;
+	case L';':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L';') {
+		ps->tokentype = TT_DOUBLE_SEMICOLON;
+		index++;
+	    } else {
+		ps->tokentype = TT_SEMICOLON;
 	    }
-	    if (ps->src.contents[ps->index] == L'\0') {
-		break;
-	    } else if (ps->src.contents[ps->index] == L')') {
-		serror(ps, get_errmsg_unexpected_token(L")"), L")");
-		break;
-	    } else if (need_separator) {
-		serror(ps, Ngt("`;' or `&' is missing"));
-		break;
+	    break;
+	case L'&':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L'&') {
+		ps->tokentype = TT_AMPAMP;
+		index++;
+	    } else {
+		ps->tokentype = TT_AMP;
 	    }
-	} else {
-	    if (skip_to_next_token(ps))
-		need_separator = false;
-	    if (need_separator
-		    || ps->src.contents[ps->index] == L'\0'
-		    || check_closing_token(ps))
-		break;
-	}
-
-	and_or_T *ao = parse_and_or_list(ps);
-	if (ao != NULL) {
-	    *lastp = ao;
-	    lastp = &ao->next;
-	}
-	if (ps->reparse) {
-	    assert(ao == NULL);
-	    continue;
-	}
-
-	need_separator = true;
-	ensure_buffer(ps, 2);
-	if (ps->src.contents[ps->index] == L'&'
-		|| (ps->src.contents[ps->index] == L';'
-		    && ps->src.contents[ps->index + 1] != L';')) {
-	    ps->index++;
-	    need_separator = false;
-	}
-    }
-    if (!toeol)
-	ps->error |= saveerror;
-    ps->reparse = false;
-    return first;
-}
-
-/* Parses commands until a closing token is found.
- * You don't have to call `skip_blanks_and_comment' beforehand. */
-and_or_T *parse_compound_list(parsestate_T *ps)
-{
-    return parse_command_list(ps, false);
-}
-
-/* Parses one and/or list.
- * The result reflects the trailing "&" or ";", but `ps->index' points to the
- * delimiter "&" or ";" when the function returns.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-and_or_T *parse_and_or_list(parsestate_T *ps)
-{
-    pipeline_T *p = parse_pipelines_in_and_or(ps);
-    if (ps->reparse) {
-	assert(p == NULL);
-	return NULL;
-    }
-
-    and_or_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->ao_pipelines = p;
-    result->ao_async = (ps->src.contents[ps->index] == L'&');
-    return result;
-}
-
-/* Parses all pipelines in one and/or list.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
-{
-    pipeline_T *first = NULL, **lastp = &first;
-    bool cond = false;
-
-    for (;;) {
-	pipeline_T *p = parse_pipeline(ps);
-	if (p != NULL) {
-	    p->pl_cond = cond;
-	    *lastp = p;
-	    lastp = &p->next;
-	}
-	if (ps->reparse) {
-	    assert(p == NULL);
-	    if (first != NULL)
-		goto next;
-	    else
-		break;
-	}
-
-	ensure_buffer(ps, 2);
-	if (ps->src.contents[ps->index] == L'&'
-		&& ps->src.contents[ps->index + 1] == L'&') {
-	    cond = true;
-	} else if (ps->src.contents[ps->index] == L'|'
-		&& ps->src.contents[ps->index + 1] == L'|') {
-	    cond = false;
-	} else {
 	    break;
-	}
-	ps->index += 2;
-next:
-	skip_to_next_token(ps);
-    }
-    return first;
-}
-
-/* Parses one pipeline.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-pipeline_T *parse_pipeline(parsestate_T *ps)
-{
-    bool neg;
-    command_T *c;
-
-    ensure_buffer(ps, 2);
-    if (has_token(ps, L"!")) {
-	neg = true;
-	ps->index += 1;
-	if (posixly_correct && ps->src.contents[ps->index] == L'(')
-	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
-			"is not supported"));
-	do {
-	    skip_blanks_and_comment(ps);
-	    c = parse_commands_in_pipeline(ps);
-	    if (ps->reparse)
-		assert(c == NULL);
-	} while (ps->reparse);
-    } else {
-	neg = false;
-	c = parse_commands_in_pipeline(ps);
-	if (ps->reparse) {
-	    assert(c == NULL);
-	    return NULL;
-	}
-    }
-
-    pipeline_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->pl_commands = c;
-    result->pl_neg = neg;
-    result->pl_cond = false;
-    return result;
-}
-
-/* Parses the body of the pipeline.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-command_T *parse_commands_in_pipeline(parsestate_T *ps)
-{
-    command_T *first = NULL, **lastp = &first;
-
-    for (;;) {
-	command_T *c = parse_command(ps);
-	if (c != NULL) {
-	    *lastp = c;
-	    lastp = &c->next;
-	}
-	if (ps->reparse) {
-	    assert(c == NULL);
-	    if (first != NULL)
-		goto next;
-	    else
-		break;
-	}
-
-	ensure_buffer(ps, 2);
-	if (ps->src.contents[ps->index] == L'|' &&
-		ps->src.contents[ps->index + 1] != L'|') {
-	    ps->index++;
-	} else {
+	case L'|':
+	    maybe_line_continuations(ps, ++index);
+	    if (ps->src.contents[index] == L'|') {
+		ps->tokentype = TT_PIPEPIPE;
+		index++;
+	    } else {
+		ps->tokentype = TT_PIPE;
+	    }
 	    break;
-	}
-next:
-	skip_to_next_token(ps);
-    }
-    return first;
-}
-
-/* Parses one command.
- * If the first word was alias-substituted, the `ps->reparse' flag is set and
- * NULL is returned. */
-command_T *parse_command(parsestate_T *ps)
-{
-    ps->reparse = false;
-
-    /* Note: `check_closing_token' calls `ensure_buffer(ps, 5)'. */
-    const wchar_t *t = check_closing_token(ps);
-    if (t != NULL) {
-	serror(ps, get_errmsg_unexpected_token(t), t);
-	return NULL;
-    } else if (has_token(ps, L"!")) {
-	serror(ps, get_errmsg_unexpected_token(L"!"), L"!");
-	return NULL;
-    } else if (has_token(ps, L"in")) {
-	serror(ps, get_errmsg_unexpected_token(L"in"), L"in");
-	return NULL;
-    } else if (ps->src.contents[ps->index] == L'(') {
-	return parse_compound_command(ps, L"(");
-    } else if (is_command_delimiter_char(ps->src.contents[ps->index])) {
-	if (ps->src.contents[ps->index] == L'\0' ||
-		ps->src.contents[ps->index] == L'\n')
-	    serror(ps, Ngt("a command is missing at the end of input"));
-	else
-	    serror(ps, Ngt("a command is missing before `%lc'"),
-		    (wint_t) ps->src.contents[ps->index]);
-	return NULL;
-    }
-
-    t = check_opening_token(ps);
-    if (t != NULL)
-	return parse_compound_command(ps, t);
-
-    if (psubstitute_alias(ps, AF_NONGLOBAL)) {
-	ps->reparse = true;
-	return NULL;
-    }
-
-    /* parse as a simple command */
-    command_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->refcount = 1;
-    result->c_lineno = ps->info->lineno;
-    result->c_type = CT_SIMPLE;
-    redir_T **redirlastp = parse_assignments_and_redirects(ps, result);
-    result->c_words = parse_words_and_redirects(ps, redirlastp, true);
-
-    return try_reparse_as_function(ps, result);
-}
-
-/* Parses assignments and redirections.
- * Tokens but the first one are subject to any-type alias substitution,
- * including the word just after the parsed assignments and redirections.
- * The results are assigned to `c->c_assigns' and `c->c_redirs'.
- * The return value is a pointer to the `next' member of the last resultant
- * redirection (redir_T). If no redirections were parsed, the result value is a
- * pointer to `c->c_redirs'. */
-redir_T **parse_assignments_and_redirects(parsestate_T *ps, command_T *c)
-{
-    assign_T **assgnlastp = &c->c_assigns;
-    redir_T **redirlastp = &c->c_redirs;
-    assign_T *assgn;
-    redir_T *redir;
-
-    c->c_assigns = NULL;
-    c->c_redirs = NULL;
-    while (ensure_buffer(ps, 1),
-	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
-	if ((redir = tryparse_redirect(ps)) != NULL) {
-	    *redirlastp = redir;
-	    redirlastp = &redir->next;
-	} else if ((assgn = tryparse_assignment(ps)) != NULL) {
-	    *assgnlastp = assgn;
-	    assgnlastp = &assgn->next;
-	} else {
-	    break;
-	}
-	psubstitute_alias_recursive(ps, AF_NONGLOBAL);
-    }
-    return redirlastp;
-}
-
-/* Parses words and redirections.
- * The parsing result of redirections is assigned to `*redirlastp'
- * The parsing result of assignments is returned as an array of pointers to
- * word units that are cast to (void *).
- * `*redirlastp' must have been initialized to NULL beforehand.
- * All words are subject to global alias substitution. If `first' is true,
- * however, alias substitution is not performed on the first word. */
-void **parse_words_and_redirects(
-	parsestate_T *ps, redir_T **redirlastp, bool first)
-{
-    plist_T wordlist;
-    redir_T *redir;
-    wordunit_T *word;
-
-    assert(*redirlastp == NULL);
-    pl_init(&wordlist);
-    while (ensure_buffer(ps, 1),
-	    !is_command_delimiter_char(ps->src.contents[ps->index])) {
-	if (!first)
-	    psubstitute_alias_recursive(ps, 0);
-	if ((redir = tryparse_redirect(ps)) != NULL) {
-	    *redirlastp = redir;
-	    redirlastp = &redir->next;
-	} else if ((word = parse_word(ps, false)) != NULL) {
-	    pl_add(&wordlist, word);
-	    skip_blanks_and_comment(ps);
-	    first = false;
-	} else {
-	    break;
-	}
-    }
-    return pl_toary(&wordlist);
-}
-
-/* Parses as many redirections as possible.
- * The parsing result is assigned to `*redirlastp'
- * `*redirlastp' must have been initialized to NULL beforehand. */
-void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
-{
-    for (;;) {
-	psubstitute_alias_recursive(ps, 0);
-
-	redir_T *redir = tryparse_redirect(ps);
-	if (redir == NULL)
-	    break;
-	*lastp = redir;
-	lastp = &redir->next;
-    }
-}
-
-/* If there is an assignment at the current position, parses and returns it.
- * Otherwise, returns NULL without moving the position. */
-assign_T *tryparse_assignment(parsestate_T *ps)
-{
-    if (iswdigit(ps->src.contents[ps->index]))
-	return NULL;
-
-    size_t namelen = count_name_length(ps, is_name_char);
-    if (namelen == 0 || ps->src.contents[ps->index + namelen] != L'=')
-	return NULL;
-
-    assign_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->a_name = xwcsndup(&ps->src.contents[ps->index], namelen);
-    ps->index += namelen + 1;
-
-    ensure_buffer(ps, 1);
-    if (posixly_correct || ps->src.contents[ps->index] != L'(') {
-	result->a_type = A_SCALAR;
-	result->a_scalar = parse_word(ps, false);
-    } else {
-	ps->index++;
-	skip_to_next_token(ps);
-	result->a_type = A_ARRAY;
-	result->a_array = parse_words_to_paren(ps);
-	if (ps->src.contents[ps->index] == L')')
-	    ps->index++;
-	else
-	    serror(ps, Ngt("`%ls' is missing"), L")");
-    }
-    skip_blanks_and_comment(ps);
-    return result;
-}
-
-/* Parses words until the next closing parentheses.
- * Delimiter characters other than ')' and '\n' are not allowed.
- * Returns a newly malloced array of pointers to newly malloced `wordunit_T's.*/
-void **parse_words_to_paren(parsestate_T *ps)
-{
-    plist_T list;
-
-    pl_init(&list);
-    while (ps->src.contents[ps->index] != L')') {
-	wordunit_T *word = parse_word(ps, true);
-	if (word != NULL)
-	    pl_add(&list, word);
-	else
-	    break;
-	skip_to_next_token(ps);
-    }
-    return pl_toary(&list);
-}
-
-/* If there is a redirection at the current position, parses and returns it.
- * Otherwise, returns NULL without moving the position. */
-redir_T *tryparse_redirect(parsestate_T *ps)
-{
-    int fd;
-
-    ensure_buffer(ps, 2);
-    if (iswdigit(ps->src.contents[ps->index])) {
-	unsigned long lfd;
-	wchar_t *endptr;
-
-reparse:
-	errno = 0;
-	lfd = wcstoul(&ps->src.contents[ps->index], &endptr, 10);
-	if (errno != 0 || lfd > INT_MAX)
-	    fd = -1;  /* invalid fd */
-	else
-	    fd = (int) lfd;
-	if (endptr[0] == L'\\' && endptr[1] == L'\n') {
-	    line_continuation(ps, endptr - ps->src.contents);
-	    goto reparse;
-	} else if (endptr[0] != L'<' && endptr[0] != L'>') {
-	    return NULL;
-	}
-	ps->index = endptr - ps->src.contents;
-    } else if (ps->src.contents[ps->index] == L'<') {
-	fd = STDIN_FILENO;
-    } else if (ps->src.contents[ps->index] == L'>') {
-	fd = STDOUT_FILENO;
-    } else {
-	return NULL;
-    }
-
-    redir_T *result = xmalloc(sizeof *result);
-    result->next = NULL;
-    result->rd_fd = fd;
-    ensure_buffer(ps, 3);
-    switch (ps->src.contents[ps->index]) {
-    case L'<':
-	switch (ps->src.contents[ps->index + 1]) {
 	case L'<':
-	    if (ps->src.contents[ps->index + 2] == L'-') {
-		result->rd_type = RT_HERERT;
-		ps->index += 3;
-	    } else if (!posixly_correct &&
-		    ps->src.contents[ps->index + 2] == L'<') {
-		result->rd_type = RT_HERESTR;
-		ps->index += 3;
-	    } else {
-		result->rd_type = RT_HERE;
-		ps->index += 2;
-	    }
-	    break;
-	case L'(':
-	    if (!posixly_correct) {
-		result->rd_type = RT_PROCIN;
-		goto parse_command;
-	    } else {
-		result->rd_type = RT_INPUT;
-		ps->index += 1;
-	    }
-	    break;
-	case L'>':  result->rd_type = RT_INOUT;  ps->index += 2;  break;
-	case L'&':  result->rd_type = RT_DUPIN;  ps->index += 2;  break;
-	default:    result->rd_type = RT_INPUT;  ps->index += 1;  break;
-	}
-	break;
-    case L'>':
-	switch (ps->src.contents[ps->index + 1]) {
-	case L'(':
-	    if (!posixly_correct) {
-		result->rd_type = RT_PROCOUT;
-		goto parse_command;
-	    } else {
-		result->rd_type = RT_OUTPUT;
-		ps->index += 1;
+	    maybe_line_continuations(ps, ++index);
+	    switch (ps->src.contents[index]) {
+		default:   ps->tokentype = TT_LESS;                 break;
+		case L'>': ps->tokentype = TT_LESSGREATER; index++; break;
+		case L'(': ps->tokentype = TT_LESSLPAREN;  index++; break;
+		case L'&': ps->tokentype = TT_LESSAMP;     index++; break;
+		case L'<':
+		    maybe_line_continuations(ps, ++index);
+		    switch (ps->src.contents[index]) {
+			default:
+			    ps->tokentype = TT_LESSLESS;              break;
+			case L'-':
+			    ps->tokentype = TT_LESSLESSDASH; index++; break;
+			case L'<':
+			    ps->tokentype = TT_LESSLESSLESS; index++; break;
+		    }
+		    break;
 	    }
 	    break;
 	case L'>':
-	    if (!posixly_correct && ps->src.contents[ps->index + 2] == L'|') {
-		result->rd_type = RT_PIPE;
-		ps->index += 3;
-	    } else {
-		result->rd_type = RT_APPEND;
-		ps->index += 2;
+	    maybe_line_continuations(ps, ++index);
+	    switch (ps->src.contents[index]) {
+		default:   ps->tokentype = TT_GREATER;                 break;
+		case L'(': ps->tokentype = TT_GREATERLPAREN;  index++; break;
+		case L'&': ps->tokentype = TT_GREATERAMP;     index++; break;
+		case L'|': ps->tokentype = TT_GREATERPIPE;    index++; break;
+		case L'>':
+		    maybe_line_continuations(ps, ++index);
+		    if (ps->src.contents[index] == L'|') {
+			ps->tokentype = TT_GREATERGREATERPIPE;
+			index++;
+		    } else {
+			ps->tokentype = TT_GREATERGREATER;
+		    }
+		    break;
 	    }
 	    break;
-	case L'|':  result->rd_type = RT_CLOBBER; ps->index += 2;  break;
-	case L'&':  result->rd_type = RT_DUPOUT;  ps->index += 2;  break;
-	default:    result->rd_type = RT_OUTPUT;  ps->index += 1;  break;
-	}
-	break;
-    default:
-	assert(false);
+
+	default:
+	    /* Okay, the next token seems to be a word, possibly being a
+	     * reserved word or an IO_NUMBER token. */
+	    ps->index = index;
+	    wordunit_T *token = parse_word(ps, is_token_delimiter_char);
+	    index = ps->index;
+
+	    wordfree(ps->token);
+	    ps->token = token;
+
+	    /* Is this an IO_NUMBER token? */
+	    if (ps->src.contents[index] == L'<' ||
+		    ps->src.contents[index] == L'>') {
+		if (is_digits_only(ps->token)) {
+		    ps->tokentype = TT_IO_NUMBER;
+		    break;
+		}
+	    }
+
+	    /* Is this a reserved word? */
+	    ps->tokentype = identify_reserved_word(ps->token);
+	    break;
     }
-    skip_blanks_and_comment(ps);
-    if (result->rd_type != RT_HERE && result->rd_type != RT_HERERT) {
-	result->rd_filename = parse_word(ps, true);
-	if (result->rd_filename == NULL) {
-	    serror(ps, Ngt("the redirection target is missing"));
-	    free(result);
-	    return NULL;
-	}
-    } else {
-	wchar_t *endofheredoc = parse_word_as_wcs(ps);
-	if (endofheredoc[0] == L'\0') {
-	    serror(ps, Ngt("the end-of-here-document indicator is missing"));
-	    free(endofheredoc);
-	    free(result);
-	    return NULL;
-	}
-	result->rd_hereend = endofheredoc;
-	result->rd_herecontent = NULL;
-	pl_add(&ps->pending_heredocs, result);
-    }
-    skip_blanks_and_comment(ps);
-    return result;
 
-parse_command:
-    ps->index += 1;
-    result->rd_command = extract_command_in_paren(ps);
-    ensure_buffer(ps, 1);
-    if (ps->src.contents[ps->index] == L')')
-	ps->index++;
-    else
-	serror(ps, Ngt("unclosed process redirection"));
-    skip_blanks_and_comment(ps);
-    return result;
-}
-
-/* Parses a word at the current position. If `globalaliases' is true, global
- * aliases are substituted before the word is parsed. */
-wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
-{
-    if (globalaliases)
-	psubstitute_alias_recursive(ps, 0);
-
-    return parse_word_to(ps, is_token_delimiter_char);
+    ps->index = startindex;
+    ps->next_index = index;
 }
 
 /* Parses a word at the current position.
@@ -1449,7 +1077,7 @@ wordunit_T *parse_word(parsestate_T *ps, bool globalaliases)
  * returns false.
  * It is not an error if there is no characters to be a word, in which case
  * NULL is returned. */
-wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
+wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first;
     bool indq = false;  /* in double quotes? */
@@ -1470,7 +1098,7 @@ wordunit_T *parse_word_to(parsestate_T *ps, bool testfunc(wchar_t c))
         }                                                                \
     } while (0)
 
-    while (ensure_buffer(ps, 1),
+    while (maybe_line_continuations(ps, ps->index),
 	    indq || !testfunc(ps->src.contents[ps->index])) {
 
 	switch (ps->src.contents[ps->index]) {
@@ -1563,16 +1191,18 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
 {
     switch (ps->src.contents[ps->index++]) {
     case L'$':
-	ensure_buffer(ps, 2);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'{':
 	    return parse_paramexp_in_brace(ps);
 	case L'(':
+	    maybe_line_continuations(ps, ps->index + 1);
 	    if (ps->src.contents[ps->index + 1] == L'(') {
 		wordunit_T *wu = tryparse_arith(ps);
 		if (wu != NULL)
 		    return wu;
 	    }
+	    ps->next_index = ps->index + 1;
 	    return parse_cmdsubst_in_paren(ps);
 	default:
 	    return tryparse_paramexp_raw(ps);
@@ -1593,7 +1223,7 @@ wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     paramexp_T *pe;
     size_t namelen;  /* parameter name length */
 
-    ensure_buffer(ps, 1);
+    maybe_line_continuations(ps, ps->index);
     switch (ps->src.contents[ps->index]) {
 	case L'@':  case L'*':  case L'#':  case L'?':
 	case L'-':  case L'$':  case L'!':
@@ -1640,13 +1270,15 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     ps->index++;
 
     /* parse PT_NUMBER */
-    ensure_buffer(ps, 3);
+    maybe_line_continuations(ps, ps->index);
     if (ps->src.contents[ps->index] == L'#') {
+	maybe_line_continuations(ps, ps->index + 1);
 	switch (ps->src.contents[ps->index + 1]) {
 	    case L'\0': case L'}':
 	    case L'+':  case L'=':  case L':':  case L'/':  case L'%':
 		break;
 	    case L'-':  case L'?':  case L'#':
+		maybe_line_continuations(ps, ps->index + 2);
 		if (ps->src.contents[ps->index + 2] != L'}')
 		    break;
 		/* falls thru! */
@@ -1658,21 +1290,22 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     }
 
     /* parse nested expansion */
-    // ensure_buffer(2);  // we've already called `ensure_buffer'
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'{') {
 	pe->pe_type |= PT_NEST;
 	pe->pe_nest = parse_paramexp_in_brace(ps);
     } else if (!posixly_correct
 	    && (ps->src.contents[ps->index] == L'`'
 		|| (ps->src.contents[ps->index] == L'$'
-		    && (ps->src.contents[ps->index + 1] == L'{'
+		    && (maybe_line_continuations(ps, ps->index + 1),
+			ps->src.contents[ps->index + 1] == L'{'
 			|| ps->src.contents[ps->index + 1] == L'(')))) {
 	size_t neststartindex = ps->index;
 	pe->pe_nest = parse_special_word_unit(ps, false);
-	if (ps->index != neststartindex)
-	    pe->pe_type |= PT_NEST;
-	else
+	if (ps->index == neststartindex)
 	    goto parse_name;
+	pe->pe_type |= PT_NEST;
+	maybe_line_continuations(ps, ps->index);
     } else {
 parse_name:;
 	/* no nesting: parse parameter name normally */
@@ -1683,7 +1316,7 @@ parse_name:;
 		ps->index++;
 		break;
 	    default:
-		while (ensure_buffer(ps, 1),
+		while (maybe_line_continuations(ps, ps->index),
 			is_name_char(ps->src.contents[ps->index]))
 		    ps->index++;
 		break;
@@ -1697,32 +1330,34 @@ parse_name:;
     }
 
     /* parse indices */
-    ensure_buffer(ps, 3);
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'[') {
 	ps->index++;
-	pe->pe_start = parse_word_to(ps, is_comma_or_closing_bracket);
+	pe->pe_start = parse_word(ps, is_comma_or_closing_bracket);
 	if (pe->pe_start == NULL)
 	    serror(ps, Ngt("the index is missing"));
 	if (ps->src.contents[ps->index] == L',') {
 	    ps->index++;
-	    pe->pe_end = parse_word_to(ps, is_comma_or_closing_bracket);
+	    pe->pe_end = parse_word(ps, is_comma_or_closing_bracket);
 	    if (pe->pe_end == NULL)
 		serror(ps, Ngt("the index is missing"));
 	}
-	if (ps->src.contents[ps->index] == L']')
-	    ps->index++;
-	else
+	if (ps->src.contents[ps->index] == L']') {
+	    maybe_line_continuations(ps, ++ps->index);
+	} else {
 	    serror(ps, Ngt("`%ls' is missing"), L"]");
-	ensure_buffer(ps, 3);
+	}
     }
 
     /* parse PT_COLON */
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (ps->src.contents[ps->index] == L':') {
 	pe->pe_type |= PT_COLON;
-	ps->index++;
+	maybe_line_continuations(ps, ++ps->index);
     }
 
     /* parse '-', '+', '#', etc. */
+    // maybe_line_continuations(ps, ps->index); // already called above
     switch (ps->src.contents[ps->index]) {
     case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
     case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
@@ -1751,13 +1386,14 @@ parse_name:;
     }
 
 parse_match:
+    maybe_line_continuations(ps, ps->index + 1);
     if (pe->pe_type & PT_COLON) {
 	if ((pe->pe_type & PT_MASK) == PT_SUBST)
 	    pe->pe_type |= PT_MATCHHEAD | PT_MATCHTAIL;
 	else
 	    serror(ps, Ngt("invalid use of `%lc' in parameter expansion"),
 		    (wint_t) L':');
-	ps->index += 1;
+	maybe_line_continuations(ps, ++ps->index);
     } else if (ps->src.contents[ps->index] ==
 	    ps->src.contents[ps->index + 1]) {
 	if ((pe->pe_type & PT_MASK) == PT_MATCH)
@@ -1779,21 +1415,21 @@ parse_match:
 	ps->index += 1;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-	pe->pe_match = parse_word_to(ps, is_closing_brace);
+	pe->pe_match = parse_word(ps, is_closing_brace);
 	goto check_closing_brace;
     } else {
-	pe->pe_match = parse_word_to(ps, is_slash_or_closing_brace);
-	ensure_buffer(ps, 1);
+	pe->pe_match = parse_word(ps, is_slash_or_closing_brace);
+	// maybe_line_continuations(ps, ps->index); // called in parse_word
 	if (ps->src.contents[ps->index] != L'/')
 	    goto check_closing_brace;
     }
 
 parse_subst:
     ps->index++;
-    pe->pe_subst = parse_word_to(ps, is_closing_brace);
+    pe->pe_subst = parse_word(ps, is_closing_brace);
 
 check_closing_brace:
-    ensure_buffer(ps, 1);
+    // maybe_line_continuations(ps, ps->index); // already called above
     if (ps->src.contents[ps->index] == L'}')
 	ps->index++;
     else
@@ -1811,9 +1447,9 @@ end:;
 }
 
 /* Parses a command substitution that starts with "$(".
- * The current position must be at the opening parenthesis L'(' when this
- * function is called and the position is advanced to the closing parenthesis
- * L')'. */
+ * When this function is called, `ps->next_index' must be just after the opening
+ * "(". When this function returns, `ps->index' is just after the closing ")".
+ */
 wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
 {
     wordunit_T *result = xmalloc(sizeof *result);
@@ -1821,7 +1457,7 @@ wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
     result->wu_type = WT_CMDSUB;
     result->wu_cmdsub = extract_command_in_paren(ps);
 
-    ensure_buffer(ps, 1);
+    maybe_line_continuations(ps, ps->index);
     if (ps->src.contents[ps->index] == L')')
 	ps->index++;
     else
@@ -1830,15 +1466,16 @@ wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
 }
 
 /* Extracts commands between '(' and ')'.
- * The current position must be at the opening parenthesis L'(' when this
- * function is called. The position is advanced to the closing parenthesis
- * L')'. */
+ * When this function is called, `ps->next_index' must be just after the opening
+ * "(". When this function returns, the current token will be the closing ")".
+ */
 embedcmd_T extract_command_in_paren(parsestate_T *ps)
 {
     plist_T save_pending_heredocs;
     embedcmd_T result;
 
-    assert(ps->src.contents[ps->index] == L'(');
+    assert(ps->next_index > 0);
+    assert(ps->src.contents[ps->next_index - 1] == L'(');
 
     save_pending_heredocs = ps->pending_heredocs;
     pl_init(&ps->pending_heredocs);
@@ -1847,7 +1484,7 @@ embedcmd_T extract_command_in_paren(parsestate_T *ps)
 	result.is_preparsed = false;
 	result.value.unparsed = extract_command_in_paren_unparsed(ps);
     } else {
-	ps->index++;
+	next_token(ps);
 	result.is_preparsed = true;
 	result.value.preparsed = parse_compound_list(ps);
     }
@@ -1859,15 +1496,15 @@ embedcmd_T extract_command_in_paren(parsestate_T *ps)
 }
 
 /* Parses commands between '(' and ')'.
- * The current position must be at the opening parenthesis L'(' when this
- * function is called. The position is advanced to the closing parenthesis
- * L')'. */
+ * The current token must be the opening parenthesis L'(' when this function is
+ * called. The current token is advanced to the closing parenthesis L')'. */
 wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
 {
     bool save_enable_alias = ps->enable_alias;
     ps->enable_alias = false;
 
-    size_t startindex = ++ps->index;
+    size_t startindex = ps->next_index;
+    next_token(ps);
     andorsfree(parse_compound_list(ps));
     assert(startindex <= ps->index);
 
@@ -1895,7 +1532,7 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
     assert(ps->src.contents[ps->index - 1] == L'`');
     wb_init(&buf);
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    serror(ps,
@@ -1948,10 +1585,11 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
     int nestparen = 0;
 
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
-	    goto fail;
+	    serror(ps, Ngt("`%ls' is missing"), L"))");
+	    goto end;
 	case L'\\':
 	    if (ps->src.contents[ps->index + 1] != L'\0') {
 		assert(ps->src.contents[ps->index + 1] != L'\n');
@@ -1980,113 +1618,695 @@ wordunit_T *tryparse_arith(parsestate_T *ps)
 	    break;
 	case L')':
 	    nestparen--;
-	    if (nestparen < 0) {
-		ensure_buffer(ps, 2);
-		if (ps->src.contents[ps->index + 1] == L')')
+	    if (nestparen >= 0)
+		break;
+	    maybe_line_continuations(ps, ps->index + 1);
+	    switch (ps->src.contents[ps->index + 1]) {
+		case L')':
+		    MAKE_WORDUNIT_STRING;
+		    ps->index += 2;
 		    goto end;
-		else
-		    goto fail;
+		case L'\0':
+		    serror(ps, Ngt("`%ls' is missing"), L")");
+		    goto end;
+		default:
+		    goto not_arithmetic_expansion;
 	    }
-	    break;
 	default:
 	    break;
 	}
 	ps->index++;
     }
-end:
-    MAKE_WORDUNIT_STRING;
-    ps->index += 2;
-
+end:;
     wordunit_T *result = xmalloc(sizeof *result);
     result->next = NULL;
     result->wu_type = WT_ARITH;
     result->wu_arith = first;
     return result;
 
-fail:
+not_arithmetic_expansion:
     wordfree(first);
     rewind_index(ps, saveindex);
     return NULL;
 }
 
-/* Returns a word token at the current index as a newly malloced string.
- * The current position is advanced to the character that just follows the word.
- * This function never returns NULL, but may return an empty string. */
-wchar_t *parse_word_as_wcs(parsestate_T *ps)
-{
-    psubstitute_alias_recursive(ps, 0);
+/***** Newline token parser *****/
 
-    size_t startindex = ps->index;
-    wordfree(parse_word(ps, false));
-    assert(startindex <= ps->index);
-    return xwcsndup(&ps->src.contents[startindex], ps->index - startindex);
+/* Parses the newline token at the current position and proceeds to the next
+ * line. The contents of pending here-documents are read if any. The current
+ * token is cleared. */
+void next_line(parsestate_T *ps)
+{
+    assert(ps->src.contents[ps->index] == L'\n');
+    ps->index++;
+    ps->info->lineno++;
+
+    for (size_t i = 0; i < ps->pending_heredocs.length; i++)
+	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
+    pl_clear(&ps->pending_heredocs, 0);
+
+    wordfree(ps->token);
+    ps->token = NULL;
+    ps->tokentype = TT_UNKNOWN;
+    ps->next_index = ps->index;
+}
+
+/* Processes a sequence of newline tokens. Returns true if at least one newline
+ * token has been processed; false if none. */
+bool parse_newline_list(parsestate_T *ps)
+{
+    bool found = false;
+    while (ps->tokentype == TT_NEWLINE) {
+	found = true;
+	next_line(ps);
+	next_token(ps);
+    }
+    return found;
+}
+
+/***** Character classifiers *****/
+
+/* Checks if the specified character is a token separator. */
+bool is_token_delimiter_char(wchar_t c)
+{
+    switch (c) {
+	case L'\0':  case L'\n':  case L';':   case L'&':   case L'|':
+	case L'<':   case L'>':   case L'(':   case L')':
+	    return true;
+	default:
+	    return iswblank(c);
+    }
+}
+
+bool is_comma_or_closing_bracket(wchar_t c)
+{
+    return c == L']' || c == L',';
+}
+
+bool is_slash_or_closing_brace(wchar_t c)
+{
+    return c == L'/' || c == L'}';
+}
+
+bool is_closing_brace(wchar_t c)
+{
+    return c == L'}';
+}
+
+/***** Aliases *****/
+
+/* Performs alias substitution with the given parse state. Proceeds to the
+ * next token if substitution occurred. This function does not substitute an
+ * IO_NUMBER token, but do a keyword token. */
+bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
+{
+    if (!ps->enable_alias)
+	return false;
+    if (ps->tokentype == TT_IO_NUMBER)
+	return false;
+    if (!is_single_string_word(ps->token))
+	return false;
+
+    bool substituted = substitute_alias_range(
+	    &ps->src, ps->index, ps->next_index, &ps->aliases, flags);
+    if (substituted) {
+	/* parse the result of the substitution. */
+	ps->next_index = ps->index;
+	next_token(ps);
+    }
+    return substituted;
+}
+
+/* Performs alias substitution recursively. This should not be used where the
+ * substitution result may be recognized as a keyword, since keywords should not
+ * be alias-substituted. */
+void psubstitute_alias_recursive(parsestate_T *ps, substaliasflags_T flags)
+{
+    while (psubstitute_alias(ps, flags)) ;
+}
+
+/***** Syntax parser functions *****/
+
+/* Parses commands.
+ * If `toeol' is true, commands are parsed up to the end of the current input;
+ * otherwise, up to the next closing token. */
+and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
+{
+    and_or_T *first = NULL, **lastp = &first;
+    bool saveerror = ps->error;
+    bool need_separator = false;
+    /* For a command to be parsed after another, it must be separated by L"&",
+     * L";", or newlines. */
+
+    if (!toeol && !ps->info->interactive)
+	ps->error = false;
+    if (ps->tokentype == TT_UNKNOWN)
+	next_token(ps);
+
+    while (!ps->error) {
+	if (toeol) {
+	    if (ps->tokentype == TT_NEWLINE) {
+		next_line(ps);
+		need_separator = false;
+		if (ps->next_index != ps->src.length) {
+		    next_token(ps);
+		    continue;
+		}
+		wordfree(ps->token);
+		ps->token = NULL;
+		ps->index = ps->next_index;
+		ps->tokentype = TT_END_OF_INPUT;
+	    }
+	    if (ps->tokentype == TT_END_OF_INPUT) {
+		break;
+	    } else if (ps->tokentype == TT_RPAREN) {
+		print_errmsg_token_unexpected(ps);
+		break;
+	    } else if (need_separator) {
+		serror(ps, Ngt("`;' or `&' is missing"));
+		break;
+	    }
+	} else {
+	    if (parse_newline_list(ps))
+		need_separator = false;
+	    if (need_separator || ps->tokentype == TT_END_OF_INPUT ||
+		    is_closing_tokentype(ps->tokentype))
+		break;
+	}
+
+	and_or_T *ao = parse_and_or_list(ps);
+	if (ao != NULL) {
+	    *lastp = ao;
+	    lastp = &ao->next;
+	}
+	if (ps->reparse) {
+	    assert(ao == NULL);
+	    continue;
+	}
+
+	if (ps->tokentype != TT_AMP && ps->tokentype != TT_SEMICOLON) {
+	    need_separator = true;
+	} else {
+	    need_separator = false;
+	    next_token(ps);
+	}
+    }
+    if (!toeol)
+	ps->error |= saveerror;
+    ps->reparse = false;
+    return first;
+}
+
+/* Parses commands until a closing token is found. */
+and_or_T *parse_compound_list(parsestate_T *ps)
+{
+    return parse_command_list(ps, false);
+}
+
+/* Parses one and/or list.
+ * The result reflects the trailing "&" or ";", but `ps->index' points to the
+ * delimiter "&" or ";" when the function returns.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+and_or_T *parse_and_or_list(parsestate_T *ps)
+{
+    pipeline_T *p = parse_pipelines_in_and_or(ps);
+    if (ps->reparse) {
+	assert(p == NULL);
+	return NULL;
+    }
+
+    and_or_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->ao_pipelines = p;
+    result->ao_async = (ps->tokentype == TT_AMP);
+    return result;
+}
+
+/* Parses all pipelines in one and/or list.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
+{
+    pipeline_T *first = NULL, **lastp = &first;
+    bool cond = false;
+
+    for (;;) {
+	pipeline_T *p = parse_pipeline(ps);
+	if (p != NULL) {
+	    p->pl_cond = cond;
+	    *lastp = p;
+	    lastp = &p->next;
+	}
+	if (ps->reparse) {
+	    assert(p == NULL);
+	    if (first != NULL)
+		goto next;
+	    else
+		break;
+	}
+
+	if (ps->tokentype == TT_AMPAMP)
+	    cond = true;
+	else if (ps->tokentype == TT_PIPEPIPE)
+	    cond = false;
+	else
+	    break;
+	next_token(ps);
+next:
+	parse_newline_list(ps);
+    }
+    return first;
+}
+
+/* Parses one pipeline.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+pipeline_T *parse_pipeline(parsestate_T *ps)
+{
+    bool neg;
+    command_T *c;
+
+    if (ps->tokentype == TT_BANG) {
+	neg = true;
+	if (posixly_correct && ps->src.contents[ps->next_index] == L'(')
+	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
+			"is not supported"));
+	next_token(ps);
+	do {
+	    c = parse_commands_in_pipeline(ps);
+	    if (ps->reparse)
+		assert(c == NULL);
+	} while (ps->reparse);
+    } else {
+	neg = false;
+	c = parse_commands_in_pipeline(ps);
+	if (ps->reparse) {
+	    assert(c == NULL);
+	    return NULL;
+	}
+    }
+
+    pipeline_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->pl_commands = c;
+    result->pl_neg = neg;
+    result->pl_cond = false;
+    return result;
+}
+
+/* Parses the body of the pipeline.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+command_T *parse_commands_in_pipeline(parsestate_T *ps)
+{
+    command_T *first = NULL, **lastp = &first;
+
+    for (;;) {
+	command_T *c = parse_command(ps);
+	if (c != NULL) {
+	    *lastp = c;
+	    lastp = &c->next;
+	}
+	if (ps->reparse) {
+	    assert(c == NULL);
+	    if (first != NULL)
+		goto next;
+	    else
+		break;
+	}
+
+	if (ps->tokentype != TT_PIPE)
+	    break;
+
+	next_token(ps);
+next:
+	parse_newline_list(ps);
+    }
+    return first;
+}
+
+/* Parses one command.
+ * If the first word was alias-substituted, the `ps->reparse' flag is set and
+ * NULL is returned. */
+command_T *parse_command(parsestate_T *ps)
+{
+    ps->reparse = false;
+
+    if (ps->tokentype == TT_BANG || ps->tokentype == TT_IN ||
+	    is_closing_tokentype(ps->tokentype)) {
+	print_errmsg_token_unexpected(ps);
+	return NULL;
+    }
+
+    command_T *result = parse_compound_command(ps);
+    if (result != NULL)
+	return result;
+
+    if (psubstitute_alias(ps, AF_NONGLOBAL)) {
+	ps->reparse = true;
+	return NULL;
+    }
+
+    /* parse as a simple command */
+    result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->refcount = 1;
+    result->c_lineno = ps->info->lineno;
+    result->c_type = CT_SIMPLE;
+    result->c_assigns = NULL;
+    result->c_redirs = NULL;
+    result->c_words = parse_simple_command_tokens(
+	    ps, &result->c_assigns, &result->c_redirs);
+
+    if (result->c_words[0] == NULL && result->c_assigns == NULL &&
+	    result->c_redirs == NULL) {
+	/* an empty command */
+	comsfree(result);
+	if (ps->tokentype == TT_END_OF_INPUT || ps->tokentype == TT_NEWLINE)
+	    serror(ps, Ngt("a command is missing at the end of input"));
+	else
+	    serror(ps, Ngt("a command is missing before `%lc'"),
+		    (wint_t) ps->src.contents[ps->index]);
+	return NULL;
+    }
+
+    return try_reparse_as_function(ps, result);
+}
+
+/* Parses assignments, redirections, and words.
+ * Assignments are parsed before words are parsed. Tokens are subject to
+ * any-type alias substitution until the first word is parsed, except for the
+ * first token which is parsed intact. The other words are subject to global
+ * alias substitution. Redirections can appear anywhere.
+ * Parsed Assignments and redirections are assigned to `*assigns' and `redirs',
+ * respectively. They must have been initialized NULL (or anything) before
+ * calling this function. Parsed words are returned as a newly-malloced
+ * NULL-terminated array of pointers to newly-malloced wordunit_T's. */
+void **parse_simple_command_tokens(
+	parsestate_T *ps, assign_T **assigns, redir_T **redirs)
+{
+    bool is_first = true;
+    plist_T words;
+    pl_init(&words);
+
+next:
+    if (is_first)
+	is_first = false;
+    else
+	psubstitute_alias_recursive(ps, words.length == 0 ? AF_NONGLOBAL : 0);
+
+    redir_T *redir = tryparse_redirect(ps);
+    if (redir != NULL) {
+	*redirs = redir;
+	redirs = &redir->next;
+	goto next;
+    }
+
+    if (words.length == 0) {
+	assign_T *assign = tryparse_assignment(ps);
+	if (assign != NULL) {
+	    *assigns = assign;
+	    assigns = &assign->next;
+	    goto next;
+	}
+    }
+
+    if (ps->token != NULL) {
+	pl_add(&words, ps->token), ps->token = NULL;
+	next_token(ps);
+	goto next;
+    }
+
+    return pl_toary(&words);
+}
+
+/* Parses words.
+ * The resultant words are returned as a newly-malloced NULL-terminated array of
+ * pointers to word units that are cast to (void *).
+ * All words are subject to global alias substitution.
+ * If `skip_newlines' is true, newline operators are skipped.
+ * Words are parsed until an operator token is found. */
+void **parse_words(parsestate_T *ps, bool skip_newlines)
+{
+    plist_T wordlist;
+
+    pl_init(&wordlist);
+    for (;;) {
+	psubstitute_alias_recursive(ps, 0);
+	if (skip_newlines && parse_newline_list(ps))
+	    continue;
+	if (ps->token == NULL)
+	    break;
+	pl_add(&wordlist, ps->token), ps->token = NULL;
+	next_token(ps);
+    }
+    return pl_toary(&wordlist);
+}
+
+/* Parses as many redirections as possible.
+ * The parsing result is assigned to `*redirlastp'
+ * `*redirlastp' must have been initialized to NULL beforehand. */
+void parse_redirect_list(parsestate_T *ps, redir_T **lastp)
+{
+    for (;;) {
+	psubstitute_alias_recursive(ps, 0);
+
+	redir_T *redir = tryparse_redirect(ps);
+	if (redir == NULL)
+	    break;
+	*lastp = redir;
+	lastp = &redir->next;
+    }
+}
+
+/* Re-parses the current token as an assignment word. If successful, the token
+ * is consumed and the assignment is returned. For an array assignment, all
+ * tokens up to (and including) the closing parenthesis are consumed. If
+ * unsuccessful, the current token is not modified and NULL is returned. */
+assign_T *tryparse_assignment(parsestate_T *ps)
+{
+    if (ps->token == NULL)
+	return NULL;
+    if (ps->token->wu_type != WT_STRING)
+	return NULL;
+
+    const wchar_t *nameend = skip_name(ps->token->wu_string, is_name_char);
+    size_t namelen = nameend - ps->token->wu_string;
+    if (namelen == 0 || *nameend != L'=')
+	return NULL;
+
+    assign_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->a_name = xwcsndup(ps->token->wu_string, namelen);
+
+    /* remove the name and '=' from the token */
+    size_t index_after_first_token = ps->next_index;
+    wordunit_T *first_token = ps->token;
+    ps->token = NULL;
+    wmemmove(first_token->wu_string, &nameend[1], wcslen(&nameend[1]) + 1);
+    if (first_token->wu_string[0] == L'\0') {
+	wordunit_T *wu = first_token->next;
+	wordunitfree(first_token);
+	first_token = wu;
+    }
+
+    next_token(ps);
+
+    if (posixly_correct || first_token != NULL ||
+	    ps->index != index_after_first_token ||
+	    ps->tokentype != TT_LPAREN) {
+	/* scalar assignment */
+	result->a_type = A_SCALAR;
+	result->a_scalar = first_token;
+    } else {
+	/* array assignment */
+	next_token(ps);
+	result->a_type = A_ARRAY;
+	result->a_array = parse_words(ps, true);
+	if (ps->tokentype == TT_RPAREN)
+	    next_token(ps);
+	else
+	    serror(ps, Ngt("`%ls' is missing"), L")");
+    }
+    return result;
+}
+
+/* If there is a redirection at the current position, parses and returns it.
+ * Otherwise, returns NULL without moving the position. */
+redir_T *tryparse_redirect(parsestate_T *ps)
+{
+    int fd;
+
+    if (ps->tokentype == TT_IO_NUMBER) {
+	unsigned long lfd;
+	wchar_t *endptr;
+
+	assert(ps->token != NULL);
+	assert(ps->token->wu_type == WT_STRING);
+	assert(ps->token->next == NULL);
+	errno = 0;
+	lfd = wcstoul(ps->token->wu_string, &endptr, 10);
+	if (errno != 0 || lfd > INT_MAX)
+	    fd = -1;  /* invalid fd */
+	else
+	    fd = (int) lfd;
+	assert(*endptr == L'\0');
+	next_token(ps);
+    } else if (ps->src.contents[ps->index] == L'<') {
+	fd = STDIN_FILENO;
+    } else if (ps->src.contents[ps->index] == L'>') {
+	fd = STDOUT_FILENO;
+    } else {
+	return NULL;
+    }
+
+    redir_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->rd_fd = fd;
+    switch (ps->tokentype) {
+	case TT_LESS:
+	    result->rd_type = RT_INPUT;
+	    break;
+	case TT_LESSGREATER:
+	    result->rd_type = RT_INOUT;
+	    break;
+	case TT_LESSAMP:
+	    result->rd_type = RT_DUPIN;
+	    break;
+	case TT_GREATER:
+	    result->rd_type = RT_OUTPUT;
+	    break;
+	case TT_GREATERGREATER:
+	    result->rd_type = RT_APPEND;
+	    break;
+	case TT_GREATERPIPE:
+	    result->rd_type = RT_CLOBBER;
+	    break;
+	case TT_GREATERAMP:
+	    result->rd_type = RT_DUPOUT;
+	    break;
+	case TT_GREATERGREATERPIPE:
+	    if (posixly_correct)
+		serror(ps, Ngt("pipe redirection is not supported "
+			    "in the POSIXly-correct mode"));
+	    result->rd_type = RT_PIPE;
+	    break;
+	case TT_LESSLPAREN:
+	    result->rd_type = RT_PROCIN;
+	    goto parse_command;
+	case TT_GREATERLPAREN:
+	    result->rd_type = RT_PROCOUT;
+	    goto parse_command;
+	case TT_LESSLESS:
+	    result->rd_type = RT_HERE;
+	    goto parse_here_document_tag;
+	case TT_LESSLESSDASH:
+	    result->rd_type = RT_HERERT;
+	    goto parse_here_document_tag;
+	case TT_LESSLESSLESS:
+	    if (posixly_correct)
+		serror(ps, Ngt("here-string is not supported "
+			    "in the POSIXly-correct mode"));
+	    result->rd_type = RT_HERESTR;
+	    break;
+	default:
+	    assert(false);
+    }
+
+    /* parse redirection target file token */
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+    result->rd_filename = ps->token, ps->token = NULL;
+    if (result->rd_filename != NULL)
+	next_token(ps);
+    else
+	serror(ps, Ngt("the redirection target is missing"));
+    return result;
+
+parse_here_document_tag:
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+    result->rd_hereend =
+	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
+    result->rd_herecontent = NULL;
+    if (ps->token == NULL) {
+	serror(ps, Ngt("the end-of-here-document indicator is missing"));
+    } else {
+	pl_add(&ps->pending_heredocs, result);
+	next_token(ps);
+    }
+    return result;
+
+parse_command:
+    if (posixly_correct)
+	serror(ps, Ngt("process redirection is not supported "
+		    "in the POSIXly-correct mode"));
+    result->rd_command = extract_command_in_paren(ps);
+    if (ps->tokentype == TT_RPAREN)
+	next_token(ps);
+    else
+	serror(ps, Ngt("unclosed process redirection"));
+    return result;
 }
 
 /* Parses a compound command.
- * `command' is the name of the command to parse such as "(" and "if". */
-command_T *parse_compound_command(parsestate_T *ps, const wchar_t *command)
+ * `command' is the name of the command to parse such as "(" and "if".
+ * Returns NULL iff the current token does not start a compound command. */
+command_T *parse_compound_command(parsestate_T *ps)
 {
-    /* `parse_group', `parse_if', etc. don't call `skip_blanks_and_comment'
-     * before they return nor parse redirections. */
     command_T *result;
-    switch (command[0]) {
-    case L'(':
-	result = parse_group(ps, CT_SUBSHELL);
+    switch (ps->tokentype) {
+    case TT_LPAREN:
+    case TT_LBRACE:
+	result = parse_group(ps);
 	break;
-    case L'{':
-	result = parse_group(ps, CT_GROUP);
-	break;
-    case L'i':
+    case TT_IF:
 	result = parse_if(ps);
 	break;
-    case L'f':
-	switch (command[1]) {
-	    case L'o':
-		result = parse_for(ps);
-		break;
-	    case L'u':
-		result = parse_function(ps);
-		break;
-	    default:
-		assert(false);
-	}
+    case TT_FOR:
+	result = parse_for(ps);
 	break;
-    case L'w':
-	result = parse_while(ps, true);
+    case TT_FUNCTION:
+	result = parse_function(ps);
 	break;
-    case L'u':
-	result = parse_while(ps, false);
+    case TT_WHILE:
+    case TT_UNTIL:
+	result = parse_while(ps);
 	break;
-    case L'c':
+    case TT_CASE:
 	result = parse_case(ps);
 	break;
     default:
-	assert(false);
+	return NULL;
     }
-    skip_blanks_and_comment(ps);
     parse_redirect_list(ps, &result->c_redirs);
     return result;
 }
 
 /* Parses a command group.
- * `type' must be either CT_GROUP or CT_SUBSHELL. */
-command_T *parse_group(parsestate_T *ps, commandtype_T type)
+ * The current token must be the starting "(" or "{". Never returns NULL. */
+command_T *parse_group(parsestate_T *ps)
 {
-    const wchar_t *start, *end;
+    commandtype_T type;
+    tokentype_T endtt;
+    const wchar_t *starts, *ends;
 
-    switch (type) {
-	case CT_GROUP:
-	    start = L"{", end = L"}";
-	    assert(has_token(ps, start));
+    switch (ps->tokentype) {
+	case TT_LBRACE:
+	    type = CT_GROUP;
+	    endtt = TT_RBRACE;
+	    starts = L"{", ends = L"}";
 	    break;
-	case CT_SUBSHELL:
-	    start = L"(", end = L")";
-	    assert(ps->src.contents[ps->index] == start[0]);
+	case TT_LPAREN:
+	    type = CT_SUBSHELL;
+	    endtt = TT_RPAREN;
+	    starts = L"(", ends = L")";
 	    break;
 	default:
 	    assert(false);
     }
-    ps->index++;
+    next_token(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2097,19 +2317,20 @@ command_T *parse_group(parsestate_T *ps, commandtype_T type)
     result->c_subcmds = parse_compound_list(ps);
     if (posixly_correct && result->c_subcmds == NULL)
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
-		start, end);
-    if (ps->src.contents[ps->index] == end[0])
-	ps->index++;
+		starts, ends);
+    if (ps->tokentype == endtt)
+	next_token(ps);
     else
-	print_errmsg_token_missing(ps, end);
+	print_errmsg_token_missing(ps, ends);
     return result;
 }
 
-/* Parses a if command */
+/* Parses an if command.
+ * The current token must be the starting "if". Never returns NULL. */
 command_T *parse_if(parsestate_T *ps)
 {
-    assert(has_token(ps, L"if"));
-    ps->index += 2;
+    assert(ps->tokentype == TT_IF);
+    next_token(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2132,9 +2353,8 @@ command_T *parse_if(parsestate_T *ps)
 		serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 			(result->c_ifcmds->next == NULL) ? L"if" : L"elif",
 			L"then");
-	    ensure_buffer(ps, 5);
-	    if (has_token(ps, L"then"))
-		ps->index += 4;
+	    if (ps->tokentype == TT_THEN)
+		next_token(ps);
 	    else
 		print_errmsg_token_missing(ps, L"then");
 	} else {
@@ -2144,14 +2364,13 @@ command_T *parse_if(parsestate_T *ps)
 	if (posixly_correct && ic->ic_commands == NULL)
 	    serror(ps, Ngt("commands are missing after `%ls'"),
 		    after_else ? L"else" : L"then");
-	ensure_buffer(ps, 5);
-	if (!after_else && has_token(ps, L"else")) {
-	    ps->index += 4;
+	if (!after_else && ps->tokentype == TT_ELSE) {
+	    next_token(ps);
 	    after_else = true;
-	} else if (!after_else && has_token(ps, L"elif")) {
-	    ps->index += 4;
-	} else if (has_token(ps, L"fi")) {
-	    ps->index += 2;
+	} else if (!after_else && ps->tokentype == TT_ELIF) {
+	    next_token(ps);
+	} else if (ps->tokentype == TT_FI) {
+	    next_token(ps);
 	    break;
 	} else {
 	    print_errmsg_token_missing(ps, L"fi");
@@ -2161,12 +2380,13 @@ command_T *parse_if(parsestate_T *ps)
     return result;
 }
 
-/* Parses a for command. */
+/* Parses a for command.
+ * The current token must be the starting "for". Never returns NULL. */
 command_T *parse_for(parsestate_T *ps)
 {
-    assert(has_token(ps, L"for"));
-    ps->index += 3;
-    skip_blanks_and_comment(ps);
+    assert(ps->tokentype == TT_FOR);
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2175,45 +2395,39 @@ command_T *parse_for(parsestate_T *ps)
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
 
-    wchar_t *name = parse_word_as_wcs(ps);
-    if (!(posixly_correct ? is_portable_name : is_name)(name)) {
-	if (name[0] == L'\0')
+    result->c_forname =
+	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
+    if (!is_name_word(ps->token)) {
+	if (ps->token == NULL)
 	    serror(ps, Ngt("an identifier is required after `for'"));
 	else
-	    serror(ps, Ngt("`%ls' is not a valid identifier"), name);
+	    serror(ps, Ngt("`%ls' is not a valid identifier"),
+		    result->c_forname);
     }
-    result->c_forname = name;
+    next_token(ps);
 
 parse_in:;
-    bool on_next_line = skip_to_next_token(ps);
-    ensure_buffer(ps, 3);
-    if (has_token(ps, L"in")) {
-	redir_T *redirs = NULL;
-	ps->index += 2;
-	skip_blanks_and_comment(ps);
-	result->c_forwords = parse_words_and_redirects(ps, &redirs, false);
-	if (redirs != NULL) {
-	    serror(ps, Ngt("redirections are not allowed after `in'"));
-	    redirsfree(redirs);
-	}
-	if (ps->src.contents[ps->index] == L';')
-	    ps->index++;
+    bool on_next_line = parse_newline_list(ps);
+    if (ps->tokentype == TT_IN) {
+	next_token(ps);
+	result->c_forwords = parse_words(ps, false);
+	if (ps->tokentype == TT_SEMICOLON)
+	    next_token(ps);
     } else if (psubstitute_alias(ps, 0)) {
 	goto parse_in;
     } else {
 	result->c_forwords = NULL;
-	if (ps->src.contents[ps->index] == L';') {
-	    ps->index++;
+	if (ps->tokentype == TT_SEMICOLON) {
+	    next_token(ps);
 	    if (on_next_line)
 		serror(ps, Ngt("`;' cannot appear on a new line"));
 	}
     }
 
 parse_do:
-    skip_to_next_token(ps);
-    ensure_buffer(ps, 3);
-    if (has_token(ps, L"do"))
-	ps->index += 2;
+    parse_newline_list(ps);
+    if (ps->tokentype == TT_DO)
+	next_token(ps);
     else if (psubstitute_alias(ps, 0))
 	goto parse_do;
     else
@@ -2225,21 +2439,26 @@ parse_do:
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 		L"do", L"done");
 
-    ensure_buffer(ps, 5);
-    if (has_token(ps, L"done"))
-	ps->index += 4;
+    if (ps->tokentype == TT_DONE)
+	next_token(ps);
     else
 	print_errmsg_token_missing(ps, L"done");
+
     return result;
 }
 
 /* Parses a while/until command.
- * `whltype' must be true for the while command and false for the until command.
- */
-command_T *parse_while(parsestate_T *ps, bool whltype)
+ * The current token must be the starting "while" or "until". Never returns
+ * NULL. */
+command_T *parse_while(parsestate_T *ps)
 {
-    assert(has_token(ps, whltype ? L"while" : L"until"));
-    ps->index += 5;
+    bool whltype;
+    switch (ps->tokentype) {
+	case TT_WHILE:  whltype = true;   break;
+	case TT_UNTIL:  whltype = false;  break;
+	default:        assert(false);
+    }
+    next_token(ps);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2248,33 +2467,37 @@ command_T *parse_while(parsestate_T *ps, bool whltype)
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
     result->c_whltype = whltype;
+
     result->c_whlcond = parse_compound_list(ps);
     if (posixly_correct && result->c_whlcond == NULL)
 	serror(ps, Ngt("commands are missing after `%ls'"),
 		whltype ? L"while" : L"until");
-    ensure_buffer(ps, 3);
-    if (has_token(ps, L"do"))
-	ps->index += 2;
+
+    if (ps->tokentype == TT_DO)
+	next_token(ps);
     else
 	print_errmsg_token_missing(ps, L"do");
+
     result->c_whlcmds = parse_compound_list(ps);
     if (posixly_correct && result->c_whlcmds == NULL)
 	serror(ps, Ngt("commands are missing between `%ls' and `%ls'"),
 		L"do", L"done");
-    ensure_buffer(ps, 5);
-    if (has_token(ps, L"done"))
-	ps->index += 4;
+
+    if (ps->tokentype == TT_DONE)
+	next_token(ps);
     else
 	print_errmsg_token_missing(ps, L"done");
+
     return result;
 }
 
-/* Parses a case command. */
+/* Parses a case command.
+ * The current token must be the starting "case". Never returns NULL. */
 command_T *parse_case(parsestate_T *ps)
 {
-    assert(has_token(ps, L"case"));
-    ps->index += 4;
-    skip_blanks_and_comment(ps);
+    assert(ps->tokentype == TT_CASE);
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2282,15 +2505,16 @@ command_T *parse_case(parsestate_T *ps)
     result->c_type = CT_CASE;
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
-    result->c_casword = parse_word(ps, true);
-    if (result->c_casword == NULL)
+    result->c_casword = ps->token, ps->token = NULL;
+    if (result->c_casword != NULL)
+	next_token(ps);
+    else
 	serror(ps, Ngt("a word is required after `%ls'"), L"case");
 
 parse_in:
-    skip_to_next_token(ps);
-    ensure_buffer(ps, 3);
-    if (has_token(ps, L"in")) {
-	ps->index += 2;
+    parse_newline_list(ps);
+    if (ps->tokentype == TT_IN) {
+	next_token(ps);
 	result->c_casitems = parse_case_list(ps);
     } else if (psubstitute_alias(ps, 0)) {
 	goto parse_in;
@@ -2300,24 +2524,22 @@ parse_in:
 	result->c_casitems = NULL;
     }
 
-    ensure_buffer(ps, 5);
-    if (has_token(ps, L"esac"))
-	ps->index += 4;
+    if (ps->tokentype == TT_ESAC)
+	next_token(ps);
     else
 	print_errmsg_token_missing(ps, L"esac");
+
     return result;
 }
 
-/* Parses the body of a case command (the part between "in" and "esac").
- * You don't have to call `skip_to_next_token' before calling this function. */
+/* Parses the body of a case command (the part between "in" and "esac"). */
 caseitem_T *parse_case_list(parsestate_T *ps)
 {
     caseitem_T *first = NULL, **lastp = &first;
 
     do {
-	skip_to_next_token(ps);
-	ensure_buffer(ps, 5);
-	if (has_token(ps, L"esac"))
+	parse_newline_list(ps);
+	if (ps->tokentype == TT_ESAC)
 	    break;
 	if (psubstitute_alias(ps, 0))
 	    continue;
@@ -2329,80 +2551,75 @@ caseitem_T *parse_case_list(parsestate_T *ps)
 	ci->ci_patterns = parse_case_patterns(ps);
 	ci->ci_commands = parse_compound_list(ps);
 	/* `ci_commands' may be NULL unlike for and while commands */
-	ensure_buffer(ps, 2);
-	if (ps->src.contents[ps->index] == L';' &&
-		ps->src.contents[ps->index + 1] == L';') {
-	    ps->index += 2;
-	} else {
+	if (ps->tokentype == TT_DOUBLE_SEMICOLON)
+	    next_token(ps);
+	else
 	    break;
-	}
     } while (!ps->error);
     return first;
 }
 
 /* Parses patterns of a case item.
- * The current position is advanced to the character that just follows ')', not
- * to the next token.
- * Call `skip_to_next_token' and `ensure_buffer(ps, 1)' before calling this
- * function. */
+ * This function consumes the closing ")".
+ * Perform alias substitution before calling this function. */
 void **parse_case_patterns(parsestate_T *ps)
 {
     plist_T wordlist;
     pl_init(&wordlist);
 
-    if (ps->src.contents[ps->index] == L'(') {  /* ignore the first '(' */
-	ps->index++;
-	skip_blanks_and_comment(ps);
-	if (posixly_correct) {
-	    ensure_buffer(ps, 5);
-	    if (has_token(ps, L"esac"))
-		serror(ps, Ngt(
-		    "an unquoted `esac' cannot be the first case pattern"));
-	}
+    if (ps->tokentype == TT_LPAREN) {  /* ignore the first '(' */
+	next_token(ps);
+	do {
+	    if (posixly_correct && ps->tokentype == TT_ESAC)
+		serror(ps,
+		    Ngt("an unquoted `esac' cannot be the first case pattern"));
+	} while (psubstitute_alias(ps, 0));
     }
 
     const wchar_t *predecessor = L"(";
     do {
-	if (is_token_delimiter_char(ps->src.contents[ps->index])) {
-	    if (ps->src.contents[ps->index] != L'\0') {
-		if (ps->src.contents[ps->index] == L'\n')
-		    serror(ps, Ngt("a word is required after `%ls'"),
-			    predecessor);
-		else
-		    serror(ps, Ngt("encountered an invalid character `%lc' "
-				"in the case pattern"),
-			    (wint_t) ps->src.contents[ps->index]);
+	if (ps->token == NULL) {
+	    if (ps->tokentype == TT_END_OF_INPUT) {
+		// serror(ps, ...);
+	    } else if (ps->tokentype == TT_NEWLINE) {
+		serror(ps, Ngt("a word is required after `%ls'"),
+			predecessor);
+	    } else {
+		serror(ps, Ngt("encountered an invalid character `%lc' "
+			    "in the case pattern"),
+			(wint_t) ps->src.contents[ps->index]);
 	    }
 	    break;
 	}
-	pl_add(&wordlist, parse_word(ps, true));
-	skip_blanks_and_comment(ps);
+	pl_add(&wordlist, ps->token), ps->token = NULL;
+
+	next_token(ps);
 	psubstitute_alias_recursive(ps, 0);
-	ensure_buffer(ps, 1);
-	if (ps->src.contents[ps->index] == L'|') {
-	    predecessor = L"|";
-	    ps->index++;
-	} else if (ps->src.contents[ps->index] == L')') {
-	    ps->index++;
-	    break;
-	} else {
-	    serror(ps, Ngt("`%ls' is missing"), L")");
+	if (ps->tokentype != TT_PIPE) {
+	    if (ps->tokentype == TT_RPAREN)
+		next_token(ps);
+	    else
+		serror(ps, Ngt("`%ls' is missing"), L")");
 	    break;
 	}
-	skip_blanks_and_comment(ps);
+	predecessor = L"|";
+	next_token(ps);
+	psubstitute_alias_recursive(ps, 0);
     } while (!ps->error);
+
     return pl_toary(&wordlist);
 }
 
-/* Parses a function definition that starts with the "function" keyword. */
+/* Parses a function definition that starts with the "function" keyword.
+ * The current token must be "function". Never returns NULL. */
 command_T *parse_function(parsestate_T *ps)
 {
     if (posixly_correct)
 	serror(ps, Ngt("`%ls' cannot be used as a command name"), L"function");
 
-    assert(has_token(ps, L"function"));
-    ps->index += 8;
-    skip_blanks_and_comment(ps);
+    assert(ps->tokentype == TT_FUNCTION);
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
 
     command_T *result = xmalloc(sizeof *result);
     result->next = NULL;
@@ -2410,39 +2627,41 @@ command_T *parse_function(parsestate_T *ps)
     result->c_type = CT_FUNCDEF;
     result->c_lineno = ps->info->lineno;
     result->c_redirs = NULL;
-    result->c_funcname = parse_word(ps, true);
+    result->c_funcname = ps->token, ps->token = NULL;
     if (result->c_funcname == NULL)
 	serror(ps, Ngt("a word is required after `%ls'"), L"function");
-    skip_blanks_and_comment(ps);
 
     bool paren = false;
-parse_parentheses:;
-    size_t saveindex = ps->index;
-    if (ps->src.contents[ps->index] == L'(') {
-	ps->index++;
+    next_token(ps);
+parse_parentheses:
+    if (ps->tokentype == TT_LPAREN) {
+	size_t saveindex = ps->index;
+	next_token(ps);
 parse_close_parenthesis:
-	skip_blanks_and_comment(ps);
-	if (ps->src.contents[ps->index] == L')')
-	    paren = true, ps->index++;
-	else if (psubstitute_alias(ps, AF_NONGLOBAL))
+	if (ps->tokentype == TT_RPAREN) {
+	    paren = true;
+	    next_token(ps);
+	} else if (psubstitute_alias(ps, AF_NONGLOBAL)) {
 	    goto parse_close_parenthesis;
-	else
+	} else {
+	    /* rewind to '(' */
 	    rewind_index(ps, saveindex);
+	    ps->next_index = ps->index;
+	    next_token(ps);
+	}
     }
-    skip_to_next_token(ps);
+parse_function_body:
+    parse_newline_list(ps);
 
-parse_function_body:;
-    const wchar_t *t = check_opening_token(ps);
-    if (t != NULL) {
-	result->c_funcbody = parse_compound_command(ps, t);
-    } else if (psubstitute_alias(ps, 0)) {
-	if (paren)
-	    goto parse_function_body;
-	else
-	    goto parse_parentheses;
-    } else {
+    result->c_funcbody = parse_compound_command(ps);
+    if (result->c_funcbody == NULL) {
+	if (psubstitute_alias(ps, 0)) {
+	    if (paren)
+		goto parse_function_body;
+	    else
+		goto parse_parentheses;
+	}
 	serror(ps, Ngt("a function body must be a compound command"));
-	result->c_funcbody = NULL;
     }
 
     return result;
@@ -2456,8 +2675,7 @@ parse_function_body:;
  * If successful, `c' is directly modified to the function definition parsed. */
 command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
 {
-    // ensure_buffer(ps, 1);
-    if (ps->src.contents[ps->index] != L'(') // not a function definition?
+    if (ps->tokentype != TT_LPAREN) // not a function definition?
 	return c;
 
     /* If this is a function definition, there must be exactly one command word
@@ -2471,40 +2689,39 @@ command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
 
     /* The name must be valid. */
     wordunit_T *name = c->c_words[0];
-    if (!is_literal_function_name(name)) {
+    if (!is_name_word(name)) {
 	serror(ps, Ngt("invalid function name"));
 	return c;
     }
 
     /* Skip '('. */
-    ps->index++;
-    skip_blanks_and_comment(ps);
+    next_token(ps);
 
     /* Parse ')'. */
     psubstitute_alias_recursive(ps, 0);
-    // ensure_buffer(ps, 1);
-    if (ps->src.contents[ps->index] != L')') {
+    if (ps->tokentype != TT_RPAREN) {
 	serror(ps, Ngt("`(' must be followed by `)' in a function definition"));
 	return c;
     }
-    ps->index++;
-parse_function_body:
-    skip_to_next_token(ps);
+    next_token(ps);
 
-    const wchar_t *t = check_opening_token(ps);
-    if (t == NULL) {
+    free(c->c_words);
+    c->c_type = CT_FUNCDEF;
+    c->c_funcname = name;
+
+parse_function_body:
+    parse_newline_list(ps);
+    c->c_funcbody = parse_compound_command(ps);
+    if (c->c_funcbody == NULL) {
 	if (psubstitute_alias(ps, 0))
 	    goto parse_function_body;
 	serror(ps, Ngt("a function body must be a compound command"));
-	return c;
     }
-    free(c->c_words);
 
-    c->c_type = CT_FUNCDEF;
-    c->c_funcname = name;
-    c->c_funcbody = parse_compound_command(ps, t);
     return c;
 }
+
+/***** Here-document contents *****/
 
 /* Reads the contents of a here-document. */
 void read_heredoc_contents(parsestate_T *ps, redir_T *r)
@@ -2645,7 +2862,7 @@ wordunit_T **parse_string_without_quotes(
     size_t startindex = ps->index;
 
     for (;;) {
-	ensure_buffer(ps, 1);
+	maybe_line_continuations(ps, ps->index);
 	switch (ps->src.contents[ps->index]) {
 	case L'\0':
 	    goto done;
@@ -2687,108 +2904,6 @@ wordunit_T **parse_string_without_quotes(
 done:
     MAKE_WORDUNIT_STRING;
     return lastp;
-}
-
-/* Parses a string recognizing parameter expansions, command substitutions of
- * the form "$(...)" and arithmetic expansions.
- * All the members of `info' except `lastinputresult' must have been initialized
- * beforehand.
- * This function reads and parses the input to the end of file.
- * Iff successful, the result is assigned to `*resultp' and true is returned.
- * If the input is empty, NULL is assigned.
- * On error, the value of `*resultp' is undefined. */
-bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
-{
-    parsestate_T ps = {
-	.info = info,
-	.error = false,
-	.index = 0,
-	.enable_alias = false,
-	.reparse = false,
-	.aliases = NULL,
-    };
-    wb_init(&ps.src);
-
-    ps.info->lastinputresult = INPUT_OK;
-    read_more_input(&ps);
-    pl_init(&ps.pending_heredocs);
-
-    resultp = parse_string_without_quotes(&ps, false, false, resultp);
-    *resultp = NULL;
-
-    wb_destroy(&ps.src);
-    pl_destroy(&ps.pending_heredocs);
-    assert(ps.aliases == NULL);
-    //destroy_aliaslist(ps.aliases);
-    if (ps.info->lastinputresult != INPUT_EOF || ps.error) {
-	wordfree(*resultp);
-	return false;
-    } else {
-	return true;
-    }
-}
-
-
-/***** Auxiliaries about Error Messages *****/
-
-const char *get_errmsg_unexpected_token(const wchar_t *t)
-{
-    switch (t[0]) {
-	case L')':
-	    assert(wcscmp(t, L")") == 0);
-	    return Ngt("encountered `%ls' without a matching `('");
-	case L'}':
-	    assert(wcscmp(t, L"}") == 0);
-	    return Ngt("encountered `%ls' without a matching `{'");
-	case L';':
-	    assert(wcscmp(t, L";;") == 0);
-	    return Ngt("`%ls' is used outside `case'");
-	case L'!':
-	    assert(wcscmp(t, L"!") == 0);
-	    return Ngt("`%ls' cannot be used as a command name");
-	case L'i':
-	    assert(wcscmp(t, L"in") == 0);
-	    return Ngt("`%ls' cannot be used as a command name");
-	case L'f':
-	    assert(wcscmp(t, L"fi") == 0);
-	    return Ngt("encountered `%ls' "
-		    "without a matching `if' and/or `then'");
-	case L't':
-	    assert(wcscmp(t, L"then") == 0);
-	    return Ngt("encountered `%ls' without a matching `if' or `elif'");
-	case L'd':
-	    assert(t[1] == L'o');
-	    if (t[2] == L'\0') {
-		assert(wcscmp(t, L"do") == 0);
-		return Ngt("encountered `%ls' "
-			"without a matching `for', `while', or `until'");
-	    } else {
-		assert(wcscmp(t, L"done") == 0);
-		return Ngt("encountered `%ls' without a matching `do'");
-	    }
-	case L'e':
-	    if (t[1] == L's') {
-		assert(wcscmp(t, L"esac") == 0);
-		return Ngt("encountered `%ls' without a matching `case'");
-	    } else {
-		assert(wcscmp(t, L"else") == 0 || wcscmp(t, L"elif") == 0);
-		return Ngt("encountered `%ls' "
-			"without a matching `if' and/or `then'");
-	    }
-	default:
-	    assert(false);
-    }
-}
-
-void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
-{
-    const wchar_t *atoken = check_closing_token(ps);
-    if (atoken != NULL) {
-	serror(ps, get_errmsg_unexpected_token(atoken), atoken);
-	serror(ps, Ngt("(maybe you missed `%ls'?)"), t);
-    } else {
-	serror(ps, Ngt("`%ls' is missing"), t);
-    }
 }
 
 
@@ -3167,7 +3282,7 @@ void print_function_definition(
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    if (!is_literal_function_name(c->c_funcname))
+    if (!is_name_word(c->c_funcname))
 	wb_cat(&pr->buffer, L"function ");
     print_word(pr, c->c_funcname, indent);
     wb_cat(&pr->buffer, L"()");

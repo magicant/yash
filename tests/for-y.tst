@@ -276,8 +276,17 @@ for i in 1 2& do echo $i; done
 __IN__
 syntax error: `do' is missing
 syntax error: a command is missing before `&'
-syntax error: `done' is missing
+syntax error: encountered `do' without a matching `for', `while', or `until'
+syntax error: (maybe you missed `done'?)
 __ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
 #'
 #`
 #'
@@ -288,8 +297,20 @@ __ERR__
 test_Oe -e 2 'redirection in words'
 for i in a </dev/null b; do echo $i; done
 __IN__
-syntax error: redirections are not allowed after `in'
+syntax error: `do' is missing
+syntax error: encountered `do' without a matching `for', `while', or `until'
+syntax error: (maybe you missed `done'?)
 __ERR__
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
+#'
+#`
 #'
 #`
 

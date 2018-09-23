@@ -67,6 +67,8 @@ typedef struct aliaslist_T {
  * substitution after another substitution that ends with a blank.
  * Alias list items are sorted in the order of `limitindex'. */
 
+static bool is_alias_name_char(wchar_t c)
+    __attribute__((pure));
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
 static void define_alias(
@@ -103,7 +105,7 @@ void init_alias(void)
 }
 
 /* Returns true iff `c' is a character that can be used in an alias name. */
-inline bool is_alias_name_char(wchar_t c)
+bool is_alias_name_char(wchar_t c)
 {
     return !wcschr(L" \t\n=$<>\\'\"`;&|()#", c) && !iswblank(c);
 }
@@ -282,9 +284,14 @@ void shift_aliaslist_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
 bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
 	aliaslist_T **restrict list, substaliasflags_T flags)
 {
+    if (is_redir_fd(&buf->contents[i]))
+	return false;
+
     size_t j = i;
     while (is_alias_name_char(buf->contents[j]))
 	j++;
+    if (!is_token_delimiter_char(buf->contents[j]))
+	return false;
     return substitute_alias_range(buf, i, j, list, flags);
 }
 
@@ -307,16 +314,11 @@ bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
 	return false;
 
-    /* check if there is an alias name */
     if (i >= j)
 	return false;
     if (flags & AF_NOEOF)
 	if (j == buf->length)
 	    return false;
-    if (!is_token_delimiter_char(buf->contents[j]))
-	return false;
-    if (is_redir_fd(buf->contents + i))
-	return false;
 
     alias_T *alias;
 

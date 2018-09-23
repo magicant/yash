@@ -1,14 +1,14 @@
 # Japanese translations for yash package
 # yash パッケージのメッセージの和訳
-# Copyright (C) 2010-2017 Magicant
+# Copyright (C) 2010-2018 Magicant
 # This file is distributed under the same license as the yash package.
 # WATANABE Yuki <magicant@users.osdn.me>, 2010-2017.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: yash 2.46\n"
+"Project-Id-Version: yash 2.48\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2017-10-28 12:56+0900\n"
+"POT-Creation-Date: 2018-09-23 11:28+0900\n"
 "PO-Revision-Date: 2017-10-28 13:09+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
@@ -18,34 +18,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: alias.c:401
+#: alias.c:403
 #, c-format
 msgid "%ls: an alias for `%ls'\n"
 msgstr "%ls: 「%ls」へのエイリアス\n"
 
-#: alias.c:497 alias.c:548
+#: alias.c:499 alias.c:550
 #, c-format
 msgid "no such alias `%ls'"
 msgstr "「%ls」というエイリアスはありません"
 
-#: alias.c:500
+#: alias.c:502
 #, c-format
 msgid "`%ls' is not a valid alias name"
 msgstr "「%ls」は有効なエイリアス名ではありません"
 
-#: alias.c:509
+#: alias.c:511
 msgid "define or print aliases"
 msgstr "エイリアスを定義または表示する"
 
-#: alias.c:512
+#: alias.c:514
 msgid "\talias [-gp] [name[=value]...]\n"
 msgstr "\talias [-gp] [名前[=値]...]\n"
 
-#: alias.c:556
+#: alias.c:558
 msgid "undefine aliases"
 msgstr "エイリアスの定義を削除する"
 
-#: alias.c:559
+#: alias.c:561
 msgid ""
 "\tunalias name...\n"
 "\tunalias -a\n"
@@ -218,8 +218,8 @@ msgid "`%ls' is not a valid number"
 msgstr "「%ls」は有効な数値ではありません"
 
 #: builtins/printf.c:693 builtins/test.c:556 builtins/test.c:562
-#: builtins/ulimit.c:229 exec.c:1694 exec.c:1767 history.c:1714 sig.c:1395
-#: variable.c:2088 variable.c:2148 variable.c:2187 variable.c:2371 yash.c:633
+#: builtins/ulimit.c:229 exec.c:1725 exec.c:1798 history.c:1714 sig.c:1395
+#: variable.c:2102 variable.c:2162 variable.c:2201 variable.c:2385 yash.c:633
 #, c-format
 msgid "`%ls' is not a valid integer"
 msgstr "「%ls」は有効な整数ではありません"
@@ -232,9 +232,9 @@ msgstr "文字列を整形して出力する"
 msgid "\tprintf format [value...]\n"
 msgstr "\tprintf 書式 [値...]\n"
 
-#: builtins/test.c:82 builtins/test.c:425 parser.c:1257 parser.c:1691
-#: parser.c:1776 parser.c:1804 parser.c:2198 parser.c:2276 parser.c:2367
-#: parser.c:2768
+#: builtins/test.c:82 builtins/test.c:425 parser.c:850 parser.c:1348
+#: parser.c:1436 parser.c:1464 parser.c:1591 parser.c:1630 parser.c:2130
+#: parser.c:2434 parser.c:2522 parser.c:2602
 #, c-format
 msgid "`%ls' is missing"
 msgstr "「%ls」が抜けています"
@@ -249,8 +249,8 @@ msgstr "「%ls」は有効な演算子ではありません"
 msgid "`%ls' is not a unary operator"
 msgstr "「%ls」は単項演算子ではありません"
 
-#: builtins/test.c:159 builtins/test.c:627 builtins/test.c:635 exec.c:1903
-#: exec.c:2041 exec.c:2050 history.c:1492 lineedit/keymap.c:476 path.c:1106
+#: builtins/test.c:159 builtins/test.c:627 builtins/test.c:635 exec.c:1934
+#: exec.c:2078 exec.c:2087 history.c:1492 lineedit/keymap.c:476 path.c:1106
 #: path.c:1173 strbuf.c:573 strbuf.c:596
 msgid "unexpected error"
 msgstr "想定外のエラーです"
@@ -371,72 +371,72 @@ msgstr ""
 "\tulimit -a [-H|-S]\n"
 "\tulimit [-H|-S] [-efilnqrstuvx] [制限]\n"
 
-#: exec.c:747
+#: exec.c:771
 msgid "cannot open a pipe"
 msgstr "パイプを開けません"
 
-#: exec.c:975
+#: exec.c:998
 msgid "cannot make a child process"
 msgstr "子プロセスを生成できません"
 
-#: exec.c:1184 exec.c:2065 exec.c:2292
+#: exec.c:1208 exec.c:2102 exec.c:2329
 #, c-format
 msgid "no such command `%s'"
 msgstr "「%s」というようなコマンドはありません"
 
-#: exec.c:1238
+#: exec.c:1262
 #, c-format
 msgid "cannot execute command `%s'"
 msgstr "コマンド「%s」を実行できません"
 
-#: exec.c:1239
+#: exec.c:1263
 #, c-format
 msgid "cannot execute command `%s' (%s)"
 msgstr "コマンド「%s」(%s) を実行できません"
 
-#: exec.c:1339
+#: exec.c:1366
 #, c-format
 msgid "cannot invoke a new shell to execute script `%s'"
 msgstr "スクリプト「%s」を実行するための新しいシェルを起動できません"
 
-#: exec.c:1394 exec.c:1416
+#: exec.c:1425 exec.c:1447
 msgid "cannot open a pipe for the command substitution"
 msgstr "コマンド置換のためのパイプを開けません"
 
-#: exec.c:1453
+#: exec.c:1484
 msgid "command substitution"
 msgstr "コマンド置換"
 
-#: exec.c:1704
+#: exec.c:1735
 msgid "cannot be used in the interactive mode"
 msgstr "対話モードでは使えません"
 
-#: exec.c:1714
+#: exec.c:1745
 msgid "return from a function or script"
 msgstr "関数やスクリプトから抜ける"
 
-#: exec.c:1717
+#: exec.c:1748
 msgid "\treturn [-n] [exit_status]\n"
 msgstr "\treturn [-n] [終了ステータス]\n"
 
-#: exec.c:1749
+#: exec.c:1780
 msgid "not in an iteration"
 msgstr "反復実行の途中ではありません"
 
-#: exec.c:1770
+#: exec.c:1801
 #, c-format
 msgid "%u is not a positive integer"
 msgstr "%u は正の整数ではありません"
 
-#: exec.c:1780
+#: exec.c:1811
 msgid "not in a loop"
 msgstr "ループの途中ではありません"
 
-#: exec.c:1799
+#: exec.c:1830
 msgid "exit a loop"
 msgstr "ループを抜ける"
 
-#: exec.c:1802
+#: exec.c:1833
 msgid ""
 "\tbreak [count]\n"
 "\tbreak -i\n"
@@ -444,11 +444,11 @@ msgstr ""
 "\tbreak [深さ]\n"
 "\tbreak -i\n"
 
-#: exec.c:1807
+#: exec.c:1838
 msgid "continue a loop"
 msgstr "ループの先頭に戻る"
 
-#: exec.c:1810
+#: exec.c:1841
 msgid ""
 "\tcontinue [count]\n"
 "\tcontinue -i\n"
@@ -456,104 +456,104 @@ msgstr ""
 "\tcontinue [深さ]\n"
 "\tcontinue -i\n"
 
-#: exec.c:1850
+#: exec.c:1881
 msgid "evaluate arguments as a command"
 msgstr "引数をコマンドとして実行する"
 
-#: exec.c:1853
+#: exec.c:1884
 msgid "\teval [-i] [argument...]\n"
 msgstr "\teval [-i] [引数...]\n"
 
-#: exec.c:1912
+#: exec.c:1943
 #, c-format
 msgid "file `%s' was not found in $YASH_LOADPATH"
 msgstr "ファイル「%s」は $YASH_LOADPATH 内に見つかりませんでした"
 
-#: exec.c:1922
+#: exec.c:1953
 #, c-format
 msgid "file `%s' was not found in $PATH"
 msgstr "ファイル「%s」は $PATH 内に見つかりませんでした"
 
-#: exec.c:1939 redir.c:279 yash.c:206
+#: exec.c:1965 redir.c:279 yash.c:206
 #, c-format
 msgid "cannot open file `%s'"
 msgstr "ファイル「%s」を開けません"
 
-#: exec.c:1967
+#: exec.c:2004
 msgid "read a file and execute commands"
 msgstr "ファイルをスクリプトとして実行する"
 
-#: exec.c:1970
+#: exec.c:2007
 msgid "\t. [-AL] file [argument...]\n"
 msgstr "\t. [-AL] ファイル [引数...]\n"
 
-#: exec.c:2018 yash.c:620
+#: exec.c:2055 yash.c:620
 #, c-format
 msgid "You have a stopped job!"
 msgid_plural "You have %zu stopped jobs!"
 msgstr[0] "停止中のジョブが %zu 個あります!"
 
-#: exec.c:2022
+#: exec.c:2059
 msgid "  Use the -f option to exec anyway.\n"
 msgstr "  それでも exec するには -f オプションを付けてください。\n"
 
-#: exec.c:2112
+#: exec.c:2149
 msgid "replace the shell process with an external command"
 msgstr "シェルのプロセスを外部コマンドに変える"
 
-#: exec.c:2115
+#: exec.c:2152
 msgid "\texec [-cf] [-a name] [command [argument...]]\n"
 msgstr "\texec [-cf] [-a 名前] [コマンド [引数...]]\n"
 
-#: exec.c:2175
+#: exec.c:2212
 msgid "the -a or -k option must be used with the -v option"
 msgstr "-a および -k オプションは -v オプションと一緒にしか使えません"
 
-#: exec.c:2269
+#: exec.c:2306
 #, c-format
 msgid "%ls: a shell keyword\n"
 msgstr "%ls: シェルの予約語\n"
 
-#: exec.c:2298
+#: exec.c:2335
 #, c-format
 msgid "%s: a special built-in\n"
 msgstr "%s: 特殊組込みコマンド\n"
 
-#: exec.c:2302
+#: exec.c:2339
 #, c-format
 msgid "%s: a semi-special built-in\n"
 msgstr "%s: 準特殊組込みコマンド\n"
 
-#: exec.c:2314
+#: exec.c:2351
 #, c-format
 msgid "%s: a regular built-in (not found in $PATH)\n"
 msgstr "%s: 通常の組込みコマンド ($PATH 内に存在せず)\n"
 
-#: exec.c:2315
+#: exec.c:2352
 #, c-format
 msgid "%s: a regular built-in at %s\n"
 msgstr "%s: 通常の組込みコマンド (%s)\n"
 
-#: exec.c:2322
+#: exec.c:2359
 #, c-format
 msgid "%s: a function\n"
 msgstr "%s: 関数\n"
 
-#: exec.c:2338
+#: exec.c:2375
 #, c-format
 msgid "%s: an external command at %s\n"
 msgstr "%s: 外部コマンド (%s)\n"
 
-#: exec.c:2360
+#: exec.c:2397
 #, c-format
 msgid "%s: an external command at %s/%s\n"
 msgstr "%s: 外部コマンド (%s/%s)\n"
 
-#: exec.c:2369
+#: exec.c:2406
 msgid "execute or identify a command"
 msgstr "コマンドを実行または特定する"
 
-#: exec.c:2372
+#: exec.c:2409
 msgid ""
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
@@ -561,23 +561,23 @@ msgstr ""
 "\tcommand [-befp] コマンド [引数...]\n"
 "\tcommand -v|-V [-abefkp] コマンド...\n"
 
-#: exec.c:2377
+#: exec.c:2414
 msgid "identify a command"
 msgstr "コマンドを特定する"
 
-#: exec.c:2380
+#: exec.c:2417
 msgid "\ttype command...\n"
 msgstr "\ttype コマンド...\n"
 
-#: exec.c:2418
+#: exec.c:2455
 msgid "cannot get the time data"
 msgstr "時間情報を取得できません"
 
-#: exec.c:2435
+#: exec.c:2472
 msgid "print CPU time usage"
 msgstr "消費 CPU 時間を表示する"
 
-#: exec.c:2438
+#: exec.c:2475
 msgid "\ttimes\n"
 msgstr "\ttimes\n"
 
@@ -660,7 +660,7 @@ msgstr "一時ファイル「%s」が開けません"
 msgid "cannot invoke the editor to edit history"
 msgstr "履歴を編集するためのエディタを起動できません"
 
-#: history.c:1545 history.c:1571 lineedit/editing.c:2905 redir.c:796
+#: history.c:1545 history.c:1571 lineedit/editing.c:2905 redir.c:826
 #, c-format
 msgid "failed to remove temporary file `%s'"
 msgstr "一時ファイル「%s」を削除できませんでした"
@@ -707,11 +707,11 @@ msgid "\thistory [-cF] [-d entry] [-s command] [-r file] [-w file] [count]\n"
 msgstr ""
 "\thistory [-cF] [-d 項目] [-s コマンド] [-r ファイル] [-w ファイル] [個数]\n"
 
-#: input.c:166 lineedit/lineedit.c:221
+#: input.c:170 lineedit/lineedit.c:221
 msgid "cannot read input"
 msgstr "入力を読み込めません"
 
-#: input.c:265 input.c:283 input.c:292
+#: input.c:288
 msgid "prompt"
 msgstr "プロンプト"
 
@@ -935,49 +935,49 @@ msgstr ""
 msgid "You have new mail."
 msgstr "新着メールがあります。"
 
-#: option.c:413 xgetopt.c:414
+#: option.c:417 xgetopt.c:414
 #, c-format
 msgid "the -%lc option requires an argument"
 msgstr "-%lc オプションの引数が抜けています"
 
-#: option.c:460 option.c:579 sig.c:1339 xgetopt.c:382
+#: option.c:464 option.c:583 sig.c:1339 xgetopt.c:382
 #, c-format
 msgid "`%ls' is not a valid option"
 msgstr "「%ls」は有効なオプションではありません"
 
-#: option.c:602 xgetopt.c:417
+#: option.c:606 xgetopt.c:417
 #, c-format
 msgid "the --%ls option requires an argument"
 msgstr "--%ls オプションは引数を取りません"
 
-#: option.c:615 xgetopt.c:431
+#: option.c:619 xgetopt.c:431
 #, c-format
 msgid "%ls: the --%ls option does not take an argument"
 msgstr "%ls: --%ls オプションは引数を取りません"
 
-#: option.c:624 xgetopt.c:392
+#: option.c:628 xgetopt.c:392
 #, c-format
 msgid "option `%ls' is ambiguous"
 msgstr "オプション「%ls」は曖昧です"
 
-#: option.c:648
+#: option.c:652
 #, c-format
 msgid "the %ls option cannot be changed once the shell has been initialized"
 msgstr "シェルが初期化された後は %ls オプションを変更することはできません"
 
-#: option.c:914
+#: option.c:918
 msgid "on"
 msgstr "入"
 
-#: option.c:915
+#: option.c:919
 msgid "off"
 msgstr "切"
 
-#: option.c:939
+#: option.c:943
 msgid "set shell options and positional parameters"
 msgstr "シェルオプションと位置パラメータを設定する"
 
-#: option.c:942
+#: option.c:946
 msgid ""
 "\tset [option...] [--] [new_positional_parameter...]\n"
 "\tset -o|+o  # print current settings\n"
@@ -985,196 +985,204 @@ msgstr ""
 "\tset [オプション...] [--] [新しい位置パラメータ...]\n"
 "\tset -o|+o  # 現在の設定を表示する\n"
 
-#: parser.c:620
+#: parser.c:788
 msgid "syntax error: "
 msgstr "構文エラー: "
 
-#: parser.c:918
-msgid "`;' or `&' is missing"
-msgstr "「;」または「&」が抜けています"
-
-#: parser.c:1035
-msgid "ksh-like extended glob pattern `!(...)' is not supported"
-msgstr "ksh の拡張パターン「!(...)」は利用できません"
-
-#: parser.c:1117
-msgid "a command is missing at the end of input"
-msgstr "入力の最後でコマンドが抜けています"
-
-#: parser.c:1119
-#, c-format
-msgid "a command is missing before `%lc'"
-msgstr "「%lc」の前にコマンドがありません"
-
-#: parser.c:1381
-msgid "the redirection target is missing"
-msgstr "リダイレクトの対象が抜けています"
-
-#: parser.c:1388
-msgid "the end-of-here-document indicator is missing"
-msgstr "ヒアドキュメントの終端子が抜けています"
-
-#: parser.c:1407
-msgid "unclosed process redirection"
-msgstr "プロセスリダイレクトが閉じられていません"
-
-#: parser.c:1499
-msgid "the double quotation is not closed"
-msgstr "二重引用符が閉じられていません"
-
-#: parser.c:1516
-msgid "the single quotation is not closed"
-msgstr "単一引用符が閉じられていません"
-
-#: parser.c:1669
-msgid "the parameter name is missing or invalid"
-msgstr "パラメータ名が抜けているか不正です"
-
-#: parser.c:1681 parser.c:1686
-msgid "the index is missing"
-msgstr "インデックスが抜けています"
-
-#: parser.c:1711 parser.c:1724
-#, c-format
-msgid "invalid character `%lc' in parameter expansion"
-msgstr "パラメータ展開に無効な文字「%lc」が混じっています"
-
-#: parser.c:1720 parser.c:1734 parser.c:1778
-#, c-format
-msgid "invalid use of `%lc' in parameter expansion"
-msgstr "パラメータ展開において「%lc」の使い方が正しくありません"
-
-#: parser.c:1878
-msgid "the backquoted command substitution is not closed"
-msgstr "「`」によるコマンド置換が閉じられていません"
-
-#: parser.c:2070 parser.c:2103 parser.c:2203 parser.c:2240
-#, c-format
-msgid "commands are missing between `%ls' and `%ls'"
-msgstr "「%ls」と「%ls」の間にコマンドがありません"
-
-#: parser.c:2116 parser.c:2231
-#, c-format
-msgid "commands are missing after `%ls'"
-msgstr "「%ls」の後にコマンドがありません"
-
-#: parser.c:2159
-msgid "an identifier is required after `for'"
-msgstr "「for」の後には識別子が必要です"
-
-#: parser.c:2161
-#, c-format
-msgid "`%ls' is not a valid identifier"
-msgstr "「%ls」は有効な識別子ではありません"
-
-#: parser.c:2174
-msgid "redirections are not allowed after `in'"
-msgstr "「in」の後にリダイレクトは書けません"
-
-#: parser.c:2186
-msgid "`;' cannot appear on a new line"
-msgstr "「;」は行頭に置けません"
-
-#: parser.c:2265 parser.c:2347 parser.c:2393
-#, c-format
-msgid "a word is required after `%ls'"
-msgstr "「%ls」の後には単語が必要です"
-
-#: parser.c:2338
-msgid "an unquoted `esac' cannot be the first case pattern"
-msgstr "クォートしていない「esac」を最初のパターンにすることはできません"
-
-#: parser.c:2350
-#, c-format
-msgid "encountered an invalid character `%lc' in the case pattern"
-msgstr "case のパターン内に不正な文字「%lc」があります"
-
-#: parser.c:2379 parser.c:2726 parser.c:2729
-#, c-format
-msgid "`%ls' cannot be used as a command name"
-msgstr "「%ls」はコマンド名として使えません"
-
-#: parser.c:2422 parser.c:2476
-msgid "a function body must be a compound command"
-msgstr "関数の本体は複合コマンドでなければなりません"
-
-#: parser.c:2446
-#, c-format
-msgid "invalid use of `%lc'"
-msgstr "「%lc」の使い方が正しくありません"
-
-#: parser.c:2453
-msgid "invalid function name"
-msgstr "無効な関数名です"
-
-#: parser.c:2465
-msgid "`(' must be followed by `)' in a function definition"
-msgstr "関数定義では「(」の直後に「)」が必要です"
-
-#: parser.c:2492
-msgid "the end-of-here-document indicator contains a newline"
-msgstr "ヒアドキュメントの終端子に改行が入っています"
-
-#: parser.c:2519 parser.c:2553
-#, c-format
-msgid "the here-document content is not closed by `%ls'"
-msgstr "ヒアドキュメントが「%ls」で閉じられていません"
-
-#: parser.c:2605
-#, c-format
-msgid "here-document content for %s%ls is missing"
-msgstr "%s%ls に対応するヒアドキュメントの内容がありません"
-
-#: parser.c:2717
+#: parser.c:802
 #, c-format
 msgid "encountered `%ls' without a matching `('"
 msgstr "「%ls」に対応する「(」がありません"
 
-#: parser.c:2720
+#: parser.c:804
 #, c-format
 msgid "encountered `%ls' without a matching `{'"
 msgstr "「%ls」に対応する「{」がありません"
 
-#: parser.c:2723
+#: parser.c:806
 #, c-format
 msgid "`%ls' is used outside `case'"
 msgstr "「%ls」が case コマンドの外で使われています"
 
-#: parser.c:2732 parser.c:2753
+#: parser.c:808 parser.c:810 parser.c:2618
+#, c-format
+msgid "`%ls' cannot be used as a command name"
+msgstr "「%ls」はコマンド名として使えません"
+
+#: parser.c:812 parser.c:825
 #, c-format
 msgid "encountered `%ls' without a matching `if' and/or `then'"
 msgstr "「%ls」に対応する「if」または「then」がありません"
 
-#: parser.c:2736
+#: parser.c:815
 #, c-format
 msgid "encountered `%ls' without a matching `if' or `elif'"
 msgstr "「%ls」に対応する「if」または「elif」がありません"
 
-#: parser.c:2741
+#: parser.c:817
 #, c-format
 msgid "encountered `%ls' without a matching `for', `while', or `until'"
 msgstr "「%ls」に対応する「for」「while」または「until」がありません"
 
-#: parser.c:2745
+#: parser.c:820
 #, c-format
 msgid "encountered `%ls' without a matching `do'"
 msgstr "「%ls」に対応する「do」がありません"
 
-#: parser.c:2750
+#: parser.c:822
 #, c-format
 msgid "encountered `%ls' without a matching `case'"
 msgstr "「%ls」に対応する「case」がありません"
 
-#: parser.c:2766
+#: parser.c:848
 #, c-format
 msgid "(maybe you missed `%ls'?)"
 msgstr "(「%ls」を忘れていませんか?)"
+
+#: parser.c:1151
+msgid "the double quotation is not closed"
+msgstr "二重引用符が閉じられていません"
+
+#: parser.c:1168
+msgid "the single quotation is not closed"
+msgstr "単一引用符が閉じられていません"
+
+#: parser.c:1326
+msgid "the parameter name is missing or invalid"
+msgstr "パラメータ名が抜けているか不正です"
+
+#: parser.c:1338 parser.c:1343
+msgid "the index is missing"
+msgstr "インデックスが抜けています"
+
+#: parser.c:1370 parser.c:1383
+#, c-format
+msgid "invalid character `%lc' in parameter expansion"
+msgstr "パラメータ展開に無効な文字「%lc」が混じっています"
+
+#: parser.c:1379 parser.c:1394 parser.c:1438
+#, c-format
+msgid "invalid use of `%lc' in parameter expansion"
+msgstr "パラメータ展開において「%lc」の使い方が正しくありません"
+
+#: parser.c:1539
+msgid "the backquoted command substitution is not closed"
+msgstr "「`」によるコマンド置換が閉じられていません"
+
+#: parser.c:1786
+msgid "`;' or `&' is missing"
+msgstr "「;」または「&」が抜けています"
+
+#: parser.c:1893
+msgid "ksh-like extended glob pattern `!(...)' is not supported"
+msgstr "ksh の拡張パターン「!(...)」は利用できません"
+
+#: parser.c:1987
+msgid "a command is missing at the end of input"
+msgstr "入力の最後でコマンドが抜けています"
+
+#: parser.c:1989
+#, c-format
+msgid "a command is missing before `%lc'"
+msgstr "「%lc」の前にコマンドがありません"
+
+#: parser.c:2191
+msgid "pipe redirection is not supported in the POSIXly-correct mode"
+msgstr "パイプリダイレクトは POSIX 準拠モードでは使えません"
+
+#: parser.c:2209
+msgid "here-string is not supported in the POSIXly-correct mode"
+msgstr "ヒアストリングは POSIX 準拠モードでは使えません"
+
+#: parser.c:2224
+msgid "the redirection target is missing"
+msgstr "リダイレクトの対象が抜けています"
+
+#: parser.c:2234
+msgid "the end-of-here-document indicator is missing"
+msgstr "ヒアドキュメントの終端子が抜けています"
+
+#: parser.c:2243
+msgid "process redirection is not supported in the POSIXly-correct mode"
+msgstr "プロセスリダイレクトは POSIX 準拠モードでは使えません"
+
+#: parser.c:2249
+msgid "unclosed process redirection"
+msgstr "プロセスリダイレクトが閉じられていません"
+
+#: parser.c:2319 parser.c:2353 parser.c:2439 parser.c:2483
+#, c-format
+msgid "commands are missing between `%ls' and `%ls'"
+msgstr "「%ls」と「%ls」の間にコマンドがありません"
+
+#: parser.c:2365 parser.c:2473
+#, c-format
+msgid "commands are missing after `%ls'"
+msgstr "「%ls」の後にコマンドがありません"
+
+#: parser.c:2402
+msgid "an identifier is required after `for'"
+msgstr "「for」の後には識別子が必要です"
+
+#: parser.c:2404
+#, c-format
+msgid "`%ls' is not a valid identifier"
+msgstr "「%ls」は有効な識別子ではありません"
+
+#: parser.c:2423
+msgid "`;' cannot appear on a new line"
+msgstr "「;」は行頭に置けません"
+
+#: parser.c:2512 parser.c:2585 parser.c:2632
+#, c-format
+msgid "a word is required after `%ls'"
+msgstr "「%ls」の後には単語が必要です"
+
+#: parser.c:2575
+msgid "an unquoted `esac' cannot be the first case pattern"
+msgstr "クォートしていない「esac」を最初のパターンにすることはできません"
+
+#: parser.c:2588
+#, c-format
+msgid "encountered an invalid character `%lc' in the case pattern"
+msgstr "case のパターン内に不正な文字「%lc」があります"
+
+#: parser.c:2664 parser.c:2718
+msgid "a function body must be a compound command"
+msgstr "関数の本体は複合コマンドでなければなりません"
+
+#: parser.c:2686
+#, c-format
+msgid "invalid use of `%lc'"
+msgstr "「%lc」の使い方が正しくありません"
+
+#: parser.c:2693
+msgid "invalid function name"
+msgstr "無効な関数名です"
+
+#: parser.c:2703
+msgid "`(' must be followed by `)' in a function definition"
+msgstr "関数定義では「(」の直後に「)」が必要です"
+
+#: parser.c:2731
+msgid "the end-of-here-document indicator contains a newline"
+msgstr "ヒアドキュメントの終端子に改行が入っています"
+
+#: parser.c:2758 parser.c:2792
+#, c-format
+msgid "the here-document content is not closed by `%ls'"
+msgstr "ヒアドキュメントが「%ls」で閉じられていません"
+
+#: parser.c:2844
+#, c-format
+msgid "here-document content for %s%ls is missing"
+msgstr "%s%ls に対応するヒアドキュメントの内容がありません"
 
 #: path.c:1021
 msgid "$HOME is not set"
 msgstr "$HOME が設定されていません"
 
-#: path.c:1030 variable.c:3029
+#: path.c:1030 variable.c:3043
 msgid "$OLDPWD is not set"
 msgstr "$OLDPWD が設定されていません"
 
@@ -1282,7 +1290,7 @@ msgstr "ジョブ制御は無効になります"
 msgid "redirection: invalid file descriptor"
 msgstr "リダイレクト: 無効なファイル記述子です"
 
-#: redir.c:331 redir.c:609 redir.c:681
+#: redir.c:331 redir.c:639 redir.c:711
 #, c-format
 msgid "redirection: file descriptor %d is unavailable"
 msgstr "リダイレクト: ファイル記述子 %d は使えません"
@@ -1297,53 +1305,53 @@ msgstr "リダイレクト: ファイル「%s」を開けません"
 msgid "cannot save file descriptor %d"
 msgstr "ファイル記述子 %d を保存できません"
 
-#: redir.c:559
+#: redir.c:589
 #, c-format
 msgid "socket redirection: cannot resolve the address of `%s': %s"
 msgstr "ソケットリダイレクト:「%s」のアドレスを解決できません: %s"
 
-#: redir.c:603 redir.c:618 redir.c:673
+#: redir.c:633 redir.c:648 redir.c:703
 #, c-format
 msgid "redirection: %s"
 msgstr "リダイレクト: %s"
 
-#: redir.c:626
+#: redir.c:656
 #, c-format
 msgid "redirection: file descriptor %d is not readable"
 msgstr "リダイレクト: ファイル記述子 %d は読み込み可能ではありません"
 
-#: redir.c:638
+#: redir.c:668
 #, c-format
 msgid "redirection: file descriptor %d is not writable"
 msgstr "リダイレクト: ファイル記述子 %d は書き込み可能ではありません"
 
-#: redir.c:676
+#: redir.c:706
 #, c-format
 msgid "redirection: %d>>|%d: the input and output file descriptors are same"
 msgstr "リダイレクト: %d>>|%d: 入力側と出力側のファイル記述子が同じです"
 
-#: redir.c:720
+#: redir.c:750
 #, c-format
 msgid "redirection: %d>>|%d"
 msgstr "リダイレクト: %d>>|%d"
 
-#: redir.c:738 redir.c:778 redir.c:799
+#: redir.c:768 redir.c:808 redir.c:829
 msgid "cannot write the here-document contents to the temporary file"
 msgstr "ヒアドキュメントの内容を一時ファイルに書き出せません"
 
-#: redir.c:791
+#: redir.c:821
 msgid "cannot create a temporary file for the here-document"
 msgstr "ヒアドキュメント用の一時ファイルを作成できません"
 
-#: redir.c:804
+#: redir.c:834
 msgid "cannot seek the temporary file for the here-document"
 msgstr "ヒアドキュメント用の一時ファイルのシークができません"
 
-#: redir.c:818
+#: redir.c:848
 msgid "redirection: cannot open a pipe for the process redirection"
 msgstr "リダイレクト: プロセスリダイレクト用のパイプを開けません"
 
-#: redir.c:857
+#: redir.c:887
 msgid "process redirection"
 msgstr "プロセスリダイレクト"
 
@@ -1414,107 +1422,107 @@ msgstr ""
 msgid "unknown error"
 msgstr "不明なエラー"
 
-#: variable.c:373 variable.c:378
+#: variable.c:372 variable.c:377
 msgid "failed to set $PWD"
 msgstr "$PWD の設定に失敗しました"
 
-#: variable.c:402
+#: variable.c:401
 #, c-format
 msgid "no such array $%ls"
 msgstr "$%ls というような配列はありません"
 
-#: variable.c:405 variable.c:607 variable.c:1709 variable.c:2317
-#: variable.c:3075
+#: variable.c:404 variable.c:606 variable.c:1722 variable.c:2331
+#: variable.c:3089
 #, c-format
 msgid "$%ls is read-only"
 msgstr "$%ls は読み込み専用です"
 
-#: variable.c:422
+#: variable.c:421
 #, c-format
 msgid "failed to unset environment variable $%s"
 msgstr "環境変数 $%s の削除に失敗しました"
 
-#: variable.c:426
+#: variable.c:425
 #, c-format
 msgid "failed to set environment variable $%s"
 msgstr "環境変数 $%s の設定に失敗しました"
 
-#: variable.c:701
+#: variable.c:700
 #, c-format
 msgid "index %zu is out of range (the actual size of array $%ls is %zu)"
 msgstr "インデックス %zu は範囲外です (配列 $%ls のサイズは %zu です)"
 
-#: variable.c:1244
+#: variable.c:1246
 #, c-format
 msgid "function `%ls' cannot be redefined because it is read-only"
 msgstr "関数「%ls」は読み込み専用なので再定義できません"
 
-#: variable.c:1424 variable.c:3161
+#: variable.c:1426 variable.c:3175
 msgid "the directory stack is empty"
 msgstr "ディレクトリスタックは空です"
 
-#: variable.c:1462 variable.c:3013 variable.c:3257
+#: variable.c:1464 variable.c:3027 variable.c:3271
 msgid "$PWD is not set"
 msgstr "$PWD が設定されていません"
 
-#: variable.c:1474
+#: variable.c:1476
 #, c-format
 msgid "index %ls is out of range"
 msgstr "インデックス %ls は範囲外です"
 
-#: variable.c:1733
+#: variable.c:1746
 #, c-format
 msgid "no such variable $%ls"
 msgstr "$%ls というような変数はありません"
 
-#: variable.c:1748
+#: variable.c:1761
 #, c-format
 msgid "no such function `%ls'"
 msgstr "「%ls」というような関数はありません"
 
-#: variable.c:1937
+#: variable.c:1951
 msgid "set or print variables"
 msgstr "変数を設定または表示する"
 
-#: variable.c:1940
+#: variable.c:1954
 msgid "\ttypeset [-fgprxX] [name[=value]...]\n"
 msgstr "\ttypeset [-fgprxX] [名前[=値]...]\n"
 
-#: variable.c:1943
+#: variable.c:1957
 msgid "export variables as environment variables"
 msgstr "変数を環境変数としてエクスポートする"
 
-#: variable.c:1946
+#: variable.c:1960
 msgid "\texport [-prX] [name[=value]...]\n"
 msgstr "\texport [-prX] [名前[=値]...]\n"
 
-#: variable.c:1949
+#: variable.c:1963
 msgid "make variables read-only"
 msgstr "変数を読み込み専用にする"
 
-#: variable.c:1952
+#: variable.c:1966
 msgid "\treadonly [-fpxX] [name[=value]...]\n"
 msgstr "\treadonly [-fpxX] [名前[=値]...]\n"
 
-#: variable.c:2000
+#: variable.c:2014
 msgid "more than one option cannot be used at once"
 msgstr "二つ以上のオプションを同時に使うことはできません"
 
-#: variable.c:2019
+#: variable.c:2033
 #, c-format
 msgid "`%ls' is not a valid array name"
 msgstr "「%ls」は有効な配列名ではありません"
 
-#: variable.c:2211
+#: variable.c:2225
 #, c-format
 msgid "index %ls is out of range (the actual size of array $%ls is %zu)"
 msgstr "インデックス %ls は範囲外です (配列 $%ls のサイズは %zu です)"
 
-#: variable.c:2218
+#: variable.c:2232
 msgid "manipulate an array"
 msgstr "配列を操作する"
 
-#: variable.c:2221
+#: variable.c:2235
 msgid ""
 "\tarray                  # print arrays\n"
 "\tarray name [value...]  # set array values\n"
@@ -1528,30 +1536,30 @@ msgstr ""
 "\tarray -i 名前 インデックス [値...]\n"
 "\tarray -s 名前 インデックス 値\n"
 
-#: variable.c:2292
+#: variable.c:2306
 #, c-format
 msgid "function `%ls' is read-only"
 msgstr "関数「%ls」は読み込み専用です"
 
-#: variable.c:2328
+#: variable.c:2342
 msgid "remove variables or functions"
 msgstr "変数または関数を削除する"
 
-#: variable.c:2331
+#: variable.c:2345
 msgid "\tunset [-fv] [name...]\n"
 msgstr "\tunset [-fv] 名前...\n"
 
-#: variable.c:2374
+#: variable.c:2388
 #, c-format
 msgid "%ls: the operand value must not be negative"
 msgstr "%ls: 負でないオペランドの値を指定してください"
 
-#: variable.c:2390 variable.c:3072
+#: variable.c:2404 variable.c:3086
 #, c-format
 msgid "$%ls is not an array"
 msgstr "$%ls は配列ではありません"
 
-#: variable.c:2407
+#: variable.c:2421
 #, c-format
 msgid "%ld: cannot shift so many (there is only one positional parameter)"
 msgid_plural ""
@@ -1559,86 +1567,86 @@ msgid_plural ""
 msgstr[0] ""
 "%ld: シフトする数が多すぎます (位置パラメータは %zu 個しかありません)"
 
-#: variable.c:2413
+#: variable.c:2427
 #, c-format
 msgid "%ld: cannot shift so many (there is only one array element)"
 msgid_plural "%ld: cannot shift so many (there are only %zu array elements)"
 msgstr[0] "%ld: シフトする数が多すぎます (配列の要素は %zu 個しかありません)"
 
-#: variable.c:2437
+#: variable.c:2451
 msgid "remove some positional parameters or array elements"
 msgstr "位置パラメータまたは配列の要素の一部を削除する"
 
-#: variable.c:2440
+#: variable.c:2454
 msgid "\tshift [-A array_name] [count]\n"
 msgstr "\tshift [-A 配列名] [個数]\n"
 
-#: variable.c:2471 variable.c:2701
+#: variable.c:2485 variable.c:2715
 #, c-format
 msgid "`%ls' is not a valid variable name"
 msgstr "「%ls」は有効な変数名ではありません"
 
-#: variable.c:2474
+#: variable.c:2488
 #, c-format
 msgid "`%ls' is not a valid option specification"
 msgstr "「%ls」は有効なオプション指定文字列ではありません"
 
-#: variable.c:2532
+#: variable.c:2546
 #, c-format
 msgid "%ls: `-%lc' is not a valid option\n"
 msgstr "%ls: 「%lc」は有効なオプションではありません\n"
 
-#: variable.c:2555
+#: variable.c:2569
 #, c-format
 msgid "%ls: the -%lc option's argument is missing\n"
 msgstr "%ls: -%lc オプションの引数が抜けています\n"
 
-#: variable.c:2578
+#: variable.c:2592
 msgid "$OPTIND has an invalid value"
 msgstr "$OPTIND の値が正しくありません"
 
-#: variable.c:2633
+#: variable.c:2647
 msgid "parse command options"
 msgstr "コマンドのオプションを解析する"
 
-#: variable.c:2636
+#: variable.c:2650
 msgid "\tgetopts options variable [argument...]\n"
 msgstr "\tgetopts オプション 変数名 [引数...]\n"
 
-#: variable.c:2944
+#: variable.c:2958
 msgid "read a line from the standard input"
 msgstr "標準入力から行を読み込む"
 
-#: variable.c:2947
+#: variable.c:2961
 msgid "\tread [-Aer] [-P|-p] variable...\n"
 msgstr "\tread [-Aer] [-P|-p] 変数名...\n"
 
-#: variable.c:3127
+#: variable.c:3141
 msgid "push a directory into the directory stack"
 msgstr "ディレクトリスタックにディレクトリを追加する"
 
-#: variable.c:3130
+#: variable.c:3144
 msgid "\tpushd [-L|-P] [directory]\n"
 msgstr "\tpushd [-L|-P] [ディレクトリ]\n"
 
-#: variable.c:3170 variable.c:3246
+#: variable.c:3184 variable.c:3260
 #, c-format
 msgid "`%ls' is not a valid index"
 msgstr "「%ls」は有効なインデックスではありません"
 
-#: variable.c:3193
+#: variable.c:3207
 msgid "pop a directory from the directory stack"
 msgstr "ディレクトリスタックからディレクトリを削除する"
 
-#: variable.c:3196
+#: variable.c:3210
 msgid "\tpopd [index]\n"
 msgstr "\tpopd [インデックス]\n"
 
-#: variable.c:3284
+#: variable.c:3298
 msgid "print the directory stack"
 msgstr "ディレクトリスタックを表示する"
 
-#: variable.c:3287
+#: variable.c:3301
 msgid "\tdirs [-cv] [index...]\n"
 msgstr "\tdirs [-cv] [インデックス...]\n"
 
