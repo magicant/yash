@@ -2188,7 +2188,8 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 	    break;
 	case TT_GREATERGREATERPIPE:
 	    if (posixly_correct)
-		serror(ps, Ngt("pipe redirection is not supported"));
+		serror(ps, Ngt("pipe redirection is not supported "
+			    "in the POSIXly-correct mode"));
 	    result->rd_type = RT_PIPE;
 	    break;
 	case TT_LESSLPAREN:
@@ -2205,7 +2206,8 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 	    goto parse_here_document_tag;
 	case TT_LESSLESSLESS:
 	    if (posixly_correct)
-		serror(ps, Ngt("here-string is not supported"));
+		serror(ps, Ngt("here-string is not supported "
+			    "in the POSIXly-correct mode"));
 	    result->rd_type = RT_HERESTR;
 	    break;
 	default:
@@ -2238,7 +2240,8 @@ parse_here_document_tag:
 
 parse_command:
     if (posixly_correct)
-	serror(ps, Ngt("process redirection is not supported"));
+	serror(ps, Ngt("process redirection is not supported "
+		    "in the POSIXly-correct mode"));
     result->rd_command = extract_command_in_paren(ps);
     if (ps->tokentype == TT_RPAREN)
 	next_token(ps);
