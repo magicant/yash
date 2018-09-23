@@ -423,6 +423,12 @@ cat cat cat
 x . x . echo x . x .
 __OUT__
 
+test_OE 'alias substitution can be part of an operator'
+alias lt='<'
+# The "lt" token followed by ">" becomes the "<>" redirection operator.
+lt>/dev/null >&0 echo not printed
+__IN__
+
 test_oE 'aliases cannot substitute reserved words'
 alias if=: then=: else=: fi=: for=: in=: do=: done=:
 if true; then echo then; else echo else; fi
