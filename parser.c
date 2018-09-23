@@ -510,10 +510,10 @@ typedef struct parsestate_T {
     struct plist_T pending_heredocs;
     /* false when alias substitution is suppressed */
     bool enable_alias;
-    /* true when alias substitution has occurred */
+    /* true when non-global alias substitution has occurred */
     bool reparse;
     /* record of alias substitutions that are responsible for the current
-     * `startindex' */
+     * `index' */
     struct aliaslist_T *aliases;
 } parsestate_T;
 
@@ -1800,6 +1800,7 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    lastp = &ao->next;
 	}
 	if (ps->reparse) {
+	    ps->reparse = false;
 	    assert(ao == NULL);
 	    continue;
 	}
@@ -1813,7 +1814,6 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
     }
     if (!toeol)
 	ps->error |= saveerror;
-    ps->reparse = false;
     return first;
 }
 
@@ -1860,10 +1860,12 @@ pipeline_T *parse_pipelines_in_and_or(parsestate_T *ps)
 	}
 	if (ps->reparse) {
 	    assert(p == NULL);
-	    if (first != NULL)
+	    if (first != NULL) {
+		ps->reparse = false;
 		goto next;
-	    else
+	    } else {
 		break;
+	    }
 	}
 
 	if (ps->tokentype == TT_AMPAMP)
@@ -1893,11 +1895,14 @@ pipeline_T *parse_pipeline(parsestate_T *ps)
 	    serror(ps, Ngt("ksh-like extended glob pattern `!(...)' "
 			"is not supported"));
 	next_token(ps);
-	do {
-	    c = parse_commands_in_pipeline(ps);
-	    if (ps->reparse)
-		assert(c == NULL);
-	} while (ps->reparse);
+
+parse_after_bang:
+	c = parse_commands_in_pipeline(ps);
+	if (ps->reparse) {
+	    ps->reparse = false;
+	    assert(c == NULL);
+	    goto parse_after_bang;
+	}
     } else {
 	neg = false;
 	c = parse_commands_in_pipeline(ps);
@@ -1930,10 +1935,12 @@ command_T *parse_commands_in_pipeline(parsestate_T *ps)
 	}
 	if (ps->reparse) {
 	    assert(c == NULL);
-	    if (first != NULL)
+	    if (first != NULL) {
+		ps->reparse = false;
 		goto next;
-	    else
+	    } else {
 		break;
+	    }
 	}
 
 	if (ps->tokentype != TT_PIPE)
@@ -1951,8 +1958,6 @@ next:
  * NULL is returned. */
 command_T *parse_command(parsestate_T *ps)
 {
-    ps->reparse = false;
-
     if (ps->tokentype == TT_BANG || ps->tokentype == TT_IN ||
 	    is_closing_tokentype(ps->tokentype)) {
 	print_errmsg_token_unexpected(ps);
@@ -1964,6 +1969,10 @@ command_T *parse_command(parsestate_T *ps)
 	return result;
 
     if (psubstitute_alias(ps, AF_NONGLOBAL)) {
+	/* After alias substitution, we need to re-parse the new current token,
+	 * which may be consumed by the caller of this function. We set the
+	 * `reparse' flag to tell the caller to re-parse the token. The caller
+	 * will reset the flag when staring re-parsing. */
 	ps->reparse = true;
 	return NULL;
     }
