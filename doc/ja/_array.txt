@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Array 組込みコマンド
 
-dfn:[Array 組込みコマンド]はlink:params.html#arrays[配列]の表示や操作を行います。
+dfn:[Array 組込みコマンド]は{zwsp}link:params.html#arrays[配列]の表示や操作を行います。
 
 [[syntax]]
 == 構文

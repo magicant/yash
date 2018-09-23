@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Shift 組込みコマンド
 
-dfn:[Shift 組込みコマンド]はlink:params.html#positional[位置パラメータ]またはlink:params.html#arrays[配列]の要素のいくつかを削除します。
+dfn:[Shift 組込みコマンド]は{zwsp}link:params.html#positional[位置パラメータ]または{zwsp}link:params.html#arrays[配列]の要素のいくつかを削除します。
 
 [[syntax]]
 == 構文
@@ -13,7 +13,7 @@ dfn:[Shift 組込みコマンド]はlink:params.html#positional[位置パラメ�
 [[description]]
 == 説明
 
-Shift コマンドはlink:params.html#positional[位置パラメータ]またはlink:params.html#arrays[配列]の要素のうち最初のいくつかを削除します。削除するパラメータ・要素の数はオペランドで指定します。
+Shift コマンドは{zwsp}link:params.html#positional[位置パラメータ]または{zwsp}link:params.html#arrays[配列]の要素のうち最初のいくつかを削除します。削除するパラメータ・要素の数はオペランドで指定します。
 
 [[options]]
 == オプション
@@ -38,9 +38,9 @@ Shift コマンドはlink:params.html#positional[位置パラメータ]または
 [[notes]]
 == 補足
 
-Shift コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Shift コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
-位置パラメータの個数はlink:params.html#special[特殊パラメータ +&#35;+] によって知ることができます。配列の要素の個数は +$&#123;{{配列}}[&#35;]}+ によって知ることができます。
+位置パラメータの個数は{zwsp}link:params.html#special[特殊パラメータ +&#35;+] によって知ることができます。配列の要素の個数は +$&#123;{{配列}}[&#35;]}+ によって知ることができます。
 
 POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 

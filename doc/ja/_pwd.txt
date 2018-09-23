@@ -36,6 +36,6 @@ link:params.html#sv-pwd[+PWD+ 変数]の値が現在の作業ディレクトリ�
 [[notes]]
 == 補足
 
-Pwd コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Pwd コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

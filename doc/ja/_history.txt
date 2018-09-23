@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - History 組込みコマンド
 
-dfn:[History 組込みコマンド]はlink:interact.html#history[コマンド履歴]を編集します。
+dfn:[History 組込みコマンド]は{zwsp}link:interact.html#history[コマンド履歴]を編集します。
 
 [[syntax]]
 == 構文
@@ -13,7 +13,7 @@ dfn:[History 組込みコマンド]はlink:interact.html#history[コマンド履
 [[description]]
 == 説明
 
-History コマンドはlink:interact.html#history[コマンド履歴]の内容を編集・表示します。
+History コマンドは{zwsp}link:interact.html#history[コマンド履歴]の内容を編集・表示します。
 
 オプションが指定してある場合、history コマンドはそのオプションに従ってコマンド履歴の内容を編集します。複数のオプションがある場合は指定した順に処理します。
 
@@ -62,7 +62,7 @@ History コマンドはlink:interact.html#history[コマンド履歴]の内容�
 [[notes]]
 == 補足
 
-History コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+History コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では history コマンドの動作は規定されていません。
 
 link:lineedit.html[行編集]の動作中は履歴の内容を変更することはできません。

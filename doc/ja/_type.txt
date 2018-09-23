@@ -22,6 +22,6 @@ POSIX では、type コマンドと command コマンドとの関係について
 
 link:posix.html[POSIX 準拠モード]では少なくとも一つ{{コマンド}}を指定する必要があります。
 
-Type コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Type コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

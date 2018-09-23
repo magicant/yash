@@ -91,7 +91,7 @@ dfn:[Umask 組込みコマンド]はシェルプロセスのファイルモー�
 [[notes]]
 == 補足
 
-Ulimit コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Ulimit コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 POSIX は +-S+ オプションを指定しなかった場合の出力形式が必ずしも数値形式であるとは規定していません。
 

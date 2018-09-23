@@ -41,10 +41,10 @@ Vi 風編集モードの挿入モードにおけるキーバインドを表示�
 == オペランド
 
 {{キー}}::
-表示・設定する対象のキー入力シーケンスです。このオペランドの値にはバックスラッシュで始まるlink:lineedit.html#escape[エスケープシーケンス]が利用できます。
+表示・設定する対象のキー入力シーケンスです。このオペランドの値にはバックスラッシュで始まる{zwsp}link:lineedit.html#escape[エスケープシーケンス]が利用できます。
 
 {{コマンド}}::
-設定するlink:lineedit.html#commands[行編集コマンド]です。ハイフン一つ (+-+) を指定すると、指定した{{キー}}に対する設定を削除します。
+設定する{zwsp}link:lineedit.html#commands[行編集コマンド]です。ハイフン一つ (+-+) を指定すると、指定した{{キー}}に対する設定を削除します。
 
 [[exitstatus]]
 == 終了ステータス
@@ -54,7 +54,7 @@ Vi 風編集モードの挿入モードにおけるキーバインドを表示�
 [[notes]]
 == 補足
 
-Bindkey コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Bindkey コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では bindkey コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

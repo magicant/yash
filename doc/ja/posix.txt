@@ -10,26 +10,26 @@ link:invoke.html[シェルの起動]時の起動時の名前が +sh+ ならば�
 
 POSIX 準拠モードを有効にすると、yash は POSIX の規定にできるだけ従うようになるだけでなく、POSIX が__未定義__や__未規定__と定めている場合のほとんどをエラーにするようになります。すなわち、yash 独自の拡張機能の多くは使えなくなります。具体的には、POSIX 準拠モードを有効にすると以下のような挙動の変化があります。
 
-- シェルの起動時のlink:invoke.html#init[初期化]で読み込むスクリプトファイルが異なります。
-- グローバルlink:syntax.html#aliases[エイリアス]の置換を行いません。
-- link:syntax.html#compound[複合コマンド]のlink:syntax.html#grouping[グルーピング]や link:syntax.html#if[if 文]の内容が空の場合エラーになります。
+- シェルの起動時の{zwsp}link:invoke.html#init[初期化]で読み込むスクリプトファイルが異なります。
+- グローバル{zwsp}link:syntax.html#aliases[エイリアス]の置換を行いません。
+- link:syntax.html#compound[複合コマンド]の{zwsp}link:syntax.html#grouping[グルーピング]や link:syntax.html#if[if 文]の内容が空の場合エラーになります。
 - link:syntax.html#for[For ループ]で展開した単語はグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
 - link:syntax.html#case[Case 文]の最初のパターンを +esac+ にすることはできません。
-- 予約語 +function+ を用いる形式のlink:syntax.html#funcdef[関数定義]構文は使えません。関数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
-- link:syntax.html#simple[単純コマンド]でのlink:params.html#arrays[配列]の代入はできません。
+- 予約語 +function+ を用いる形式の{zwsp}link:syntax.html#funcdef[関数定義]構文は使えません。関数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
+- link:syntax.html#simple[単純コマンド]での{zwsp}link:params.html#arrays[配列]の代入はできません。
 - シェル実行中に link:params.html#sv-lc_ctype[+LC_CTYPE+ 変数]の値が変わっても、それをシェルのロケール情報に反映しません。
 - link:params.html#sv-random[+RANDOM+ 変数]は使えません。
 - link:expand.html#tilde[チルダ展開]で +~+ と +~{{ユーザ名}}+ 以外の形式の展開が使えません。
-- link:expand.html#params[パラメータ展開]のlink:expand.html#param-name[入れ子]はできません。またlink:expand.html#param-index[インデックス]の指定はできません。
-- +$(+ と +)+ で囲んだlink:expand.html#cmdsub[コマンド置換]に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。
+- link:expand.html#params[パラメータ展開]の{zwsp}link:expand.html#param-name[入れ子]はできません。また{zwsp}link:expand.html#param-index[インデックス]の指定はできません。
+- +$(+ と +)+ で囲んだ{zwsp}link:expand.html#cmdsub[コマンド置換]に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。
 - link:expand.html#arith[数式展開]で小数ならびに `++` および `--` 演算子が使えません。数値でない変数は常にエラーになります。
-- link:redir.html#file[ファイルのリダイレクト]で、link:expand.html#glob[パス名展開]の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
-- link:redir.html#socket[ソケットリダイレクト]・link:redir.html#here[ヒアストリング]・link:redir.html#pipe[パイプリダイレクト]・link:redir.html#process[プロセスリダイレクト]は使用できません。
+- link:redir.html#file[ファイルのリダイレクト]で、{zwsp}link:expand.html#glob[パス名展開]の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
+- link:redir.html#socket[ソケットリダイレクト]・{zwsp}link:redir.html#here[ヒアストリング]・{zwsp}link:redir.html#pipe[パイプリダイレクト]・{zwsp}link:redir.html#process[プロセスリダイレクト]は使用できません。
 - link:exec.html#simple[単純コマンドの実行]時、コマンドが見つからなくても link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+ 変数]の値は実行しません。
-- link:exec.html#search[コマンドの検索]においてlink:builtin.html#types[通常の組込みコマンド]は対応する外部コマンドがないと見つかりません。
-- いくつかのlink:builtin.html[組込みコマンド]で特定のオプションが使えなくなるなど挙動が変わります。
-- link:interact.html[対話モード]でないとき、link:builtin.html#types[特殊組込みコマンド]のオプションやオペランドの使い方が間違っているとシェルは直ちに終了します。また特殊組込みコマンドで代入エラーやリダイレクトエラーが発生したときも直ちに終了します。
-- link:interact.html[対話モード]のプロンプトを出す前に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]の値を実行しません。link:params.html#sv-ps1[+PS1+ 変数]・link:params.html#sv-ps2[+PS2+ 変数]・link:params.html#sv-ps4[+PS4+ 変数]の値の解釈の仕方が違います。link:params.html#sv-yash_ps1[+YASH_PS1+] など +YASH_+ で始まる名前のプロンプト変数は使用されません。
+- link:exec.html#search[コマンドの検索]において{zwsp}link:builtin.html#types[通常の組込みコマンド]は対応する外部コマンドがないと見つかりません。
+- いくつかの{zwsp}link:builtin.html[組込みコマンド]で特定のオプションが使えなくなるなど挙動が変わります。
+- link:interact.html[対話モード]でないとき、{zwsp}link:builtin.html#types[特殊組込みコマンド]のオプションやオペランドの使い方が間違っているとシェルは直ちに終了します。また特殊組込みコマンドで代入エラーやリダイレクトエラーが発生したときも直ちに終了します。
+- link:interact.html[対話モード]のプロンプトを出す前に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]の値を実行しません。{zwsp}link:params.html#sv-ps1[+PS1+ 変数]・{zwsp}link:params.html#sv-ps2[+PS2+ 変数]・{zwsp}link:params.html#sv-ps4[+PS4+ 変数]の値の解釈の仕方が違います。{zwsp}link:params.html#sv-yash_ps1[+YASH_PS1+] など +YASH_+ で始まる名前のプロンプト変数は使用されません。
 - link:interact.html#mailcheck[メールチェック]において、ファイルが更新されている場合はファイルが空でも新着メールメッセージを出力します。
 
 // vim: set filetype=asciidoc expandtab:

@@ -23,6 +23,6 @@ Times コマンドはシェルプロセスとその子プロセスが消費し�
 [[notes]]
 == 補足
 
-Times コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Times コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

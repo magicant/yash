@@ -13,7 +13,7 @@ dfn:[Unset 組込みコマンド]は変数または関数を削除します。
 [[description]]
 == 説明
 
-Unset コマンドはオペランドで指定した名前のlink:params.html#variables[変数]またはlink:exec.html#function[関数]を削除します。
+Unset コマンドはオペランドで指定した名前の{zwsp}link:params.html#variables[変数]または{zwsp}link:exec.html#function[関数]を削除します。
 
 元々存在しない変数・関数を削除しようとしても、何も起こりません (エラーにはなりません)。
 
@@ -44,7 +44,7 @@ Unset コマンドはオペランドで指定した名前のlink:params.html#var
 [[notes]]
 == 補足
 
-Unset コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Unset コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 POSIX では、+-f+ と +-v+ のどちらのオプションも指定されていない場合、指定した名前の変数がない場合はかわりにその名前の関数を削除してよいと規定しています。
 

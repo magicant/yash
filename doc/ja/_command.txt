@@ -14,9 +14,9 @@ dfn:[Command 組込みコマンド]はコマンドを実行します。またコ
 [[description]]
 == 説明
 
-+-v+ (+--identify+) オプションならびに +-V+ (+--verbose-identify+) オプションを付けずに実行すると、command コマンドは与えられた{{コマンド}}を与えられた{{引数}}で実行します。コマンドの実行の仕方はlink:exec.html#simple[単純コマンドの実行]の最後のステップに準じますが、link:exec.html#search[コマンドの検索]では外部コマンド・組込みコマンド・関数の内オプションで指定したものしか検索しません。またコマンドがlink:builtin.html#types[特殊組込みコマンド]の場合、コマンドのオプションやオペランドの使い方が間違っていたりリダイレクトエラーや代入エラーが起きたりしてもシェルは終了しません。
++-v+ (+--identify+) オプションならびに +-V+ (+--verbose-identify+) オプションを付けずに実行すると、command コマンドは与えられた{{コマンド}}を与えられた{{引数}}で実行します。コマンドの実行の仕方は{zwsp}link:exec.html#simple[単純コマンドの実行]の最後のステップに準じますが、{zwsp}link:exec.html#search[コマンドの検索]では外部コマンド・組込みコマンド・関数の内オプションで指定したものしか検索しません。またコマンドが{zwsp}link:builtin.html#types[特殊組込みコマンド]の場合、コマンドのオプションやオペランドの使い方が間違っていたりリダイレクトエラーや代入エラーが起きたりしてもシェルは終了しません。
 
-+-v+ (+--identify+) オプションまたは +-V+ (+--verbose-identify+) オプションを付けて実行すると、command コマンドは与えられた{{コマンド}}の種類とパスを特定しそれを標準出力に出力します。{{コマンド}}はlink:syntax.html#aliases[エイリアス]やlink:exec.html#function[関数]であっても構いません。
++-v+ (+--identify+) オプションまたは +-V+ (+--verbose-identify+) オプションを付けて実行すると、command コマンドは与えられた{{コマンド}}の種類とパスを特定しそれを標準出力に出力します。{{コマンド}}は{zwsp}link:syntax.html#aliases[エイリアス]や{zwsp}link:exec.html#function[関数]であっても構いません。
 
 +-v+ (+--identify+) オプションを付けて実行したときの出力は以下のようになります。
 
@@ -33,7 +33,7 @@ dfn:[Command 組込みコマンド]はコマンドを実行します。またコ
 
 +-a+::
 +--alias+::
-{{コマンド}}としてlink:syntax.html#aliases[エイリアス]を検索の対象にします。 +-v+ (+--identify+) または +-V+ (+--verbose-identify+) オプションと一緒に使う必要があります。
+{{コマンド}}として{zwsp}link:syntax.html#aliases[エイリアス]を検索の対象にします。 +-v+ (+--identify+) または +-V+ (+--verbose-identify+) オプションと一緒に使う必要があります。
 
 +-b+::
 +--builtin-command+::
@@ -53,7 +53,7 @@ dfn:[Command 組込みコマンド]はコマンドを実行します。またコ
 
 +-p+::
 +--standard-path+::
-link:exec.html#search[コマンドの検索]において、link:params.html#sv-path[+PATH+ 変数]の代わりに、標準のコマンドをすべて含むようなシステム固有のデフォルトパスを用いて外部コマンドを検索します。
+link:exec.html#search[コマンドの検索]において、{zwsp}link:params.html#sv-path[+PATH+ 変数]の代わりに、標準のコマンドをすべて含むようなシステム固有のデフォルトパスを用いて外部コマンドを検索します。
 
 +-v+::
 +--identify+::
@@ -92,7 +92,7 @@ link:exec.html#search[コマンドの検索]において、link:params.html#sv-p
 [[notes]]
 == 補足
 
-Command コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Command コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 POSIX に規定のあるオプションは +-p+, +-v+, +-V+ だけです。これ以外のオプションは link:posix.html[POSIX 準拠モード]では使えません。また POSIX 準拠モードでは +-v+ または +-V+ オプションを使用するとき{{コマンド}}はちょうど一つしか指定できません。
 

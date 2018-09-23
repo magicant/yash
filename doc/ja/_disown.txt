@@ -13,7 +13,7 @@ dfn:[Disown 組込みコマンド]はジョブを削除します。
 [[description]]
 == 説明
 
-Disown コマンドはシェルが管理しているジョブを削除します。削除したジョブはlink:job.html[ジョブ制御]の対象から外れますが、ジョブを構成するコマンドの実行は継続します。
+Disown コマンドはシェルが管理しているジョブを削除します。削除したジョブは{zwsp}link:job.html[ジョブ制御]の対象から外れますが、ジョブを構成するコマンドの実行は継続します。
 
 [[options]]
 == オプション
@@ -26,7 +26,7 @@ Disown コマンドはシェルが管理しているジョブを削除します�
 == オペランド
 
 {{ジョブ}}::
-削除するジョブのlink:job.html#jobid[ジョブ ID]。
+削除するジョブの{zwsp}link:job.html#jobid[ジョブ ID]。
 +
 複数指定することもできます。何も指定しないと現在のジョブを削除します。非 link:posix.html[POSIX 準拠モード]ではジョブ ID の先頭の +%+ は省略できます。
 
@@ -38,7 +38,7 @@ Disown コマンドはシェルが管理しているジョブを削除します�
 [[notes]]
 == 補足
 
-Disown コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Disown コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では disown コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

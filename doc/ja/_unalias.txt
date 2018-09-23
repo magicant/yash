@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Unalias 組込みコマンド
 
-dfn:[Unalias 組込みコマンド]はlink:syntax.html#aliases[エイリアス]を削除します。
+dfn:[Unalias 組込みコマンド]は{zwsp}link:syntax.html#aliases[エイリアス]を削除します。
 
 [[syntax]]
 == 構文
@@ -14,7 +14,7 @@ dfn:[Unalias 組込みコマンド]はlink:syntax.html#aliases[エイリアス]�
 [[description]]
 == 説明
 
-Unalias コマンドはオペランドで指定したlink:syntax.html#aliases[エイリアス]を削除します。
+Unalias コマンドはオペランドで指定した{zwsp}link:syntax.html#aliases[エイリアス]を削除します。
 
 [[options]]
 == オプション
@@ -37,6 +37,6 @@ Unalias コマンドはオペランドで指定したlink:syntax.html#aliases[�
 [[notes]]
 == 補足
 
-Unalias コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Unalias コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

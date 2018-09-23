@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Wait 組込みコマンド
 
-dfn:[Wait 組込みコマンド]はバックグラウンドのlink:job.html[ジョブ]が終了するのを待ちます。
+dfn:[Wait 組込みコマンド]はバックグラウンドの{zwsp}link:job.html[ジョブ]が終了するのを待ちます。
 
 [[syntax]]
 == 構文
@@ -13,17 +13,17 @@ dfn:[Wait 組込みコマンド]はバックグラウンドのlink:job.html[ジ�
 [[description]]
 == 説明
 
-Wait コマンドは実行中のバックグラウンドジョブが終了するのを待ちます。link:job.html[ジョブ制御]が有効な時は、ジョブが停止したときも終了したとみなします。
+Wait コマンドは実行中のバックグラウンドジョブが終了するのを待ちます。{zwsp}link:job.html[ジョブ制御]が有効な時は、ジョブが停止したときも終了したとみなします。
 
-Wait コマンドはジョブ制御が有効でないときでもlink:syntax.html#async[非同期コマンド]の終了を待つのに使えます。
+Wait コマンドはジョブ制御が有効でないときでも{zwsp}link:syntax.html#async[非同期コマンド]の終了を待つのに使えます。
 
-Wait コマンドの実行中にシェルがシグナルを受信した場合、そのシグナルに対しlink:_trap.html[トラップ]が設定してあればそのトラップを直ちに実行し wait コマンドはそのまま終了します。またジョブ制御が有効な場合、シェルが SIGINT シグナルを受信すると wait コマンドは中断されます。
+Wait コマンドの実行中にシェルがシグナルを受信した場合、そのシグナルに対し{zwsp}link:_trap.html[トラップ]が設定してあればそのトラップを直ちに実行し wait コマンドはそのまま終了します。またジョブ制御が有効な場合、シェルが SIGINT シグナルを受信すると wait コマンドは中断されます。
 
 [[operands]]
 == オペランド
 
 {{ジョブ}}::
-終了を待つジョブ・非同期コマンドのlink:job.html#jobid[ジョブ ID] またはプロセス ID です。
+終了を待つジョブ・非同期コマンドの{zwsp}link:job.html#jobid[ジョブ ID] またはプロセス ID です。
 
 {{ジョブ}}を何も指定しないとシェルが有する全てのジョブ・非同期コマンドの終了を待ちます。
 
@@ -39,8 +39,8 @@ Wait コマンドがシグナルによって中断された場合、終了ステ
 [[notes]]
 == 補足
 
-Wait コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Wait コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
-非同期コマンドのプロセス ID は非同期コマンドを実行した直後にlink:params.html#special[特殊パラメータ +!+] の値を見ることで知ることができます。ジョブ制御が有効なときは link:_jobs.html[jobs コマンド]でプロセス ID を調べることもできます。
+非同期コマンドのプロセス ID は非同期コマンドを実行した直後に{zwsp}link:params.html#special[特殊パラメータ +!+] の値を見ることで知ることができます。ジョブ制御が有効なときは link:_jobs.html[jobs コマンド]でプロセス ID を調べることもできます。
 
 // vim: set filetype=asciidoc expandtab:

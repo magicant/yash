@@ -23,9 +23,9 @@ dfn:[コロン組込みコマンド]は何も行わない組込みコマンド�
 [[notes]]
 == 補足
 
-コロンコマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+コロンコマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
-引数のlink:expand.html[展開]とlink:redir.html[リダイレクト]は他のコマンドと同様に行います。
+引数の{zwsp}link:expand.html[展開]と{zwsp}link:redir.html[リダイレクト]は他のコマンドと同様に行います。
 
 link:_true.html[True コマンド]はコロンコマンドと同様に何も行いませんが、コロンコマンドは特殊組込みコマンドであるのに対し true コマンドは準特殊組込みコマンドです。
 

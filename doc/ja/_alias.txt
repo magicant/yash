@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Alias 組込みコマンド
 
-dfn:[Alias 組込みコマンド]はlink:syntax.html#aliases[エイリアス]を設定・表示します。
+dfn:[Alias 組込みコマンド]は{zwsp}link:syntax.html#aliases[エイリアス]を設定・表示します。
 
 [[syntax]]
 == 構文
@@ -13,7 +13,7 @@ dfn:[Alias 組込みコマンド]はlink:syntax.html#aliases[エイリアス]を
 [[description]]
 == 説明
 
-Alias コマンドはlink:syntax.html#aliases[エイリアス]をオペランドに従って設定または表示します。表示は、コマンド (の一部) として解釈可能な形式で標準出力に出力します。オペランドを一つも与えない場合、alias コマンドは現在設定されている全てのエイリアスを表示します。
+Alias コマンドは{zwsp}link:syntax.html#aliases[エイリアス]をオペランドに従って設定または表示します。表示は、コマンド (の一部) として解釈可能な形式で標準出力に出力します。オペランドを一つも与えない場合、alias コマンドは現在設定されている全てのエイリアスを表示します。
 
 [[options]]
 == オプション
@@ -45,7 +45,7 @@ Alias コマンドはlink:syntax.html#aliases[エイリアス]をオペランド
 
 Yash でエイリアスの名前として使えない文字は、空白文字・タブ・改行、および +=$<>\'"`;&|()#+ の各文字です。エイリアスの内容にはすべての文字が使えます。
 
-Alias コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Alias コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 POSIX にはオプションに関する規定はありません。よってオプションは link:posix.html[POSIX 準拠モード]では使えません。
 

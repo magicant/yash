@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Complete 組込みコマンド
 
-dfn:[Complete 組込みコマンド]はlink:lineedit.html#completion[コマンドライン補完]において補完候補を生成します。この組込みコマンドは補完関数の実行中にだけ使えます。
+dfn:[Complete 組込みコマンド]は{zwsp}link:lineedit.html#completion[コマンドライン補完]において補完候補を生成します。この組込みコマンドは補完関数の実行中にだけ使えます。
 
 [[syntax]]
 == 構文
@@ -84,13 +84,13 @@ link:builtin.html[組込みコマンド] (+--special-builtin --semi-special-buil
 ファイル (ディレクトリ含む)
 
 +--finished-job+::
-終了したジョブのlink:job.html#jobid[ジョブ ID]
+終了したジョブの{zwsp}link:job.html#jobid[ジョブ ID]
 
 +--function+::
 link:exec.html#function[関数]
 
 +--global-alias+::
-グローバルlink:syntax.html#aliases[エイリアス]
+グローバル{zwsp}link:syntax.html#aliases[エイリアス]
 
 +-g+::
 +--group+::
@@ -106,31 +106,31 @@ link:job.html#jobid[ジョブ ID]
 
 +-k+::
 +--keyword+::
-シェルのlink:syntax.html#tokens[予約語]
+シェルの{zwsp}link:syntax.html#tokens[予約語]
 
 +--normal-alias+::
 通常の (グローバルでない) link:syntax.html#aliases[エイリアス]
 
 +--regular-builtin+::
-通常のlink:builtin.html[組込みコマンド]
+通常の{zwsp}link:builtin.html[組込みコマンド]
 
 +--running-job+::
-実行中のジョブのlink:job.html#jobid[ジョブ ID]
+実行中のジョブの{zwsp}link:job.html#jobid[ジョブ ID]
 
 +--scalar-variable+::
 (配列を除いた通常の) link:params.html#variables[変数]
 
 +--semi-special-builtin+::
-準特殊link:builtin.html[組込みコマンド]
+準特殊{zwsp}link:builtin.html[組込みコマンド]
 
 +--signal+::
 シグナル
 
 +--special-builtin+::
-特殊link:builtin.html[組込みコマンド]
+特殊{zwsp}link:builtin.html[組込みコマンド]
 
 +--stopped-job+::
-停止中のジョブのlink:job.html#jobid[ジョブ ID]
+停止中のジョブの{zwsp}link:job.html#jobid[ジョブ ID]
 
 +-u+::
 +--username+::
@@ -157,7 +157,7 @@ Complete コマンドのオペランドは、各オペランドがそれぞれ�
 [[notes]]
 == 補足
 
-Complete コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Complete コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では complete コマンドの動作は規定されていません。
 
 // vim: set filetype=asciidoc expandtab:

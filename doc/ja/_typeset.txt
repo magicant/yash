@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Typeset 組込みコマンド
 
-dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]またはlink:exec.html#function[関数]を表示・設定します。
+dfn:[Typeset 組込みコマンド]は{zwsp}link:params.html#variables[変数]または{zwsp}link:exec.html#function[関数]を表示・設定します。
 
 [[syntax]]
 == 構文
@@ -14,7 +14,7 @@ dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]また�
 [[description]]
 == 説明
 
-+-f+ (+--functions+) オプションを付けずに実行すると、typeset コマンドはlink:params.html#variables[変数]を出力または設定します。+-f+ (+--functions+) オプションを付けて実行すると、typeset コマンドはlink:exec.html#function[関数]を出力または設定します。
++-f+ (+--functions+) オプションを付けずに実行すると、typeset コマンドは{zwsp}link:params.html#variables[変数]を出力または設定します。+-f+ (+--functions+) オプションを付けて実行すると、typeset コマンドは{zwsp}link:exec.html#function[関数]を出力または設定します。
 
 +-p+ (+--print+) オプションを付けて実行すると、typeset コマンドはオペランドで指定した変数または関数を標準出力に出力します。+-p+ (+--print+) オプションを付けずに実行すると、typeset コマンドはオペランドで指定した変数または関数を設定します。オペランドを一つも与えずに実行すると、+-p+ (+--print+) オプションの有無にかかわらず typeset コマンドは全ての変数または関数を出力します (このとき +-g+ (+--global+) オプションがあれば本当にすべての変数を、そうでないときはローカル変数だけを出力します)。
 
@@ -27,7 +27,7 @@ dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]また�
 
 +-g+::
 +--global+::
-このオプションを指定すると、新しく変数を作成する場合その変数をグローバル変数とします。すなわち変数は関数の実行が終わっても残ります。このオプションを指定しない場合、設定する変数はlink:exec.html#localvar[ローカル変数]になります。
+このオプションを指定すると、新しく変数を作成する場合その変数をグローバル変数とします。すなわち変数は関数の実行が終わっても残ります。このオプションを指定しない場合、設定する変数は{zwsp}link:exec.html#localvar[ローカル変数]になります。
 +
 オペランドがない場合は、このオプションを指定していると全ての変数を出力します。このオプションを指定していないとローカル変数だけ出力します。
 
@@ -43,7 +43,7 @@ dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]また�
 
 +-x+::
 +--export+::
-設定する変数をlink:params.html#variables[エクスポート対象]にします。
+設定する変数を{zwsp}link:params.html#variables[エクスポート対象]にします。
 +
 変数を出力する際は、エクスポート対象の変数だけ出力します。
 
@@ -57,7 +57,7 @@ dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]また�
 {{変数}}::
 出力または設定する変数の名前です。
 +
-変数が既に存在する場合、変数の値は変わりません。存在しない変数を指定した場合、変数は存在するがその値は存在しない状態になります (このような変数はlink:expand.html#params[パラメータ展開]では存在しない変数として扱います)。
+変数が既に存在する場合、変数の値は変わりません。存在しない変数を指定した場合、変数は存在するがその値は存在しない状態になります (このような変数は{zwsp}link:expand.html#params[パラメータ展開]では存在しない変数として扱います)。
 
 {{変数}}={{値}}::
 設定する変数の名前とその値です。
@@ -77,9 +77,9 @@ dfn:[Typeset 組込みコマンド]はlink:params.html#variables[変数]また�
 
 既にローカル変数が存在する場合、それを無視してグローバル変数を新しく作ることはできません (+-g+ (+--global+) オプションを指定していても既存のローカル変数が再設定されます)。
 
-Typeset コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Typeset コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では typeset コマンドの動作は規定されていません。
 
-link:_export.html[Export コマンド]は typeset コマンドに +-gx+ オプションを付けたものと同じです。link:_readonly.html[Readonly コマンド]は typeset コマンドに +-gr+ オプションを付けたものと同じです。
+link:_export.html[Export コマンド]は typeset コマンドに +-gx+ オプションを付けたものと同じです。{zwsp}link:_readonly.html[Readonly コマンド]は typeset コマンドに +-gr+ オプションを付けたものと同じです。
 
 // vim: set filetype=asciidoc expandtab:

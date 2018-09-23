@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Return 組込みコマンド
 
-dfn:[Return 組込みコマンド]は現在実行中のlink:exec.html#function[関数]またはスクリプトの実行を終了します。
+dfn:[Return 組込みコマンド]は現在実行中の{zwsp}link:exec.html#function[関数]またはスクリプトの実行を終了します。
 
 [[syntax]]
 == 構文
@@ -36,7 +36,7 @@ dfn:[Return 組込みコマンド]は現在実行中のlink:exec.html#function[�
 {{終了ステータス}}::
 Return コマンドの終了ステータスを指定する 0 以上の自然数です。
 +
-このオペランドが与えられていない場合は、return コマンドの直前に実行されたコマンドの終了ステータスを用います (ただしlink:_trap.html[トラップ]を実行中の場合はトラップに入る直前のコマンドの終了ステータス)。
+このオペランドが与えられていない場合は、return コマンドの直前に実行されたコマンドの終了ステータスを用います (ただし{zwsp}link:_trap.html[トラップ]を実行中の場合はトラップに入る直前のコマンドの終了ステータス)。
 
 [[exitstatus]]
 == 終了ステータス
@@ -46,7 +46,7 @@ Return コマンドの終了ステータスはオペランドで与えられた�
 [[notes]]
 == 補足
 
-Return コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Return コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 POSIX では、{{終了ステータス}}の値は 0 以上 256 未満でなければならないとしています。Yash では拡張として 256 以上の値も受け付けるようになっています。
 

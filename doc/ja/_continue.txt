@@ -16,7 +16,7 @@ dfn:[Continue 組込みコマンド]は実行中のループの次の繰り返�
 
 +-i+ (+--iteration+) オプションを付けずに実行すると、continue コマンドは現在実行中の link:syntax.html#for[for ループ]または link:syntax.html#while-until[while ループ]または link:syntax.html#while-until[until ループ]の繰り返しを中断し、直ちに次の繰り返しを開始します (while/until ループについては、ループの実行条件の判定からやり直します)。多重ループの中で実行した場合、内側から数えて{{深さ}}番目のループに対してこの動作を行います。{{深さ}}が指定されていないときは、最も内側のループに対してこの動作を行います ({{深さ}} = 1)。指定された{{深さ}}が実際に実行している多重ループの深さより大きい場合は最も外側のループに対してこの動作を行います。
 
-+-i+ (+--iteration+) オプションを付けて実行すると、continue コマンドは現在実行中のlink:_eval.html#iter[反復実行]の現在のコマンドの実行を中断し、直ちに次のコマンドの実行を開始します。
++-i+ (+--iteration+) オプションを付けて実行すると、continue コマンドは現在実行中の{zwsp}link:_eval.html#iter[反復実行]の現在のコマンドの実行を中断し、直ちに次のコマンドの実行を開始します。
 
 [[options]]
 == オプション
@@ -39,14 +39,14 @@ dfn:[Continue 組込みコマンド]は実行中のループの次の繰り返�
 [[notes]]
 == 補足
 
-Continue コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Continue コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
 POSIX では、continue コマンドを構文的に取り囲んでいないループの扱いを規定していません。例えば以下のような場合が該当します:
 
-- ループの中でlink:exec.html#function[関数]が実行され、その中で continue コマンドが実行される
-- ループの実行中にlink:_trap.html[トラップ]が実行され、その中で continue コマンドが実行される
+- ループの中で{zwsp}link:exec.html#function[関数]が実行され、その中で continue コマンドが実行される
+- ループの実行中に{zwsp}link:_trap.html[トラップ]が実行され、その中で continue コマンドが実行される
 
 Yash では、このようなループは continue の対象に出来ません。
 

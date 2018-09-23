@@ -13,28 +13,28 @@ dfn:[Read 組込みコマンド]は標準入力から行を読み込み変数に
 [[description]]
 == 説明
 
-Read コマンドは標準入力から一行の文字列を読み込み、それをlink:params.html#variables[変数]に代入します。
+Read コマンドは標準入力から一行の文字列を読み込み、それを{zwsp}link:params.html#variables[変数]に代入します。
 
 +-r+ (+--raw-mode+) オプションを付けると、行内のバックスラッシュは通常の文字と同様に扱われます。
 
-+-r+ (+--raw-mode+) オプションを付けない場合、読み込んだ文字列の中のバックスラッシュ (+\+) はlink:syntax.html#quotes[引用符]として働きます。バックスラッシュが行末にあるときは行の連結を行います。link:interact.html[対話モード]のシェルが 2 行目以降を読み込むとき、標準入力が端末ならば link:params.html#sv-ps2[+PS2+ 変数]の値がプロンプトとして出力されます。
++-r+ (+--raw-mode+) オプションを付けない場合、読み込んだ文字列の中のバックスラッシュ (+\+) は{zwsp}link:syntax.html#quotes[引用符]として働きます。バックスラッシュが行末にあるときは行の連結を行います。{zwsp}link:interact.html[対話モード]のシェルが 2 行目以降を読み込むとき、標準入力が端末ならば link:params.html#sv-ps2[+PS2+ 変数]の値がプロンプトとして出力されます。
 
-読み込んだ文字列は、link:expand.html#split[単語分割]によって分割します。分割後の各文字列が、それぞれオペランドで指定された変数の値に順に設定されます。指定された変数の数より分割結果のほうが多い場合は、最後の変数に残りの分割結果の全てが入ります。分割結果の数より指定された変数のほうが多い場合は、余った変数には空文字列が入ります。
+読み込んだ文字列は、{zwsp}link:expand.html#split[単語分割]によって分割します。分割後の各文字列が、それぞれオペランドで指定された変数の値に順に設定されます。指定された変数の数より分割結果のほうが多い場合は、最後の変数に残りの分割結果の全てが入ります。分割結果の数より指定された変数のほうが多い場合は、余った変数には空文字列が入ります。
 
 [[options]]
 == オプション
 
 +-A+::
 +--array+::
-最後に指定した変数をlink:params.html#arrays[配列]にします。分割後の各文字列が配列の要素として設定されます。
+最後に指定した変数を{zwsp}link:params.html#arrays[配列]にします。分割後の各文字列が配列の要素として設定されます。
 
 +-e+::
 +--line-editing+::
-読み込みにlink:lineedit.html[行編集]を使用します。
+読み込みに{zwsp}link:lineedit.html[行編集]を使用します。
 +
 行編集が有効になるには以下の条件が全て満たされている必要があります:
 +
-- シェルがlink:interact.html[対話モード]である。
+- シェルが{zwsp}link:interact.html[対話モード]である。
 - link:_set.html#so-vi[vi] または link:_set.html#so-emacs[emacs] オプションが有効になっている。
 - 標準入力と標準エラーが端末である。
 
@@ -66,10 +66,10 @@ Read コマンドは標準入力から一行の文字列を読み込み、それ
 [[notes]]
 == 補足
 
-Read コマンドはlink:builtin.html#types[準特殊組込みコマンド]です。
+Read コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 
 POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
-+PS1+ 変数をプロンプトとして表示する際、link:params.html#sv-ps1r[+PS1R+] および link:params.html#sv-ps1s[+PS1S+] 変数も使用されます。 +PS2+ についても同様です。
++PS1+ 変数をプロンプトとして表示する際、{zwsp}link:params.html#sv-ps1r[+PS1R+] および link:params.html#sv-ps1s[+PS1S+] 変数も使用されます。 +PS2+ についても同様です。
 
 // vim: set filetype=asciidoc expandtab:

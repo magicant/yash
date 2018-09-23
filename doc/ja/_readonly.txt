@@ -3,7 +3,7 @@
 :lang: ja
 //:title: Yash マニュアル - Readonly 組込みコマンド
 
-dfn:[Readonly 組込みコマンド]は読み取り専用のlink:params.html#variables[変数]またはlink:exec.html#function[関数]を表示・設定します。
+dfn:[Readonly 組込みコマンド]は読み取り専用の{zwsp}link:params.html#variables[変数]または{zwsp}link:exec.html#function[関数]を表示・設定します。
 
 [[syntax]]
 == 構文
@@ -19,7 +19,7 @@ Readonly コマンドは link:_typeset.html[typeset コマンド]に +-gr+ オ�
 [[notes]]
 == 補足
 
-readonly コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+readonly コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 POSIX には readonly コマンドに関する規定はありますが、オプションは +-p+ しか規定がありません。その他のオプションは link:posix.html[POSIX 準拠モード]では使えません。また POSIX は +-p+ オプションをオペランドとともに使うことを認めていません。
 

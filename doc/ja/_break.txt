@@ -16,7 +16,7 @@ dfn:[Break 組込みコマンド]は実行中のループを中断します。
 
 +-i+ (+--iteration+) オプションを付けずに実行すると、break コマンドは現在実行中の link:syntax.html#for[for ループ]または link:syntax.html#while-until[while ループ]または link:syntax.html#while-until[until ループ]を中断します。多重ループの中で実行した場合、内側から数えて{{深さ}}番目のループを中断します。{{深さ}}が指定されていないときは、最も内側のループを中断します ({{深さ}} = 1)。指定された{{深さ}}が実際に実行している多重ループの深さより大きい場合は最も外側のループを中断します。
 
-+-i+ (+--iteration+) オプションを付けて実行すると、break コマンドは現在実行中のlink:_eval.html#iter[反復実行]を中断します。
++-i+ (+--iteration+) オプションを付けて実行すると、break コマンドは現在実行中の{zwsp}link:_eval.html#iter[反復実行]を中断します。
 
 [[options]]
 == オプション
@@ -39,14 +39,14 @@ dfn:[Break 組込みコマンド]は実行中のループを中断します。
 [[notes]]
 == 補足
 
-Break コマンドはlink:builtin.html#types[特殊組込みコマンド]です。
+Break コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
 POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
 POSIX では、break コマンドを構文的に取り囲んでいないループの扱いを規定していません。例えば以下のような場合が該当します:
 
-- ループの中でlink:exec.html#function[関数]が実行され、その中で break コマンドが実行される
-- ループの実行中にlink:_trap.html[トラップ]が実行され、その中で break コマンドが実行される
+- ループの中で{zwsp}link:exec.html#function[関数]が実行され、その中で break コマンドが実行される
+- ループの実行中に{zwsp}link:_trap.html[トラップ]が実行され、その中で break コマンドが実行される
 
 Yash では、このようなループは break の対象に出来ません。
 
