@@ -6,6 +6,10 @@
 
 dfn:[組込みコマンド]とはシェルに内蔵されたコマンドです。組込みコマンドは外部のプログラムを起動することなくシェル自身によって実行されます。
 
+ifdef::basebackend-html[]
+組込みコマンドの一覧はlink:index.html#builtins[目次]を参照してください。
+endif::basebackend-html[]
+
 [[types]]
 == 組込みコマンドの種類
 

@@ -7,6 +7,11 @@
 dfn:[Built-in commands] are commands that are implemented in the shell and are
 executed by the shell without external programs.
 
+ifdef::basebackend-html[]
+See the link:index.html#builtins[table of contents] for the list of the
+built-ins.
+endif::basebackend-html[]
+
 [[types]]
 == Types of built-in commands
 
