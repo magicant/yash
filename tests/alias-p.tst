@@ -51,15 +51,18 @@ true
 __IN__
 
 test_OE -e 0 'removing multiple aliases - exit status'
-alias true=a a=b b=false
-unalias true a b
+alias true=a cat=b echo=c
+unalias true cat echo
 __IN__
 
-test_OE -e 0 'removing multiple aliases - removal'
-alias true=a a=b b=false
-unalias true a b
+test_oE -e 0 'removing multiple aliases - removal'
+alias true=a cat=b echo=c
+unalias true cat echo
 true
+echo ok | cat
 __IN__
+ok
+__OUT__
 
 test_OE -e 0 'removing all aliases - exit status'
 alias a=a b=b c=c
@@ -128,23 +131,44 @@ unalias true
 unalias true
 __IN__
 
-test_oE 'using alias after assignment'
+test_oE 'using alias after assignment (simple)'
 alias s=sh
 a=A s -c 'echo $a'
 __IN__
 A
 __OUT__
 
-test_OE 'using alias after redirection'
+test_oE 'using alias after assignment (complex)'
+alias b=' b=B s '\''echo $a $b'\''; echo C' s=' sh -c '
+a=A b
+__IN__
+A B
+C
+__OUT__
+
+test_OE 'using alias after redirection (simple)'
 alias e=echo
 >/dev/null e not_printed
 __IN__
 
-test_oE 'using alias in pipeline'
+test_OE 'using alias after redirection (complex)'
+alias e=' >&- c >/dev/null ' c=' echo '
+</dev/null e not_printed
+__IN__
+
+test_oE 'using alias in pipeline (simple)'
 alias c=cat
 ! a | c | c
 __IN__
 ABC
+__OUT__
+
+test_oE 'using alias in pipeline (complex)'
+alias b=' cat | c - ; a ' c=' cat '
+! a | b DEF
+__IN__
+ABC
+ABC DEF
 __OUT__
 
 test_oE 'using aliases in compound commands'
@@ -222,7 +246,11 @@ else
 __OUT__
 
 test_oE 'alias substitution to parenthesis'
-alias l='(' r=')'
+alias l='
+(
+' r='
+)
+'
 a=A
 l echo subshell; a=B; r
 echo $a
@@ -286,8 +314,8 @@ a
 a
 __OUT__
 
-test_oE 'alias substitution to do/done (for)'
-alias forx='for x in 1; ' fory='for y in 2; do echo $y; ' for='
+test_oE 'alias substitution to do/done (for with in)'
+alias forx='for x in 1; ' fory='for y in 2; do echo $y;' for='
  do' dn='
  done'
 forx for echo $x; dn
@@ -295,6 +323,28 @@ fory dn
 __IN__
 1
 2
+__OUT__
+
+test_oE 'alias substitution to do/done (for w/o in)'
+alias forx='for x ' for=' ; 
+
+ do' done='
+
+ do' do='?' dn='
+ #comment
+ done'
+set a b c
+forx for echo $x
+dn
+forx done echo $x
+dn
+__IN__
+a
+b
+c
+a
+b
+c
 __OUT__
 
 test_oE 'alias substitution to case/esac keywords'
@@ -333,15 +383,24 @@ __IN__
 4-2
 __OUT__
 
+test_oE 'alias substitution to ( (case)'
+alias c='case a in ' p=' #comment
+
+ (a) echo A; esac'
+c p
+__IN__
+A
+__OUT__
+
 test_oE 'alias substitution to | (case)'
-alias c='case a in x ' p='|a) echo A; esac'
+alias c='case a in x ' p=' |a) echo A; esac'
 c p
 __IN__
 A
 __OUT__
 
 test_oE 'alias substitution to ) (case)'
-alias c='case a in a ' p=') echo A; esac'
+alias c='case a in a ' p=' ) echo A; esac'
 c p
 __IN__
 A
@@ -401,10 +460,12 @@ __IN__
 __OUT__
 
 test_oE 'alias starting with blank'
-alias e=' echo'
+alias e=' echo' b=' { e B; }'
 e A
+b
 __IN__
 A
+B
 __OUT__
 
 test_oE 'alias ending with blank'
@@ -485,11 +546,11 @@ echo
 __OUT__
 
 test_oE 'alias substitution to line continuation'
-alias bs='\' bsnl='\
+alias e='echo ' bs='\' bsnl='\
 '
-bs
- echo foo
-bsnl echo bar
+e bs
+ foo
+e bsnl bar
 __IN__
 foo
 bar
