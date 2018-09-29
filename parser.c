@@ -2420,8 +2420,9 @@ command_T *parse_for(parsestate_T *ps)
     }
     next_token(ps);
 
-parse_in:;
-    bool on_next_line = parse_newline_list(ps);
+    bool on_next_line = false;
+parse_in:
+    on_next_line |= parse_newline_list(ps);
     if (ps->tokentype == TT_IN) {
 	next_token(ps);
 	result->c_forwords = parse_words(ps, false);

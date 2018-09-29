@@ -21,6 +21,9 @@ Yash 2.48
      begins with a blank.
   *  The "do" keyword in a for loop is no longer subject to alias
      substitution.
+  *  An invalid semicolon that appears at the beginning of a line as a
+     result of alias substitution in a for loop is now correctly
+     rejected.
   .  Updated the sample initialization script (yashrc):
     =  The prompt strings are now defined with the $YASH_PS...
        variables.

@@ -34,6 +34,16 @@ __IN__
 
 __OUT__
 
+test_Oe -e 2 'semicolon after newline (for)'
+alias -g s=';'
+for i
+s do :; done
+__IN__
+syntax error: `;' cannot appear on a new line
+__ERR__
+#'
+#`
+
 test_oE 'alias substitution after function keyword'
 alias fn='function ' f=g
 fn f { echo F; }
