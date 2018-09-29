@@ -19,6 +19,8 @@ Yash 2.48
      a here-document redirection operator are now correctly parsed
      even when it resulted from an alias substitution whose value
      begins with a blank.
+  *  The "do" keyword in a for loop is no longer subject to alias
+     substitution.
   .  Updated the sample initialization script (yashrc):
     =  The prompt strings are now defined with the $YASH_PS...
        variables.

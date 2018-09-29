@@ -347,6 +347,14 @@ b
 c
 __OUT__
 
+test_oE 'inapplicable alias substitution of do (for)'
+alias forx='for x ' do=';'
+set 1
+forx do echo $x; done
+__IN__
+1
+__OUT__
+
 test_oE 'alias substitution to case/esac keywords'
 alias c='case a in a) :' e='
  esac </dev/null | cat -' eb='

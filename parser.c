@@ -2427,7 +2427,7 @@ parse_in:;
 	result->c_forwords = parse_words(ps, false);
 	if (ps->tokentype == TT_SEMICOLON)
 	    next_token(ps);
-    } else if (psubstitute_alias(ps, 0)) {
+    } else if (ps->tokentype != TT_DO && psubstitute_alias(ps, 0)) {
 	goto parse_in;
     } else {
 	result->c_forwords = NULL;
