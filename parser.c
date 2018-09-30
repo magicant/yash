@@ -602,6 +602,8 @@ static assign_T *tryparse_assignment(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
+static void validate_redir_operand(parsestate_T *ps)
+    __attribute__((nonnull));
 static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_group(parsestate_T *ps)
@@ -2226,7 +2228,7 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 
     /* parse redirection target file token */
     next_token(ps);
-    psubstitute_alias_recursive(ps, 0);
+    validate_redir_operand(ps);
     result->rd_filename = ps->token, ps->token = NULL;
     if (result->rd_filename != NULL)
 	next_token(ps);
@@ -2236,7 +2238,7 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 
 parse_here_document_tag:
     next_token(ps);
-    psubstitute_alias_recursive(ps, 0);
+    validate_redir_operand(ps);
     result->rd_hereend =
 	xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
     result->rd_herecontent = NULL;
@@ -2258,6 +2260,21 @@ parse_command:
     else
 	serror(ps, Ngt("unclosed process redirection"));
     return result;
+}
+
+/* Performs alias substitution on the current token.
+ * Rejects the current token if it is an IO_NUMBER token. */
+void validate_redir_operand(parsestate_T *ps)
+{
+    do {
+	if (posixly_correct && ps->tokentype == TT_IO_NUMBER) {
+	    assert(ps->next_index > 0);
+	    serror(ps, Ngt("put a space between `%lc' and `%lc' "
+			"for disambiguation"),
+		    ps->src.contents[ps->next_index - 1],
+		    ps->src.contents[ps->next_index]);
+	}
+    } while (psubstitute_alias(ps, 0));
 }
 
 /* Parses a compound command.

@@ -282,6 +282,38 @@ __IN__
 foo
 __OUT__
 
+(
+posix="true"
+
+test_Oe -e 2 'IO_NUMBER as redirection operand (filename)'
+# Here the token "10" is an IO_NUMBER token for the second redirection, and
+# hence cannot be the operand of the first.
+> 12> 34
+__IN__
+syntax error: put a space between `2' and `>' for disambiguation
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 'IO_NUMBER as redirection operand (here-document)'
+# Here the token "10" is an IO_NUMBER token for the second redirection, and
+# hence cannot be the operand of the first.
+<< 01<< 23
+01
+23
+__IN__
+syntax error: put a space between `1' and `<' for disambiguation
+syntax error: here-document content for <<01 is missing
+syntax error: here-document content for <<23 is missing
+__ERR__
+#'
+#`
+#'
+#`
+)
+
 test_Oe -e 2 'missing target for <'
 <
 __IN__

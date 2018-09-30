@@ -112,6 +112,7 @@ Command Search and Execution
  * alias-p.tst
  * case-p.tst
  * case-y.tst
+ * redir-y.tst
 
 2.11 Signals and Error Handling
  * async-p.tst

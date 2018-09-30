@@ -52,6 +52,8 @@ When the POSIXly-correct mode is enabled:
   +$({{commands}})+ are parsed every time the substitution is executed.
 - In link:expand.html#arith[arithmetic expansion], fractional numbers and the
   `++` and `--` operators cannot be used. All variables must be numeric.
+- The operand of a link:redir.html[redirection] cannot be the integer prefix
+  to a next redirection operator.
 - In a link:redir.html#file[redirection to a file], if the
   link:expand.html#glob[pathname expansion] yielded more than one or no
   pathname, it is not immediately treated as an error. Instead, the shell

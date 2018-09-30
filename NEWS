@@ -24,6 +24,8 @@ Yash 2.48
   *  An invalid semicolon that appears at the beginning of a line as a
      result of alias substitution in a for loop is now correctly
      rejected.
+  *  For strict POSIXly-correctness, an IO_NUMBER token can no longer
+     be the operand of a redirection.
   .  Updated the sample initialization script (yashrc):
     =  The prompt strings are now defined with the $YASH_PS...
        variables.
