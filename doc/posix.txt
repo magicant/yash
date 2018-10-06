@@ -54,6 +54,9 @@ When the POSIXly-correct mode is enabled:
   `++` and `--` operators cannot be used. All variables must be numeric.
 - The operand of a link:redir.html[redirection] cannot be the integer prefix
   to a next redirection operator.
+- A link:syntax.html#compound[compound command] with a
+  link:redir.html[redirection] cannot be immediately followed by a keyword
+  like +}+ and +fi+.
 - In a link:redir.html#file[redirection to a file], if the
   link:expand.html#glob[pathname expansion] yielded more than one or no
   pathname, it is not immediately treated as an error. Instead, the shell

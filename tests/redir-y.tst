@@ -446,4 +446,46 @@ __IN__
 syntax error: unclosed process redirection
 __ERR__
 
+(
+posix="true"
+
+test_Oe -e 2 'keyword after redirection in compound command (POSIX)'
+{ { echo not printed; } >/dev/null }
+__IN__
+syntax error: unexpected word after redirection
+syntax error: (maybe you missed `;'?)
+__ERR__
+#'
+#`
+#)
+
+test_Oe -e 2 'keyword after redirection on subshell (POSIX)'
+{ (echo not printed) >/dev/null }
+__IN__
+syntax error: unexpected word after redirection
+syntax error: (maybe you missed `;'?)
+__ERR__
+#'
+#`
+#)
+
+test_OE -e 0 '} after ) (POSIX)'
+# In a literal interpretation of POSIX XCU 2.4, this should be a syntax error
+# because } does not follow any reserved word. However, no known shell rejects
+# this.
+{ (:) }
+__IN__
+
+test_OE -e 0 ') after } (POSIX)'
+# This is of course OK.
+( { :; } )
+__IN__
+
+)
+
+test_OE -e 0 'keyword after redirection in compound command (non-POSIX)'
+{ { echo not printed; } >/dev/null }
+{ ( echo not printed  ) >/dev/null }
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

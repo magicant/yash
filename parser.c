@@ -2307,7 +2307,23 @@ command_T *parse_compound_command(parsestate_T *ps)
     default:
 	return NULL;
     }
+
+    assert(result->c_redirs == NULL);
     parse_redirect_list(ps, &result->c_redirs);
+    if (posixly_correct && result->c_redirs != NULL && ps->token != NULL &&
+	    ps->tokentype != TT_WORD) {
+	/* A token that follows a redirection cannot be a keyword because
+	 * none of the rules in POSIX XCU 2.4 apply. This means
+	 *   { { echo; } }
+	 * and
+	 *   { { echo; } >/dev/null; }
+	 * are OK but
+	 *   { { echo; } >/dev/null }
+	 * is not. */
+	serror(ps, Ngt("unexpected word after redirection"));
+	serror(ps, Ngt("(maybe you missed `%ls'?)"), L";");
+    }
+
     return result;
 }
 

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.48\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2018-09-30 21:52+0900\n"
-"PO-Revision-Date: 2018-09-30 21:55+0900\n"
+"POT-Creation-Date: 2018-10-06 15:04+0900\n"
+"PO-Revision-Date: 2018-10-06 15:19+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -234,7 +234,7 @@ msgstr "\tprintf 書式 [値...]\n"
 
 #: builtins/test.c:82 builtins/test.c:425 parser.c:852 parser.c:1349
 #: parser.c:1437 parser.c:1462 parser.c:1594 parser.c:1633 parser.c:2142
-#: parser.c:2466 parser.c:2554 parser.c:2634
+#: parser.c:2482 parser.c:2570 parser.c:2650
 #, c-format
 msgid "`%ls' is missing"
 msgstr "「%ls」が抜けています"
@@ -1004,7 +1004,7 @@ msgstr "「%ls」に対応する「{」がありません"
 msgid "`%ls' is used outside `case'"
 msgstr "「%ls」が case コマンドの外で使われています"
 
-#: parser.c:810 parser.c:812 parser.c:2650
+#: parser.c:810 parser.c:812 parser.c:2666
 #, c-format
 msgid "`%ls' cannot be used as a command name"
 msgstr "「%ls」はコマンド名として使えません"
@@ -1034,7 +1034,7 @@ msgstr "「%ls」に対応する「do」がありません"
 msgid "encountered `%ls' without a matching `case'"
 msgstr "「%ls」に対応する「case」がありません"
 
-#: parser.c:850
+#: parser.c:850 parser.c:2324
 #, c-format
 msgid "(maybe you missed `%ls'?)"
 msgstr "(「%ls」を忘れていませんか?)"
@@ -1115,70 +1115,74 @@ msgstr "プロセスリダイレクトが閉じられていません"
 msgid "put a space between `%lc' and `%lc' for disambiguation"
 msgstr "「%lc」と「%lc」の間に空白が必要です"
 
-#: parser.c:2342 parser.c:2384 parser.c:2471 parser.c:2515
+#: parser.c:2323
+msgid "unexpected word after redirection"
+msgstr "リダイレクトの直後に不正な単語があります"
+
+#: parser.c:2358 parser.c:2400 parser.c:2487 parser.c:2531
 #, c-format
 msgid "commands are missing between `%ls' and `%ls'"
 msgstr "「%ls」と「%ls」の間にコマンドがありません"
 
-#: parser.c:2396 parser.c:2505
+#: parser.c:2412 parser.c:2521
 #, c-format
 msgid "commands are missing after `%ls'"
 msgstr "「%ls」の後にコマンドがありません"
 
-#: parser.c:2433
+#: parser.c:2449
 msgid "an identifier is required after `for'"
 msgstr "「for」の後には識別子が必要です"
 
-#: parser.c:2435
+#: parser.c:2451
 #, c-format
 msgid "`%ls' is not a valid identifier"
 msgstr "「%ls」は有効な識別子ではありません"
 
-#: parser.c:2455
+#: parser.c:2471
 msgid "`;' cannot appear on a new line"
 msgstr "「;」は行頭に置けません"
 
-#: parser.c:2544 parser.c:2617 parser.c:2664
+#: parser.c:2560 parser.c:2633 parser.c:2680
 #, c-format
 msgid "a word is required after `%ls'"
 msgstr "「%ls」の後には単語が必要です"
 
-#: parser.c:2607
+#: parser.c:2623
 msgid "an unquoted `esac' cannot be the first case pattern"
 msgstr "クォートしていない「esac」を最初のパターンにすることはできません"
 
-#: parser.c:2620
+#: parser.c:2636
 #, c-format
 msgid "encountered an invalid character `%lc' in the case pattern"
 msgstr "case のパターン内に不正な文字「%lc」があります"
 
-#: parser.c:2696 parser.c:2750
+#: parser.c:2712 parser.c:2766
 msgid "a function body must be a compound command"
 msgstr "関数の本体は複合コマンドでなければなりません"
 
-#: parser.c:2718
+#: parser.c:2734
 #, c-format
 msgid "invalid use of `%lc'"
 msgstr "「%lc」の使い方が正しくありません"
 
-#: parser.c:2725
+#: parser.c:2741
 msgid "invalid function name"
 msgstr "無効な関数名です"
 
-#: parser.c:2735
+#: parser.c:2751
 msgid "`(' must be followed by `)' in a function definition"
 msgstr "関数定義では「(」の直後に「)」が必要です"
 
-#: parser.c:2763
+#: parser.c:2779
 msgid "the end-of-here-document indicator contains a newline"
 msgstr "ヒアドキュメントの終端子に改行が入っています"
 
-#: parser.c:2790 parser.c:2824
+#: parser.c:2806 parser.c:2840
 #, c-format
 msgid "the here-document content is not closed by `%ls'"
 msgstr "ヒアドキュメントが「%ls」で閉じられていません"
 
-#: parser.c:2876
+#: parser.c:2892
 #, c-format
 msgid "here-document content for %s%ls is missing"
 msgstr "%s%ls に対応するヒアドキュメントの内容がありません"
