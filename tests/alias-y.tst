@@ -44,6 +44,20 @@ __ERR__
 #'
 #`
 
+(
+posix="true"
+
+test_Oe -e 2 'reserved word esac as pattern (-o POSIX)'
+alias CASE='case esac in ( ' ESAC='Esac' Esac='esac'
+CASE ESAC ) echo not reached; esac
+__IN__
+syntax error: an unquoted `esac' cannot be the first case pattern
+__ERR__
+#'
+#`
+
+)
+
 test_oE 'alias substitution after function keyword'
 alias fn='function ' f=g
 fn f { echo F; }
