@@ -108,4 +108,7 @@ The getopts built-in is a link:builtin.html#types[semi-special built-in].
 The POSIX standard does not specify what will happen when the +OPTIND+
 variable is assigned a value other than +1+.
 
+In the link:posix.html[POSIXly-correct mode], option characters in
+{{optionlist}} must be alphanumeric.
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

@@ -20,6 +20,8 @@ The built-in then waits for the job to finish and returns the exit status of
 it.
 
 The name of the job is printed when the job is resumed.
+When not in the link:posix.html[POSIXly-correct mode], the job number is also
+printed.
 
 The built-in can be used only when link:job.html[job control] is enabled.
 

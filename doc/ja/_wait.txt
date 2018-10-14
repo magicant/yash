@@ -19,6 +19,8 @@ Wait コマンドはジョブ制御が有効でないときでも{zwsp}link:synt
 
 Wait コマンドの実行中にシェルがシグナルを受信した場合、そのシグナルに対し{zwsp}link:_trap.html[トラップ]が設定してあればそのトラップを直ちに実行し wait コマンドはそのまま終了します。またジョブ制御が有効な場合、シェルが SIGINT シグナルを受信すると wait コマンドは中断されます。
 
+シェルが{zwsp}link:interact.html[対話モード]で、{zwsp}link:job.html[ジョブ制御]が有効で、非 link:posix.html[POSIX 準拠モード]のとき、ジョブが終了または停止した時にジョブの状態を出力します。
+
 [[operands]]
 == オペランド
 

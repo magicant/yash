@@ -15,9 +15,13 @@ The dfn:[cd built-in] changes the working directory.
 
 The cd built-in changes the working directory to the directory specified by
 the operand.
+
 The pathname of the new working directory is assigned to the
 link:params.html#sv-pwd[+PWD+ variable], whose previous value is again
 assigned to the link:params.html#sv-oldpwd[+OLDPWD+ variable].
+The new +PWD+ value will not contain any +.+ or +..+ components except when
+the shell is in the link:posix.html[POSIXly-correct mode] and the new pathname
+begins with +/..+.
 
 If {{directory}} is a relative path that does not start with `.' or `..',
 paths in the link:params.html#sv-cdpath[+CDPATH+ variable] are searched to

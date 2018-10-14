@@ -29,6 +29,9 @@ in the POSIXly-correct mode and when not.
 When the POSIXly-correct mode is enabled:
 
 - Different link:invoke.html#init[initialization scripts] are used.
+- If the shell was started with the link:invoke.html#arguments[+-c+ option],
+  +sh -c+ (instead of +yash -c+) is printed as the script pathname on a syntax
+  error.
 - Global link:syntax.html#aliases[aliases] are not substituted.
 - Nested commands in a link:syntax.html#compound[compound command] must not be
   empty.
@@ -36,6 +39,8 @@ When the POSIXly-correct mode is enabled:
   variable rather than a local. The variable must have a portable (ASCII-only)
   name.
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
+- The +!+ keyword cannot be followed by +(+ without any whitespaces
+  in-between.
 - The +function+ keyword cannot be used for link:syntax.html#funcdef[function
   definition]. The function must have a portable (ASCII-only) name.
 - link:syntax.html#simple[Simple commands] cannot assign to
@@ -47,7 +52,8 @@ When the POSIXly-correct mode is enabled:
 - link:expand.html#tilde[Tilde expansion] only expands +~+ and
   +~{{username}}+.
 - link:expand.html#params[Parameter expansion] cannot be nested.
-  No link:expand.html#param-index[indexes] are allowed.
+  No link:expand.html#param-index[indexes] or
+  link:expand.html#param-mod[modifiers] with {{word2}} are allowed.
 - The commands in a link:expand.html#cmdsub[command substitution] of the form
   +$({{commands}})+ are parsed every time the substitution is executed.
 - In link:expand.html#arith[arithmetic expansion], fractional numbers and the
@@ -61,6 +67,9 @@ When the POSIXly-correct mode is enabled:
   link:expand.html#glob[pathname expansion] yielded more than one or no
   pathname, it is not immediately treated as an error. Instead, the shell
   tries to treat the word before the expansion as a pathname.
+- A file descriptor must be readable and writable when duplicated by the
+  +&lt;&amp;+ and +&gt;&amp;+ link:redir.html#dup[redirection] operator,
+  respectively.
 - link:redir.html#socket[Socket redirection], link:redir.html#here[here
   strings], link:redir.html#pipe[pipe redirection], and
   link:redir.html#process[process redirection] cannot be used.
@@ -72,7 +81,8 @@ When the POSIXly-correct mode is enabled:
   built-in] needs to have a corresponding external command for the built-in to
   be found.
 - Some link:builtin.html[built-ins] behave differently.
-  Especially, some command-line options cannot be used.
+  Especially, long command-line options (as well as some others) cannot be
+  used.
 - A link:interact.html[non-interactive] shell exits when a
   link:builtin.html#types[special built-in] is given a syntactically wrong
   arguments or when an error occurs in assignment or redirection with a

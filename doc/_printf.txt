@@ -204,4 +204,9 @@ Yash never prints only part of the bytes that represent a single multibyte
 character because all multibyte characters are converted to wide characters
 when processed in the shell.
 
+If the shell is not in the link:posix.html[POSIXly-correct mode] and the
+``long double'' floating-point arithmetic is supported on the running system,
+then ``long double'' is used for floating-point conversion specifications.
+Otherwise, ``double'' is used.
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:

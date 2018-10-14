@@ -54,6 +54,9 @@ Print stopped jobs only.
 {{job}}s::
 The link:job.html#jobid[job IDs] of jobs to be reported.
 When no {{job}} is specified, all jobs under the shell's control are reported.
++
+The percent sign (+%+) at the beginning of a job ID can be omitted if the
+shell is not in the link:posix.html[POSIXly-correct mode].
 
 [[exitstatus]]
 == Exit status

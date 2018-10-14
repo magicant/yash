@@ -26,6 +26,10 @@ and the built-in immediately finishes (without waiting for the jobs).
 If the shell receives a SIGINT signal when job control is enabled, the
 built-in aborts waiting.
 
+If the shell is link:interact.html[interactive],
+link:job.html[job-controlling], and not in the link:posix.html[POSIXly-correct
+mode], the job status is printed when the job is terminated or stopped.
+
 [[operands]]
 == Operands
 

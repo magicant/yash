@@ -50,6 +50,8 @@ Jobs コマンドはシェルが現在有している{zwsp}link:job.html[ジョ�
 
 {{ジョブ}}::
 表示するジョブの{zwsp}link:job.html#jobid[ジョブ ID] です。一つも指定しない場合は全てのジョブを表示します。
++
+非 link:posix.html[POSIX 準拠モード]ではジョブ ID の先頭の +%+ は省略できます。
 
 [[exitstatus]]
 == 終了ステータス

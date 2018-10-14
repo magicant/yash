@@ -77,4 +77,6 @@ Getopts コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマン
 
 POSIX は、+OPTIND+ 変数に +1+ 以外の値を代入した場合の動作を規定していません。
 
+link:posix.html[POSIX 準拠モード]では、{{オプションリスト}}に含まれるオプションは英数字でなければなりません。
+
 // vim: set filetype=asciidoc expandtab:
