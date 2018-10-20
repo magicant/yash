@@ -65,7 +65,7 @@ function completion/git::grep:arg {
 		(-)
 			command -f completion//completeoptions
 			;;
-		([ABC]|--*context|--max*)
+		([ABC]|--*context|--max*|--threads)
 			;;
 		(--color)
 			command -f completion/git::--color:arg
