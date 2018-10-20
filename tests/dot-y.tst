@@ -68,7 +68,7 @@ __IN__
 )
 
 (
-# Ensure $PWD is safe to assign to $YASH_LOADPATH
+# Ensure $PWD is safe to assign to $PATH/$YASH_LOADPATH
 case $PWD in (*[:%]*)
     skip="true"
 esac
@@ -111,6 +111,32 @@ YASH_LOADPATH="$p/dir1:$p/xxx:$p/dir:$p/dir2"
 __IN__
 bar
 __OUT__
+
+(
+test_oE -e 0 'dot script not found in $PATH, falling back to $PWD, non-POSIX'
+PATH=$PWD/_no_such_directory_
+set foo
+. print
+__IN__
+foo
+__OUT__
+
+(
+posix=true
+
+test_Oe -e 1 'dot script not found in $PATH, no fallback, POSIX'
+PATH=$PWD/_no_such_directory_
+set foo
+. print
+__IN__
+.: file `print' was not found in $PATH
+__ERR__
+#'
+#`
+
+)
+
+)
 
 )
 

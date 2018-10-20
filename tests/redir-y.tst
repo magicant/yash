@@ -37,6 +37,14 @@ __OUT__
 
 )
 
+test_OE -e 0 'input duplication of unwritable file descriptor'
+3>/dev/null <&3
+__IN__
+
+test_OE -e 0 'output duplication of unreadable file descriptor'
+3</dev/null >&3
+__IN__
+
 test_oE -e 0 'tilde expansion not performed in here-document operand'
 HOME=/home
 cat <<~
@@ -282,6 +290,11 @@ __IN__
 foo
 __OUT__
 
+test_OE -e 0 'IO_NUMBER can be redirection operand'
+> 1> 2< 2>>3 <<4
+4
+__IN__
+
 (
 posix="true"
 
@@ -448,6 +461,30 @@ __ERR__
 
 (
 posix="true"
+
+test_Oe -e 2 'no process redirection <() in POSIX mode'
+<()
+__IN__
+syntax error: process redirection is not supported in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'no process redirection >() in POSIX mode'
+>()
+__IN__
+syntax error: process redirection is not supported in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'no pipe redirection in POSIX mode'
+>>|0
+__IN__
+syntax error: pipe redirection is not supported in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'no here-string in POSIX mode'
+<<<foo
+__IN__
+syntax error: here-string is not supported in the POSIXly-correct mode
+__ERR__
 
 test_Oe -e 2 'keyword after redirection in compound command (POSIX)'
 { { echo not printed; } >/dev/null }

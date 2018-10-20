@@ -107,4 +107,14 @@ in
 out
 __OUT__
 
+(
+posix=true
+
+test_O -e 127 'not-found handler is not run in POSIXly-correct mode'
+COMMAND_NOT_FOUND_HANDLER='echo not reached'
+./_no_such_command_
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

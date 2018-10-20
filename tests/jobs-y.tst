@@ -24,6 +24,30 @@ __IN__
 $?=0
 __OUT__
 
+test_oE 'jobs: specifying job IDs' -m +o curstop
+"$TESTEE" -c 'suspend; : task-1'
+"$TESTEE" -c 'suspend; : task-2'
+"$TESTEE" -c 'suspend; : task-3'
+jobs %1
+echo
+jobs 1
+echo
+jobs %\?task-2
+echo
+jobs \?task-2
+echo \$?=$?
+while fg; do :; done >/dev/null 2>&1
+__IN__
+[1]   Stopped(SIGSTOP)     "${TESTEE}" -c 'suspend; : task-1'
+
+[1]   Stopped(SIGSTOP)     "${TESTEE}" -c 'suspend; : task-1'
+
+[2] - Stopped(SIGSTOP)     "${TESTEE}" -c 'suspend; : task-2'
+
+[2] - Stopped(SIGSTOP)     "${TESTEE}" -c 'suspend; : task-2'
+$?=0
+__OUT__
+
 test_oE 'exit status of suspended job' -m
 "$TESTEE" -cim --norcfile 'echo 1; suspend; echo 2'
 kill -l $?
@@ -67,5 +91,18 @@ exec 3>>|4
 (exec 3>&- && cat <&4)& # dummy command to be printed by "jobs"
 jobs >&-
 __IN__
+
+(
+posix=true
+
+test_Oe -e 1 'initial % cannot be omitted in POSIX mode'
+jobs foo
+__IN__
+jobs: `foo' is not a valid job specification
+__ERR__
+#'
+#`
+
+)
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

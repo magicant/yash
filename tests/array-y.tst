@@ -374,4 +374,12 @@ __ERR__
 #'
 #`
 
+test_Oe -e 2 'no array assignment in POSIX mode' --posix
+foo=()
+__IN__
+syntax error: invalid use of `('
+__ERR__
+#'
+#`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

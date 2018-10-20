@@ -1,6 +1,12 @@
 # fg-y.tst: yash-specific test of the fg built-in
 ../checkfg || skip="true" # %SEQUENTIAL%
 
+cat >job1 <<\__END__
+exec sh -c 'echo 1; kill -s STOP $$; echo 2'
+__END__
+
+chmod a+x job1
+
 # POSIX requires that "fg" should return 0 on success. Yash, however, returns
 # the exit status of the resumed job, which is not always 0. Many other shells
 # behave this way.
@@ -28,6 +34,15 @@ fg \?x >/dev/null
 __IN__
 y
 x
+__OUT__
+
+test_oE 'fg prints resumed job' -m
+./job1
+fg
+__IN__
+1
+[1] ./job1
+2
 __OUT__
 
 test_Oe -e 1 'non-job-controlled job (default operand)'
@@ -83,6 +98,14 @@ fg %+ %-
 __IN__
 fg: too many operands are specified
 __ERR__
+
+test_Oe -e 1 'initial % cannot be omitted in POSIX mode' -m
+fg foo
+__IN__
+fg: `foo' is not a valid job specification
+__ERR__
+#'
+#`
 
 )
 

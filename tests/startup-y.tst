@@ -585,6 +585,62 @@ Try `man yash' for details.
 __OUT__
 #`
 
+# No long options in the POSIXly-correct mode
+test_oE -e 0 'help (POSIX)' --help --posixly-correct
+__IN__
+Syntax:
+	sh [option...] [filename [argument...]]
+	sh [option...] -c command [command_name [argument...]]
+	sh [option...] -s [argument...]
+
+Options:
+	-a       -o allexport
+	         -o braceexpand
+	         -o caseglob
+	+C       -o clobber
+	-c       -o cmdline
+	         -o curasync
+	         -o curbg
+	         -o curstop
+	         -o dotglob
+	         -o emacs
+	         -o emptylastfield
+	-e       -o errexit
+	         -o errreturn
+	+n       -o exec
+	         -o extendedglob
+	+f       -o glob
+	-h       -o hashondef
+	         -o histspace
+	         -o ignoreeof
+	-i       -o interactive
+	         -o lealwaysrp
+	         -o lecompdebug
+	         -o leconvmeta
+	         -o lenoconvmeta
+	         -o lepredict
+	         -o lepromptsp
+	         -o levisiblebell
+	         -o log
+	-l       -o login
+	         -o markdirs
+	-m       -o monitor
+	-b       -o notify
+	         -o notifyle
+	         -o nullglob
+	         -o pipefail
+	         -o posixlycorrect
+	-s       -o stdin
+	         -o traceall
+	+u       -o unset
+	-v       -o verbose
+	         -o vi
+	-x       -o xtrace
+
+Try `man yash' for details.
+__OUT__
+#`
+
 )
 
 test_E -e 0 'version' --version
@@ -595,6 +651,18 @@ __IN__
 
 test_E -e 0 'verbose version, long option' --version --verbose
 __IN__
+
+testcase "$LINENO" -e 2 'version (short option in POSIX mode)' --posix -V \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: \`V' is not a valid option
+__ERR__
+#'
+
+testcase "$LINENO" -e 2 'version (long option in POSIX mode)' --posix --versi \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: \`--versi' is not a valid option
+__ERR__
+#'
 
 testcase "$LINENO" -e 2 'unexpected option argument' --norc=_unexpected_ \
 	3</dev/null 4</dev/null 5<<__ERR__
@@ -610,6 +678,12 @@ testcase "$LINENO" -e 2 'missing rcfile option argument' --rcfile \
 	3</dev/null 4</dev/null 5<<__ERR__
 $testee: the --rcfile option requires an argument
 __ERR__
+
+testcase "$LINENO" -e 2 'long option in POSIX mode' --posix --monitor \
+	3</dev/null 4</dev/null 5<<__ERR__
+$testee: \`--monitor' is not a valid option
+__ERR__
+#'
 
 test_O -d -e 2 'ambiguous option' --p
 __IN__

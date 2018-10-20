@@ -808,7 +808,15 @@ __OUT__
 (
 posix="true"
 
-test_Oe -e 2 'nested expansion unavailable in POSIX mode'
+test_Oe -e 2 'nested expansion (with $) unavailable in POSIX mode'
+echo ${${a}}
+__IN__
+syntax error: invalid character `{' in parameter expansion
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'nested expansion (w/o $) unavailable in POSIX mode'
 echo ${{a}}
 __IN__
 syntax error: the parameter name is missing or invalid

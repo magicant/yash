@@ -268,4 +268,49 @@ command: `--no-such-option' is not a valid option
 __ERR__
 #`
 
+test_OE -e 0 'missing operand (non-POSIX)'
+command
+__IN__
+
+(
+posix="true"
+
+test_Oe -e n 'missing operand (w/o -v, POSIX)'
+command
+__IN__
+command: this command requires an operand
+__ERR__
+
+test_Oe -e n 'missing operand (with -v, POSIX)'
+command -v
+__IN__
+command: this command requires an operand
+__ERR__
+
+test_Oe -e n 'missing operand (with -V, POSIX)'
+command -V
+__IN__
+command: this command requires an operand
+__ERR__
+
+test_Oe -e n 'missing operand (type, POSIX)'
+type
+__IN__
+type: this command requires an operand
+__ERR__
+
+test_Oe -e n 'more than one operand (with -v, POSIX)'
+command -v foo bar
+__IN__
+command: too many operands are specified
+__ERR__
+
+test_Oe -e n 'more than one operand (with -V, POSIX)'
+command -V foo bar
+__IN__
+command: too many operands are specified
+__ERR__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

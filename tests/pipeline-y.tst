@@ -35,6 +35,10 @@ syntax error: a command is missing before `|'
 __ERR__
 #`
 
+test_OE -e 0 '! immediately followed by ( (non-POSIX)'
+!(false)
+__IN__
+
 test_Oe -e 2 '! immediately followed by ( (POSIX)' --posix
 !(echo not printed)
 __IN__

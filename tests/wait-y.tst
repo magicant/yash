@@ -1,6 +1,8 @@
 # wait-y.tst: yash-specific test of the wait built-in
 ../checkfg || skip="true" # %SEQUENTIAL%
 
+mkfifo sync
+
 test_x -e 1 'invalid job specification overrides exit status of valid job (1)'
 exit 42 &
 wait X $!
@@ -11,7 +13,43 @@ exit 42 &
 wait $! X
 __IN__
 
-mkfifo sync
+test_o -e 0 'awaited job is printed (with operand, -im, non-POSIX)' -im
+# "cat /dev/null" is a dummy command that makes it more likely for SIGCHLD from
+# the terminated ">sync" to be sent to the shell before "wait".
+>sync& cat sync; cat /dev/null; wait %
+__IN__
+[1] + Done                 1>sync
+__OUT__
+
+test_O -e 0 'awaited job is not printed (with operand, -i +m)' -i +m
+>sync& cat sync; cat /dev/null; wait %
+__IN__
+
+test_O -e 0 'awaited job is not printed (with operand, +i -m)' -m
+>sync& cat sync; cat /dev/null; wait %
+__IN__
+
+test_O -e 0 'awaited job is not printed (with operand, -im, POSIX)' -im --posix
+>sync& cat sync; cat /dev/null; wait %
+__IN__
+
+test_o -e 0 'awaited job is printed (w/o operand, -im, non-POSIX)' -im
+>sync& cat sync; cat /dev/null; wait
+__IN__
+[1] + Done                 1>sync
+__OUT__
+
+test_O -e 0 'awaited job is not printed (w/o operand, -i +m)' -i +m
+>sync& cat sync; cat /dev/null; wait
+__IN__
+
+test_O -e 0 'awaited job is not printed (w/o operand, +i -m)' -m
+>sync& cat sync; cat /dev/null; wait
+__IN__
+
+test_O -e 0 'awaited job is not printed (w/o operand, -im, POSIX)' -im --posix
+>sync& cat sync; cat /dev/null; wait
+__IN__
 
 test_x -e 127 'job is forgotten after awaited' -im
 exec >sync && exit 17 &

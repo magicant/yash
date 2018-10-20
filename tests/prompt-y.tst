@@ -94,6 +94,14 @@ $
 NO1NO2
 __ERR__
 
+test_Oe 'PROMPT_COMMAND is ignored in POSIX mode' -i +m
+PROMPT_COMMAND='echo not printed'; echo >&2
+echo >&2; exit
+__IN__
+$ 
+$ 
+__ERR__
+
 )
 
 test_e 'YASH_PSx precedes PSx (non-POSIX)' -i +m

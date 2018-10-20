@@ -211,4 +211,34 @@ test_O -d -e 1 'printing to closed stream (with operand)'
 kill -l 1 >&-
 __IN__
 
+test_Oe -e 2 'signal name must be specified w/o SIG (POSIX)' --posix
+kill -s SIGTERM $$
+__IN__
+kill: SIGTERM: the signal name must be specified without `SIG'
+__ERR__
+#'
+#`
+
+test_oE -e 0 'help'
+kill --help
+__IN__
+kill: send a signal to processes
+
+Syntax:
+	kill [-signal|-s signal|-n number] process...
+	kill -l [-v] [number...]
+
+Try `man yash' for details.
+__OUT__
+#'
+#`
+
+test_Oe -e 1 'no help in POSIX mode' --posix
+kill --help
+__IN__
+kill: no such signal `-HELP'
+__ERR__
+#'
+#`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
