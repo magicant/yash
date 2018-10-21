@@ -14,10 +14,11 @@ wait $! X
 __IN__
 
 test_o -e 0 'awaited job is printed (with operand, -im, non-POSIX)' -im
-# "cat /dev/null" is a dummy command that makes it more likely for SIGCHLD from
-# the terminated ">sync" to be sent to the shell before "wait".
->sync& cat sync; cat /dev/null; wait %
+# The "jobs" command ensures the "wait" command does not print "Running".
+>sync& jobs; cat sync; echo -; wait
 __IN__
+[1] + Running              1>sync
+-
 [1] + Done                 1>sync
 __OUT__
 
@@ -34,8 +35,11 @@ test_O -e 0 'awaited job is not printed (with operand, -im, POSIX)' -im --posix
 __IN__
 
 test_o -e 0 'awaited job is printed (w/o operand, -im, non-POSIX)' -im
->sync& cat sync; cat /dev/null; wait
+# The "jobs" command ensures the "wait" command does not print "Running".
+>sync& jobs; cat sync; echo -; wait
 __IN__
+[1] + Running              1>sync
+-
 [1] + Done                 1>sync
 __OUT__
 
