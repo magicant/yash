@@ -319,50 +319,50 @@ __ERR__
 posix=true
 
 test_Oe -e 2 'float literal in POSIXly-correct mode'
-echoraw $((1.5))
+eval 'echoraw $((1.5))'
 __IN__
-sh: arithmetic: `1.5' is not a valid number
+eval: arithmetic: `1.5' is not a valid number
 __ERR__
 #'
 #`
 
 test_Oe -e 2 'float variable in POSIXly-correct mode'
 a=1.5
-echoraw $((-a))
+eval 'echoraw $((-a))'
 __IN__
-sh: arithmetic: `1.5' is not a valid number
+eval: arithmetic: `1.5' is not a valid number
 __ERR__
 #'
 #`
 
 test_Oe -e 2 'prefix ++ in POSIXly-correct mode'
-echoraw $((++a))
+eval 'echoraw $((++a))'
 __IN__
-sh: arithmetic: operator `++' is not supported
+eval: arithmetic: operator `++' is not supported
 __ERR__
 #'
 #`
 
 test_Oe -e 2 'prefix -- in POSIXly-correct mode'
-echoraw $((--a))
+eval 'echoraw $((--a))'
 __IN__
-sh: arithmetic: operator `--' is not supported
+eval: arithmetic: operator `--' is not supported
 __ERR__
 #'
 #`
 
 test_Oe -e 2 'postfix ++ in POSIXly-correct mode'
-echoraw $((a++))
+eval 'echoraw $((a++))'
 __IN__
-sh: arithmetic: operator `++' is not supported
+eval: arithmetic: operator `++' is not supported
 __ERR__
 #'
 #`
 
 test_Oe -e 2 'postfix -- in POSIXly-correct mode'
-echoraw $((a--))
+eval 'echoraw $((a--))'
 __IN__
-sh: arithmetic: operator `--' is not supported
+eval: arithmetic: operator `--' is not supported
 __ERR__
 #'
 #`
