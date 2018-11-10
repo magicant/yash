@@ -219,6 +219,11 @@ __ERR__
 #'
 #`
 
+(
+if ! testee --version --verbose | grep -Fqx ' * help'; then
+    skip="true"
+fi
+
 test_oE -e 0 'help'
 kill --help
 __IN__
@@ -232,6 +237,8 @@ Try `man yash' for details.
 __OUT__
 #'
 #`
+
+)
 
 test_Oe -e 1 'no help in POSIX mode' --posix
 kill --help
