@@ -1,19 +1,19 @@
 # dot-y.tst: yash-specific test of the dot built-in
 
 echo true >true
-echo 'echo "$*"' >print
-echo 'set a "$@"; echo "$*"' >set_print
+echo 'echo "$*"' >print_args
+echo 'set a "$@"; echo "$*"' >set_print_args
 
 test_oE 'positional parameters in dot script'
 set 1 2 3
-. ./print
+. ./print_args
 __IN__
 1 2 3
 __OUT__
 
 test_oE 'changing outer-scope positional parameters in dot script'
 set 1 2 3
-. ./set_print
+. ./set_print_args
 echo "$*"
 __IN__
 a 1 2 3
@@ -22,7 +22,7 @@ __OUT__
 
 test_oE 'temporary positional parameters'
 set 1 2 3
-. ./print x y
+. ./print_args x y
 echo "$*"
 __IN__
 x y
@@ -31,7 +31,7 @@ __OUT__
 
 test_oE 'changing temporary positional parameters'
 set 1 2 3
-. ./set_print x y
+. ./set_print_args x y
 echo "$*"
 __IN__
 a x y
@@ -113,13 +113,20 @@ bar
 __OUT__
 
 (
+chmod a+x print_args
+if command -v print_args >/dev/null 2>&1; then
+    skip="true"
+fi
+chmod a-x print_args
+
 test_oE -e 0 'dot script not found in $PATH, falling back to $PWD, non-POSIX'
-PATH=$PWD/_no_such_directory_
 set foo
-. print
+. print_args
 __IN__
 foo
 __OUT__
+
+)
 
 (
 posix=true
@@ -127,14 +134,12 @@ posix=true
 test_Oe -e 1 'dot script not found in $PATH, no fallback, POSIX'
 PATH=$PWD/_no_such_directory_
 set foo
-. print
+. print_args
 __IN__
-.: file `print' was not found in $PATH
+.: file `print_args' was not found in $PATH
 __ERR__
 #'
 #`
-
-)
 
 )
 
