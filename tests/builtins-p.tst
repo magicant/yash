@@ -233,7 +233,7 @@ test_nonspecial_builtin_function_override "$LINENO" true
 test_nonspecial_builtin_function_override "$LINENO" type
 test_nonspecial_builtin_function_override "$LINENO" ulimit
 test_nonspecial_builtin_function_override "$LINENO" umask
-test_nonspecial_builtin_function_override "$LINENO" unaliass
+test_nonspecial_builtin_function_override "$LINENO" unalias
 test_nonspecial_builtin_function_override "$LINENO" wait
 
 test_nonspecial_builtin_function_override "$LINENO" grep
