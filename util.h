@@ -194,13 +194,21 @@ extern void *copyaswcs(const void *p)
 # ifndef strnlen
 extern size_t strnlen(const char *s, size_t maxlen);
 # endif
-# define xstrnlen(s,maxlen) strnlen(s,maxlen)
+# define xstrnlen strnlen
 #endif
+
+#if HAVE_STRDUP
+# ifndef strdup
+extern char *strdup(const char *s);
+# endif
+# define xstrdup strdup
+#endif
+
 #if HAVE_WCSNLEN
 # ifndef wcsnlen
 extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
 # endif
-# define xwcsnlen(s,maxlen) wcsnlen(s,maxlen)
+# define xwcsnlen wcsnlen
 #endif
 
 /* Returns a newly malloced copy of the specified string.

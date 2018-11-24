@@ -60,6 +60,7 @@ size_t xstrnlen(const char *s, size_t maxlen)
 }
 #endif
 
+#if !HAVE_STRDUP
 /* Returns a newly malloced copy of the specified string.
  * Aborts the program on malloc failure. */
 char *xstrdup(const char *s)
@@ -70,6 +71,7 @@ char *xstrdup(const char *s)
     result[len] = '\0';
     return memcpy(result, s, len);
 }
+#endif
 
 #if !HAVE_WCSNLEN
 /* Returns min(maxlen, wcslen(s)). */

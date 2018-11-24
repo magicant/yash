@@ -868,6 +868,29 @@ then
     defconfigh "HAVE_STRNLEN"
 fi
 
+# check for strdup
+checking 'for strdup'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <string.h>
+#ifndef strdup
+char *strdup(const char*);
+#endif
+int main(void) {
+    char *dup = strdup("12345");
+    if (!dup) return 1;
+    int cmp = strcmp(dup, "12345");
+    free(dup);
+    return cmp != 0;
+}
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_STRDUP"
+fi
+
 # check for wcsnlen
 checking 'for wcsnlen'
 cat >"${tempsrc}" <<END
