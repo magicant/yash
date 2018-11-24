@@ -908,6 +908,29 @@ then
     defconfigh "HAVE_WCSNLEN"
 fi
 
+# check for wcsdup
+checking 'for wcsdup'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <wchar.h>
+#ifndef wcsdup
+wchar_t *wcsdup(const wchar_t*);
+#endif
+int main(void) {
+    char *dup = wcsdup("12345");
+    if (!dup) return 1;
+    int cmp = wcscmp(dup, "12345");
+    free(dup);
+    return cmp != 0;
+}
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_WCSDUP"
+fi
+
 # check for wcscasecmp
 checking 'for wcscasecmp'
 cat >"${tempsrc}" <<END

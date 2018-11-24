@@ -165,16 +165,24 @@ void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
 
 /********** String Utilities **********/
 
+#if !HAVE_STRNLEN
 extern size_t xstrnlen(const char *s, size_t maxlen)
     __attribute__((pure,nonnull));
+#endif
+#if !HAVE_STRDUP
 extern char *xstrdup(const char *s)
     __attribute__((malloc,warn_unused_result,nonnull));
+#endif
+#if !HAVE_WCSNLEN
 extern size_t xwcsnlen(const wchar_t *s, size_t maxlen)
     __attribute__((pure,nonnull));
+#endif
 extern wchar_t *xwcsndup(const wchar_t *s, size_t maxlen)
     __attribute__((malloc,warn_unused_result,nonnull));
+#if !HAVE_WCSDUP
 static inline wchar_t *xwcsdup(const wchar_t *s)
     __attribute__((malloc,warn_unused_result,nonnull));
+#endif
 extern _Bool xstrtoi(const char *s, int base, int *resultp)
     __attribute__((warn_unused_result,nonnull));
 extern _Bool xwcstoi(const wchar_t *s, int base, int *resultp)
@@ -211,12 +219,19 @@ extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
 # define xwcsnlen wcsnlen
 #endif
 
+#if HAVE_WCSDUP
+# ifndef wcsdup
+extern wchar_t *wcsdup(const wchar_t *s);
+# endif
+# define xwcsdup wcsdup
+#else
 /* Returns a newly malloced copy of the specified string.
  * Aborts the program if failed to allocate memory. */
 wchar_t *xwcsdup(const wchar_t *s)
 {
     return xwcsndup(s, Size_max);
 }
+#endif
 
 
 /* These macros are used to cast the argument properly.
