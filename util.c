@@ -61,13 +61,10 @@ size_t xstrnlen(const char *s, size_t maxlen)
 #endif
 
 /* Returns a newly malloced copy of the specified string.
- * The copy is at most `len' bytes long.
- * Returns an exact copy if (strlen(s) <= len).
  * Aborts the program on malloc failure. */
-char *xstrndup(const char *s, size_t len)
+char *xstrdup(const char *s)
 {
-    len = xstrnlen(s, len);
-
+    size_t len = strlen(s);
     // char *result = xmalloce(len, 1, sizeof (char));
     char *result = xmalloc(add(len, 1));
     result[len] = '\0';

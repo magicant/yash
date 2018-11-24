@@ -167,9 +167,7 @@ void *xreallocs(void *ptr, size_t mainsize, size_t count, size_t elemsize)
 
 extern size_t xstrnlen(const char *s, size_t maxlen)
     __attribute__((pure,nonnull));
-extern char *xstrndup(const char *s, size_t maxlen)
-    __attribute__((malloc,warn_unused_result,nonnull));
-static inline char *xstrdup(const char *s)
+extern char *xstrdup(const char *s)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern size_t xwcsnlen(const wchar_t *s, size_t maxlen)
     __attribute__((pure,nonnull));
@@ -204,13 +202,6 @@ extern size_t wcsnlen(const wchar_t *s, size_t maxlen);
 # endif
 # define xwcsnlen(s,maxlen) wcsnlen(s,maxlen)
 #endif
-
-/* Returns a newly malloced copy of the specified string.
- * Aborts the program if failed to allocate memory. */
-char *xstrdup(const char *s)
-{
-    return xstrndup(s, Size_max);
-}
 
 /* Returns a newly malloced copy of the specified string.
  * Aborts the program if failed to allocate memory. */
