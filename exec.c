@@ -516,14 +516,8 @@ void exec_case(const command_T *c, bool finally_exit)
 	    if (pattern == NULL)
 		goto fail;
 
-	    xfnmatch_T *xfnm = xfnm_compile(
-		    pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+	    bool match = match_pattern(word, pattern);
 	    free(pattern);
-	    if (xfnm == NULL)
-		continue;
-
-	    bool match = (xfnm_wmatch(xfnm, word).start != (size_t) -1);
-	    xfnm_free(xfnm);
 	    if (match) {
 		if (ci->ci_commands != NULL) {
 		    exec_and_or_lists(ci->ci_commands, finally_exit);

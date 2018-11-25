@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xfnmatch.c: regex matching wrapper as a replacement for fnmatch */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -732,6 +732,16 @@ void xfnm_free(xfnmatch_T *xfnm)
     }
 }
 
+/* Tests if pattern matching expression `pattern' matches string `s'. */
+bool match_pattern(const wchar_t *s, const wchar_t *pattern)
+{
+    xfnmatch_T *xfnm = xfnm_compile(pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+    if (xfnm == NULL)
+	return false;
+    bool match = (xfnm_wmatch(xfnm, s).start != (size_t) -1);
+    xfnm_free(xfnm);
+    return match;
+}
 
 #if YASH_ENABLE_TEST
 
