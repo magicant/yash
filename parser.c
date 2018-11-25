@@ -3269,6 +3269,15 @@ static void print_caseitems(
 	struct print *restrict pr, const caseitem_T *restrict caseitems,
 	unsigned indent)
     __attribute__((nonnull(1)));
+#if YASH_ENABLE_DOUBLE_BRACKET
+static void print_double_bracket(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+    __attribute__((nonnull));
+static void print_double_bracket_expression(
+	struct print *restrict pr, const dbexp_T *restrict e,
+	dbexptype_T context, unsigned indent)
+    __attribute__((nonnull));
+#endif
 static void print_function_definition(
 	struct print *restrict pr, const command_T *restrict command,
 	unsigned indent)
@@ -3416,7 +3425,7 @@ void print_one_command(
 	    break;
 #if YASH_ENABLE_DOUBLE_BRACKET
 	case CT_BRACKET:
-	    printf("[[ ]]"); // TODO
+	    print_double_bracket(pr, c, indent);
 	    break;
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
 	case CT_FUNCDEF:
@@ -3587,6 +3596,64 @@ void print_caseitems(struct print *restrict pr, const caseitem_T *restrict ci,
 	ci = ci->next;
     }
 }
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+
+void print_double_bracket(
+	struct print *restrict pr, const command_T *restrict c, unsigned indent)
+{
+    assert(c->c_type == CT_BRACKET);
+
+    wb_cat(&pr->buffer, L"[[ ");
+    print_double_bracket_expression(pr, c->c_dbexp, DBE_OR, indent);
+    wb_cat(&pr->buffer, L"]] ");
+}
+
+void print_double_bracket_expression(
+	struct print *restrict pr, const dbexp_T *restrict e,
+	dbexptype_T context, unsigned indent)
+{
+    assert(context == DBE_OR || context == DBE_AND || context == DBE_NOT);
+
+    switch (e->type) {
+	case DBE_OR:
+	    if (context != DBE_OR)
+		wb_cat(&pr->buffer, L"( ");
+	    print_double_bracket_expression(pr, e->lhs.subexp, DBE_OR, indent);
+	    wb_cat(&pr->buffer, L"|| ");
+	    print_double_bracket_expression(pr, e->rhs.subexp, DBE_OR, indent);
+	    if (context != DBE_OR)
+		wb_cat(&pr->buffer, L") ");
+	    break;
+	case DBE_AND:
+	    if (context == DBE_NOT)
+		wb_cat(&pr->buffer, L"( ");
+	    print_double_bracket_expression(pr, e->lhs.subexp, DBE_AND, indent);
+	    wb_cat(&pr->buffer, L"&& ");
+	    print_double_bracket_expression(pr, e->rhs.subexp, DBE_AND, indent);
+	    if (context == DBE_NOT)
+		wb_cat(&pr->buffer, L") ");
+	    break;
+	case DBE_NOT:
+	    wb_cat(&pr->buffer, L"! ");
+	    print_double_bracket_expression(pr, e->rhs.subexp, DBE_NOT, indent);
+	    break;
+	case DBE_BINARY:
+	    print_word(pr, e->lhs.word, indent);
+	    wb_wccat(&pr->buffer, L' ');
+	    /* falls thru! */
+	case DBE_UNARY:
+	    wb_cat(&pr->buffer, e->operator);
+	    wb_wccat(&pr->buffer, L' ');
+	    /* falls thru! */
+	case DBE_STRING:
+	    print_word(pr, e->rhs.word, indent);
+	    wb_wccat(&pr->buffer, L' ');
+	    break;
+    }
+}
+
+#endif
 
 void print_function_definition(
 	struct print *restrict pr, const command_T *restrict c, unsigned indent)
