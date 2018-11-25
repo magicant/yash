@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: yash 2.48\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2018-11-21 00:15+0900\n"
-"PO-Revision-Date: 2018-10-06 15:19+0900\n"
+"PO-Revision-Date: 2018-11-21 00:20+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -1157,27 +1157,26 @@ msgid "encountered an invalid character `%lc' in the case pattern"
 msgstr "case のパターン内に不正な文字「%lc」があります"
 
 #: parser.c:2739
-#, fuzzy
 msgid "The [[ ... ]] syntax is not supported in the POSIXly-correct mode"
-msgstr "ヒアストリングは POSIX 準拠モードでは使えません"
+msgstr "[[ ... ]] 構文は POSIX 準拠モードでは使えません"
 
 #: parser.c:2763 parser.c:2842
 #, c-format
 msgid "invalid word `%ls' between `[[' and `]]'"
-msgstr ""
+msgstr "[[ ... ]] の中に不正な単語「%ls」があります"
 
 #: parser.c:2896
 msgid "conditional expression is missing or incomplete between `[[' and `]]'"
-msgstr ""
+msgstr "[[ ... ]] の中の条件式が不完全です"
 
 #: parser.c:2902
 msgid "unexpected linebreak in the middle of the [[ ... ]] command"
-msgstr ""
+msgstr "[[ ... ]] の途中に改行があります"
 
 #: parser.c:2905
-#, fuzzy, c-format
+#, c-format
 msgid "`%ls' is not a valid operand in the conditional expression"
-msgstr "「%ls」は有効なオプション指定文字列ではありません"
+msgstr "「%ls」は条件式における有効な被演算子ではありません"
 
 #: parser.c:2970 parser.c:3024
 msgid "a function body must be a compound command"
