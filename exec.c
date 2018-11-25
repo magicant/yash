@@ -708,6 +708,9 @@ bool is_err_condition_for(const command_T *c)
     switch (c->c_type) {
 	case CT_SIMPLE:
 	case CT_SUBSHELL:
+#if YASH_ENABLE_DOUBLE_BRACKET
+	case CT_BRACKET:
+#endif
 	case CT_FUNCDEF:
 	    return true;
 	case CT_GROUP:
@@ -1189,6 +1192,11 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
     case CT_CASE:
 	exec_case(c, finally_exit);
 	break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+    case CT_BRACKET:
+	laststatus = Exit_SUCCESS; // TODO
+	break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
     case CT_FUNCDEF:
 	exec_funcdef(c, finally_exit);
 	break;

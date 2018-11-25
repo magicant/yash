@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,6 +62,9 @@ typedef enum {
     CT_FOR,        /* for command */
     CT_WHILE,      /* while/until command */
     CT_CASE,       /* case command */
+#if YASH_ENABLE_DOUBLE_BRACKET
+    CT_BRACKET,    /* double-bracket command */
+#endif
     CT_FUNCDEF,    /* function definition */
 } commandtype_T;
 
@@ -93,6 +96,7 @@ typedef struct command_T {
 	    struct wordunit_T *casword;   /* word compared to case patterns */
 	    struct caseitem_T *casitems;  /* pairs of patterns and commands */
 	} casecommand;
+	struct dbexp_T      *dbexp;    /* double-bracket command expression */
 	struct {
 	    struct wordunit_T *funcname;  /* name of function */
 	    struct command_T  *funcbody;  /* body of function */
@@ -111,6 +115,7 @@ typedef struct command_T {
 #define c_whlcmds  c_content.whileloop.whlcmds
 #define c_casword  c_content.casecommand.casword
 #define c_casitems c_content.casecommand.casitems
+#define c_dbexp    c_content.dbexp
 #define c_funcname c_content.funcdef.funcname
 #define c_funcbody c_content.funcdef.funcbody
 /* `c_words' and `c_forwords' are NULL-terminated arrays of pointers to
@@ -134,6 +139,31 @@ typedef struct caseitem_T {
 } caseitem_T;
 /* `ci_patterns' is a NULL-terminated array of pointers to `wordunit_T' that are
  * cast to `void *'. */
+
+/* type of dbexp_T */
+typedef enum {
+    DBE_OR,      /* the "||" operator, two operand expressions */
+    DBE_AND,     /* the "&&" operator, two operand expressions */
+    DBE_NOT,     /* the "!" operator, one operand expression */
+    DBE_UNARY,   /* -f, -n, etc., one operand word */
+    DBE_BINARY,  /* -eq, =, etc., two operand words */
+    DBE_STRING,  /* single string primary, one operand word */
+} dbexptype_T;
+
+/* operand of expression in double-bracket command */
+typedef union dboperand_T {
+    struct dbexp_T *subexp;
+    struct wordunit_T *word;
+} dboperand_T;
+
+/* expression in double-bracket command */
+typedef struct dbexp_T {
+    dbexptype_T type;
+    wchar_t *operator;
+    dboperand_T lhs, rhs;
+} dbexp_T;
+/* `operator' is NULL for non-primary expressions */
+/* `lhs' is NULL for one-operand expressions */
 
 /* embedded command */
 typedef struct embedcmd_T {

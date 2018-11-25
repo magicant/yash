@@ -49,6 +49,9 @@
 static void pipesfree(pipeline_T *p);
 static void ifcmdsfree(ifcommand_T *i);
 static void caseitemsfree(caseitem_T *i);
+#if YASH_ENABLE_DOUBLE_BRACKET
+static void dbexpfree(dbexp_T *e);
+#endif
 static void wordunitfree(wordunit_T *wu)
     __attribute__((nonnull));
 static void wordfree_vp(void *w);
@@ -110,6 +113,11 @@ void comsfree(command_T *c)
 		wordfree(c->c_casword);
 		caseitemsfree(c->c_casitems);
 		break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+	    case CT_BRACKET:
+		dbexpfree(c->c_dbexp);
+		break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 	    case CT_FUNCDEF:
 		wordfree(c->c_funcname);
 		comsfree(c->c_funcbody);
@@ -145,6 +153,31 @@ void caseitemsfree(caseitem_T *i)
 	i = next;
     }
 }
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+void dbexpfree(dbexp_T *e)
+{
+    if (e == NULL)
+	return;
+
+    free(e->operator);
+    switch (e->type) {
+	case DBE_OR:
+	case DBE_AND:
+	case DBE_NOT:
+	    dbexpfree(e->lhs.subexp);
+	    dbexpfree(e->rhs.subexp);
+	    break;
+	case DBE_UNARY:
+	case DBE_BINARY:
+	case DBE_STRING:
+	    wordfree(e->lhs.word);
+	    wordfree(e->rhs.word);
+	    break;
+    }
+    free(e);
+}
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 
 void wordunitfree(wordunit_T *wu)
 {
@@ -3156,6 +3189,11 @@ void print_one_command(
 	case CT_CASE:
 	    print_case(pr, c, indent);
 	    break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+	case CT_BRACKET:
+	    printf("[[ ]]"); // TODO
+	    break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 	case CT_FUNCDEF:
 	    print_function_definition(pr, c, indent);
 	    assert(c->c_redirs == NULL);
