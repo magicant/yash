@@ -44,6 +44,7 @@ nocreate="false"
 debug="false"
 enable_array="true"
 enable_dirstack="true"
+enable_double_bracket="true"
 enable_nls="true"
 enable_help="true"
 enable_history="true"
@@ -95,17 +96,18 @@ parseenable() {
     opt="${1#--*able-}"
     opt="${opt%%=*}"
     case "$opt" in
-	array)        enable_array=$val ;;
-	dirstack)     enable_dirstack=$val ;;
-	help)         enable_help=$val ;;
-	history)      enable_history=$val ;;
-	lineedit)     enable_lineedit=$val ;;
-	nls)          enable_nls=$val ;;
-	printf)       enable_printf=$val ;;
-	socket)       enable_socket=$val ;;
-	test)         enable_test=$val ;;
-	ulimit)       enable_ulimit=$val ;;
-	*)            echo "$0: $1: invalid option" >&2;  exit 2 ;;
+	array)          enable_array=$val ;;
+	dirstack)       enable_dirstack=$val ;;
+	double-bracket) enable_double_bracket=$val ;;
+	help)           enable_help=$val ;;
+	history)        enable_history=$val ;;
+	lineedit)       enable_lineedit=$val ;;
+	nls)            enable_nls=$val ;;
+	printf)         enable_printf=$val ;;
+	socket)         enable_socket=$val ;;
+	test)           enable_test=$val ;;
+	ulimit)         enable_ulimit=$val ;;
+	*)              echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
 }
 
@@ -184,19 +186,20 @@ Installation options:
   --htmldir=DIR          html documentation [DOCDIR]
 
 Optional features:
-  --enable-FEATURE[=ARG]  enable or disable FEATURE [ARG=yes]
-  --disable-FEATURE       disable FEATURE (same as --enable-FEATURE=no)
-  --enable-array          enable the array builtin
-  --enable-dirstack       enable the directory stack (pushd, popd, dirs)
-  --enable-help           enable the help builtin
-  --enable-history        enable history
-  --enable-lineedit       enable command line editing
-  --enable-nls            enable native language support
-  --enable-printf         enable the echo/printf builtins
-  --enable-socket         enable socket redirection by /dev/tcp, /dev/udp
-  --enable-test           enable the test builtin
-  --enable-ulimit         enable the ulimit builtin
-  --default-loadpath=DIR  specify the default \$YASH_LOADPATH value
+  --enable-FEATURE[=ARG]   enable or disable FEATURE [ARG=yes]
+  --disable-FEATURE        disable FEATURE (same as --enable-FEATURE=no)
+  --enable-array           enable the array builtin
+  --enable-dirstack        enable the directory stack (pushd, popd, dirs)
+  --enable-double-bracket  enable the double-bracket command
+  --enable-help            enable the help builtin
+  --enable-history         enable history
+  --enable-lineedit        enable command line editing
+  --enable-nls             enable native language support
+  --enable-printf          enable the echo/printf builtins
+  --enable-socket          enable socket redirection by /dev/tcp, /dev/udp
+  --enable-test            enable the test builtin
+  --enable-ulimit          enable the ulimit builtin
+  --default-loadpath=DIR   specify the default \$YASH_LOADPATH value
 
 Optional packages:
   --with-intl-lib=LIBS    search space-separated LIBS for NLS
@@ -1498,6 +1501,12 @@ then
     defconfigh "YASH_ENABLE_ARRAY"
 fi
 
+# enable/disable the double-bracket command
+if ${enable_double_bracket}
+then
+    defconfigh "YASH_ENABLE_DOUBLE_BRACKET"
+fi
+
 # enable/disable the directory stack
 if ${enable_dirstack}
 then
@@ -1536,6 +1545,15 @@ if ${enable_test}
 then
     defconfigh "YASH_ENABLE_TEST"
     builtin_objs="$builtin_objs "'$(TEST_OBJS)'
+else
+    if ${enable_double_bracket}
+    then
+	cat >&2 <<END
+The test built-in is required for the double-bracket command, but disabled.
+Add the "--disable-double-bracket" option and try again.
+END
+	fail
+    fi
 fi
 
 # check for getrlimit and setrlimit

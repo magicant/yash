@@ -86,6 +86,9 @@ features of yash. By default, yash is built with all features enabled.
   --enable-dirstack  --disable-dirstack
     If disabled, the `dirs', `pushd', and `popd' built-in commands are
     not available.
+  --enable-double-bracket  --disable-double-bracket
+    If disabled, the double-bracket command (the [[ ... ]] syntax) is
+    not available.
   --enable-help  --disable-help
     If disabled, the `help' built-in command is not available.
   --enable-history  --disable-history
