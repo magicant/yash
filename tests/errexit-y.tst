@@ -59,4 +59,22 @@ until echo not reached; do :; done <_no_such_file_
 echo not reached
 __IN__
 
+(
+if ! testee -c 'command -v [[' >/dev/null; then
+    skip="true"
+fi
+
+test_O -e 2 'expansion error in double-bracket command' -i +m
+[[ ${a?} ]]
+echo not reached
+__IN__
+
+test_O -e 2 'redirection error on double-bracket command'
+exec 3>&1
+[[ $(echo not reached >&3) ]] <_no_such_file_
+echo not reached
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
