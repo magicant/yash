@@ -39,6 +39,9 @@
 #include "plist.h"
 #include "strbuf.h"
 #include "util.h"
+#if YASH_ENABLE_DOUBLE_BRACKET
+# include "builtins/test.h"
+#endif
 #if YASH_ENABLE_LINEEDIT
 # include "lineedit/lineedit.h"
 #endif
@@ -297,6 +300,9 @@ typedef enum tokentype_T {
     TT_IF, TT_THEN, TT_ELSE, TT_ELIF, TT_FI, TT_DO, TT_DONE, TT_CASE, TT_ESAC,
     TT_WHILE, TT_UNTIL, TT_FOR, TT_LBRACE, TT_RBRACE, TT_BANG, TT_IN,
     TT_FUNCTION,
+#if YASH_ENABLE_DOUBLE_BRACKET
+    TT_DOUBLE_LBRACKET,
+#endif
 } tokentype_T;
 
 static wchar_t *skip_name(const wchar_t *s, bool predicate(wchar_t))
@@ -386,9 +392,9 @@ tokentype_T identify_reserved_word_string(const wchar_t *s)
 {
     /* List of keywords:
      *    case do done elif else esac fi for function if in then until while
-     *    { } !
+     *    { } [[ !
      * The following words are currently not keywords:
-     *    select [[ ]] */
+     *    select ]] */
     switch (s[0]) {
 	case L'c':
 	    if (s[1] == L'a' && s[2] == L's' && s[3] == L'e' && s[4]== L'\0')
@@ -450,6 +456,12 @@ tokentype_T identify_reserved_word_string(const wchar_t *s)
 	    if (s[1] == L'\0')
 		return TT_RBRACE;
 	    break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+	case L'[':
+	    if (s[1] == L'[' && s[2] == L'\0')
+		return TT_DOUBLE_LBRACKET;
+	    break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 	case L'!':
 	    if (s[1] == L'\0')
 		return TT_BANG;
@@ -552,6 +564,8 @@ typedef struct parsestate_T {
 
 static void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
+static void print_errmsg_token(parsestate_T *ps, const char *message)
+    __attribute__((nonnull));
 static const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
     __attribute__((const));
 static void print_errmsg_token_unexpected(parsestate_T *ps)
@@ -653,6 +667,20 @@ static caseitem_T *parse_case_list(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void **parse_case_patterns(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
+#if YASH_ENABLE_DOUBLE_BRACKET
+static command_T *parse_double_bracket(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static dbexp_T *parse_double_bracket_ors(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static dbexp_T *parse_double_bracket_ands(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static dbexp_T *parse_double_bracket_nots(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static dbexp_T *parse_double_bracket_primary(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *parse_double_bracket_operand(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 static command_T *parse_function(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *try_reparse_as_function(parsestate_T *ps, command_T *c)
@@ -830,6 +858,16 @@ void serror(parsestate_T *restrict ps, const char *restrict format, ...)
     ps->error = true;
 }
 
+void print_errmsg_token(parsestate_T *ps, const char *message)
+{
+    assert(ps->index <= ps->next_index);
+    size_t length = ps->next_index - ps->index;
+    wchar_t token[length + 1];
+    wcsncpy(token, &ps->src.contents[ps->index], length);
+    token[length] = L'\0';
+    serror(ps, message, token);
+}
+
 const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
 {
     switch (tokentype) {
@@ -866,14 +904,7 @@ const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
 
 void print_errmsg_token_unexpected(parsestate_T *ps)
 {
-    assert(ps->index <= ps->next_index);
-    size_t length = ps->next_index - ps->index;
-    wchar_t token[length + 1];
-    wcsncpy(token, &ps->src.contents[ps->index], length);
-    token[length] = L'\0';
-
-    const char *message = get_errmsg_unexpected_tokentype(ps->tokentype);
-    serror(ps, message, token);
+    print_errmsg_token(ps, get_errmsg_unexpected_tokentype(ps->tokentype));
 }
 
 void print_errmsg_token_missing(parsestate_T *ps, const wchar_t *t)
@@ -2337,6 +2368,11 @@ command_T *parse_compound_command(parsestate_T *ps)
     case TT_CASE:
 	result = parse_case(ps);
 	break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+    case TT_DOUBLE_LBRACKET:
+	result = parse_double_bracket(ps);
+	break;
+#endif
     default:
 	return NULL;
     }
@@ -2690,6 +2726,195 @@ void **parse_case_patterns(parsestate_T *ps)
 
     return pl_toary(&wordlist);
 }
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+
+/* Parses a double-bracket command.
+ * The current token must be the starting "[[".
+ * Never returns NULL. The resultant `c_dbexp' may contain NULL sub-expression
+ * in case of syntax error. */
+command_T *parse_double_bracket(parsestate_T *ps)
+{
+    if (posixly_correct)
+	serror(ps, Ngt("The [[ ... ]] syntax is not supported "
+		    "in the POSIXly-correct mode"));
+
+    assert(ps->tokentype == TT_DOUBLE_LBRACKET);
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+
+    command_T *result = xmalloc(sizeof *result);
+    result->next = NULL;
+    result->refcount = 1;
+    result->c_type = CT_BRACKET;
+    result->c_lineno = ps->info->lineno;
+    result->c_redirs = NULL;
+    result->c_dbexp = parse_double_bracket_ors(ps);
+
+    if (is_single_string_word(ps->token) &&
+	    wcscmp(ps->token->wu_string, L"]]") == 0) {
+	next_token(ps);
+	psubstitute_alias_recursive(ps, 0);
+    } else if (!ps->error) {
+	if (ps->tokentype == TT_NEWLINE)
+	    serror(ps, Ngt("`%ls' is missing"), L"]]");
+	else
+	    print_errmsg_token(ps,
+		    Ngt("invalid word `%ls' between `[[' and `]]'"));
+    }
+
+    return result;
+}
+
+/* Parses one or more "and" expressions separated by "||"s in the double-bracket
+ * command. May return NULL on error. */
+dbexp_T *parse_double_bracket_ors(parsestate_T *ps)
+{
+    dbexp_T *lhs = parse_double_bracket_ands(ps);
+    if (lhs == NULL || ps->tokentype != TT_PIPEPIPE)
+	return lhs;
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+
+    dbexp_T *result = xmalloc(sizeof *result);
+    result->type = DBE_OR;
+    result->operator = NULL;
+    result->lhs.subexp = lhs;
+    result->rhs.subexp = parse_double_bracket_ors(ps);
+    return result;
+}
+
+/* Parses one or more "!" expressions separated by "&&"s in the double-bracket
+ * command. May return NULL on error. */
+dbexp_T *parse_double_bracket_ands(parsestate_T *ps)
+{
+    dbexp_T *lhs = parse_double_bracket_nots(ps);
+    if (lhs == NULL || ps->tokentype != TT_AMPAMP)
+	return lhs;
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+
+    dbexp_T *result = xmalloc(sizeof *result);
+    result->type = DBE_AND;
+    result->operator = NULL;
+    result->lhs.subexp = lhs;
+    result->rhs.subexp = parse_double_bracket_ands(ps);
+    return result;
+}
+
+/* Parses a primary expression optionally prefixed by any number of "!"s in the
+ * double-bracket command. May return NULL on error. */
+dbexp_T *parse_double_bracket_nots(parsestate_T *ps)
+{
+    if (ps->tokentype != TT_BANG)
+	return parse_double_bracket_primary(ps);
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+
+    dbexp_T *result = xmalloc(sizeof *result);
+    result->type = DBE_NOT;
+    result->operator = NULL;
+    result->lhs.subexp = NULL;
+    result->rhs.subexp = parse_double_bracket_nots(ps);
+    return result;
+}
+
+/* Parses a primary expression in the double-bracket command. May return NULL on
+ * error. The "(...)" operator is considered as a primary in this function. */
+dbexp_T *parse_double_bracket_primary(parsestate_T *ps)
+{
+    if (ps->tokentype == TT_LPAREN) {
+	/* parse "(...)" */
+	next_token(ps);
+	psubstitute_alias_recursive(ps, 0);
+
+	dbexp_T *subexp = parse_double_bracket_ors(ps);
+	if (ps->tokentype == TT_RPAREN) {
+	    next_token(ps);
+	    psubstitute_alias_recursive(ps, 0);
+	} else if (!ps->error) {
+	    if (ps->tokentype == TT_NEWLINE ||
+		    (is_single_string_word(ps->token) &&
+		     wcscmp(ps->token->wu_string, L"]]") == 0))
+		serror(ps, Ngt("`%ls' is missing"), L")");
+	    else
+		print_errmsg_token(ps,
+			Ngt("invalid word `%ls' between `[[' and `]]'"));
+	}
+	return subexp;
+    }
+
+    dbexptype_T type;
+    wchar_t *op;
+    wordunit_T *lhs, *rhs;
+
+    if (is_single_string_word(ps->token) &&
+	    is_unary_primary(ps->token->wu_string)) {
+	type = DBE_UNARY;
+	lhs = NULL;
+	goto parse_primary_operator;
+    }
+
+    lhs = parse_double_bracket_operand(ps);
+    if (lhs == NULL)
+	return NULL;
+
+    if (ps->tokentype == TT_LESS || ps->tokentype == TT_GREATER) {
+	type = DBE_BINARY;
+	op = xwcsndup(&ps->src.contents[ps->index], ps->next_index - ps->index);
+    } else if (is_single_string_word(ps->token) &&
+	    is_binary_primary(ps->token->wu_string)) {
+	type = DBE_BINARY;
+parse_primary_operator:
+	op = ps->token->wu_string, ps->token->wu_string = NULL;
+    } else {
+	type = DBE_STRING;
+	op = NULL;
+	rhs = lhs, lhs = NULL;
+	goto return_result;
+    }
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+
+    rhs = parse_double_bracket_operand(ps);
+
+return_result:;
+    dbexp_T *result = xmalloc(sizeof *result);
+    result->type = type;
+    result->operator = op;
+    result->lhs.word = lhs;
+    result->rhs.word = rhs;
+    return result;
+}
+
+/* Parses a operand token of a primary conditional expression in the double-
+ * bracket command. Returns NULL on error. */
+wordunit_T *parse_double_bracket_operand(parsestate_T *ps)
+{
+    if (is_single_string_word(ps->token) &&
+	    wcscmp(ps->token->wu_string, L"]]") == 0) {
+	serror(ps, Ngt("conditional expression "
+		    "is missing or incomplete between `[[' and `]]'"));
+	return NULL;
+    }
+    if (ps->token == NULL) {
+	if (ps->tokentype == TT_NEWLINE)
+	    serror(ps, Ngt("unexpected linebreak "
+			"in the middle of the [[ ... ]] command"));
+	else
+	    print_errmsg_token(ps, Ngt("`%ls' is not a valid operand "
+			"in the conditional expression"));
+	return NULL;
+    }
+
+    wordunit_T *result = ps->token;
+    ps->token = NULL;
+    next_token(ps);
+    psubstitute_alias_recursive(ps, 0);
+    return result;
+}
+
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 
 /* Parses a function definition that starts with the "function" keyword.
  * The current token must be "function". Never returns NULL. */

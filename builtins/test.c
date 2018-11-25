@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* test.c: test builtin */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,10 +59,6 @@ static bool test_long_and(struct test_state *state)
     __attribute__((nonnull));
 static bool test_long_term(struct test_state *state)
     __attribute__((nonnull));
-static bool is_unary_primary(const wchar_t *word)
-    __attribute__((nonnull,pure));
-static bool is_binary_primary(const wchar_t *word)
-    __attribute__((nonnull,pure));
 static bool is_term_delimiter(const wchar_t *word)
     __attribute__((nonnull,pure));
 static int compare_integers(const wchar_t *left, const wchar_t *right)
