@@ -17,6 +17,7 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - link:syntax.html#for[For ループ]で展開した単語はグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
 - link:syntax.html#case[Case 文]の最初のパターンを +esac+ にすることはできません。
 - 予約語 +!+ の直後に空白を置かずに +(+ を置くことはできません。
+- link:syntax.html#double-bracket[二重ブラケットコマンド]は使えません。
 - 予約語 +function+ を用いる形式の{zwsp}link:syntax.html#funcdef[関数定義]構文は使えません。関数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
 - link:syntax.html#simple[単純コマンド]での{zwsp}link:params.html#arrays[配列]の代入はできません。
 - シェル実行中に link:params.html#sv-lc_ctype[+LC_CTYPE+ 変数]の値が変わっても、それをシェルのロケール情報に反映しません。
