@@ -57,6 +57,9 @@
 #include "variable.h"
 #include "xfnmatch.h"
 #include "yash.h"
+#if YASH_ENABLE_DOUBLE_BRACKET
+# include "builtins/test.h"
+#endif
 #if YASH_ENABLE_LINEEDIT
 # include "lineedit/complete.h"
 # include "lineedit/lineedit.h"
@@ -1188,7 +1191,9 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	break;
 #if YASH_ENABLE_DOUBLE_BRACKET
     case CT_BRACKET:
-	laststatus = Exit_SUCCESS; // TODO
+	laststatus = exec_double_bracket(c);
+	if (finally_exit)
+	    exit_shell();
 	break;
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
     case CT_FUNCDEF:

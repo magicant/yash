@@ -27,7 +27,13 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
+#if YASH_ENABLE_DOUBLE_BRACKET
+# include "../expand.h"
+#endif
 #include "../option.h"
+#if YASH_ENABLE_DOUBLE_BRACKET
+# include "../parser.h"
+#endif
 #include "../path.h"
 #include "../plist.h"
 #include "../strbuf.h"
@@ -67,6 +73,21 @@ static int compare_versions(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull));
 static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
     __attribute__((nonnull));
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+static int eval_dbexp(const dbexp_T *e)
+    __attribute__((nonnull));
+static inline wchar_t *expand_double_bracket_operand(const wordunit_T *w)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wchar_t *expand_and_unescape_double_bracket_operand(const wordunit_T *w)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static bool test_triple_db(
+	const wchar_t *lhs, const wchar_t *op, const wchar_t *rhs_escaped)
+    __attribute__((nonnull));
+static bool test_triple_args(
+	const wchar_t *left, const wchar_t *op, const wchar_t *right)
+    __attribute__((nonnull));
+#endif
 
 
 /* The "test" ("[") built-in. */
@@ -682,6 +703,135 @@ const char test_syntax[] = Ngt(
 "\t[ expression ]\n"
 );
 #endif
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+
+/* Executes the double-bracket command, evaluating the conditional expression.
+ * Returns the exit status. Prints an error message on error. */
+int exec_double_bracket(const command_T *c)
+{
+    assert(c->c_type == CT_BRACKET);
+
+    yash_error_message_count = 0;
+    return eval_dbexp(c->c_dbexp);
+}
+
+/* Evaluates the expression of a double-bracket command.
+ * You must reset `yash_error_message_count' before calling this function.
+ * Returns the exit status. Prints an error message on error. */
+int eval_dbexp(const dbexp_T *e)
+{
+    int lhs_result;
+    bool result;
+    wchar_t *lhs = NULL, *rhs = NULL;
+
+    switch (e->type) {
+	case DBE_OR:
+	    lhs_result = eval_dbexp(e->lhs.subexp);
+	    if (lhs_result != Exit_FALSE)
+		return lhs_result;
+	    return eval_dbexp(e->rhs.subexp);
+	case DBE_AND:
+	    lhs_result = eval_dbexp(e->lhs.subexp);
+	    if (lhs_result != Exit_TRUE)
+		return lhs_result;
+	    return eval_dbexp(e->rhs.subexp);
+	case DBE_NOT:
+	    switch (eval_dbexp(e->rhs.subexp)) {
+		case Exit_TRUE:   return Exit_FALSE;
+		case Exit_FALSE:  return Exit_TRUE;
+		default:          return Exit_TESTERROR;
+	    }
+
+	case DBE_UNARY:
+	    rhs = expand_and_unescape_double_bracket_operand(e->rhs.word);
+	    if (rhs == NULL)
+		return Exit_TESTERROR;
+	    result = test_double((void *[]) { e->operator, rhs });
+	    break;
+	case DBE_BINARY:
+	    lhs = expand_and_unescape_double_bracket_operand(e->lhs.word);
+	    if (lhs == NULL)
+		return Exit_TESTERROR;
+	    rhs = expand_double_bracket_operand(e->rhs.word);
+	    if (rhs == NULL)
+		return Exit_TESTERROR;
+	    result = test_triple_db(lhs, e->operator, rhs);
+	    break;
+	case DBE_STRING:
+	    rhs = expand_and_unescape_double_bracket_operand(e->rhs.word);
+	    if (rhs == NULL)
+		return Exit_TESTERROR;
+	    result = test_single((void *[]) { rhs });
+	    break;
+
+	default:
+	    assert(false);
+    }
+
+    free(lhs);
+    free(rhs);
+    if (yash_error_message_count > 0)
+	return Exit_TESTERROR;
+    return result ? Exit_TRUE : Exit_FALSE;
+}
+
+/* Expands the operand of a primary.
+ * The result may contain backslash escapes. */
+wchar_t *expand_double_bracket_operand(const wordunit_T *w)
+{
+    return expand_single(w, TT_SINGLE, true, false);
+}
+
+/* Expands the operand of a primary.
+ * The result is literal (does not contain backslash escapes). */
+wchar_t *expand_and_unescape_double_bracket_operand(const wordunit_T *w)
+{
+    wchar_t *e = expand_double_bracket_operand(w);
+    if (e == NULL)
+	return NULL;
+    return unescapefree(e);
+}
+
+/* Tests the specified three-token (binary) primary in the double-bracket
+ * command. The left-hand-side must be given literal while the right-hand-side
+ * backslash-escaped. */
+bool test_triple_db(
+	const wchar_t *lhs, const wchar_t *op, const wchar_t *rhs_escaped)
+{
+    /* Some string comparison primaries in the double-bracket command are
+     * different from those in the test built-in. */
+    switch (op[0]) {
+	case L'=':
+	    if (op[1] == L'~') {
+		assert(op[2] == L'\0');
+		return test_triple_args(lhs, op, rhs_escaped);
+	    }
+	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
+		return match_pattern(lhs, rhs_escaped);
+	    break;
+	case L'!':
+	    assert(op[1] == L'=');
+	    if (op[2] == L'\0')
+		return !match_pattern(lhs, rhs_escaped);
+	    break;
+    }
+
+    wchar_t *rhs = unescape(rhs_escaped);
+    bool result = test_triple_args(lhs, op, rhs);
+    free(rhs);
+    return result;
+}
+
+/* Tests the specified three-token expression. */
+bool test_triple_args(
+	const wchar_t *left, const wchar_t *op, const wchar_t *right)
+{
+    void *args[] = { (void *) left, (void *) op, (void *) right, };
+    return test_triple(args);
+}
+
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
 
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

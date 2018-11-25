@@ -33,6 +33,12 @@ extern _Bool is_unary_primary(const wchar_t *word)
 extern _Bool is_binary_primary(const wchar_t *word)
     __attribute__((nonnull,pure));
 
+#if YASH_ENABLE_DOUBLE_BRACKET
+struct command_T;
+extern int exec_double_bracket(const struct command_T *c)
+    __attribute__((nonnull));
+#endif
+
 
 #endif /* YASH_TEST_H */
 
