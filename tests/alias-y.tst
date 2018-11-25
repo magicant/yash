@@ -2,14 +2,6 @@
 
 setup 'set -e'
 
-if testee <<\END
-    alias true=false
-    true
-END
-then
-    skip="true"
-fi
-
 test_OE -e 0 'yash has no predefined aliases'
 alias
 __IN__

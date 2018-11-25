@@ -3,14 +3,6 @@
 posix="true"
 setup 'set -e'
 
-if testee <<\END
-    alias true=false
-    true
-END
-then
-    skip="true"
-fi
-
 test_OE -e 0 'defining alias'
 alias a='echo ABC'
 __IN__
