@@ -88,7 +88,8 @@ features of yash. By default, yash is built with all features enabled.
     not available.
   --enable-double-bracket  --disable-double-bracket
     If disabled, the double-bracket command (the [[ ... ]] syntax) is
-    not available.
+    not available. When this feature is enabled, the `test' built-in
+    must also be enabled.
   --enable-help  --disable-help
     If disabled, the `help' built-in command is not available.
   --enable-history  --disable-history

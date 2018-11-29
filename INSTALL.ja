@@ -86,6 +86,8 @@ Yash はコマンドライン編集機能を実現するために `curses' ラ�
     `popd' 組込みコマンドを有効・無効にします。
   --enable-double-bracket  --disable-double-bracket
     二重ブラケットコマンド ([[ ... ]] 構文) を有効・無効にします。
+    この機能を有効にするには `test' 組込みコマンドも有効にしなければ
+    なりません。
   --enable-help  --disable-help
     `help' 組込みコマンドを有効・無効にします。
   --enable-history  --disable-history
