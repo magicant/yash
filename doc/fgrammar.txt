@@ -202,6 +202,7 @@ should be interpreted in the same manner as standard regular expression:
 <<d-for-command,ForCommand>> | +
 <<d-while-command,WhileCommand>> | +
 <<d-case-command,CaseCommand>> | +
+<<d-double-bracket-command,DoubleBracketCommand>> | +
 <<d-function-command,FunctionCommand>>
 
 [[d-subshell]]Subshell::
@@ -232,6 +233,28 @@ should be interpreted in the same manner as standard regular expression:
 [[d-case-item]]CaseItem::
 +(+? <<d-word,Word>> (+|+ Word)* +)+ <<d-complete-program,CompleteProgram>>
 
+[[d-double-bracket-command]]DoubleBracketCommand::
++[[+ <<d-ors,Ors>> +]]+
+
+[[d-ors]]Ors::
+<<d-ands,Ands>> (+||+ Ands)*
+
+[[d-ands]]Ands::
+<<d-nots,Nots>> (+&&+ Nots)*
+
+[[d-nots]]Nots::
+++!++* <<d-primary,Primary>>
+
+[[d-primary]]Primary::
+(+-b+ | +-c+ | +-d+ | +-e+ | +-f+ | +-G+ | +-g+ | +-h+ | +-k+ | +-L+ | +-N+ |
++-n+ | +-O+ | +-o+ | +-p+ | +-r+ | +-S+ | +-s+ | +-t+ | +-u+ | +-w+ | +-x+ |
++-z+) <<d-word,Word>> | +
+Word (+-ef+ | +-eq+ | +-ge+ | +-gt+ | +-le+ | +-lt+ | +-ne+ | +-nt+ | +-ot+ |
++-veq+ | +-vge+ | +-vgt+ | +-vle+ | +-vlt+ | +-vne+ | +=+ | +==+ | +===+ |
++=~+ | +!=+ | +!==+ | +<+ | +>+) Word | +
++(+ <<d-ors,Ors>> +)+ | +
+Word
+
 [[d-function-command]]FunctionCommand::
 +function+ <<d-word,Word>> (+(+ +)+)? <<d-nl,NL>>*
 <<d-compound-command,CompoundCommand>> <<d-redirection,Redirection>>*
@@ -260,6 +283,10 @@ IO_NUMBER? +>(+ CompleteProgram +)+
 
 [[d-nl]]NL::
 <newline>
+
+In the rule for <<d-primary,Primary>>, <<d-word,Word>> tokens must not be
++]]+. Additionally, if a Primary starts with a Word, it must not be any of the
+possible unary operators allowed in the rule.
 
 In the rule for <<d-simple-command,SimpleCommand>>, a <<d-word,Word>> token is
 accepted only when the token cannot be parsed as the first token of an

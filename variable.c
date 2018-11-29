@@ -1295,6 +1295,9 @@ void hash_all_commands_recursively(const command_T *c)
 	    case CT_CASE:
 		hash_all_commands_in_case(c->c_casitems);
 		break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+	    case CT_BRACKET:
+#endif
 	    case CT_FUNCDEF:
 		break;
 	}

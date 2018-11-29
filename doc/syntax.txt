@@ -31,7 +31,7 @@ The following symbols do not separate tokens, but have syntactic meanings:
 The following tokens are treated as dfn:[keywords] depending on the context in
 which they appear:
 
- ! { } case do done elif else esac fi
+ ! { } [[ case do done elif else esac fi
  for function if in then until while
 
 A token is treated as a keyword when:
@@ -397,6 +397,95 @@ pattern was found, or no commands were associated with the matching pattern.
 
 In the link:posix.html[POSIXly-correct mode], the first pattern in a case item
 cannot be +esac+ (even if you do not omit the +(+ token).
+
+[[double-bracket]]
+=== Double-bracket command
+
+The dfn:[double-bracket command] is a syntactic construct that works similarly
+to the link:_test.html[test built-in].
+It expands and evaluates the words between the brackets.
+
+Double-bracket command syntax::
+  +[[ {{expression}} ]]+
+
+The {{expression}} can be a single primary or combination of primaries and
+operators.
+The expression syntax is parsed when the command is parsed, not executed.
+Operators (either primary or non-primary) must not be link:#quotes[quoted], or
+it will be parsed as a normal word.
+
+When the command is executed, operand words are subjected to the
+link:expand.html[four expansions], but not brace expansion, field splitting,
+or pathname expansion.
+
+In the double-bracket command, the following primaries from the test built-in
+can be used:
+
+Unary primaries::
+  +-b+, +-c+, +-d+, +-e+, +-f+, +-G+, +-g+, +-h+, +-k+, +-L+, +-N+, +-n+,
+  +-O+, +-o+, +-p+, +-r+, +-S+, +-s+, +-t+, +-u+, +-w+, +-x+, +-z+
+
+Binary primaries::
+  +-ef+, +-eq+, +-ge+, +-gt+, +-le+, +-lt+, +-ne+, +-nt+, +-ot+, +-veq+,
+  +-vge+, +-vgt+, +-vle+, +-vlt+, +-vne+, +===+, +!==+, +=~+, +<+, +>+
+
+Additionally, some binary primaries can be used to compare strings, which
+works slightly differently from those for the test built-in:
+The +=+ primary treats the right-hand-side operand word as a
+link:pattern.html[pattern] and tests if it matches the left-hand-side operand
+word.
+The +==+ primary is the same as +=+.
+The +!=+ primary is negation of the +=+ primary (reverse result).
+
+The operand word of a primary must be quoted if it is +]]+ or can be confused
+with another primary operator.
+
+[NOTE]
+More primaries may be added in future versions of the shell.
+You should quote any words that start with a hyphen.
+
+[NOTE]
+The `<=` and `>=` binary primaries cannot be used in the double-bracket
+command because it cannot be parsed correctly in the shell grammar.
+
+The following operands (listed in the descending order of precedence) can be
+used to combine primaries:
+
++( {{expression}} )+::
+  A pair of parentheses change operator precedence.
+
++! {{expression}}+::
+  An exclamation mark negates (reverses) the result.
+
++{{expression}} && {{expression}}+::
+  A double ampersand represents logical conjugation (the ``and'' operation).
+  The entire expression is true if and only if the operand expressions are
+  both true.
+  The left-hand-side expression is first expanded and tested.
+  The right-hand-side is expanded only if the left-hand-side is true.
+
++{{expression}} || {{expression}}+::
+  A double vertical line represents logical conjugation (the ``or''
+  operation).
+  The entire expression is false if and only if the operand expressions are
+  both false.
+  The left-hand-side expression is first expanded and tested.
+  The right-hand-side is expanded only if the left-hand-side is false.
+
+[NOTE]
+Unlike the test built-in, neither +-a+ nor +-o+ can be used as a binary
+operator in the double-bracket command.
+
+The exit status of the double-bracket command is 0 if {{expression}} is true,
+1 if false, and 2 if it cannot be evaluated because of expansion error or any
+other reasons.
+
+[NOTE]
+The double-bracket command is also supported in bash, ksh, mksh, and zsh, but
+not defined in the POSIX standard.
+The behavior slightly differs between the shells.
+The test built-in should be preferred over the double-bracket command for
+maximum portability.
 
 [[funcdef]]
 == Function definition

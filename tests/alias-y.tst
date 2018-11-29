@@ -50,6 +50,20 @@ __ERR__
 
 )
 
+(
+if ! testee -c 'command -v [[' >/dev/null; then
+    skip="true"
+fi
+
+test_OE -e 0 'alias substitution after [['
+# "!" is not keyword between "[[" and "]]"
+alias -g !=
+[[ ! ! ! foo ]] && [[ ! foo = foo ]] && [[ ! -n foo ]] &&
+    [[ ! ( ! foo ! = ! foo ! ) ! && ! foo ! ]] && [[ ! '' ! || ! foo ! ]]
+__IN__
+
+)
+
 test_oE 'alias substitution after function keyword'
 alias fn='function ' f=g
 fn f { echo F; }

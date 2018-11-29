@@ -41,6 +41,7 @@ When the POSIXly-correct mode is enabled:
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
 - The +!+ keyword cannot be followed by +(+ without any whitespaces
   in-between.
+- The link:syntax.html#double-bracket[double-bracket command] cannot be used.
 - The +function+ keyword cannot be used for link:syntax.html#funcdef[function
   definition]. The function must have a portable (ASCII-only) name.
 - link:syntax.html#simple[Simple commands] cannot assign to

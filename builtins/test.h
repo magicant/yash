@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* test.h: test builtin */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,23 @@
 #define YASH_TEST_H
 
 
+#include <stddef.h>
+
 extern int test_builtin(int argc, void **argv)
     __attribute__((nonnull));
 #if YASH_ENABLE_HELP
 extern const char test_help[], test_syntax[];
+#endif
+
+extern _Bool is_unary_primary(const wchar_t *word)
+    __attribute__((nonnull,pure));
+extern _Bool is_binary_primary(const wchar_t *word)
+    __attribute__((nonnull,pure));
+
+#if YASH_ENABLE_DOUBLE_BRACKET
+struct command_T;
+extern int exec_double_bracket(const struct command_T *c)
+    __attribute__((nonnull));
 #endif
 
 

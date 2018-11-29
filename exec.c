@@ -57,6 +57,9 @@
 #include "variable.h"
 #include "xfnmatch.h"
 #include "yash.h"
+#if YASH_ENABLE_DOUBLE_BRACKET
+# include "builtins/test.h"
+#endif
 #if YASH_ENABLE_LINEEDIT
 # include "lineedit/complete.h"
 # include "lineedit/lineedit.h"
@@ -516,14 +519,8 @@ void exec_case(const command_T *c, bool finally_exit)
 	    if (pattern == NULL)
 		goto fail;
 
-	    xfnmatch_T *xfnm = xfnm_compile(
-		    pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+	    bool match = match_pattern(word, pattern);
 	    free(pattern);
-	    if (xfnm == NULL)
-		continue;
-
-	    bool match = (xfnm_wmatch(xfnm, word).start != (size_t) -1);
-	    xfnm_free(xfnm);
 	    if (match) {
 		if (ci->ci_commands != NULL) {
 		    exec_and_or_lists(ci->ci_commands, finally_exit);
@@ -708,6 +705,9 @@ bool is_err_condition_for(const command_T *c)
     switch (c->c_type) {
 	case CT_SIMPLE:
 	case CT_SUBSHELL:
+#if YASH_ENABLE_DOUBLE_BRACKET
+	case CT_BRACKET:
+#endif
 	case CT_FUNCDEF:
 	    return true;
 	case CT_GROUP:
@@ -1189,6 +1189,13 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
     case CT_CASE:
 	exec_case(c, finally_exit);
 	break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+    case CT_BRACKET:
+	laststatus = exec_double_bracket(c);
+	if (finally_exit)
+	    exit_shell();
+	break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
     case CT_FUNCDEF:
 	exec_funcdef(c, finally_exit);
 	break;

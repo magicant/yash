@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.48
 
+  +  The double-bracket command (the [[ ... ]] syntax)
   +  The prompt string now can be defined with the $YASH_PS...
      variables.
   =  The default value of $PS1 has been changed.
