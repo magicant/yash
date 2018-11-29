@@ -95,7 +95,7 @@ in the current locale:
 The binary operator below performs pattern matching:
 
 +{{string}} =~ {{pattern}}+::
-extended regular expression {{pattern}} matches {{string}}
+extended regular expression {{pattern}} matches (part of) {{string}}
 
 The binary operators below compare integers:
 
