@@ -2559,7 +2559,7 @@ void update_buffer_with_prediction(void)
 {
     clear_prediction();
 
-    if (le_main_index < active_length())
+    if (active_length() == 0 || le_main_index < active_length())
 	return;
     le_main_length = le_main_buffer.length;
 
