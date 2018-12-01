@@ -563,6 +563,7 @@ Options:
 	         -o leconvmeta
 	         -o lenoconvmeta
 	         -o lepredict
+	         -o lepredictempty
 	         -o lepromptsp
 	         -o levisiblebell
 	         -o log
@@ -619,6 +620,7 @@ Options:
 	         -o leconvmeta
 	         -o lenoconvmeta
 	         -o lepredict
+	         -o lepredictempty
 	         -o lepromptsp
 	         -o levisiblebell
 	         -o log
