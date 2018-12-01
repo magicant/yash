@@ -2559,8 +2559,12 @@ void update_buffer_with_prediction(void)
 {
     clear_prediction();
 
+    if (!shopt_le_predictempty && active_length() == 0)
+	return;
+
     if (le_main_index < active_length())
 	return;
+
     le_main_length = le_main_buffer.length;
 
     wchar_t *suffix = trie_probable_key(

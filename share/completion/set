@@ -265,6 +265,7 @@ function completion/set::getopt {
 		"leconvmeta; always treat meta-key flags in line-editing"
 		"lenoconvmeta; never treat meta-key flags in line-editing"
 		"lepredict; suggest a command fragment while line-editing"
+		"lepredictempty; suggest a command fragment on empty input while line-editing"
 		"levisiblebell; alert with a flash, not a bell"
 		"lepromptsp; ensure the prompt is printed at the beginning of a line"
 		"lealwaysrp; always show the right prompt during line-editing"
