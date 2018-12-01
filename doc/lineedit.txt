@@ -68,6 +68,10 @@ depending on terminfo data.
 link:_set.html#so-lepredict[le-predict]::
 activates <<prediction,command line prediction>>.
 
+link:_set.html#so-lepredictempty[le-predictempty]::
+When enabled, and <<prediction,command line prediction>> is active,
+suggestions are also provided for empty input lines.
+
 link:_set.html#so-lepromptsp[le-prompt-sp]::
 When enabled, the shell prints a special character sequence before printing
 each prompt so that every prompt is printed at the beginning of a line.
