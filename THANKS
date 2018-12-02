@@ -4,3 +4,5 @@ The author thanks:
   many errors in the documentation
 
 * Martijn Dekker, who pointed out many long-hidden bugs
+
+* Adrian Perez, for implementing the le-predict-empty option

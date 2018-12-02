@@ -41,6 +41,9 @@ Le-conv-meta オプションと le-no-conv-meta オプションは片方しか�
 link:_set.html#so-lepredict[le-predict]::
 <<prediction,コマンドライン推定>>を有効にします
 
+link:_set.html#so-lepredictempty[le-predict-empty]::
+<<prediction,コマンドライン推定>>とこのオプションが有効な時、まだ何も入力されていないコマンドラインでも推定結果を表示します。
+
 link:_set.html#so-lepromptsp[le-prompt-sp]::
 このオプションが有効な時、シェルは{zwsp}link:interact.html#prompt[プロンプト]を出力する前に、プロンプトが必ず行頭に来るようにカーソルを移動するための特殊な文字列を出力します。
 +
@@ -1547,6 +1550,8 @@ link:params.html#sv-ifs[+IFS+]::
 カーソルを右に動かしたとき、カーソルを動かした位置までの部分は実際に打ったのと同様に取り扱われます。しかしその後カーソルを左に戻しても入力を取り消したことにはなりません。推定機能を使っているかどうかに関係なく、backward-delete-char などのコマンドで文字を削除する必要があります。
 
 コマンドの推定はカーソルが入力中のコマンドの末尾にあるときのみ機能します。
+
+デフォルトでは、コマンドを打ち始めると推定が行われます。{zwsp}link:_set.html#so-lepredictempty[Le-predict-empty] オプションを有効にするとコマンドを一文字も入力する前から推定されたコマンドが表示されます。
 
 推定アルゴリズムは{zwsp}link:interact.html#history[コマンド履歴]に基づいてコマンドを推定します。より新しい履歴はより確率が高いと判断します。また複数行に亘るコマンドの出現パターンも考慮します。確率が十分に高いと判断した部分のみを推定結果として表示するため、推定結果は必ずしも完全なコマンドにはなりません。
 

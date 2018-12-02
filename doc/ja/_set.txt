@@ -101,6 +101,7 @@ Err-exit オプションと異なり、抑止条件は{zwsp}link:exec.html#funct
 [[so-leconvmeta]]le-conv-meta::
 [[so-lenoconvmeta]]le-no-conv-meta::
 [[so-lepredict]]le-predict::
+[[so-lepredictempty]]le-predict-empty::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
 これらのオプションは{zwsp}link:lineedit.html[行編集]の動作に影響します。{zwsp}link:lineedit.html#options[行編集のオプション]を参照してください。

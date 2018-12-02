@@ -11,8 +11,12 @@ History of Yash
 Yash 2.48
 
   +  The double-bracket command (the [[ ... ]] syntax)
+  +  The '--le-predict-empty' option
   +  The prompt string now can be defined with the $YASH_PS...
      variables.
+  =  Command line prediction no longer shows suggestion before you
+     start typing a command. Use the new '--le-predict-empty' option
+     to restore the previous behavior.
   =  The default value of $PS1 has been changed.
   *  The line number is now correctly counted in arithmetic
      expansions that contain newlines.

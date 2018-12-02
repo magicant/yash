@@ -150,7 +150,7 @@ This prevents the shell from exiting when you accidentally hit Ctrl-D.
 [[so-leconvmeta]]le-conv-meta::
 [[so-lenoconvmeta]]le-no-conv-meta::
 [[so-lepredict]]le-predict::
-[[so-lepredictempty]]le-predictemty::
+[[so-lepredictempty]]le-predict-empty::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
 See link:lineedit.html#options[shell options on line-editing].

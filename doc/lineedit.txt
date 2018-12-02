@@ -68,7 +68,7 @@ depending on terminfo data.
 link:_set.html#so-lepredict[le-predict]::
 activates <<prediction,command line prediction>>.
 
-link:_set.html#so-lepredictempty[le-predictempty]::
+link:_set.html#so-lepredictempty[le-predict-empty]::
 When enabled, and <<prediction,command line prediction>> is active,
 suggestions are also provided for empty input lines.
 
@@ -1830,6 +1830,12 @@ commands such as backward-delete-char to delete typed command fragment.
 
 The predicted part of the command is shown only when the cursor is at the end
 of the typed part.
+
+By default, the predicted part is shown after you start typing a command
+string.
+By enabling the link:_set.html#so-lepredictempty[le-predict-empty] option, the
+predicted part is also shown before you type the first character of the
+command string.
 
 The prediction algorithm suggests command fragments on the basis of the
 link:interact.html#history[command history]. The algorithm considers recent
