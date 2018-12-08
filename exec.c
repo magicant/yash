@@ -784,7 +784,6 @@ fail:
 pid_t exec_process(
 	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
 {
-    bool early_fork;   /* do early fork? */
     bool finally_exit; /* never return? */
     int argc;
     void **argv = NULL;
@@ -795,16 +794,16 @@ pid_t exec_process(
 
     /* fork first if `type' is E_ASYNC, the command type is subshell,
      * or there is a pipe. */
-    early_fork = (type != E_SELF)
-	&& (type == E_ASYNC || c->c_type == CT_SUBSHELL
-		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0);
     finally_exit = (type == E_SELF);
-    if (early_fork) {
-	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
-	cpid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
-	if (cpid != 0)
-	    goto done;
-	finally_exit = true;
+    if (!finally_exit) {
+	if (type == E_ASYNC || c->c_type == CT_SUBSHELL
+		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0) {
+	    sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
+	    cpid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
+	    if (cpid != 0)
+		goto done;
+	    finally_exit = true;
+	}
     }
 
     lastcmdsubstatus = Exit_SUCCESS;
@@ -903,7 +902,8 @@ pid_t exec_process(
 
     /* create a child process to execute the external command */
     if (cmdinfo.type == CT_EXTERNALPROGRAM && !finally_exit) {
-	cpid = fork_and_reset(pgid, type == E_NORMAL, t_leave);
+	assert(type == E_NORMAL);
+	cpid = fork_and_reset(pgid, true, t_leave);
 	if (cpid != 0)
 	    goto done3;
 	finally_exit = true;
