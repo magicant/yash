@@ -135,8 +135,20 @@ __IN__
 EXIT 2
 __OUT__
 
-test_oE 'trap command is not affected by redirections effective when set' \
+test_oE 'trap command is not affected by redirections effective when set (1)' \
     -c 'trap "echo foo" EXIT >/dev/null'
+__IN__
+foo
+__OUT__
+
+test_oE 'trap command is not affected by redirections effective when set (2)' \
+    -c '{ trap "echo foo" EXIT; } >/dev/null'
+__IN__
+foo
+__OUT__
+
+test_oE 'trap command is not affected by redirections effective when set (3)' \
+    -c 'f() { eval "trap \"echo foo\" EXIT"; }; f >/dev/null'
 __IN__
 foo
 __OUT__
