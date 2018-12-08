@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -356,8 +356,6 @@ bool execute_file_mbs(const char *path)
  * This function is reentrant and exits immediately if reentered. */
 void exit_shell_with_status(int status)
 {
-    static int exitstatus = -1;
-
     if (status >= 0)
 	laststatus = status;
     assert(laststatus >= 0);

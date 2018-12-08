@@ -94,6 +94,19 @@ __IN__
 ok
 __OUT__
 
+test_oE -e n 'exit status of succeeding subshell in EXIT'
+trap '(true) && echo ok' EXIT
+false
+__IN__
+ok
+__OUT__
+
+test_oE -e 0 'exit status of failing subshell in EXIT'
+trap '(false) || echo ok' EXIT
+__IN__
+ok
+__OUT__
+
 test_O -e n 'fatal shell error in trap'
 trap 'set <_no_such_file_' INT
 kill -s INT $$
@@ -199,11 +212,17 @@ __IN__
 USR1
 __OUT__
 
-test_oE -e 0 'setting new trap in subshell'
+test_oE -e 0 'setting new signal trap in subshell'
 trap 'echo X' USR1
 (trap 'echo trapped' USR1; "$TESTEE" -c 'kill -s USR1 $PPID'; :)
 __IN__
 trapped
+__OUT__
+
+test_oE -e 0 'setting new EXIT in subshell in EXIT'
+trap '(trap "echo exit" EXIT)' EXIT
+__IN__
+exit
 __OUT__
 
 test_oE -e 0 'printing traps' -e

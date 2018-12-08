@@ -196,6 +196,8 @@ int laststatus = Exit_SUCCESS;
 int savelaststatus = -1;  // -1 if not in a trap handler
 /* exit status of the last command substitution */
 static int lastcmdsubstatus;
+/* exit status of the command that immediately preceded the EXIT trap. */
+int exitstatus = -1;  // -1 if not executing the EXIT trap
 /* the process ID of the last asynchronous list */
 pid_t lastasyncpid;
 
@@ -1034,6 +1036,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	clear_shellfds(sigtype & t_leave);
 	is_interactive_now = false;
 	suppresserrreturn = false;
+	exitstatus = -1;
     }
     return cpid;
 }

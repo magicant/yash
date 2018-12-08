@@ -20,6 +20,11 @@ Yash 2.48
   =  The default value of $PS1 has been changed.
   *  The line number is now correctly counted in arithmetic
      expansions that contain newlines.
+  *  Subshells in the EXIT trap were unexpectedly exiting with the
+     exit status of the last command executed before the EXIT trap on
+     the main shell.
+  *  A new EXIT trap that was set in a subshell in the EXIT trap was
+     unexpectedly being ignored.
   *  The variable name token in the for command and the word following
      a here-document redirection operator are now correctly parsed
      even when it resulted from an alias substitution whose value
