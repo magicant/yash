@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* hashtable.h: hashtable library */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ typedef uint64_t hashval_T;
 # define FNVPRIME 1099511628211
 #elif defined UINT128_MAX && UINT128_MAX == UINT_FAST32_MAX
 typedef uint128_t hashval_T;
-# define FNVPRIME 309485009821345068724781401
+# define FNVPRIME 309485009821345068724781371
 #else
 typedef uint32_t hashval_T;
 # define FNVPRIME 16777619
