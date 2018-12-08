@@ -82,6 +82,24 @@ __IN__
 trapped
 __OUT__
 
+test_oE -e 0 'exit status of succeeding subshell in signal trap'
+trap '(true) && echo ok' INT; kill -s INT $$
+__IN__
+ok
+__OUT__
+
+test_oE -e 0 'exit status of failing subshell in signal trap'
+trap '(false) || echo ok' INT; kill -s INT $$
+__IN__
+ok
+__OUT__
+
+test_O -e n 'fatal shell error in trap'
+trap 'set <_no_such_file_' INT
+kill -s INT $$
+echo not reached
+__IN__
+
 test_oE -e 0 '$? is restored after trap is executed'
 trap 'false' USR1
 kill -s USR1 $$
