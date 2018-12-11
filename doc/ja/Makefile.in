@@ -88,9 +88,9 @@ html: $(HTMLFILES)
 .txt.html:
 	$(ASCIIDOC) -b html -d article $(ASCIIDOCFLAGS) $(ASCIIDOCATTRS) $<
 
-$(MANTXT): ../makeyash.sh $(MANTXT).in
+$(MANTXT): ../makeyash.sh $(MANTXT).in Makefile
 	$(SHELL) ../makeyash.sh $(CONTENTSTXTS) <$@.in >$@
-$(INDEXTXT): ../makeindex.sh $(INDEXTXT).in $(MAINTXTS)
+$(INDEXTXT): ../makeindex.sh $(INDEXTXT).in $(MAINTXTS) Makefile
 	$(SHELL) ../makeindex.sh $(MAINTXTS) <$@.in >$@
 $(MANFILE): $(MANTXT) $(CONTENTSTXTS) $(CONFFILE)
 $(HTMLFILES): $(CONFFILE)
