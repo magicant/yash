@@ -1,5 +1,5 @@
 # Makefile.in for the documentation of yash
-# (C) 2007-2014 magicant
+# (C) 2007-2018 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ INDEXTXT = index.txt
 # MAINTXTS must be in the contents order
 MAINTXTS = intro.txt invoke.txt syntax.txt params.txt expand.txt pattern.txt redir.txt exec.txt interact.txt job.txt builtin.txt lineedit.txt posix.txt faq.txt fgrammar.txt
 # BUILTINTXTS must be in the alphabetic order
-BUILTINTXTS = _alias.txt _array.txt _bg.txt _bindkey.txt _break.txt _cd.txt _colon.txt _command.txt _complete.txt _continue.txt _dirs.txt _disown.txt _dot.txt _echo.txt _eval.txt _exec.txt _exit.txt _export.txt _false.txt _fc.txt _fg.txt _getopts.txt _hash.txt _help.txt _history.txt _jobs.txt _kill.txt _popd.txt _printf.txt _pushd.txt _pwd.txt _read.txt _readonly.txt _return.txt _set.txt _shift.txt _suspend.txt _test.txt _times.txt _trap.txt _true.txt _type.txt _typeset.txt _ulimit.txt _umask.txt _unalias.txt _unset.txt _wait.txt
+BUILTINTXTS = _alias.txt _array.txt _bg.txt _bindkey.txt _break.txt _cd.txt _colon.txt _command.txt _complete.txt _continue.txt _dirs.txt _disown.txt _dot.txt _echo.txt _eval.txt _exec.txt _exit.txt _export.txt _false.txt _fc.txt _fg.txt _getopts.txt _hash.txt _help.txt _history.txt _jobs.txt _kill.txt _local.txt _popd.txt _printf.txt _pushd.txt _pwd.txt _read.txt _readonly.txt _return.txt _set.txt _shift.txt _suspend.txt _test.txt _times.txt _trap.txt _true.txt _type.txt _typeset.txt _ulimit.txt _umask.txt _unalias.txt _unset.txt _wait.txt
 # CONTENTSTXTS must be in the contents order
 CONTENTSTXTS = $(MAINTXTS) $(BUILTINTXTS)
 TXTS = $(MANTXT) $(INDEXTXT) $(CONTENTSTXTS)

@@ -1,0 +1,26 @@
+= Local built-in
+:encoding: UTF-8
+:lang: en
+//:title: Yash manual - Local built-in
+
+The dfn:[local built-in] prints or sets local variables.
+
+[[syntax]]
+== Syntax
+
+- +local [-rxX] [{{name}}[={{value}}]...]+
+
+[[description]]
+== Description
+
+The local built-in is equivalent to the link:_typeset.html[typeset built-in]
+except that the +-f+ (+--functions+) and +-g+ (+--global+) options cannot be
+used.
+
+[[notes]]
+== Notes
+
+The local built-in is a link:builtin.html#types[semi-special built-in].
+In the POSIX standard, it is defined as a command with unspecified behavior.
+
+// vim: set filetype=asciidoc textwidth=78 expandtab:

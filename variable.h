@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -144,9 +144,11 @@ extern int typeset_builtin(int argc, void **argv)
     __attribute__((nonnull));
 #if YASH_ENABLE_HELP
 extern const char typeset_help[], typeset_syntax[], export_help[],
-	export_syntax[], readonly_help[], readonly_syntax[];
+       export_syntax[], local_help[], local_syntax[], readonly_help[],
+       readonly_syntax[];
 #endif
 extern const struct xgetopt_T typeset_options[];
+#define local_options (&typeset_options[2])
 
 extern int array_builtin(int argc, void **argv)
     __attribute__((nonnull));

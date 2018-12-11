@@ -1,8 +1,8 @@
-# (C) 2010 magicant
+# (C) 2010-2018 magicant
 
 # Completion script for the "typeset" built-in command.
-# Completion function "completion/typeset" is used for the "export" and
-# "readonly" built-ins as well.
+# Completion function "completion/typeset" is used for the "export", "local"
+# and "readonly" built-ins as well.
 
 function completion/typeset {
 
@@ -17,9 +17,13 @@ function completion/typeset {
 		"g --global; define global variables"
 		) #<#
 	fi
-	if [ "${WORDS[1]}" != "export" ]; then
+	if [ "${WORDS[1]}" = "readonly" ] || [ "${WORDS[1]}" = "typeset" ]; then
 		OPTIONS=("$OPTIONS" #>#
 		"f --functions; define or print functions rather than variables"
+		) #<#
+	fi
+	if [ "${WORDS[1]}" != "export" ]; then
+		OPTIONS=("$OPTIONS" #>#
 		"x --export; export variables or print exported variables"
 		) #<#
 	fi

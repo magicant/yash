@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2018 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,6 +125,8 @@ void init_builtin(void)
 	    typeset_syntax, typeset_options);
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
 	    export_syntax, typeset_options);
+    DEFBUILTIN("local", typeset_builtin, BI_SEMISPECIAL, local_help,
+	    local_syntax, local_options);
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
 	    readonly_syntax, typeset_options);
 #if YASH_ENABLE_ARRAY

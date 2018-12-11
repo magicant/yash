@@ -80,6 +80,6 @@ dfn:[Typeset 組込みコマンド]は{zwsp}link:params.html#variables[変数]�
 Typeset コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
 POSIX では typeset コマンドの動作は規定されていません。
 
-link:_export.html[Export コマンド]は typeset コマンドに +-gx+ オプションを付けたものと同じです。{zwsp}link:_readonly.html[Readonly コマンド]は typeset コマンドに +-gr+ オプションを付けたものと同じです。
+link:_export.html[Export コマンド]は typeset コマンドに +-gx+ オプションを付けたものと同じです。{zwsp}link:_readonly.html[Readonly コマンド]は typeset コマンドに +-gr+ オプションを付けたものと同じです。{zwsp}link:_local.html[Local コマンド]は typeset と同じですが +-f+ (+--functions+) および +-g+ (+--global+) オプションは使えません。
 
 // vim: set filetype=asciidoc expandtab:

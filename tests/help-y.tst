@@ -578,6 +578,25 @@ Try `man yash' for details.
 __OUT__
 #`
 
+test_oE -e 0 'help of local'
+help local
+__IN__
+local: set or print local variables
+
+Syntax:
+	local [-prxX] [name[=value]...]
+
+Options:
+	-p       --print
+	-r       --readonly
+	-x       --export
+	-X       --unexport
+	         --help
+
+Try `man yash' for details.
+__OUT__
+#`
+
 (
 if ! testee -c 'command -bv popd' >/dev/null; then
     skip="true"

@@ -1618,6 +1618,7 @@ const struct xgetopt_T typeset_options[] = {
 #endif
     { L'\0', NULL, 0, false, NULL, },
 };
+/* Note: `local_options' is defined as part of `typeset_options'. */
 
 /* The "typeset" built-in, which accepts the following options:
  *  -f: affect functions rather than variables
@@ -1628,6 +1629,7 @@ const struct xgetopt_T typeset_options[] = {
  *  -X: cancel exportation of variables
  * Equivalent built-ins:
  *  export:   typeset -gx
+ *  local:    typeset
  *  readonly: typeset -gr
  * The "set" built-in without any arguments is redirected to this built-in. */
 int typeset_builtin(int argc, void **argv)
@@ -1635,9 +1637,11 @@ int typeset_builtin(int argc, void **argv)
     bool function = false, global = false, print = false;
     bool readonly = false, export = false, unexport = false;
 
+    const struct xgetopt_T *options =
+	(ARGV(0)[0] == L'l' /*local*/) ? local_options : typeset_options;
     const struct xgetopt_T *opt;
     xoptind = 0;
-    while ((opt = xgetopt(argv, typeset_options, 0)) != NULL) {
+    while ((opt = xgetopt(argv, options, 0)) != NULL) {
 	switch (opt->shortopt) {
 	    case L'f':  function = true;  break;
 	    case L'g':  global   = true;  break;
@@ -1660,6 +1664,9 @@ int typeset_builtin(int argc, void **argv)
 	    global = true;
 	    if (!unexport)
 		export = true;
+	    break;
+	case L'l':
+	    assert(wcscmp(ARGV(0), L"local") == 0);
 	    break;
 	case L'r':
 	    assert(wcscmp(ARGV(0), L"readonly") == 0);
@@ -1834,8 +1841,12 @@ void print_scalar(const wchar_t *name, bool namequote,
 	    format = (quotedvalue != NULL) ? "%ls %ls=%ls\n" : "%ls %ls\n";
 	    xprintf(format, argv0, name, quotedvalue);
 	    break;
+	case L'l':
+	    assert(wcscmp(argv0, L"local") == 0);
+	    goto typeset;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
+typeset:
 	    sb_init(&opts);
 	    if (var->v_type & VF_EXPORT)
 		sb_ccat(&opts, 'x');
@@ -1891,8 +1902,12 @@ void print_array(
 		    || wcscmp(argv0, L"readonly") == 0);
 	    xprintf("%ls %ls\n", argv0, name);
 	    break;
+	case L'l':
+	    assert(wcscmp(argv0, L"local") == 0);
+	    goto typeset;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
+typeset:
 	    sb_init(&opts);
 	    if (var->v_type & VF_EXPORT)
 		sb_ccat(&opts, 'x');
@@ -1961,6 +1976,12 @@ const char export_help[] = Ngt(
 );
 const char export_syntax[] = Ngt(
 "\texport [-prX] [name[=value]...]\n"
+);
+const char local_help[] = Ngt(
+"set or print local variables"
+);
+const char local_syntax[] = Ngt(
+"\tlocal [-prxX] [name[=value]...]\n"
 );
 const char readonly_help[] = Ngt(
 "make variables read-only"

@@ -52,6 +52,7 @@ built-in. (See link:builtin.html#types[Types of built-in commands])
 - link:_history.html[+history+] &#43;
 - link:_jobs.html[+jobs+] &#43;
 - link:_kill.html[+kill+] &#43;
+- link:_local.html[+local+] &#43;
 - link:_popd.html[+popd+] &#43;
 - link:_printf.html[+printf+]
 - link:_pushd.html[+pushd+] &#43;
@@ -122,6 +123,7 @@ built-in. (See link:builtin.html#types[Types of built-in commands])
 [role="list-group"]
 - link:_typeset.html[+typeset+]
 - link:_export.html[+export+] *
+- link:_local.html[+local+] &#43;
 - link:_readonly.html[+readonly+] *
 - link:_array.html[+array+]
 - link:_set.html[+set+] *

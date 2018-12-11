@@ -1,0 +1,10 @@
+# (C) 2018 magicant
+
+# Completion script for the "local" built-in command.
+
+function completion/local {
+	command -f completion//reexecute typeset
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:

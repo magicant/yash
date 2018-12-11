@@ -91,6 +91,26 @@ typeset yash_typeset_test_b=2
 typeset yash_typeset_test_g=3
 __OUT__
 
+test_oE -e 0 'defining and printing local array (no option)' -e
+f() {
+    typeset a
+    a=(This is my array.)
+    printf '%s\n' "$a"
+    typeset
+}
+a=global
+f
+echo $a
+__IN__
+This
+is
+my
+array.
+a=(This is my array.)
+typeset a
+global
+__OUT__
+
 test_oE 'defining read-only variables (-r)' -e
 a=1
 typeset -r a b=2
@@ -159,7 +179,7 @@ typeset a=1
 typeset b=2
 __OUT__
 
-test_oE -e 0 'printing array variable (p)' -e
+test_oE -e 0 'printing array variable (-p)' -e
 a=() b=(1 '2  2' 3)
 typeset -x b
 typeset -p a b

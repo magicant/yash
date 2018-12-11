@@ -1,0 +1,24 @@
+= Local 組込みコマンド
+:encoding: UTF-8
+:lang: ja
+//:title: Yash マニュアル - Local 組込みコマンド
+
+dfn:[Local 組込みコマンド]はローカル変数を表示・設定します。
+
+[[syntax]]
+== 構文
+
+- +local [-rxX] [{{name}}[={{value}}]...]+
+
+[[description]]
+== 説明
+
+Local コマンドは link:_typeset.html[typeset コマンド]と同じですが +-f+ (+--functions+) および +-g+ (+--global+) オプションは使えません。
+
+[[notes]]
+== 補足
+
+Local コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+POSIX では local コマンドの動作は規定されていません。
+
+// vim: set filetype=asciidoc expandtab:
