@@ -192,9 +192,9 @@ fi
 __OUT__
 
 test_single 'if command, w/ elif, w/o else, single line'
-if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi
+if :& :; then cat fifo; :& elif foo; then :; elif bar& then :& fi
 __IN__
-if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi
+if :& :; then cat fifo; :& elif foo; then :; elif bar& then :& fi
 __OUT__
 
 test_multi 'if command, w/ elif, w/o else, multi-line'
