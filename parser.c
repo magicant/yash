@@ -3871,7 +3871,7 @@ void print_pending_heredocs(struct print* pr)
 {
     for (size_t i = 0; i < pr->pending_heredocs.length; i++) {
 	const redir_T *rd = pr->pending_heredocs.contents[i];
-	print_word(pr, rd->rd_herecontent, 1);
+	print_word(pr, rd->rd_herecontent, 0);
 	wb_catfree(&pr->buffer, unquote(rd->rd_hereend));
 	wb_wccat(&pr->buffer, L'\n');
     }
