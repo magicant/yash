@@ -3305,6 +3305,8 @@ static void print_indent(struct print *pr, unsigned indent)
     __attribute__((nonnull));
 static void print_space_or_newline(struct print* pr)
     __attribute__((nonnull));
+static void print_pending_heredocs(struct print* pr)
+    __attribute__((nonnull));
 static void trim_end_of_buffer(xwcsbuf_T *buf)
     __attribute__((nonnull));
 
@@ -3859,16 +3861,21 @@ void print_space_or_newline(struct print* pr)
 {
     if (pr->multiline) {
 	wb_wccat(&pr->buffer, L'\n');
-	for (size_t i = 0; i < pr->pending_heredocs.length; i++) {
-	    const redir_T *rd = pr->pending_heredocs.contents[i];
-	    print_word(pr, rd->rd_herecontent, 1);
-	    wb_catfree(&pr->buffer, unquote(rd->rd_hereend));
-	    wb_wccat(&pr->buffer, L'\n');
-	}
-	pl_clear(&pr->pending_heredocs, 0);
+	print_pending_heredocs(pr);
     } else {
 	wb_wccat(&pr->buffer, L' ');
     }
+}
+
+void print_pending_heredocs(struct print* pr)
+{
+    for (size_t i = 0; i < pr->pending_heredocs.length; i++) {
+	const redir_T *rd = pr->pending_heredocs.contents[i];
+	print_word(pr, rd->rd_herecontent, 1);
+	wb_catfree(&pr->buffer, unquote(rd->rd_hereend));
+	wb_wccat(&pr->buffer, L'\n');
+    }
+    pl_clear(&pr->pending_heredocs, 0);
 }
 
 void trim_end_of_buffer(xwcsbuf_T *buf)
