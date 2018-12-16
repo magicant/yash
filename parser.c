@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -3831,10 +3832,29 @@ append_subst:
 
 void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
 {
-    if (ec.is_preparsed)
-	print_and_or_lists(pr, ec.value.preparsed, indent, true);
-    else
+    if (!ec.is_preparsed) {
 	wb_cat(&pr->buffer, ec.value.unparsed);
+	return;
+    }
+
+    size_t save_count = pr->pending_heredocs.length;
+    void *save_heredocs[save_count];
+    memcpy(save_heredocs, pr->pending_heredocs.contents, sizeof save_heredocs);
+    pl_clear(&pr->pending_heredocs, 0);
+
+    print_and_or_lists(pr, ec.value.preparsed, indent, true);
+
+    if (pr->multiline) {
+	if (pr->pending_heredocs.length > 0) {
+	    print_space_or_newline(pr); // print remaining heredocs
+	    print_indent(pr, indent);
+	}
+    } else {
+	pl_clear(&pr->pending_heredocs, 0);
+    }
+
+    assert(pr->pending_heredocs.length == 0);
+    pl_ncat(&pr->pending_heredocs, save_heredocs, save_count);
 }
 
 void print_indent(struct print *pr, unsigned indent)

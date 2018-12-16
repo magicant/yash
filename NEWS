@@ -26,6 +26,12 @@ Yash 2.48
      the main shell.
   *  A new EXIT trap that was set in a subshell in the EXIT trap was
      unexpectedly being ignored.
+  *  The "typeset" built-in was crashing when printing a function that
+     contains a here-document that contains a command substitution
+     that contains more than one command.
+  *  The "typeset" built-in was forgetting to print here-document
+     contents when printing a function that contains a process
+     substitution (or redirection) that contains here-documents.
   *  The variable name token in the for command and the word following
      a here-document redirection operator are now correctly parsed
      even when it resulted from an alias substitution whose value

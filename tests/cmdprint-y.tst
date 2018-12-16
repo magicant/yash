@@ -824,8 +824,6 @@ f()
 }
 __OUT__
 
-# FIXME
-<<\__OUT__
 test_oE 'complex indentation of compound commands'
 f() {
     (
@@ -904,9 +902,29 @@ END
 }
 __OUT__
 
-# FIXME
-<<\__OUT__
-test_oE 'nested here-documents and command substitutions'
+test_oE 'nested here-documents and command substitutions, single line'
+cat fifo <<END1 <<END2&
+ $(<<EOF11; <<EOF12
+foo
+EOF11
+bar
+EOF12
+)
+END1
+ $(<<EOF21; <<EOF22
+foo
+EOF21
+bar
+EOF22
+)
+END2
+jobs
+>fifo
+__IN__
+[1] + Running              cat fifo 0<<END1 0<<END2
+__OUT__
+
+test_oE 'nested here-documents and command substitutions, multi-line'
 f()
 {
     <<END1 <<END2
