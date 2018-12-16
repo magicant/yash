@@ -507,6 +507,11 @@ case i in
 esac
 __OUT__
 
+(
+if ! testee -c 'command -v [[' >/dev/null; then
+    skip="true"
+fi
+
 test_oE 'double bracket, string primary'
 f()
 [[ "foo" ]]
@@ -605,6 +610,8 @@ __IN__
 f()
 [[ ! ! a ]]
 __OUT__
+
+)
 
 test_oE 'function definition, POSIX name, single line'
 f() { :; } >/dev/null && cat fifo&
