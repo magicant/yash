@@ -2,63 +2,73 @@
 
 mkfifo fifo
 
-test_oE 'one simple command, single line'
-cat fifo&
+testcase_single() {
+    testcase "$@" 3<<__IN__ 4<<__OUT__
+$(cat <&3) &
 jobs
 >fifo
 __IN__
-[1] + Running              cat fifo
+[1] + Running              $(cat <&4)
 __OUT__
-
-test_oE 'one simple command, multi-line'
-f() {
-    echo
 }
+
+testcase_multi() {
+    testcase "$@" 3<<__IN__ 4<<__OUT__
+eval "\$(
+f()
+$(cat <&3)
+typeset -fp f
+)"
 typeset -fp f
 __IN__
 f()
+$(cat <&4)
+__OUT__
+}
+
+alias test_single='testcase_single "$LINENO" 3<<\__IN__ 4<<\__OUT__'
+alias test_multi='testcase_multi "$LINENO" 3<<\__IN__ 4<<\__OUT__'
+
+test_single 'one simple command, single line'
+cat fifo
+__IN__
+cat fifo
+__OUT__
+
+test_multi 'one simple command, multi-line'
+{ echo; }
+typeset -fp f
+__IN__
 {
    echo
 }
 __OUT__
 
-test_oE 'many and-or lists, ending synchronously, single line'
+test_single 'many and-or lists, ending synchronously, single line'
 {
     cat fifo; exit ; foo &
     bar& ls
     ls -l;
-}&
-jobs
->fifo
+}
 __IN__
-[1] + Running              { cat fifo; exit; foo& bar& ls; ls -l; }
+{ cat fifo; exit; foo& bar& ls; ls -l; }
 __OUT__
 
-test_oE 'many and-or lists, ending asynchronously, single line'
+test_single 'many and-or lists, ending asynchronously, single line'
 {
     :& true &
     cat fifo; exit
     foo &
     bar&
-}&
-jobs
->fifo
+}
 __IN__
-[1] + Running              { :& true& cat fifo; exit; foo& bar& }
+{ :& true& cat fifo; exit; foo& bar& }
 __OUT__
 
-test_oE 'many and-or lists, multi-line'
-f() {
-    echo
-    echo 1
-    foo &
-    bar &
-    ls
-    ls -l
-}
+test_multi 'many and-or lists, multi-line'
+{ echo ; echo 1 ; foo & bar & ls ; ls -l; }
 typeset -fp f
 __IN__
-f()
 {
    echo
    echo 1
@@ -69,21 +79,15 @@ f()
 }
 __OUT__
 
-test_oE 'many pipelines, single line'
-cat fifo && : || echo not reached&
-jobs
->fifo
+test_single 'many pipelines, single line'
+cat fifo && : || echo not reached
 __IN__
-[1] + Running              cat fifo && : || echo not reached
+cat fifo && : || echo not reached
 __OUT__
 
-test_oE 'many pipelines, multi-line'
-f() {
-    cat fifo || echo not reached && :
-}
-typeset -fp f
+test_multi 'many pipelines, multi-line'
+{ cat fifo || echo not reached && :; }
 __IN__
-f()
 {
    cat fifo ||
    echo not reached &&
@@ -91,41 +95,29 @@ f()
 }
 __OUT__
 
-test_oE 'many commands, single line'
-cat fifo | cat - | cat&
-jobs
->fifo
+test_single 'many commands, single line'
+cat fifo | cat - | cat
 __IN__
-[1] + Running              cat fifo | cat - | cat
+cat fifo | cat - | cat
 __OUT__
 
-test_oE 'many commands, multi-line'
-f() {
-    echo | cat - | cat
-}
-typeset -fp f
+test_multi 'many commands, multi-line'
+{ echo | cat - | cat; }
 __IN__
-f()
 {
    echo | cat - | cat
 }
 __OUT__
 
-test_oE 'negated pipeline, single line'
-! cat fifo | cat - | cat&
-jobs
->fifo
+test_single 'negated pipeline, single line'
+! cat fifo | cat - | cat
 __IN__
-[1] + Running              ! cat fifo | cat - | cat
+! cat fifo | cat - | cat
 __OUT__
 
-test_oE 'negated pipeline, multi-line'
-f() {
-    ! echo | cat - | cat
-}
-typeset -fp f
+test_multi 'negated pipeline, multi-line'
+{ ! echo | cat - | cat; }
 __IN__
-f()
 {
    ! echo | cat - | cat
 }
@@ -133,85 +125,65 @@ __OUT__
 
 # Non-empty grouping is tests in other tests above.
 
-test_oE 'grouping, w/o commands, single line'
-{ } && cat fifo&
-jobs
->fifo
+test_single 'grouping, w/o commands, single line'
+{ } && cat fifo
 __IN__
-[1] + Running              { } && cat fifo
+{ } && cat fifo
 __OUT__
 
-test_oE 'grouping, w/o commands, multi-line'
-f()
+test_multi 'grouping, w/o commands, multi-line'
 { }
-typeset -fp f
 __IN__
-f()
 {
 }
 __OUT__
 
-test_oE 'subshell, w/ single command, ending synchronously, single line'
-(cat fifo)&
-jobs
->fifo
+test_single 'subshell, w/ single command, ending synchronously, single line'
+(cat fifo)
 __IN__
-[1] + Running              (cat fifo)
-__OUT__
-
-test_oE 'subshell, w/ many commands, ending asynchronously, single line'
-(cat fifo; :&)&
-jobs
->fifo
-__IN__
-[1] + Running              (cat fifo; :&)
-__OUT__
-
-test_oE 'subshell, w/ simple command, ending synchronously, multi-line'
-f() (cat fifo)
-typeset -fp f
-__IN__
-f()
 (cat fifo)
 __OUT__
 
-test_oE 'subshell, w/ many commands, ending asynchronously, multi-line'
-f() (:; cat fifo; :&)
-typeset -fp f
+test_single 'subshell, w/ many commands, ending asynchronously, single line'
+(cat fifo; :&)
 __IN__
-f()
+(cat fifo; :&)
+__OUT__
+
+test_multi 'subshell, w/ simple command, ending synchronously, multi-line'
+(cat fifo)
+__IN__
+(cat fifo)
+__OUT__
+
+test_multi 'subshell, w/ many commands, ending asynchronously, multi-line'
+(:; cat fifo; :&)
+__IN__
 (:
    cat fifo
    :&)
 __OUT__
 
-test_oE 'subshell, w/o commands, single line'
-() && cat fifo&
-jobs
->fifo
+test_single 'subshell, w/o commands, single line'
+() && cat fifo
 __IN__
-[1] + Running              () && cat fifo
+() && cat fifo
 __OUT__
 
-test_oE 'if command, w/o elif, w/o else, single line'
-if :& :; then cat fifo; fi&
-jobs
->fifo
+test_single 'if command, w/o elif, w/o else, single line'
+if :& :; then cat fifo; fi
 __IN__
-[1] + Running              if :& :; then cat fifo; fi
+if :& :; then cat fifo; fi
 __OUT__
 
-test_oE 'if command, w/o elif, w/o else, multi-line'
-f()
+test_multi 'if command, w/o elif, w/o else, multi-line'
 if
     :&
     :
 then
     cat fifo
 fi
-typeset -fp f
 __IN__
-f()
 if :&
    :
 then
@@ -219,20 +191,15 @@ then
 fi
 __OUT__
 
-test_oE 'if command, w/ elif, w/o else, single line'
-if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi&
-jobs
->fifo
+test_single 'if command, w/ elif, w/o else, single line'
+if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi
 __IN__
-[1] + Running              if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi
+if :& :; then cat fifo& elif foo; then :; elif bar& then :& fi
 __OUT__
 
-test_oE 'if command, w/ elif, w/o else, multi-line'
-f()
+test_multi 'if command, w/ elif, w/o else, multi-line'
 if [ ]; then foo& elif 1; then 2; elif a& b; then c& fi
-typeset -fp f
 __IN__
-f()
 if [ ]
 then
    foo&
@@ -246,24 +213,19 @@ then
 fi
 __OUT__
 
-test_oE 'if command, w/o elif, w/ else, single line'
-if :& :; then cat fifo; else echo not reached; fi&
-jobs
->fifo
+test_single 'if command, w/o elif, w/ else, single line'
+if :& :; then cat fifo; else echo not reached; fi
 __IN__
-[1] + Running              if :& :; then cat fifo; else echo not reached; fi
+if :& :; then cat fifo; else echo not reached; fi
 __OUT__
 
-test_oE 'if command, w/o elif, w/ else, multi-line'
-f()
+test_multi 'if command, w/o elif, w/ else, multi-line'
 if :& :; then
     cat fifo
 else
     echo not reached
 fi
-typeset -fp f
 __IN__
-f()
 if :&
    :
 then
@@ -273,19 +235,15 @@ else
 fi
 __OUT__
 
-test_oE 'if command, w/ elif, w/ else, single line'
-if :; then cat fifo; elif foo& then :; else bar& fi&
-jobs
->fifo
+test_single 'if command, w/ elif, w/ else, single line'
+if :; then cat fifo; elif foo& then :; else bar& fi
 __IN__
-[1] + Running              if :; then cat fifo; elif foo& then :; else bar& fi
+if :; then cat fifo; elif foo& then :; else bar& fi
 __OUT__
 
-test_oE 'if command, w/ elif, w/ else, multi-line'
-f() if :; then cat fifo; elif foo& then :; else bar& fi
-typeset -fp f
+test_multi 'if command, w/ elif, w/ else, multi-line'
+if :; then cat fifo; elif foo& then :; else bar& fi
 __IN__
-f()
 if :
 then
    cat fifo
@@ -297,20 +255,15 @@ else
 fi
 __OUT__
 
-test_oE 'if command, w/o commands, single line'
-if then elif then elif then else fi && cat fifo&
-jobs
->fifo
+test_single 'if command, w/o commands, single line'
+if then elif then elif then else fi && cat fifo
 __IN__
-[1] + Running              if then elif then elif then else fi && cat fifo
+if then elif then elif then else fi && cat fifo
 __OUT__
 
-test_oE 'if command, w/o commands, multi-line'
-f()
+test_multi 'if command, w/o commands, multi-line'
 if then elif then elif then else fi
-typeset -fp f
 __IN__
-f()
 if then
 elif then
 elif then
@@ -318,60 +271,44 @@ else
 fi
 __OUT__
 
-test_oE 'for command, w/o in, single line'
-set 1
-for i do cat fifo; done&
-jobs
->fifo
+test_single 'for command, w/o in, single line'
+set 1 && for i do cat fifo; done
 __IN__
-[1] + Running              for i do cat fifo; done
+set 1 && for i do cat fifo; done
 __OUT__
 
-test_oE 'for command, w/o in, multi-line'
-f()
+test_multi 'for command, w/o in, multi-line'
 for i do cat fifo; done
-typeset -fp f
 __IN__
-f()
 for i do
    cat fifo
 done
 __OUT__
 
-test_oE 'for command, w/ in, w/o words, single line'
-{ for i in; do echo not reached; done; cat fifo; }&
-jobs
->fifo
+test_single 'for command, w/ in, w/o words, single line'
+{ for i in; do echo not reached; done; cat fifo; }
 __IN__
-[1] + Running              { for i in; do echo not reached; done; cat fifo; }
+{ for i in; do echo not reached; done; cat fifo; }
 __OUT__
 
-test_oE 'for command, w/ in, w/o words, multi-line'
-f()
+test_multi 'for command, w/ in, w/o words, multi-line'
 for i in; do echo not reached; done
-typeset -fp f
 __IN__
-f()
 for i in
 do
    echo not reached
 done
 __OUT__
 
-test_oE 'for command, w/ in, w/ many words, single line'
-for i in 1 2 3; do cat fifo; :; :& done&
-jobs
-for i in 1 2 3; do >fifo; done
+test_single 'for command, w/ in, w/ many words, single line'
+for i in 1 2 3; do cat fifo; break; :& done
 __IN__
-[1] + Running              for i in 1 2 3; do cat fifo; :; :& done
+for i in 1 2 3; do cat fifo; break; :& done
 __OUT__
 
-test_oE 'for command, w/ in, w/ many words, multi-line'
-f()
+test_multi 'for command, w/ in, w/ many words, multi-line'
 for i in 1 2 3; do cat fifo; :; :& done
-typeset -fp f
 __IN__
-f()
 for i in 1 2 3
 do
    cat fifo
@@ -380,58 +317,43 @@ do
 done
 __OUT__
 
-test_oE 'for command, w/ commands, single line'
-for i do done && cat fifo&
-jobs
->fifo
+test_single 'for command, w/ commands, single line'
+for i do done && cat fifo
 __IN__
-[1] + Running              for i do done && cat fifo
+for i do done && cat fifo
 __OUT__
 
-test_oE 'for command, w/ commands, multi-line'
-f()
+test_multi 'for command, w/ commands, multi-line'
 for i do done
-typeset -fp f
 __IN__
-f()
 for i do
 done
 __OUT__
 
-test_oE 'while command, w/ single command condition, single line'
-while :; do cat fifo; break; done&
-jobs
->fifo
+test_single 'while command, w/ single command condition, single line'
+while :; do cat fifo; break; done
 __IN__
-[1] + Running              while :; do cat fifo; break; done
+while :; do cat fifo; break; done
 __OUT__
 
-test_oE 'while command, w/ single command condition, single line'
-f()
+test_multi 'while command, w/ single command condition, multi-line'
 while :; do foo; done
-typeset -fp f
 __IN__
-f()
 while :
 do
    foo
 done
 __OUT__
 
-test_oE 'while command, w/ many command condition, single line'
-while cat fifo; break; :& do foo; bar& done&
-jobs
->fifo
+test_single 'while command, w/ many command condition, single line'
+while cat fifo; break; :& do foo; bar& done
 __IN__
-[1] + Running              while cat fifo; break; :& do foo; bar& done
+while cat fifo; break; :& do foo; bar& done
 __OUT__
 
-test_oE 'while command, w/ many command condition, multi-line'
-f()
+test_multi 'while command, w/ many command condition, multi-line'
 while cat fifo; break; :& do foo; bar& done
-typeset -fp f
 __IN__
-f()
 while cat fifo
    break
    :&
@@ -441,56 +363,41 @@ do
 done
 __OUT__
 
-test_oE 'while command, w/o commands, single line'
-cat fifo || exit || while do done&
-jobs
->fifo
+test_single 'while command, w/o commands, single line'
+cat fifo || exit || while do done
 __IN__
-[1] + Running              cat fifo || exit || while do done
+cat fifo || exit || while do done
 __OUT__
 
-test_oE 'while command, w/o commands, multi-line'
-f()
+test_multi 'while command, w/o commands, multi-line'
 while do done
-typeset -fp f
 __IN__
-f()
 while do
 done
 __OUT__
 
-test_oE 'case command, w/o case items, single line'
-case i in esac && cat fifo&
-jobs
->fifo
+test_single 'case command, w/o case items, single line'
+case i in esac && cat fifo
 __IN__
-[1] + Running              case i in esac && cat fifo
+case i in esac && cat fifo
 __OUT__
 
-test_oE 'case command, w/o case items, multi-line'
-f()
+test_multi 'case command, w/o case items, multi-line'
 case i in esac
-typeset -fp f
 __IN__
-f()
 case i in
 esac
 __OUT__
 
-test_oE 'case command, w/ case items, single line'
-case i in (i) cat fifo;; (j) foo& bar;; (k|l|m) ;; (n) :& esac&
-jobs
->fifo
+test_single 'case command, w/ case items, single line'
+case i in (i) cat fifo;; (j) foo& bar;; (k|l|m) ;; (n) :& esac
 __IN__
-[1] + Running              case i in (i) cat fifo ;; (j) foo& bar ;; (k | l | m) ;; (n) :& ;; esac
+case i in (i) cat fifo ;; (j) foo& bar ;; (k | l | m) ;; (n) :& ;; esac
 __OUT__
 
-test_oE 'case command, w/ case items, multi-line'
-f()
+test_multi 'case command, w/ case items, multi-line'
 case i in (i) cat fifo;; (j) foo& bar;; (k|l|m) ;; (n) :& esac
-typeset -fp f
 __IN__
-f()
 case i in
    (i)
       cat fifo
@@ -512,133 +419,94 @@ if ! testee -c 'command -v [[' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'double bracket, string primary'
-f()
+test_multi 'double bracket, string primary'
 [[ "foo" ]]
-typeset -fp f
 __IN__
-f()
 [[ "foo" ]]
 __OUT__
 
-test_oE 'double bracket, unary/binary primaries'
-f()
+test_multi 'double bracket, unary/binary primaries'
 [[ -n foo || 0 -eq '1' || a = a || x < y ]]
-typeset -fp f
 __IN__
-f()
 [[ -n foo || 0 -eq '1' || a = a || x < y ]]
 __OUT__
 
-test_oE 'double bracket, disjunction in disjunction'
-f()
+test_multi 'double bracket, disjunction in disjunction'
 [[ (a || b) || (c || d) ]]
-typeset -fp f
 __IN__
-f()
 [[ a || b || c || d ]]
 __OUT__
 
-test_oE 'double bracket, conjunction in disjunction'
-f()
+test_multi 'double bracket, conjunction in disjunction'
 [[ (a && b) || (c && d) ]]
-typeset -fp f
 __IN__
-f()
 [[ a && b || c && d ]]
 __OUT__
 
-test_oE 'double bracket, negation in disjunction'
-f()
+test_multi 'double bracket, negation in disjunction'
 [[ (! a) || (! b) ]]
-typeset -fp f
 __IN__
-f()
 [[ ! a || ! b ]]
 __OUT__
 
-test_oE 'double bracket, disjunction in conjunction'
-f()
+test_multi 'double bracket, disjunction in conjunction'
 [[ (a || b) && (c || d) ]]
-typeset -fp f
 __IN__
-f()
 [[ ( a || b ) && ( c || d ) ]]
 __OUT__
 
-test_oE 'double bracket, conjunction in conjunction'
-f()
+test_multi 'double bracket, conjunction in conjunction'
 [[ (a && b) && (c && d) ]]
-typeset -fp f
 __IN__
-f()
 [[ a && b && c && d ]]
 __OUT__
 
-test_oE 'double bracket, negation in conjunction'
-f()
+test_multi 'double bracket, negation in conjunction'
 [[ (! a) && (! b) ]]
-typeset -fp f
 __IN__
-f()
 [[ ! a && ! b ]]
 __OUT__
 
-test_oE 'double bracket, disjunction in negation'
-f()
+test_multi 'double bracket, disjunction in negation'
 [[ ! (a || b) ]]
-typeset -fp f
 __IN__
-f()
 [[ ! ( a || b ) ]]
 __OUT__
 
-test_oE 'double bracket, conjunction in negation'
-f()
+test_multi 'double bracket, conjunction in negation'
 [[ ! (a && b) ]]
-typeset -fp f
 __IN__
-f()
 [[ ! ( a && b ) ]]
 __OUT__
 
-test_oE 'double bracket, negation in negation'
-f()
+test_multi 'double bracket, negation in negation'
 [[ ! (! a) ]]
-typeset -fp f
 __IN__
-f()
 [[ ! ! a ]]
 __OUT__
 
 )
 
-test_oE 'function definition, POSIX name, single line'
-f() { :; } >/dev/null && cat fifo&
-jobs
->fifo
+test_single 'function definition, POSIX name, single line'
+f() { :; } >/dev/null && cat fifo
 __IN__
-[1] + Running              f() { :; } 1>/dev/null && cat fifo
+f() { :; } 1>/dev/null && cat fifo
 __OUT__
 
-# POSIX-name multi-line function definition is tested in all other multi-line
+# POSIX-name multi-line function definition is tested in all testcase_multi
 # test cases.
 
-test_oE 'function definition, non-POSIX name, single line'
-function "${a-f}" { :; } && cat fifo&
-jobs
->fifo
+test_single 'function definition, non-POSIX name, single line'
+function "${a-f}" { :; } && cat fifo
 __IN__
-[1] + Running              function "${a-f}"() { :; } && cat fifo
+function "${a-f}"() { :; } && cat fifo
 __OUT__
 
-test_oE 'function definition, non-POSIX name, multi-line'
-f() {
+test_multi 'function definition, non-POSIX name, multi-line'
+{
     function "${a-f}" { :; }
 }
-typeset -fp f
 __IN__
-f()
 {
    function "${a-f}"()
    {
@@ -647,61 +515,53 @@ f()
 }
 __OUT__
 
-test_oE 'scalar assignment'
-f() { foo= bar=BAR; }
-typeset -fp f
+test_multi 'scalar assignment'
+{ foo= bar=BAR; }
 __IN__
-f()
 {
    foo= bar=BAR
 }
 __OUT__
 
-test_oE 'array assignment'
-f() { foo=() bar=(1 $2 3); }
-typeset -fp f
+test_multi 'array assignment'
+{ foo=() bar=(1 $2 3); }
 __IN__
-f()
 {
    foo=() bar=(1 ${2} 3)
 }
 __OUT__
 
-test_oE 'single-line redirections'
-f() { <f >g 2>|h 10>>i <>j <&1 >&2 >>|"3" <<<here\ string; }
-typeset -fp f
+test_multi 'single-line redirections'
+{ <f >g 2>|h 10>>i <>j <&1 >&2 >>|"3" <<<here\ string; }
 __IN__
-f()
 {
    0<f 1>g 2>|h 10>>i 0<>j 0<&1 1>&2 1>>|"3" 0<<<here\ string
 }
 __OUT__
 
-test_oE 'here-documents, single line'
-cat fifo <<END 4<<\END <<-EOF&
+test_single 'here-documents, single line'
+{
+    cat fifo <<END 4<<\END <<-EOF
 $1
 END
 $1
 END
 		    foo
 	EOF
-jobs
->fifo
+}
 __IN__
-[1] + Running              cat fifo 0<<END 4<<\END 0<<-EOF
+{ cat fifo 0<<END 4<<\END 0<<-EOF; }
 __OUT__
 
-test_oE 'here-documents, multi-line'
-f() { <<END 4<<\END <<-EOF; }
+test_multi 'here-documents, multi-line'
+{ <<END 4<<\END <<-EOF; }
 $1
 END
 $1
 END
 		    foo
 	EOF
-typeset -fp f
 __IN__
-f()
 {
    0<<END 4<<\END 0<<-EOF
 ${1}
@@ -713,17 +573,15 @@ EOF
 }
 __OUT__
 
-test_oE 'process redirection'
-f() { <(
+test_multi 'process redirection'
+{ <(
     :&
     echo foo
     ) >(
     :&
     echo bar
     ); }
-typeset -fp f
 __IN__
-f()
 {
    0<(:&
       echo foo) 1>(:&
@@ -731,108 +589,88 @@ f()
 }
 __OUT__
 
-test_oE 'complex simple command'
-f() { >/dev/null v=0 3</dev/null echo 2>/dev/null : <(); }
-typeset -fp f
+test_multi 'complex simple command'
+{ >/dev/null v=0 3</dev/null echo 2>/dev/null : <(); }
 __IN__
-f()
 {
    v=0 echo : 1>/dev/null 3</dev/null 2>/dev/null 0<()
 }
 __OUT__
 
-test_oE 'word w/ expansions'
-f() { echo ~/"$1"/$2/${foo}/$((1 + $3))/$(echo 5)/`echo 6`; }
-typeset -fp f
+test_multi 'word w/ expansions'
+{ echo ~/"$1"/$2/${foo}/$((1 + $3))/$(echo 5)/`echo 6`; }
 __IN__
-f()
 {
    echo ~/"${1}"/${2}/${foo}/$((1 + ${3}))/$(echo 5)/$(echo 6)
 }
 __OUT__
 
-test_oE 'parameter expansion, #-prefixed'
-f() { echo "${#3}"; }
-typeset -fp f
+test_multi 'parameter expansion, #-prefixed'
+{ echo "${#3}"; }
 __IN__
-f()
 {
    echo "${#3}"
 }
 __OUT__
 
-test_oE 'parameter expansion, nested'
-f() { echo "${{#3}-unset}"; }
-typeset -fp f
+test_multi 'parameter expansion, nested'
+{ echo "${{#3}-unset}"; }
 __IN__
-f()
 {
    echo "${${#3}-unset}"
 }
 __OUT__
 
-test_oE 'parameter expansion, indexed'
-f() { echo "${foo[1]}${bar[2,$((1+2))]}"; }
-typeset -fp f
+test_multi 'parameter expansion, indexed'
+{ echo "${foo[1]}${bar[2,$((1+2))]}"; }
 __IN__
-f()
 {
    echo "${foo[1]}${bar[2,$((1+2))]}"
 }
 __OUT__
 
-test_oE 'parameter expansion, w/ basic modifier'
-f() { echo "${foo:+1}${bar-2}${baz:=3}${xxx?4}"; }
-typeset -fp f
+test_multi 'parameter expansion, w/ basic modifier'
+{ echo "${foo:+1}${bar-2}${baz:=3}${xxx?4}"; }
 __IN__
-f()
 {
    echo "${foo:+1}${bar-2}${baz:=3}${xxx?4}"
 }
 __OUT__
 
-test_oE 'parameter expansion, w/ matching'
-f() { echo "${foo#x}${bar##y}${baz%z}${xxx%%0}"; }
-typeset -fp f
+test_multi 'parameter expansion, w/ matching'
+{ echo "${foo#x}${bar##y}${baz%z}${xxx%%0}"; }
 __IN__
-f()
 {
    echo "${foo#x}${bar##y}${baz%z}${xxx%%0}"
 }
 __OUT__
 
-test_oE 'parameter expansion, w/ substitution'
-f() { echo "${a/x}${b//y}${c/#z/Z}${d/%0/0}"; }
-typeset -fp f
+test_multi 'parameter expansion, w/ substitution'
+{ echo "${a/x}${b//y}${c/#z/Z}${d/%0/0}"; }
 __IN__
-f()
 {
    echo "${a/x/}${b//y/}${c/#z/Z}${d/%0/0}"
 }
 __OUT__
 
-test_oE 'command substitution starting with subshell'
-f() { echo "$((foo);)"; }
-typeset -fp f
+test_multi 'command substitution starting with subshell'
+{ echo "$((foo);)"; }
 __IN__
-f()
 {
    echo "$( (foo))"
 }
 __OUT__
 
-test_oE 'backquoted command substitution'
-f() { echo "`echo \`echo foo\``"; }
-typeset -fp f
+test_multi 'backquoted command substitution'
+{ echo "`echo \`echo foo\``"; }
 __IN__
-f()
 {
-   echo "$(echo `echo foo`)"
+   echo "$(echo $(echo foo))"
 }
 __OUT__
 
-test_oE 'complex indentation of compound commands'
-f() {
+test_multi 'complex indentation of compound commands'
+{
     (
     if :; foo; then
 	for i in 1 2 3; do
@@ -862,9 +700,7 @@ f() {
     fi
     )
 }
-typeset -fp f
 __IN__
-f()
 {
    (if :
          foo
@@ -909,8 +745,9 @@ END
 }
 __OUT__
 
-test_oE 'nested here-documents and command substitutions, single line'
-cat fifo <<END1 <<END2&
+test_single 'nested here-documents and command substitutions, single line'
+{
+    cat fifo <<END1 <<END2
  $(<<EOF11; <<EOF12
 foo
 EOF11
@@ -925,14 +762,12 @@ bar
 EOF22
 )
 END2
-jobs
->fifo
+}
 __IN__
-[1] + Running              cat fifo 0<<END1 0<<END2
+{ cat fifo 0<<END1 0<<END2; }
 __OUT__
 
-test_oE 'nested here-documents and command substitutions, multi-line'
-f()
+test_multi 'nested here-documents and command substitutions, multi-line'
 {
     <<END1 <<END2
  $(<<EOF11; <<EOF12
@@ -950,9 +785,7 @@ EOF22
 )
 END2
 }
-typeset -fp f
 __IN__
-f()
 {
    0<<END1 0<<END2
  $(0<<EOF11
