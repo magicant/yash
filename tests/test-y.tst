@@ -95,17 +95,21 @@ assert_true -o \?all-_export
 assert_false -o \?allexportttttttt
 )
 
+assert_false -o tify
 assert_false -o notify
 assert_true -o nonotify
 assert_true -o n-o-n-otify
+assert_false -o \?tify
 assert_true -o \?notify
 assert_true -o \?nonotify
 assert_true -o \?n-o-n-otify
 (
 setup 'set -o notify'
+assert_false -o tify
 assert_true -o notify
 assert_false -o nonotify
 assert_false -o n-o-n-otify
+assert_false -o \?tify
 assert_true -o \?notify
 assert_true -o \?nonotify
 assert_true -o \?n-o-n-otify
