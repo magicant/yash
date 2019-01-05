@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.c: the echo/printf built-ins */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -225,15 +225,16 @@ normal:
 	} else {
 	    switch (s[1]) {
 		wchar_t c;
-		case L'a':   c = L'\a';  goto print_char;
-		case L'b':   c = L'\b';  goto print_char;
+		case L'a':   c = L'\a';    goto print_char;
+		case L'b':   c = L'\b';    goto print_char;
 		case L'c':   return PR_OK_END;
-		case L'f':   c = L'\f';  goto print_char;
-		case L'n':   c = L'\n';  goto print_char;
-		case L'r':   c = L'\r';  goto print_char;
-		case L't':   c = L'\t';  goto print_char;
-		case L'v':   c = L'\v';  goto print_char;
-		case L'\\':  c = L'\\';  goto print_char;
+		case L'e':   c = L'\033';  goto print_char;
+		case L'f':   c = L'\f';    goto print_char;
+		case L'n':   c = L'\n';    goto print_char;
+		case L'r':   c = L'\r';    goto print_char;
+		case L't':   c = L'\t';    goto print_char;
+		case L'v':   c = L'\v';    goto print_char;
+		case L'\\':  c = L'\\';    goto print_char;
 print_char:
 		    if (!sb_wccat(buf, c, st))
 			return PR_ERROR;

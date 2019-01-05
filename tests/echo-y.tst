@@ -52,20 +52,20 @@ test_e_recognized() {
 testcase "$1" "ECHO_STYLE=${ECHO_STYLE-} -E/-e is recognized" \
     3<<\__IN__ 4<<\__OUT__ 5</dev/null
 echo -E '1\a2\b3\c4' 5
-echo -E '6\f7\n8\r9\t0\v!'
+echo -E '6\e7\f8\n9\r0\t1\v2'
 echo -E 'a\\b'
 echo -E '\0123\012\01x' '\123\12\1x' '\00411'
 echo -e '1\a2\b3\c4' 5
-echo -e '6\f7\n8\r9\t0\v!'
+echo -e '6\e7\f8\n9\r0\t1\v2'
 echo -e 'a\\b'
 echo -e '\0123\012\01x' '\123\12\1x' '\00411'
 __IN__
 1\a2\b3\c4 5
-6\f7\n8\r9\t0\v!
+6\e7\f8\n9\r0\t1\v2
 a\\b
 \0123\012\01x \123\12\1x \00411
-12367
-89	0!
+123678
+90	12
 a\b
 S
 x \123\12\1x !1

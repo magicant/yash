@@ -8,6 +8,11 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.49
+
+  *  The "\e" escape sequence was not working in the "echo" built-in.
+
+----------------------------------------------------------------------
 Yash 2.48
 
   +  The double-bracket command (the [[ ... ]] syntax)
