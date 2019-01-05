@@ -171,6 +171,7 @@ return
  * return-p.tst
 
 set
+ * errexit-p.tst
  * option-p.tst
  * set-p.tst
  * set-y.tst
