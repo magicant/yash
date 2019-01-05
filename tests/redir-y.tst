@@ -299,7 +299,7 @@ __IN__
 posix="true"
 
 test_Oe -e 2 'IO_NUMBER as redirection operand (filename)'
-# Here the token "10" is an IO_NUMBER token for the second redirection, and
+# Here the token "12" is an IO_NUMBER token for the second redirection, and
 # hence cannot be the operand of the first.
 > 12> 34
 __IN__
@@ -311,7 +311,7 @@ __ERR__
 #`
 
 test_Oe -e 2 'IO_NUMBER as redirection operand (here-document)'
-# Here the token "10" is an IO_NUMBER token for the second redirection, and
+# Here the token "01" is an IO_NUMBER token for the second redirection, and
 # hence cannot be the operand of the first.
 << 01<< 23
 01
