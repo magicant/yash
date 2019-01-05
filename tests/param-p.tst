@@ -505,10 +505,16 @@ set a
 bracket ${1+"$@"}
 set a 'b  b' cc
 bracket ${1+"$@"}
+set ''
+bracket ${1+"$@"}
+set '' ''
+bracket ${1+"$@"}
 __IN__
 
 [a]
 [a][b  b][cc]
+[]
+[][]
 __OUT__
 
 test_oE '${foo:-"$@"}'
