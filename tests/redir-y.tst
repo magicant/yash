@@ -506,17 +506,7 @@ __ERR__
 #`
 #)
 
-test_OE -e 0 '} after ) (POSIX)'
-# In a literal interpretation of POSIX XCU 2.4, this should be a syntax error
-# because } does not follow any reserved word. However, no known shell rejects
-# this.
-{ (:) }
-__IN__
-
-test_OE -e 0 ') after } (POSIX)'
-# This is of course OK.
-( { :; } )
-__IN__
+# Some relevant tests in grouping-y.tst.
 
 )
 

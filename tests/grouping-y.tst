@@ -31,6 +31,18 @@ __IN__
 (
 posix="true"
 
+test_OE -e 0 '} after )'
+# In a literal interpretation of POSIX XCU 2.4, this should be a syntax error
+# because } does not follow any reserved word. However, no known shell rejects
+# this.
+{ (:) }
+__IN__
+
+test_OE -e 0 ') after }'
+# This is of course OK.
+( { :; } )
+__IN__
+
 test_Oe -e 2 'empty subshell (single line)'
 ()
 __IN__
