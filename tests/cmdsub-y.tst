@@ -1,5 +1,8 @@
 # cmdsub-y.tst: yash-specific test of command substitution
 
+# Seemingly meaningless comments like #` in this script are to work around
+# syntax highlighting errors on some editors.
+
 test_oE 'disambiguation with arithmetic expansion, single line'
 echo $((echo foo); (echo bar))
 __IN__
@@ -14,6 +17,18 @@ END
 (echo - foo))
 __IN__
 + - foo
+__OUT__
+#))
+
+test_oE 'line-continuation within backquoted command substitution'
+# Literal interpretation of XCU 2.6.3 implies that line-continuations within a
+# backquoted command substitution should be parsed when the substitution is
+# evaluated rather than when parsed. Many existing shells, however, do not do
+# so...
+echo `echo 'a\
+b'`
+__IN__
+ab
 __OUT__
 
 test_Oe -e 2 'unclosed command substitution $()'
