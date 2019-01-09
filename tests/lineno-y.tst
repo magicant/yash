@@ -105,6 +105,41 @@ c 4
 d 8
 __OUT__
 
+cat >dotscript <<\__END__
+echo dot a $LINENO
+echo dot b $LINENO
+
+echo dot c $LINENO
+__END__
+
+test_oE -e 0 'LINENO in and out of dot script'
+echo before $LINENO
+. ./dotscript
+echo after $LINENO
+__IN__
+before 1
+dot a 1
+dot b 2
+dot c 4
+after 3
+__OUT__
+
+test_oE -e 0 'LINENO in eval script'
+echo before $LINENO
+eval 'echo eval a $LINENO
+echo eval b $LINENO
+
+echo eval c $LINENO'
+
+echo after $LINENO
+__IN__
+before 1
+eval a 1
+eval b 2
+eval c 4
+after 7
+__OUT__
+
 test_oE -e 0 'LINENO and alias with newline'
 alias e='echo x $LINENO
 echo y $LINENO'
