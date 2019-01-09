@@ -54,10 +54,16 @@ test_OE -e 0 'clearing environment variables (--clear)'
 diff 2.expected 2.actual
 __IN__
 
-test_OE -e 0 'clearing and adding environment variables'
+test_OE -e 0 'clearing and adding scalar environment variables'
 "$ENVCMD" -i FOO=1 BAR=2 "$ENVCMD" | sort >3.expected
 (FOO=1 BAR=2 exec -c "$ENVCMD") | sort >3.actual
 diff 3.expected 3.actual
+__IN__
+
+test_OE -e 0 'clearing and adding array environment variables'
+"$ENVCMD" -i FOO=1:2:3 BAR=abc:xyz "$ENVCMD" | sort >4.expected
+(FOO=(1 2 3) BAR=(abc xyz) exec -c "$ENVCMD") | sort >4.actual
+diff 4.expected 4.actual
 __IN__
 
 )
