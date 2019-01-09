@@ -14,8 +14,9 @@ foo
 __OUT__
 
 test_oE 'subshell as function body'
-func()(echo foo)
+func()(echo foo; exit; echo not reached)
 func
+:
 __IN__
 foo
 __OUT__
