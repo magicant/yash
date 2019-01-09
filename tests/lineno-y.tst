@@ -144,17 +144,28 @@ __IN__
 __OUT__
 # ))
 
-test_oE -e 0 'LINENO in interactive shell is reset for each command line'
-echo $LINENO
-for i in 1; do
-    echo \
+test_o -e 0 'LINENO in interactive shell is reset for each command line' -i +m
+echo a $LINENO
+for i in 1 2; do
+    echo $i \
 	$LINENO
 done
-echo $LINENO
+
+echo b $LINENO
+
+{
+\
+func () {
+    echo f $LINENO
+}
+}
+func
 __IN__
-1
-3
-6
+a 1
+1 2
+2 2
+b 1
+f 4
 __OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
