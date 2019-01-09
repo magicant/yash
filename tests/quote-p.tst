@@ -206,6 +206,22 @@ __IN__
 1
 __OUT__
 
+test_oE 'line continuation in function definition'
+\
+f\
+un\
+c \
+ ( \
+ )  \
+ # comment
+ \
+ ( echo ok )
+
+func
+__IN__
+ok
+__OUT__
+
 test_oE 'line continuation in operators <> >> <& >&'
 echo 1 >redir
 echo 2 \
