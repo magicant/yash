@@ -73,6 +73,20 @@ __IN__
 1 2
 __OUT__
 
+test_oE -e 0 'LINENO in command substitution'
+echo $(echo $LINENO
+echo $LINENO)
+echo $(echo $LINENO
+echo $LINENO)
+set -o posix # disallow pre-parsing of command substitution
+echo $(echo $LINENO
+echo $LINENO)
+__IN__
+1 2
+3 4
+1 2
+__OUT__
+
 test_oE -e 0 'LINENO in function'
 echo a $LINENO
 f() {
