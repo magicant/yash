@@ -95,18 +95,21 @@ interrupted=false
 trap 'interrupted=true' USR1
 (
     set +m
-    trap 'echo USR2; exit' USR2
+    trap 'echo received USR2; exit' USR2
     while kill -s USR1 $$; do sleep 1; done # loop until signaled
 )&
 wait $!
-echo interrupted=$interrupted $(($? > 128))
+status=$?
+echo interrupted=$interrupted $((status > 128))
+kill -l $status
 # Now, the background job should be still running.
 kill -s USR2 %
 wait $!
 echo waited $?
 __IN__
 interrupted=true 1
-USR2
+USR1
+received USR2
 waited 0
 __OUT__
 
