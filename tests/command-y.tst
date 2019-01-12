@@ -275,6 +275,15 @@ __IN__
 (
 posix="true"
 
+test_oe 'argument syntax error in special built-in does not kill shell'
+command . # missing operand
+echo reached
+__IN__
+reached
+__OUT__
+.: this command requires an operand
+__ERR__
+
 test_Oe -e n 'missing operand (w/o -v, POSIX)'
 command
 __IN__
