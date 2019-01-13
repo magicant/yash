@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,13 +43,15 @@ typedef struct process_T {
 
 /* info about a job */
 typedef struct job_T {
-    pid_t       j_pgid;          /* process group ID */
+    pid_t       j_pgid;            /* process group ID */
     jobstatus_T j_status;
-    _Bool       j_statuschanged; /* job's status not yet reported? */
-    _Bool       j_legacy;        /* not a true child of the shell? */
-    _Bool       j_nonotify;      /* suppress printing job status? */
-    size_t      j_pcount;        /* # of processes in `j_procs' */
-    process_T   j_procs[];       /* info about processes */
+    _Bool       j_statuschanged;   /* job's status not yet reported? */
+    _Bool       j_legacy;          /* not a true child of the shell? */
+#ifndef NDEBUG
+    _Bool       j_beingwaitedfor;  /* wait_for_job is awaiting? */
+#endif
+    size_t      j_pcount;          /* # of processes in `j_procs' */
+    process_T   j_procs[];         /* info about processes */
 } job_T;
 /* When job control is off, `j_pgid' is 0 since the job shares the process group
  * ID with the shell.

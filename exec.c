@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -350,7 +350,9 @@ void exec_pipelines_async(const pipeline_T *p)
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = true;
 	job->j_legacy = false;
-	job->j_nonotify = false;
+#ifndef NDEBUG
+	job->j_beingwaitedfor = false;
+#endif
 	job->j_pcount = 1;
 
 	set_active_job(job);
@@ -628,7 +630,9 @@ void exec_commands(command_T *c, exec_T type)
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = true;
 	job->j_legacy = false;
-	job->j_nonotify = false;
+#ifndef NDEBUG
+	job->j_beingwaitedfor = false;
+#endif
 	job->j_pcount = count;
 	set_active_job(job);
 	if (type == E_NORMAL) {
