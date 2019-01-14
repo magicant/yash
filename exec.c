@@ -159,6 +159,7 @@ static pid_t exec_process(
     __attribute__((nonnull));
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
+static void become_child(bool leave);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -799,7 +800,12 @@ pid_t exec_process(
     /* fork first if `type' is E_ASYNC, the command type is subshell,
      * or there is a pipe. */
     finally_exit = (type == E_SELF);
-    if (!finally_exit) {
+    if (finally_exit) {
+	if (c->c_type == CT_SUBSHELL)
+	    /* No command follows this subshell command, so we can execute the
+	     * subshell directly in this process. */
+	    become_child(false);
+    } else {
 	if (type == E_ASYNC || c->c_type == CT_SUBSHELL
 		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0) {
 	    sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
@@ -1026,23 +1032,30 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	if (sigtype & t_tstp)
 	    if (save_doing_job_control_now)
 		ignore_sigtstp();
-	if (sigtype & t_leave) {
-	    clear_exit_trap();
-	} else {
-	    phantomize_traps();
-	    neglect_all_jobs();
-#if YASH_ENABLE_HISTORY
-	    close_history_file();
-#endif
-	    reset_execstate(true);
-	}
-	restore_signals(sigtype & t_leave);  /* signal mask is restored here */
-	clear_shellfds(sigtype & t_leave);
-	is_interactive_now = false;
-	suppresserrreturn = false;
-	exitstatus = -1;
+	become_child(sigtype & t_leave);  /* signal mask is restored here */
     }
     return cpid;
+}
+
+/* Resets traps, signal handlers, etc. for the current process to become a
+ * subshell. See `fork_and_reset' for the meaning of the `leave' argument. */
+void become_child(bool leave)
+{
+    if (leave) {
+	clear_exit_trap();
+    } else {
+	phantomize_traps();
+	neglect_all_jobs();
+#if YASH_ENABLE_HISTORY
+	close_history_file();
+#endif
+	reset_execstate(true);
+    }
+    restore_signals(leave);  /* signal mask is restored here */
+    clear_shellfds(leave);
+    is_interactive_now = false;
+    suppresserrreturn = false;
+    exitstatus = -1;
 }
 
 /* Searches for a command.

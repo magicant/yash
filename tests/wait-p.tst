@@ -30,10 +30,14 @@ exit 1&
 wait $! $(($!+1))
 __IN__
 
-test_OE -e 127 'jobs are not inherited to subshells (+m)'
+test_OE -e 127 'jobs are not inherited to subshells (+m, -s)'
 exit 1&
 p=$!
 (wait $p)
+__IN__
+
+test_OE -e 127 'jobs are not inherited to subshells (+m, -c)' \
+    -c 'exit 1& p=$!; (wait $p)'
 __IN__
 
 test_OE -e 1 'jobs are not propagated from subshells (+m)'
@@ -78,10 +82,14 @@ __IN__
 1
 __OUT__
 
-test_OE -e 127 'jobs are not inherited to subshells (-m)' -m
+test_OE -e 127 'jobs are not inherited to subshells (-m, -s)' -m
 exit 1&
 p=$!
 (wait $p)
+__IN__
+
+test_OE -e 127 'jobs are not inherited to subshells (+m, -c)' \
+    -cm 'exit 1& p=$!; (wait $p)'
 __IN__
 
 test_OE -e 1 'jobs are not propagated from subshells (-m)' -m
