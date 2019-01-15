@@ -31,6 +31,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <wchar.h>
 #include <wctype.h>
 #include "builtin.h"
 #include "exec.h"
