@@ -123,7 +123,7 @@ __IN__
 }
 __OUT__
 
-# Non-empty grouping is tests in other tests above.
+# Non-empty grouping is tested in other tests above.
 
 test_single 'grouping, w/o commands, single line'
 { } && cat fifo
@@ -536,6 +536,15 @@ test_multi 'single-line redirections'
 __IN__
 {
    0<f 1>g 2>|h 10>>i 0<>j 0<&1 1>&2 1>>|"3" 0<<<here\ string
+}
+__OUT__
+
+test_multi 'keyword in simple command'
+{ foo=bar if then fi; >/dev/null do do; }
+__IN__
+{
+   foo=bar if then fi
+   \do do 1>/dev/null
 }
 __OUT__
 

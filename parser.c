@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3445,8 +3445,18 @@ void print_simple_command(
     assert(c->c_type == CT_SIMPLE);
 
     print_assignments(pr, c->c_assigns, indent);
-    for (void **w = c->c_words; *w != NULL; w++) {
-	print_word(pr, *w, indent);
+    for (size_t i = 0; c->c_words[i] != NULL; i++) {
+	const wordunit_T *wu = c->c_words[i];
+
+	/* A simple command can start with a keyword if preceded by a
+	 * redirection. Because we print the redirection after the command
+	 * words, the keyword must be quoted to be re-parsed as a simple
+	 * command. */
+	if (i == 0 && c->c_assigns == NULL &&
+		is_single_string_word(wu) && is_keyword(wu->wu_string))
+	    wb_wccat(&pr->buffer, L'\\');
+
+	print_word(pr, wu, indent);
 	wb_wccat(&pr->buffer, L' ');
     }
 }

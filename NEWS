@@ -13,6 +13,9 @@ Yash 2.49
   *  The "\e" escape sequence was not working in the "echo" built-in.
   *  When a last command is a subshell, the parent shell's jobs were
      not being cleared when entering the subshell.
+  *  The "typeset" built-in now prints functions that contain a simple
+     command whose command name is a keyword in a format that can
+     successfully re-parsed by the shell.
 
 ----------------------------------------------------------------------
 Yash 2.48
