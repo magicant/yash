@@ -121,8 +121,22 @@ system.
    `foo', which may be more than one byte.
  * The "return" built-in, if executed in a trap, can operate only on a
    function, script, or loop that has been executed within the trap.
-   This limitation is not strictly POSIX- compliant, but needed for
+   This limitation is not strictly POSIX-compliant, but needed for
    consistent and predictable behavior of the shell.
+ * Results of pathname expansion is sorted only by collating sequence
+   of the current locale. If the collating sequence does not have a
+   total ordering of characters, order of uncomparable results are
+   unstable. This limitation is not strictly POSIX-compliant, but
+   inevitable due to use of wide characters in the whole shell.
+
+
+===== Known Issues =====
+
+ * Line number ($LINENO) may not be counted correctly in and after a
+   complex expansion containing a line continuation.
+ * Non-ASCII characters may not be correctly handled in some locales
+   on Solaris. This may be worked around by undefining the
+   HAVE_WCSNRTOMBS macro in the config.h header file.
 
 
 ===== Contributions =====
