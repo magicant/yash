@@ -397,7 +397,8 @@ start:
     for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
 	if ((job = joblist.contents[jobnumber]) != NULL)
 	    for (pnumber = 0; pnumber < job->j_pcount; pnumber++)
-		if ((pr = &job->j_procs[pnumber])->pr_pid == pid)
+		if ((pr = &job->j_procs[pnumber])->pr_pid == pid &&
+			pr->pr_status != JS_DONE)
 		    goto found;
 
     /* If `pid' was not found in the job list, we simply ignore it. This may

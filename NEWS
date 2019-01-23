@@ -13,6 +13,9 @@ Yash 2.49
   *  The "\e" escape sequence was not working in the "echo" built-in.
   *  When a last command is a subshell, the parent shell's jobs were
      not being cleared when entering the subshell.
+  *  The job status was not being updated correctly if a process ID
+     was reused by another process before the previous process was
+     removed from the job list.
   *  The "typeset" built-in now prints functions that contain a simple
      command whose command name is a keyword in a format that can
      successfully re-parsed by the shell.
