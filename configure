@@ -554,24 +554,6 @@ then
     defconfigh "_XOPEN_SOURCE" "${xopen}"
 fi
 
-# check if _XOPEN_SOURCE_EXTENDED is accepted
-if [ -n "${posix}" ]
-then
-    checking 'whether _XOPEN_SOURCE_EXTENDED should be defined'
-    cat >"${tempsrc}" <<END
-${confighdefs}
-#define _XOPEN_SOURCE_EXTENDED 1
-#include <unistd.h>
-int main(void) { fork(); return 0; }
-END
-    trycompile
-    checked
-    if [ x"${checkresult}" = x"yes" ]
-    then
-	defconfigh "_XOPEN_SOURCE_EXTENDED" "1"
-    fi
-fi
-
 
 # check if we need -lm
 if [ x"${LDLIBS+set}" != x"set" ]
