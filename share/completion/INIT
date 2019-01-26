@@ -1,4 +1,4 @@
-# (C) 2010-2012 magicant
+# (C) 2010-2019 magicant
 
 # This file is autoloaded when completion is first performed by the shell.
 # This file contains utility functions that are commonly used by many
@@ -567,28 +567,48 @@ function completion//reexecute {
 		return
 	fi
 
-	unset opt OPTIND extonly fallback
+	typeset compfunc= cmdbase
+	if ! command -f completion//findcompfunc "$1"; then
+		cmdbase="${1%.*}"
+		if [ "$cmdbase" != "$1" ] && [ "${PATHEXT:+set}" = set ] &&
+			grep -iqx "${{PATHEXT//';'/'\|'}//'.'/'\.'}" <<< "${1#"$cmdbase"}" &&
+			command -f completion//findcompfunc "$cmdbase" &&
+			[ $OPTIND -gt $# ]; then
+			WORDS=("$cmdbase" "${WORDS[2,-1]}")
+		fi
+	fi
+	set -- "$compfunc"
+	unset opt OPTIND extonly fallback compfunc cmdbase
 
-	# load the function if not yet loaded, and call the function
-	if command -vf "completion/$1" >/dev/null 2>&1; then
-		command -f "completion/$1"
-	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
-		command -f "completion/${1##*/}"
-	elif . -AL "completion/$1" 2>/dev/null
-			command -vf "completion/$1" >/dev/null 2>&1; then
-		command -f "completion/$1"
-	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
-		command -f "completion/${1##*/}"
-	elif . -AL "completion/${1##*/}" 2>/dev/null
-			command -vf "completion/$1" >/dev/null 2>&1; then
-		command -f "completion/$1"
-	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
-		command -f "completion/${1##*/}"
+	if [ "$1" ]; then
+		command -f "$1"
 	else
 		complete -P "${PREFIX-}" -f
 	fi
 
 }
+
+# $1 = command name
+# The result is set to the "compfunc" variable
+function completion//findcompfunc
+	if command -vf "completion/$1" >/dev/null 2>&1; then
+		compfunc="completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		compfunc="completion/${1##*/}"
+	elif . -AL "completion/$1" 2>/dev/null
+			command -vf "completion/$1" >/dev/null 2>&1; then
+		compfunc="completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		compfunc="completion/${1##*/}"
+	elif . -AL "completion/${1##*/}" 2>/dev/null
+			command -vf "completion/$1" >/dev/null 2>&1; then
+		compfunc="completion/$1"
+	elif command -vf "completion/${1##*/}" >/dev/null 2>&1; then
+		compfunc="completion/${1##*/}"
+	else
+		compfunc=
+		false
+	fi
 
 
 # Prints all commands in $PATH.
