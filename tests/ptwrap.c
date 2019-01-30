@@ -2,7 +2,7 @@
 /*
 MIT License
 
-Copyright (c) 2016 WATANABE Yuki
+Copyright (c) 2016-2019 WATANABE Yuki
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,6 +56,7 @@ static volatile sig_atomic_t should_set_terminal_size = false;
 static sigset_t original_mask;
 
 static void receive_sigwinch(int sigwinch) {
+    (void) sigwinch;
     should_set_terminal_size = true;
 }
 

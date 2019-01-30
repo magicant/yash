@@ -37,6 +37,7 @@ yash.txt
 /share/config
 
 /tests/checkfg
+/tests/ptwrap
 /tests/resetsig
 /tests/summary.log
 /tests/*.trs
