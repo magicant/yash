@@ -28,7 +28,6 @@ SOFTWARE.
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,50 +49,6 @@ static void errno_exit(const char *message) {
     fprintf(stderr, "%s: ", program_name);
     perror(message);
     exit(EXIT_FAILURE);
-}
-
-static volatile sig_atomic_t should_set_terminal_size = false;
-static sigset_t original_mask;
-
-static void receive_sigwinch(int sigwinch) {
-    (void) sigwinch;
-    should_set_terminal_size = true;
-}
-
-static void install_sigwinch_handler(void) {
-    struct sigaction action;
-
-    /* Block SIGWINCH and save original_mask */
-    if (sigemptyset(&action.sa_mask) < 0 || sigemptyset(&original_mask) < 0)
-        errno_exit("sigemptyset");
-#if defined(SIGWINCH)
-    if (sigaddset(&action.sa_mask, SIGWINCH) < 0)
-        errno_exit("sigaddset");
-#endif /* defined(SIGWINCH) */
-    if (sigprocmask(SIG_BLOCK, &action.sa_mask, &original_mask) < 0)
-        errno_exit("sigprocmask");
-
-    /* Set signal handler for SIGWINCH */
-#if defined(SIGWINCH)
-    action.sa_flags = 0;
-    action.sa_handler = receive_sigwinch;
-    if (sigaction(SIGWINCH, &action, NULL) < 0)
-        errno_exit("sigaction");
-#endif /* defined(SIGWINCH) */
-}
-
-static void restore_sigmask(void) {
-    if (sigprocmask(SIG_SETMASK, &original_mask, NULL) < 0)
-        errno_exit("sigprocmask");
-}
-
-static void set_terminal_size(int fd) {
-    should_set_terminal_size = false;
-#if defined(TIOCGWINSZ) && defined(TIOCSWINSZ)
-    struct winsize size;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) >= 0)
-        ioctl(fd, TIOCSWINSZ, &size);
-#endif /* defined(TIOCGWINSZ) && defined(TIOCSWINSZ) */
 }
 
 static int prepare_master_pseudo_terminal(void) {
@@ -124,38 +79,6 @@ static int open_noctty(const char *pathname) {
     if (fd < 0)
         errno_exit("cannot open slave pseudo-terminal");
     return fd;
-}
-
-static bool is_child_process = false;
-static struct termios original_termios;
-
-static void enable_canonical_io(void) {
-    if (is_child_process)
-        return;
-
-    tcsetattr(STDIN_FILENO, TCSADRAIN, &original_termios);
-    /* TODO: Call tcgetattr again and warn if the original termios has not been
-     * restored. */
-}
-
-static void disable_canonical_io(void) {
-    /* Fail if stdin is not a terminal. Otherwise, an EOF will never be sent to
-     * the pseudo-terminal. */
-    if (tcgetattr(STDIN_FILENO, &original_termios) < 0)
-        errno_exit("cannot examine current terminal IO mode");
-
-    struct termios new_termios = original_termios;
-    new_termios.c_iflag &=
-            ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR | IXON | IXOFF | PARMRK);
-    new_termios.c_oflag &= ~OPOST;
-    new_termios.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-    new_termios.c_cc[VMIN] = 1;
-    new_termios.c_cc[VTIME] = 0;
-    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &new_termios) < 0)
-        errno_exit("cannot disable canonical IO mode");
-
-    if (atexit(enable_canonical_io) != 0)
-        error_exit("atexit");
 }
 
 enum state_T { INACTIVE, READING, WRITING, };
@@ -210,41 +133,23 @@ static void process_buffer(
 }
 
 static void forward_all_io(int master_fd) {
-    struct channel_T incoming, outgoing;
-    incoming.from_fd = STDIN_FILENO;
-    incoming.to_fd = master_fd;
+    struct channel_T outgoing;
     outgoing.from_fd = master_fd;
     outgoing.to_fd = STDOUT_FILENO;
-    incoming.state = outgoing.state = READING;
-
-    sigset_t mask_for_select = original_mask;
-#if defined(SIGWINCH)
-    if (sigdelset(&mask_for_select, SIGWINCH) < 0)
-        errno_exit("sigdelset");
-#endif /* defined(SIGWINCH) */
+    outgoing.state = READING;
 
     /* Loop until all output from the slave is forwarded, so that we don't
-     * miss any output. On the other hand, we don't know exactly how much
-     * input should be forwarded to the slave before the child process
-     * terminates, so we just keep forwarding the input. */
-    while (/* incoming.state != INACTIVE || */ outgoing.state != INACTIVE) {
+     * miss any output. */
+    while (outgoing.state != INACTIVE) {
         /* await next IO */
         fd_set read_fds, write_fds;
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
-        set_fd_set(&incoming, &read_fds, &write_fds);
         set_fd_set(&outgoing, &read_fds, &write_fds);
-        if (pselect(master_fd + 1, &read_fds, &write_fds, NULL,
-                    NULL, &mask_for_select) < 0) {
-            if (errno != EINTR)
-                errno_exit("cannot find file descriptor to forward");
-            if (should_set_terminal_size)
-                set_terminal_size(master_fd);
-            continue;
-        }
+        if (select(master_fd + 1, &read_fds, &write_fds, NULL, NULL) < 0)
+            errno_exit("cannot find file descriptor to forward");
 
         /* read to or write from buffer */
-        process_buffer(&incoming, &read_fds, &write_fds);
         process_buffer(&outgoing, &read_fds, &write_fds);
     }
 }
@@ -321,16 +226,9 @@ int main(int argc, char *argv[]) {
     if (optind == argc)
         error_exit("operand missing");
 
-    install_sigwinch_handler();
-
     int master_fd = prepare_master_pseudo_terminal();
     const char *slave_name = slave_pseudo_terminal_name(master_fd);
     int slave_fd = open_noctty(slave_name);
-
-    /* On Darwin, the slave must have been opened before setting the size. */
-    set_terminal_size(master_fd);
-
-    disable_canonical_io();
 
     pid_t child_pid = fork();
     if (child_pid < 0)
@@ -342,12 +240,10 @@ int main(int argc, char *argv[]) {
         return await_child(child_pid);
     } else {
         /* child process */
-        is_child_process = true;
         close(master_fd);
         become_session_leader();
         prepare_slave_pseudo_terminal_fds(slave_name);
         close(slave_fd);
-        restore_sigmask();
         exec_command(&argv[optind]);
     }
 }
