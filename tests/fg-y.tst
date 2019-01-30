@@ -1,5 +1,5 @@
 # fg-y.tst: yash-specific test of the fg built-in
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 cat >job1 <<\__END__
 exec sh -c 'echo 1; kill -s STOP $$; echo 2'

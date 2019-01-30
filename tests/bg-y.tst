@@ -1,5 +1,5 @@
 # bg-y.tst: yash-specific test of the bg built-in
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 test_Oe -e 1 'non-job-controlled job (default operand)'
 :&

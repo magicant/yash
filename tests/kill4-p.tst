@@ -1,5 +1,5 @@
 # kill4-p.tst: test of the kill built-in for any POSIX-compliant shell, part 4
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 posix="true"
 

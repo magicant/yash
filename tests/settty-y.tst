@@ -1,5 +1,5 @@
 # settty-y.tst: yash-specific test of the set built-in
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 test_x -e 0 'monitor (short) on: $-'
 set -m &&

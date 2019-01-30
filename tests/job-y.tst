@@ -1,5 +1,5 @@
 # job-y.tst: yash-specific test of job control
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 mkfifo sync
 

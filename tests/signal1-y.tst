@@ -1,5 +1,5 @@
 # signal1-y.tst: yash-specific test of signal handling, part 1
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 cat >eraseps <<\__END__
 PS1= PS2=

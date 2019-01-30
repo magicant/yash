@@ -62,7 +62,7 @@ $(SUMMARY): $(TEST_RESULTS)
 $(TEST_RESULTS): $(TESTERS) $(YASH)
 .tst.trs:
 	@set $(RUN_TEST) $(TESTEE) $<; \
-	if grep -q %SEQUENTIAL% $<; then \
+	if grep -q %REQUIRETTY% $<; then \
 		set $(SHELL) ./enqueue.sh "$$@"; \
 	fi; \
 	echo "$$*"; \

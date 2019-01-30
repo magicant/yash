@@ -1,5 +1,5 @@
 # builtins-y.tst: yash-specific test of built-ins' attributes
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 ##### Intrinsic built-ins
 

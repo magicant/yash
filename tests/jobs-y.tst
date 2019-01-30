@@ -1,5 +1,5 @@
 # jobs-y.tst: yash-specific test of the jobs & suspend built-ins
-../checkfg || skip="true" # %SEQUENTIAL%
+../checkfg || skip="true" # %REQUIRETTY%
 
 test_oE 'suspend: suspending' -m
 "$TESTEE" -c 'suspend; echo $?'
