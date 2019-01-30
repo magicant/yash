@@ -28,7 +28,7 @@ LDFLAGS = @LDFLAGS@
 LDLIBS = @LDLIBS@
 SOURCES = checkfg.c ptwrap.c resetsig.c
 POSIX_TEST_SOURCES = alias-p.tst andor-p.tst arith-p.tst async-p.tst bg-p.tst break-p.tst builtins-p.tst case-p.tst cd-p.tst cmdsub-p.tst command-p.tst comment-p.tst continue-p.tst dot-p.tst errexit-p.tst error-p.tst eval-p.tst exec-p.tst exit-p.tst export-p.tst fg-p.tst fnmatch-p.tst for-p.tst fsplit-p.tst function-p.tst getopts-p.tst grouping-p.tst if-p.tst input-p.tst job-p.tst kill1-p.tst kill2-p.tst kill3-p.tst kill4-p.tst lineno-p.tst nop-p.tst option-p.tst param-p.tst path-p.tst pipeline-p.tst ppid-p.tst quote-p.tst read-p.tst readonly-p.tst redir-p.tst return-p.tst set-p.tst shift-p.tst signal-p.tst simple-p.tst test-p.tst testtty-p.tst tilde-p.tst trap-p.tst umask-p.tst unset-p.tst until-p.tst wait-p.tst while-p.tst
-YASH_TEST_SOURCES = alias-y.tst andor-y.tst arith-y.tst array-y.tst async-y.tst bg-y.tst bindkey-y.tst brace-y.tst bracket-y.tst break-y.tst builtins-y.tst case-y.tst cd-y.tst cmdprint-y.tst cmdsub-y.tst command-y.tst complete-y.tst continue-y.tst dirstack-y.tst disown-y.tst dot-y.tst echo-y.tst errexit-y.tst error-y.tst errretur-y.tst eval-y.tst exec-y.tst exit-y.tst export-y.tst fc-y.tst fg-y.tst for-y.tst fsplit-y.tst function-y.tst getopts-y.tst grouping-y.tst hash-y.tst help-y.tst history-y.tst historyx-y.tst if-y.tst job-y.tst jobs-y.tst kill-y.tst lineno-y.tst local-y.tst option-y.tst param-y.tst pipeline-y.tst printf-y.tst prompt-y.tst pwd-y.tst quote-y.tst random-y.tst read-y.tst readonly-y.tst redir-y.tst return-y.tst set-y.tst settty-y.tst shift-y.tst signal1-y.tst signal2-y.tst simple-y.tst startup-y.tst suspend-y.tst test-y.tst tilde-y.tst times-y.tst trap-y.tst typeset-y.tst ulimit-y.tst umask-y.tst unset-y.tst until-y.tst wait-y.tst while-y.tst
+YASH_TEST_SOURCES = alias-y.tst andor-y.tst arith-y.tst array-y.tst async-y.tst bg-y.tst bindkey-y.tst brace-y.tst bracket-y.tst break-y.tst builtins-y.tst case-y.tst cd-y.tst cmdprint-y.tst cmdsub-y.tst command-y.tst complete-y.tst continue-y.tst dirstack-y.tst disown-y.tst dot-y.tst echo-y.tst errexit-y.tst error-y.tst errretur-y.tst eval-y.tst exec-y.tst exit-y.tst export-y.tst fc-y.tst fg-y.tst for-y.tst fsplit-y.tst function-y.tst getopts-y.tst grouping-y.tst hash-y.tst help-y.tst history-y.tst history1-y.tst history2-y.tst if-y.tst job-y.tst jobs-y.tst kill-y.tst lineno-y.tst local-y.tst option-y.tst param-y.tst pipeline-y.tst printf-y.tst prompt-y.tst pwd-y.tst quote-y.tst random-y.tst read-y.tst readonly-y.tst redir-y.tst return-y.tst set-y.tst settty-y.tst shift-y.tst signal1-y.tst signal2-y.tst signal3-y.tst signal4-y.tst signal5-y.tst signal6-y.tst signal7-y.tst signal8-y.tst signal9-y.tst simple-y.tst startup-y.tst suspend-y.tst test1-y.tst test2-y.tst tilde-y.tst times-y.tst trap-y.tst typeset-y.tst ulimit-y.tst umask-y.tst unset-y.tst until-y.tst wait-y.tst while-y.tst
 TEST_SOURCES = $(POSIX_TEST_SOURCES) $(YASH_TEST_SOURCES)
 TEST_RESULTS = $(TEST_SOURCES:.tst=.trs)
 RECHECK_LOGS = $(TEST_RESULTS)
@@ -82,7 +82,7 @@ $(YASH):
 	@rm -f $@
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
-DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in POSIX README enqueue.sh run-test.sh summarize.sh valgrind.supp
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) Makefile.in POSIX README enqueue.sh run-test.sh test-y.sh summarize.sh valgrind.supp
 distfiles: makedeps $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)

@@ -223,7 +223,11 @@ sh
     * input-p.tst
   Asynchronous events
     * signal-p.tst
-    * signal-y.tst
+    * signal1-y.tst
+    * signal3-y.tst
+    * signal5-y.tst
+    * signal7-y.tst
+    * signal9-y.tst
 
 test
  * test-p.tst
