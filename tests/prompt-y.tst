@@ -163,14 +163,14 @@ $
 __ERR__
 
 # This test case occasionally fails, perhaps when the shell did not receive the
-# SIGCHLD signal for the 'exec >fifo' child process earlier than that for
-# 'cat'. I have found no good workaround for this, so please just retry if this
-# fails.
+# SIGCHLD signal for the 'exec >fifo' child process before the prompt for the
+# line containing the wait command. The three sleep commands should mitigate
+# this, but if the test still fails, please just retry.
 # See: https://osdn.net/tracker.php?id=37560
 test_e '\j in PS1 and -b option' -ib +m
 PS1='\j$';  echo >&2
 exec >fifo& echo >&2
-cat fifo
+cat fifo; sleep 0; sleep 0; sleep 0
 wait $!;    echo >&2
             echo >&2; exit
 __IN__
