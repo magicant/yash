@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.49
 
+  *  The $RANDOM variable was expanding to a value larger than 32767
+     on some systems.
   *  The "\e" escape sequence was not working in the "echo" built-in.
   *  When a last command is a subshell, the parent shell's jobs were
      not being cleared when entering the subshell.

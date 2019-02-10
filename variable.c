@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1036,25 +1036,15 @@ void random_getter(variable_T *var)
 /* Returns a random number between 0 and 32767 using `rand'. */
 unsigned next_random(void)
 {
-#if RAND_MAX == 32767
-    return (unsigned) rand();
-#elif RAND_MAX == 65535
-    return (unsigned) rand() >> 1;
-#elif RAND_MAX == 2147483647
-    return (unsigned) rand() >> 16;
-#elif RAND_MAX == 4294967295
-    return (unsigned) rand() >> 17;
+#if (RAND_MAX & (RAND_MAX + 1u)) == 0u // RAND_MAX + 1 is a power of 2
+    unsigned v = (unsigned) rand();
+    return (v ^ (v >> 15)) & ((1u << 15) - 1u);
 #else
-    unsigned rem = RAND_MAX % 32768 + 1;
-    if (rem == 32768) {
-	return (unsigned) rand() & 32767;
-    } else {
-	unsigned value;
-	do
-	    value = rand();
-	while (value > RAND_MAX - rem);
-	return value;
-    }
+    unsigned v;
+    do
+	v = (unsigned) rand();
+    while (v > RAND_MAX - (RAND_MAX + 1u) % (1u << 15));
+    return v & ((1u << 15) - 1u);
 #endif
 }
 
