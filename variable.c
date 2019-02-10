@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -334,7 +335,7 @@ void init_variables(void)
 	v->v_value = NULL;
 	v->v_getter = random_getter;
 	random_active = true;
-	srand(shell_pid);
+	srand((unsigned) time(NULL) ^ (unsigned) shell_pid << 17);
     } else {
 	random_active = false;
     }
