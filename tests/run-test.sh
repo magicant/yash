@@ -1,5 +1,5 @@
 # run-test.sh: runs a set of test cases
-# (C) 2016 magicant
+# (C) 2016-2019 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ esac
 
 ##### Script startup
 
-exec <&- 3>&- 4>&- 5>&-
+exec </dev/null 3>&- 4>&- 5>&-
 
 # ensure correctness of $PWD
 cd -L .
