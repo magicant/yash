@@ -7,12 +7,12 @@ posix="true"
 # seekable. See also the "Input files" section in POSIX.1-2008, 1.4 Utility
 # Description Defaults.
 test_oE 'no input more than needed is read'
-head -n 1
-echo - this line is consumed by head
-echo - this line is consumed by shell
+"$TESTEE" -c 'read -r line && printf "%s\n" "$line"'
+echo - this line is consumed by read and printed by printf
+echo - this line is consumed and executed by shell
 __IN__
-echo - this line is consumed by head
-- this line is consumed by shell
+echo - this line is consumed by read and printed by printf
+- this line is consumed and executed by shell
 __OUT__
 
 test_x -e 0 'exit status of empty input'
