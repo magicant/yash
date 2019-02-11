@@ -1,5 +1,5 @@
 # summarize.sh: extracts results of failed tests
-# (C) 2015-2018 magicant
+# (C) 2015-2019 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ passed=0 failed=0 skipped=0
 for result_file do
     # The "grep" command is generally faster than repeated "read" built-in.
     if [ "$(grep -cE '^%%% (FAIL|SKIPP)ED:' "$result_file")" -eq 0 ]; then
-	passed="$((passed + $(grep -c '^%%% PASSED:' "$result_file")))"
+	passed="$((passed + $(grep -c '^%%% PASSED:' "$result_file" || true)))"
 	continue
     fi
 
