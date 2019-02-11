@@ -18,10 +18,13 @@ tests require a root privilege while some require a non-root privilege.
 
 ---------------------------------------------------------------------------
 
-Most test cases can be run in parallel if your make supports parallel
-build. Some test cases that require a control terminal, however, must not
-be run at the same time to prevent mutual interference. Test case files
-that should not be run in parallel are marked by the %SEQUENTIAL% keyword.
+Test cases can be run in parallel if your make supports parallel build.
+Exceptionally, test cases that require a control terminal have to be run
+sequentially if a pseudo-terminal cannot be opened to obtain a control
+terminal that can be used for testing. In that case, you have to run the
+tests in the foreground process group so that they can make use of the
+current control terminal. Test case files containing such tests are marked
+with the %REQUIRETTY% keyword.
 
 ---------------------------------------------------------------------------
 
