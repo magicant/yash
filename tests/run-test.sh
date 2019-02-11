@@ -28,7 +28,7 @@
 set -Ceu
 umask u+rwx
 
-# require yash for alias support and extended exec & ulimit built-ins
+# require yash for alias support and ulimit built-ins
 if ! [ "${YASH_VERSION-}" ]; then
     eprintf '%s: must be run with yash\n' "$0"
     exit 64 # sysexits.h EX_USAGE
@@ -156,14 +156,18 @@ $1"
 # If the "use_valgrind" variable is true, Valgrind is used to run the testee,
 # in which case the testee will ignore argv[0].
 testee() (
+    if [ "${posix:+set}" = set ]; then
+	testee="$testee_sh"
+	export TESTEE="$testee"
+    fi
     if ! "$use_valgrind"; then
-	exec ${posix:+-a sh} "$testee" "$@"
+	exec "$testee" "$@"
     else
 	test -r "$abs_suppressions" || abs_suppressions=
 	exec valgrind --leak-check=full --vgdb=no --log-fd=17 \
 	    ${abs_suppressions:+--suppressions="$abs_suppressions"} \
 	    --gen-suppressions=all \
-	    "$testee" ${posix:+-o posix} "$@" \
+	    "$testee" "$@" \
 	    17>>"${valgrind_file-0.valgrind}"
     fi
 )
@@ -375,6 +379,8 @@ abs_test_file="$(absolute "$test_file")"
 abs_suppressions="$(absolute valgrind.supp)"
 cd "$work_dir"
 
+ln -s -- "$testee" sh
+testee_sh="$(absolute sh)"
 export TESTEE="$testee"
 
 . "$abs_test_file"
