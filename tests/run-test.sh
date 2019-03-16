@@ -28,14 +28,6 @@
 set -Ceu
 umask u+rwx
 
-# require yash for alias support and ulimit built-ins
-if ! [ "${YASH_VERSION-}" ]; then
-    eprintf '%s: must be run with yash\n' "$0"
-    exit 64 # sysexits.h EX_USAGE
-fi
-
-command -b ulimit -c 0 2>/dev/null || :
-
 ##### Some utility functions and aliases
 
 eprintf() {
@@ -52,6 +44,14 @@ case "$1" in
 esac
 
 ##### Script startup
+
+# require yash for alias support and ulimit built-ins
+if ! [ "${YASH_VERSION-}" ]; then
+    eprintf '%s: must be run with yash\n' "$0"
+    exit 64 # sysexits.h EX_USAGE
+fi
+
+command -b ulimit -c 0 2>/dev/null || :
 
 exec </dev/null 3>&- 4>&- 5>&-
 
