@@ -212,8 +212,9 @@ static execstate_T execstate;
 /* exceptional jump to be done (other than "break") */
 static exception_T exception;
 
-/* This flag is set when a special built-in is executed as such. */
-bool special_builtin_executed;
+/* This flag is set while the "command" built-in is executing a special
+ * built-in. */
+bool command_builtin_is_executing_special_builtin = false;
 
 /* This flag is set while the "exec" built-in is executed. */
 static bool exec_builtin_executed = false;
@@ -880,8 +881,7 @@ pid_t exec_process(
     /* check if the command is a special built-in or a function and determine
      * whether we have to open a temporary environment. */
     search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
-    special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
-    temp = c->c_assigns != NULL && !special_builtin_executed;
+    temp = c->c_assigns != NULL && cmdinfo.type != CT_SPECIALBUILTIN;
     if (temp)
 	open_new_environment(true);
 
@@ -2313,7 +2313,15 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 	}
 	finally_exit = true;
     }
+
+    bool save_cbiesb = command_builtin_is_executing_special_builtin;
+    command_builtin_is_executing_special_builtin |=
+	ci.type == CT_SPECIALBUILTIN;
+
     exec_simple_command(&ci, argc, argv0, argv, finally_exit);
+
+    command_builtin_is_executing_special_builtin = save_cbiesb;
+
     free(argv0);
     return laststatus;
 }

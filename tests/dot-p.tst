@@ -108,4 +108,14 @@ test_O -d -e n 'dot script not found, relative, interactive shell, exit status' 
 . ./_no_such_file_
 __IN__
 
+test_o -d 'dot script not found in command built-in, no exiting'
+command . ./_no_such_file_
+echo reached 1
+command eval . ./_no_such_file_
+echo reached 2
+__IN__
+reached 1
+reached 2
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -373,15 +373,16 @@ void exit_shell_with_status(int status)
 }
 
 /* Exits the shell with the specified exit status if the shell is non-
- * interactive and directly executing a special built-in.
+ * interactive and not executing the "command" built-in.
  * This function is called when a shell error occurs that is specified in POSIX
  * to cause a non-interactive to exit. This function just returns the argument
  * exit status if the exit conditions are not met. */
 int maybe_exit_for_shell_error(int status, bool posix_only)
 {
     if (posixly_correct || !posix_only)
-	if (special_builtin_executed && !is_interactive_now)
-	    exit_shell_with_status(status);
+	if (!command_builtin_is_executing_special_builtin)
+	    if (!is_interactive_now)
+		exit_shell_with_status(status);
     return status;
 }
 

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.h: command execution */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ typedef enum sigtype_T {
 
 extern int laststatus, savelaststatus, exitstatus;
 extern pid_t lastasyncpid;
-extern _Bool special_builtin_executed;
+extern _Bool command_builtin_is_executing_special_builtin;
 extern _Bool is_executing_auxiliary;
 
 struct execstate_T;
