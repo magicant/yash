@@ -1147,7 +1147,7 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return maybe_exit_for_shell_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR, true);
 	}
     }
 
@@ -1161,7 +1161,7 @@ int trap_builtin(int argc, void **argv)
 	    if (!sigismember(&printed, s->no)) {
 		sigaddset(&printed, s->no);
 		if (!print_trap(s->name, trap_command[sigindex(s->no)]))
-		    return maybe_exit_for_shell_error(Exit_FAILURE);
+		    return maybe_exit_for_shell_error(Exit_FAILURE, true);
 	    }
 	}
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1170,7 +1170,7 @@ int trap_builtin(int argc, void **argv)
 	    if (sigrtmin + i > sigrtmax)
 		break;
 	    if (!print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]))
-		return maybe_exit_for_shell_error(Exit_FAILURE);
+		return maybe_exit_for_shell_error(Exit_FAILURE, true);
 	}
 #endif
     } else if (print) {
@@ -1191,12 +1191,12 @@ int trap_builtin(int argc, void **argv)
 		int index = signum - sigrtmin;
 		if (index < RTSIZE)
 		    if (!print_trap(name, rttrap_command[index]))
-			return maybe_exit_for_shell_error(Exit_FAILURE);
+			return maybe_exit_for_shell_error(Exit_FAILURE, true);
 	    } else
 #endif
 	    {
 		if (!print_trap(name, trap_command[sigindex(signum)]))
-		    return maybe_exit_for_shell_error(Exit_FAILURE);
+		    return maybe_exit_for_shell_error(Exit_FAILURE, true);
 	    }
 	} while (++xoptind < argc);
     } else {
@@ -1212,7 +1212,7 @@ int trap_builtin(int argc, void **argv)
 	    command = ARGV(xoptind++);
 	    if (xoptind == argc)
 		return maybe_exit_for_shell_error(
-			insufficient_operands_error(2));
+			insufficient_operands_error(2), true);
 
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;

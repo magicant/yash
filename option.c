@@ -420,7 +420,7 @@ int parse_short_option(void *const *argv, bool enable,
 		if (optname == NULL) {
 		    xerror(0, Ngt("the -%lc option requires an argument"),
 			    (wint_t) L'o');
-		    return maybe_exit_for_shell_error(Exit_ERROR);
+		    return maybe_exit_for_shell_error(Exit_ERROR, true);
 		}
 	    }
 
@@ -466,7 +466,7 @@ int parse_option_character(
     }
 
     xerror(0, Ngt("`%ls' is not a valid option"), (wchar_t[]) { opt, L'\0' });
-    return maybe_exit_for_shell_error(Exit_ERROR);
+    return maybe_exit_for_shell_error(Exit_ERROR, true);
 }
 
 /* Parses the long option at `xoptind' in the specified arguments and
@@ -585,7 +585,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
 	case 0:
 	    pl_destroy(options);
 	    xerror(0, Ngt("`%ls' is not a valid option"), optstr);
-	    return maybe_exit_for_shell_error(Exit_ERROR);
+	    return maybe_exit_for_shell_error(Exit_ERROR, true);
 	case 1:
 	    if (noshelloptindex > 0) {
 		const struct option_T *opt = options->contents[0];
@@ -610,7 +610,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
 				    xerror(0, Ngt("the --%ls option requires "
 						"an argument"), opt->longopt);
 				    return maybe_exit_for_shell_error(
-					    Exit_ERROR);
+					    Exit_ERROR, true);
 				}
 				break;
 			    default:
@@ -623,7 +623,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
 		    if (eq != NULL) {
 			xerror(0, Ngt("%ls: the --%ls option does not take "
 				    "an argument"), optstr, opt->longopt);
-			return maybe_exit_for_shell_error(Exit_ERROR);
+			return maybe_exit_for_shell_error(Exit_ERROR, true);
 		    }
 		    optarg = NULL;
 		}
@@ -644,7 +644,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
 		    ((const struct xgetopt_T *) options->contents[i])->longopt);
 #endif
 	    pl_destroy(options);
-	    return maybe_exit_for_shell_error(Exit_ERROR);
+	    return maybe_exit_for_shell_error(Exit_ERROR, true);
     }
 }
 
@@ -657,7 +657,7 @@ int set_shell_option(const struct option_T *option, bool enable,
 	xerror(0, Ngt("the %ls option cannot be changed "
 		    "once the shell has been initialized"),
 		option->longopt);
-	return maybe_exit_for_shell_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR, true);
     }
 
     *option->optp = enable;
@@ -700,7 +700,7 @@ int set_shell_option(const struct option_T *option, bool enable,
 #endif
 
     return (*option->optp == enable) ?
-	    Exit_SUCCESS : maybe_exit_for_shell_error(Exit_FAILURE);
+	    Exit_SUCCESS : maybe_exit_for_shell_error(Exit_FAILURE, true);
 }
 
 #if YASH_ENABLE_LINEEDIT
@@ -926,7 +926,7 @@ int set_builtin_print_current_settings(void)
 
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
 	if (!xprintf("%-15ls %s\n", o->longopt, vals[(bool) *o->optp]))
-	    return maybe_exit_for_shell_error(Exit_FAILURE);
+	    return maybe_exit_for_shell_error(Exit_FAILURE, true);
     }
 
     return Exit_SUCCESS;
@@ -937,7 +937,7 @@ int set_builtin_print_restoring_commands(void)
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
 	if (o->resettable)
 	    if (!xprintf("set %co %ls\n", *o->optp ? '-' : '+', o->longopt))
-		return maybe_exit_for_shell_error(Exit_FAILURE);
+		return maybe_exit_for_shell_error(Exit_FAILURE, true);
     }
 
     return Exit_SUCCESS;

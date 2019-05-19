@@ -373,15 +373,15 @@ void exit_shell_with_status(int status)
 }
 
 /* Exits the shell with the specified exit status if the shell is non-
- * interactive, not in the POSIXly-correct mode, and directly executing a
- * special built-in.
+ * interactive and directly executing a special built-in.
  * This function is called when a shell error occurs that is specified in POSIX
  * to cause a non-interactive to exit. This function just returns the argument
  * exit status if the exit conditions are not met. */
-int maybe_exit_for_shell_error(int status)
+int maybe_exit_for_shell_error(int status, bool posix_only)
 {
-    if (posixly_correct && special_builtin_executed && !is_interactive_now)
-	exit_shell_with_status(status);
+    if (posixly_correct || !posix_only)
+	if (special_builtin_executed && !is_interactive_now)
+	    exit_shell_with_status(status);
     return status;
 }
 
@@ -618,12 +618,12 @@ int exit_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return maybe_exit_for_shell_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR, true);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return maybe_exit_for_shell_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR, true);
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
@@ -643,7 +643,7 @@ int exit_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    maybe_exit_for_shell_error(status);
+	    maybe_exit_for_shell_error(status, true);
 	}
     } else {
 	status = -1;

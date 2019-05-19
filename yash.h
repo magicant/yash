@@ -32,7 +32,7 @@ static inline void exit_shell(void)
     __attribute__((noreturn));
 extern void exit_shell_with_status(int status)
     __attribute__((noreturn));
-extern int maybe_exit_for_shell_error(int status);
+extern int maybe_exit_for_shell_error(int status, _Bool posix_only);
 
 
 extern struct input_file_info_T *stdin_input_file_info;
