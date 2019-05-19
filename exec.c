@@ -2021,9 +2021,7 @@ int dot_builtin(int argc, void **argv)
 
 error:
     free(mbsfilename);
-    if (special_builtin_executed && !is_interactive_now)
-	exit_shell_with_status(Exit_FAILURE);
-    return Exit_FAILURE;
+    return maybe_exit_for_shell_error(Exit_FAILURE, false);
 }
 
 #if YASH_ENABLE_HELP
