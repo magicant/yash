@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -372,6 +372,19 @@ void exit_shell_with_status(int status)
     exit(exitstatus);
 }
 
+/* Exits the shell with the specified exit status if the shell is non-
+ * interactive, not in the POSIXly-correct mode, and directly executing a
+ * special built-in.
+ * This function is called when a shell error occurs that is specified in POSIX
+ * to cause a non-interactive to exit. This function just returns the argument
+ * exit status if the exit conditions are not met. */
+int maybe_exit_for_shell_error(int status)
+{
+    if (posixly_correct && special_builtin_executed && !is_interactive_now)
+	exit_shell_with_status(status);
+    return status;
+}
+
 /* Prints the help message to the standard output. */
 void print_help(void)
 {
@@ -605,12 +618,12 @@ int exit_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return special_builtin_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR);
 
     size_t sjc;
     if (is_interactive_now && !forceexit && (sjc = stopped_job_count()) > 0) {
@@ -630,7 +643,7 @@ int exit_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    special_builtin_error(status);
+	    maybe_exit_for_shell_error(status);
 	}
     } else {
 	status = -1;

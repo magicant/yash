@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1147,7 +1147,7 @@ int trap_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
@@ -1161,7 +1161,7 @@ int trap_builtin(int argc, void **argv)
 	    if (!sigismember(&printed, s->no)) {
 		sigaddset(&printed, s->no);
 		if (!print_trap(s->name, trap_command[sigindex(s->no)]))
-		    return special_builtin_error(Exit_FAILURE);
+		    return maybe_exit_for_shell_error(Exit_FAILURE);
 	    }
 	}
 #if defined SIGRTMIN && defined SIGRTMAX
@@ -1170,7 +1170,7 @@ int trap_builtin(int argc, void **argv)
 	    if (sigrtmin + i > sigrtmax)
 		break;
 	    if (!print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]))
-		return special_builtin_error(Exit_FAILURE);
+		return maybe_exit_for_shell_error(Exit_FAILURE);
 	}
 #endif
     } else if (print) {
@@ -1191,12 +1191,12 @@ int trap_builtin(int argc, void **argv)
 		int index = signum - sigrtmin;
 		if (index < RTSIZE)
 		    if (!print_trap(name, rttrap_command[index]))
-			return special_builtin_error(Exit_FAILURE);
+			return maybe_exit_for_shell_error(Exit_FAILURE);
 	    } else
 #endif
 	    {
 		if (!print_trap(name, trap_command[sigindex(signum)]))
-		    return special_builtin_error(Exit_FAILURE);
+		    return maybe_exit_for_shell_error(Exit_FAILURE);
 	    }
 	} while (++xoptind < argc);
     } else {
@@ -1211,7 +1211,8 @@ int trap_builtin(int argc, void **argv)
 	} else {
 	    command = ARGV(xoptind++);
 	    if (xoptind == argc)
-		return special_builtin_error(insufficient_operands_error(2));
+		return maybe_exit_for_shell_error(
+			insufficient_operands_error(2));
 
 	    if (wcscmp(command, L"-") == 0)
 		command = NULL;

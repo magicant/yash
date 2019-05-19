@@ -1738,12 +1738,12 @@ int return_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return special_builtin_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR);
 
     int status;
     const wchar_t *statusstr = ARGV(xoptind);
@@ -1751,7 +1751,7 @@ int return_builtin(int argc, void **argv)
 	if (!xwcstoi(statusstr, 10, &status) || status < 0) {
 	    xerror(0, Ngt("`%ls' is not a valid integer"), statusstr);
 	    status = Exit_ERROR;
-	    special_builtin_error(status);
+	    maybe_exit_for_shell_error(status);
 	    /* return anyway */
 	}
     } else {
@@ -1794,12 +1794,12 @@ int break_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, iter ? 0 : 1))
-	return special_builtin_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR);
 
     if (iter) {
 	/* break/continue iteration */
@@ -1823,10 +1823,10 @@ int break_builtin(int argc, void **argv)
 	    unsigned long countl;
 	    if (!xwcstoul(countstr, 0, &countl)) {
 		xerror(0, Ngt("`%ls' is not a valid integer"), countstr);
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	    } else if (countl == 0) {
 		xerror(0, Ngt("%u is not a positive integer"), 0u);
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	    } else if (countl > UINT_MAX) {
 		count = UINT_MAX;
 	    } else {
@@ -1836,7 +1836,7 @@ int break_builtin(int argc, void **argv)
 	assert(count > 0);
 	if (execstate.loopnest == 0) {
 	    xerror(0, Ngt("not in a loop"));
-	    return special_builtin_error(Exit_ERROR);
+	    return maybe_exit_for_shell_error(Exit_ERROR);
 	}
 	if (count > execstate.loopnest)
 	    count = execstate.loopnest;
@@ -1889,7 +1889,7 @@ int eval_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
@@ -1944,17 +1944,17 @@ int dot_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     const wchar_t *filename = ARGV(xoptind++);
     if (filename == NULL)
-	return special_builtin_error(insufficient_operands_error(1));
+	return maybe_exit_for_shell_error(insufficient_operands_error(1));
 
     bool has_args = xoptind < argc;
     if (has_args && posixly_correct)
-	return special_builtin_error(too_many_operands_error(1));
+	return maybe_exit_for_shell_error(too_many_operands_error(1));
 
     char *mbsfilename = malloc_wcstombs(filename);
     if (mbsfilename == NULL) {
@@ -2067,7 +2067,7 @@ int exec_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
@@ -2458,12 +2458,12 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     if (xoptind < argc)
-	return special_builtin_error(too_many_operands_error(0));
+	return maybe_exit_for_shell_error(too_many_operands_error(0));
 
     double clock;
     struct tms tms;
@@ -2480,7 +2480,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     clock = sysconf(_SC_CLK_TCK);
     if (times(&tms) == (clock_t) -1) {
 	xerror(errno, Ngt("cannot get the time data"));
-	return special_builtin_error(Exit_FAILURE);
+	return maybe_exit_for_shell_error(Exit_FAILURE);
     }
     format_time(tms.tms_utime, sum, sus);
     format_time(tms.tms_stime, ssm, sss);
@@ -2491,7 +2491,7 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
 	    sum, sus, ssm, sss, cum, cus, csm, css);
     return (yash_error_message_count == 0) ?
-	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
+	    Exit_SUCCESS : maybe_exit_for_shell_error(Exit_FAILURE);
 }
 
 #if YASH_ENABLE_HELP

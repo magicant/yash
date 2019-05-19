@@ -1645,7 +1645,7 @@ int typeset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
@@ -1675,16 +1675,16 @@ int typeset_builtin(int argc, void **argv)
     }
 
     if (function && global && ARGV(0)[0] == L't' /*typeset*/)
-	return special_builtin_error(
+	return maybe_exit_for_shell_error(
 		mutually_exclusive_option_error(L'f', L'g'));
     if (function && export)
-	return special_builtin_error(
+	return maybe_exit_for_shell_error(
 		mutually_exclusive_option_error(L'f', L'x'));
     if (function && unexport)
-	return special_builtin_error(
+	return maybe_exit_for_shell_error(
 		mutually_exclusive_option_error(L'f', L'X'));
     if (export && unexport)
-	return special_builtin_error(
+	return maybe_exit_for_shell_error(
 		mutually_exclusive_option_error(L'x', L'X'));
 
     if (xoptind == argc) {
@@ -1766,7 +1766,7 @@ int typeset_builtin(int argc, void **argv)
     }
 
     return (yash_error_message_count == 0) ?
-	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
+	    Exit_SUCCESS : maybe_exit_for_shell_error(Exit_FAILURE);
 }
 
 /* Prints the specified variable to the standard output.
@@ -2285,7 +2285,7 @@ int unset_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
@@ -2304,7 +2304,7 @@ int unset_builtin(int argc, void **argv)
     }
 
     return (yash_error_message_count == 0) ?
-	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
+	    Exit_SUCCESS : maybe_exit_for_shell_error(Exit_FAILURE);
 }
 
 /* Unsets the specified function.
@@ -2387,22 +2387,22 @@ int shift_builtin(int argc, void **argv)
 		return print_builtin_help(ARGV(0));
 #endif
 	    default:
-		return special_builtin_error(Exit_ERROR);
+		return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return special_builtin_error(Exit_ERROR);
+	return maybe_exit_for_shell_error(Exit_ERROR);
 
     long count;
     if (xoptind < argc) {
 	if (!xwcstol(ARGV(xoptind), 10, &count)) {
 	    xerror(errno, Ngt("`%ls' is not a valid integer"), ARGV(xoptind));
-	    return special_builtin_error(Exit_ERROR);
+	    return maybe_exit_for_shell_error(Exit_ERROR);
 	} else if (posixly_correct && count < 0) {
 	    xerror(0, Ngt("%ls: the operand value must not be negative"),
 		    ARGV(xoptind));
-	    return special_builtin_error(Exit_ERROR);
+	    return maybe_exit_for_shell_error(Exit_ERROR);
 	}
     } else {
 	count = 1;

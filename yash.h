@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.h: basic functions of the shell and miscellanies */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ static inline void exit_shell(void)
     __attribute__((noreturn));
 extern void exit_shell_with_status(int status)
     __attribute__((noreturn));
+extern int maybe_exit_for_shell_error(int status);
 
 
 extern struct input_file_info_T *stdin_input_file_info;

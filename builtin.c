@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -291,21 +291,6 @@ int too_many_operands_error(size_t max_accepted_operand_count)
 	 * the wrong number of operands. */
 	xerror(0, Ngt("too many operands are specified"));
     return Exit_ERROR;
-}
-
-/* This function is called when an error occurred while executing a special
- * built-in. If `posixly_correct' and `special_builtin_executed' are true and
- * `is_interactive_now' is false, `exit_shell_with_status' is called with
- * `exitstatus'. Otherwise, this function just returns `exitstatus'. */
-/* Even though this function is called only while executing a special built-in,
- * checking `special_builtin_executed' is necessary because
- * `exit_shell_with_status' should not be called if the special built-in is
- * being executed indirectly by a non-special built-in. */
-int special_builtin_error(int exitstatus)
-{
-    if (posixly_correct && special_builtin_executed && !is_interactive_now)
-	exit_shell_with_status(exitstatus);
-    return exitstatus;
 }
 
 #if YASH_ENABLE_HELP

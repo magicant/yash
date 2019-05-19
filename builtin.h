@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.h: built-in commands */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,6 @@ extern int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2);
 extern _Bool validate_operand_count(size_t count, size_t min, size_t max);
 extern int insufficient_operands_error(size_t min_required_operand_count);
 extern int too_many_operands_error(size_t max_accepted_operand_count);
-extern int special_builtin_error(int exitstatus);
 
 struct xgetopt_T;
 extern int print_builtin_help(const wchar_t *name)
