@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -907,7 +907,8 @@ subst:
 
     /* add the elements of `values' to `e->valuelist' */
     if (values[0] == NULL) {
-	e->zeroword = true;
+	if (indq)
+	    e->zeroword = true;
     } else {
 	/* add the first element */
 	wb_catfree(&e->valuebuf, values[0]);

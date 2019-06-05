@@ -433,16 +433,32 @@ __OUT__
 
 test_oE 'special parameter *, unquoted'
 bracket $*
+bracket ""$*
+bracket $*""
 set a
 bracket $*
+bracket ""$*
+bracket $*""
 set a 'b  b' cc
 bracket $*
+bracket ""$*
+bracket $*""
 IFS=
 bracket $*
+bracket ""$*
+bracket $*""
 __IN__
 
+[]
+[]
+[a]
+[a]
 [a]
 [a][b][b][cc]
+[a][b][b][cc]
+[a][b][b][cc]
+[a][b  b][cc]
+[a][b  b][cc]
 [a][b  b][cc]
 __OUT__
 
@@ -486,16 +502,32 @@ __OUT__
 # Expansion of unquoted $@ is the same as that of unquoted $*
 test_oE 'special parameter @, unquoted'
 bracket $@
+bracket ""$@
+bracket $@""
 set a
 bracket $@
+bracket ""$@
+bracket $@""
 set a 'b  b' cc
 bracket $@
+bracket ""$@
+bracket $@""
 IFS=
 bracket $@
+bracket ""$@
+bracket $@""
 __IN__
 
+[]
+[]
+[a]
+[a]
 [a]
 [a][b][b][cc]
+[a][b][b][cc]
+[a][b][b][cc]
+[a][b  b][cc]
+[a][b  b][cc]
 [a][b  b][cc]
 __OUT__
 
