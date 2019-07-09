@@ -10,7 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.49
 
-  +  '--forlocal' option.
+  +  '--for-local' option.
   *  Expansion of ""$*, ""$@, $*"", and $@"" now correctly yields an
      empty string rather than nothing when there are no positional
      parameters.

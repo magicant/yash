@@ -342,7 +342,7 @@ order the words were expanded):
 
 By default, if a for loop is executed within a function, {{varname}} is
 created as a link:exec.html#localvar[local variable], even if it already
-exists globally. Turning off the link:_set.html#so-forlocal[forlocal] shell
+exists globally. Turning off the link:_set.html#so-forlocal[for-local] shell
 option or enabling the link:posix.html[POSIXly-correct mode] mode will
 disable this behavior.
 
