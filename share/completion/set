@@ -1,4 +1,4 @@
-# (C) 2011-2018 magicant
+# (C) 2011-2019 magicant
 
 # Completion script for the "set" built-in command.
 # Completion function "completion/set" is used for the "ksh" and "yash"
@@ -260,6 +260,7 @@ function completion/set::getopt {
 		"emptylastfield; don't remove empty last field in field splitting"
 		"errreturn; return immediately when a command's exit status is non-zero"
 		"extendedglob; enable recursive pathname expansion"
+		"forlocal; make the iteration variable local in a for loop"
 		"hashondef; cache full paths of commands in a function when defined"
 		"histspace; don't save a command starting with a space in the history"
 		"leconvmeta; always treat meta-key flags in line-editing"
