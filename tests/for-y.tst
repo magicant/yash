@@ -34,7 +34,7 @@ __ERR__
 
 )
 
-test_oE 'assignment is persistent and local (+o POSIX)'
+test_oE 'assignment is persistent and local (+o POSIX, -o forlocal)'
 f() {
     for v in function; do :; done
     echo $v
@@ -45,6 +45,16 @@ echo $v
 __IN__
 function
 foo
+__OUT__
+
+test_oE 'assignment is persistent and global (+o POSIX, +o forlocal)'
+set -o noforlocal
+unset -v i
+fn() { for i in a b c; do : ; done; }
+fn
+echo "${i-UNSET}"
+__IN__
+c
 __OUT__
 
 test_oE 're-assignment to loop variable during loop'
@@ -335,24 +345,5 @@ for v in 1; do
     echo not reached
 done
 __IN__
-
-test_oE 'iteration variable is local'
-unset -v i
-fn() { for i in a b c; do : ; done; }
-fn
-echo "${i-UNSET}"
-__IN__
-UNSET
-__OUT__
-
-test_oE 'noforlocal: iteration variable is global'
-set -o noforlocal
-unset -v i
-fn() { for i in a b c; do : ; done; }
-fn
-echo "${i-UNSET}"
-__IN__
-c
-__OUT__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
