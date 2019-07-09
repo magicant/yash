@@ -14,7 +14,7 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - シェルが link:invoke.html#arguments[+-c+ オプション]で起動された場合、構文エラー時に +yash -c+ の代わりに +sh -c+ をファイル名として表示します。
 - グローバル{zwsp}link:syntax.html#aliases[エイリアス]の置換を行いません。
 - link:syntax.html#compound[複合コマンド]の{zwsp}link:syntax.html#grouping[グルーピング]や link:syntax.html#if[if 文]の内容が空の場合エラーになります。
-- link:syntax.html#for[For ループ]で展開した単語はグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
+- link:syntax.html#for[For ループ]で展開した単語は link:_set.html#so-forlocal[for-local オプション]に関係なくグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
 - link:syntax.html#case[Case 文]の最初のパターンを +esac+ にすることはできません。
 - 予約語 +!+ の直後に空白を置かずに +(+ を置くことはできません。
 - link:syntax.html#double-bracket[二重ブラケットコマンド]は使えません。

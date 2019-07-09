@@ -84,6 +84,9 @@ Err-exit オプションと異なり、抑止条件は{zwsp}link:exec.html#funct
 [[so-extendedglob]]extended-glob::
 このオプションは{zwsp}link:expand.html#glob[パス名展開]における拡張機能を有効にします。
 
+[[so-forlocal]]for-local::
+link:syntax.html#for[For ループ]が{zwsp}link:exec.html#function[関数]の中で実行されるとき、このオプションが有効ならばループの変数は{zwsp}link:exec.html#localvar[ローカル変数]として代入されます。このオプションはシェルの起動時に最初から有効になっています。{zwsp}link:posix.html[POSIX 準拠モード]ではこのオプションに関係なく for ループの変数は通常の変数として代入されます。
+
 [[so-glob]]glob (`+f`)::
 このオプションが有効なときはシェルは{zwsp}link:expand.html#glob[パス名展開]を行います。このオプションはシェルの起動時に最初から有効になっています。
 
