@@ -336,4 +336,23 @@ for v in 1; do
 done
 __IN__
 
+test_oE 'iteration variable is local'
+unset -v i
+fn() { for i in a b c; do : ; done; }
+fn
+echo "${i-UNSET}"
+__IN__
+UNSET
+__OUT__
+
+test_oE 'noforlocal: iteration variable is global'
+set -o noforlocal
+unset -v i
+fn() { for i in a b c; do : ; done; }
+fn
+echo "${i-UNSET}"
+__IN__
+c
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

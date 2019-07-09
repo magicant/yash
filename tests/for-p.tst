@@ -163,4 +163,13 @@ b 2
 c 3
 __OUT__
 
+test_o 'iteration variable is global'
+unset -v i
+fn() { for i in a b c; do : ; done; }
+fn
+echo "${i-UNSET}"
+__IN__
+c
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

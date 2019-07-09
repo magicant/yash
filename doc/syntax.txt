@@ -340,10 +340,14 @@ order the words were expanded):
 . Assign the word to the variable whose name is {{varname}}.
 . Execute the {{command}}s.
 
-Each word is assigned as a link:exec.html#localvar[local variable] except in
-the POSIXly-correct mode.
-If the expansion of the {{word}}s yielded no words as a result, the
-{{command}}s are not executed at all.
+By default, if a for loop is executed within a function, {{varname}} is
+created as a link:exec.html#localvar[local variable], even if it already
+exists globally. Turning off the link:_set.html#so-forlocal[forlocal] shell
+option or enabling the link:posix.html[POSIXly-correct mode] mode will
+disable this behavior.
+
+If the expansion of the {{word}}s yields no words, no variable is created
+and the {{command}}s are not executed at all.
 
 The exit status of a for loop is that of the last executed {{command}}. The
 exit status is zero if the {{command}}s are not empty and not executed at all.

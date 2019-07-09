@@ -35,9 +35,9 @@ When the POSIXly-correct mode is enabled:
 - Global link:syntax.html#aliases[aliases] are not substituted.
 - Nested commands in a link:syntax.html#compound[compound command] must not be
   empty.
-- Words expanded in a link:syntax.html#for[for loop] are assigned as a global
-  variable rather than a local. The variable must have a portable (ASCII-only)
-  name.
+- The link:syntax.html#for[for loop] iteration variable is created as global,
+  regardless of the link:_set.html#so-forlocal[forlocal] shell option.
+  The variable must have a portable (ASCII-only) name.
 - The first pattern in a link:syntax.html#case[case command] cannot be +esac+.
 - The +!+ keyword cannot be followed by +(+ without any whitespaces
   in-between.

@@ -126,6 +126,15 @@ enabled.
 This option enables link:expand.html#extendedglob[extension in pathname
 expansion].
 
+[[so-forlocal]]forlocal::
+(Enabled by default)
+If a link:syntax.html#for[for loop] is executed within a
+link:exec.html#function[function], this option causes the iteration variable
+to be created as a link:exec.html#localvar[local variable], even if the
+variable already exists globally.
+This option has no effect if the link:posix.html[POSIXly-correct mode] is
+active.
+
 [[so-glob]]glob (`+f`)::
 (Enabled by default)
 This option enables link:expand.html#glob[pathname expansion].

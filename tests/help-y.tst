@@ -771,6 +771,7 @@ Options:
 	         -o errreturn
 	+n       -o exec
 	         -o extendedglob
+	         -o forlocal
 	+f       -o glob
 	-h       -o hashondef
 	         -o histspace

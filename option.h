@@ -41,7 +41,7 @@ extern _Bool is_interactive, is_interactive_now;
 extern _Bool shopt_cmdline, shopt_stdin;
 extern _Bool do_job_control, shopt_notify, shopt_notifyle,
        shopt_curasync, shopt_curbg, shopt_curstop;
-extern _Bool shopt_allexport, shopt_hashondef;
+extern _Bool shopt_allexport, shopt_hashondef, shopt_forlocal;
 extern _Bool shopt_errexit, shopt_errreturn, shopt_pipefail, shopt_unset,
        shopt_exec, shopt_ignoreeof, shopt_verbose, shopt_xtrace;
 extern _Bool shopt_traceall;

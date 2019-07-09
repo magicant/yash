@@ -89,6 +89,8 @@ bool shopt_allexport = false;
 /* If set, when a function is defined, all the commands in the function
  * are hashed. Corresponds to the -h/--hashondef option. */
 bool shopt_hashondef = false;
+/* If set, the 'for' loop iteration variable will be made local. */
+bool shopt_forlocal = true;
 
 /* If set, when a command returns a non-zero status, the shell exits.
  * Corresponds to the -e/--errexit option. */
@@ -223,6 +225,7 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"errreturn",      &shopt_errreturn,      true, },
     { 0,    L'n', L"exec",           &shopt_exec,           true, },
     { 0,    0,    L"extendedglob",   &shopt_extendedglob,   true, },
+    { 0,    0,    L"forlocal",       &shopt_forlocal,       true, },
     { 0,    L'f', L"glob",           &shopt_glob,           true, },
     { L'h', 0,    L"hashondef",      &shopt_hashondef,      true, },
 #if YASH_ENABLE_HISTORY

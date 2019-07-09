@@ -411,6 +411,7 @@ errexit         off
 errreturn       off
 exec            on
 extendedglob    off
+forlocal        on
 glob            on
 hashondef       off
 ignoreeof       off
@@ -465,6 +466,7 @@ set +o errexit
 set +o errreturn
 set -o exec
 set +o extendedglob
+set -o forlocal
 set -o glob
 set +o hashondef
 set +o ignoreeof

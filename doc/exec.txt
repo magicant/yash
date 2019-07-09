@@ -209,7 +209,8 @@ finishes.
 
 dfn:[Local variables] are temporary variables that are defined in a function
 and exist during the function execution only.
-They can be defined by the link:_typeset.html[typeset built-in].
+They can be defined by the link:_typeset.html[typeset built-in]
+or implicitly created by a link:syntax.html#for[for loop].
 They are removed when the function execution finishes.
 
 Local variables may _hide_ variables that have already been defined before
