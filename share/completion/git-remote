@@ -1,4 +1,4 @@
-# (C) 2011-2013 magicant
+# (C) 2011-2019 magicant
 
 # Completion script for the "git-remote" command.
 # Supports Git 1.7.7.
@@ -111,10 +111,8 @@ function completion/git::remote:set-head:arg {
 			if [ ${WORDS[#]} -eq 0 ]; then
 				command -f completion/git::completeremote
 			else
-				command -f completion/git::completeref \
-					abbrprefixes="refs/remotes/${WORDS[1]}/" \
-					dontcompletefull=true \
-					--remotes="${WORDS[1]}"
+				command -f completion/git::completeremoteref \
+					"${WORDS[1]}"
 			fi
 			;;
 	esac
