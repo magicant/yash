@@ -28,6 +28,8 @@ Yash 2.49
   .  Updated completion scripts:
     *  Remote branch names are now correctly completed for the
        argument to Git remote/fetch/pull/push commands.
+    *  Local pathname operands are now correctly completed for the
+       rsync command.
 
 ----------------------------------------------------------------------
 Yash 2.48

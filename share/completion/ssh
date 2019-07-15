@@ -310,7 +310,7 @@ function completion/ssh::completehostname {
 }
 
 function completion/ssh::completeremotepath
-	case $cmd in (scp|sftp)
+	case $cmd in (scp|sftp|rsync)
 		PREFIX=${TARGETWORD%"$path"}
 		typeset host="${${PREFIX%[/:]}/#${cmd}:\/\//ssh:\/\/}"
 		typeset name="${path##*/}"
@@ -334,7 +334,7 @@ function completion/ssh::completeremotepath
 	esac
 
 function completion/ssh::completelocalpath
-	case $cmd in (scp)
+	case $cmd in (scp|rsync)
 		typeset slash=false
 		case $TARGETWORD in (*/*)
 			slash=

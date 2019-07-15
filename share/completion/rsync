@@ -216,6 +216,7 @@ function completion/rsync::operand {
 	#TODO support rsync daemon protocol
 
 	command -f completion//getoperands
+	WORDS=(rsync "$WORDS")
 
 	if command -vf completion/scp::operand >/dev/null 2>&1 ||
 			. -AL completion/ssh; then
