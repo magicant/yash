@@ -463,7 +463,7 @@ void reset_locale(const wchar_t *name)
 	/* POSIX forbids resetting LC_CTYPE even if the value of the variable
 	 * is changed, but we do reset LC_CTYPE if the shell is interactive and
 	 * not in the POSIXly-correct mode. */
-	if (wcscmp(name + 3, L VAR_LC_ALL + 3) == 0) {
+	if (wcscmp(&name[3], &(L VAR_LC_ALL)[3]) == 0) {
 reset_locale_all:
 	    reset_locale_category(L VAR_LC_COLLATE, LC_COLLATE);
 	    if (!posixly_correct && is_interactive_now)
@@ -472,18 +472,18 @@ reset_locale_all:
 	    reset_locale_category(L VAR_LC_MONETARY, LC_MONETARY);
 	    reset_locale_category(L VAR_LC_NUMERIC, LC_NUMERIC);
 	    reset_locale_category(L VAR_LC_TIME, LC_TIME);
-	} else if (wcscmp(name + 3, L VAR_LC_COLLATE + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_COLLATE)[3]) == 0) {
 	    reset_locale_category(L VAR_LC_COLLATE, LC_COLLATE);
-	} else if (wcscmp(name + 3, L VAR_LC_CTYPE + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_CTYPE)[3]) == 0) {
 	    if (!posixly_correct && is_interactive_now)
 		reset_locale_category(L VAR_LC_CTYPE, LC_CTYPE);
-	} else if (wcscmp(name + 3, L VAR_LC_MESSAGES + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_MESSAGES)[3]) == 0) {
 	    reset_locale_category(L VAR_LC_MESSAGES, LC_MESSAGES);
-	} else if (wcscmp(name + 3, L VAR_LC_MONETARY + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_MONETARY)[3]) == 0) {
 	    reset_locale_category(L VAR_LC_MONETARY, LC_MONETARY);
-	} else if (wcscmp(name + 3, L VAR_LC_NUMERIC + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_NUMERIC)[3]) == 0) {
 	    reset_locale_category(L VAR_LC_NUMERIC, LC_NUMERIC);
-	} else if (wcscmp(name + 3, L VAR_LC_TIME + 3) == 0) {
+	} else if (wcscmp(&name[3], &(L VAR_LC_TIME)[3]) == 0) {
 	    reset_locale_category(L VAR_LC_TIME, LC_TIME);
 	}
     }
