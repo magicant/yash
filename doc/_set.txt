@@ -206,9 +206,10 @@ link:params.html#sv-yash_after_cd[+YASH_AFTER_CD+] variable.
 
 [[so-unset]]unset (`+u`)::
 (Enabled by default)
-When enabled, undefined parameters are expanded to empty strings in
-link:expand.html#params[parameter expansion].
-When disabled, expansion of undefined parameter results in an error.
+When enabled, an undefined parameter is expanded to an empty string in
+link:expand.html#params[parameter expansion] and treated as zero in
+link:expand.html#arith[arithmetic expansion].
+When disabled, expansion of an undefined parameter results in an error.
 
 [[so-verbose]]verbose (+-v+)::
 When enabled, the shell prints each command line to the standard error before

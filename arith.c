@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,7 +94,7 @@ static void parse_assignment(evalinfo_T *info, value_T *result)
 static bool do_assignment(const word_T *word, const value_T *value)
     __attribute__((nonnull));
 static wchar_t *value_to_string(const value_T *value)
-    __attribute__((nonnull));
+    __attribute__((nonnull,malloc,warn_unused_result));
 static bool do_binary_calculation(
 	evalinfo_T *info, atokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
@@ -287,7 +287,7 @@ bool do_assignment(const word_T *word, const value_T *value)
 }
 
 /* Converts `value' to a newly-malloced wide string.
- * Returns NULL for VT_INVALID. */
+ * Returns NULL on error. */
 wchar_t *value_to_string(const value_T *value)
 {
     switch (value->type) {
@@ -305,7 +305,10 @@ wchar_t *value_to_string(const value_T *value)
 		const wchar_t *var = getvar(name);
 		if (var != NULL)
 		    return xwcsdup(var);
-		return malloc_wprintf(L"%ld", 0L);
+		if (shopt_unset)
+		    return malloc_wprintf(L"%ld", 0L);
+		xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), name);
+		return NULL;
 	    }
     }
     assert(false);
@@ -1013,6 +1016,13 @@ void coerce_number(evalinfo_T *info, value_T *value)
 	wmemcpy(namestr, name->contents, name->length);
 	namestr[name->length] = L'\0';
 	varvalue = getvar(namestr);
+
+	if (varvalue == NULL && !shopt_unset) {
+	    xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), namestr);
+	    info->error = true;
+	    value->type = VT_INVALID;
+	    return;
+	}
     }
     if (varvalue == NULL || varvalue[0] == L'\0') {
 	value->type = VT_LONG;

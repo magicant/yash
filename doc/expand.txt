@@ -453,7 +453,7 @@ An octal integer literal starts with +0+, and hexadecimal with +0x+.
 A floating-point number literal may have an exponent (i.e. `1.23e+6`).
 A variable with a non-numeric value will result in an error when parsed as a
 number.
-An unset variable is treated as a value of zero.
+An unset variable is treated as a value of zero if the link:_set.html#so-unset[unset option] is enabled.
 
 In the POSIXly-correct mode, variables are always parsed as numbers.
 Otherwise, variables are parsed only when they are used as numbers in

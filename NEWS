@@ -11,6 +11,8 @@ History of Yash
 Yash 2.49
 
   +  '--for-local' option.
+  =  The '--no-unset' option now rejects unset variables not only in
+     parameter expansion but also in arithmetic expansion.
   *  Expansion of ""$*, ""$@, $*"", and $@"" now correctly yields an
      empty string rather than nothing when there are no positional
      parameters.

@@ -234,6 +234,14 @@ __IN__
 [bar]
 __OUT__
 
+test_oE -e 0 'nounset on: set variable $((foo))' -u
+bracket $((x=42))
+bracket $((x))
+__IN__
+[42]
+[42]
+__OUT__
+
 test_oE -e 0 'nounset on: empty variable ${foo=bar}' -u
 bracket "${s=X}"
 bracket "${s}"
@@ -331,6 +339,10 @@ __IN__
 
 test_O -d -e n 'nounset on: unset variable ${foo%%bar}' -u
 bracket "${x%%y}"
+__IN__
+
+test_O -d -e n 'nounset on: unset variable $((foo))' -u
+bracket "$((x))"
 __IN__
 
 )

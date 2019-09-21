@@ -19,14 +19,7 @@ __IN__
 0 1 100 1 -1
 __OUT__
 
-test_oE -e 0 'unset variable is considered 0 (direct, +u)'
-unset x
-echoraw $((x))
-__IN__
-0
-__OUT__
-
-test_oE -e 0 'unset variable is considered 0 (direct, -u)' -u
+test_oE -e 0 'unset variable is considered 0 (direct)'
 unset x
 echoraw $((x))
 __IN__
@@ -175,15 +168,7 @@ echoraw $((a=5))
 echoraw not reached
 __IN__
 
-test_oE -e 0 'unset variable is considered 0 (assignment, +u)'
-unset x
-echoraw $((a=x)) && echoraw $a
-__IN__
-0
-0
-__OUT__
-
-test_oE -e 0 'unset variable is considered 0 (assignment, -u)' -u
+test_oE -e 0 'unset variable is considered 0 (assignment)'
 unset x
 echoraw $((a=x)) && echoraw $a
 __IN__

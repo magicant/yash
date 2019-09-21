@@ -193,6 +193,14 @@ no/such/command
 not found no/such/command
 __OUT__
 
+test_Oe -e 2 'unset off: unset variable $((foo))' -u
+eval '$((x))'
+__IN__
+eval: arithmetic: parameter `x' is not set
+__ERR__
+#'
+#`
+
 test_x -e 0 'abbreviation of -o argument' -o allex
 echo $- | grep -q a
 __IN__
