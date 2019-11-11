@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.50
+
+  *  Line-editing no longer hangs when the terminfo database maps a
+     key to an empty string.
+
+----------------------------------------------------------------------
 Yash 2.49
 
   +  '--for-local' option.

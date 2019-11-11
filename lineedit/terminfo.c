@@ -545,7 +545,7 @@ void set_up_keycodes(void)
     }
     for (size_t i = 0; i < sizeof keymap / sizeof *keymap; i++) {
 	const char *seq = tigetstr(keymap[i].capability);
-	if (is_strcap_valid(seq))
+	if (is_strcap_valid(seq) && seq[0] != '\0')
 	    t = trie_set(t, seq, (trievalue_T) { .keyseq = keymap[i].keyseq });
     }
 
