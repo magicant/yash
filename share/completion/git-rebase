@@ -1,7 +1,7 @@
-# (C) 2011-2013 magicant
+# (C) 2011-2019 magicant
 
 # Completion script for the "git-rebase" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.24.0.
 
 function completion/git-rebase {
 	WORDS=(git rebase "${WORDS[2,-1]}")
@@ -31,23 +31,37 @@ function completion/git::rebase:arg {
 function completion/git::rebase:getopt {
 	OPTIONS=("$OPTIONS" #>#
 	"--abort; abort the current rebasing and reset to the original"
+	"--allow-empty-message"
 	"--autosquash; find commits to be squashed (with -i)"
+	"--autostash; stash before and restore after rebasing"
 	"--committer-date-is-author-date; use author date for committer date"
 	"--continue; continue the current rebasing"
 	"--edit-todo; re-edit the to-do list of the current rebasing"
-	"f --force-rebase; rebase even if the branch is up-to-date"
+	"f --force-rebase --no-ff; create new commits without fast-forwarding"
+	"--fork-point; use reflog to find a better common ancestor"
 	"--ignore-date; use committer date for author date"
 	"i --interactive; interactively reedit commits that are rebased"
+	"--keep-base; apply commits starting from the same merge base"
 	"--keep-empty; don't omit commits that make no change"
 	"m --merge; use merging strategies to rebase"
 	"--no-autosquash; cancel the --autosquash option"
-	"--no-ff; don't fast-forward even if possible"
+	"--no-autostash; cancel the --autostash option"
+	"--no-fork-point; ignore reflog when finding a better common ancestor"
+	"--no-reschedule-failed-exec"
+	"--no-rerere-autoupdate; disable the rerere mechanism"
 	"n --no-stat; don't print a diffstat"
 	"--no-verify; don't run the pre-rebase hook"
 	"--onto; specify a branch to rebase onto"
-	"p --preserve-merges; don't ignore merge commits"
+	# Deprecated "p --preserve-merges; don't ignore merge commits"
 	"q --quiet; don't print anything"
+	"--quit; end suspended rebasing and keep the current state"
+	"r --rebase-merges::; recreate merge commits"
+	"--rerere-autoupdate; enable the rerere mechanism"
+	"--reschedule-failed-exec"
 	"--root; rebase all ancestor commits"
+	"S:: --gpg-sign::; sign commits with GPG"
+	"--signoff; add a \"signed-off-by\" line to the message"
+	"--show-current-patch"
 	"--skip; skip the current patch and continue rebasing"
 	"--stat; print a diffstat from the last rebase"
 	"s: --strategy:; specify the merge strategy"
@@ -64,6 +78,12 @@ function completion/git::rebase:getopt {
 
 function completion/git::rebase:compopt
 	case $ARGOPT in
+		(--rebase-merges)
+			complete -P "$PREFIX" no-rebase-cousins rebase-cousins
+			;;
+		(S|--gpg-sign)
+			#TODO
+			;;
 		(*)
 			if command -vf completion/git::apply:compopt >/dev/null 2>&1 ||
 					. -AL completion/git-apply; then
