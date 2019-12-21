@@ -312,7 +312,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	suppresserrreturn |= suppress;
 
 	bool self = finally_exit && !doing_job_control_now
-	    && !p->next && !p->pl_neg && !any_trap_set && !shopt_pipefail;
+	    && !p->next && !p->pl_neg && !any_trap_set;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
 	if (p->pl_neg) {
 	    if (laststatus == Exit_SUCCESS)
@@ -592,6 +592,9 @@ void exec_commands(command_T *c, exec_T type)
     for (cc = c; cc != NULL; cc = cc->next)
 	count++;
     assert(count > 0);
+
+    if (type == E_SELF && shopt_pipefail && count > 1)
+	type = E_NORMAL;
 
     job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
     ps = job->j_procs;
