@@ -9,7 +9,7 @@ __END__
 # $2 = signal name
 test_interactive_subshell_signal_ignore() {
     testcase "$1" "SIG$2 kills interactive shell's subshell" -i \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 ("$TESTEE" -c 'kill -s $2 \$PPID'; echo not reached)
 echo -
 __IN__
@@ -25,7 +25,7 @@ test_interactive_subshell_signal_ignore "$LINENO" TERM
 # $2 = signal name
 test_job_controlling_subshell_signal_ignore() {
     testcase "$1" "SIG$2 stops job-controlling shell's subshell" -im \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 ("$TESTEE" -c 'kill -s $2 \$PPID'; echo resumed)
 echo -
 fg >/dev/null

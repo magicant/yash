@@ -5,7 +5,7 @@
 # $2 = signal name
 test_noninteractive_job_controlling_shell_job_signal_kill() {
     testcase "$1" "SIG$2 kills non-interactive job-controlling shell's job" \
-	-m +i 3<<__IN__ 4<<__OUT__
+	-m +i 3<<__IN__ 4<<__OUT__ 5<&-
 (kill -s $2 0)
 kill -l \$?
 __IN__
@@ -46,7 +46,7 @@ test_noninteractive_job_controlling_shell_job_signal_ignore "$LINENO" URG
 test_noninteractive_job_controlling_shell_job_signal_stop() {
     testcase "$1" -e 0 \
 	"SIG$2 stops non-interactive job-controlling shell's job" \
-	-m +i 3<<__IN__ 4<<__OUT__
+	-m +i 3<<__IN__ 4<<__OUT__ 5<&-
 (kill -s $2 0; echo continued)
 kill -l \$?
 fg >/dev/null

@@ -582,7 +582,7 @@ pushd: $DIRSTACK is read-only
 __ERR__
 
 testcase "$LINENO" 'pushd: read-only array $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 DIRSTACK=(a)
 readonly DIRSTACK
 pushd testdir
@@ -602,7 +602,7 @@ pushd: $DIRSTACK is not an array
 __ERR__
 
 testcase "$LINENO" 'pushd: read-only non-array $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 readonly DIRSTACK=
 pushd testdir
 pwd
@@ -621,7 +621,7 @@ pushd: $DIRSTACK is not an array
 __ERR__
 
 testcase "$LINENO" 'pushd: read-only unset $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 unset DIRSTACK
 readonly DIRSTACK
 pushd testdir
@@ -637,7 +637,7 @@ pushd _no_such_directory_
 __IN__
 
 testcase "$LINENO" 'pushing non-existing directory, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 pushd _no_such_directory_
 pwd
 dirs
@@ -833,7 +833,7 @@ popd: $DIRSTACK is read-only
 __ERR__
 
 testcase "$LINENO" 'popd: read-only array $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 DIRSTACK=("$PWD/testdir")
 readonly DIRSTACK
 popd
@@ -853,7 +853,7 @@ popd: $DIRSTACK is not an array
 __ERR__
 
 testcase "$LINENO" 'popd: read-only non-array $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 readonly DIRSTACK=
 popd
 pwd
@@ -872,7 +872,7 @@ popd: $DIRSTACK is not an array
 __ERR__
 
 testcase "$LINENO" 'popd: read-only unset $DIRSTACK, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 unset DIRSTACK
 readonly DIRSTACK
 popd
@@ -889,7 +889,7 @@ popd
 __IN__
 
 testcase "$LINENO" 'popping to non-existing directory, result stack' \
-    3<<\__IN__ 4<<__OUT__
+    3<<\__IN__ 4<<__OUT__ 5<&-
 DIRSTACK=("$PWD/_no_such_directory_")
 popd
 pwd

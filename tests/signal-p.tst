@@ -6,7 +6,8 @@ posix="true"
 # $1 = line no.
 # $2 = signal name
 test_interactive_shell_signal_ignore() {
-    testcase "$1" "interactive shell ignores SIG$2" -i 3<<__IN__ 4<<\__OUT__
+    testcase "$1" "interactive shell ignores SIG$2" -i \
+	3<<__IN__ 4<<\__OUT__ 5<&-
 kill -s $2 \$\$
 echo -
 __IN__
@@ -22,7 +23,7 @@ test_interactive_shell_signal_ignore "$LINENO" TERM
 # $2 = signal name
 test_job_controlling_shell_signal_ignore() {
     testcase "$1" "job-controlling shell ignores SIG$2" -im \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 kill -s $2 \$\$
 echo -
 __IN__

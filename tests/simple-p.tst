@@ -284,7 +284,8 @@ sh
 link_to_sh
 __OUT__
 
-testcase "$LINENO" 'argv[0] (command name with slash)' 3<<\__IN__ 4<<__OUT__
+testcase "$LINENO" 'argv[0] (command name with slash)' \
+    3<<\__IN__ 4<<__OUT__ 5<&-
 "$(command -v sh)" -c 'echo "$0"'
 ./dir2/link_to_sh -c 'echo "$0"'
 __IN__

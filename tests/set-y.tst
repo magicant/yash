@@ -72,7 +72,7 @@ __OUT__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_short_option_on() {
-    testcase "$1" -e 0 "$3 (short) on: \$-" 3<<__IN__
+    testcase "$1" -e 0 "$3 (short) on: \$-" 3<<__IN__ 4<&- 5<&-
 set -$2 &&
 printf '%s\n' "\$-" | grep -q $2
 __IN__
@@ -80,7 +80,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_short_option_off() {
-    testcase "$1" -e 0 "$3 (short) off: \$-" "-$2" 3<<__IN__
+    testcase "$1" -e 0 "$3 (short) off: \$-" "-$2" 3<<__IN__ 4<&- 5<&-
 set +$2 &&
 printf '%s\n' "\$-" | grep -qv $2
 __IN__
@@ -88,7 +88,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_long_option_on() {
-    testcase "$1" -e 0 "$3 (long) on: \$-" 3<<__IN__
+    testcase "$1" -e 0 "$3 (long) on: \$-" 3<<__IN__ 4<&- 5<&-
 set -o $3 &&
 printf '%s\n' "\$-" | grep -q $2
 __IN__
@@ -96,7 +96,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_long_option_off() {
-    testcase "$1" -e 0 "$3 (long) off: \$-" "-$2" 3<<__IN__
+    testcase "$1" -e 0 "$3 (long) off: \$-" "-$2" 3<<__IN__ 4<&- 5<&-
 set +o $3 &&
 printf '%s\n' "\$-" | grep -qv $2
 __IN__
@@ -157,7 +157,7 @@ test_long_option_off  "$LINENO" x xtrace
 
 # $1 = $LINENO, $2 = long option
 test_long_option_default_off() {
-    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__
+    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__ 4<&- 5<&-
 save="\$(set +o)" &&
 set +o   $2 && test "\$(set +o)" =  "\$save" &&
 set -o   $2 && test "\$(set +o)" != "\$save" &&
@@ -172,7 +172,7 @@ __IN__
 
 # $1 = $LINENO, $2 = long option
 test_long_option_default_on() {
-    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__
+    testcase "$1" -e 0 "the $2 option is off by default" 3<<__IN__ 4<&- 5<&-
 save="\$(set +o)" &&
 set -o   $2 && test "\$(set +o)" =  "\$save" &&
 set +o   $2 && test "\$(set +o)" != "\$save" &&

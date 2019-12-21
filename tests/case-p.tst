@@ -281,7 +281,7 @@ __OUT__
 # $1 = LINENO
 # $2 = reserved word
 test_reserved_word_as_pattern() {
-    testcase "$1" "reserved word $2 as pattern" 3<<__IN__ 4<<\__OUT__
+    testcase "$1" "reserved word $2 as pattern" 5<&- 3<<__IN__ 4<<\__OUT__
 case $2 in $2) echo matched;; esac
 __IN__
 matched

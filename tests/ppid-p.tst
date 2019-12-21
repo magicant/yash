@@ -2,21 +2,11 @@
 
 posix="true"
 
-(
-SENT=false RECEIVED=false
-trap 'RECEIVED=true' USR2
-testee -c 'kill -s USR2 $PPID' && SENT=true
-export SENT RECEIVED
-
-test_oE 'PPID is parent process ID'
-echo sent=$SENT
-echo received=$RECEIVED
+test_OE -e 0 'PPID is parent process ID'
+echo $PPID >variable.out
+echo $(ps -o ppid= $$) >ps.out
+diff variable.out ps.out
 __IN__
-sent=true
-received=true
-__OUT__
-
-)
 
 test_OE -e 0 'PPID does not change in subshell'
 echo $PPID >main.out

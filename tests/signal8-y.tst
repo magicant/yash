@@ -4,8 +4,8 @@
 # $2 = signal name
 test_noninteractive_non_job_controlling_shell_job_signal_kill() {
     testcase "$1" \
-	"SIG$2 kills non-interactive non-job-controlling shell's job" \
-	+im 3<<__IN__ 4<<__OUT__
+	"SIG$2 kills non-interactive non-job-controlling shell's job" +im \
+	3<<__IN__ 4<<__OUT__ 5<&-
 "$TESTEE" -c 'kill -s $2 \$\$; echo not reached'
 kill -l \$?
 __IN__
@@ -32,8 +32,8 @@ test_noninteractive_non_job_controlling_shell_job_signal_kill "$LINENO" USR2
 # $2 = signal name
 test_noninteractive_non_job_controlling_shell_job_signal_ignore() {
     testcase "$1" -e 0 \
-	"SIG$2 spares non-interactive non-job-controlling shell's job" \
-	+im 3<<__IN__ 4<<\__OUT__ 5</dev/null
+	"SIG$2 spares non-interactive non-job-controlling shell's job" +im \
+	3<<__IN__ 4<<\__OUT__ 5</dev/null
 "$TESTEE" -c 'kill -s $2 \$\$ && echo ok'
 __IN__
 ok

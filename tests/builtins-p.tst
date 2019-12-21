@@ -207,7 +207,7 @@ __IN__
 # $2 = command name (other than special built-ins)
 test_nonspecial_builtin_function_override() {
     testcase "$1" "function overrides non-special command $2" \
-	3<<__IN__ 4<<__OUT__
+	5<&- 3<<__IN__ 4<<__OUT__
 $2() { echo function overrides $2; }
 $2 XXX
 __IN__
