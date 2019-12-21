@@ -12,6 +12,10 @@ Yash 2.50
 
   *  Line-editing no longer hangs when the terminfo database maps a
      key to an empty string.
+  .  Updated the sample initialization script (yashrc):
+    +  A wrapper function for the "crontab" command is now installed
+       to prevent accidental removal by "crontab -r" where the user
+       intends "crontab -e".
   .  Updated completion scripts:
     +  git-rebase: support new options in Git 2.24.0.
 

@@ -138,6 +138,26 @@ if command --identify vim >/dev/null 2>&1; then
 
 fi
 
+# avoid removing existing crontab by accident
+crontab()
+if [ -t 0 ] && (
+  for arg do
+    case "${arg}" in
+      (-*r*) exit;;
+    esac
+  done
+  false
+) then
+  printf 'crontab: seems you are trying to clear your crontab.\n' >&2
+  printf 'are you sure? (yes/no) ' >&2
+  case "$(head -n 1)" in
+    ([Yy]*) command crontab "$@";;
+    (*)     printf 'crontab: cancelled.\n' >&2;;
+  esac
+else
+  command crontab "$@"
+fi
+
 # an alias that opens a file
 if command --identify xdg-open >/dev/null 2>&1; then
   alias o='xdg-open'
