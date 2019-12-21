@@ -273,7 +273,7 @@ function completion/set::getopt {
 		"lecompdebug; print debugging info during command line completion"
 		"notifyle; print job status immediately when done while line-editing"
 		"nullglob; remove words that matched nothing in pathname expansion"
-		"pipefail; fail the whole pipeline if any of its commands fails"
+		"pipefail; return last non-zero exit status of commands in a pipe"
 		"posix; force strict POSIX conformance"
 		"traceall; print trace of auxiliary commands"
 		) #<#
