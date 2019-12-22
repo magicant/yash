@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2019 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -51,6 +52,10 @@
 #endif
 
 
+static bool is_seekable_file(int fd);
+static inputresult_T optimized_read_input(
+	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+    __attribute__((nonnull));
 static wchar_t *expand_prompt_variable(wchar_t num, wchar_t suffix)
     __attribute__((malloc,warn_unused_result));
 static const wchar_t *get_prompt_variable(wchar_t num, wchar_t suffix)
@@ -104,6 +109,9 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 inputresult_T read_input(
 	xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
 {
+    if (info->bufsize == 1 && is_seekable_file(info->fd))
+	return optimized_read_input(buf, info, trap);
+
     size_t initlen = buf->length;
     inputresult_T status = INPUT_EOF;
 
@@ -174,6 +182,50 @@ end:
 	return INPUT_OK;
     else
 	return status;
+}
+
+/* Checks if the file descriptor is seekable. */
+bool is_seekable_file(int fd)
+{
+    struct stat st;
+    return (fstat(fd, &st) == 0) && S_ISREG(st.st_mode);
+    /* The result of lseek for an unseekable FD is implementation-defined, so we
+     * should not assume such lseek to fail. We only assume a regular file is
+     * always seekable. */
+}
+
+/* Works like `read_input', but improves performance by reading many bytes at
+ * once even if `info->bufsize' is 1. The input file descriptor must be
+ * seekable. */
+inputresult_T optimized_read_input(
+	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+{
+    struct input_file_info_T *tmpinfo =
+	xmallocs(sizeof *tmpinfo, BUFSIZ, sizeof *tmpinfo->buf);
+    tmpinfo->fd = info->fd;
+    tmpinfo->state = info->state;
+    tmpinfo->bufpos = tmpinfo->bufmax = 0;
+    tmpinfo->bufsize = BUFSIZ;
+
+    while (info->bufpos < info->bufmax)
+	tmpinfo->buf[tmpinfo->bufmax++] = info->buf[info->bufpos++];
+
+    inputresult_T result = read_input(buf, tmpinfo, trap);
+
+    if (tmpinfo->bufpos < tmpinfo->bufmax) {
+	/* rewind the FD to pretend we're not buffering */
+	off_t diff = tmpinfo->bufmax - tmpinfo->bufpos;
+	if (lseek(tmpinfo->fd, -diff, SEEK_CUR) == (off_t) -1) {
+	    xerror(errno,
+		    Ngt("cannot rewind file descriptor %d after reading. "
+			"Subsequent reads may lack some text"),
+		    tmpinfo->fd);
+	}
+    }
+
+    info->state = tmpinfo->state;
+    free(tmpinfo);
+    return result;
 }
 
 /* An input function that prints a prompt and reads input.
