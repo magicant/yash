@@ -1241,7 +1241,22 @@ void exec_simple_command(
 	laststatus = Exit_NOTFOUND;
 	break;
     case CT_EXTERNALPROGRAM:
-	assert(finally_exit);
+	if (!finally_exit) {
+	    pid_t cpid = fork_and_reset(0, true, t_leave);
+	    if (cpid < 0) {
+		laststatus = Exit_NOEXEC;
+		break;
+	    } else if (cpid > 0) {
+		wchar_t **namep = wait_for_child(
+			cpid,
+			doing_job_control_now ? cpid : 0,
+			doing_job_control_now);
+		if (namep != NULL)
+		    *namep = joinwcsarray(argv, L" ");
+		break;
+	    }
+	    finally_exit = true;
+	}
 	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
 	break;
     case CT_SPECIALBUILTIN:
@@ -2295,7 +2310,6 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
 {
     char *argv0 = malloc_wcstombs(argv[0]);
     commandinfo_T ci;
-    bool finally_exit = false;
 
     if (argv0 == NULL) {
 	xerror(EILSEQ, NULL);
@@ -2303,24 +2317,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     }
 
     search_command(argv0, argv[0], &ci, type);
-    if (ci.type == CT_EXTERNALPROGRAM) {
-	pid_t cpid = fork_and_reset(0, true, t_leave);
-	if (cpid < 0) {
-	    free(argv0);
-	    return Exit_NOEXEC;
-	} else if (cpid > 0) {
-	    wchar_t **namep = wait_for_child(
-		    cpid,
-		    doing_job_control_now ? cpid : 0,
-		    doing_job_control_now);
-	    if (namep != NULL)
-		*namep = joinwcsarray(argv, L" ");
-	    free(argv0);
-	    return laststatus;
-	}
-	finally_exit = true;
-    }
-    exec_simple_command(&ci, argc, argv0, argv, finally_exit);
+    exec_simple_command(&ci, argc, argv0, argv, false);
     free(argv0);
     return laststatus;
 }
