@@ -174,9 +174,6 @@ void remove_all_jobs(void)
 void free_job(job_T *job)
 {
     if (job != NULL) {
-#ifndef NDEBUG
-	assert(!job->j_beingwaitedfor);
-#endif
 	for (size_t i = 0; i < job->j_pcount; i++)
 	    free(job->j_procs[i].pr_name);
 	free(job);
@@ -460,10 +457,8 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
     job_T *job = joblist.contents[jobnumber];
 
     if (!job->j_legacy) {
-#ifndef NDEBUG
-	assert(!job->j_beingwaitedfor);
-	job->j_beingwaitedfor = true;
-#endif
+	bool savenonotify = job->j_nonotify;
+	job->j_nonotify = true;
 	for (;;) {
 	    if (job->j_status == JS_DONE)
 		break;
@@ -473,9 +468,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
 	    if (signum != 0)
 		break;
 	}
-#ifndef NDEBUG
-	job->j_beingwaitedfor = false;
-#endif
+	job->j_nonotify = savenonotify;
     }
     return signum;
 }
@@ -502,9 +495,7 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     job->j_status = JS_RUNNING;
     job->j_statuschanged = false;
     job->j_legacy = false;
-#ifndef NDEBUG
-    job->j_beingwaitedfor = false;
-#endif
+    job->j_nonotify = false;
     job->j_pcount = 1;
     job->j_procs[0].pr_pid = cpid;
     job->j_procs[0].pr_status = JS_RUNNING;
@@ -748,7 +739,7 @@ bool any_job_status_has_changed(void)
 {
     for (size_t i = 1; i < joblist.length; i++) {
 	const job_T *job = get_job(i);
-	if (job != NULL && job->j_statuschanged)
+	if (job != NULL && !job->j_nonotify && job->j_statuschanged)
 	    return true;
     }
     return false;
@@ -766,18 +757,19 @@ bool any_job_status_has_changed(void)
 int print_job_status(size_t jobnumber,
 	bool changedonly, bool verbose, bool remove_done, FILE *f)
 {
+    int result = 0;
+
     job_T *job = get_job(jobnumber);
-    if (job == NULL)
-	return 0;
+    if (job == NULL || job->j_nonotify)
+	return result;
     if (changedonly && !job->j_statuschanged)
-	return 0;
+	return result;
 
     char current;
     if      (jobnumber == current_jobnumber)  current = '+';
     else if (jobnumber == previous_jobnumber) current = '-';
     else                                      current = ' ';
 
-    int result;
     if (!verbose) {
 	bool needfree;
 	char *status = get_job_status_string(job, &needfree);

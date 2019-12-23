@@ -351,9 +351,7 @@ void exec_pipelines_async(const pipeline_T *p)
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = true;
 	job->j_legacy = false;
-#ifndef NDEBUG
-	job->j_beingwaitedfor = false;
-#endif
+	job->j_nonotify = false;
 	job->j_pcount = 1;
 
 	set_active_job(job);
@@ -636,9 +634,7 @@ void exec_commands(command_T *c, exec_T type)
 	job->j_status = JS_RUNNING;
 	job->j_statuschanged = true;
 	job->j_legacy = false;
-#ifndef NDEBUG
-	job->j_beingwaitedfor = false;
-#endif
+	job->j_nonotify = false;
 	job->j_pcount = count;
 	set_active_job(job);
 	if (type == E_NORMAL) {

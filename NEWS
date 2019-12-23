@@ -10,6 +10,9 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.50
 
+  *  With the "-o notify" option enabled, the "fg" built-in was
+     redundantly reporting the status of the job that had been resumed
+     and exited.
   *  Line-editing no longer hangs when the terminfo database maps a
      key to an empty string.
   .  Updated the sample initialization script (yashrc):
