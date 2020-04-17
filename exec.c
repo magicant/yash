@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -798,8 +798,6 @@ pid_t exec_process(
 
     current_lineno = c->c_lineno;
 
-    /* fork first if `type' is E_ASYNC, the command type is subshell,
-     * or there is a pipe. */
     finally_exit = (type == E_SELF);
     if (finally_exit) {
 	if (c->c_type == CT_SUBSHELL)
@@ -807,6 +805,8 @@ pid_t exec_process(
 	     * subshell directly in this process. */
 	    become_child(false);
     } else {
+	/* fork first if `type' is E_ASYNC, the command type is subshell,
+	 * or there is a pipe. */
 	if (type == E_ASYNC || c->c_type == CT_SUBSHELL
 		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0) {
 	    sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
