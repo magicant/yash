@@ -796,7 +796,7 @@ pid_t exec_process(
     char *argv0 = NULL;
     pid_t cpid = 0;
 
-    current_lineno = c->c_lineno;
+    update_lineno(c->c_lineno);
 
     finally_exit = (type == E_SELF);
     if (finally_exit) {

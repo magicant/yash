@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,8 +82,6 @@ typedef enum path_T {
     PA_count,
 } path_T;
 
-extern unsigned long current_lineno;
-
 extern void init_environment(void);
 extern void init_variables(void);
 
@@ -123,6 +121,8 @@ extern void save_get_variable_values(struct get_variable_T *gv)
 
 extern void open_new_environment(_Bool temp);
 extern void close_current_environment(void);
+
+extern void update_lineno(unsigned long lineno);
 
 extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));

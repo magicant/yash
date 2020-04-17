@@ -203,4 +203,15 @@ b 1
 f 4
 __OUT__
 
+test_oE -e 0 'exporting LINENO'
+readonly LINENO # yash updates LINENO even if it is readonly
+export LINENO
+:
+awk 'END { print ENVIRON["LINENO"] }' </dev/null
+exec awk 'END { print ENVIRON["LINENO"] }' </dev/null
+__IN__
+4
+5
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

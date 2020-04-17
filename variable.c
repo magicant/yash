@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -293,8 +293,8 @@ void init_variables(void)
 	v->v_value = NULL;
 	v->v_getter = lineno_getter;
 	// variable_set(VAR_LINENO, v);
-	if (v->v_type & VF_EXPORT)
-	    update_environment(L VAR_LINENO);
+	// if (v->v_type & VF_EXPORT)
+	//     update_environment(L VAR_LINENO);
     }
 
     /* set $MAILCHECK */
@@ -1010,7 +1010,21 @@ void close_current_environment(void)
 /********** Getters **********/
 
 /* line number of the currently executing command */
-unsigned long current_lineno;
+static unsigned long current_lineno;
+
+/* Sets `current_lineno' and re-exports $LINENO if it is exported. */
+void update_lineno(unsigned long lineno)
+{
+    current_lineno = lineno;
+
+    variable_T *var = search_variable(L VAR_LINENO);
+    if (var != NULL && var->v_getter == lineno_getter &&
+	    (var->v_type & VF_EXPORT)) {
+	// Need to update the environment so the correct value is exported to
+	// external commands
+	lineno_getter(var);
+    }
+}
 
 /* getter for $LINENO */
 void lineno_getter(variable_T *var)
