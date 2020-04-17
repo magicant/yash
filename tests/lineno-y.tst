@@ -214,4 +214,19 @@ __IN__
 5
 __OUT__
 
+test_oE -e 0 'assigning to LINENO'
+LINENO=10
+echo $LINENO
+__IN__
+10
+__OUT__
+
+test_oE -e 0 'unsetting LINENO'
+unset LINENO
+LINENO=10
+echo $LINENO
+__IN__
+10
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
