@@ -1717,6 +1717,9 @@ static bool print_command_info(const wchar_t *commandname,
 static void print_command_absolute_path(
 	const char *name, const char *path, bool humanfriendly)
     __attribute__((nonnull));
+static void print_command_path(
+	const char *name, const char *path, bool humanfriendly)
+    __attribute__((nonnull));
 
 /* Options for the "break", "continue" and "eval" built-ins. */
 const struct xgetopt_T iter_options[] = {
@@ -2396,33 +2399,44 @@ void print_command_absolute_path(
 {
     if (path[0] == '/') {
 	/* the path is already absolute */
-	if (humanfriendly)
-	    xprintf(gt("%s: an external command at %s\n"), name, path);
-	else
-	    xprintf("%s\n", path);
+	print_command_path(name, path, humanfriendly);
 	return;
     }
 
+    xstrbuf_T abspath;
+    sb_init(&abspath);
+
     const wchar_t *wpwd = getvar(L VAR_PWD);
-    char *pwd = NULL;
     if (wpwd != NULL) {
-	pwd = malloc_wcstombs(wpwd);
-	if (pwd != NULL && !is_same_file(pwd, ".")) {
-	    free(pwd);
-	    pwd = NULL;
+	int r = sb_printf(&abspath, "%ls", wpwd);
+	if (r < 0 || !is_same_file(abspath.contents, ".")) {
+	    sb_truncate(&abspath, 0);
 	}
     }
-    if (pwd == NULL) {
-	pwd = xgetcwd();
-	if (pwd == NULL)
-	    pwd = xstrdup(".");  /* last resort */
+    if (abspath.length == 0) {
+	char *pwd = xgetcwd();
+	if (pwd != NULL)
+	    sb_catfree(&abspath, pwd);
+	else
+	    sb_ccat(&abspath, '.');  /* last resort */
     }
 
+    if (abspath.length == 0 || abspath.contents[abspath.length - 1] != '/')
+	sb_ccat(&abspath, '/');
+
+    sb_cat(&abspath, path);
+
+    print_command_path(name, abspath.contents, humanfriendly);
+    sb_destroy(&abspath);
+}
+
+void print_command_path(
+	const char *name, const char *path, bool humanfriendly)
+{
     if (humanfriendly)
-	xprintf(gt("%s: an external command at %s/%s\n"), name, pwd, path);
+	xprintf(gt("%s: an external command at %s\n"), name, path);
     else
-	xprintf("%s/%s\n", pwd, path);
-    free(pwd);
+	xprintf("%s\n", path);
 }
 
 #if YASH_ENABLE_HELP

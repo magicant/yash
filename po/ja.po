@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: yash 2.50\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2020-05-30 23:51+0900\n"
-"PO-Revision-Date: 2020-05-30 23:58+0900\n"
+"PO-Revision-Date: 2020-08-27 22:45+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -548,11 +548,6 @@ msgstr "%s: 関数\n"
 #, c-format
 msgid "%s: an external command at %s\n"
 msgstr "%s: 外部コマンド (%s)\n"
-
-#: exec.c:2422
-#, c-format
-msgid "%s: an external command at %s/%s\n"
-msgstr "%s: 外部コマンド (%s/%s)\n"
 
 #: exec.c:2431
 msgid "execute or identify a command"

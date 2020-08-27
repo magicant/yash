@@ -183,6 +183,34 @@ command -ve cat &&
 command --identify --external-command cat
 __IN__
 
+(
+cd -P . # normalize $PWD
+case $PWD in (//*|*/) skip="true"; esac
+
+>foo
+chmod a+x foo
+
+testcase "$LINENO" \
+    -e 0 'output of describing absolute external command (-v, with slash)' \
+    3<<\__IN__ 4<<__OUT__ 5</dev/null
+command -v "${PWD}/foo"
+__IN__
+${PWD}/foo
+__OUT__
+
+testcase "$LINENO" \
+    -e 0 'output of describing relative external command (-v, with slash)' -e \
+    3<<\__IN__ 4<<__OUT__ 5</dev/null
+command -v "./foo"
+cd /
+command -v "${OLDPWD#/}/foo"
+__IN__
+${PWD}/./foo
+${PWD}/foo
+__OUT__
+
+)
+
 test_oE -e 0 'describing function with -f option'
 true() { :; }
 command -vf true &&

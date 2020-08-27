@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.51
+
+  *  The "command" built-in with the -v or -V option was printing
+     the pathnames of external commands with a redundant leading slash
+     when the current working directory is "/" or "//".
+
+----------------------------------------------------------------------
 Yash 2.50
 
   *  With the "-o notify" option enabled, the "fg" built-in was
