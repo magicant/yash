@@ -49,10 +49,6 @@
  * steps. */
 #define CHARS_ESCAPED L"\\\"\'{,}"
 
-static bool expand_and_split_words(
-	const wordunit_T *restrict w, plist_T *restrict list)
-    __attribute__((nonnull(2)));
-
 /* data passed between expansion functions */
 struct expand_four_T {
     plist_T valuelist, splitlist;
@@ -191,36 +187,6 @@ bool expand_line(void *const *restrict args,
  * On error in a non-interactive shell, the shell exits. */
 bool expand_multiple(const wordunit_T *w, plist_T *list)
 {
-    plist_T templist;
-
-    /* four expansions, brace expansions and field splitting */
-    if (!expand_and_split_words(w, pl_init(&templist))) {
-	maybe_exit_on_error();
-	plfree(pl_toary(&templist), free);
-	return false;
-    }
-
-    /* glob */
-    if (shopt_glob) {
-	glob_all(pl_toary(&templist), list);
-    } else {
-	for (size_t i = 0; i < templist.length; i++)
-	    pl_add(list, unescapefree(templist.contents[i]));
-	pl_destroy(&templist);
-    }
-
-    return true;
-}
-
-/* Performs the four expansions, brace expansion and field splitting in a word.
- * The four expansions are tilde expansion, parameter expansion, command
- * substitution and arithmetic expansion.
- * Returns true iff successful. The resulting words are added to `list', which
- * may include backslash escapes.
- * Tilde expansion is performed with TT_SINGLE. */
-bool expand_and_split_words(
-	const wordunit_T *restrict w, plist_T *restrict list)
-{
     struct expand_four_T expand;
     pl_init(&expand.valuelist);
     pl_init(&expand.splitlist);
@@ -234,6 +200,7 @@ bool expand_and_split_words(
 	plfree(pl_toary(&expand.splitlist), free);
 	wb_destroy(&expand.valuebuf);
 	sb_destroy(&expand.splitbuf);
+	maybe_exit_on_error();
 	return false;
     }
     assert(expand.valuebuf.length == expand.splitbuf.length);
@@ -247,31 +214,40 @@ bool expand_and_split_words(
 	pl_init(&splitlist2);
 	expand_brace_each(expand.valuelist.contents, expand.splitlist.contents,
 		&valuelist2, &splitlist2);
-	pl_destroy(&expand.valuelist);
+	pl_clear(&expand.valuelist, 0);
 	pl_destroy(&expand.splitlist);
     } else {
 	valuelist2 = expand.valuelist;
 	splitlist2 = expand.splitlist;
+	pl_init(&expand.valuelist);
     }
 
-    /* field splitting (valuelist2 -> list) */
-    size_t oldlength = list->length;
-    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), list);
-    assert(oldlength <= list->length);
+    /* field splitting (valuelist2 -> valuelist) */
+    fieldsplit_all(
+	    pl_toary(&valuelist2), pl_toary(&splitlist2), &expand.valuelist);
 
     /* empty field removal */
-    if (list->length - oldlength == 1) {
-	wchar_t *field = list->contents[oldlength];
+    if (expand.valuelist.length == 1) {
+	const wchar_t *field = expand.valuelist.contents[0];
 	if (field[0] == L'\0' ||
 		(expand.zeroword && wcscmp(field, L"\"\"") == 0)) {
-	    free(field);
-	    pl_remove(list, oldlength, 1);
+	    pl_clear(&expand.valuelist, free);
 	}
     }
 
     /* quote removal */
-    for (size_t i = oldlength; i < list->length; i++)
-	list->contents[i] = escaped_remove_free(list->contents[i], L"\"\'");
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+	expand.valuelist.contents[i] =
+	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
+
+    /* globbing (valuelist -> list) */
+    if (shopt_glob) {
+	glob_all(pl_toary(&expand.valuelist), list);
+    } else {
+	for (size_t i = 0; i < expand.valuelist.length; i++)
+	    pl_add(list, unescapefree(expand.valuelist.contents[i]));
+	pl_destroy(&expand.valuelist);
+    }
 
     return true;
 }
