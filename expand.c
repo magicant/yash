@@ -55,7 +55,7 @@ static bool expand_and_split_words(
 
 /* data passed between expansion functions */
 struct expand_four_T {
-    plist_T *valuelist, *splitlist;
+    plist_T valuelist, splitlist;
     xwcsbuf_T valuebuf;
     xstrbuf_T splitbuf;
     bool zeroword;
@@ -221,43 +221,40 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 bool expand_and_split_words(
 	const wordunit_T *restrict w, plist_T *restrict list)
 {
-    plist_T valuelist1, valuelist2, splitlist1, splitlist2;
-    pl_init(&valuelist1);
-    pl_init(&splitlist1);
-
     struct expand_four_T expand;
-    expand.valuelist = &valuelist1;
-    expand.splitlist = &splitlist1;
+    pl_init(&expand.valuelist);
+    pl_init(&expand.splitlist);
     wb_init(&expand.valuebuf);
     sb_init(&expand.splitbuf);
     expand.zeroword = false;
 
-    /* four expansions (w -> list1) */
+    /* four expansions (w -> valuelist) */
     if (!expand_four(w, TT_SINGLE, true, false, false, &expand)) {
-	plfree(pl_toary(&valuelist1), free);
-	plfree(pl_toary(&splitlist1), free);
+	plfree(pl_toary(&expand.valuelist), free);
+	plfree(pl_toary(&expand.splitlist), free);
 	wb_destroy(&expand.valuebuf);
 	sb_destroy(&expand.splitbuf);
 	return false;
     }
     assert(expand.valuebuf.length == expand.splitbuf.length);
-    pl_add(expand.valuelist, wb_towcs(&expand.valuebuf));
-    pl_add(expand.splitlist, sb_tostr(&expand.splitbuf));
+    pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
+    pl_add(&expand.splitlist, sb_tostr(&expand.splitbuf));
 
-    /* brace expansion (list1 -> list2) */
+    /* brace expansion (valuelist -> valuelist2) */
+    plist_T valuelist2, splitlist2;
     if (shopt_braceexpand) {
 	pl_init(&valuelist2);
 	pl_init(&splitlist2);
-	expand_brace_each(valuelist1.contents, splitlist1.contents,
+	expand_brace_each(expand.valuelist.contents, expand.splitlist.contents,
 		&valuelist2, &splitlist2);
-	pl_destroy(&valuelist1);
-	pl_destroy(&splitlist1);
+	pl_destroy(&expand.valuelist);
+	pl_destroy(&expand.splitlist);
     } else {
-	valuelist2 = valuelist1;
-	splitlist2 = splitlist1;
+	valuelist2 = expand.valuelist;
+	splitlist2 = expand.splitlist;
     }
 
-    /* field splitting (list2 -> list) */
+    /* field splitting (valuelist2 -> list) */
     size_t oldlength = list->length;
     fieldsplit_all(pl_toary(&valuelist2), pl_toary(&splitlist2), list);
     assert(oldlength <= list->length);
@@ -400,12 +397,14 @@ bool expand_four_and_remove_quotes(
     size_t oldlength = valuelist->length;
     struct expand_four_T expand;
 
-    expand.valuelist = valuelist;
+    expand.valuelist = *valuelist;
     wb_init(&expand.valuebuf);
-    expand.splitlist = NULL;
+    expand.splitlist.contents = NULL;
     expand.zeroword = false;
 
     bool ok = expand_four(w, tilde, processquotes, escapeall, false, &expand);
+
+    *valuelist = expand.valuelist;
 
     /* remove empty word for "$@" if $# == 0 */
     if (valuelist->length == oldlength && expand.zeroword &&
@@ -564,7 +563,7 @@ cat_s:
  * with `e->valuebuf'. */
 void fill_splitbuf(struct expand_four_T *e, bool splittable)
 {
-    if (e->splitlist == NULL)
+    if (e->splitlist.contents == NULL)
 	return;
     sb_ccat_repeat(
 	    &e->splitbuf, splittable, e->valuebuf.length - e->splitbuf.length);
@@ -914,23 +913,23 @@ subst:
 	wb_catfree(&e->valuebuf, values[0]);
 	fill_splitbuf(e, !indq);
 	if (values[1] != NULL) {
-	    pl_add(e->valuelist, wb_towcs(&e->valuebuf));
-	    if (e->splitlist != NULL)
-		pl_add(e->splitlist, sb_tostr(&e->splitbuf));
+	    pl_add(&e->valuelist, wb_towcs(&e->valuebuf));
+	    if (e->splitlist.contents != NULL)
+		pl_add(&e->splitlist, sb_tostr(&e->splitbuf));
 
 	    /* add the remaining but last */
 	    size_t i;
 	    for (i = 1; values[i + 1] != NULL; i++) {
-		pl_add(e->valuelist, values[i]);
-		if (e->splitlist != NULL) {
+		pl_add(&e->valuelist, values[i]);
+		if (e->splitlist.contents != NULL) {
 		    size_t len = wcslen(values[i]);
-		    pl_add(e->splitlist, memset(xmalloc(len), !indq, len));
+		    pl_add(&e->splitlist, memset(xmalloc(len), !indq, len));
 		}
 	    }
 
 	    /* add the last element */
 	    wb_initwith(&e->valuebuf, values[i]);
-	    if (e->splitlist != NULL) {
+	    if (e->splitlist.contents != NULL) {
 		sb_init(&e->splitbuf);
 		fill_splitbuf(e, !indq);
 	    }
