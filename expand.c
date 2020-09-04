@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,11 +59,9 @@ struct expand_four_T {
 /* When "$@" appears during expansion and there is no positional parameter, the
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
-static bool expand_four_and_remove_quotes(
+static plist_T expand_four_and_remove_quotes(
 	const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall,
-	plist_T *restrict valuelist)
-    __attribute__((nonnull(5)));
+	tildetype_T tilde, bool processquotes, bool escapeall);
 static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
 	struct expand_four_T *restrict e)
@@ -268,13 +266,10 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 wchar_t *expand_single(const wordunit_T *arg,
 	tildetype_T tilde, bool processquotes, bool escapeall)
 {
-    plist_T list;
-    pl_init(&list);
-
-    if (!expand_four_and_remove_quotes(
-		arg, tilde, processquotes, escapeall, &list)) {
+    plist_T list =
+	expand_four_and_remove_quotes(arg, tilde, processquotes, escapeall);
+    if (list.contents == NULL) {
 	maybe_exit_on_error();
-	plfree(pl_toary(&list), free);
 	return NULL;
     }
 
@@ -360,41 +355,42 @@ noglob:
  * entire expansion is quoted.
  * If `processquotes' and `escapeall' are false, only backslashes not preceding
  * any of $, `, \ are self-backslashed.
- * The expanded word is added to `valuelist' as a newly malloced wide string.
+ * If successful, the return value is a plist_T containing newly malloced wide
+ * strings. In most cases, the plist_T contains one string. If the word contains
+ * "$@", however, it may contain any number of strings.
  * Single- or double-quoted characters are unquoted and backslashed.
- * In most cases, one string is added to `valuelist'. If the word contains "$@",
- * however, any number of strings may be added.
- * The return value is true iff successful. */
-bool expand_four_and_remove_quotes(
+ * On error, the return value is a plist_T with `contents' being NULL. */
+plist_T expand_four_and_remove_quotes(
 	const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall,
-	plist_T *restrict valuelist)
+	tildetype_T tilde, bool processquotes, bool escapeall)
 {
-    size_t oldlength = valuelist->length;
     struct expand_four_T expand;
 
-    expand.valuelist = *valuelist;
+    pl_init(&expand.valuelist);
     wb_init(&expand.valuebuf);
     expand.splitlist.contents = NULL;
     expand.zeroword = false;
 
-    bool ok = expand_four(w, tilde, processquotes, escapeall, false, &expand);
-
-    *valuelist = expand.valuelist;
+    if (!expand_four(w, tilde, processquotes, escapeall, false, &expand)) {
+	plfree(pl_toary(&expand.valuelist), free);
+	wb_destroy(&expand.valuebuf);
+	expand.valuelist.contents = NULL;
+	return expand.valuelist;
+    }
 
     /* remove empty word for "$@" if $# == 0 */
-    if (valuelist->length == oldlength && expand.zeroword &&
+    if (expand.valuelist.length == 0 && expand.zeroword &&
 	    wcscmp(expand.valuebuf.contents, L"\"\"") == 0)
 	wb_destroy(&expand.valuebuf);
     else
-	pl_add(valuelist, wb_towcs(&expand.valuebuf));
+	pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
 
     /* quote removal */
-    for (size_t i = oldlength; i < valuelist->length; i++)
-	valuelist->contents[i] =
-	    escaped_remove_free(valuelist->contents[i], L"\"\'");
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+	expand.valuelist.contents[i] =
+	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
 
-    return ok;
+    return expand.valuelist;
 }
 
 /* Performs the four expansions in the specified single word.
@@ -660,13 +656,10 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     struct get_variable_T v;
     bool unset;   /* parameter is not set? */
     if (p->pe_type & PT_NEST) {
-	plist_T plist;
-	pl_init(&plist);
-	if (!expand_four_and_remove_quotes(
-		    p->pe_nest, TT_NONE, true, true, &plist)) {
-	    plfree(pl_toary(&plist), free);
+	plist_T plist =
+	    expand_four_and_remove_quotes(p->pe_nest, TT_NONE, true, true);
+	if (plist.contents == NULL)
 	    return false;
-	}
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
 	v.count = plist.length;
 	v.values = pl_toary(&plist);
