@@ -61,4 +61,19 @@ __OUT__
 
 )
 
+# POSIX says, "The pathname resulting from tilde expansion shall be treated as
+# if quoted to prevent it being altered by field splitting and pathname
+# expansion." (XCU 2.6.1) On the other hand, the results of parameter expansion
+# is generally subject to field splitting and pathname expansion. (XCU 2.6.5)
+# Yash prevents such additional expansion in accordance with other shells.
+test_oE 'result of tilde expansion in expansion not for further expansion'
+HOME='/path/with  $space$(:)`:`$((1))' IFS=' /'
+echoraw ${u-~}
+HOME='*'
+echoraw ${u-~}
+__IN__
+/path/with  $space$(:)`:`$((1))
+*
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
