@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.h: modifiable string buffer */
-/* (C) 2007-2011 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -197,14 +197,19 @@ extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 /* Frees the specified multibyte string buffer. The contents are lost. */
 void sb_destroy(xstrbuf_T *buf)
 {
-    free(buf->contents);
+    free(sb_tostr(buf));
 }
 
 /* Frees the specified multibyte string buffer and returns the contents.
  * The caller must `free' the return value. */
 char *sb_tostr(xstrbuf_T *buf)
 {
-    return buf->contents;
+    char *s = buf->contents;
+#ifndef NDEBUG
+    buf->contents = &s[buf->maxlength];
+    buf->length = buf->maxlength = Size_max;
+#endif
+    return s;
 }
 
 /* Shrinks the length of the buffer to `newlength'.
@@ -308,14 +313,19 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
 /* Frees the specified wide string buffer. The contents are lost. */
 void wb_destroy(xwcsbuf_T *buf)
 {
-    free(buf->contents);
+    free(wb_towcs(buf));
 }
 
 /* Frees the specified wide string buffer and returns the contents.
  * The caller must `free' the return value. */
 wchar_t *wb_towcs(xwcsbuf_T *buf)
 {
-    return buf->contents;
+    wchar_t *s = buf->contents;
+#ifndef NDEBUG
+    buf->contents = &s[buf->maxlength];
+    buf->length = buf->maxlength = Size_max;
+#endif
+    return s;
 }
 
 /* Shrinks the length of the specified buffer to `newlength'.

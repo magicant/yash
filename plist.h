@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* plist.h: modifiable list of pointers */
-/* (C) 2007-2010 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,7 +117,7 @@ plist_T *pl_initwith(plist_T *list, void **array, size_t length)
  * Note that the list elements are not `free'd in this function. */
 void pl_destroy(plist_T *list)
 {
-    free(list->contents);
+    free(pl_toary(list));
 }
 
 /* Frees the specified pointer list and returns the contents.
@@ -126,7 +126,12 @@ void pl_destroy(plist_T *list)
  * safely cast to (char **). */
 void **pl_toary(plist_T *list)
 {
-    return list->contents;
+    void **a = list->contents;
+#ifndef NDEBUG
+    list->contents = &a[list->maxlength];
+    list->length = list->maxlength = Size_max;
+#endif
+    return a;
 }
 
 /* Inserts the first `n' elements of array `a' at offset `i' in pointer list

@@ -2978,8 +2978,9 @@ void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
 	pl_remove(&fields, 0, 1);
     }
 
-    set_array(name, fields.length, pl_toary(&fields), SCOPE_GLOBAL,
-	    shopt_allexport);
+    size_t count = fields.length;
+    void **values = pl_toary(&fields);
+    set_array(name, count, values, SCOPE_GLOBAL, shopt_allexport);
 }
 
 #if YASH_ENABLE_HELP

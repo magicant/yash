@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -760,6 +760,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 
     reject_pending_heredocs(&ps);
 
+    size_t length = ps.src.length;
     wb_destroy(&ps.src);
     pl_destroy(&ps.pending_heredocs);
     destroy_aliaslist(ps.aliases);
@@ -771,11 +772,11 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
 	    if (ps.error) {
 		andorsfree(r);
 		return PR_SYNTAX_ERROR;
-	    } else if (ps.src.length == 0) {
+	    } else if (length == 0) {
 		andorsfree(r);
 		return PR_EOF;
 	    } else {
-		assert(ps.index == ps.src.length);
+		assert(ps.index == length);
 		*resultp = r;
 		return PR_OK;
 	    }
