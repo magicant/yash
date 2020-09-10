@@ -120,10 +120,26 @@ __IN__
 __OUT__
 
 test_oE 'result of parameter expansion is not subject to brace expansion'
-a='{1,2}'
-bracket $a
+a='{1,2}' n='{1..3}' l='{' r='}' c=','
+bracket $a ${l}1,2} {1,2${r} {1${c}2}
+bracket $n ${l}1..3} {1..3${r}
 __IN__
-[{1,2}]
+[{1,2}][{1,2}][{1,2}][{1,2}]
+[{1..3}][{1..3}][{1..3}]
+__OUT__
+
+test_oE 'content of numeric brace expansion can be unquoted parameter'
+d='.' o='1'
+bracket {1${d}.3} {1.${d}3} {${o}..3}
+__IN__
+[1][2][3][1][2][3][1][2][3]
+__OUT__
+
+test_oE 'quoted parameter is not subject to numeric brace expansion'
+d='.' o='1'
+bracket {1"${d}".3} {1."${d}"3} {"${o}"..3}
+__IN__
+[{1..3}][{1..3}][{1..3}]
 __OUT__
 
 )
