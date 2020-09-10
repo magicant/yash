@@ -24,25 +24,37 @@ __OUT__
 
 test_oE -e 0 'field splitting applies to results of expansions'
 IFS=' 0' a='1 2'
-bracket -${a}- -$(echo '3 4')- -`echo '5 6'`- -$((708))-
+bracket     -${a}- -$(echo '3 4')- -`echo '5 6'`- -$((708))-
+bracket ${a+-${a}- -$(echo '3 4')- -`echo '5 6'`- -$((708))-}
+bracket ${u--${a}- -$(echo '3 4')- -`echo '5 6'`- -$((708))-}
 __IN__
+[-1][2-][-3][4-][-5][6-][-7][8-]
+[-1][2-][-3][4-][-5][6-][-7][8-]
 [-1][2-][-3][4-][-5][6-][-7][8-]
 __OUT__
 
 test_oE -e 0 'field splitting does not apply to quoted expansions'
 IFS=' 0' a='1 2'
-bracket "-${a}-" "-$(echo '3 4')-" "-`echo '5 6'`-" "-$((708))-"
-bracket -${a}-"-${a}-"
+bracket     "-${a}-" "-$(echo '3 4')-" "-`echo '5 6'`-" "-$((708))-"
+bracket ${a+"-${a}-" "-$(echo '3 4')-" "-`echo '5 6'`-" "-$((708))-"}
+bracket ${u-"-${a}-" "-$(echo '3 4')-" "-`echo '5 6'`-" "-$((708))-"}
+bracket "${a+-${a}-   -$(echo '3 4')-   -`echo '5 6'`-   -$((708))-}"
+bracket "${u--${a}-   -$(echo '3 4')-   -`echo '5 6'`-   -$((708))-}"
+bracket -${a}-"-${a}-"-${a}-
 __IN__
 [-1 2-][-3 4-][-5 6-][-708-]
-[-1][2--1 2-]
+[-1 2-][-3 4-][-5 6-][-708-]
+[-1 2-][-3 4-][-5 6-][-708-]
+[-1 2-   -3 4-   -5 6-   -708-]
+[-1 2-   -3 4-   -5 6-   -708-]
+[-1][2--1 2--1][2-]
 __OUT__
 
 test_oE 'field splitting does not apply to non-expansions'
 IFS=' 0'
-bracket -102- "-304 5-"
+bracket -102- "-304 5-" '-607 8-' -9\01\ 2-
 __IN__
-[-102-][-304 5-]
+[-102-][-304 5-][-607 8-][-901 2-]
 __OUT__
 
 test_oE 'no field splitting with empty IFS'
