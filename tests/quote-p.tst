@@ -461,6 +461,15 @@ __IN__
 	b]
 __OUT__
 
+test_oE 'backslashes in expansions'
+v='\a\b\c'
+bracket "$v"
+bracket $v
+__IN__
+[\a\b\c]
+[\a\b\c]
+__OUT__
+
 test_oE 'quoted words are not reserved words'
 echo echo if command >if
 chmod a+x if
