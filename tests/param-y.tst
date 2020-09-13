@@ -401,6 +401,14 @@ __IN__
 [12][12][1]
 __OUT__
 
+test_oE 'quoting in nested expansion'
+a='*' bs='\' bs2='\\'
+> nested_expansion
+bracket nested${{a}}expansion nested${{bs}}*expansion ${{bs2}} ${{u-\\'*'"?"}}
+__IN__
+[nested_expansion][nested\*expansion][\\][\*?]
+__OUT__
+
 test_oE 'disambiguation of ${$...' # None of below are nested expansions
 bracket ${$++} ${$:++}
 [ "${$--}" = "$$" ] || echoraw - [ "${$--}" = "$$" ]
