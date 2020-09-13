@@ -50,125 +50,93 @@ test_oE 'quotations of quotations'
 sq=\' dq=\" bs=\\
 case \'    in \'   ) echo 111; esac
 case \'    in "'"  ) echo 112; esac
-case \'    in $sq  ) echo 113; esac
-case \'    in "$sq") echo 114; esac
+case \'    in "$sq") echo 113; esac
 case "'"   in \'   ) echo 121; esac
 case "'"   in "'"  ) echo 122; esac
-case "'"   in $sq  ) echo 123; esac
-case "'"   in "$sq") echo 124; esac
+case "'"   in "$sq") echo 123; esac
 case $sq   in \'   ) echo 131; esac
 case $sq   in "'"  ) echo 132; esac
-case $sq   in $sq  ) echo 133; esac
-case $sq   in "$sq") echo 134; esac
+case $sq   in "$sq") echo 133; esac
 case "$sq" in \'   ) echo 141; esac
 case "$sq" in "'"  ) echo 142; esac
-case "$sq" in $sq  ) echo 143; esac
-case "$sq" in "$sq") echo 144; esac
+case "$sq" in "$sq") echo 143; esac
 case \"    in \"   ) echo 211; esac
 case \"    in '"'  ) echo 212; esac
-case \"    in $dq  ) echo 213; esac
-case \"    in "$dq") echo 214; esac
+case \"    in "$dq") echo 213; esac
 case '"'   in \"   ) echo 221; esac
 case '"'   in '"'  ) echo 222; esac
-case '"'   in $dq  ) echo 223; esac
-case '"'   in "$dq") echo 224; esac
+case '"'   in "$dq") echo 223; esac
 case $dq   in \"   ) echo 231; esac
 case $dq   in '"'  ) echo 232; esac
-case $dq   in $dq  ) echo 233; esac
-case $dq   in "$dq") echo 234; esac
+case $dq   in "$dq") echo 233; esac
 case "$dq" in \"   ) echo 241; esac
 case "$dq" in '"'  ) echo 242; esac
-case "$dq" in $dq  ) echo 243; esac
-case "$dq" in "$dq") echo 244; esac
+case "$dq" in "$dq") echo 243; esac
 case \\    in \\   ) echo 311; esac
 case \\    in '\'  ) echo 312; esac
 case \\    in "\\" ) echo 313; esac
-case \\    in $bs  ) echo 314; esac
-case \\    in "$bs") echo 315; esac
+case \\    in "$bs") echo 314; esac
 case '\'   in \\   ) echo 321; esac
 case '\'   in '\'  ) echo 322; esac
 case '\'   in "\\" ) echo 323; esac
-case '\'   in $bs  ) echo 324; esac
-case '\'   in "$bs") echo 325; esac
+case '\'   in "$bs") echo 324; esac
 case "\\"  in \\   ) echo 331; esac
 case "\\"  in '\'  ) echo 332; esac
 case "\\"  in "\\" ) echo 333; esac
-case "\\"  in $bs  ) echo 334; esac
-case "\\"  in "$bs") echo 335; esac
+case "\\"  in "$bs") echo 334; esac
 case $bs   in \\   ) echo 341; esac
 case $bs   in '\'  ) echo 342; esac
 case $bs   in "\\" ) echo 343; esac
-case $bs   in $bs  ) echo 344; esac
-case $bs   in "$bs") echo 345; esac
+case $bs   in "$bs") echo 344; esac
 case "$bs" in \\   ) echo 351; esac
 case "$bs" in '\'  ) echo 352; esac
 case "$bs" in "\\" ) echo 353; esac
-case "$bs" in $bs  ) echo 354; esac
-case "$bs" in "$bs") echo 355; esac
-case \'"'"$sq"$sq" in "$sq"$sq"'"\') echo 391; esac
-case \"'"'$dq"$dq" in "$dq"$dq'"'\") echo 392; esac
-case \\'\'"\\"$bs"$bs" in "$bs"$bs"\\"'\'\\) echo 393; esac
+case "$bs" in "$bs") echo 354; esac
 __IN__
 111
 112
 113
-114
 121
 122
 123
-124
 131
 132
 133
-134
 141
 142
 143
-144
 211
 212
 213
-214
 221
 222
 223
-224
 231
 232
 233
-234
 241
 242
 243
-244
 311
 312
 313
 314
-315
 321
 322
 323
 324
-325
 331
 332
 333
 334
-335
 341
 342
 343
 344
-345
 351
 352
 353
 354
-355
-391
-392
-393
 __OUT__
 
 test_oE 'blanks'
