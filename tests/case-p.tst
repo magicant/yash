@@ -45,6 +45,20 @@ __IN__
 matched
 __OUT__
 
+test_oE 'quotations arising from expansion in case word'
+# XCU 2.6.7 says:
+#   The quote characters that were present in the original word shall be
+#   removed unless they have themselves been quoted.
+# That means backslashes in the word are not special here (because they are
+# arising from expansion, not in the original word).
+bs='\a\z'
+case  $bs  in '\a\z') echo bs1; esac
+case "$bs" in '\a\z') echo bs2; esac
+__IN__
+bs1
+bs2
+__OUT__
+
 test_oE 'case pattern is subject to tilde expansion'
 HOME=/home
 case /home/foo in
