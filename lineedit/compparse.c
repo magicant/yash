@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,9 +75,7 @@ static bool ctryparse_redirect(void);
 static bool cparse_for_command(void);
 static bool cparse_case_command(void);
 static bool cparse_function_definition(void);
-static wchar_t *cparse_and_expand_word(
-	tildetype_T tilde, le_contexttype_T ctxttype)
-    __attribute__((malloc,warn_unused_result));
+static bool ctryparse_word(tildetype_T tilde, le_contexttype_T ctxttype);
 static wordunit_T *cparse_word(
 	bool testfunc(wchar_t c), tildetype_T tilde, le_contexttype_T ctxttype)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -361,12 +359,10 @@ bool ctryparse_assignment(void)
 
     if (BUF[INDEX] != L'(') {
 	/* scalar variable */
-	wchar_t *value = cparse_and_expand_word(TT_MULTI, CTXT_ASSIGN);
-	if (value == NULL) {
+	if (ctryparse_word(TT_MULTI, CTXT_ASSIGN)) {
 	    empty_pwords();
 	    return true;
 	} else {
-	    free(value);
 	    return false;
 	}
     } else {
@@ -406,7 +402,6 @@ bool ctryparse_redirect(void)
     size_t index = INDEX;
     le_contexttype_T type;
     bool result;
-    wchar_t *value;
 
     while (iswdigit(BUF[index]))
 	index++;
@@ -443,12 +438,10 @@ bool ctryparse_redirect(void)
     }
 
     skip_blanks();
-    value = cparse_and_expand_word(TT_SINGLE, type);
-    if (value == NULL) {
+    if (ctryparse_word(TT_SINGLE, type)) {
 	empty_pwords();
 	return true;
     } else {
-	free(value);
 	return false;
     }
 
@@ -593,23 +586,18 @@ bool cparse_function_definition(void)
 /* Parses the word at the current position.
  * `skip_blanks' should be called before this function is called.
  * The `ctxttype' parameter is the context type of the word parsed.
- * If the word was completely parsed, the word is expanded until quote removal
- * and returned as a newly-malloced string.
- * If the parser reached the end of the input string, the return value is NULL
+ * If the word was completely parsed, the return value is false.
+ * If the parser reached the end of the input string, the return value is true
  * and the result is saved in `pi->ctxt'. However, `pi->ctxt->pwords' is NULL
  * when the preceding words need to be determined by the caller. In this case,
  * the caller must update the `pwordc' and `pwords' member. */
-wchar_t *cparse_and_expand_word(tildetype_T tilde, le_contexttype_T ctxttype)
+bool ctryparse_word(tildetype_T tilde, le_contexttype_T ctxttype)
 {
     wordunit_T *w = cparse_word(is_token_delimiter_char, tilde, ctxttype);
-    if (w == NULL) {
-	return NULL;
-    } else {
-	wchar_t *s = expand_single(w, tilde, true, false);
-	wordfree(w);
-	assert(s != NULL);
-	return s;
-    }
+    if (w == NULL)
+	return true;
+    wordfree(w);
+    return false;
 }
 
 /* Parses the word at the current position.
