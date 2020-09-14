@@ -12,14 +12,19 @@ test_oE -e 0 \
     'pathname expansion in redirection operand (non-POSIX, interactive), success'\
     -i +m --rcfile=yashrc
 cat <i*0
+cat <"i"'n'\*
+HOME='in*'
+cat <~ # result of tilde expansion is not subject to pathname expansion
 __IN__
 in0
+in*
+in*
 __OUT__
 
 test_O -d -e 2 \
     'pathname expansion in redirection operand (non-POSIX, interactive), failure' \
     -i +m --rcfile=yashrc
-cat <in*
+cat <in* # more than one matching pathname
 __IN__
 
 (
