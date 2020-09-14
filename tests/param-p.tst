@@ -80,36 +80,71 @@ __IN__
 __OUT__
 
 test_oE 'tilde expansion in embedded word'
-HOME=/foo/bar
-bracket ${a-~} ${a-~/}
+HOME=/foo/bar b=b
+bracket ${a-~} ${a-~/} ${a-\~}
+bracket ${b+~} ${b+~/} ${b+\~}
+bracket ${c=~} ${d=~/} ${e=\~}
+(: ${a?~} ) 2>&1 | grep -Fq "$HOME" ; echo $?
+(: ${a?~/}) 2>&1 | grep -Fq "$HOME/"; echo $?
+(: ${a?\~}) 2>&1 | grep -Fq "~"     ; echo $?
 __IN__
-[/foo/bar][/foo/bar/]
+[/foo/bar][/foo/bar/][~]
+[/foo/bar][/foo/bar/][~]
+[/foo/bar][/foo/bar/][~]
+0
+0
+0
 __OUT__
 
 test_oE 'parameter expansion in embedded word'
 b=b
-bracket ${a-x${b}x}
+bracket ${a-x${b}x} ${a-\$b}
+bracket ${b+x${b}x} ${b+\$b}
+bracket ${c=x${b}x} ${d=\$b}
+(: ${a?x${b}x}) 2>&1 | grep -Fq "xbx"; echo $?
+(: ${a?\$b}   ) 2>&1 | grep -Fq "$b" ; echo $?
 __IN__
-[xbx]
+[xbx][$b]
+[xbx][$b]
+[xbx][$b]
+0
+0
 __OUT__
 
 test_oE 'command substitution in embedded word'
+b=b
 bracket ${a-x$(echo -)x}
+bracket ${b+x$(echo -)x}
+bracket ${c=x$(echo -)x}
+(: ${a?x$(echo -)x}) 2>&1 | grep -Fq "x-x"; echo $?
 __IN__
 [x-x]
+[x-x]
+[x-x]
+0
 __OUT__
 
 test_oE 'arithmetic expansion in embedded word'
+b=b
 bracket ${a-x$((1+1))x}
+bracket ${b+x$((1+1))x}
+bracket ${c=x$((1+1))x}
+(: ${a?x$((1+1))x}) 2>&1 | grep -Fq "x2x"; echo $?
 __IN__
 [x2x]
+[x2x]
+[x2x]
+0
 __OUT__
 
 test_oE 'embedded word is expanded only if needed'
-a=a
+a=
 unset b
 bracket -${a-${b?}}- -${b+${b?}}- -${a=${b?}}- -${a?${b?}}-
+a=a b=
+bracket -${a:-${b?}}- -${b:+${b?}}- -${a:=${b?}}- -${a:?${b?}}-
 __IN__
+[--][--][--][--]
 [-a-][--][-a-][-a-]
 __OUT__
 
