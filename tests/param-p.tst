@@ -150,9 +150,9 @@ __OUT__
 
 test_oE 'end of embedded word'
 a=a
-bracket ${a-x}b}
+bracket ${a-x}b} ${a-x${a-x}x}b}
 __IN__
-[ab}]
+[ab}][ab}]
 __OUT__
 
 (
@@ -319,6 +319,58 @@ __IN__
 [1-2-3-][][1-2-3-][1]
 [1-2-3-4][][1][]
 [1-2-3-4][**][%%]
+__OUT__
+
+test_oE 'tilde expansion in embedded pattern'
+HOME=/home/foo a=/home/foo/bar b=/usr/home/foo
+bracket ${a#~}  "${a#~}"  ${a#"~"}
+bracket ${a##~} "${a##~}" ${a##"~"}
+bracket ${b%~}  "${b%~}"  ${b%"~"}
+bracket ${b%%~} "${b%%~}" ${b%%"~"}
+__IN__
+[/bar][/bar][/home/foo/bar]
+[/bar][/bar][/home/foo/bar]
+[/usr][/usr][/usr/home/foo]
+[/usr][/usr][/usr/home/foo]
+__OUT__
+
+test_oE 'parameter expansion in embedded pattern'
+w='ab\bc' a='*'
+bracket ${w#${a}b}  "${w#${a}b}"  ${w#"${a}b"}
+bracket ${w##${a}b} "${w##${a}b}" ${w##"${a}b"}
+bracket ${w%b${a}}  "${w%b${a}}"  ${w%"b${a}"}
+bracket ${w%%b${a}} "${w%%b${a}}" ${w%%"b${a}"}
+__IN__
+[\bc][\bc][ab\bc]
+[c][c][ab\bc]
+[ab\][ab\][ab\bc]
+[a][a][ab\bc]
+__OUT__
+
+test_oE 'command substitution in embedded pattern'
+w='ab\bc'
+bracket ${w#$(echo '*')b}  "${w#$(echo '*')b}"  ${w#"$(echo '*')b"}
+bracket ${w##$(echo '*')b} "${w##$(echo '*')b}" ${w##"$(echo '*')b"}
+bracket ${w%b$(echo '*')}  "${w%b$(echo '*')}"  ${w%"b$(echo '*')"}
+bracket ${w%%b$(echo '*')} "${w%%b$(echo '*')}" ${w%%"b$(echo '*')"}
+__IN__
+[\bc][\bc][ab\bc]
+[c][c][ab\bc]
+[ab\][ab\][ab\bc]
+[a][a][ab\bc]
+__OUT__
+
+test_oE 'arithmetic expansion in embedded pattern'
+w='12223'
+bracket ${w#*$((1+1))}  "${w#*$((1+1))}"  ${w#"*$((1+1))"}
+bracket ${w##*$((1+1))} "${w##*$((1+1))}" ${w##"*$((1+1))"}
+bracket ${w%$((1+1))*}  "${w%$((1+1))*}"  ${w%"$((1+1))*"}
+bracket ${w%%$((1+1))*} "${w%%$((1+1))*}" ${w%%"$((1+1))*"}
+__IN__
+[223][223][12223]
+[3][3][12223]
+[122][122][12223]
+[1][1][12223]
 __OUT__
 
 ### Examples from informative sections of POSIX
