@@ -1091,7 +1091,7 @@ subst:
     wchar_t *match;
     switch (p->pe_type & PT_MASK) {
     case PT_MATCH:
-	match = expand_single(p->pe_match, TT_SINGLE, true, false);
+	match = expand_111111(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
 	if (match == NULL) {
 	    plfree(values, free);
 	    return false;
@@ -1100,7 +1100,7 @@ subst:
 	free(match);
 	break;
     case PT_SUBST:
-	match = expand_single(p->pe_match, TT_SINGLE, true, false);
+	match = expand_111111(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
 	subst = expand_single_and_unescape(p->pe_subst, TT_SINGLE, true, false);
 	if (match == NULL || subst == NULL) {
 	    free(match);
