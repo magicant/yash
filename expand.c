@@ -1232,8 +1232,7 @@ void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 void print_subst_as_error(const paramexp_T *p)
 {
     if (p->pe_subst != NULL) {
-	wchar_t *subst = expand_single_and_unescape(
-		p->pe_subst, TT_SINGLE, true, false);
+	wchar_t *subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	if (subst != NULL) {
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);

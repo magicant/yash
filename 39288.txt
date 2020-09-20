@@ -27,6 +27,7 @@ append_value
   expand_4444
     expand_word ((quoting))
       expand_111111 ((quoting, escaping))
+        print_subst_as_error... ((Q_WORD, ES_NONE))
         expand_4444... ((Q_WORD, ES_NONE))
         expand_four... ((Q_WORD, ES_NONE))
         expand_single_with_glob ((Q_WORD, ES_QUOTED_HARD))
@@ -59,7 +60,6 @@ append_value
           open_heredocument ((processquotes=*FALSE*, escapeall=false))
           do_assignments ((processquotes=true, escapeall=false))
           exec_funcdef ((processquotes=true, escapeall=false))
-          print_subst_as_error ((processquotes=true, escapeall=false))
 
 Call tree:
 expand_multiple
