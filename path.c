@@ -620,6 +620,8 @@ static bool is_reentry(
     __attribute__((nonnull(1)));
 static int wglob_sortcmp(const void *v1, const void *v2)
     __attribute__((pure,nonnull));
+static size_t remove_dups(void **array)
+    __attribute__((pure,nonnull));
 
 /* A wide string version of `glob'.
  * Adds all pathnames that matches the specified pattern to the specified list.
@@ -666,12 +668,7 @@ bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 		    wglob_sortcmp);
 
 	    /* remove duplicates */
-	    for (size_t i = list->length; --i > listbase; ) {
-		if (wcscmp(list->contents[i], list->contents[i-1]) == 0) {
-		    free(list->contents[i]);
-		    pl_remove(list, i, 1);
-		}
-	    }
+	    list->length -= remove_dups(list->contents + listbase);
 	}
     }
     return !is_interrupted();
@@ -959,6 +956,25 @@ bool is_reentry(const struct stat *st, const struct wglob_dirstack *dirstack)
 int wglob_sortcmp(const void *v1, const void *v2)
 {
     return wcscoll(*(const wchar_t *const *) v1, *(const wchar_t *const *) v2);
+}
+
+/* Given a NULL-terminated array of pointers to wide strings, removes its
+ * elements so that no adjacent elements compare equal. The removed elements are
+ * freed in this function. Returns the number of removed elements. */
+size_t remove_dups(void **array)
+{
+    if (array[0] == NULL)
+	return 0;
+
+    size_t in = 1, out = 0;
+    for (; array[in] != NULL; in++) {
+	if (wcscmp(array[in], array[out]) == 0)
+	    free(array[in]);
+	else
+	    array[++out] = array[in];
+    }
+    array[++out] = NULL;
+    return in - out;
 }
 
 
