@@ -555,8 +555,8 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    wchar_t *funcname = expand_single_and_unescape(
-	    c->c_funcname, TT_SINGLE, true, false);
+    wchar_t *funcname =
+	expand_111111(c->c_funcname, TT_SINGLE, Q_WORD, ES_NONE);
     if (funcname != NULL) {
 	if (define_function(funcname, c->c_funcbody))
 	    laststatus = Exit_SUCCESS;
