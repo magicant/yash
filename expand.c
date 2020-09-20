@@ -1522,13 +1522,12 @@ wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
 /* Same as `escape', except that the first argument is freed. */
 wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
 {
-    if (t != NULL && wcspbrk(s, t) == NULL) {
+    if (t != NULL && wcspbrk(s, t) == NULL)
 	return s;
-    } else {
-	wchar_t *result = escape(s, t);
-	free(s);
-	return result;
-    }
+
+    wchar_t *result = escape(s, t);
+    free(s);
+    return result;
 }
 
 /* Removes backslash escapes. The result is a newly malloced string.
@@ -1540,10 +1539,9 @@ wchar_t *unescape(const wchar_t *s)
     wb_init(&buf);
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (s[i] == L'\\') {
-	    if (s[i + 1] == L'\0')
+	    i++;
+	    if (s[i] == L'\0')
 		break;
-	    else
-		i++;
 	}
 	wb_wccat(&buf, s[i]);
     }
@@ -1553,13 +1551,12 @@ wchar_t *unescape(const wchar_t *s)
 /* Same as `unescape', except that the first argument is freed. */
 wchar_t *unescapefree(wchar_t *s)
 {
-    if (wcschr(s, L'\\') == NULL) {
+    if (wcschr(s, L'\\') == NULL)
 	return s;
-    } else {
-	wchar_t *result = unescape(s);
-	free(s);
-	return result;
-    }
+
+    wchar_t *result = unescape(s);
+    free(s);
+    return result;
 }
 
 /* Quotes the specified string using backslashes and single-quotes. The result
