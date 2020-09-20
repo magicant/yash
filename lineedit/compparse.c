@@ -652,7 +652,7 @@ cparse_word:
 			&& (pi->ctxt->type & CTXT_VBRACED)) {
 		    xwcsbuf_T buf;
 		    wchar_t *prefix =
-			expand_111111(first, tilde, Q_WORD, ES_QUOTED_HARD);
+			expand_single(first, tilde, Q_WORD, ES_QUOTED_HARD);
 		    assert(prefix != NULL);
 		    pi->ctxt->pattern = wb_towcs(wb_catfree(
 				wb_initwith(&buf, prefix), pi->ctxt->pattern));
@@ -718,7 +718,7 @@ finish:
     pi->ctxt->type = ctxttype;
     pi->ctxt->pwordc = 0;
     pi->ctxt->pwords = NULL;
-    pi->ctxt->pattern = expand_111111(first, tilde, Q_WORD, ES_QUOTED_HARD);
+    pi->ctxt->pattern = expand_single(first, tilde, Q_WORD, ES_QUOTED_HARD);
     pi->ctxt->srcindex = srcindex;
     wordfree(first);
     return NULL;

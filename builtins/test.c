@@ -782,14 +782,14 @@ int eval_dbexp(const dbexp_T *e)
  * The result may contain backslash escapes. */
 wchar_t *expand_double_bracket_operand_escaped(const wordunit_T *w)
 {
-    return expand_111111(w, TT_SINGLE, Q_WORD, ES_QUOTED);
+    return expand_single(w, TT_SINGLE, Q_WORD, ES_QUOTED);
 }
 
 /* Expands the operand of a primary.
  * The result is literal (does not contain backslash escapes). */
 wchar_t *expand_double_bracket_operand_unescaped(const wordunit_T *w)
 {
-    return expand_111111(w, TT_SINGLE, Q_WORD, ES_NONE);
+    return expand_single(w, TT_SINGLE, Q_WORD, ES_NONE);
 }
 
 /* Tests the specified three-token (binary) primary in the double-bracket

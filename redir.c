@@ -448,7 +448,7 @@ char *expand_redir_filename(const struct wordunit_T *filename)
     if (is_interactive) {
 	return expand_single_with_glob(filename, TT_SINGLE);
     } else {
-	wchar_t *result = expand_111111(filename, TT_SINGLE, Q_WORD, ES_NONE);
+	wchar_t *result = expand_single(filename, TT_SINGLE, Q_WORD, ES_NONE);
 	if (result == NULL)
 	    return NULL;
 	char *mbsresult = realloc_wcstombs(result);
@@ -757,7 +757,7 @@ error:
  * temporary file. */
 int open_heredocument(const wordunit_T *contents)
 {
-    wchar_t *wcontents = expand_111111(contents, TT_NONE, Q_INDQ, ES_NONE);
+    wchar_t *wcontents = expand_single(contents, TT_NONE, Q_INDQ, ES_NONE);
     if (wcontents == NULL)
 	return -1;
 

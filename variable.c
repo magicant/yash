@@ -741,7 +741,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
 	switch (assign->a_type) {
 	    case A_SCALAR:
 		value =
-		    expand_111111(assign->a_scalar, TT_MULTI, Q_WORD, ES_NONE);
+		    expand_single(assign->a_scalar, TT_MULTI, Q_WORD, ES_NONE);
 		if (value == NULL)
 		    return false;
 		if (shopt_xtrace)

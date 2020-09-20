@@ -60,7 +60,7 @@ struct expand_four_T {
 static plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((warn_unused_result));
-static bool expand_4444(const wordunit_T *restrict w, tildetype_T tilde,
+static bool expand_four(const wordunit_T *restrict w, tildetype_T tilde,
 	quoting_T quoting, charcategory_T defaultcc,
 	struct expand_four_T *restrict e)
     __attribute__((nonnull(5)));
@@ -194,7 +194,7 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     expand.zeroword = false;
 
     /* four expansions (w -> valuelist) */
-    if (!expand_4444(w, TT_SINGLE, Q_WORD, CC_LITERAL, &expand)) {
+    if (!expand_four(w, TT_SINGLE, Q_WORD, CC_LITERAL, &expand)) {
 	plfree(pl_toary(&expand.valuelist), free);
 	plfree(pl_toary(&expand.cclist), free);
 	wb_destroy(&expand.valuebuf);
@@ -274,7 +274,7 @@ plist_T expand_word(const wordunit_T *w,
     sb_init(&expand.ccbuf);
     expand.zeroword = false;
 
-    if (!expand_4444(w, tilde, quoting, CC_LITERAL, &expand)) {
+    if (!expand_four(w, tilde, quoting, CC_LITERAL, &expand)) {
 	plfree(pl_toary(&expand.valuelist), free);
 	plfree(pl_toary(&expand.cclist), free);
 	wb_destroy(&expand.valuebuf);
@@ -314,7 +314,7 @@ plist_T expand_word(const wordunit_T *w,
  * If successful, the resulting word is returned as a newly malloced string.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
-wchar_t *expand_111111(const wordunit_T *w,
+wchar_t *expand_single(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
 {
     plist_T list = expand_word(w, tilde, quoting, escaping);
@@ -338,7 +338,7 @@ wchar_t *expand_111111(const wordunit_T *w,
  * On error in a non-interactive shell, the shell exits. */
 char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 {
-    wchar_t *exp = expand_111111(arg, tilde, Q_WORD, ES_QUOTED_HARD);
+    wchar_t *exp = expand_single(arg, tilde, Q_WORD, ES_QUOTED_HARD);
     char *result;
 
     if (exp == NULL)
@@ -399,7 +399,7 @@ noglob:
  * to `e->cclist' and `e->ccbuf', having the same count and length as
  * `e->valuelist' and `e->valuebuf'.
  * The return value is true iff successful. */
-bool expand_4444(const wordunit_T *restrict w, tildetype_T tilde,
+bool expand_four(const wordunit_T *restrict w, tildetype_T tilde,
 	quoting_T quoting, charcategory_T defaultcc,
 	struct expand_four_T *restrict e)
 {
@@ -497,7 +497,7 @@ default_:
 	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
-	    s = expand_111111(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
+	    s = expand_single(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
 	    if (s != NULL)
 		s = evaluate_arithmetic(s);
 cat_s:
@@ -600,7 +600,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_start == NULL) {
 	startindex = 0, endindex = SSIZE_MAX, indextype = IDX_NONE;
     } else {
-	wchar_t *start = expand_111111(p->pe_start, TT_NONE, Q_WORD, ES_NONE);
+	wchar_t *start = expand_single(p->pe_start, TT_NONE, Q_WORD, ES_NONE);
 	if (start == NULL)
 	    return false;
 	indextype = parse_indextype(start);
@@ -617,7 +617,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	    if (p->pe_end == NULL) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
-		wchar_t *end = expand_111111(
+		wchar_t *end = expand_single(
 			p->pe_end, TT_NONE, Q_WORD, ES_NONE);
 		if (end == NULL || !evaluate_index(end, &endindex))
 		    return false;
@@ -750,7 +750,7 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_4444(p->pe_subst, TT_SINGLE, Q_WORD,
+	    return expand_four(p->pe_subst, TT_SINGLE, Q_WORD,
 		    CC_SOFT_EXPANSION | (indq * CC_QUOTED), e);
 	}
 	break;
@@ -773,7 +773,7 @@ subst:
 			p->pe_name);
 		return false;
 	    }
-	    subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
+	    subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	    if (subst == NULL)
 		return false;
 	    if (v.type != GV_ARRAY) {
@@ -815,7 +815,7 @@ subst:
     wchar_t *match;
     switch (p->pe_type & PT_MASK) {
     case PT_MATCH:
-	match = expand_111111(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
+	match = expand_single(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
 	if (match == NULL) {
 	    plfree(values, free);
 	    return false;
@@ -824,8 +824,8 @@ subst:
 	free(match);
 	break;
     case PT_SUBST:
-	match = expand_111111(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
-	subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
+	match = expand_single(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
+	subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	if (match == NULL || subst == NULL) {
 	    free(match);
 	    free(subst);
@@ -958,7 +958,7 @@ void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 void print_subst_as_error(const paramexp_T *p)
 {
     if (p->pe_subst != NULL) {
-	wchar_t *subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
+	wchar_t *subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	if (subst != NULL) {
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);
@@ -1791,7 +1791,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 
     if (!parse_string(&info, &word))
 	return NULL;
-    result = expand_111111(word, TT_NONE, esc ? Q_INDQ : Q_LITERAL, ES_NONE);
+    result = expand_single(word, TT_NONE, esc ? Q_INDQ : Q_LITERAL, ES_NONE);
     wordfree(word);
     return result;
 }

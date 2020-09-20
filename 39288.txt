@@ -22,8 +22,8 @@ esc             n/a       true      false
 Callee tree:
 ***
   expand_param
-    expand_4444...
-  expand_4444
+    expand_four...
+  expand_four
     expand_multiple ((Q_WORD))
       expand_line
         exec_for...
@@ -33,7 +33,7 @@ Callee tree:
       ctryparse_assignment...
       cparse_for_command...
     expand_word ((quoting))
-      expand_111111 ((quoting, escaping))
+      expand_single ((quoting, escaping))
         parse_and_expand_string ((esc ? Q_INDQ : Q_LITERAL, ES_NONE))
           expand_prompt_variable ((esc=*FALSE*)) tested
           print_message (mail.c) ((esc=true)) untested
@@ -43,7 +43,7 @@ Callee tree:
         do_assignments ((Q_WORD, ES_NONE))
         exec_funcdef ((Q_WORD, ES_NONE))
         print_subst_as_error... ((Q_WORD, ES_NONE))
-        expand_4444... ((Q_WORD, ES_NONE))
+        expand_four... ((Q_WORD, ES_NONE))
         expand_single_with_glob ((Q_WORD, ES_QUOTED_HARD))
         expand_double_bracket_operand_escaped ((Q_WORD, ES_QUOTED))
         expand_double_bracket_operand_unescaped ((Q_WORD, ES_NONE))
@@ -126,5 +126,3 @@ TODO:
   * Empty field removal should be done after quote removal
 * Consider adding facade function around expand_four which initializes expand_four_T, calls expand_four, and appends {value,cc}buf to {value,cc}list
 * Consider reusing the fields list in the fieldsplit function
-* Rename expand_4444 to expand_four back
-* Rename expand_111111 to expand_single back

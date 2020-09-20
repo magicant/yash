@@ -82,7 +82,7 @@ extern _Bool expand_line(
 extern _Bool expand_multiple(
 	const struct wordunit_T *restrict w, struct plist_T *restrict list)
     __attribute__((nonnull(2)));
-extern wchar_t *expand_111111(
+extern wchar_t *expand_single(
 	const struct wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((malloc,warn_unused_result));
