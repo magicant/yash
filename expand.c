@@ -625,7 +625,7 @@ escape:
 	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
-	    s = expand_single_and_unescape(w->wu_arith, TT_NONE, true, false);
+	    s = expand_111111(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
 	    if (s != NULL)
 		s = evaluate_arithmetic(s);
 cat_s:
@@ -753,7 +753,7 @@ default_:
 	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
-	    s = expand_single_and_unescape(w->wu_arith, TT_NONE, true, false);
+	    s = expand_111111(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
 	    if (s != NULL)
 		s = evaluate_arithmetic(s);
 cat_s:
