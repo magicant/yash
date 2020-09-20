@@ -70,6 +70,10 @@ static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall,
 	charcategory_T defaultcc, struct expand_four_T *restrict e)
     __attribute__((nonnull(6)));
+static bool expand_4444(const wordunit_T *restrict w, tildetype_T tilde,
+	quoting_T quoting, charcategory_T defaultcc,
+	struct expand_four_T *restrict e)
+    __attribute__((nonnull(5)));
 static void fill_ccbuf(struct expand_four_T *e, charcategory_T c)
     __attribute__((nonnull));
 static void append_value(wchar_t *restrict s, const wchar_t *t,
@@ -551,6 +555,133 @@ cat_s:
 			CC_SOFT_EXPANSION |
 			(indq * CC_QUOTED) | (defaultcc & CC_QUOTED),
 			e);
+	    } else {
+		ok = false;
+	    }
+	    break;
+	}
+    }
+
+    return ok;
+}
+
+/* Performs the four expansions in the specified single word.
+ * The four expansions are tilde expansion, parameter expansion, command
+ * substitution, and arithmetic expansion.
+ * The lists and buffers in `e' must have been initialized before calling this
+ * function. If the expansion yields a single field, the result is appended to
+ * `e->valuebuf'. If more than one field result, all but the last field are
+ * appended to `e->valuelist' as newly malloced wide strings and the last field
+ * remains in `e->valuebuf'. The corresponding charcategory_T strings are added
+ * to `e->cclist' and `e->ccbuf', having the same count and length as
+ * `e->valuelist' and `e->valuebuf'.
+ * The return value is true iff successful. */
+bool expand_4444(const wordunit_T *restrict w, tildetype_T tilde,
+	quoting_T quoting, charcategory_T defaultcc,
+	struct expand_four_T *restrict e)
+{
+    bool ok = true;
+    bool indq = false;  /* in a double quote? */
+    bool first = true;  /* is the first word unit? */
+    const wchar_t *ss;
+    wchar_t *s;
+
+    for (; w != NULL; w = w->next, first = false) {
+	switch (w->wu_type) {
+	case WT_STRING:
+	    ss = w->wu_string;
+	    if (first && tilde != TT_NONE) {
+		s = expand_tilde(&ss, w->next, tilde);
+		if (s != NULL) {
+		    wb_catfree(&e->valuebuf, s);
+		    fill_ccbuf(e, CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+		}
+	    }
+	    while (*ss != L'\0') {
+		switch (*ss) {
+		case L'"':
+		    if (quoting != Q_WORD)
+			goto default_;
+		    indq = !indq;
+		    wb_wccat(&e->valuebuf, L'"');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    break;
+		case L'\'':
+		    if (quoting != Q_WORD || indq)
+			goto default_;
+
+		    wb_wccat(&e->valuebuf, L'\'');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+
+		    add_sq(&ss, &e->valuebuf, false);
+		    fill_ccbuf(e, defaultcc | CC_QUOTED);
+
+		    wb_wccat(&e->valuebuf, L'\'');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    break;
+		case L'\\':
+		    switch (quoting) {
+			case Q_WORD:
+			    if (indq && wcschr(CHARS_ESCAPABLE, ss[1]) == NULL)
+				goto default_;
+			    break;
+			case Q_INDQ:
+			    if (wcschr(L"$`\\", ss[1]) == NULL)
+				goto default_;
+			    break;
+			case Q_LITERAL:
+			    goto default_;
+		    }
+
+		    wb_wccat(&e->valuebuf, L'\\');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    ss++;
+		    if (*ss != L'\0') {
+			wb_wccat(&e->valuebuf, *ss);
+			sb_ccat(&e->ccbuf, defaultcc | CC_QUOTED);
+		    }
+		    break;
+		case L':':
+		    if (indq || tilde != TT_MULTI)
+			goto default_;
+
+		    /* perform tilde expansion after a colon */
+		    wb_wccat(&e->valuebuf, L':');
+		    sb_ccat(&e->ccbuf, defaultcc);
+		    ss++;
+		    s = expand_tilde(&ss, w->next, tilde);
+		    if (s != NULL) {
+			wb_catfree(&e->valuebuf, s);
+			fill_ccbuf(e, CC_HARD_EXPANSION);
+		    }
+		    continue;
+default_:
+		default:
+		    wb_wccat(&e->valuebuf, *ss);
+		    sb_ccat(&e->ccbuf, defaultcc | (indq * CC_QUOTED));
+		    break;
+		}
+		ss++;
+	    }
+	    break;
+	case WT_PARAM:
+	    if (!expand_param(w->wu_param,
+			indq || quoting == Q_LITERAL || (defaultcc & CC_QUOTED),
+			e))
+		ok = false;
+	    break;
+	case WT_CMDSUB:
+	    s = exec_command_substitution(&w->wu_cmdsub);
+	    goto cat_s;
+	case WT_ARITH:
+	    s = expand_single_and_unescape(w->wu_arith, TT_NONE, true, false);
+	    if (s != NULL)
+		s = evaluate_arithmetic(s);
+cat_s:
+	    if (s != NULL) {
+		wb_catfree(&e->valuebuf, s);
+		fill_ccbuf(e, CC_SOFT_EXPANSION |
+			(indq * CC_QUOTED) | (defaultcc & CC_QUOTED));
 	    } else {
 		ok = false;
 	    }

@@ -22,7 +22,9 @@ esc             n/a       true      false
 Callee tree:
 append_value
   expand_param
+    expand_4444...
     expand_four...
+  expand_4444
   expand_four
     expand_multiple ((processquotes=true, escapeall=false, rec=false))
       expand_line
@@ -45,6 +47,7 @@ append_value
           exec_case ((processquotes=true, escapeall=false))
           exec_funcdef ((processquotes=true, escapeall=false))
           print_subst_as_error ((processquotes=true, escapeall=false))
+          expand_4444... ((processquotes=true, escapeall=false))
           expand_four... ((processquotes=true, escapeall=false))
           expand_param... ((processquotes=true, escapeall=false))
         expand_single_with_glob ((processquotes=true, escapeall=false))
@@ -84,4 +87,5 @@ TODO:
   * Refactor expand_four parameters
 * Remove unused functions
   * escaped_wcspbrk?
+* Rename expand_4444 to expand_four back
 * Remove unused variables (CHARS_ESCAPED?)

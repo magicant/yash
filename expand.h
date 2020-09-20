@@ -30,6 +30,16 @@
 /* type of tilde expansion */
 typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
 
+/* treatment of quotation marks during expansion */
+typedef enum {
+    Q_WORD,     /* Single quotations, double quotations, and backslashes are
+		   recognized as in the normal word. */
+    Q_INDQ,     /* The string is quoted as if it is inside a pair of double
+		   quotations: Single and double quotations are not recognized.
+		   Backslashes are recognized only before a $, `, or \. */
+    Q_LITERAL,  /* No quotations are recognized. */
+} quoting_T;
+
 /* Category of characters resulting from expansion.
  * A charcategory_T value is bitwise or of one of the origin categories
  * (CC_LITERAL, CC_HARD_EXPANSION, and CC_SOFT_EXPANSION) and optionally any
