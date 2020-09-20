@@ -519,7 +519,8 @@ void exec_case(const command_T *c, bool finally_exit)
 
     for (const caseitem_T *ci = c->c_casitems; ci != NULL; ci = ci->next) {
 	for (void **pats = ci->ci_patterns; *pats != NULL; pats++) {
-	    wchar_t *pattern = expand_single(*pats, TT_SINGLE, true, false);
+	    wchar_t *pattern =
+		expand_111111(*pats, TT_SINGLE, Q_WORD, ES_QUOTED);
 	    if (pattern == NULL)
 		goto fail;
 
