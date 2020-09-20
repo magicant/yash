@@ -2137,7 +2137,7 @@ wchar_t *parse_and_expand_string(const wchar_t *s, const char *name, bool esc)
 
     if (!parse_string(&info, &word))
 	return NULL;
-    result = expand_single_and_unescape(word, TT_NONE, false, !esc);
+    result = expand_111111(word, TT_NONE, esc ? Q_INDQ : Q_LITERAL, ES_NONE);
     wordfree(word);
     return result;
 }

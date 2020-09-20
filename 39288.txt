@@ -27,6 +27,10 @@ append_value
   expand_4444
     expand_word ((quoting))
       expand_111111 ((quoting, escaping))
+        parse_and_expand_string ((esc ? Q_INDQ : Q_LITERAL, ES_NONE))
+          expand_prompt_variable ((esc=*FALSE*)) tested
+          print_message (mail.c) ((esc=true)) untested
+          execute_rcfile ((esc=*FALSE*)) untested
         expand_redir_filename ((Q_WORD, ES_NONE))
         open_heredocument ((Q_INDQ, ES_NONE))
         do_assignments ((Q_WORD, ES_NONE))
@@ -56,10 +60,6 @@ append_value
     expand_four_and_remove_quotes ((processquotes, escapeall, rec=false))
       expand_single ((processquotes, escapeall))
         expand_single_and_unescape ((processquotes, escapeall))
-          parse_and_expand_string ((processquotes=*FALSE*, escapeall=!esc))
-            expand_prompt_variable ((esc=*FALSE*)) tested
-            print_message (mail.c) ((esc=true)) untested
-            execute_rcfile ((esc=*FALSE*)) untested
 
 Call tree:
 expand_multiple
