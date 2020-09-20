@@ -91,10 +91,10 @@ __OUT__
 (
 mkdir extendedglob
 cd extendedglob
-mkdir dir dir/dir2 dir/.dir2 anotherdir .dir .dir/dir2
->dir/dir2/file >dir/.dir2/file >anotherdir/file >.dir/file >.dir/dir2/file
-ln -s ../../anotherdir dir/dir2/link
-ln -s ../../anotherdir dir/dir2/.link
+mkdir dir dir/dir dir/.dir anotherdir .dir .dir/dir
+>dir/dir/file >dir/.dir/file >anotherdir/file >.dir/file >.dir/dir/file
+ln -s ../../anotherdir dir/dir/link
+ln -s ../../anotherdir dir/dir/.link
 ln -s ../dir anotherdir/loop
 )
 
@@ -106,11 +106,13 @@ echo **/file
 echo ***/file
 echo .**/file
 echo .***/file
+echo **/**/f*e
 __IN__
-anotherdir/file dir/dir2/file
-anotherdir/file anotherdir/loop/dir2/file dir/dir2/file dir/dir2/link/file
-.dir/dir2/file .dir/file anotherdir/file dir/.dir2/file dir/dir2/file
-.dir/dir2/file .dir/file anotherdir/file anotherdir/loop/.dir2/file anotherdir/loop/dir2/file dir/.dir2/file dir/dir2/.link/file dir/dir2/file dir/dir2/link/file
+anotherdir/file dir/dir/file
+anotherdir/file anotherdir/loop/dir/file dir/dir/file dir/dir/link/file
+.dir/dir/file .dir/file anotherdir/file dir/.dir/file dir/dir/file
+.dir/dir/file .dir/file anotherdir/file anotherdir/loop/.dir/file anotherdir/loop/dir/file dir/.dir/file dir/dir/.link/file dir/dir/file dir/dir/link/file
+anotherdir/file dir/dir/file
 __OUT__
 
 test_oE 'extendedglob off: effect' --noextendedglob
@@ -118,11 +120,13 @@ echo **/file
 echo ***/file
 echo .**/file
 echo .***/file
+echo **/**/f*e
 __IN__
 anotherdir/file
 anotherdir/file
 .dir/file
 .dir/file
+dir/dir/file
 __OUT__
 
 )
