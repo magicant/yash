@@ -129,10 +129,12 @@ static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 
 static void fieldsplit_all(
 	void **restrict valuelist, void **restrict splitlist,
-	void **restrict cclist, plist_T *restrict dest)
+	void **restrict cclist, plist_T *restrict outvaluelist,
+	plist_T *restrict outcclist)
     __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
-	char *restrict cc, const wchar_t *restrict ifs, plist_T *restrict dest)
+	char *restrict cc, const wchar_t *restrict ifs,
+	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
     __attribute__((nonnull));
 static size_t skip_ifs(const wchar_t *s, const char *split,
 	bool escaped, const wchar_t *ifs)
@@ -238,18 +240,23 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 		expand.cclist.contents, &valuelist2, &splitlist2, &cclist2);
 	pl_clear(&expand.valuelist, 0);
 	pl_destroy(&expand.splitlist);
-	pl_destroy(&expand.cclist);
+	pl_clear(&expand.cclist, 0);
     } else {
 	valuelist2 = expand.valuelist;
 	splitlist2 = expand.splitlist;
 	cclist2 = expand.cclist;
 	pl_init(&expand.valuelist);
+	pl_init(&expand.cclist);
     }
 
     /* field splitting (valuelist2 -> valuelist) */
     fieldsplit_all(
 	    pl_toary(&valuelist2), pl_toary(&splitlist2), pl_toary(&cclist2),
-	    &expand.valuelist);
+	    &expand.valuelist, &expand.cclist);
+    assert(expand.valuelist.length == expand.cclist.length);
+
+    // TODO use cclist in the following steps
+    plfree(pl_toary(&expand.cclist), free);
 
     /* empty field removal */
     if (expand.valuelist.length == 1) {
@@ -1475,10 +1482,11 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
  * `splitlist' is an array of pointers to corresponding splittability strings.
  * `cclist' is an array of pointers to corresponding charcategory_T strings.
  * `valuelist', `splitlist' and `cclist' are `plfree'ed in this function.
- * The results are added to `dest'. */
+ * The results are added to `outvaluelist' and `outcclist'. */
 void fieldsplit_all(
 	void **restrict const valuelist, void **restrict const splitlist,
-	void **restrict const cclist, plist_T *restrict dest)
+	void **restrict const cclist, plist_T *restrict outvaluelist,
+	plist_T *restrict outcclist)
 {
     const wchar_t *ifs = getvar(L VAR_IFS);
     if (ifs == NULL)
@@ -1488,7 +1496,7 @@ void fieldsplit_all(
     void *const *restrict s;
     void *const *restrict c;
     for (v = valuelist, s = splitlist, c = cclist; *v != NULL; v++, s++, c++)
-	fieldsplit(*v, *s, *c, ifs, dest);
+	fieldsplit(*v, *s, *c, ifs, outvaluelist, outcclist);
     free(valuelist);
     free(splitlist);
     free(cclist);
@@ -1498,20 +1506,24 @@ void fieldsplit_all(
  * `s' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `s' and also freed.
  * `cc' is the charcategory_T string corresponding to `s' and also freed
- * The results are added to `dest' as newly-malloced wide strings.
- * `ifs' must not be NULL. */
+ * `ifs' must not be NULL.
+ * The results are added to `outvaluelist' and `outcclist' as newly-malloced
+ * strings. */
 void fieldsplit(wchar_t *restrict s, char *restrict split, char *restrict cc,
-	const wchar_t *restrict ifs, plist_T *restrict dest)
+	const wchar_t *restrict ifs, plist_T *restrict outvaluelist,
+	plist_T *restrict outcclist)
 {
     plist_T fields;
 
     pl_init(&fields);
-    extract_fields(s, split, true, ifs, &fields);
+    extract_fields(s, split, cc, true, ifs, &fields);
     assert(fields.length % 2 == 0);
 
     for (size_t i = 0; i < fields.length; i += 2) {
 	const wchar_t *start = fields.contents[i], *end = fields.contents[i+1];
-	pl_add(dest, xwcsndup(start, end - start));
+	size_t idx = start - s, len = end - start;
+	pl_add(outvaluelist, xwcsndup(start, len));
+	pl_add(outcclist, memcpy(xmalloc(len), &cc[idx], len));
     }
 
     pl_destroy(&fields);
@@ -1524,6 +1536,8 @@ void fieldsplit(wchar_t *restrict s, char *restrict split, char *restrict cc,
  * `s' is the word to split.
  * `split' is the splittability string corresponding to `s'. It must be at least
  * as long as `wcslen(s)'.
+ * `cc` is an array of charcategory_T values corresponding to `s'. It must be at
+ * least as long as `wcslen(s)'.
  * If `escaped' is true, backslashes in `s' are treated as escapes. But
  * backslashes do not prevent splitting.
  * `ifs' must not be NULL.
@@ -1555,8 +1569,10 @@ void fieldsplit(wchar_t *restrict s, char *restrict split, char *restrict cc,
  *   "abc - - 123"       ->   "abc" "" "123"
  */
 wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict split,
+	const char *restrict cc,
 	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
 {
+    (void) cc; // TODO Use this
     size_t index = 0;
     size_t ifswhitestartindex;
     size_t oldlen = dest->length;
