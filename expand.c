@@ -51,11 +51,16 @@
 
 /* data passed between expansion functions */
 struct expand_four_T {
-    plist_T valuelist, splitlist;
+    plist_T valuelist, splitlist, cclist;
     xwcsbuf_T valuebuf;
     xstrbuf_T splitbuf;
+    xstrbuf_T ccbuf;
     bool zeroword;
 };
+/* If expansion yields multiple fields, all the fields are added to `valuelist'
+ * except that the last field remains in `valuebuf'. Character categories
+ * (charcategory_T) corresponding to the characters in `valuelist' and
+ * `valuebuf' are cast to char and added to `cclist' and `ccbuf' accordingly. */
 /* When "$@" appears during expansion and there is no positional parameter, the
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
@@ -64,10 +69,15 @@ static plist_T expand_four_and_remove_quotes(
 	tildetype_T tilde, bool processquotes, bool escapeall);
 static bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
-	struct expand_four_T *restrict e)
-    __attribute__((nonnull(6)));
+	charcategory_T defaultcc, struct expand_four_T *restrict e)
+    __attribute__((nonnull(7)));
 static void fill_splitbuf(struct expand_four_T *e, bool splittable)
     __attribute__((nonnull));
+static void fill_ccbuf(struct expand_four_T *e, charcategory_T c)
+    __attribute__((nonnull));
+static void append_value(wchar_t *restrict s, const wchar_t *t, bool split,
+	charcategory_T defaultcc, struct expand_four_T *e)
+    __attribute__((nonnull(1,5)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
@@ -99,24 +109,30 @@ static void **concatenate_values_into_array(void **values, bool escape)
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
 
-static void expand_brace_each(void **restrict values, void **restrict splits,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+static void expand_brace_each(
+	void *const *restrict values, void *const *restrict splits,
+	void *const *restrict ccs, plist_T *restrict valuelist,
+	plist_T *restrict splitlist, plist_T *restrict cclist)
     __attribute__((nonnull));
-static void expand_brace(wchar_t *restrict word, char *restrict split,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+static void expand_brace(
+	wchar_t *restrict word, char *restrict split, char *restrict cc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist,
+	plist_T *restrict cclist)
     __attribute__((nonnull));
 static bool try_expand_brace_sequence(
-	wchar_t *word, char *restrict split, wchar_t *startc,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+	wchar_t *word, char *restrict split, char *restrict cc, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist,
+	plist_T *restrict cclist)
     __attribute__((nonnull));
 static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
     __attribute__((nonnull));
 
-static void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
-	plist_T *restrict dest)
+static void fieldsplit_all(
+	void **restrict valuelist, void **restrict splitlist,
+	void **restrict cclist, plist_T *restrict dest)
     __attribute__((nonnull));
 static void fieldsplit(wchar_t *restrict s, char *restrict split,
-	const wchar_t *restrict ifs, plist_T *restrict dest)
+	char *restrict cc, const wchar_t *restrict ifs, plist_T *restrict dest)
     __attribute__((nonnull));
 static size_t skip_ifs(const wchar_t *s, const char *split,
 	bool escaped, const wchar_t *ifs)
@@ -188,41 +204,52 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     struct expand_four_T expand;
     pl_init(&expand.valuelist);
     pl_init(&expand.splitlist);
+    pl_init(&expand.cclist);
     wb_init(&expand.valuebuf);
     sb_init(&expand.splitbuf);
+    sb_init(&expand.ccbuf);
     expand.zeroword = false;
 
     /* four expansions (w -> valuelist) */
-    if (!expand_four(w, TT_SINGLE, true, false, false, &expand)) {
+    if (!expand_four(w, TT_SINGLE, true, false, false, CC_LITERAL, &expand)) {
 	plfree(pl_toary(&expand.valuelist), free);
 	plfree(pl_toary(&expand.splitlist), free);
+	plfree(pl_toary(&expand.cclist), free);
 	wb_destroy(&expand.valuebuf);
 	sb_destroy(&expand.splitbuf);
+	sb_destroy(&expand.ccbuf);
 	maybe_exit_on_error();
 	return false;
     }
     assert(expand.valuebuf.length == expand.splitbuf.length);
+    assert(expand.valuebuf.length == expand.ccbuf.length);
     pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
     pl_add(&expand.splitlist, sb_tostr(&expand.splitbuf));
+    pl_add(&expand.cclist, sb_tostr(&expand.ccbuf));
 
     /* brace expansion (valuelist -> valuelist2) */
-    plist_T valuelist2, splitlist2;
+    plist_T valuelist2, splitlist2, cclist2;
     if (shopt_braceexpand) {
 	pl_init(&valuelist2);
 	pl_init(&splitlist2);
-	expand_brace_each(expand.valuelist.contents, expand.splitlist.contents,
-		&valuelist2, &splitlist2);
+	pl_init(&cclist2);
+	expand_brace_each(
+		expand.valuelist.contents, expand.splitlist.contents,
+		expand.cclist.contents, &valuelist2, &splitlist2, &cclist2);
 	pl_clear(&expand.valuelist, 0);
 	pl_destroy(&expand.splitlist);
+	pl_destroy(&expand.cclist);
     } else {
 	valuelist2 = expand.valuelist;
 	splitlist2 = expand.splitlist;
+	cclist2 = expand.cclist;
 	pl_init(&expand.valuelist);
     }
 
     /* field splitting (valuelist2 -> valuelist) */
     fieldsplit_all(
-	    pl_toary(&valuelist2), pl_toary(&splitlist2), &expand.valuelist);
+	    pl_toary(&valuelist2), pl_toary(&splitlist2), pl_toary(&cclist2),
+	    &expand.valuelist);
 
     /* empty field removal */
     if (expand.valuelist.length == 1) {
@@ -367,16 +394,26 @@ plist_T expand_four_and_remove_quotes(
     struct expand_four_T expand;
 
     pl_init(&expand.valuelist);
-    wb_init(&expand.valuebuf);
     expand.splitlist.contents = NULL;
+    pl_init(&expand.cclist);
+    wb_init(&expand.valuebuf);
+    sb_init(&expand.ccbuf);
     expand.zeroword = false;
 
-    if (!expand_four(w, tilde, processquotes, escapeall, false, &expand)) {
+    if (!expand_four(w, tilde, processquotes, escapeall, false, CC_LITERAL,
+		&expand)) {
 	plfree(pl_toary(&expand.valuelist), free);
+	plfree(pl_toary(&expand.cclist), free);
 	wb_destroy(&expand.valuebuf);
+	sb_destroy(&expand.ccbuf);
+
 	expand.valuelist.contents = NULL;
 	return expand.valuelist;
     }
+
+    // TODO use cclist & ccbuf in the following steps
+    sb_destroy(&expand.ccbuf);
+    plfree(pl_toary(&expand.cclist), free);
 
     /* remove empty word for "$@" if $# == 0 */
     if (expand.valuelist.length == 0 && expand.zeroword &&
@@ -418,7 +455,7 @@ plist_T expand_four_and_remove_quotes(
  * character iff the nth value of the splittability string is non-zero. */
 bool expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall, bool rec,
-	struct expand_four_T *restrict e)
+	charcategory_T defaultcc, struct expand_four_T *restrict e)
 {
     bool ok = true;
     bool indq = false;  /* in a double quote? */
@@ -436,10 +473,8 @@ bool expand_four(const wordunit_T *restrict w,
 	    ss = w->wu_string;
 	    if (first && tilde != TT_NONE) {
 		s = expand_tilde(&ss, w->next, tilde);
-		if (s != NULL) {
-		    wb_catfree(&e->valuebuf, escapefree(s, NULL));
-		    FILL_SBUF_UNSPLITTABLE;
-		}
+		if (s != NULL)
+		    append_value(s, NULL, false, CC_HARD_EXPANSION, e);
 	    }
 	    while (*ss != L'\0') {
 		switch (*ss) {
@@ -449,13 +484,21 @@ bool expand_four(const wordunit_T *restrict w,
 		    indq = !indq;
 		    wb_wccat(&e->valuebuf, L'"');
 		    FILL_SBUF_UNSPLITTABLE;
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
 		    break;
 		case L'\'':
 		    if (!processquotes || indq)
 			goto escape;
+
 		    wb_wccat(&e->valuebuf, L'\'');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+
 		    add_sq(&ss, &e->valuebuf, true);
+		    fill_ccbuf(e, defaultcc | CC_QUOTED);
+
 		    wb_wccat(&e->valuebuf, L'\'');
+		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+
 		    FILL_SBUF_UNSPLITTABLE;
 		    break;
 		case L'\\':
@@ -472,8 +515,12 @@ bool expand_four(const wordunit_T *restrict w,
 			goto escape;
 		    } else {
 			wb_wccat(&e->valuebuf, L'\\');
-			if (*++ss != L'\0')
+			sb_ccat(&e->ccbuf,
+				defaultcc | CC_QUOTATION | (indq * CC_QUOTED));
+			if (*++ss != L'\0') {
 			    wb_wccat(&e->valuebuf, *ss++);
+			    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTED);
+			}
 			FILL_SBUF_UNSPLITTABLE;
 			continue;
 		    }
@@ -481,28 +528,31 @@ bool expand_four(const wordunit_T *restrict w,
 		    if (!indq && tilde == TT_MULTI) {
 			/* perform tilde expansion after a colon */
 			wb_wccat(&e->valuebuf, L':');
+			sb_ccat(&e->ccbuf, defaultcc);
 			ss++;
 			s = expand_tilde(&ss, w->next, tilde);
-			if (s != NULL) {
-			    wb_catfree(&e->valuebuf, escapefree(s, NULL));
-			    FILL_SBUF_UNSPLITTABLE;
-			}
+			if (s != NULL)
+			    append_value(s, NULL, false, CC_HARD_EXPANSION, e);
 			continue;
 		    }
 		    /* falls thru! */
 		default:
-		    if (indq || escapeall)
+		    if (indq || escapeall) { // FIXME don't escape here
 escape:
 			wb_wccat(&e->valuebuf, L'\\');
+			sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    }
 		    wb_wccat(&e->valuebuf, *ss);
 		    FILL_SBUF(rec);
+		    sb_ccat(&e->ccbuf, defaultcc | (indq * CC_QUOTED));
 		    break;
 		}
 		ss++;
 	    }
 	    break;
 	case WT_PARAM:
-	    if (!expand_param(w->wu_param, indq || escapeall, e))
+	    if (!expand_param(w->wu_param,
+			indq || escapeall || (defaultcc & CC_QUOTED), e))
 		ok = false;
 	    break;
 	case WT_CMDSUB:
@@ -514,9 +564,11 @@ escape:
 		s = evaluate_arithmetic(s);
 cat_s:
 	    if (s != NULL) {
-		wb_catfree(&e->valuebuf, escapefree(s,
-			    (indq || escapeall) ? NULL : CHARS_ESCAPED));
-		FILL_SBUF_SPLITTABLE;
+		append_value(s, (indq || escapeall) ? NULL : CHARS_ESCAPED,
+			!indq && !escapeall,
+			CC_SOFT_EXPANSION |
+			(indq * CC_QUOTED) | (defaultcc & CC_QUOTED),
+			e);
 	    } else {
 		ok = false;
 	    }
@@ -539,6 +591,32 @@ void fill_splitbuf(struct expand_four_T *e, bool splittable)
 	return;
     sb_ccat_repeat(
 	    &e->splitbuf, splittable, e->valuebuf.length - e->splitbuf.length);
+}
+
+/* Appends to `e->ccbuf' as many `c's as needed to match the length with
+ * `e->valuebuf'. */
+void fill_ccbuf(struct expand_four_T *e, charcategory_T c)
+{
+    sb_ccat_repeat(&e->ccbuf, c, e->valuebuf.length - e->ccbuf.length);
+}
+
+/* Appends `s' to the buffer of `e'.
+ * Characters that are contained in `t' are backslash-escaped. If `t' is NULL,
+ * all characters are escaped.
+ * `s' is freed in this function. */
+void append_value(wchar_t *restrict const s, const wchar_t *t, bool split,
+	charcategory_T defaultcc, struct expand_four_T *e)
+{
+    for (size_t i = 0; s[i] != L'\0'; i++) {
+	if (t == NULL || wcschr(t, s[i]) != NULL) {
+	    wb_wccat(&e->valuebuf, L'\\');
+	    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+	}
+	wb_wccat(&e->valuebuf, s[i]);
+	sb_ccat(&e->ccbuf, defaultcc);
+    }
+    free(s);
+    fill_splitbuf(e, split);
 }
 
 /* Performs tilde expansion.
@@ -773,7 +851,8 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_four(p->pe_subst, TT_SINGLE, true, indq, true, e);
+	    return expand_four(p->pe_subst, TT_SINGLE, true, indq, true,
+		    CC_SOFT_EXPANSION | (indq * CC_QUOTED), e);
 	}
 	break;
     case PT_ASSIGN:
@@ -869,39 +948,29 @@ subst:
     if (p->pe_type & PT_NUMBER)
 	subst_length_each(values);
 
-    /* backslash escape */
-    for (size_t i = 0; values[i] != NULL; i++)
-	values[i] = escapefree(values[i], indq ? NULL : CHARS_ESCAPED);
-
     /* add the elements of `values' to `e->valuelist' */
     if (values[0] == NULL) {
 	if (indq)
 	    e->zeroword = true;
     } else {
+	charcategory_T cc = CC_SOFT_EXPANSION | (indq * CC_QUOTED);
+
 	/* add the first element */
-	wb_catfree(&e->valuebuf, values[0]);
-	fill_splitbuf(e, !indq);
-	if (values[1] != NULL) {
+	append_value(values[0], indq ? NULL : CHARS_ESCAPED, !indq, cc, e);
+
+	/* add the other elements */
+	for (size_t i = 1; values[i] != NULL; i++) {
 	    pl_add(&e->valuelist, wb_towcs(&e->valuebuf));
 	    if (e->splitlist.contents != NULL)
 		pl_add(&e->splitlist, sb_tostr(&e->splitbuf));
+	    pl_add(&e->cclist, sb_tostr(&e->ccbuf));
 
-	    /* add the remaining but last */
-	    size_t i;
-	    for (i = 1; values[i + 1] != NULL; i++) {
-		pl_add(&e->valuelist, values[i]);
-		if (e->splitlist.contents != NULL) {
-		    size_t len = wcslen(values[i]);
-		    pl_add(&e->splitlist, memset(xmalloc(len), !indq, len));
-		}
-	    }
-
-	    /* add the last element */
-	    wb_initwith(&e->valuebuf, values[i]);
-	    if (e->splitlist.contents != NULL) {
+	    wb_init(&e->valuebuf);
+	    if (e->splitlist.contents != NULL)
 		sb_init(&e->splitbuf);
-		fill_splitbuf(e, !indq);
-	    }
+	    sb_init(&e->ccbuf);
+
+	    append_value(values[i], indq ? NULL : CHARS_ESCAPED, !indq, cc, e);
 	}
     }
     free(values);
@@ -1134,25 +1203,31 @@ void subst_length_each(void **slist)
 /* Performs brace expansion in each element of the specified array.
  * `values' is an array of pointers to `free'able wide strings to be expanded.
  * `splits' is an array of pointers to `free'able splittability strings.
- * `values' and 'splits' must contain the same number of elements.
- * Both the arrays must be NULL-terminated and their elements are freed in this
+ * `ccs' is an array of pointers to `free'able charcategory_T strings.
+ * `values', 'splits' and `ccs' must contain the same number of elements.
+ * All the arrays must be NULL-terminated and their elements are freed in this
  * function. The arrays themselves are not freed.
- * Newly malloced results are added to `valuelist' and `splitlist'. */
-void expand_brace_each(void **restrict values, void **restrict splits,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+ * Newly malloced results are added to `valuelist', `splitlist' and `cclist'. */
+void expand_brace_each(
+	void *const *restrict values, void *const *restrict splits,
+	void *const *restrict ccs, plist_T *restrict valuelist,
+	plist_T *restrict splitlist, plist_T *restrict cclist)
 {
     while (*values != NULL) {
-	expand_brace(*values, *splits, valuelist, splitlist);
-	values++, splits++;
+	expand_brace(*values, *splits, *ccs, valuelist, splitlist, cclist);
+	values++, splits++, ccs++;
     }
 }
 
 /* Performs brace expansion in the specified single word.
  * `split' is the splittability string corresponding to `word'.
- * `word' and `split' are freed in this function.
- * `Free'able results are added to `valuelist' and `splitlist'. */
-void expand_brace(wchar_t *restrict const word, char *restrict const split,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+ * `cc' is the charcategory_T string corresponding to `word'.
+ * `word', `split' and `cc' are freed in this function.
+ * `Free'able results are added to `valuelist', `splitlist' and `cclist'. */
+void expand_brace(
+	wchar_t *restrict const word, char *restrict const split,
+	char *restrict const cc, plist_T *restrict valuelist,
+	plist_T *restrict splitlist, plist_T *restrict cclist)
 {
     wchar_t *c = word;
 
@@ -1162,8 +1237,11 @@ start:
 	/* don't expand if there is no L'{' or L'{' is at the end of string */
 	pl_add(valuelist, word);
 	pl_add(splitlist, split);
+	pl_add(cclist, cc);
 	return;
-    } else if (try_expand_brace_sequence(word, split, c, valuelist, splitlist)){
+    }
+    if (try_expand_brace_sequence(
+		word, split, cc, c, valuelist, splitlist, cclist)) {
 	return;
     }
 
@@ -1206,46 +1284,58 @@ restart:
 done:;
 #define idx(p)  ((wchar_t *) (p) - word)
 #define wtos(p) (split + idx(p))
+#define wtoc(p) (cc + idx(p))
     size_t lastelemindex = splitpoints.length - 1;
     size_t headlen = idx(splitpoints.contents[0]) - 1;
     size_t taillen = wcslen(splitpoints.contents[lastelemindex]);
     for (size_t i = 0; i < lastelemindex; i++) {
 	xwcsbuf_T buf;
-	xstrbuf_T sbuf;
+	xstrbuf_T sbuf, cbuf;
 	wb_init(&buf);
 	sb_init(&sbuf);
+	sb_init(&cbuf);
 
 	wb_ncat_force(&buf, word, headlen);
 	sb_ncat_force(&sbuf, split, headlen);
+	sb_ncat_force(&cbuf, cc, headlen);
 
 	size_t len = (wchar_t *) splitpoints.contents[i + 1] -
 	             (wchar_t *) splitpoints.contents[i    ] - 1;
 	wb_ncat_force(&buf, splitpoints.contents[i], len);
 	sb_ncat_force(&sbuf, wtos(splitpoints.contents[i]), len);
+	sb_ncat_force(&cbuf, wtoc(splitpoints.contents[i]), len);
 
 	wb_ncat_force(&buf, splitpoints.contents[lastelemindex], taillen);
-	sb_ncat_force(&sbuf, wtos(splitpoints.contents[lastelemindex]), taillen);
+	sb_ncat_force(&sbuf, wtos(splitpoints.contents[lastelemindex]),
+		taillen);
+	sb_ncat_force(&cbuf, wtoc(splitpoints.contents[lastelemindex]),
+		taillen);
 	assert(buf.length == sbuf.length);
+	assert(buf.length == cbuf.length);
 
 	/* expand the remaining portion recursively */
-	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), sb_tostr(&cbuf),
+		valuelist, splitlist, cclist);
     }
     pl_destroy(&splitpoints);
     free(word);
     free(split);
+    free(cc);
 #undef idx
 #undef wtos
+#undef wtoc
 }
 
 /* Tries numeric brace expansion like "{01..05}".
  * If unsuccessful, this function returns false without any side effects.
- * If successful, `word' and `split' are freed and the full expansion results
- * are added to `valuelist' and `splitlist'.
+ * If successful, `word', `split' and `cc' are freed and the full expansion
+ * results are added to `valuelist', `splitlist' and `cclist'.
  * `startc' is a pointer to the character right after L'{' in `word'.
  */
 bool try_expand_brace_sequence(
-	wchar_t *word, char *restrict split, wchar_t *startc,
-	plist_T *restrict valuelist, plist_T *restrict splitlist)
+	wchar_t *word, char *restrict split, char *restrict cc, wchar_t *startc,
+	plist_T *restrict valuelist, plist_T *restrict splitlist,
+	plist_T *restrict cclist)
 {
     long start, end, delta, value;
     wchar_t *dotp, *dotbracep, *bracep, *c;
@@ -1304,16 +1394,20 @@ bool try_expand_brace_sequence(
     wordlen = wcslen(word);
     do {
 	xwcsbuf_T buf;
-	xstrbuf_T sbuf;
+	xstrbuf_T sbuf, cbuf;
 	wb_init(&buf);
 	sb_init(&sbuf);
+	sb_init(&cbuf);
 
 	wb_ncat_force(&buf, word, startc - 1 - word);
 	sb_ncat_force(&sbuf, split, startc - 1 - word);
+	sb_ncat_force(&cbuf, cc, startc - 1 - word);
 
 	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
-	if (plen >= 0)
+	if (plen >= 0) {
 	    sb_ccat_repeat(&sbuf, 0, plen);
+	    sb_ccat_repeat(&cbuf, CC_HARD_EXPANSION, plen);
+	}
 
 	wb_ncat_force(&buf,
 		bracep + 1,
@@ -1321,10 +1415,15 @@ bool try_expand_brace_sequence(
 	sb_ncat_force(&sbuf,
 		split   + (bracep + 1 - word),
 		wordlen - (bracep + 1 - word));
+	sb_ncat_force(&cbuf,
+		cc      + (bracep + 1 - word),
+		wordlen - (bracep + 1 - word));
 	assert(buf.length == sbuf.length);
+	assert(buf.length == cbuf.length);
 
 	/* expand the remaining portion recursively */
-	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), valuelist, splitlist);
+	expand_brace(wb_towcs(&buf), sb_tostr(&sbuf), sb_tostr(&cbuf),
+		valuelist, splitlist, cclist);
 
 	if (delta >= 0) {
 	    if (LONG_MAX - delta < value)
@@ -1337,6 +1436,7 @@ bool try_expand_brace_sequence(
     } while (delta >= 0 ? value <= end : value >= end);
     free(word);
     free(split);
+    free(cc);
     return true;
 }
 
@@ -1363,31 +1463,34 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
 /* Performs field splitting.
  * `valuelist' is a NULL-terminated array of pointers to wide strings to split.
  * `splitlist' is an array of pointers to corresponding splittability strings.
- * `valuelist' and `splitlist' are `plfree'ed in this function.
+ * `cclist' is an array of pointers to corresponding charcategory_T strings.
+ * `valuelist', `splitlist' and `cclist' are `plfree'ed in this function.
  * The results are added to `dest'. */
-void fieldsplit_all(void **restrict valuelist, void **restrict splitlist,
-	plist_T *restrict dest)
+void fieldsplit_all(
+	void **restrict const valuelist, void **restrict const splitlist,
+	void **restrict const cclist, plist_T *restrict dest)
 {
-    void **restrict s;
-    void **restrict t;
-    const wchar_t *ifs;
-
-    ifs = getvar(L VAR_IFS);
+    const wchar_t *ifs = getvar(L VAR_IFS);
     if (ifs == NULL)
 	ifs = DEFAULT_IFS;
 
-    for (s = valuelist, t = splitlist; *s != NULL; s++, t++)
-	fieldsplit(*s, *t, ifs, dest);
+    void *const *restrict v;
+    void *const *restrict s;
+    void *const *restrict c;
+    for (v = valuelist, s = splitlist, c = cclist; *v != NULL; v++, s++, c++)
+	fieldsplit(*v, *s, *c, ifs, dest);
     free(valuelist);
     free(splitlist);
+    free(cclist);
 }
 
 /* Performs field splitting.
  * `s' is the word to split and freed in this function.
  * `split' is the splittability string corresponding to `s' and also freed.
+ * `cc' is the charcategory_T string corresponding to `s' and also freed
  * The results are added to `dest' as newly-malloced wide strings.
  * `ifs' must not be NULL. */
-void fieldsplit(wchar_t *restrict s, char *restrict split,
+void fieldsplit(wchar_t *restrict s, char *restrict split, char *restrict cc,
 	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     plist_T fields;
@@ -1404,6 +1507,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict split,
     pl_destroy(&fields);
     free(s);
     free(split);
+    free(cc);
 }
 
 /* Extracts fields from a string.

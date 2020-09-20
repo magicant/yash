@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.h: word expansion */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,25 @@
 
 /* type of tilde expansion */
 typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
+
+/* Category of characters resulting from expansion.
+ * A charcategory_T value is bitwise or of one of the origin categories
+ * (CC_LITERAL, CC_HARD_EXPANSION, and CC_SOFT_EXPANSION) and optionally any
+ * combinations of modifier flags (CC_QUOTED and CC_QUOTATION).
+ * The category determines if a character is subject to brace expansion, field
+ * splitting, and globbing (pathname expansion). */
+typedef enum {
+    CC_LITERAL,         /* from the original word */
+    CC_HARD_EXPANSION,  /* from tilde expansion or numeric brace expansion */
+    CC_SOFT_EXPANSION,  /* from parameter expansion, command substitution or
+			   arithmetic expansion */
+    CC_ORIGIN_MASK = (1 << 2) - 1,
+    CC_QUOTED      = 1 << 2, /* The character is quoted by backslash, single- or
+				double-quotes. */
+    CC_QUOTATION   = 1 << 3, /* The character is a quotation mark */
+} charcategory_T;
+/* A character can be both CC_QUOTED and CC_QUOTATION at a time. This may happen
+ * in a nested quotation like "\"". */
 
 struct wordunit_T;
 struct plist_T;

@@ -1,0 +1,85 @@
+                LITERAL TILDE 3EXP BRACE GLOBBING
+Brace expansion yes     no    no   n/a   n/a
+Field splitting no      no    yes  no    n/a
+Globbing        yes     no    yes  any   n/a
+Quote rm        yes     no    yes  any   no
+Empty field rm  n/a     n/a   n/a  n/a   n/a
+
+processquotes   true      false     false
+escapeall       false     false     true
+esc             n/a       true      false
+ $              expand    expand    expand
+ `              cmdsub    cmdsub    cmdsub
+ "              quote      "         "
+ '              quote      '         '
+\"              \" -> "   \"        \"
+\'              \' -> '   \'        \'
+\X              \X -> X   \X        \X
+\$              \$ -> $   \$ -> $   \$
+\`              \` -> `   \` -> `   \`
+\\              \\ -> \   \\ -> \   \\
+
+Callee tree:
+fill_splitbuf
+  expand_param
+    expand_four...
+  expand_four
+    expand_multiple ((processquotes=true, escapeall=false, rec=false))
+      expand_line
+        exec_for
+        exec_process
+        do_assignments
+      cparse_simple_command
+      ctryparse_assignment
+      cparse_for_command
+    expand_four_and_remove_quotes ((processquotes, escapeall, rec=false))
+      expand_single ((processquotes, escapeall))
+        expand_single_and_unescape ((processquotes, escapeall))
+          parse_and_expand_string ((processquotes=*FALSE*, escapeall=!esc))
+            expand_prompt_variable ((esc=*FALSE*)) tested
+            print_message (mail.c) ((esc=true)) untested
+            execute_rcfile ((esc=*FALSE*)) untested
+          expand_redir_filename ((processquotes=true, escapeall=false))
+          open_heredocument ((processquotes=*FALSE*, escapeall=false))
+          do_assignments ((processquotes=true, escapeall=false))
+          exec_case ((processquotes=true, escapeall=false))
+          exec_funcdef ((processquotes=true, escapeall=false))
+          print_subst_as_error ((processquotes=true, escapeall=false))
+          expand_four... ((processquotes=true, escapeall=false))
+          expand_param... ((processquotes=true, escapeall=false))
+        expand_single_with_glob ((processquotes=true, escapeall=false))
+        expand_double_bracket_operand ((processquotes=true, escapeall=false))
+        exec_case ((processquotes=true, escapeall=false))
+        cparse_word ((processquotes=true, escapeall=false))
+        expand_param... ((processquotes=true, escapeall=false))
+      expand_param... ((processquotes=true, escapeall=false))
+    expand_param... ((processquotes=true, escapeall=indq, rec=true))
+
+Call tree:
+expand_multiple
+  expand_four
+  brace expansion *
+  field splitting *
+  empty field removal
+  quote removal
+  globbing *
+expand_four_and_remove_quotes
+  expand_four
+  empty field removal
+  quote removal
+
+TODO:
+* Generate correct charcategory_T strings in all cases
+  * Mind the difference between ${unset-~} and ${unset-$HOME}. Field splitting and pathname expansion do not apply to the former.
+* Use charcategory_T string instead of splittability string
+* Remove superfluous escapes from intermediate expansion results
+* Remove splittability string
+* Reconsider the order of expansions performed
+  * Globbing should be done before quote removal
+  * Empty field removal should be done after quote removal
+* Consider adding facade function around expand_four which initializes expand_four_T, calls expand_four, and appends {value,cc}buf to {value,cc}list
+* Consider merging expand_multiple and expand_four_and_remove_quotes into one function
+* Remove unused function parameters
+  * Refactor expand_four parameters
+* Remove unused functions
+* Remove unused variables (CHARS_ESCAPED?)
