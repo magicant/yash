@@ -137,8 +137,6 @@ should_escape
       expand_word
 
 TODO:
-* Remove the escaped parameter from the extract_fields function
-* Consider simplifying the skip_ifs and skip_field functions
 * Reconsider the order of expansions performed
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal

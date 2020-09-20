@@ -2776,7 +2776,7 @@ int read_builtin(int argc, void **argv)
 	if (ifs == NULL)
 	    ifs = DEFAULT_IFS;
 
-	tail = extract_fields(buf.contents, cc.contents, false, ifs, &list);
+	tail = extract_fields(buf.contents, cc.contents, ifs, &list);
 	assert(list.length % 2 == 0);
     }
 

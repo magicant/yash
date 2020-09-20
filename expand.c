@@ -136,14 +136,11 @@ static void fieldsplit(wchar_t *restrict s, char *restrict cc,
 	const wchar_t *restrict ifs,
 	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
     __attribute__((nonnull));
-static size_t skip_ifs(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+static bool is_ifs_char(wchar_t c, charcategory_T cc, const wchar_t *ifs)
     __attribute__((nonnull,pure));
-static size_t skip_ifs_whitespaces(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+static bool is_ifs_whitespace(wchar_t c, charcategory_T cc, const wchar_t *ifs)
     __attribute__((nonnull,pure));
-static size_t skip_field(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+static bool is_non_ifs_char(wchar_t c, charcategory_T cc, const wchar_t *ifs)
     __attribute__((nonnull,pure));
 static void add_empty_field(plist_T *dest, const wchar_t *p)
     __attribute__((nonnull));
@@ -1645,7 +1642,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict cc,
     plist_T fields;
 
     pl_init(&fields);
-    extract_fields(s, cc, false, ifs, &fields);
+    extract_fields(s, cc, ifs, &fields);
     assert(fields.length % 2 == 0);
 
     for (size_t i = 0; i < fields.length; i += 2) {
@@ -1664,8 +1661,6 @@ void fieldsplit(wchar_t *restrict s, char *restrict cc,
  * `s' is the word to split.
  * `cc` is an array of charcategory_T values corresponding to `s'. It must be at
  * least as long as `wcslen(s)'.
- * If `escaped' is true, backslashes in `s' are treated as escapes. But
- * backslashes do not prevent splitting.
  * `ifs' must not be NULL.
  *
  * The results are appended to `dest'. If n fields are found, 2n pointers are
@@ -1695,7 +1690,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict cc,
  *   "abc - - 123"       ->   "abc" "" "123"
  */
 wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
-	bool escaped, const wchar_t *restrict ifs, plist_T *restrict dest)
+	const wchar_t *restrict ifs, plist_T *restrict dest)
 {
     size_t index = 0;
     size_t ifswhitestartindex;
@@ -1707,11 +1702,13 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
 
     for (;;) {
 	ifswhitestartindex = index;
-	index += skip_ifs_whitespaces(&s[index], &cc[index], escaped, ifs);
+	while (is_ifs_whitespace(s[index], cc[index], ifs))
+	    index++;
 
 	/* extract next field, if any */
 	size_t fieldstartindex = index;
-	index += skip_field(&s[index], &cc[index], escaped, ifs);
+	while (is_non_ifs_char(s[index], cc[index], ifs))
+	    index++;
 	if (index != fieldstartindex) {
 	    pl_add(pl_add(dest, &s[fieldstartindex]), &s[index]);
 	    afterfield = true;
@@ -1724,9 +1721,8 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
 	    add_empty_field(dest, &s[index]);
 
 	/* skip (only one) IFS non-whitespace */
-	size_t ifsstartindex = index;
-	index += skip_ifs(&s[index], &cc[index], escaped, ifs);
-	if (index != ifsstartindex) {
+	if (is_ifs_char(s[index], cc[index], ifs)) {
+	    index++;
 	    afterfield = false;
 	    continue;
 	}
@@ -1745,50 +1741,22 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
     return (wchar_t *) &s[ifswhitestartindex];
 }
 
-/* If `*s' is a (possibly escaped if `escaped') IFS character, returns the
- * number of characters to skip it. Otherwise returns zero. */
-size_t skip_ifs(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+/* Returns true if `c' is a non-null, IFS character. */
+bool is_ifs_char(wchar_t c, charcategory_T cc, const wchar_t *ifs)
 {
-    size_t i = 0;
-    if (escaped && s[i] == L'\\')
-	i++;
-    if (s[i] == L'\0')
-	return 0;
-    if (cc[i] == CC_SOFT_EXPANSION && wcschr(ifs, s[i]) != NULL)
-	return i + 1;
-    else
-	return 0;
+    return cc == CC_SOFT_EXPANSION && c != L'\0' && wcschr(ifs, c) != NULL;
 }
 
-/* Returns the length of IFS whitespace sequence starting at `*s'. */
-size_t skip_ifs_whitespaces(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+/* Returns true if `c' is a non-null, IFS-whitespace character. */
+bool is_ifs_whitespace(wchar_t c, charcategory_T cc, const wchar_t *ifs)
 {
-    size_t total = 0;
-    for (;;) {
-	size_t current = skip_ifs(&s[total], &cc[total], escaped, ifs);
-	if (current == 0 || !iswspace(s[total + current - 1]))
-	    return total;
-	total += current;
-    }
+    return is_ifs_char(c, cc, ifs) && iswspace(c);
 }
 
-/* Returns the length of a field starting at `*s'. */
-size_t skip_field(const wchar_t *s, const char *cc,
-	bool escaped, const wchar_t *ifs)
+/* Returns true if `c' is a non-null, non-IFS character. */
+bool is_non_ifs_char(wchar_t c, charcategory_T cc, const wchar_t *ifs)
 {
-    size_t index = 0;
-    for (;;) {
-	size_t saveindex = index;
-	if (escaped && s[index] == L'\\')
-	    index++;
-	if (s[index] == L'\0')
-	    return saveindex;
-	if (cc[index] == CC_SOFT_EXPANSION && wcschr(ifs, s[index]) != NULL)
-	    return saveindex;
-	index++;
-    }
+    return c != L'\0' && !is_ifs_char(c, cc, ifs);
 }
 
 void add_empty_field(plist_T *dest, const wchar_t *p)
