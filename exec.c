@@ -513,8 +513,7 @@ void exec_case(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_CASE);
 
-    wchar_t *word = expand_single_and_unescape(
-	    c->c_casword, TT_SINGLE, true, false);
+    wchar_t *word = expand_111111(c->c_casword, TT_SINGLE, Q_WORD, ES_NONE);
     if (word == NULL)
 	goto fail;
 
