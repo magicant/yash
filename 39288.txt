@@ -72,6 +72,70 @@ expand_four_and_remove_quotes
   empty field removal
   quote removal
 
+Call tree:
+add_sq
+escapefree
+  escape
+unescapefree
+  unescape
+quote_as_word
+  wb_quote_as_word
+unquote
+  add_sq
+quote_removal_free
+  quote_removal
+
+Callee tree:
+add_sq
+  expand_four...
+  unquote
+    read_heredoc_contents_without_expansion... (parser.c)
+    print_pending_heredocs... (parser.c)
+    tryhash_word_as_command... (variable.c)
+escape
+  escapefree
+    expand_four...
+    expand_param...
+    get_prompt... (input.c)
+    cparse_paramexp_in_brace... (lineedit/compparse.c)
+    cparse_cmdsubst_in_backquote... (lineedit/compparse.c)
+  perform_search... (lineedit/editing.c)
+  read_heredoc_contents_without_expansion... (parser.c)
+  promptset_for_read... (variable.c)
+unescape
+  unescapefree
+    expand_and_unescape_double_bracket_operand... (builtins/test.c)
+    expand_multiple...
+    expand_single_and_unescape...
+    expand_single_with_glob...
+    expand_param...
+    glob_all
+      expand_multiple...
+  test_triple_db... (builtins/test.c)
+  le_get_context... (lineedit/compparse.c)
+  wglob_parse_pattern_part... (path.c)
+wb_quote_as_word
+  quote_as_word
+    print_alias...
+    print_xtrace...
+    print_binding_main...
+    print_trap...
+    print_variable...
+    print_scalar...
+    print_array...
+    print_function...
+  xtrace_variable...
+  xtrace_array...
+escaped_wcspbrk
+  escaped_remove
+    escaped_remove_free
+      expand_multiple...
+      expand_four_and_remove_quotes...
+should_escape
+  quote_removal
+    quote_removal_free
+      expand_word
+
 TODO:
 * Generate correct charcategory_T strings in all cases
   * Mind the difference between ${unset-~} and ${unset-$HOME}. Field splitting and pathname expansion do not apply to the former.

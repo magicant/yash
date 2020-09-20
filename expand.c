@@ -63,8 +63,8 @@ struct expand_four_T {
 /* When "$@" appears during expansion and there is no positional parameter, the
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
-static plist_T expand_word(
-	const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+static plist_T expand_word(const wordunit_T *w,
+	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((warn_unused_result));
 static plist_T expand_four_and_remove_quotes(
 	const wordunit_T *restrict w,
@@ -156,6 +156,14 @@ static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
 static wchar_t *escaped_remove(const wchar_t *s, const wchar_t *reject)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static inline bool should_escape(char c, charcategory_T cc, escaping_T escaping)
+    __attribute__((const));
+static wchar_t *quote_removal(
+	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
+    __attribute__((nonnull,malloc,warn_unused_result));
+static wchar_t *quote_removal_free(
+	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 static void glob_all(void **restrict patterns, plist_T *restrict list)
@@ -281,7 +289,8 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
  * strings. In most cases, the plist_T contains one string. If the word contains
  * "$@", however, it may contain any number of strings.
  * On error, the return value is a plist_T with `contents' being NULL. */
-plist_T expand_word(const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+plist_T expand_word(const wordunit_T *w,
+	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
 {
     struct expand_four_T expand;
 
@@ -316,13 +325,12 @@ plist_T expand_word(const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
 	}
     }
 
-    // TODO use cclist in the following steps
-    plfree(pl_toary(&expand.cclist), free);
-
     /* quote removal */
     for (size_t i = 0; i < expand.valuelist.length; i++)
-	expand.valuelist.contents[i] =
-	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
+	expand.valuelist.contents[i] = quote_removal_free(
+	    expand.valuelist.contents[i], expand.cclist.contents[i], escaping);
+
+    pl_destroy(&expand.cclist);
 
     return expand.valuelist;
 }
@@ -1992,6 +2000,50 @@ wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
 {
     wchar_t *result = escaped_remove(s, reject);
     free(s);
+    return result;
+}
+
+/* Tests if a character should be backslash-escaped. */
+bool should_escape(char c, charcategory_T cc, escaping_T escaping)
+{
+    switch (escaping) {
+	case ES_NONE:
+	    return false;
+	case ES_QUOTED_HARD:
+	    if ((cc & CC_ORIGIN_MASK) == CC_HARD_EXPANSION)
+		return true;
+	    /* falls thru! */
+	case ES_QUOTED:
+	    return c == L'\\' || (cc & CC_QUOTED);
+    }
+    assert(false);
+}
+
+/* Removes all quotation marks in the input string `s' and optionally add
+ * backslash escapes to the originally quoted characters as specified by
+ * `escaping'. The result is a newly malloced string. */
+wchar_t *quote_removal(
+	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
+{
+    xwcsbuf_T result;
+    wb_init(&result);
+    for (size_t i = 0; s[i] != L'\0'; i++) {
+	if (cc[i] & CC_QUOTATION)
+	    continue;
+	if (should_escape(s[i], cc[i], escaping))
+	    wb_wccat(&result, L'\\');
+	wb_wccat(&result, s[i]);
+    }
+    return wb_towcs(&result);
+}
+
+/* Like `quote_removal', but frees the arguments. */
+wchar_t *quote_removal_free(
+	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
+{
+    wchar_t *result = quote_removal(s, cc, escaping);
+    free(s);
+    free(cc);
     return result;
 }
 

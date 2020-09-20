@@ -59,6 +59,19 @@ typedef enum {
 /* A character can be both CC_QUOTED and CC_QUOTATION at a time. This may happen
  * in a nested quotation like "\"". */
 
+/* type of characters to be backslash-escaped in the expansion results */
+typedef enum {
+    ES_NONE,         /* No characters are escaped. */
+    ES_QUOTED,       /* Quoted characters remain escaped. */
+    ES_QUOTED_HARD,  /* Ditto, and characters marked CC_HARD_EXPANSION and
+			backslashes are also escaped. */
+} escaping_T;
+/* ES_QUOTED_HARD is for pathname expansion patterns while ES_QUOTED is for
+ * other patterns. With ES_QUOTED_HARD, backslashes that are not quotation
+ * marks are escaped to prevent them from being regarded as escaping
+ * characters. This does not apply to ES_QUOTED because the pattern is
+ * supposed to be matched without quote removal. */
+
 struct wordunit_T;
 struct plist_T;
 extern _Bool expand_line(
