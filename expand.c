@@ -237,17 +237,20 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	    &expand.valuelist, &expand.cclist);
     assert(expand.valuelist.length == expand.cclist.length);
 
-    // TODO use cclist in the following steps
-    plfree(pl_toary(&expand.cclist), free);
-
     /* empty field removal */
     if (expand.valuelist.length == 1) {
 	const wchar_t *field = expand.valuelist.contents[0];
+	const char *cc = expand.cclist.contents[0];
 	if (field[0] == L'\0' ||
-		(expand.zeroword && wcscmp(field, L"\"\"") == 0)) {
+		(expand.zeroword && wcscmp(field, L"\"\"") == 0 &&
+		(cc[0] & cc[1] & CC_QUOTATION))) {
 	    pl_clear(&expand.valuelist, free);
+	    pl_clear(&expand.cclist, free);
 	}
     }
+
+    // TODO use cclist in the following steps
+    plfree(pl_toary(&expand.cclist), free);
 
     /* quote removal */
     for (size_t i = 0; i < expand.valuelist.length; i++)
@@ -397,17 +400,24 @@ plist_T expand_four_and_remove_quotes(
 	expand.valuelist.contents = NULL;
 	return expand.valuelist;
     }
+    assert(expand.valuelist.length == expand.cclist.length);
+    assert(expand.valuebuf.length == expand.ccbuf.length);
+    pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
+    pl_add(&expand.cclist, sb_tostr(&expand.ccbuf));
 
-    // TODO use cclist & ccbuf in the following steps
-    sb_destroy(&expand.ccbuf);
+    /* empty field removal */
+    if (expand.valuelist.length == 1) {
+	const wchar_t *field = expand.valuelist.contents[0];
+	const char *cc = expand.cclist.contents[0];
+	if (expand.zeroword && wcscmp(field, L"\"\"") == 0 &&
+		(cc[0] & cc[1] & CC_QUOTATION)) {
+	    pl_clear(&expand.valuelist, free);
+	    pl_clear(&expand.cclist, free);
+	}
+    }
+
+    // TODO use cclist in the following steps
     plfree(pl_toary(&expand.cclist), free);
-
-    /* remove empty word for "$@" if $# == 0 */
-    if (expand.valuelist.length == 0 && expand.zeroword &&
-	    wcscmp(expand.valuebuf.contents, L"\"\"") == 0)
-	wb_destroy(&expand.valuebuf);
-    else
-	pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
 
     /* quote removal */
     for (size_t i = 0; i < expand.valuelist.length; i++)
