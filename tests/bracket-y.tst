@@ -83,6 +83,12 @@ lhs='foobar' rhs='f*b?r'
 ! [[ "$lhs" != $rhs ]] && [[ "$lhs" != "$rhs" ]]
 __IN__
 
+# Note: yash's behavior is not consistent with other shells
+test_OE -e 0 'unquoted backslash is special in pattern'
+bs='\'
+[[ $bs = $bs$bs ]] && [[ $bs == $bs$bs ]] && [[ $bs != $bs ]]
+__IN__
+
 # Note: mksh does not support regex
 test_OE -e 0 'literal regex matching with binary primary =~'
 [[ abc123xyz =~ c[[:digit:]]*x ]] && ! [[ abc =~ b'*' ]]

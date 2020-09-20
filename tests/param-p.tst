@@ -335,12 +335,21 @@ __IN__
 __OUT__
 
 test_oE 'parameter expansion in embedded pattern'
-w='ab\bc' a='*'
+w='ab\bc' a='*' b='\'
 bracket ${w#${a}b}  "${w#${a}b}"  ${w#"${a}b"}
 bracket ${w##${a}b} "${w##${a}b}" ${w##"${a}b"}
 bracket ${w%b${a}}  "${w%b${a}}"  ${w%"b${a}"}
 bracket ${w%%b${a}} "${w%%b${a}}" ${w%%"b${a}"}
+# XCU 2.9.4 implies unquoted backslashes are special in the pattern.
+bracket ${w#*${b}b}  "${w#*${b}b}"  ${w#"*${b}b"}
+bracket ${w##*${b}b} "${w##*${b}b}" ${w##"*${b}b"}
+bracket ${w%${b}b*}  "${w%${b}b*}"  ${w%"${b}b*"}
+bracket ${w%%${b}b*} "${w%%${b}b*}" ${w%%"${b}b*"}
 __IN__
+[\bc][\bc][ab\bc]
+[c][c][ab\bc]
+[ab\][ab\][ab\bc]
+[a][a][ab\bc]
 [\bc][\bc][ab\bc]
 [c][c][ab\bc]
 [ab\][ab\][ab\bc]

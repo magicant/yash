@@ -102,6 +102,16 @@ __IN__
 matched
 __OUT__
 
+test_oE 'backslashes arising from expansion in case pattern'
+# XCU 2.9.4 implies unquoted backslashes are special in the pattern.
+bs='\a\z'
+case 'az'   in  $bs ) echo bs1; esac
+case '\a\z' in "$bs") echo bs2; esac
+__IN__
+bs1
+bs2
+__OUT__
+
 test_oE 'pattern matching and quotes (*)'
 case '*ab' in
     \*\*\*) echo not reached;;

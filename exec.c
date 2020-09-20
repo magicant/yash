@@ -513,14 +513,14 @@ void exec_case(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_CASE);
 
-    wchar_t *word = expand_single_and_unescape(
-	    c->c_casword, TT_SINGLE, true, false);
+    wchar_t *word = expand_single(c->c_casword, TT_SINGLE, Q_WORD, ES_NONE);
     if (word == NULL)
 	goto fail;
 
     for (const caseitem_T *ci = c->c_casitems; ci != NULL; ci = ci->next) {
 	for (void **pats = ci->ci_patterns; *pats != NULL; pats++) {
-	    wchar_t *pattern = expand_single(*pats, TT_SINGLE, true, false);
+	    wchar_t *pattern =
+		expand_single(*pats, TT_SINGLE, Q_WORD, ES_QUOTED);
 	    if (pattern == NULL)
 		goto fail;
 
@@ -555,8 +555,8 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 {
     assert(c->c_type == CT_FUNCDEF);
 
-    wchar_t *funcname = expand_single_and_unescape(
-	    c->c_funcname, TT_SINGLE, true, false);
+    wchar_t *funcname =
+	expand_single(c->c_funcname, TT_SINGLE, Q_WORD, ES_NONE);
     if (funcname != NULL) {
 	if (define_function(funcname, c->c_funcbody))
 	    laststatus = Exit_SUCCESS;
