@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* test.c: test builtin */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,9 +77,11 @@ static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 #if YASH_ENABLE_DOUBLE_BRACKET
 static int eval_dbexp(const dbexp_T *e)
     __attribute__((nonnull));
-static inline wchar_t *expand_double_bracket_operand(const wordunit_T *w)
+static inline wchar_t *expand_double_bracket_operand_escaped(
+	const wordunit_T *w)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wchar_t *expand_and_unescape_double_bracket_operand(const wordunit_T *w)
+static inline wchar_t *expand_double_bracket_operand_unescaped(
+	const wordunit_T *w)
     __attribute__((nonnull,malloc,warn_unused_result));
 static bool test_triple_db(
 	const wchar_t *lhs, const wchar_t *op, const wchar_t *rhs_escaped)
@@ -744,22 +746,22 @@ int eval_dbexp(const dbexp_T *e)
 	    }
 
 	case DBE_UNARY:
-	    rhs = expand_and_unescape_double_bracket_operand(e->rhs.word);
+	    rhs = expand_double_bracket_operand_unescaped(e->rhs.word);
 	    if (rhs == NULL)
 		return Exit_TESTERROR;
 	    result = test_double((void *[]) { e->operator, rhs });
 	    break;
 	case DBE_BINARY:
-	    lhs = expand_and_unescape_double_bracket_operand(e->lhs.word);
+	    lhs = expand_double_bracket_operand_unescaped(e->lhs.word);
 	    if (lhs == NULL)
 		return Exit_TESTERROR;
-	    rhs = expand_double_bracket_operand(e->rhs.word);
+	    rhs = expand_double_bracket_operand_escaped(e->rhs.word);
 	    if (rhs == NULL)
 		return Exit_TESTERROR;
 	    result = test_triple_db(lhs, e->operator, rhs);
 	    break;
 	case DBE_STRING:
-	    rhs = expand_and_unescape_double_bracket_operand(e->rhs.word);
+	    rhs = expand_double_bracket_operand_unescaped(e->rhs.word);
 	    if (rhs == NULL)
 		return Exit_TESTERROR;
 	    result = test_single((void *[]) { rhs });
@@ -778,19 +780,16 @@ int eval_dbexp(const dbexp_T *e)
 
 /* Expands the operand of a primary.
  * The result may contain backslash escapes. */
-wchar_t *expand_double_bracket_operand(const wordunit_T *w)
+wchar_t *expand_double_bracket_operand_escaped(const wordunit_T *w)
 {
-    return expand_single(w, TT_SINGLE, true, false);
+    return expand_111111(w, TT_SINGLE, Q_WORD, ES_QUOTED);
 }
 
 /* Expands the operand of a primary.
  * The result is literal (does not contain backslash escapes). */
-wchar_t *expand_and_unescape_double_bracket_operand(const wordunit_T *w)
+wchar_t *expand_double_bracket_operand_unescaped(const wordunit_T *w)
 {
-    wchar_t *e = expand_double_bracket_operand(w);
-    if (e == NULL)
-	return NULL;
-    return unescapefree(e);
+    return expand_111111(w, TT_SINGLE, Q_WORD, ES_NONE);
 }
 
 /* Tests the specified three-token (binary) primary in the double-bracket

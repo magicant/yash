@@ -27,6 +27,8 @@ append_value
   expand_4444
     expand_word ((quoting))
       expand_111111 ((quoting, escaping))
+        expand_double_bracket_operand_escaped ((Q_WORD, ES_QUOTED))
+        expand_double_bracket_operand_unescaped ((Q_WORD, ES_NONE))
         exec_case ((Q_WORD, ES_NONE))
         exec_case ((Q_WORD, ES_QUOTED))
         cparse_word ((Q_WORD, ES_QUOTED_HARD))
@@ -58,7 +60,6 @@ append_value
           expand_four... ((processquotes=true, escapeall=false))
           expand_param... ((processquotes=true, escapeall=false))
         expand_single_with_glob ((processquotes=true, escapeall=false))
-        expand_double_bracket_operand ((processquotes=true, escapeall=false))
 
 Call tree:
 expand_multiple
@@ -105,7 +106,6 @@ escape
   promptset_for_read... (variable.c)
 unescape
   unescapefree
-    expand_and_unescape_double_bracket_operand... (builtins/test.c)
     expand_multiple...
     expand_single_and_unescape...
     expand_single_with_glob...
