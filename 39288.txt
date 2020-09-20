@@ -71,7 +71,8 @@ expand_four_and_remove_quotes
 TODO:
 * Generate correct charcategory_T strings in all cases
   * Mind the difference between ${unset-~} and ${unset-$HOME}. Field splitting and pathname expansion do not apply to the former.
-* Use charcategory_T string instead of splittability string
+* Remove the escaped parameter from the extract_fields function
+* Consider simplifying the skip_ifs and skip_field functions
 * Remove superfluous escapes from intermediate expansion results
 * Remove splittability string
 * Reconsider the order of expansions performed
