@@ -85,6 +85,10 @@ extern _Bool expand_multiple(
 extern wchar_t *expand_single(const struct wordunit_T *arg,
 	tildetype_T tilde, _Bool processquotes, _Bool escapeall)
     __attribute__((malloc,warn_unused_result));
+extern wchar_t *expand_111111(
+	const struct wordunit_T *w,
+	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
+    __attribute__((malloc,warn_unused_result));
 extern wchar_t *expand_single_and_unescape(const struct wordunit_T *arg,
 	tildetype_T tilde, _Bool processquotes, _Bool escapeall)
     __attribute__((malloc,warn_unused_result));

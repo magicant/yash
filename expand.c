@@ -361,6 +361,23 @@ wchar_t *expand_single(const wordunit_T *arg,
     return concatenate_values(pl_toary(&list), true);
 }
 
+/* Expands a single word: the four expansions and quote removal.
+ * This function doesn't perform brace expansion, field splitting, or globbing.
+ * If successful, the resulting word is returned as a newly malloced string.
+ * On error, an error message is printed and NULL is returned.
+ * On error in a non-interactive shell, the shell exits. */
+wchar_t *expand_111111(const wordunit_T *w,
+	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
+{
+    plist_T list = expand_word(w, tilde, quoting, escaping);
+    if (list.contents == NULL) {
+	maybe_exit_on_error();
+	return NULL;
+    }
+
+    return concatenate_values(pl_toary(&list), escaping != ES_NONE);
+}
+
 /* Like `expand_single', but the result is unescaped (if successful). */
 wchar_t *expand_single_and_unescape(const wordunit_T *arg,
 	tildetype_T tilde, bool processquotes, bool escapeall)
