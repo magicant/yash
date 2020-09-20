@@ -398,7 +398,7 @@ wchar_t *expand_single_and_unescape(const wordunit_T *arg,
  * On error in a non-interactive shell, the shell exits. */
 char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
 {
-    wchar_t *exp = expand_single(arg, tilde, true, false);
+    wchar_t *exp = expand_111111(arg, tilde, Q_WORD, ES_QUOTED_HARD);
     char *result;
 
     if (exp == NULL)
