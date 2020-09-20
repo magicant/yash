@@ -70,8 +70,7 @@ extern char *expand_single_with_glob(
     __attribute__((malloc,warn_unused_result));
 
 extern wchar_t *extract_fields(
-	const wchar_t *restrict s, const char *restrict split,
-	const char *restrict cc,
+	const wchar_t *restrict s, const char *restrict cc,
 	_Bool escaped, const wchar_t *restrict ifs,
 	struct plist_T *restrict dest)
     __attribute__((nonnull));

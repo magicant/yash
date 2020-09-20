@@ -1594,8 +1594,8 @@ static bool set_optind(unsigned long optind, unsigned long optsubind);
 static inline bool set_optarg(const wchar_t *value);
 static bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     __attribute__((nonnull));
-static bool read_with_prompt(xwcsbuf_T *buf, xstrbuf_T *split,
-	xstrbuf_T *cc, const struct reading_option_T *ro)
+static bool read_with_prompt(
+	xwcsbuf_T *buf, xstrbuf_T *cc, const struct reading_option_T *ro)
     __attribute__((nonnull));
 static struct promptset_T promptset_for_read(
 	bool firstline, const struct reading_option_T *ro)
@@ -1605,8 +1605,7 @@ static wchar_t *read_one_line_with_prompt(
     __attribute__((malloc,warn_unused_result));
 static wchar_t *read_one_line(void)
     __attribute__((malloc,warn_unused_result));
-static bool unescape_line(
-	const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *split, xstrbuf_T *cc)
+static bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *cc)
     __attribute__((nonnull));
 static void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
     __attribute__((nonnull));
@@ -2748,14 +2747,12 @@ int read_builtin(int argc, void **argv)
     }
 
     xwcsbuf_T buf;
-    xstrbuf_T split, cc;
+    xstrbuf_T cc;
 
     wb_init(&buf);
-    sb_init(&split);
     sb_init(&cc);
-    if (!read_with_prompt(&buf, &split, &cc, &ro)) {
+    if (!read_with_prompt(&buf, &cc, &ro)) {
 	sb_destroy(&cc);
-	sb_destroy(&split);
 	wb_destroy(&buf);
 	return Exit_FAILURE;
     }
@@ -2779,8 +2776,7 @@ int read_builtin(int argc, void **argv)
 	if (ifs == NULL)
 	    ifs = DEFAULT_IFS;
 
-	tail = extract_fields(
-		buf.contents, split.contents, cc.contents, false, ifs, &list);
+	tail = extract_fields(buf.contents, cc.contents, false, ifs, &list);
 	assert(list.length % 2 == 0);
     }
 
@@ -2817,24 +2813,21 @@ int read_builtin(int argc, void **argv)
 
     pl_destroy(&list);
     sb_destroy(&cc);
-    sb_destroy(&split);
     wb_destroy(&buf);
     return (!eof && yash_error_message_count == 0)
 	    ? Exit_SUCCESS : Exit_FAILURE;
 }
 
-/* Reads one line from the standard input. The result is appended to `buf',
- * `split' and `cc'. `buf' will contain no escapes or other special characters.
- * `split' is the splittability string for `buf'. The string is splittable at
- * characters that were not backslash-escaped. `cc' is the charcategory_T string
- * for `buf'. It indicates whether `buf' can be split at the corresponding
- * character when passed to `extract_fields'.
+/* Reads one line from the standard input. The result is appended to `buf' and
+ * `cc'. `buf' will contain no escapes or other special characters. `cc' is the
+ * charcategory_T string for `buf'. It indicates whether `buf' can be split at
+ * the corresponding character when passed to `extract_fields'.
  * If `ro->raw' is true, exactly one line is read and backslashes are not
  * treated as escapes. Otherwise, line continuations cause this function to read
  * more and backslash escapes are recognized.
  * Returns false on error while reading. */
-bool read_with_prompt(xwcsbuf_T *buf, xstrbuf_T *split, xstrbuf_T *cc,
-	const struct reading_option_T *ro)
+bool read_with_prompt(
+	xwcsbuf_T *buf, xstrbuf_T *cc, const struct reading_option_T *ro)
 {
     bool firstline = true;
     bool completed = false;
@@ -2854,11 +2847,10 @@ bool read_with_prompt(xwcsbuf_T *buf, xstrbuf_T *split, xstrbuf_T *cc,
 
 	if (ro->raw) {
 	    wb_cat(buf, line);
-	    sb_ccat_repeat(split, true, wcslen(line));
 	    sb_ccat_repeat(cc, CC_SOFT_EXPANSION, wcslen(line));
 	    completed = true;
 	} else {
-	    completed = unescape_line(line, buf, split, cc);
+	    completed = unescape_line(line, buf, cc);
 	}
 	free(line);
 
@@ -2934,13 +2926,11 @@ wchar_t *read_one_line(void)
 }
 
 /* Parses a string that may contain backslash escapes.
- * Unescaped `line' is appended to `buf' with a corresponding splittability
- * string appended to `split' and a corresponding charcategory_T string
- * appended to `cc'. Characters are splittable iff not escaped.
+ * Unescaped `line' is appended to `buf' with a corresponding charcategory_T
+ * string appended to `cc'.
  * The result is false iff `line' ends with a line continuation.
  * The line continuation is not appended to `buf'. */
-bool unescape_line(
-	const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *split, xstrbuf_T *cc)
+bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *cc)
 {
     for (;;) {
 	bool splitchar;
@@ -2963,7 +2953,6 @@ bool unescape_line(
 		break;
 	}
 	wb_wccat(buf, *line);
-	sb_ccat(split, splitchar);
 	sb_ccat(cc, CC_SOFT_EXPANSION | (splitchar ? 0 : CC_QUOTED));
 	line++;
     }

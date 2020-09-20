@@ -20,7 +20,7 @@ esc             n/a       true      false
 \\              \\ -> \   \\ -> \   \\
 
 Callee tree:
-fill_splitbuf
+append_value
   expand_param
     expand_four...
   expand_four
@@ -74,12 +74,12 @@ TODO:
 * Remove the escaped parameter from the extract_fields function
 * Consider simplifying the skip_ifs and skip_field functions
 * Remove superfluous escapes from intermediate expansion results
-* Remove splittability string
 * Reconsider the order of expansions performed
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal
 * Consider adding facade function around expand_four which initializes expand_four_T, calls expand_four, and appends {value,cc}buf to {value,cc}list
 * Consider merging expand_multiple and expand_four_and_remove_quotes into one function
+* Consider reusing the fields list in the fieldsplit function
 * Remove unused function parameters
   * Refactor expand_four parameters
 * Remove unused functions
