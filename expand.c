@@ -1229,7 +1229,7 @@ void expand_brace(
 	char *restrict const cc, plist_T *restrict valuelist,
 	plist_T *restrict splitlist, plist_T *restrict cclist)
 {
-#define idx(p) ((wchar_t *) (p) - word)
+#define idx(p) ((size_t) ((wchar_t *) (p) - word))
 
     size_t ci = 0;
 
@@ -1329,7 +1329,6 @@ done:;
     free(word);
     free(split);
     free(cc);
-#undef idx
 }
 
 /* Tries numeric brace expansion like "{01..05}".
@@ -1339,7 +1338,8 @@ done:;
  * `startc' is a pointer to the character right after L'{' in `word'.
  */
 bool try_expand_brace_sequence(
-	wchar_t *word, char *restrict split, char *restrict cc, wchar_t *startc,
+	wchar_t *const word, char *restrict const split,
+	char *restrict const cc, wchar_t *const startc,
 	plist_T *restrict valuelist, plist_T *restrict splitlist,
 	plist_T *restrict cclist)
 {
@@ -1394,10 +1394,17 @@ bool try_expand_brace_sequence(
 	    delta = -1;
     }
 
+    /* validate charcategory_T */
+    if (cc[idx(bracep)] != CC_LITERAL)
+	return false;
+    for (size_t ci = idx(startc); ci < idx(bracep); ci++)
+	if (cc[ci] & CC_QUOTED)
+	    return false;
+
     /* expand the sequence */
     value = start;
     len = (startlen > endlen) ? startlen : endlen;
-    wordlen = wcslen(word);
+    wordlen = idx(bracep + 1) + wcslen(bracep + 1); // = wcslen(word);
     do {
 	xwcsbuf_T buf;
 	xstrbuf_T sbuf, cbuf;
@@ -1405,9 +1412,10 @@ bool try_expand_brace_sequence(
 	sb_init(&sbuf);
 	sb_init(&cbuf);
 
-	wb_ncat_force(&buf, word, startc - 1 - word);
-	sb_ncat_force(&sbuf, split, startc - 1 - word);
-	sb_ncat_force(&cbuf, cc, startc - 1 - word);
+	size_t slen = idx(startc - 1);
+	wb_ncat_force(&buf, word, slen);
+	sb_ncat_force(&sbuf, split, slen);
+	sb_ncat_force(&cbuf, cc, slen);
 
 	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
 	if (plen >= 0) {
@@ -1415,15 +1423,10 @@ bool try_expand_brace_sequence(
 	    sb_ccat_repeat(&cbuf, CC_HARD_EXPANSION, plen);
 	}
 
-	wb_ncat_force(&buf,
-		bracep + 1,
-		wordlen - (bracep + 1 - word));
-	sb_ncat_force(&sbuf,
-		split   + (bracep + 1 - word),
-		wordlen - (bracep + 1 - word));
-	sb_ncat_force(&cbuf,
-		cc      + (bracep + 1 - word),
-		wordlen - (bracep + 1 - word));
+	slen = idx(bracep + 1);
+	wb_ncat_force(&buf, bracep + 1, wordlen - slen);
+	sb_ncat_force(&sbuf, split + slen, wordlen - slen);
+	sb_ncat_force(&cbuf, cc + slen, wordlen - slen);
 	assert(buf.length == sbuf.length);
 	assert(buf.length == cbuf.length);
 
@@ -1444,6 +1447,7 @@ bool try_expand_brace_sequence(
     free(split);
     free(cc);
     return true;
+#undef idx
 }
 
 /* Checks if the specified numeral starts with a L'0'.
