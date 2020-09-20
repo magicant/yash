@@ -25,6 +25,7 @@ append_value
     expand_4444...
     expand_four...
   expand_4444
+    expand_param... ((Q_WORD))
   expand_four
     expand_multiple ((processquotes=true, escapeall=false, rec=false))
       expand_line
@@ -56,7 +57,6 @@ append_value
         cparse_word ((processquotes=true, escapeall=false))
         expand_param... ((processquotes=true, escapeall=false))
       expand_param... ((processquotes=true, escapeall=false))
-    expand_param... ((processquotes=true, escapeall=false, rec=true))
 
 Call tree:
 expand_multiple
@@ -77,6 +77,7 @@ TODO:
 * Remove the escaped parameter from the extract_fields function
 * Consider simplifying the skip_ifs and skip_field functions
 * Remove superfluous escapes from intermediate expansion results
+* Re-enable disabled test cases
 * Reconsider the order of expansions performed
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal

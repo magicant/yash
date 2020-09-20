@@ -66,6 +66,7 @@ __OUT__
 # expansion." (XCU 2.6.1) On the other hand, the results of parameter expansion
 # is generally subject to field splitting and pathname expansion. (XCU 2.6.5)
 # Yash prevents such additional expansion in accordance with other shells.
+<<\__OUT__ # FIXME Enable this test
 test_oE 'result of tilde expansion in expansion not for further expansion'
 HOME='/path/with  $space$(:)`:`$((1))' IFS=' /'
 echoraw ${u-~}
