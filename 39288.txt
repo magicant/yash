@@ -20,10 +20,9 @@ esc             n/a       true      false
 \\              \\ -> \   \\ -> \   \\
 
 Callee tree:
-append_value
+***
   expand_param
     expand_4444...
-    expand_four...
   expand_4444
     expand_multiple ((Q_WORD))
       expand_line
@@ -45,7 +44,6 @@ append_value
         exec_funcdef ((Q_WORD, ES_NONE))
         print_subst_as_error... ((Q_WORD, ES_NONE))
         expand_4444... ((Q_WORD, ES_NONE))
-        expand_four... ((Q_WORD, ES_NONE))
         expand_single_with_glob ((Q_WORD, ES_QUOTED_HARD))
         expand_double_bracket_operand_escaped ((Q_WORD, ES_QUOTED))
         expand_double_bracket_operand_unescaped ((Q_WORD, ES_NONE))
@@ -56,10 +54,6 @@ append_value
         expand_param... ((Q_WORD, ES_QUOTED))
       expand_param... ((Q_WORD, ES_NONE))
     expand_param... ((Q_WORD))
-  expand_four
-    expand_four_and_remove_quotes ((processquotes, escapeall, rec=false))
-      expand_single ((processquotes, escapeall))
-        expand_single_and_unescape ((processquotes, escapeall))
 
 Call tree:
 expand_multiple
@@ -69,10 +63,6 @@ expand_multiple
   empty field removal
   quote removal
   globbing *
-expand_four_and_remove_quotes
-  expand_four
-  empty field removal
-  quote removal
 
 Call tree:
 add_sq
@@ -96,7 +86,6 @@ add_sq
     tryhash_word_as_command... (variable.c)
 escape
   escapefree
-    expand_four...
     expand_param...
     get_prompt... (input.c)
     cparse_paramexp_in_brace... (lineedit/compparse.c)
@@ -106,7 +95,6 @@ escape
   promptset_for_read... (variable.c)
 unescape
   unescapefree
-    expand_single_and_unescape...
     expand_single_with_glob...
     expand_param...
     glob_all
@@ -126,10 +114,6 @@ wb_quote_as_word
     print_function...
   xtrace_variable...
   xtrace_array...
-escaped_wcspbrk
-  escaped_remove
-    escaped_remove_free
-      expand_four_and_remove_quotes...
 should_escape
   quote_removal
     quote_removal_free
@@ -141,12 +125,6 @@ TODO:
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal
 * Consider adding facade function around expand_four which initializes expand_four_T, calls expand_four, and appends {value,cc}buf to {value,cc}list
-* Consider merging expand_multiple and expand_four_and_remove_quotes into one function
 * Consider reusing the fields list in the fieldsplit function
-* Remove unused function parameters
-  * Refactor expand_four parameters
-* Remove unused functions
-  * escaped_wcspbrk?
 * Rename expand_4444 to expand_four back
 * Rename expand_111111 to expand_single back
-* Remove unused variables (CHARS_ESCAPED?)

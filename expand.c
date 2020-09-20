@@ -43,12 +43,6 @@
 #include "yash.h"
 
 
-/* characters that have special meanings in brace expansion, quote removal, and
- * globbing. When an unquoted expansion includes these characters, they are
- * backslashed to protect from unexpected side effects in succeeding expansion
- * steps. */
-#define CHARS_ESCAPED L"\\\"\'{,}"
-
 /* data passed between expansion functions */
 struct expand_four_T {
     plist_T valuelist, cclist;
@@ -66,22 +60,12 @@ struct expand_four_T {
 static plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((warn_unused_result));
-static plist_T expand_four_and_remove_quotes(
-	const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall);
-static bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall,
-	charcategory_T defaultcc, struct expand_four_T *restrict e)
-    __attribute__((nonnull(6)));
 static bool expand_4444(const wordunit_T *restrict w, tildetype_T tilde,
 	quoting_T quoting, charcategory_T defaultcc,
 	struct expand_four_T *restrict e)
     __attribute__((nonnull(5)));
 static void fill_ccbuf(struct expand_four_T *e, charcategory_T c)
     __attribute__((nonnull));
-static void append_value(wchar_t *restrict s, const wchar_t *t,
-	charcategory_T defaultcc, struct expand_four_T *e)
-    __attribute__((nonnull(1,4)));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
 	bool hasnextwordunit, tildetype_T tt)
@@ -148,12 +132,6 @@ static void add_empty_field(plist_T *dest, const wchar_t *p)
 static inline void add_sq(
 	const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
     __attribute__((nonnull));
-static wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
-    __attribute__((nonnull));
-static wchar_t *escaped_remove(const wchar_t *s, const wchar_t *reject)
-    __attribute__((nonnull,malloc,warn_unused_result));
-static inline wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
-    __attribute__((nonnull,malloc,warn_unused_result));
 static inline bool should_escape(char c, charcategory_T cc, escaping_T escaping)
     __attribute__((const));
 static wchar_t *quote_removal(
@@ -332,32 +310,6 @@ plist_T expand_word(const wordunit_T *w,
 }
 
 /* Expands a single word: the four expansions and quote removal.
- * This function doesn't perform brace expansion, field splitting, globbing and
- * unescaping.
- * If `processquotes' is true, single- and double-quotations are recognized as
- * quotes. Otherwise, they are treated like backslashed characters.
- * If `escapeall' is true, the expanded words are all backslashed as if the
- * entire expansion is quoted.
- * If `processquotes' and `escapeall' are false, only backslashes not preceding
- * any of $, `, \ are self-backslashed.
- * If successful, the resulting word is returned as a newly malloced string
- * that may include backslash escapes.
- * On error, an error message is printed and NULL is returned.
- * On error in a non-interactive shell, the shell exits. */
-wchar_t *expand_single(const wordunit_T *arg,
-	tildetype_T tilde, bool processquotes, bool escapeall)
-{
-    plist_T list =
-	expand_four_and_remove_quotes(arg, tilde, processquotes, escapeall);
-    if (list.contents == NULL) {
-	maybe_exit_on_error();
-	return NULL;
-    }
-
-    return concatenate_values(pl_toary(&list), true);
-}
-
-/* Expands a single word: the four expansions and quote removal.
  * This function doesn't perform brace expansion, field splitting, or globbing.
  * If successful, the resulting word is returned as a newly malloced string.
  * On error, an error message is printed and NULL is returned.
@@ -372,14 +324,6 @@ wchar_t *expand_111111(const wordunit_T *w,
     }
 
     return concatenate_values(pl_toary(&list), escaping != ES_NONE);
-}
-
-/* Like `expand_single', but the result is unescaped (if successful). */
-wchar_t *expand_single_and_unescape(const wordunit_T *arg,
-	tildetype_T tilde, bool processquotes, bool escapeall)
-{
-    wchar_t *result = expand_single(arg, tilde, processquotes, escapeall);
-    return result == NULL ? NULL : unescapefree(result);
 }
 
 /* Expands a single word: the four expansions, glob, quote removal and unescape.
@@ -443,202 +387,6 @@ noglob:
 
 
 /********** Four Expansions **********/
-
-// TODO Replace this function with expand_word
-/* Performs the four expansions in the specified single word.
- * `w' is the word in which expansions occur.
- * `tilde' is type of tilde expansion that is performed.
- * If `processquotes' is true, single- and double-quotations are recognized as
- * quotes. Otherwise, they are treated like backslashed characters.
- * If `escapeall' is true, the expanded words are all backslashed as if the
- * entire expansion is quoted.
- * If `processquotes' and `escapeall' are false, only backslashes not preceding
- * any of $, `, \ are self-backslashed.
- * If successful, the return value is a plist_T containing newly malloced wide
- * strings. In most cases, the plist_T contains one string. If the word contains
- * "$@", however, it may contain any number of strings.
- * Single- or double-quoted characters are unquoted and backslashed.
- * On error, the return value is a plist_T with `contents' being NULL. */
-plist_T expand_four_and_remove_quotes(
-	const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall)
-{
-    struct expand_four_T expand;
-
-    pl_init(&expand.valuelist);
-    pl_init(&expand.cclist);
-    wb_init(&expand.valuebuf);
-    sb_init(&expand.ccbuf);
-    expand.zeroword = false;
-
-    if (!expand_four(w, tilde, processquotes, escapeall, CC_LITERAL, &expand)) {
-	plfree(pl_toary(&expand.valuelist), free);
-	plfree(pl_toary(&expand.cclist), free);
-	wb_destroy(&expand.valuebuf);
-	sb_destroy(&expand.ccbuf);
-
-	expand.valuelist.contents = NULL;
-	return expand.valuelist;
-    }
-    assert(expand.valuelist.length == expand.cclist.length);
-    assert(expand.valuebuf.length == expand.ccbuf.length);
-    pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
-    pl_add(&expand.cclist, sb_tostr(&expand.ccbuf));
-
-    /* empty field removal */
-    if (expand.valuelist.length == 1) {
-	const wchar_t *field = expand.valuelist.contents[0];
-	const char *cc = expand.cclist.contents[0];
-	if (expand.zeroword && wcscmp(field, L"\"\"") == 0 &&
-		(cc[0] & cc[1] & CC_QUOTATION)) {
-	    pl_clear(&expand.valuelist, free);
-	    pl_clear(&expand.cclist, free);
-	}
-    }
-
-    plfree(pl_toary(&expand.cclist), free);
-
-    /* quote removal */
-    for (size_t i = 0; i < expand.valuelist.length; i++)
-	expand.valuelist.contents[i] =
-	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
-
-    return expand.valuelist;
-}
-
-/* Performs the four expansions in the specified single word.
- * The four expansions are tilde expansion, parameter expansion, command
- * substitution, and arithmetic expansion.
- * `w' is the word in which expansions occur.
- * `tilde' specifies the type of tilde expansion that is performed.
- * If `processquotes' is true, single- and double-quotations are recognized as
- * quotes. Otherwise, they are treated like backslashed characters.
- * If `escapeall' is true, the expanded words are all backslashed as if the
- * entire expansion is quoted.
- * If `processquotes' and `escapeall' are false, only backslashes not preceding
- * any of $, `, \ are self-backslashed.
- * `rec' must be true iff this expansion is part of another expansion.
- * `e->valuebuf' must be initialized before calling this function and is used to
- * expand the current word. If `w' expands to multiple words, the last word is
- * put in `e->valuebuf' and the others are inserted to `e->valuelist'.
- * Single- and double-quotations remain in the resulting word. In addition,
- * characters inside those quotations are backslashed.
- * The return value is true iff successful. */
-bool expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, bool processquotes, bool escapeall,
-	charcategory_T defaultcc, struct expand_four_T *restrict e)
-{
-    bool ok = true;
-    bool indq = false;  /* in a double quote? */
-    bool first = true;  /* is the first word unit? */
-    const wchar_t *ss;
-    wchar_t *s;
-
-    for (; w != NULL; w = w->next, first = false) {
-	switch (w->wu_type) {
-	case WT_STRING:
-	    ss = w->wu_string;
-	    if (first && tilde != TT_NONE) {
-		s = expand_tilde(&ss, w->next, tilde);
-		if (s != NULL)
-		    append_value(s, NULL, CC_HARD_EXPANSION, e);
-	    }
-	    while (*ss != L'\0') {
-		switch (*ss) {
-		case L'"':
-		    if (!processquotes)
-			goto escape;
-		    indq = !indq;
-		    wb_wccat(&e->valuebuf, L'"');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
-		    break;
-		case L'\'':
-		    if (!processquotes || indq)
-			goto escape;
-
-		    wb_wccat(&e->valuebuf, L'\'');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
-
-		    add_sq(&ss, &e->valuebuf, true);
-		    fill_ccbuf(e, defaultcc | CC_QUOTED);
-
-		    wb_wccat(&e->valuebuf, L'\'');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
-		    break;
-		case L'\\':
-		    if (!processquotes) {
-			if (!escapeall) {
-			    wchar_t c = ss[1];
-			    if (c == L'$' || c == L'`' || c == L'\\')
-				ss++;
-			}
-			goto escape;
-		    }
-
-		    if (indq && wcschr(CHARS_ESCAPABLE, ss[1]) == NULL) {
-			goto escape;
-		    } else {
-			wb_wccat(&e->valuebuf, L'\\');
-			sb_ccat(&e->ccbuf,
-				defaultcc | CC_QUOTATION | (indq * CC_QUOTED));
-			if (*++ss != L'\0') {
-			    wb_wccat(&e->valuebuf, *ss++);
-			    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTED);
-			}
-			continue;
-		    }
-		case L':':
-		    if (!indq && tilde == TT_MULTI) {
-			/* perform tilde expansion after a colon */
-			wb_wccat(&e->valuebuf, L':');
-			sb_ccat(&e->ccbuf, defaultcc);
-			ss++;
-			s = expand_tilde(&ss, w->next, tilde);
-			if (s != NULL)
-			    append_value(s, NULL, CC_HARD_EXPANSION, e);
-			continue;
-		    }
-		    /* falls thru! */
-		default:
-		    if (indq || escapeall) { // FIXME don't escape here
-escape:
-			wb_wccat(&e->valuebuf, L'\\');
-			sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
-		    }
-		    wb_wccat(&e->valuebuf, *ss);
-		    sb_ccat(&e->ccbuf, defaultcc | (indq * CC_QUOTED));
-		    break;
-		}
-		ss++;
-	    }
-	    break;
-	case WT_PARAM:
-	    if (!expand_param(w->wu_param,
-			indq || escapeall || (defaultcc & CC_QUOTED), e))
-		ok = false;
-	    break;
-	case WT_CMDSUB:
-	    s = exec_command_substitution(&w->wu_cmdsub);
-	    goto cat_s;
-	case WT_ARITH:
-	    s = expand_111111(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
-	    if (s != NULL)
-		s = evaluate_arithmetic(s);
-cat_s:
-	    if (s != NULL) {
-		append_value(s, (indq || escapeall) ? NULL : CHARS_ESCAPED,
-			CC_SOFT_EXPANSION |
-			(indq * CC_QUOTED) | (defaultcc & CC_QUOTED),
-			e);
-	    } else {
-		ok = false;
-	    }
-	    break;
-	}
-    }
-
-    return ok;
-}
 
 /* Performs the four expansions in the specified single word.
  * The four expansions are tilde expansion, parameter expansion, command
@@ -772,24 +520,6 @@ cat_s:
 void fill_ccbuf(struct expand_four_T *e, charcategory_T c)
 {
     sb_ccat_repeat(&e->ccbuf, c, e->valuebuf.length - e->ccbuf.length);
-}
-
-/* Appends `s' to the buffer of `e'.
- * Characters that are contained in `t' are backslash-escaped. If `t' is NULL,
- * all characters are escaped.
- * `s' is freed in this function. */
-void append_value(wchar_t *restrict const s, const wchar_t *t,
-	charcategory_T defaultcc, struct expand_four_T *e)
-{
-    for (size_t i = 0; s[i] != L'\0'; i++) {
-	if (t == NULL || wcschr(t, s[i]) != NULL) {
-	    wb_wccat(&e->valuebuf, L'\\');
-	    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
-	}
-	wb_wccat(&e->valuebuf, s[i]);
-	sb_ccat(&e->ccbuf, defaultcc);
-    }
-    free(s);
 }
 
 /* Performs tilde expansion.
@@ -1936,49 +1666,6 @@ wchar_t *unquote(const wchar_t *s)
 	}
 	s++;
     }
-}
-
-/* Like `wcspbrk', but ignores backslashed characters in `s'. */
-wchar_t *escaped_wcspbrk(const wchar_t *s, const wchar_t *accept)
-{
-    for (; *s != L'\0'; s++) {
-	if (*s == L'\\') {
-	    s++;
-	    if (*s == L'\0')
-		break;
-	    continue;
-	}
-	if (wcschr(accept, *s) != NULL)
-	    return (wchar_t *) s;
-    }
-    return NULL;
-}
-
-/* Removes characters in `reject' from `s'.
- * Backslash escapes in `s' are recognized. Escapes and escaped characters are
- * kept in the result.
- * The result is a newly malloced string. */
-wchar_t *escaped_remove(const wchar_t *s, const wchar_t *reject)
-{
-    xwcsbuf_T result;
-    wb_init(&result);
-    for (;;) {
-	const wchar_t *rejectchar = escaped_wcspbrk(s, reject);
-	if (rejectchar == NULL)
-	    break;
-	wb_ncat_force(&result, s, rejectchar - s);
-	s = rejectchar + 1;
-    }
-    wb_cat(&result, s);
-    return wb_towcs(&result);
-}
-
-/* Like `escaped_remove', but frees `s' before returning the result. */
-wchar_t *escaped_remove_free(wchar_t *s, const wchar_t *reject)
-{
-    wchar_t *result = escaped_remove(s, reject);
-    free(s);
-    return result;
 }
 
 /* Tests if a character should be backslash-escaped. */
