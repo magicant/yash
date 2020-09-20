@@ -448,8 +448,7 @@ char *expand_redir_filename(const struct wordunit_T *filename)
     if (is_interactive) {
 	return expand_single_with_glob(filename, TT_SINGLE);
     } else {
-	wchar_t *result = expand_single_and_unescape(
-		filename, TT_SINGLE, true, false);
+	wchar_t *result = expand_111111(filename, TT_SINGLE, Q_WORD, ES_NONE);
 	if (result == NULL)
 	    return NULL;
 	char *mbsresult = realloc_wcstombs(result);
