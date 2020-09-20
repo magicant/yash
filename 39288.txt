@@ -27,6 +27,7 @@ append_value
   expand_4444
     expand_word ((quoting))
       expand_111111 ((quoting, escaping))
+        open_heredocument ((Q_INDQ, ES_NONE))
         do_assignments ((Q_WORD, ES_NONE))
         exec_funcdef ((Q_WORD, ES_NONE))
         print_subst_as_error... ((Q_WORD, ES_NONE))
@@ -59,7 +60,6 @@ append_value
             print_message (mail.c) ((esc=true)) untested
             execute_rcfile ((esc=*FALSE*)) untested
           expand_redir_filename ((processquotes=true, escapeall=false))
-          open_heredocument ((processquotes=*FALSE*, escapeall=false))
 
 Call tree:
 expand_multiple
