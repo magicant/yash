@@ -219,7 +219,7 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     expand.zeroword = false;
 
     /* four expansions (w -> valuelist) */
-    if (!expand_four(w, TT_SINGLE, true, false, CC_LITERAL, &expand)) {
+    if (!expand_4444(w, TT_SINGLE, Q_WORD, CC_LITERAL, &expand)) {
 	plfree(pl_toary(&expand.valuelist), free);
 	plfree(pl_toary(&expand.cclist), free);
 	wb_destroy(&expand.valuebuf);
@@ -264,20 +264,19 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	}
     }
 
-    // TODO use cclist in the following steps
-    plfree(pl_toary(&expand.cclist), free);
-
     /* quote removal */
     for (size_t i = 0; i < expand.valuelist.length; i++)
-	expand.valuelist.contents[i] =
-	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
+	expand.valuelist.contents[i] = quote_removal_free(
+	    expand.valuelist.contents[i], expand.cclist.contents[i],
+	    shopt_glob ? ES_QUOTED_HARD : ES_NONE);
+
+    pl_destroy(&expand.cclist);
 
     /* globbing (valuelist -> list) */
     if (shopt_glob) {
 	glob_all(pl_toary(&expand.valuelist), list);
     } else {
-	for (size_t i = 0; i < expand.valuelist.length; i++)
-	    pl_add(list, unescapefree(expand.valuelist.contents[i]));
+	pl_cat(list, expand.valuelist.contents);
 	pl_destroy(&expand.valuelist);
     }
 
@@ -1128,17 +1127,17 @@ subst:
 	charcategory_T cc = CC_SOFT_EXPANSION | (indq * CC_QUOTED);
 
 	/* add the first element */
-	append_value(values[0], indq ? NULL : CHARS_ESCAPED, cc, e);
+	wb_catfree(&e->valuebuf, values[0]);
+	fill_ccbuf(e, cc);
 
 	/* add the other elements */
 	for (size_t i = 1; values[i] != NULL; i++) {
 	    pl_add(&e->valuelist, wb_towcs(&e->valuebuf));
 	    pl_add(&e->cclist, sb_tostr(&e->ccbuf));
 
-	    wb_init(&e->valuebuf);
+	    wb_initwith(&e->valuebuf, values[i]);
 	    sb_init(&e->ccbuf);
-
-	    append_value(values[i], indq ? NULL : CHARS_ESCAPED, cc, e);
+	    fill_ccbuf(e, cc);
 	}
     }
     free(values);
@@ -1646,7 +1645,7 @@ void fieldsplit(wchar_t *restrict s, char *restrict cc,
     plist_T fields;
 
     pl_init(&fields);
-    extract_fields(s, cc, true, ifs, &fields);
+    extract_fields(s, cc, false, ifs, &fields);
     assert(fields.length % 2 == 0);
 
     for (size_t i = 0; i < fields.length; i += 2) {

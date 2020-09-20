@@ -25,6 +25,14 @@ append_value
     expand_4444...
     expand_four...
   expand_4444
+    expand_multiple ((Q_WORD))
+      expand_line
+        exec_for...
+        exec_process...
+        do_assignments...
+      cparse_simple_command...
+      ctryparse_assignment...
+      cparse_for_command...
     expand_word ((quoting))
       expand_111111 ((quoting, escaping))
         parse_and_expand_string ((esc ? Q_INDQ : Q_LITERAL, ES_NONE))
@@ -49,14 +57,6 @@ append_value
       expand_param... ((Q_WORD, ES_NONE))
     expand_param... ((Q_WORD))
   expand_four
-    expand_multiple ((processquotes=true, escapeall=false, rec=false))
-      expand_line
-        exec_for
-        exec_process
-        do_assignments
-      cparse_simple_command
-      ctryparse_assignment
-      cparse_for_command
     expand_four_and_remove_quotes ((processquotes, escapeall, rec=false))
       expand_single ((processquotes, escapeall))
         expand_single_and_unescape ((processquotes, escapeall))
@@ -106,7 +106,6 @@ escape
   promptset_for_read... (variable.c)
 unescape
   unescapefree
-    expand_multiple...
     expand_single_and_unescape...
     expand_single_with_glob...
     expand_param...
@@ -130,20 +129,16 @@ wb_quote_as_word
 escaped_wcspbrk
   escaped_remove
     escaped_remove_free
-      expand_multiple...
       expand_four_and_remove_quotes...
 should_escape
   quote_removal
     quote_removal_free
+      expand_multiple...
       expand_word
 
 TODO:
-* Generate correct charcategory_T strings in all cases
-  * Mind the difference between ${unset-~} and ${unset-$HOME}. Field splitting and pathname expansion do not apply to the former.
 * Remove the escaped parameter from the extract_fields function
 * Consider simplifying the skip_ifs and skip_field functions
-* Remove superfluous escapes from intermediate expansion results
-* Re-enable disabled test cases
 * Reconsider the order of expansions performed
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal
