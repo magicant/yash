@@ -63,6 +63,9 @@ struct expand_four_T {
 /* When "$@" appears during expansion and there is no positional parameter, the
  * `zeroword' flag is set so that the quoted empty word can be removed later. */
 
+static plist_T expand_word(
+	const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+    __attribute__((warn_unused_result));
 static plist_T expand_four_and_remove_quotes(
 	const wordunit_T *restrict w,
 	tildetype_T tilde, bool processquotes, bool escapeall);
@@ -273,6 +276,57 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     return true;
 }
 
+/* Expands a word to (possibly any number of) fields.
+ * If successful, the return value is a plist_T containing newly malloced wide
+ * strings. In most cases, the plist_T contains one string. If the word contains
+ * "$@", however, it may contain any number of strings.
+ * On error, the return value is a plist_T with `contents' being NULL. */
+plist_T expand_word(const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+{
+    struct expand_four_T expand;
+
+    pl_init(&expand.valuelist);
+    pl_init(&expand.cclist);
+    wb_init(&expand.valuebuf);
+    sb_init(&expand.ccbuf);
+    expand.zeroword = false;
+
+    if (!expand_4444(w, tilde, quoting, CC_LITERAL, &expand)) {
+	plfree(pl_toary(&expand.valuelist), free);
+	plfree(pl_toary(&expand.cclist), free);
+	wb_destroy(&expand.valuebuf);
+	sb_destroy(&expand.ccbuf);
+
+	expand.valuelist.contents = NULL;
+	return expand.valuelist;
+    }
+    assert(expand.valuelist.length == expand.cclist.length);
+    assert(expand.valuebuf.length == expand.ccbuf.length);
+    pl_add(&expand.valuelist, wb_towcs(&expand.valuebuf));
+    pl_add(&expand.cclist, sb_tostr(&expand.ccbuf));
+
+    /* empty field removal */
+    if (expand.valuelist.length == 1) {
+	const wchar_t *field = expand.valuelist.contents[0];
+	const char *cc = expand.cclist.contents[0];
+	if (expand.zeroword && wcscmp(field, L"\"\"") == 0 &&
+		(cc[0] & cc[1] & CC_QUOTATION)) {
+	    pl_clear(&expand.valuelist, free);
+	    pl_clear(&expand.cclist, free);
+	}
+    }
+
+    // TODO use cclist in the following steps
+    plfree(pl_toary(&expand.cclist), free);
+
+    /* quote removal */
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+	expand.valuelist.contents[i] =
+	    escaped_remove_free(expand.valuelist.contents[i], L"\"\'");
+
+    return expand.valuelist;
+}
+
 /* Expands a single word: the four expansions and quote removal.
  * This function doesn't perform brace expansion, field splitting, globbing and
  * unescaping.
@@ -369,6 +423,7 @@ noglob:
 
 /********** Four Expansions **********/
 
+// TODO Replace this function with expand_word
 /* Performs the four expansions in the specified single word.
  * `w' is the word in which expansions occur.
  * `tilde' is type of tilde expansion that is performed.
@@ -420,7 +475,6 @@ plist_T expand_four_and_remove_quotes(
 	}
     }
 
-    // TODO use cclist in the following steps
     plfree(pl_toary(&expand.cclist), free);
 
     /* quote removal */
