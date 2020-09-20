@@ -818,7 +818,7 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_four(p->pe_subst, TT_SINGLE, true, indq,
+	    return expand_four(p->pe_subst, TT_SINGLE, true, false,
 		    CC_SOFT_EXPANSION | (indq * CC_QUOTED), e);
 	}
 	break;

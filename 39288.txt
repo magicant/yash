@@ -53,7 +53,7 @@ append_value
         cparse_word ((processquotes=true, escapeall=false))
         expand_param... ((processquotes=true, escapeall=false))
       expand_param... ((processquotes=true, escapeall=false))
-    expand_param... ((processquotes=true, escapeall=indq, rec=true))
+    expand_param... ((processquotes=true, escapeall=false, rec=true))
 
 Call tree:
 expand_multiple
