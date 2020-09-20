@@ -82,4 +82,5 @@ TODO:
 * Remove unused function parameters
   * Refactor expand_four parameters
 * Remove unused functions
+  * escaped_wcspbrk?
 * Remove unused variables (CHARS_ESCAPED?)

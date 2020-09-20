@@ -1229,19 +1229,27 @@ void expand_brace(
 	char *restrict const cc, plist_T *restrict valuelist,
 	plist_T *restrict splitlist, plist_T *restrict cclist)
 {
-    wchar_t *c = word;
+#define idx(p) ((wchar_t *) (p) - word)
+
+    size_t ci = 0;
 
 start:
-    c = escaped_wcspbrk(c, L"{");
-    if (c == NULL || *++c == L'\0') {
-	/* don't expand if there is no L'{' or L'{' is at the end of string */
-	pl_add(valuelist, word);
-	pl_add(splitlist, split);
-	pl_add(cclist, cc);
-	return;
-    }
+
+    /* find '{' */
+    do {
+	wchar_t *c = wcschr(&word[ci], L'{');
+	if (c == NULL) {
+	    /* no L'{', no expansion */
+	    pl_add(valuelist, word);
+	    pl_add(splitlist, split);
+	    pl_add(cclist, cc);
+	    return;
+	}
+	ci = idx(c);
+    } while (cc[ci++] != CC_LITERAL);
+
     if (try_expand_brace_sequence(
-		word, split, cc, c, valuelist, splitlist, cclist)) {
+		word, split, cc, &word[ci], valuelist, splitlist, cclist)) {
 	return;
     }
 
@@ -1251,25 +1259,28 @@ start:
     /* collect pointers to characters where the word is split */
     /* The pointers point to the character just after L'{', L',' or L'}'. */
     pl_init(&splitpoints);
-    pl_add(&splitpoints, c);
+    pl_add(&splitpoints, &word[ci]);
     nest = 0;
-    while ((c = escaped_wcspbrk(c, L"{,}")) != NULL) {
-	switch (*c++) {
+    for (; word[ci] != L'\0'; ci++) {
+	if (cc[ci] != CC_LITERAL)
+	    continue;
+	switch (word[ci]) {
 	    case L'{':
 		nest++;
 		break;
 	    case L',':
 		if (nest == 0)
-		    pl_add(&splitpoints, c);
+		    pl_add(&splitpoints, &word[ci + 1]);
 		break;
 	    case L'}':
 		if (nest > 0) {
 		    nest--;
 		    break;
 		} else if (splitpoints.length == 1) {
+		    /* no comma between { and } */
 		    goto restart;
 		} else {
-		    pl_add(&splitpoints, c);
+		    pl_add(&splitpoints, &word[ci + 1]);
 		    goto done;
 		}
 	}
@@ -1277,14 +1288,11 @@ start:
 restart:
     /* if there is no L',' or L'}' corresponding to L'{',
      * find the next L'{' and try again */
-    c = splitpoints.contents[0];
+    ci = idx(splitpoints.contents[0]);
     pl_destroy(&splitpoints);
     goto start;
 
 done:;
-#define idx(p)  ((wchar_t *) (p) - word)
-#define wtos(p) (split + idx(p))
-#define wtoc(p) (cc + idx(p))
     size_t lastelemindex = splitpoints.length - 1;
     size_t headlen = idx(splitpoints.contents[0]) - 1;
     size_t taillen = wcslen(splitpoints.contents[lastelemindex]);
@@ -1301,15 +1309,15 @@ done:;
 
 	size_t len = (wchar_t *) splitpoints.contents[i + 1] -
 	             (wchar_t *) splitpoints.contents[i    ] - 1;
-	wb_ncat_force(&buf, splitpoints.contents[i], len);
-	sb_ncat_force(&sbuf, wtos(splitpoints.contents[i]), len);
-	sb_ncat_force(&cbuf, wtoc(splitpoints.contents[i]), len);
+	ci = idx(splitpoints.contents[i]);
+	wb_ncat_force(&buf, &word[ci], len);
+	sb_ncat_force(&sbuf, &split[ci], len);
+	sb_ncat_force(&cbuf, &cc[ci], len);
 
-	wb_ncat_force(&buf, splitpoints.contents[lastelemindex], taillen);
-	sb_ncat_force(&sbuf, wtos(splitpoints.contents[lastelemindex]),
-		taillen);
-	sb_ncat_force(&cbuf, wtoc(splitpoints.contents[lastelemindex]),
-		taillen);
+	ci = idx(splitpoints.contents[lastelemindex]);
+	wb_ncat_force(&buf, &word[ci], taillen);
+	sb_ncat_force(&sbuf, &split[ci], taillen);
+	sb_ncat_force(&cbuf, &cc[ci], taillen);
 	assert(buf.length == sbuf.length);
 	assert(buf.length == cbuf.length);
 
@@ -1322,8 +1330,6 @@ done:;
     free(split);
     free(cc);
 #undef idx
-#undef wtos
-#undef wtoc
 }
 
 /* Tries numeric brace expansion like "{01..05}".
