@@ -1657,11 +1657,11 @@ bool should_escape(char c, charcategory_T cc, escaping_T escaping)
 	case ES_NONE:
 	    return false;
 	case ES_QUOTED_HARD:
-	    if ((cc & CC_ORIGIN_MASK) == CC_HARD_EXPANSION)
+	    if (c == L'\\' || (cc & CC_ORIGIN_MASK) == CC_HARD_EXPANSION)
 		return true;
 	    /* falls thru! */
 	case ES_QUOTED:
-	    return c == L'\\' || (cc & CC_QUOTED);
+	    return cc & CC_QUOTED;
     }
     assert(false);
 }
