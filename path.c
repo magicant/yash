@@ -1609,31 +1609,30 @@ bool print_umask_octal(mode_t mode)
 
 bool print_umask_symbolic(mode_t mode)
 {
-    xstrbuf_T outputtext;
+    char outputtext[19];
+    char *c = outputtext;
 
-    sb_initwithmax(&outputtext, 18);
-    sb_ccat(&outputtext, 'u');
-    sb_ccat(&outputtext, '=');
-    if (!(mode & S_IRUSR)) sb_ccat(&outputtext, 'r');
-    if (!(mode & S_IWUSR)) sb_ccat(&outputtext, 'w');
-    if (!(mode & S_IXUSR)) sb_ccat(&outputtext, 'x');
-    sb_ccat(&outputtext, ',');
-    sb_ccat(&outputtext, 'g');
-    sb_ccat(&outputtext, '=');
-    if (!(mode & S_IRGRP)) sb_ccat(&outputtext, 'r');
-    if (!(mode & S_IWGRP)) sb_ccat(&outputtext, 'w');
-    if (!(mode & S_IXGRP)) sb_ccat(&outputtext, 'x');
-    sb_ccat(&outputtext, ',');
-    sb_ccat(&outputtext, 'o');
-    sb_ccat(&outputtext, '=');
-    if (!(mode & S_IROTH)) sb_ccat(&outputtext, 'r');
-    if (!(mode & S_IWOTH)) sb_ccat(&outputtext, 'w');
-    if (!(mode & S_IXOTH)) sb_ccat(&outputtext, 'x');
-    sb_ccat(&outputtext, '\n');
+    *c++ = 'u';
+    *c++ = '=';
+    if (!(mode & S_IRUSR)) *c++ = 'r';
+    if (!(mode & S_IWUSR)) *c++ = 'w';
+    if (!(mode & S_IXUSR)) *c++ = 'x';
+    *c++ = ',';
+    *c++ = 'g';
+    *c++ = '=';
+    if (!(mode & S_IRGRP)) *c++ = 'r';
+    if (!(mode & S_IWGRP)) *c++ = 'w';
+    if (!(mode & S_IXGRP)) *c++ = 'x';
+    *c++ = ',';
+    *c++ = 'o';
+    *c++ = '=';
+    if (!(mode & S_IROTH)) *c++ = 'r';
+    if (!(mode & S_IWOTH)) *c++ = 'w';
+    if (!(mode & S_IXOTH)) *c++ = 'x';
+    *c++ = '\n';
+    *c++ = '\0';
 
-    bool result = xprintf("%s", outputtext.contents);
-    sb_destroy(&outputtext);
-    return result;
+    return xprintf("%s", outputtext);
 }
 
 int set_umask(const wchar_t *maskstr)
