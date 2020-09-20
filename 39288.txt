@@ -118,8 +118,9 @@ wb_quote_as_word
 should_escape
   quote_removal
     quote_removal_free
-      expand_multiple...
-      expand_word
+      remove_empty_fields_and_quotes
+        expand_multiple...
+        expand_word
 
 TODO:
 * Reconsider the order of expansions performed
