@@ -1852,7 +1852,7 @@ void print_scalar(const wchar_t *name, bool namequote,
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
 typeset:
-	    sb_init(&opts);
+	    sb_initwithmax(&opts, 4);
 	    if (var->v_type & VF_EXPORT)
 		sb_ccat(&opts, 'x');
 	    if (var->v_type & VF_READONLY)
@@ -1913,7 +1913,7 @@ void print_array(
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
 typeset:
-	    sb_init(&opts);
+	    sb_initwithmax(&opts, 4);
 	    if (var->v_type & VF_EXPORT)
 		sb_ccat(&opts, 'x');
 	    if (var->v_type & VF_READONLY)

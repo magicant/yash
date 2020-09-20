@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -323,7 +323,7 @@ int create_temporary_file(
     n = (uintmax_t) shell_pid * 272229637312669;
     if (num == 0)
 	num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
-    sb_init(&buf);
+    sb_initwithmax(&buf, 31);
     for (int i = 0; i < 100; i++) {
 	num = (num ^ n) * 16777619;
 	sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
@@ -641,18 +641,18 @@ static int wglob_sortcmp(const void *v1, const void *v2)
 bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
 	plist_T *restrict list)
 {
-    size_t listbase = list->length;
+    size_t listbase = list->length, patternsize = add(wcslen(pattern), 1);
     xstrbuf_T path;
     xwcsbuf_T wpath;
     struct wglob_pattern *p;
-    wchar_t savepattern[wcslen(pattern) + 1];
+    wchar_t savepattern[patternsize];
 
     p = wglob_parse_pattern(wcscpy(savepattern, pattern), flags);
     if (p == NULL)
 	return false;
 
-    sb_init(&path);
-    wb_init(&wpath);
+    sb_initwithmax(&path, patternsize);
+    wb_initwithmax(&wpath, patternsize);
     wglob_search(p, flags, &path, &wpath, list);
     sb_destroy(&path);
     wb_destroy(&wpath);
@@ -1595,7 +1595,7 @@ bool print_umask_symbolic(mode_t mode)
 {
     xstrbuf_T outputtext;
 
-    sb_init(&outputtext);
+    sb_initwithmax(&outputtext, 18);
     sb_ccat(&outputtext, 'u');
     sb_ccat(&outputtext, '=');
     if (!(mode & S_IRUSR)) sb_ccat(&outputtext, 'r');

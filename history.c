@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,6 +75,10 @@
 #endif
 #if DEFAULT_HISTSIZE > HISTORY_MIN_MAX_NUMBER
 #error DEFAULT_HISTSIZE cannot be larger than HISTORY_MIN_MAX_NUMBER
+#endif
+
+#ifndef HISTORY_DEFAULT_LINE_LENGTH
+#define HISTORY_DEFAULT_LINE_LENGTH 127
 #endif
 
 
@@ -649,7 +653,7 @@ long read_signature(void)
 
     assert(histfile != NULL);
     rewind(histfile);
-    if (!read_line(histfile, wb_init(&buf)))
+    if (!read_line(histfile, wb_initwithmax(&buf, HISTORY_DEFAULT_LINE_LENGTH)))
 	goto end;
     
     s = matchwcsprefix(buf.contents, L"#$# yash history v0 r");
@@ -675,7 +679,7 @@ void read_history_raw(void)
     xwcsbuf_T buf;
 
     assert(histfile != NULL);
-    wb_init(&buf);
+    wb_initwithmax(&buf, HISTORY_DEFAULT_LINE_LENGTH);
     while (read_line(histfile, &buf)) {
 	char *line = malloc_wcstombs(buf.contents);
 	if (line != NULL) {
@@ -699,7 +703,7 @@ void read_history(void)
     xwcsbuf_T buf;
 
     assert(histfile != NULL);
-    wb_init(&buf);
+    wb_initwithmax(&buf, HISTORY_DEFAULT_LINE_LENGTH);
     while (read_line(histfile, &buf)) {
 	histfilelines++;
 	switch (buf.contents[0]) {
@@ -1606,7 +1610,7 @@ void fc_read_history(FILE *f, bool quiet)
     update_time();
     update_history(false);
 
-    wb_init(&buf);
+    wb_initwithmax(&buf, HISTORY_DEFAULT_LINE_LENGTH);
     while (read_line(f, &buf)) {
 	if (!quiet)
 	    printf("%ls\n", buf.contents);

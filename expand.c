@@ -845,7 +845,7 @@ subst:
 	    pl_add(&e->e.cclist, sb_tostr(&e->ccbuf));
 
 	    wb_initwith(&e->valuebuf, values[i]);
-	    sb_init(&e->ccbuf);
+	    sb_initwithmax(&e->ccbuf, e->valuebuf.length);
 	    fill_ccbuf(e, cc);
 	}
     }
@@ -1165,11 +1165,12 @@ done:;
     size_t lastelemindex = splitpoints.length - 1;
     size_t headlen = idx(splitpoints.contents[0]) - 1;
     size_t taillen = wcslen(splitpoints.contents[lastelemindex]);
+    size_t totallen = idx(splitpoints.contents[lastelemindex]) + taillen;
     for (size_t i = 0; i < lastelemindex; i++) {
 	xwcsbuf_T buf;
 	xstrbuf_T cbuf;
-	wb_init(&buf);
-	sb_init(&cbuf);
+	wb_initwithmax(&buf, totallen);
+	sb_initwithmax(&cbuf, totallen);
 
 	wb_ncat_force(&buf, word, headlen);
 	sb_ncat_force(&cbuf, cc, headlen);
@@ -1268,8 +1269,8 @@ bool try_expand_brace_sequence(
     do {
 	xwcsbuf_T buf;
 	xstrbuf_T cbuf;
-	wb_init(&buf);
-	sb_init(&cbuf);
+	wb_initwithmax(&buf, wordlen);
+	sb_initwithmax(&cbuf, wordlen);
 
 	size_t slen = idx(startc - 1);
 	wb_ncat_force(&buf, word, slen);
@@ -1510,7 +1511,7 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
 wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
 {
     xwcsbuf_T buf;
-    wb_init(&buf);
+    wb_initwithmax(&buf, mul(wcslen(s), 2));
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (t == NULL || wcschr(t, s[i]) != NULL)
 	    wb_wccat(&buf, L'\\');
@@ -1536,7 +1537,7 @@ wchar_t *escapefree(wchar_t *restrict s, const wchar_t *restrict t)
 wchar_t *unescape(const wchar_t *s)
 {
     xwcsbuf_T buf;
-    wb_init(&buf);
+    wb_initwithmax(&buf, wcslen(s));
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (s[i] == L'\\') {
 	    i++;
@@ -1565,7 +1566,7 @@ wchar_t *unescapefree(wchar_t *s)
 wchar_t *quote_as_word(const wchar_t *s)
 {
     xwcsbuf_T buf;
-    wb_init(&buf);
+    wb_initwithmax(&buf, mul(wcslen(s), 2));
     wb_quote_as_word(&buf, s);
     return wb_towcs(&buf);
 }
@@ -1619,7 +1620,7 @@ wchar_t *unquote(const wchar_t *s)
 {
     bool indq = false;
     xwcsbuf_T buf;
-    wb_init(&buf);
+    wb_initwithmax(&buf, wcslen(s));
     for (;;) {
 	switch (*s) {
 	case L'\0':
@@ -1670,7 +1671,7 @@ wchar_t *quote_removal(
 	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
 {
     xwcsbuf_T result;
-    wb_init(&result);
+    wb_initwithmax(&result, mul(wcslen(s), 2));
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (cc[i] & CC_QUOTATION)
 	    continue;

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3143,7 +3143,7 @@ void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
     }
     if (w1end >= w2start)
 	goto error;
-    wb_init(&buf);
+    wb_initwithmax(&buf, w2end - w1start);
     wb_ncat_force(&buf, &le_main_buffer.contents[w2start], w2end - w2start);
     wb_ncat_force(&buf, &le_main_buffer.contents[w1end], w2start - w1end);
     wb_ncat_force(&buf, &le_main_buffer.contents[w1start], w1end - w1start);

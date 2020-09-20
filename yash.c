@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ bool execute_file_in_home(const wchar_t *path)
 	return false;
 
     xwcsbuf_T fullpath;
-    wb_init(&fullpath);
+    wb_initwithmax(&fullpath, add(add(wcslen(home), wcslen(path)), 1));
     wb_cat(&fullpath, home);
     if (fullpath.contents[fullpath.length - 1] != L'/')
 	wb_wccat(&fullpath, L'/');

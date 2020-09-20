@@ -25,6 +25,13 @@
 
 #define Size_max ((size_t) -1)  // = SIZE_MAX
 
+#ifndef XSTRBUF_INITSIZE
+#define XSTRBUF_INITSIZE 15
+#endif
+#ifndef XWCSBUF_INITSIZE
+#define XWCSBUF_INITSIZE 15
+#endif
+
 
 typedef struct xstrbuf_T {
     char *contents;
@@ -35,9 +42,11 @@ typedef struct xwcsbuf_T {
     size_t length, maxlength;
 } xwcsbuf_T;
 
-extern xstrbuf_T *sb_init(xstrbuf_T *buf)
+static inline xstrbuf_T *sb_init(xstrbuf_T *buf)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_initwith(xstrbuf_T *restrict buf, char *restrict s)
+    __attribute__((nonnull));
+extern xstrbuf_T *sb_initwithmax(xstrbuf_T *buf, size_t max)
     __attribute__((nonnull));
 static inline void sb_destroy(xstrbuf_T *buf)
     __attribute__((nonnull));
@@ -107,9 +116,11 @@ extern int sb_printf(
 	xstrbuf_T *restrict buf, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
 
-extern xwcsbuf_T *wb_init(xwcsbuf_T *buf)
+static inline xwcsbuf_T *wb_init(xwcsbuf_T *buf)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_initwith(xwcsbuf_T *restrict buf, wchar_t *restrict s)
+    __attribute__((nonnull));
+extern xwcsbuf_T *wb_initwithmax(xwcsbuf_T *buf, size_t max)
     __attribute__((nonnull));
 static inline void wb_destroy(xwcsbuf_T *buf)
     __attribute__((nonnull));
@@ -193,6 +204,12 @@ extern wchar_t *malloc_wprintf(const wchar_t *format, ...)
 extern wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
     __attribute__((malloc,warn_unused_result,nonnull));
 
+
+/* Initializes the specified string buffer as an empty string. */
+xstrbuf_T *sb_init(xstrbuf_T *buf)
+{
+    return sb_initwithmax(buf, XSTRBUF_INITSIZE);
+}
 
 /* Frees the specified multibyte string buffer. The contents are lost. */
 void sb_destroy(xstrbuf_T *buf)
@@ -309,6 +326,12 @@ wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
     return sb_wcsncat(buf, s, Size_max, ps);
 }
 #endif
+
+/* Initializes the specified wide string buffer as an empty string. */
+xwcsbuf_T *wb_init(xwcsbuf_T *buf)
+{
+    return wb_initwithmax(buf, XWCSBUF_INITSIZE);
+}
 
 /* Frees the specified wide string buffer. The contents are lost. */
 void wb_destroy(xwcsbuf_T *buf)

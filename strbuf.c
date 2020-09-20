@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* strbuf.c: modifiable string buffer */
-/* (C) 2007-2015 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,6 @@ size_t wcsnrtombs(char *restrict dst, const wchar_t **restrict src, size_t nwc,
 	size_t len, mbstate_t *restrict ps);
 #endif
 
-#ifndef XSTRBUF_INITSIZE
-#define XSTRBUF_INITSIZE 15
-#endif
-#ifndef XWCSBUF_INITSIZE
-#define XWCSBUF_INITSIZE 15
-#endif
-
 
 /* If the type of the return value of the functions below is string buffer,
  * the return value is the argument buffer. */
@@ -51,13 +44,13 @@ size_t wcsnrtombs(char *restrict dst, const wchar_t **restrict src, size_t nwc,
 /********** Multibyte String Buffer **********/
 
 /* Initializes the specified string buffer as an empty string. */
-xstrbuf_T *sb_init(xstrbuf_T *buf)
+xstrbuf_T *sb_initwithmax(xstrbuf_T *buf, size_t max)
 {
-    // buf->contents = xmallocn(XSTRBUF_INITSIZE + 1, sizeof (char));
-    buf->contents = xmalloc(XSTRBUF_INITSIZE + 1);
+    // buf->contents = xmalloce(max, 1, sizeof (char));
+    buf->contents = xmalloc(add(max, 1));
     buf->contents[0] = '\0';
     buf->length = 0;
-    buf->maxlength = XSTRBUF_INITSIZE;
+    buf->maxlength = max;
     return buf;
 }
 
@@ -322,12 +315,12 @@ int sb_printf(xstrbuf_T *restrict buf, const char *restrict format, ...)
 /********** Wide String Buffer **********/
 
 /* Initializes the specified wide string buffer as an empty string. */
-xwcsbuf_T *wb_init(xwcsbuf_T *buf)
+xwcsbuf_T *wb_initwithmax(xwcsbuf_T *buf, size_t max)
 {
-    buf->contents = xmallocn(XWCSBUF_INITSIZE + 1, sizeof (wchar_t));
+    buf->contents = xmalloce(max, 1, sizeof (wchar_t));
     buf->contents[0] = L'\0';
     buf->length = 0;
-    buf->maxlength = XWCSBUF_INITSIZE;
+    buf->maxlength = max;
     return buf;
 }
 

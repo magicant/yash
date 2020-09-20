@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -422,7 +422,7 @@ bool print_option_list(const struct xgetopt_T *options)
     bool print_short_option = there_is_any_short_option(options);
 
     xstrbuf_T line;
-    sb_init(&line);
+    sb_initwithmax(&line, 127);
 
     for (const struct xgetopt_T *opt = options; opt->shortopt != L'\0'; opt++) {
 	if (posixly_correct && !opt->posix)

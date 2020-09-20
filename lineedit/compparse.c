@@ -117,7 +117,7 @@ le_context_T *le_get_context(void)
     le_context_T *ctxt = xmalloc(sizeof *ctxt);
 
     cparseinfo_T parseinfo;
-    wb_init(&parseinfo.buf);
+    wb_initwithmax(&parseinfo.buf, le_main_index);
     wb_ncat_force(&parseinfo.buf, le_main_buffer.contents, le_main_index);
     parseinfo.bufindex = 0;
     parseinfo.aliaslist = NULL;
@@ -1207,7 +1207,7 @@ bool remove_braceexpand(wchar_t *s)
     bool unclosed = false;
     xwcsbuf_T buf;
 
-    wb_init(&buf);
+    wb_initwithmax(&buf, wcslen(s));
     wb_cat(&buf, s);
 
     for (size_t i = 0; i < buf.length; ) {

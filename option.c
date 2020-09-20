@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -398,7 +398,7 @@ set_positional_parameters:
 wchar_t *normalize_option_name(const wchar_t *optname)
 {
     xwcsbuf_T result;
-    wb_init(&result);
+    wb_initwithmax(&result, wcslen(optname));
     for (const wchar_t *s = optname; *s != L'\0'; s++)
 	if (iswalnum(*s))
 	    wb_wccat(&result, towlower(*s));
