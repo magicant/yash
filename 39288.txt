@@ -22,37 +22,38 @@ esc             n/a       true      false
 Callee tree:
 ***
   expand_param
-    expand_four...
-  expand_four
-    expand_multiple ((Q_WORD))
-      expand_line
-        exec_for...
-        exec_process...
-        do_assignments...
-      cparse_simple_command...
-      ctryparse_assignment...
-      cparse_for_command...
-    expand_word ((quoting))
-      expand_single ((quoting, escaping))
-        parse_and_expand_string ((esc ? Q_INDQ : Q_LITERAL, ES_NONE))
-          expand_prompt_variable ((esc=*FALSE*)) tested
-          print_message (mail.c) ((esc=true)) untested
-          execute_rcfile ((esc=*FALSE*)) untested
-        expand_redir_filename ((Q_WORD, ES_NONE))
-        open_heredocument ((Q_INDQ, ES_NONE))
-        do_assignments ((Q_WORD, ES_NONE))
-        exec_funcdef ((Q_WORD, ES_NONE))
-        print_subst_as_error... ((Q_WORD, ES_NONE))
-        expand_four... ((Q_WORD, ES_NONE))
-        expand_single_with_glob ((Q_WORD, ES_QUOTED_HARD))
-        expand_double_bracket_operand_escaped ((Q_WORD, ES_QUOTED))
-        expand_double_bracket_operand_unescaped ((Q_WORD, ES_NONE))
-        exec_case ((Q_WORD, ES_NONE))
-        exec_case ((Q_WORD, ES_QUOTED))
-        cparse_word ((Q_WORD, ES_QUOTED_HARD))
+    expand_four_inner...
+  expand_four_inner
+    expand_four
+      expand_multiple ((Q_WORD))
+        expand_line
+          exec_for...
+          exec_process...
+          do_assignments...
+        cparse_simple_command...
+        ctryparse_assignment...
+        cparse_for_command...
+      expand_word ((quoting))
+        expand_single ((quoting, escaping))
+          parse_and_expand_string ((esc ? Q_INDQ : Q_LITERAL, ES_NONE))
+            expand_prompt_variable ((esc=*FALSE*)) tested
+            print_message (mail.c) ((esc=true)) untested
+            execute_rcfile ((esc=*FALSE*)) untested
+          expand_redir_filename ((Q_WORD, ES_NONE))
+          open_heredocument ((Q_INDQ, ES_NONE))
+          do_assignments ((Q_WORD, ES_NONE))
+          exec_funcdef ((Q_WORD, ES_NONE))
+          print_subst_as_error... ((Q_WORD, ES_NONE))
+          expand_four_inner... ((Q_WORD, ES_NONE))
+          expand_single_with_glob ((Q_WORD, ES_QUOTED_HARD))
+          expand_double_bracket_operand_escaped ((Q_WORD, ES_QUOTED))
+          expand_double_bracket_operand_unescaped ((Q_WORD, ES_NONE))
+          exec_case ((Q_WORD, ES_NONE))
+          exec_case ((Q_WORD, ES_QUOTED))
+          cparse_word ((Q_WORD, ES_QUOTED_HARD))
+          expand_param... ((Q_WORD, ES_NONE))
+          expand_param... ((Q_WORD, ES_QUOTED))
         expand_param... ((Q_WORD, ES_NONE))
-        expand_param... ((Q_WORD, ES_QUOTED))
-      expand_param... ((Q_WORD, ES_NONE))
     expand_param... ((Q_WORD))
 
 Call tree:
@@ -79,7 +80,7 @@ quote_removal_free
 
 Callee tree:
 add_sq
-  expand_four...
+  expand_four_inner...
   unquote
     read_heredoc_contents_without_expansion... (parser.c)
     print_pending_heredocs... (parser.c)
@@ -124,5 +125,4 @@ TODO:
 * Reconsider the order of expansions performed
   * Globbing should be done before quote removal
   * Empty field removal should be done after quote removal
-* Consider adding facade function around expand_four which initializes expand_four_T, calls expand_four, and appends {value,cc}buf to {value,cc}list
 * Consider reusing the fields list in the fieldsplit function
