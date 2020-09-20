@@ -894,8 +894,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     struct get_variable_T v;
     bool unset;   /* parameter is not set? */
     if (p->pe_type & PT_NEST) {
-	plist_T plist =
-	    expand_four_and_remove_quotes(p->pe_nest, TT_NONE, true, true);
+	plist_T plist = expand_word(p->pe_nest, TT_NONE, Q_WORD, ES_NONE);
 	if (plist.contents == NULL)
 	    return false;
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
@@ -903,8 +902,6 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	v.values = pl_toary(&plist);
 	v.freevalues = true;
 	unset = false;
-	for (size_t i = 0; v.values[i] != NULL; i++)
-	    v.values[i] = unescapefree(v.values[i]);
     } else {
 	v = get_variable(p->pe_name);
 	if (v.type == GV_NOTFOUND) {

@@ -26,6 +26,7 @@ append_value
     expand_four...
   expand_4444
     expand_word ((quoting))
+      expand_param... ((Q_WORD, ES_NONE))
     expand_param... ((Q_WORD))
   expand_four
     expand_multiple ((processquotes=true, escapeall=false, rec=false))
@@ -57,7 +58,6 @@ append_value
         exec_case ((processquotes=true, escapeall=false))
         cparse_word ((processquotes=true, escapeall=false))
         expand_param... ((processquotes=true, escapeall=false))
-      expand_param... ((processquotes=true, escapeall=false))
 
 Call tree:
 expand_multiple
