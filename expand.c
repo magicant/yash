@@ -874,8 +874,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_start == NULL) {
 	startindex = 0, endindex = SSIZE_MAX, indextype = IDX_NONE;
     } else {
-	wchar_t *start = expand_single_and_unescape(
-		p->pe_start, TT_NONE, true, false);
+	wchar_t *start = expand_111111(p->pe_start, TT_NONE, Q_WORD, ES_NONE);
 	if (start == NULL)
 	    return false;
 	indextype = parse_indextype(start);
@@ -892,8 +891,8 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 	    if (p->pe_end == NULL) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
 	    } else {
-		wchar_t *end = expand_single_and_unescape(
-			p->pe_end, TT_NONE, true, false);
+		wchar_t *end = expand_111111(
+			p->pe_end, TT_NONE, Q_WORD, ES_NONE);
 		if (end == NULL || !evaluate_index(end, &endindex))
 		    return false;
 	    }
@@ -1048,8 +1047,7 @@ subst:
 			p->pe_name);
 		return false;
 	    }
-	    subst = expand_single_and_unescape(
-		    p->pe_subst, TT_SINGLE, true, false);
+	    subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	    if (subst == NULL)
 		return false;
 	    if (v.type != GV_ARRAY) {
@@ -1101,7 +1099,7 @@ subst:
 	break;
     case PT_SUBST:
 	match = expand_111111(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
-	subst = expand_single_and_unescape(p->pe_subst, TT_SINGLE, true, false);
+	subst = expand_111111(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	if (match == NULL || subst == NULL) {
 	    free(match);
 	    free(subst);
