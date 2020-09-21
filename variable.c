@@ -1570,6 +1570,8 @@ static void print_function(
 	const wchar_t *name, const function_T *func,
 	const wchar_t *argv0, bool readonly)
     __attribute__((nonnull));
+static char *vartype_option_string(vartype_T type)
+    __attribute__((malloc,warn_unused_result));
 #if YASH_ENABLE_ARRAY
 static int array_dump_all(const wchar_t *argv0);
 static void array_remove_elements(
@@ -1827,7 +1829,7 @@ void print_scalar(const wchar_t *name, bool namequote,
 {
     wchar_t *quotedvalue;
     const char *format;
-    xstrbuf_T opts;
+    char *opts;
 
     if (var->v_value != NULL)
 	quotedvalue = quote_as_word(var->v_value);
@@ -1852,16 +1854,10 @@ void print_scalar(const wchar_t *name, bool namequote,
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
 typeset:
-	    sb_initwithmax(&opts, 4);
-	    if (var->v_type & VF_EXPORT)
-		sb_ccat(&opts, 'x');
-	    if (var->v_type & VF_READONLY)
-		sb_ccat(&opts, 'r');
-	    if (opts.length > 0)
-		sb_insert(&opts, 0, " -");
 	    format = (quotedvalue != NULL) ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
-	    xprintf(format, argv0, opts.contents, name, quotedvalue);
-	    sb_destroy(&opts);
+	    opts = vartype_option_string(var->v_type);
+	    xprintf(format, argv0, opts, name, quotedvalue);
+	    free(opts);
 	    break;
 	default:
 	    assert(false);
@@ -1874,8 +1870,6 @@ typeset:
 void print_array(
 	const wchar_t *name, const variable_T *var, const wchar_t *argv0)
 {
-    xstrbuf_T opts;
-
     if (!xprintf("%ls=(", name))
 	return;
     if (var->v_valc > 0) {
@@ -1912,16 +1906,10 @@ void print_array(
 	    goto typeset;
 	case L't':
 	    assert(wcscmp(argv0, L"typeset") == 0);
-typeset:
-	    sb_initwithmax(&opts, 4);
-	    if (var->v_type & VF_EXPORT)
-		sb_ccat(&opts, 'x');
-	    if (var->v_type & VF_READONLY)
-		sb_ccat(&opts, 'r');
-	    if (opts.length > 0)
-		sb_insert(&opts, 0, " -");
-	    xprintf("%ls%s %ls\n", argv0, opts.contents, name);
-	    sb_destroy(&opts);
+typeset:;
+	    char *opts = vartype_option_string(var->v_type);
+	    xprintf("%ls%s %ls\n", argv0, opts, name);
+	    free(opts);
 	    break;
 	default:
 	    assert(false);
@@ -1967,6 +1955,21 @@ void print_function(
 
 end:
     free(qname);
+}
+
+/* Returns a newly malloced string that specifies options for the typeset
+ * built-in that can be used to restore the given variable type. */
+char *vartype_option_string(vartype_T type)
+{
+    xstrbuf_T opts;
+    sb_initwithmax(&opts, 4);
+    if (type & VF_EXPORT)
+	sb_ccat(&opts, 'x');
+    if (type & VF_READONLY)
+	sb_ccat(&opts, 'r');
+    if (opts.length > 0)
+	sb_insert(&opts, 0, " -");
+    return sb_tostr(&opts);
 }
 
 #if YASH_ENABLE_HELP
