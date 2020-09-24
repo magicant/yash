@@ -64,7 +64,7 @@ static plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((warn_unused_result));
 static struct expand_four_T expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, quoting_T quoting, charcategory_T defaultcc)
+	tildetype_T tilde, quoting_T quoting)
     __attribute__((warn_unused_result));
 static bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 	quoting_T quoting, charcategory_T defaultcc,
@@ -196,8 +196,7 @@ bool expand_line(void *const *restrict args,
 bool expand_multiple(const wordunit_T *w, plist_T *list)
 {
     /* four expansions (w -> valuelist) */
-    struct expand_four_T expand =
-	expand_four(w, TT_SINGLE, Q_WORD, CC_LITERAL);
+    struct expand_four_T expand = expand_four(w, TT_SINGLE, Q_WORD);
     if (expand.valuelist.contents == NULL) {
 	maybe_exit_on_error();
 	return false;
@@ -248,8 +247,7 @@ plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
 {
     /* four expansions */
-    struct expand_four_T expand =
-	expand_four(w, tilde, quoting, CC_LITERAL);
+    struct expand_four_T expand = expand_four(w, tilde, quoting);
 
     /* empty field removal & quote removal */
     if (expand.valuelist.contents != NULL)
@@ -346,7 +344,7 @@ noglob:
  * If unsuccessful, `valuelist' and `cclist' are empty and have NULL `contents'.
  */
 struct expand_four_T expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, quoting_T quoting, charcategory_T defaultcc)
+	tildetype_T tilde, quoting_T quoting)
 {
     struct expand_four_inner_T e;
     pl_init(&e.e.valuelist);
@@ -355,7 +353,7 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
     sb_init(&e.ccbuf);
     e.e.zeroword = false;
 
-    if (expand_four_inner(w, tilde, quoting, defaultcc, &e)) {
+    if (expand_four_inner(w, tilde, quoting, CC_LITERAL, &e)) {
 	assert(e.e.valuelist.length == e.e.cclist.length);
 	assert(e.valuebuf.length == e.ccbuf.length);
 	pl_add(&e.e.valuelist, wb_towcs(&e.valuebuf));
