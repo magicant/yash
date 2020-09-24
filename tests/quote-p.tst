@@ -461,7 +461,85 @@ __IN__
 	b]
 __OUT__
 
-test_oE 'backslashes in expansions'
+test_oE 'backslashes in substitution of expansion ${a+b}'
+a=a
+bracket ${a+\ \!\$x\%\&\(\)\*\+\,\-\.\/ \# \"x\" \'x\'}
+bracket ${a+\0\1\2\3\4\5\6\7\8\9\:\;\<\=\>\? \\ \\\\}
+bracket ${a+\@\A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z\[\]\^\_}
+bracket ${a+\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z\{\|\}\~ \`\`}
+__IN__
+[ !$x%&()*+,-./][#]["x"]['x']
+[0123456789:;<=>?][\][\\]
+[@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_]
+[abcdefghijklmnopqrstuvwxyz{|}~][``]
+__OUT__
+
+test_oE 'backslashes in substitution of expansion ${a-b}'
+bracket ${u-\ \!\$x\%\&\(\)\*\+\,\-\.\/ \# \"x\" \'x\'}
+bracket ${u-\0\1\2\3\4\5\6\7\8\9\:\;\<\=\>\? \\ \\\\}
+bracket ${u-\@\A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z\[\]\^\_}
+bracket ${u-\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z\{\|\}\~ \`\`}
+__IN__
+[ !$x%&()*+,-./][#]["x"]['x']
+[0123456789:;<=>?][\][\\]
+[@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_]
+[abcdefghijklmnopqrstuvwxyz{|}~][``]
+__OUT__
+
+# See quote-y.tst
+#test_oE 'backslashes in substitution of expansion ${a=b}'
+#__IN__
+#__OUT__
+
+# See quote-y.tst
+#test_oE 'backslashes in substitution of expansion ${a?b}'
+#__IN__
+#__OUT__
+
+test_oE 'single and double quotes in substitution of expansion ${a+b}'
+a=a
+bracket ${a+a"b"c} ${a+a"*"c} ${a+a"\"\""c} ${a+a"\\"c} ${a+a"''"c}
+bracket ${a+a'b'c} ${a+a'*'c} ${a+a'""'c}   ${a+a'\'c}
+__IN__
+[abc][a*c][a""c][a\c][a''c]
+[abc][a*c][a""c][a\c]
+__OUT__
+
+test_oE 'single and double quotes in substitution of expansion ${a-b}'
+bracket ${u-a"b"c} ${u-a"*"c} ${u-a"\"\""c} ${u-a"\\"c} ${u-a"''"c}
+bracket ${u-a'b'c} ${u-a'*'c} ${u-a'""'c}   ${u-a'\'c}
+__IN__
+[abc][a*c][a""c][a\c][a''c]
+[abc][a*c][a""c][a\c]
+__OUT__
+
+# See quote-y.tst
+#test_oE 'single and double quotes in substitution of expansion ${a=b}'
+#__IN__
+#__OUT__
+
+# See quote-y.tst
+#test_oE 'single and double quotes in substitution of expansion ${a?b}'
+#__IN__
+#__OUT__
+
+test_oE 'quotes in pattern of expansions'
+# double quotes
+a='*""ok'
+bracket ${a#"*"\"\"} "${a#"*"\"\"}"
+# single quotes
+b="*''ok"
+bracket ${b#'*'\'\'} "${b#'*'\'\'}"
+# backslashes
+c='*\ok'
+bracket ${c#\*\\} "${c#\*\\}"
+__IN__
+[ok][ok]
+[ok][ok]
+[ok][ok]
+__OUT__
+
+test_oE 'backslashes resulting from expansions'
 v='\a\b\c'
 bracket "$v"
 bracket $v

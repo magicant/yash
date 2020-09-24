@@ -1,5 +1,53 @@
 # quote-y.tst: yash-specific test of quoting
 
+(
+setup -d
+
+posix="true"
+
+# POSIX does not imply that quote removal should be applied before the expanded
+# word is assigned to the unset/empty variable. However, existing shells seem
+# to perform quote removal, so yash follows them. Also note that the resultant
+# value of the parameter expansion has quote removal already applied, so it is
+# subject to field splitting.
+test_oE 'quotes in substitution of expansion ${a=b}'
+bracket ${a=\ \!\$x\%\&\(\)\*\+\,\-\.\/ \# \"x\" \'x\'}
+bracket ${b=\0\1\2\3\4\5\6\7\8\9\:\;\<\=\>\? \\ \\\\}
+bracket ${c=\@\A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z\[\]\^\_}
+bracket ${d=\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z\{\|\}\~ \`\`}
+bracket ${e=a"b"c} ${f=a"*"c} ${g=a"\"\""c} ${h=a"\\"c} ${i=a"''"c}
+bracket ${j=a'b'c} ${k=a'*'c} ${l=a'""'c}   ${m=a'\'c}
+bracket $a
+bracket $b
+bracket $c
+bracket $d
+bracket $e $f $g $h $i
+bracket $j $k $l $m
+__IN__
+[!$x%&()*+,-./][#]["x"]['x']
+[0123456789:;<=>?][\][\\]
+[@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_]
+[abcdefghijklmnopqrstuvwxyz{|}~][``]
+[abc][a*c][a""c][a\c][a''c]
+[abc][a*c][a""c][a\c]
+[!$x%&()*+,-./][#]["x"]['x']
+[0123456789:;<=>?][\][\\]
+[@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_]
+[abcdefghijklmnopqrstuvwxyz{|}~][``]
+[abc][a*c][a""c][a\c][a''c]
+[abc][a*c][a""c][a\c]
+__OUT__
+
+# The same as above, POSIX does not imply quote removal but many existing
+# shells perform quote removal.
+test_Oe -e 2 'quotes in substitution of expansion ${a?b}'
+eval '${u?\ \!\$x\%\&\(\)\*\+\,\-\.\/ \# \"x\" \'\''x\'\''\?\\\`\`"x"'\''y'\''}'
+__IN__
+eval: u:  !$x%&()*+,-./ # "x" 'x'?\``xy
+__ERR__
+
+)
+
 test_oE 'backslash preceding EOF is ignored'
 "$TESTEE" -c 'printf "[%s]\n" 123\'
 __IN__
