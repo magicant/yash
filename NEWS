@@ -13,6 +13,10 @@ Yash 2.51
   =  Quote removal in arithmetic expansion has been modified to match
      the behavior defined in POSIX. It no longer allows things like
      $(("2" + \5)).
+  =  The quotation rules for the substitution word in a parameter
+     expansion inside double-quotes have been changed to match with
+     the behavior of other existing shells. For example, "${x-\a'b'}"
+     now expands to \a'b' rather than ab.
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".

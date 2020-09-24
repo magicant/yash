@@ -88,7 +88,7 @@ static wchar_t *trim_wstring(wchar_t *s, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
 static void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
-static void print_subst_as_error(const paramexp_T *p)
+static void print_subst_as_error(const paramexp_T *p, quoting_T quoting)
     __attribute__((nonnull));
 static void match_each(void **restrict slist, const wchar_t *restrict pattern,
 	paramexptype_T type)
@@ -405,8 +405,12 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 	    while (*ss != L'\0') {
 		switch (*ss) {
 		case L'"':
-		    if (quoting != Q_WORD)
-			goto default_;
+		    switch (quoting) {
+			case Q_WORD:  case Q_DQPARAM:
+			    break;
+			case Q_INDQ:  case Q_LITERAL:
+			    goto default_;
+		    }
 		    indq = !indq;
 		    wb_wccat(&e->valuebuf, L'"');
 		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
@@ -428,6 +432,10 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 		    switch (quoting) {
 			case Q_WORD:
 			    if (indq && wcschr(CHARS_ESCAPABLE, ss[1]) == NULL)
+				goto default_;
+			    break;
+			case Q_DQPARAM:
+			    if (wcschr(CHARS_ESCAPABLE "}", ss[1]) == NULL)
 				goto default_;
 			    break;
 			case Q_INDQ:
@@ -721,6 +729,7 @@ treat_array:
 	    unset = true;
 
     /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR */
+    quoting_T substq = indq ? Q_DQPARAM : Q_WORD;
     wchar_t *subst;
     switch (p->pe_type & PT_MASK) {
     case PT_PLUS:
@@ -732,7 +741,7 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_four_inner(p->pe_subst, TT_SINGLE, Q_WORD,
+	    return expand_four_inner(p->pe_subst, TT_SINGLE, substq,
 		    CC_SOFT_EXPANSION | (indq * CC_QUOTED), e);
 	}
 	break;
@@ -755,7 +764,7 @@ subst:
 			p->pe_name);
 		return false;
 	    }
-	    subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
+	    subst = expand_single(p->pe_subst, TT_SINGLE, substq, ES_NONE);
 	    if (subst == NULL)
 		return false;
 	    if (v.type != GV_ARRAY) {
@@ -781,7 +790,7 @@ subst:
     case PT_ERROR:
 	if (unset) {
 	    plfree(values, free);
-	    print_subst_as_error(p);
+	    print_subst_as_error(p, substq);
 	    return false;
 	}
 	break;
@@ -937,10 +946,11 @@ void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 }
 
 /* Expands `p->pe_subst' and prints it as an error message. */
-void print_subst_as_error(const paramexp_T *p)
+void print_subst_as_error(const paramexp_T *p, quoting_T quoting)
 {
     if (p->pe_subst != NULL) {
-	wchar_t *subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
+	wchar_t *subst =
+	    expand_single(p->pe_subst, TT_SINGLE, quoting, ES_NONE);
 	if (subst != NULL) {
 	    if (p->pe_type & PT_NEST)
 		xerror(0, "%ls", subst);

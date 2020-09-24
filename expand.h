@@ -34,7 +34,11 @@ typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
 typedef enum {
     Q_WORD,     /* Single quotations, double quotations, and backslashes are
 		   recognized as in the normal word. */
-    Q_INDQ,     /* The string is quoted as if it is inside a pair of double
+    Q_DQPARAM,  /* The string is treated as the substitution word of a parameter
+		   expansion inside a pair of double quotations: Double
+		   quotations are recognized, but single quotations are not.
+		   Backslashes are recognized only before $, `, ", \ or }. */
+    Q_INDQ,     /* The string is treated as if it is inside a pair of double
 		   quotations: Single and double quotations are not recognized.
 		   Backslashes are recognized only before a $, `, or \. */
     Q_LITERAL,  /* No quotations are recognized. */
