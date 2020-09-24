@@ -2,6 +2,59 @@
 
 setup -d
 
+# POSIX says, "The expression shall be treated as if it were in double-quotes,
+# except that a double-quote inside the expression is not treated specially."
+# This means single- and double-quotes are not special and backslashes are
+# special only before a dollar, backquote, backslash, or newline.
+# Since no combinations of such a backslash and escaped character produce a
+# valid arithmetic expression, we only test for errors here.
+# Note that line continuation is tested in quote-p.tst.
+
+test_Oe -e 2 'quote removal: \$'
+eval 'echoraw $((\$a))'
+__IN__
+eval: arithmetic: `$' is not a valid number or operator
+eval: arithmetic: a value is missing
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'quote removal: \`'
+eval 'echoraw $((\`echo\`))'
+__IN__
+eval: arithmetic: ``' is not a valid number or operator
+eval: arithmetic: a value is missing
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'quote removal: \\'
+eval 'echoraw $((\\))'
+__IN__
+eval: arithmetic: `\' is not a valid number or operator
+eval: arithmetic: a value is missing
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'quote removal: \" is not special'
+eval 'echoraw $((\"3\"))'
+__IN__
+eval: arithmetic: `\' is not a valid number or operator
+eval: arithmetic: a value is missing
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'quote removal: \a is not special'
+eval 'echoraw $((\a))'
+__IN__
+eval: arithmetic: `\' is not a valid number or operator
+eval: arithmetic: a value is missing
+__ERR__
+#'
+#`
+
 test_oE -e 0 'single variable'
 unset unset
 empty= zero=0.0 one=1.0 nonnumeric='hello  world'

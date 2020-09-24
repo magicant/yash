@@ -350,11 +350,9 @@ __IN__
 123 1111
 __OUT__
 
-# No shell except yash seems to support quote removal in arithmetic expansion.
+# Quote removal is tested in arith-y.tst.
 #test_oE 'quote removal'
-#echoraw $((1"0"0 + '2'0 + \3))
 #__IN__
-#123
 #__OUT__
 
 test_oE 'assignment in parameter expansion in arithmetic expansion'

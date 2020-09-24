@@ -479,7 +479,7 @@ default_:
 	    s = exec_command_substitution(&w->wu_cmdsub);
 	    goto cat_s;
 	case WT_ARITH:
-	    s = expand_single(w->wu_arith, TT_NONE, Q_WORD, ES_NONE);
+	    s = expand_single(w->wu_arith, TT_NONE, Q_INDQ, ES_NONE);
 	    if (s != NULL)
 		s = evaluate_arithmetic(s);
 cat_s:

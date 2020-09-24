@@ -50,6 +50,7 @@ Volume 3: Shell & Utilities
 
 2.6.4 Arithmetic Expansion
  * arith-p.tst
+ * arith-y.tst
 
 2.6.5 Field Splitting
  * fsplit-p.tst
