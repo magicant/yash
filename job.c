@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ void trim_joblist(void)
 	while (tail > 1 && joblist.contents[tail - 1] == NULL)
 	    tail--;
 	assert(tail > 0);
-	pl_remove(&joblist, tail, SIZE_MAX);
+	pl_truncate(&joblist, tail);
     }
 }
 

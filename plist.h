@@ -53,6 +53,8 @@ extern plist_T *pl_setmax(plist_T *list, size_t newmax)
     __attribute__((nonnull));
 extern plist_T *pl_ensuremax(plist_T *list, size_t max)
     __attribute__((nonnull));
+static inline plist_T *pl_truncate(plist_T *list, size_t newlength)
+    __attribute__((nonnull));
 extern plist_T *pl_clear(plist_T *list, void freer(void *elem))
     __attribute__((nonnull(1)));
 extern plist_T *pl_replace(
@@ -132,6 +134,20 @@ void **pl_toary(plist_T *list)
     list->length = list->maxlength = Size_max;
 #endif
     return a;
+}
+
+/* Shrinks the length of the pointer list to `newlength'.
+ * `newlength' must not be larger than the current length.
+ * `maxlength' of the list is not changed.
+ * It's the caller's responsibility to free the objects pointed by the removed
+ * pointers. */
+plist_T *pl_truncate(plist_T *list, size_t newlength)
+{
+#ifdef assert
+    assert(newlength <= list->length);
+#endif
+    list->contents[list->length = newlength] = NULL;
+    return list;
 }
 
 /* Inserts the first `n' elements of array `a' at offset `i' in pointer list

@@ -1284,7 +1284,7 @@ wchar_t *canonicalize_path(const wchar_t *path)
 		    if (isdir) {
 			rp = prev;
 			/* result[index] = L'\0'; */
-			pl_remove(&clist, clist.length - 1, 1);
+			pl_truncate(&clist, clist.length - 1);
 			path += 2;
 			continue;
 		    } else {

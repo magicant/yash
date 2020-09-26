@@ -501,7 +501,7 @@ void save_undo_history(void)
 {
     for (size_t i = undo_index; i < undo_history.length; i++)
 	free(undo_history.contents[i]);
-    pl_remove(&undo_history, undo_index, SIZE_MAX);
+    pl_truncate(&undo_history, undo_index);
 
     // No need to check for overflow in `len + 1' here. Should overflow occur,
     // the buffer would not have been allocated successfully.

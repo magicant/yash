@@ -1456,7 +1456,7 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
     size_t newlen = dest->length;
     if (!shopt_emptylastfield && newlen - oldlen >= 2 * 2 &&
 	    dest->contents[newlen - 2] == dest->contents[newlen - 1])
-	pl_remove(dest, newlen - 2, 2);
+	pl_truncate(dest, newlen - 2);
 
     assert(dest->length - oldlen >= 2);
     return (wchar_t *) &s[ifswhitestartindex];
