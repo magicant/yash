@@ -1299,11 +1299,11 @@ normal:
 }
 
 /* Tries numeric brace expansion like "{01..05}".
+ * `ci' must be the index of the L'{' character in `e->word'.
  * If unsuccessful, this function returns false without any side effects.
- * If successful, `word' and `cc' are freed and the full expansion results are
- * added to `valuelist' and `cclist'.
- * `startc' is a pointer to the character right after L'{' in `word'.
- */
+ * If successful, the results are added to `e->valuelist' and `e->cclist'.
+ * In that case, this function modifies `valuebuf' and `ccbuf' in place to
+ * construct the results, and finally destroys them. */
 bool try_expand_brace_sequence(
 	const struct brace_expand_T *restrict e, size_t ci,
 	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
@@ -1400,6 +1400,8 @@ bool try_expand_brace_sequence(
 	value += delta;
     } while (delta >= 0 ? value <= end : value >= end);
 
+    wb_destroy(valuebuf);
+    sb_destroy(ccbuf);
     return true;
 }
 
