@@ -103,6 +103,15 @@ static void **concatenate_values_into_array(void **values, bool escape)
 static void subst_length_each(void **slist)
     __attribute__((nonnull));
 
+/* data used in brace expansion */
+struct brace_expand_T {
+    const wchar_t *word;  /* the word to expand */
+    const char *cc;       /* the corresponding charcategory_T string */
+    void *const *graph;   /* see the comment in the `expand_brace` function */
+    plist_T *valuelist;   /* the list to add the results (words) */
+    plist_T *cclist;      /* the list to add the results (charcategory_T) */
+};
+
 static void expand_brace_each(
 	void *const *restrict values, void *const *restrict ccs,
 	plist_T *restrict valuelist, plist_T *restrict cclist)
@@ -111,9 +120,13 @@ static void expand_brace(
 	wchar_t *restrict word, char *restrict cc,
 	plist_T *restrict valuelist, plist_T *restrict cclist)
     __attribute__((nonnull));
+static void generate_brace_expand_results(
+	const struct brace_expand_T *restrict e, size_t ci,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
+    __attribute__((nonnull));
 static bool try_expand_brace_sequence(
-	wchar_t *word, char *restrict cc, wchar_t *startc,
-	plist_T *restrict valuelist, plist_T *restrict cclist)
+	const struct brace_expand_T *restrict e, size_t ci,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
     __attribute__((nonnull));
 static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
     __attribute__((nonnull));
@@ -1110,96 +1123,179 @@ void expand_brace(
 {
 #define idx(p) ((size_t) ((wchar_t *) (p) - word))
 
-    size_t ci = 0;
-
-start:
-
-    /* find '{' */
-    do {
-	wchar_t *c = wcschr(&word[ci], L'{');
-	if (c == NULL) {
-	    /* no L'{', no expansion */
-	    pl_add(valuelist, word);
-	    pl_add(cclist, cc);
-	    return;
-	}
-	ci = idx(c);
-    } while (cc[ci++] != CC_LITERAL);
-
-    if (try_expand_brace_sequence(word, cc, &word[ci], valuelist, cclist)) {
+    /* quick check */
+    const wchar_t *c;
+    if ((c = wcschr(word, L'{')) == NULL || (c = wcschr(c + 1, L'}')) == NULL) {
+no_expansion:
+	pl_add(valuelist, word);
+	pl_add(cclist, cc);
 	return;
     }
 
-    plist_T splitpoints;
-    unsigned nest;
-
-    /* collect pointers to characters where the word is split */
-    /* The pointers point to the character just after L'{', L',' or L'}'. */
-    pl_init(&splitpoints);
-    pl_add(&splitpoints, &word[ci]);
-    nest = 0;
-    for (; word[ci] != L'\0'; ci++) {
-	if (cc[ci] != CC_LITERAL)
-	    continue;
-	switch (word[ci]) {
-	    case L'{':
-		nest++;
-		break;
-	    case L',':
-		if (nest == 0)
-		    pl_add(&splitpoints, &word[ci + 1]);
-		break;
-	    case L'}':
-		if (nest > 0) {
-		    nest--;
+    /* First, we create a `graph' by scanning all the characters in the `word'.
+     * The graph is a list of pointers that has the same length as the word,
+     * which means each element in the graph corresponds to the character at the
+     * same index in the word. For each L'{' and L',' in the word, the
+     * corresponding graph element will be a pointer to the next matching L','
+     * or L'}' in the word. For L'}' that has one or more matching L','s, the
+     * corresponding element is a pointer to the L'}' itself. For other
+     * characters, the graph element will be NULL. */
+    /* To find matching L','s and L'}'s correctly, we keep track of nested
+     * braces by using a `stack'. Every time we find a new L'{', a pointer to
+     * the L'{' is pushed into the stack *twice*. The first one keeps pointing
+     * to the L'{' while the second is updated to point to the last found L','
+     * during the scan. The two pointers are popped out of the stack when a
+     * matching L'}' is found. */
+    bool pairfound = false;
+    plist_T graph;
+    plist_T stack;
+    pl_initwithmax(&graph, idx(c) + wcslen(c) /* = wcslen(word) */);
+    pl_init(&stack);
+    while (word[graph.length] != L'\0') {
+	if (cc[graph.length] == CC_LITERAL) {
+	    switch (word[graph.length]) {
+		case L'{':
+		    pl_add(&stack, &word[graph.length]);
+		    pl_add(&stack, &word[graph.length]);
 		    break;
-		} else if (splitpoints.length == 1) {
-		    /* no comma between { and } */
-		    goto restart;
-		} else {
-		    pl_add(&splitpoints, &word[ci + 1]);
-		    goto done;
-		}
+		case L',':
+		    if (stack.length > 0) {
+			size_t ci = idx(stack.contents[stack.length - 1]);
+			assert(ci < graph.length);
+			graph.contents[ci] = &word[graph.length];
+			stack.contents[stack.length - 1] = &word[graph.length];
+		    }
+		    break;
+		case L'}':
+		    if (stack.length > 0) {
+			size_t ci = idx(stack.contents[stack.length - 1]);
+			assert(ci < graph.length);
+			graph.contents[ci] = &word[graph.length];
+			assert(stack.length % 2 == 0);
+			pl_truncate(&stack, stack.length - 2);
+			pairfound = true;
+			if (word[ci] == L',') {
+			    pl_add(&graph, &word[graph.length]);
+			    continue;
+			}
+		    }
+		    break;
+	    }
 	}
+	pl_add(&graph, NULL);
     }
-restart:
-    /* if there is no L',' or L'}' corresponding to L'{',
-     * find the next L'{' and try again */
-    ci = idx(splitpoints.contents[0]);
-    pl_destroy(&splitpoints);
-    goto start;
 
-done:;
-    size_t lastelemindex = splitpoints.length - 1;
-    size_t headlen = idx(splitpoints.contents[0]) - 1;
-    size_t taillen = wcslen(splitpoints.contents[lastelemindex]);
-    size_t totallen = idx(splitpoints.contents[lastelemindex]) + taillen;
-    for (size_t i = 0; i < lastelemindex; i++) {
-	xwcsbuf_T buf;
-	xstrbuf_T cbuf;
-	wb_initwithmax(&buf, totallen);
-	sb_initwithmax(&cbuf, totallen);
-
-	wb_ncat_force(&buf, word, headlen);
-	sb_ncat_force(&cbuf, cc, headlen);
-
-	size_t len = (wchar_t *) splitpoints.contents[i + 1] -
-	             (wchar_t *) splitpoints.contents[i    ] - 1;
-	ci = idx(splitpoints.contents[i]);
-	wb_ncat_force(&buf, &word[ci], len);
-	sb_ncat_force(&cbuf, &cc[ci], len);
-
-	ci = idx(splitpoints.contents[lastelemindex]);
-	wb_ncat_force(&buf, &word[ci], taillen);
-	sb_ncat_force(&cbuf, &cc[ci], taillen);
-	assert(buf.length == cbuf.length);
-
-	/* expand the remaining portion recursively */
-	expand_brace(wb_towcs(&buf), sb_tostr(&cbuf), valuelist, cclist);
+    /* If no pairs of braces were found, we don't need to expand anything. */
+    if (!pairfound) {
+	pl_destroy(&stack);
+	pl_destroy(&graph);
+	goto no_expansion;
     }
-    pl_destroy(&splitpoints);
+
+    /* After scanning the whole `word', if we have any elements left in the
+     * stack, they are L'{'s that have no matching L'}'s. They cannot be
+     * expanded, so let's remove them from the graph. */
+    while (stack.length > 0) {
+	assert(stack.length % 2 == 0);
+	size_t ci = idx(stack.contents[stack.length - 2]);
+	const wchar_t *cnext;
+	while ((cnext = graph.contents[ci]) != NULL) {
+	    graph.contents[ci] = NULL;
+	    ci = idx(cnext);
+	}
+	pl_truncate(&stack, stack.length - 2);
+    }
+    pl_destroy(&stack);
+
+    /* Now start expansion! */
+    struct brace_expand_T e = {
+	.word = word,
+	.cc = cc,
+	.graph = graph.contents,
+	.valuelist = valuelist,
+	.cclist = cclist,
+    };
+    xwcsbuf_T valuebuf;
+    xstrbuf_T ccbuf;
+    wb_init(&valuebuf);
+    sb_init(&ccbuf);
+    generate_brace_expand_results(&e, 0, &valuebuf, &ccbuf);
+    pl_destroy(&graph);
     free(word);
     free(cc);
+#undef idx
+}
+
+/* Generates results of brace expansion.
+ * Part of `e->word' that has been processed before calling this function
+ * may have been added to `valuebuf' and `ccbuf'.
+ * This function modifies `valuebuf' and `ccbuf' in place to construct the
+ * results, and finally destroys them.
+ * The results are added to `e->valuelist' and `e->cclist'. */
+void generate_brace_expand_results(
+	const struct brace_expand_T *restrict e, size_t ci,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
+{
+start:
+    /* add normal characters up to the next delimiter */
+    while (e->word[ci] != L'\0' && e->graph[ci] == NULL) {
+normal:
+	wb_wccat(valuebuf, e->word[ci]);
+	sb_ccat(ccbuf, e->cc[ci]);
+	ci++;
+    }
+
+    switch (e->word[ci]) {
+	case L'\0':
+	    /* No more characters: we're done! */
+	    pl_add(e->valuelist, wb_towcs(valuebuf));
+	    pl_add(e->cclist, sb_tostr(ccbuf));
+	    return;
+	case L',':
+	    /* skip up to next L'}' and go on */
+	    do {
+		const wchar_t *nextdelimiter = e->graph[ci];
+		ci = nextdelimiter - e->word;
+	    } while (e->word[ci] == L',');
+	    assert(e->word[ci] == L'}');
+	    /* falls thru! */
+	case L'}':
+	    /* skip this L'}' and go on */
+	    ci++;
+	    goto start;
+    }
+    assert(e->word[ci] == L'{');
+
+    const wchar_t *nextdelimiter = e->graph[ci];
+    if (*nextdelimiter == L'}') {
+	/* No commas between the braces: try numeric brace expansion */
+	if (try_expand_brace_sequence(e, ci, valuebuf, ccbuf))
+	    return;
+
+	/* No numeric brace expansion happened.
+	 * Treat this brace as normal and go on. */
+	goto normal;
+    }
+    assert(*nextdelimiter == L',');
+
+    /* Now generate the results (except the last one) */
+    while (*nextdelimiter == L',') {
+	xwcsbuf_T valuebuf2;
+	xstrbuf_T ccbuf2;
+	wb_initwithmax(&valuebuf2, valuebuf->maxlength);
+	wb_ncat_force(&valuebuf2, valuebuf->contents, valuebuf->length);
+	sb_initwithmax(&ccbuf2, ccbuf->maxlength);
+	sb_ncat_force(&ccbuf2, ccbuf->contents, ccbuf->length);
+	ci++;
+	generate_brace_expand_results(e, ci, &valuebuf2, &ccbuf2);
+	ci = nextdelimiter - e->word;
+	nextdelimiter = e->graph[ci];
+    }
+    assert(*nextdelimiter == L'}');
+
+    /* Generate the last one */
+    ci++;
+    goto start; // generate_brace_expand_results(e, ci, valuebuf, ccbuf);
 }
 
 /* Tries numeric brace expansion like "{01..05}".
@@ -1209,41 +1305,43 @@ done:;
  * `startc' is a pointer to the character right after L'{' in `word'.
  */
 bool try_expand_brace_sequence(
-	wchar_t *const word, char *restrict const cc, wchar_t *const startc,
-	plist_T *restrict valuelist, plist_T *restrict cclist)
+	const struct brace_expand_T *restrict e, size_t ci,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
 {
-    long start, end, delta, value;
-    wchar_t *dotp, *dotbracep, *bracep, *c;
-    int startlen, endlen, len, wordlen;
-    bool sign = false;
+    assert(e->word[ci] == L'{');
+    ci++;
 
-    assert(startc[-1] == L'{');
-    c = startc;
+    size_t starti = ci;
 
     /* parse the starting point */
-    dotp = wcschr(c, L'.');
+    const wchar_t *c = &e->word[ci];
+    const wchar_t *dotp = wcschr(c, L'.');
     if (dotp == NULL || c == dotp || dotp[1] != L'.')
 	return false;
-    startlen = has_leading_zero(c, &sign) ? (dotp - c) : 0;
+    bool sign = false;
+    int startlen = has_leading_zero(c, &sign) ? (dotp - c) : 0;
     errno = 0;
-    start = wcstol(c, &c, 10);
-    if (errno != 0 || c != dotp)
+    wchar_t *cp;
+    long start = wcstol(c, &cp, 10);
+    if (errno != 0 || cp != dotp)
 	return false;
 
     c = dotp + 2;
 
     /* parse the ending point */
-    dotbracep = wcspbrk(c, L".}");
+    const wchar_t *dotbracep = wcspbrk(c, L".}");
     if (dotbracep == NULL || c == dotbracep ||
 	    (dotbracep[0] == L'.' && dotbracep[1] != L'.'))
 	return false;
-    endlen = has_leading_zero(c, &sign) ? (dotbracep - c) : 0;
+    int endlen = has_leading_zero(c, &sign) ? (dotbracep - c) : 0;
     errno = 0;
-    end = wcstol(c, &c, 10);
-    if (errno != 0 || c != dotbracep)
+    long end = wcstol(c, &cp, 10);
+    if (errno != 0 || cp != dotbracep)
 	return false;
 
     /* parse the delta */
+    long delta;
+    const wchar_t *bracep;
     if (dotbracep[0] == L'.') {
 	assert(dotbracep[1] == L'.');
 	c = dotbracep + 2;
@@ -1251,8 +1349,8 @@ bool try_expand_brace_sequence(
 	if (bracep == NULL || c == bracep)
 	    return false;
 	errno = 0;
-	delta = wcstol(c, &c, 10);
-	if (delta == 0 || errno != 0 || c != bracep)
+	delta = wcstol(c, &cp, 10);
+	if (delta == 0 || errno != 0 || cp != bracep)
 	    return false;
     } else {
 	assert(dotbracep[0] == L'}');
@@ -1264,37 +1362,33 @@ bool try_expand_brace_sequence(
     }
 
     /* validate charcategory_T */
-    if (cc[idx(bracep)] != CC_LITERAL)
+    size_t bracei = bracep - e->word;
+    if (e->cc[bracei] != CC_LITERAL)
 	return false;
-    for (size_t ci = idx(startc); ci < idx(bracep); ci++)
-	if (cc[ci] & CC_QUOTED)
+    for (ci = starti; ci < bracei; ci++)
+	if (e->cc[ci] & CC_QUOTED)
 	    return false;
 
     /* expand the sequence */
-    value = start;
-    len = (startlen > endlen) ? startlen : endlen;
-    wordlen = idx(bracep + 1) + wcslen(bracep + 1); // = wcslen(word);
+    long value = start;
+    int len = (startlen > endlen) ? startlen : endlen;
+    ci = bracep - e->word + 1;
     do {
-	xwcsbuf_T buf;
-	xstrbuf_T cbuf;
-	wb_initwithmax(&buf, wordlen);
-	sb_initwithmax(&cbuf, wordlen);
+	xwcsbuf_T valuebuf2;
+	xstrbuf_T ccbuf2;
+	wb_initwithmax(&valuebuf2, valuebuf->maxlength);
+	wb_ncat_force(&valuebuf2, valuebuf->contents, valuebuf->length);
+	sb_initwithmax(&ccbuf2, ccbuf->maxlength);
+	sb_ncat_force(&ccbuf2, ccbuf->contents, ccbuf->length);
 
-	size_t slen = idx(startc - 1);
-	wb_ncat_force(&buf, word, slen);
-	sb_ncat_force(&cbuf, cc, slen);
-
-	int plen = wb_wprintf(&buf, sign ? L"%0+*ld" : L"%0*ld", len, value);
+	/* format the number */
+	int plen =
+	    wb_wprintf(&valuebuf2, sign ? L"%0+*ld" : L"%0*ld", len, value);
 	if (plen >= 0)
-	    sb_ccat_repeat(&cbuf, CC_HARD_EXPANSION, plen);
-
-	slen = idx(bracep + 1);
-	wb_ncat_force(&buf, bracep + 1, wordlen - slen);
-	sb_ncat_force(&cbuf, cc + slen, wordlen - slen);
-	assert(buf.length == cbuf.length);
+	    sb_ccat_repeat(&ccbuf2, CC_HARD_EXPANSION, plen);
 
 	/* expand the remaining portion recursively */
-	expand_brace(wb_towcs(&buf), sb_tostr(&cbuf), valuelist, cclist);
+	generate_brace_expand_results(e, ci, &valuebuf2, &ccbuf2);
 
 	if (delta >= 0) {
 	    if (LONG_MAX - delta < value)
@@ -1305,10 +1399,8 @@ bool try_expand_brace_sequence(
 	}
 	value += delta;
     } while (delta >= 0 ? value <= end : value >= end);
-    free(word);
-    free(cc);
+
     return true;
-#undef idx
 }
 
 /* Checks if the specified numeral starts with a L'0'.
