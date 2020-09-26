@@ -1732,7 +1732,7 @@ void next_line(parsestate_T *ps)
 
     for (size_t i = 0; i < ps->pending_heredocs.length; i++)
 	read_heredoc_contents(ps, ps->pending_heredocs.contents[i]);
-    pl_clear(&ps->pending_heredocs, 0);
+    pl_truncate(&ps->pending_heredocs, 0);
 
     wordfree(ps->token);
     ps->token = NULL;
@@ -3851,7 +3851,7 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
     size_t save_count = pr->pending_heredocs.length;
     void *save_heredocs[save_count];
     memcpy(save_heredocs, pr->pending_heredocs.contents, sizeof save_heredocs);
-    pl_clear(&pr->pending_heredocs, 0);
+    pl_truncate(&pr->pending_heredocs, 0);
 
     print_and_or_lists(pr, ec.value.preparsed, indent, true);
 
@@ -3861,7 +3861,7 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
 	    print_indent(pr, indent);
 	}
     } else {
-	pl_clear(&pr->pending_heredocs, 0);
+	pl_truncate(&pr->pending_heredocs, 0);
     }
 
     assert(pr->pending_heredocs.length == 0);
@@ -3906,7 +3906,7 @@ void print_pending_heredocs(struct print* pr)
 	wb_catfree(&pr->buffer, unquote(rd->rd_hereend));
 	wb_wccat(&pr->buffer, L'\n');
     }
-    pl_clear(&pr->pending_heredocs, 0);
+    pl_truncate(&pr->pending_heredocs, 0);
 }
 
 void trim_end_of_buffer(xwcsbuf_T *buf)

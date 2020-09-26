@@ -530,7 +530,7 @@ void search_shell_options(const wchar_t *optname, plist_T *resultlist)
 	if (s != NULL) {
 	    if (*s == L'\0') {
 		/* exact match! */
-		pl_clear(resultlist, 0);
+		pl_truncate(resultlist, 0);
 		pl_add(resultlist, o);
 		break;
 	    } else {
@@ -556,7 +556,7 @@ void search_normal_options(const wchar_t *optname, plist_T *resultlist,
 		(shell_invocation != NULL || o->ptr != NULL)) {
 	    if (o->longopt[namelen] == L'\0') {
 		/* exact match! */
-		pl_clear(resultlist, 0);
+		pl_truncate(resultlist, 0);
 		pl_add(resultlist, o);
 		break;
 	    } else {

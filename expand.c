@@ -217,8 +217,8 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	pl_init(&cclist2);
 	expand_brace_each(expand.valuelist.contents, expand.cclist.contents,
 		&valuelist2, &cclist2);
-	pl_clear(&expand.valuelist, 0);
-	pl_clear(&expand.cclist, 0);
+	pl_truncate(&expand.valuelist, 0);
+	pl_truncate(&expand.cclist, 0);
     } else {
 	valuelist2 = expand.valuelist;
 	cclist2 = expand.cclist;
