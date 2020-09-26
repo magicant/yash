@@ -131,12 +131,7 @@ static bool try_expand_brace_sequence(
 static bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
     __attribute__((nonnull));
 
-static void fieldsplit_all(
-	void **restrict valuelist, void **restrict cclist,
-	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
-    __attribute__((nonnull));
-static void fieldsplit(wchar_t *restrict s, char *restrict cc,
-	const wchar_t *restrict ifs,
+static void fieldsplit(void **restrict valuelist, void **restrict cclist,
 	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
     __attribute__((nonnull));
 static bool is_ifs_char(wchar_t c, charcategory_T cc, const wchar_t *ifs)
@@ -232,7 +227,7 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     }
 
     /* field splitting (valuelist2 -> valuelist) */
-    fieldsplit_all(pl_toary(&valuelist2), pl_toary(&cclist2),
+    fieldsplit(pl_toary(&valuelist2), pl_toary(&cclist2),
 	    &expand.valuelist, &expand.cclist);
     assert(expand.valuelist.length == expand.cclist.length);
 
@@ -1430,46 +1425,45 @@ bool has_leading_zero(const wchar_t *restrict s, bool *restrict sign)
  * `cclist' is an array of pointers to corresponding charcategory_T strings.
  * `valuelist' and `cclist' are `plfree'ed in this function.
  * The results are added to `outvaluelist' and `outcclist'. */
-void fieldsplit_all(
-	void **restrict const valuelist, void **restrict const cclist,
+void fieldsplit(void **restrict const valuelist, void **restrict const cclist,
 	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
 {
     const wchar_t *ifs = getvar(L VAR_IFS);
     if (ifs == NULL)
 	ifs = DEFAULT_IFS;
 
-    for (size_t i = 0; valuelist[i] != NULL; i++)
-	fieldsplit(valuelist[i], cclist[i], ifs, outvaluelist, outcclist);
+    plist_T fields;
+    pl_init(&fields);
+
+    for (size_t i = 0; valuelist[i] != NULL; i++) {
+	wchar_t *s = valuelist[i];
+	char *cc = cclist[i];
+	extract_fields(s, cc, ifs, &fields);
+	assert(fields.length % 2 == 0);
+
+	if (fields.length == 2 && fields.contents[0] == s &&
+		*(wchar_t *) fields.contents[1] == L'\0') {
+	    /* The result is the same as the original field. */
+	    pl_add(outvaluelist, s);
+	    pl_add(outcclist, cc);
+	} else {
+	    /* Produce new fields. */
+	    for (size_t j = 0; j < fields.length; j += 2) {
+		const wchar_t *start = fields.contents[j];
+		const wchar_t *end = fields.contents[j + 1];
+		size_t idx = start - s, len = end - start;
+		pl_add(outvaluelist, xwcsndup(start, len));
+		pl_add(outcclist, memcpy(xmalloc(len), &cc[idx], len));
+	    }
+	    free(s);
+	    free(cc);
+	}
+
+	pl_truncate(&fields, 0);
+    }
+    pl_destroy(&fields);
     free(valuelist);
     free(cclist);
-}
-
-/* Performs field splitting.
- * `s' is the word to split and freed in this function.
- * `cc' is the charcategory_T string corresponding to `s' and also freed
- * `ifs' must not be NULL.
- * The results are added to `outvaluelist' and `outcclist' as newly-malloced
- * strings. */
-void fieldsplit(wchar_t *restrict s, char *restrict cc,
-	const wchar_t *restrict ifs,
-	plist_T *restrict outvaluelist, plist_T *restrict outcclist)
-{
-    plist_T fields;
-
-    pl_init(&fields);
-    extract_fields(s, cc, ifs, &fields);
-    assert(fields.length % 2 == 0);
-
-    for (size_t i = 0; i < fields.length; i += 2) {
-	const wchar_t *start = fields.contents[i], *end = fields.contents[i+1];
-	size_t idx = start - s, len = end - start;
-	pl_add(outvaluelist, xwcsndup(start, len));
-	pl_add(outcclist, memcpy(xmalloc(len), &cc[idx], len));
-    }
-
-    pl_destroy(&fields);
-    free(s);
-    free(cc);
 }
 
 /* Extracts fields from a string.
