@@ -112,6 +112,14 @@ __IN__
 [{1..2}][{1..2}][{1..2}][{1..2}][{1..2}]
 __OUT__
 
+test_oE 'disambiguation'
+bracket a{,_}b{c,d{e{f{,_}g{1..2}h,i}j}k
+bracket k{j{i,h{2..1}g{_,}f}e}d,c}b{_,}a
+__IN__
+[ab{c,d{efg1hj}k][ab{c,d{efg2hj}k][ab{c,d{ef_g1hj}k][ab{c,d{ef_g2hj}k][ab{c,d{eij}k][a_b{c,d{efg1hj}k][a_b{c,d{efg2hj}k][a_b{c,d{ef_g1hj}k][a_b{c,d{ef_g2hj}k][a_b{c,d{eij}k]
+[k{jie}d,c}b_a][k{jie}d,c}ba][k{jh2g_fe}d,c}b_a][k{jh2g_fe}d,c}ba][k{jh2gfe}d,c}b_a][k{jh2gfe}d,c}ba][k{jh1g_fe}d,c}b_a][k{jh1g_fe}d,c}ba][k{jh1gfe}d,c}b_a][k{jh1gfe}d,c}ba]
+__OUT__
+
 test_oE 'result of tilde expansion is not subject to brace expansion'
 HOME=/{1,2}
 bracket ~
