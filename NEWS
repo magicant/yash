@@ -13,6 +13,8 @@ Yash 2.51
   =  When an expansion error occurs, the shell now immediately stops
      expansion rather than trying to expand the remaining part of the
      word.
+  =  When there are no positional parameters, "$@""$@" now expands to
+     nothing rather than one empty field, as defined in POSIX.
   =  Quote removal in arithmetic expansion has been modified to match
      the behavior defined in POSIX. It no longer allows things like
      $(("2" + \5)).

@@ -569,6 +569,7 @@ __OUT__
 
 test_oE 'special parameter @, quoted'
 bracket "$@"
+bracket "$@""$@" - "$@""$@""$@"
 bracket "=$@="
 null=
 bracket "$null""$@"
@@ -596,6 +597,7 @@ set ' a ' '  b  ' ' cc '
 bracket "$@"
 __IN__
 
+[-]
 [==]
 []
 []

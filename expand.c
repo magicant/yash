@@ -43,34 +43,25 @@
 #include "yash.h"
 
 
-/* data passed between expansion functions */
+/* result of word expansion */
 struct expand_four_T {
     plist_T valuelist, cclist;
-    bool zeroword;
 };
-struct expand_four_inner_T {
-    struct expand_four_T e;
-    xwcsbuf_T valuebuf;
-    xstrbuf_T ccbuf;
-};
-/* If expansion yields multiple fields, all the fields are added to `valuelist'
- * except that the last field remains in `valuebuf'. Character categories
- * (charcategory_T) corresponding to the characters in `valuelist' and
- * `valuebuf' are cast to char and added to `cclist' and `ccbuf' accordingly. */
-/* When "$@" appears during expansion and there is no positional parameter, the
- * `zeroword' flag is set so that the quoted empty word can be removed later. */
+/* `valuelist' is a list of pointers to newly malloced wide strings that contain
+ * the expanded word value. `cclist' is a list of pointers to newly malloced
+ * single-byte strings whose values are charcategory_T cast to char. `cclist'
+ * must have as many strings as `valuelist' and each string in `cclist' must
+ * have the same length as the corresponding wide string in `valuelist'. */
 
 static plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((warn_unused_result));
 static struct expand_four_T expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, quoting_T quoting)
+	tildetype_T tilde, quoting_T quoting, charcategory_T defaultcc)
     __attribute__((warn_unused_result));
-static bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
-	quoting_T quoting, charcategory_T defaultcc,
-	struct expand_four_inner_T *restrict e)
-    __attribute__((nonnull(5)));
-static void fill_ccbuf(struct expand_four_inner_T *e, charcategory_T c)
+static inline void fill_ccbuf(
+	const xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf,
+	charcategory_T c)
     __attribute__((nonnull));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
@@ -79,8 +70,7 @@ static wchar_t *expand_tilde(const wchar_t **ss,
 
 enum indextype_T { IDX_NONE, IDX_ALL, IDX_CONCAT, IDX_NUMBER, };
 
-static bool expand_param(const paramexp_T *restrict p, bool indq,
-	struct expand_four_inner_T *restrict e)
+static struct expand_four_T expand_param(const paramexp_T *p, bool indq)
     __attribute__((nonnull));
 static enum indextype_T parse_indextype(const wchar_t *indexstr)
     __attribute__((nonnull,pure));
@@ -101,6 +91,11 @@ static wchar_t *concatenate_values(void **values, bool escape)
 static void **concatenate_values_into_array(void **values, bool escape)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void subst_length_each(void **slist)
+    __attribute__((nonnull));
+static void merge_expand_four(
+	struct expand_four_T *restrict from,
+	struct expand_four_T *restrict to,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
     __attribute__((nonnull));
 
 /* data used in brace expansion */
@@ -204,7 +199,7 @@ bool expand_line(void *const *restrict args,
 bool expand_multiple(const wordunit_T *w, plist_T *list)
 {
     /* four expansions (w -> valuelist) */
-    struct expand_four_T expand = expand_four(w, TT_SINGLE, Q_WORD);
+    struct expand_four_T expand = expand_four(w, TT_SINGLE, Q_WORD, CC_LITERAL);
     if (expand.valuelist.contents == NULL) {
 	maybe_exit_on_error();
 	return false;
@@ -255,7 +250,7 @@ plist_T expand_word(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
 {
     /* four expansions */
-    struct expand_four_T expand = expand_four(w, tilde, quoting);
+    struct expand_four_T expand = expand_four(w, tilde, quoting, CC_LITERAL);
 
     /* empty field removal & quote removal */
     if (expand.valuelist.contents != NULL)
@@ -343,58 +338,45 @@ noglob:
 
 /********** Four Expansions **********/
 
-/* Performs the four expansions in the specified single word.
- * The four expansions are tilde expansion, parameter expansion, command
- * substitution, and arithmetic expansion.
+/* Performs the four expansions, i.e., tilde expansion, parameter expansion,
+ * command substitution, and arithmetic expansion.
  * If successful, `valuelist' in the return value is the list of the resultant
  * fields, which are newly malloced wide strings, and `cclist' is the list of
  * the corresponding charcategory_T strings, which are also newly malloced.
+ * Usually this function produces one or more fields, but it may produce zero
+ * fields if "$@" is expanded with no positional parameters.
  * If unsuccessful, `valuelist' and `cclist' are empty and have NULL `contents'.
  */
 struct expand_four_T expand_four(const wordunit_T *restrict w,
-	tildetype_T tilde, quoting_T quoting)
+	tildetype_T tilde, quoting_T quoting, charcategory_T defaultcc)
 {
-    struct expand_four_inner_T e;
-    pl_init(&e.e.valuelist);
-    pl_init(&e.e.cclist);
-    wb_init(&e.valuebuf);
-    sb_init(&e.ccbuf);
-    e.e.zeroword = false;
+    /* lists to insert the final results into */
+    struct expand_four_T e;
+    pl_init(&e.valuelist);
+    pl_init(&e.cclist);
 
-    if (expand_four_inner(w, tilde, quoting, CC_LITERAL, &e)) {
-	assert(e.e.valuelist.length == e.e.cclist.length);
-	assert(e.valuebuf.length == e.ccbuf.length);
-	pl_add(&e.e.valuelist, wb_towcs(&e.valuebuf));
-	pl_add(&e.e.cclist, sb_tostr(&e.ccbuf));
-    } else {
-	plfree(pl_toary(&e.e.valuelist), free);
-	plfree(pl_toary(&e.e.cclist), free);
-	wb_destroy(&e.valuebuf);
-	sb_destroy(&e.ccbuf);
-	e.e.valuelist.contents = e.e.cclist.contents = NULL;
-    }
-    return e.e;
-}
+    /* intermediate value of the currently expanded word */
+    xwcsbuf_T valuebuf;
+    wb_init(&valuebuf);
 
-/* Performs the four expansions in the specified single word.
- * The four expansions are tilde expansion, parameter expansion, command
- * substitution, and arithmetic expansion.
- * The lists and buffers in `e' must have been initialized before calling this
- * function. If the expansion yields a single field, the result is appended to
- * `e->valuebuf'. If more than one field result, all but the last field are
- * appended to `e->valuelist' as newly malloced wide strings and the last field
- * remains in `e->valuebuf'. The corresponding charcategory_T strings are added
- * to `e->cclist' and `e->ccbuf', having the same count and length as
- * `e->valuelist' and `e->valuebuf'.
- * The return value is true iff successful. */
-bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
-	quoting_T quoting, charcategory_T defaultcc,
-	struct expand_four_inner_T *restrict e)
-{
+    /* charcategory_T string corresponding to `valuebuf' */
+    xstrbuf_T ccbuf;
+    sb_init(&ccbuf);
+
     bool indq = false;  /* in a double quote? */
     bool first = true;  /* is the first word unit? */
     const wchar_t *ss;
     wchar_t *s;
+
+    /* When there are no positional parameters, expansion of ${@} contained in
+     * double-quotes is very special: The result is no fields. To handle this
+     * correctly, we do the following:
+     *  1. Remove the surrounding double-quotes if a parameter expansion inside
+     *     them happens to expand to no fields.
+     *  2. Remove the empty field so that the final result is no fields rather
+     *     than one empty field.
+     * `removedq' is for step 1 and `removeempty' for step 2. */
+    bool removedq = false, removeempty = false;
 
     for (; w != NULL; w = w->next, first = false) {
 	switch (w->wu_type) {
@@ -403,8 +385,9 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 	    if (first && tilde != TT_NONE) {
 		s = expand_tilde(&ss, w->next, tilde);
 		if (s != NULL) {
-		    wb_catfree(&e->valuebuf, s);
-		    fill_ccbuf(e, CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+		    wb_catfree(&valuebuf, s);
+		    fill_ccbuf(&valuebuf, &ccbuf,
+			    CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
 		}
 	    }
 	    while (*ss != L'\0') {
@@ -416,22 +399,36 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 			case Q_INDQ:  case Q_LITERAL:
 			    goto default_;
 		    }
-		    indq = !indq;
-		    wb_wccat(&e->valuebuf, L'"');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    if (!indq) {
+			indq = true; /* entering a quotation */
+			removedq = false;
+		    } else {
+			indq = false; /* leaving a quotation */
+			if (removedq && e.valuelist.length == 0 &&
+				wcscmp(valuebuf.contents, L"\"") == 0 &&
+				(ccbuf.contents[0] & CC_QUOTATION)) {
+			    /* remove the corresponding opening double-quote */
+			    wb_clear(&valuebuf);
+			    sb_clear(&ccbuf);
+			    removeempty = true;
+			    break; /* and ignore the closing double-quote */
+			}
+		    }
+		    wb_wccat(&valuebuf, L'"');
+		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 		    break;
 		case L'\'':
 		    if (quoting != Q_WORD || indq)
 			goto default_;
 
-		    wb_wccat(&e->valuebuf, L'\'');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    wb_wccat(&valuebuf, L'\'');
+		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 
-		    add_sq(&ss, &e->valuebuf, false);
-		    fill_ccbuf(e, defaultcc | CC_QUOTED);
+		    add_sq(&ss, &valuebuf, false);
+		    fill_ccbuf(&valuebuf, &ccbuf, defaultcc | CC_QUOTED);
 
-		    wb_wccat(&e->valuebuf, L'\'');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    wb_wccat(&valuebuf, L'\'');
+		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 		    break;
 		case L'\\':
 		    switch (quoting) {
@@ -451,12 +448,12 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 			    goto default_;
 		    }
 
-		    wb_wccat(&e->valuebuf, L'\\');
-		    sb_ccat(&e->ccbuf, defaultcc | CC_QUOTATION);
+		    wb_wccat(&valuebuf, L'\\');
+		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 		    ss++;
 		    if (*ss != L'\0') {
-			wb_wccat(&e->valuebuf, *ss);
-			sb_ccat(&e->ccbuf, defaultcc | CC_QUOTED);
+			wb_wccat(&valuebuf, *ss);
+			sb_ccat(&ccbuf, defaultcc | CC_QUOTED);
 		    }
 		    break;
 		case L':':
@@ -464,29 +461,36 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 			goto default_;
 
 		    /* perform tilde expansion after a colon */
-		    wb_wccat(&e->valuebuf, L':');
-		    sb_ccat(&e->ccbuf, defaultcc);
+		    wb_wccat(&valuebuf, L':');
+		    sb_ccat(&ccbuf, defaultcc);
 		    ss++;
 		    s = expand_tilde(&ss, w->next, tilde);
 		    if (s != NULL) {
-			wb_catfree(&e->valuebuf, s);
-			fill_ccbuf(e, CC_HARD_EXPANSION);
+			wb_catfree(&valuebuf, s);
+			fill_ccbuf(&valuebuf, &ccbuf, CC_HARD_EXPANSION);
 		    }
 		    continue;
 default_:
 		default:
-		    wb_wccat(&e->valuebuf, *ss);
-		    sb_ccat(&e->ccbuf, defaultcc | (indq * CC_QUOTED));
+		    wb_wccat(&valuebuf, *ss);
+		    sb_ccat(&ccbuf, defaultcc | (indq * CC_QUOTED));
 		    break;
 		}
 		ss++;
 	    }
 	    break;
-	case WT_PARAM:
-	    if (!expand_param(w->wu_param,
-			indq || quoting == Q_LITERAL || (defaultcc & CC_QUOTED),
-			e))
-		return false;
+	case WT_PARAM:;
+	    struct expand_four_T e2 = expand_param(w->wu_param,
+		    indq || quoting == Q_LITERAL || (defaultcc & CC_QUOTED));
+	    if (e2.valuelist.contents == NULL)
+		goto failure;
+	    if (e2.valuelist.length == 0) {
+		if (indq)
+		    removedq = true;
+		else
+		    removeempty = true;
+	    }
+	    merge_expand_four(&e2, &e, &valuebuf, &ccbuf);
 	    break;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(&w->wu_cmdsub);
@@ -497,22 +501,40 @@ default_:
 		s = evaluate_arithmetic(s);
 cat_s:
 	    if (s == NULL)
-		return false;
-	    wb_catfree(&e->valuebuf, s);
-	    fill_ccbuf(e, CC_SOFT_EXPANSION |
+		goto failure;
+	    wb_catfree(&valuebuf, s);
+	    fill_ccbuf(&valuebuf, &ccbuf, CC_SOFT_EXPANSION |
 		    (indq * CC_QUOTED) | (defaultcc & CC_QUOTED));
 	    break;
 	}
     }
 
-    return true;
+    /* empty field removal */
+    if (removeempty && e.valuelist.length == 0 && valuebuf.length == 0) {
+	wb_destroy(&valuebuf);
+	sb_destroy(&ccbuf);
+    } else {
+	pl_add(&e.valuelist, wb_towcs(&valuebuf));
+	pl_add(&e.cclist, sb_tostr(&ccbuf));
+    }
+
+    return e;
+
+failure:
+    sb_destroy(&ccbuf);
+    wb_destroy(&valuebuf);
+    plfree(pl_toary(&e.cclist), free);
+    plfree(pl_toary(&e.valuelist), free);
+    e.valuelist.contents = e.cclist.contents = NULL;
+    return e;
 }
 
 /* Appends to `e->ccbuf' as many `c's as needed to match the length with
  * `e->valuebuf'. */
-void fill_ccbuf(struct expand_four_inner_T *e, charcategory_T c)
+void fill_ccbuf(const xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf,
+	charcategory_T c)
 {
-    sb_ccat_repeat(&e->ccbuf, c, e->valuebuf.length - e->ccbuf.length);
+    sb_ccat_repeat(ccbuf, c, valuebuf->length - ccbuf->length);
 }
 
 /* Performs tilde expansion.
@@ -582,10 +604,10 @@ finish:
 }
 
 /* Performs parameter expansion.
- * The result is put in `e'.
- * Returns true iff successful. */
-bool expand_param(const paramexp_T *restrict p, bool indq,
-	struct expand_four_inner_T *restrict e)
+ * If successful, the return value contains valid lists of pointers to newly
+ * malloced strings. Note that the lists may contain no strings.
+ * If unsuccessful, the lists have NULL `contents'. */
+struct expand_four_T expand_param(const paramexp_T *p, bool indq)
 {
     /* parse indices first */
     ssize_t startindex, endindex;
@@ -595,17 +617,17 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     } else {
 	wchar_t *start = expand_single(p->pe_start, TT_NONE, Q_WORD, ES_NONE);
 	if (start == NULL)
-	    return false;
+	    goto failure1;
 	indextype = parse_indextype(start);
 	if (indextype != IDX_NONE) {
 	    startindex = 0, endindex = SSIZE_MAX;
 	    free(start);
 	    if (p->pe_end != NULL) {
 		xerror(0, Ngt("the parameter index is invalid"));
-		return false;
+		goto failure1;
 	    }
 	} else if (!evaluate_index(start, &startindex)) {
-	    return false;
+	    goto failure1;
 	} else {
 	    if (p->pe_end == NULL) {
 		endindex = (startindex == -1) ? SSIZE_MAX : startindex;
@@ -613,7 +635,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
 		wchar_t *end = expand_single(
 			p->pe_end, TT_NONE, Q_WORD, ES_NONE);
 		if (end == NULL || !evaluate_index(end, &endindex))
-		    return false;
+		    goto failure1;
 	    }
 	    if (startindex == 0)
 		startindex = SSIZE_MAX;
@@ -631,7 +653,7 @@ bool expand_param(const paramexp_T *restrict p, bool indq,
     if (p->pe_type & PT_NEST) {
 	plist_T plist = expand_word(p->pe_nest, TT_NONE, Q_WORD, ES_NONE);
 	if (plist.contents == NULL)
-	    return false;
+	    goto failure1;
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
 	v.count = plist.length;
 	v.values = pl_toary(&plist);
@@ -744,8 +766,8 @@ treat_array:
 	if (unset) {
 subst:
 	    plfree(values, free);
-	    return expand_four_inner(p->pe_subst, TT_SINGLE, substq,
-		    CC_SOFT_EXPANSION | (indq * CC_QUOTED), e);
+	    return expand_four(p->pe_subst, TT_SINGLE, substq,
+		    CC_SOFT_EXPANSION | (indq * CC_QUOTED));
 	}
 	break;
     case PT_ASSIGN:
@@ -754,34 +776,34 @@ subst:
 	    if (p->pe_type & PT_NEST) {
 		xerror(0,
 		    Ngt("a nested parameter expansion cannot be assigned"));
-		return false;
+		goto failure1;
 	    } else if (!is_name(p->pe_name)) {
 		xerror(0, Ngt("cannot assign to parameter `%ls' "
 			    "in parameter expansion"),
 			p->pe_name);
-		return false;
+		goto failure1;
 	    } else if ((v.type == GV_ARRAY_CONCAT)
 		    || (v.type == GV_ARRAY && startindex + 1 != endindex)) {
                 xerror(0, Ngt("the specified index does not support assignment "
 			    "in the parameter expansion of array `%ls'"),
 			p->pe_name);
-		return false;
+		goto failure1;
 	    }
 	    subst = expand_single(p->pe_subst, TT_SINGLE, substq, ES_NONE);
 	    if (subst == NULL)
-		return false;
+		goto failure1;
 	    if (v.type != GV_ARRAY) {
 		assert(v.type == GV_NOTFOUND || v.type == GV_SCALAR);
 		if (!set_variable(
 			    p->pe_name, xwcsdup(subst), SCOPE_GLOBAL, false)) {
 		    free(subst);
-		    return false;
+		    goto failure1;
 		}
 	    } else {
 		assert(0 <= startindex && (size_t) startindex <= v.count);
 		if (!set_array_element(p->pe_name, startindex, xwcsdup(subst))){
 		    free(subst);
-		    return false;
+		    goto failure1;
 		}
 	    }
 	    values = xmallocn(2, sizeof *values);
@@ -792,17 +814,15 @@ subst:
 	break;
     case PT_ERROR:
 	if (unset) {
-	    plfree(values, free);
 	    print_subst_as_error(p, substq);
-	    return false;
+	    goto failure2;
 	}
 	break;
     }
 
     if (unset && !shopt_unset) {
-	plfree(values, free);
 	xerror(0, Ngt("parameter `%ls' is not set"), p->pe_name);
-	return false;
+	goto failure2;
     }
 
     /* PT_MATCH, PT_SUBST */
@@ -810,24 +830,19 @@ subst:
     switch (p->pe_type & PT_MASK) {
     case PT_MATCH:
 	match = expand_single(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
-	if (match == NULL) {
-	    plfree(values, free);
-	    return false;
-	}
+	if (match == NULL)
+	    goto failure2;
 	match_each(values, match, p->pe_type);
 	free(match);
 	break;
     case PT_SUBST:
 	match = expand_single(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
-	if (match == NULL) {
-	    plfree(values, free);
-	    return false;
-	}
+	if (match == NULL)
+	    goto failure2;
 	subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
 	if (subst == NULL) {
 	    free(match);
-	    plfree(values, free);
-	    return false;
+	    goto failure2;
 	}
 	subst_each(values, match, subst, p->pe_type);
 	free(match);
@@ -843,30 +858,28 @@ subst:
     if (p->pe_type & PT_NUMBER)
 	subst_length_each(values);
 
-    /* add the elements of `values' to `e->valuelist' */
-    if (values[0] == NULL) {
-	if (indq)
-	    e->e.zeroword = true;
-    } else {
-	charcategory_T cc = CC_SOFT_EXPANSION | (indq * CC_QUOTED);
+    struct expand_four_T e;
 
-	/* add the first element */
-	wb_catfree(&e->valuebuf, values[0]);
-	fill_ccbuf(e, cc);
+    pl_initwith(&e.valuelist, values, plcount(values));
+    pl_initwithmax(&e.cclist, e.valuelist.length);
 
-	/* add the other elements */
-	for (size_t i = 1; values[i] != NULL; i++) {
-	    pl_add(&e->e.valuelist, wb_towcs(&e->valuebuf));
-	    pl_add(&e->e.cclist, sb_tostr(&e->ccbuf));
-
-	    wb_initwith(&e->valuebuf, values[i]);
-	    sb_initwithmax(&e->ccbuf, e->valuebuf.length);
-	    fill_ccbuf(e, cc);
-	}
+    /* create `e.cclist' contents */
+    charcategory_T cc = CC_SOFT_EXPANSION | (indq * CC_QUOTED);
+    for (size_t i = 0; i < e.valuelist.length; i++) {
+	size_t n = wcslen(e.valuelist.contents[i]);
+	xstrbuf_T ccbuf;
+	sb_initwithmax(&ccbuf, n);
+	sb_ccat_repeat(&ccbuf, cc, n);
+	pl_add(&e.cclist, sb_tostr(&ccbuf));
     }
-    free(values);
 
-    return true;
+    return e;
+
+failure2:
+    plfree(values, free);
+failure1:
+    e.valuelist.contents = e.cclist.contents = NULL;
+    return e;
 }
 
 /* Returns IDX_ALL, IDX_CONCAT, IDX_NUMBER if `indexstr' is L"@", L"*",
@@ -1086,6 +1099,50 @@ void subst_length_each(void **slist)
 	free(slist[i]);
 	slist[i] = malloc_wprintf(L"%zu", len);
     }
+}
+
+/* Merge a result of `expand_param' into another expand_four_T value.
+ * All the values in `from->valuelist' and `from->cclist' except the last one
+ * are moved into `to->valuelist' and `to->cclist', respectively, and the last
+ * one is left in `valuebuf' and `ccbuf'.
+ * `from->valuelist' and `from->cclist' are destroyed in this function. */
+void merge_expand_four(
+	struct expand_four_T *restrict from,
+	struct expand_four_T *restrict to,
+	xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf)
+{
+    assert(from->valuelist.length == from->cclist.length);
+    assert(to->valuelist.length == to->cclist.length);
+    assert(valuebuf->length == ccbuf->length);
+
+    if (from->valuelist.length > 0) {
+	/* add the first element */
+	wb_catfree(valuebuf, from->valuelist.contents[0]);
+	sb_ncat_force(ccbuf, from->cclist.contents[0],
+		valuebuf->length - ccbuf->length);
+	free(from->cclist.contents[0]);
+
+	if (from->valuelist.length > 1) {
+	    pl_add(&to->valuelist, wb_towcs(valuebuf));
+	    pl_add(&to->cclist, sb_tostr(ccbuf));
+
+	    /* add the other elements but last */
+	    pl_ncat(&to->valuelist,
+		    &from->valuelist.contents[1], from->valuelist.length - 2);
+	    pl_ncat(&to->cclist,
+		    &from->cclist.contents[1], from->cclist.length - 2);
+
+	    /* add the last element */
+	    size_t i = from->valuelist.length - 1;
+	    wb_initwith(valuebuf, from->valuelist.contents[i]);
+	    sb_initwithmax(ccbuf, valuebuf->length);
+	    sb_ncat_force(ccbuf, from->cclist.contents[i], valuebuf->length);
+	    free(from->cclist.contents[i]);
+	}
+    }
+
+    pl_destroy(&from->valuelist);
+    pl_destroy(&from->cclist);
 }
 
 
@@ -1796,10 +1853,7 @@ void remove_empty_fields_and_quotes(
     /* empty field removal */
     if (e->valuelist.length == 1) {
 	const wchar_t *field = e->valuelist.contents[0];
-	const char *cc = e->cclist.contents[0];
-	if (field[0] == L'\0' ||
-		(e->zeroword && wcscmp(field, L"\"\"") == 0 &&
-		(cc[0] & cc[1] & CC_QUOTATION))) {
+	if (field[0] == L'\0') {
 	    pl_clear(&e->valuelist, free);
 	    pl_clear(&e->cclist, free);
 	}
