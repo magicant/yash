@@ -391,7 +391,6 @@ bool expand_four_inner(const wordunit_T *restrict w, tildetype_T tilde,
 	quoting_T quoting, charcategory_T defaultcc,
 	struct expand_four_inner_T *restrict e)
 {
-    bool ok = true;
     bool indq = false;  /* in a double quote? */
     bool first = true;  /* is the first word unit? */
     const wchar_t *ss;
@@ -487,7 +486,7 @@ default_:
 	    if (!expand_param(w->wu_param,
 			indq || quoting == Q_LITERAL || (defaultcc & CC_QUOTED),
 			e))
-		ok = false;
+		return false;
 	    break;
 	case WT_CMDSUB:
 	    s = exec_command_substitution(&w->wu_cmdsub);
@@ -497,18 +496,16 @@ default_:
 	    if (s != NULL)
 		s = evaluate_arithmetic(s);
 cat_s:
-	    if (s != NULL) {
-		wb_catfree(&e->valuebuf, s);
-		fill_ccbuf(e, CC_SOFT_EXPANSION |
-			(indq * CC_QUOTED) | (defaultcc & CC_QUOTED));
-	    } else {
-		ok = false;
-	    }
+	    if (s == NULL)
+		return false;
+	    wb_catfree(&e->valuebuf, s);
+	    fill_ccbuf(e, CC_SOFT_EXPANSION |
+		    (indq * CC_QUOTED) | (defaultcc & CC_QUOTED));
 	    break;
 	}
     }
 
-    return ok;
+    return true;
 }
 
 /* Appends to `e->ccbuf' as many `c's as needed to match the length with
@@ -822,10 +819,13 @@ subst:
 	break;
     case PT_SUBST:
 	match = expand_single(p->pe_match, TT_SINGLE, Q_WORD, ES_QUOTED);
+	if (match == NULL) {
+	    plfree(values, free);
+	    return false;
+	}
 	subst = expand_single(p->pe_subst, TT_SINGLE, Q_WORD, ES_NONE);
-	if (match == NULL || subst == NULL) {
+	if (subst == NULL) {
 	    free(match);
-	    free(subst);
 	    plfree(values, free);
 	    return false;
 	}
