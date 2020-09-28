@@ -392,6 +392,15 @@ __IN__
 [1-1][2][3  ]
 __OUT__
 
+test_oE 'yash-specific behaviors about $@'
+e=
+bracket "$@$@" - "$e$@" - "$@$e" - "$e$@$e"
+bracket "${e:-$@}"
+__IN__
+[-][-][-]
+
+__OUT__
+
 test_oE 'nested expansion'
 a='..x..'
 bracket ${{a#..}%..} ${${a#..}%..}

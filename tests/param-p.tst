@@ -481,12 +481,15 @@ set ''
 bracket "$*"
 set '' ''
 bracket "$*"
+set ' a ' '  b  ' ' cc '
+bracket "$*"
 __IN__
 []
 [a]
 [a b  b cc]
 []
 [ ]
+[ a    b    cc ]
 __OUT__
 
 test_oE 'special parameter *, quoted, non-default IFS'
@@ -500,12 +503,15 @@ set ''
 bracket "$*"
 set '' ''
 bracket "$*"
+set ' a ' '  b  ' ' cc '
+bracket "$*"
 __IN__
 []
 [a]
 [axb  bxcc]
 []
 [x]
+[ a x  b  x cc ]
 __OUT__
 
 test_oE 'special parameter *, quoted, empty IFS'
@@ -519,12 +525,15 @@ set ''
 bracket "$*"
 set '' ''
 bracket "$*"
+set ' a ' '  b  ' ' cc '
+bracket "$*"
 __IN__
 []
 [a]
 [ab  bcc]
 []
 []
+[ a   b   cc ]
 __OUT__
 
 test_oE 'special parameter *, unquoted'
@@ -564,7 +573,9 @@ bracket "=$@="
 null=
 bracket "$null""$@"
 bracket "$@""$null"
-bracket "$null""$@""$null"
+bracket "$null""$@""$null" - "$null""$null""$@" - "$@""$null""$null"
+bracket "$null""$@$null" - "$null""$null$@" - \
+        "$@$null""$null" - "$null$@""$null"
 set a
 bracket "$@"
 bracket "=$@="
@@ -574,25 +585,35 @@ bracket "=$@="
 bracket "$@$@"
 set ''
 bracket "$@"
+bracket "=$@="
+bracket "$@$@" - "$null""$@" - "$@""$null" - "$null""$@""$null"
 set '' ''
 bracket "$@"
 bracket "=$@="
 bracket "$@$@"
+bracket "$null""$@""$null"
+set ' a ' '  b  ' ' cc '
+bracket "$@"
 __IN__
 
 [==]
 []
 []
-[]
+[][-][][-][]
+[][-][][-][][-][]
 [a]
 [=a=]
 [a][b  b][cc]
 [=a][b  b][cc=]
 [a][b  b][cca][b  b][cc]
 []
+[==]
+[][-][][-][][-][]
 [][]
 [=][=]
 [][][]
+[][]
+[ a ][  b  ][ cc ]
 __OUT__
 
 # Expansion of unquoted $@ is the same as that of unquoted $*
@@ -637,16 +658,23 @@ set ''
 bracket ${1+"$@"}
 set '' ''
 bracket ${1+"$@"}
+set '' '' ''
+bracket ${1+"$@"}
+set ' ' ' ' ' '
+bracket ${1+"$@"}
 __IN__
 
 [a]
 [a][b  b][cc]
 []
 [][]
+[][][]
+[ ][ ][ ]
 __OUT__
 
 test_oE '${foo:-"$@"}'
 set a 'b  b' cc
+unset foo
 bracket ${foo:-"$@"}
 foo=
 bracket ${foo:-"$@"}
