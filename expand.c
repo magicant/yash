@@ -320,63 +320,75 @@ wchar_t *expand_single(const wordunit_T *w,
     return quote_removal_free(e.value, e.cc, escaping);
 }
 
-/* Expands a single word: the four expansions, glob, quote removal and unescape.
- * This function doesn't perform brace expansion and field splitting.
- * If the result of glob is more than one word,
- *   - returns the pre-glob pattern string if in the POSIXly correct mode
- *   - treats as an error otherwise.
- * If the "glob" shell option is off, glob is not performed.
+/* Expands a single word: the four expansions, pathname expansion, and quote
+ * removal.
+ * This function doesn't perform brace expansion or field splitting.
+ * If the result of pathname expansion is more than one word, this function
+ *   - returns the original pattern string if in the POSIXly correct mode
+ *   - treats it as an error otherwise.
+ * If the "glob" shell option is off, pathname expansion is not performed.
  * The "nullglob" shell option is ignored.
  * If successful, the resulting word is returned as a newly malloced string.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
 char *expand_single_with_glob(const wordunit_T *arg)
 {
-    wchar_t *exp = expand_single(arg, TT_SINGLE, Q_WORD, ES_QUOTED_HARD);
-    char *result;
+    cc_word_T e = expand_single_cc(arg, TT_SINGLE, Q_WORD);
+    if (e.value == NULL)
+	goto return_null;
 
-    if (exp == NULL)
-	return NULL;
+    if (!shopt_glob)
+	goto quote_removal;
 
-    /* glob */
-    if (shopt_glob && is_pathname_matching_pattern(exp)) {
-	plist_T list;
-	bool ok;
-
-	pl_init(&list);
-	set_interruptible_by_sigint(true);
-	ok = wglob(exp, get_wglobflags(), &list);
-	set_interruptible_by_sigint(false);
-	if (!ok) {
-	    free(exp);
-	    plfree(pl_toary(&list), free);
-	    xerror(EINTR, Ngt("redirection"));
-	    result = NULL;
-	} else if (list.length == 1) {
-	    free(exp);
-	    result = realloc_wcstombs(list.contents[0]);
-	    if (result == NULL)
-		xerror(EILSEQ, Ngt("redirection"));
-	    pl_destroy(&list);
-	} else {
-	    plfree(pl_toary(&list), free);
-	    if (posixly_correct) {
-		goto noglob;
-	    } else {
-		exp = unescapefree(exp);
-		xerror(0, Ngt("filename `%ls' matches more than one file"),
-			exp);
-		free(exp);
-		result = NULL;
-	    }
-	}
-    } else {
-noglob:
-	result = realloc_wcstombs(unescapefree(exp));
-	if (result == NULL)
-	    xerror(EILSEQ, Ngt("redirection"));
+    wchar_t *pattern = quote_removal(e.value, e.cc, ES_QUOTED_HARD);
+    if (!is_pathname_matching_pattern(pattern)) {
+	free(pattern);
+	goto quote_removal;
     }
-    return result;
+
+    plist_T globresults;
+    bool ok;
+
+    /* perform pathname expansion */
+    pl_init(&globresults);
+    set_interruptible_by_sigint(true);
+    ok = wglob(pattern, get_wglobflags(), &globresults);
+    set_interruptible_by_sigint(false);
+    free(pattern);
+    if (!ok) {
+	plfree(pl_toary(&globresults), free);
+	xerror(EINTR, Ngt("redirection"));
+	goto return_null;
+    }
+
+    /* examine the expansion results */
+    wchar_t *wresult;
+    if (globresults.length == 1) {
+	wresult = globresults.contents[0];
+	pl_destroy(&globresults);
+    } else {
+	plfree(pl_toary(&globresults), free);
+	if (!posixly_correct) {
+	    wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
+	    xerror(0, Ngt("filename `%ls' matches more than one file"), word);
+	    free(word);
+	    goto return_null;
+	}
+quote_removal:
+	wresult = quote_removal(e.value, e.cc, ES_NONE);
+    }
+
+    char *mbresult = realloc_wcstombs(wresult);
+    if (mbresult == NULL)
+	xerror(EILSEQ, Ngt("redirection"));
+    free(e.value);
+    free(e.cc);
+    return mbresult;
+
+return_null:
+    free(e.value);
+    free(e.cc);
+    return NULL;
 }
 
 
@@ -1746,6 +1758,7 @@ wchar_t *unescape(const wchar_t *s)
     return wb_towcs(&buf);
 }
 
+#if 0
 /* Same as `unescape', except that the first argument is freed. */
 wchar_t *unescapefree(wchar_t *s)
 {
@@ -1756,6 +1769,7 @@ wchar_t *unescapefree(wchar_t *s)
     free(s);
     return result;
 }
+#endif
 
 /* Quotes the specified string using backslashes and single-quotes. The result
  * is suitable for re-parsing as a shell command word that would expand to the
