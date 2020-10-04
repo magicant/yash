@@ -149,10 +149,11 @@ static wchar_t *quote_removal_free(
 	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
     __attribute__((nonnull,malloc,warn_unused_result));
 
-static void glob_all(void **restrict patterns, plist_T *restrict list)
-    __attribute__((nonnull));
 static enum wglobflags_T get_wglobflags(void)
     __attribute__((pure));
+static void glob_all(
+	struct expand_four_T *restrict e, plist_T *restrict results)
+    __attribute__((nonnull));
 
 static void maybe_exit_on_error(void);
 
@@ -231,21 +232,8 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	}
     }
 
-    /* quote removal */
-    for (size_t i = 0; i < expand.valuelist.length; i++)
-	expand.valuelist.contents[i] = quote_removal_free(
-	    expand.valuelist.contents[i], expand.cclist.contents[i],
-	    shopt_glob ? ES_QUOTED_HARD : ES_NONE);
-
-    pl_destroy(&expand.cclist);
-
-    /* globbing (valuelist -> list) */
-    if (shopt_glob) {
-	glob_all(pl_toary(&expand.valuelist), list);
-    } else {
-	pl_cat(list, expand.valuelist.contents);
-	pl_destroy(&expand.valuelist);
-    }
+    /* pathname expansion (and quote removal) */
+    glob_all(&expand, list);
 
     return true;
 }
@@ -1902,7 +1890,7 @@ wchar_t *quote_removal_free(
 }
 
 
-/********** File Name Expansion (Glob) **********/
+/********** Pathname Expansion (Glob) **********/
 
 /* Makes a option value from the current shell settings. */
 enum wglobflags_T get_wglobflags(void)
@@ -1915,38 +1903,44 @@ enum wglobflags_T get_wglobflags(void)
     return flags;
 }
 
-/* Performs file name expansion to the specified patterns.
- * `patterns' is a NULL-terminated array of pointers to `free'able wide strings
- * cast to (void *). `patterns' is `plfree'd in this function.
- * The results are added to `list' as newly-malloced wide strings. */
-void glob_all(void **restrict patterns, plist_T *restrict list)
+/* Performs pathname expansion.
+ * If `shopt_glob' is off or a field is not a pattern, quote removal is
+ * performed instead.
+ * The input lists and their contents in `e' are freed in this function.
+ * The results are added to `results' as newly-malloced wide strings. */
+void glob_all(struct expand_four_T *restrict e, plist_T *restrict results)
 {
     enum wglobflags_T flags = get_wglobflags();
     bool unblock = false;
 
-    for (size_t i = 0; patterns[i] != NULL; i++) {
-	wchar_t *pat = patterns[i];
-	if (is_pathname_matching_pattern(pat)) {
+    for (size_t i = 0; i < e->valuelist.length; i++) {
+	wchar_t *field = e->valuelist.contents[i];
+	char *cc = e->cclist.contents[i];
+	wchar_t *pattern = quote_removal(field, cc, ES_QUOTED_HARD);
+	if (shopt_glob && is_pathname_matching_pattern(pattern)) {
 	    if (!unblock) {
 		set_interruptible_by_sigint(true);
 		unblock = true;
 	    }
 
-	    size_t oldlen = list->length;
-	    wglob(pat, flags, list);
-	    if (!shopt_nullglob && oldlen == list->length)
-		goto addpattern;
-	    free(pat);
+	    size_t oldlen = results->length;
+	    wglob(pattern, flags, results);
+	    if (!shopt_nullglob && oldlen == results->length)
+		goto quote_removal;
 	} else {
 	    /* If the pattern doesn't contain characters like L'*' and L'?',
 	     * we don't need to glob. */
-addpattern:
-	    pl_add(list, unescapefree(pat));
+quote_removal:
+	    pl_add(results, quote_removal(field, cc, ES_NONE));
 	}
+	free(field);
+	free(cc);
+	free(pattern);
     }
     if (unblock)
 	set_interruptible_by_sigint(false);
-    free(patterns);
+    pl_destroy(&e->valuelist);
+    pl_destroy(&e->cclist);
 }
 
 
