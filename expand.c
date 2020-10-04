@@ -53,8 +53,7 @@ struct expand_four_T {
  * must have as many strings as `valuelist' and each string in `cclist' must
  * have the same length as the corresponding wide string in `valuelist'. */
 
-static plist_T expand_word(const wordunit_T *w,
-	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
+static plist_T expand_word(const wordunit_T *w)
     __attribute__((warn_unused_result));
 static struct expand_four_T expand_four(const wordunit_T *restrict w,
 	tildetype_T tilde, quoting_T quoting, charcategory_T defaultcc)
@@ -294,15 +293,14 @@ struct cc_word_T expand_single_cc(
  * strings. In most cases, the plist_T contains one string. If the word contains
  * "$@", however, it may contain any number of strings.
  * On error, the return value is a plist_T with `contents' being NULL. */
-plist_T expand_word(const wordunit_T *w,
-	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
+plist_T expand_word(const wordunit_T *w)
 {
     /* four expansions */
-    struct expand_four_T expand = expand_four(w, tilde, quoting, CC_LITERAL);
+    struct expand_four_T expand = expand_four(w, TT_NONE, Q_WORD, CC_LITERAL);
 
     /* empty field removal & quote removal */
     if (expand.valuelist.contents != NULL)
-	remove_empty_fields_and_quotes(&expand, escaping);
+	remove_empty_fields_and_quotes(&expand, ES_NONE);
 
     return expand.valuelist;
 }
@@ -696,7 +694,7 @@ struct expand_four_T expand_param(const paramexp_T *p, bool indq)
     struct get_variable_T v;
     bool unset;   /* parameter is not set? */
     if (p->pe_type & PT_NEST) {
-	plist_T plist = expand_word(p->pe_nest, TT_NONE, Q_WORD, ES_NONE);
+	plist_T plist = expand_word(p->pe_nest);
 	if (plist.contents == NULL)
 	    goto failure1;
 	v.type = (plist.length == 1) ? GV_SCALAR : GV_ARRAY;
