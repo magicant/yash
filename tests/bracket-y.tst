@@ -181,13 +181,37 @@ test_OE -e 0 'IO_NUMBER is not special between [[ and ]]'
 [[ 0<1 ]]
 __IN__
 
-test_Oe -e 2 'expansion error'
+test_Oe -e 2 'expansion error (string)'
 unset v
 eval '[[ $(echo ok >&2) || ${v?!!!} || $(echo not reached >&2) ]]'
 echo not reached
 __IN__
 ok
 eval: v: !!!
+__ERR__
+
+test_Oe -e 2 'expansion error (unary)'
+unset v
+eval '[[ -n ${v?X} ]]'
+echo not reached
+__IN__
+eval: v: X
+__ERR__
+
+test_Oe -e 2 'expansion error (binary, left hand side)'
+unset v
+eval '[[ ${v?X} = v ]]'
+echo not reached
+__IN__
+eval: v: X
+__ERR__
+
+test_Oe -e 2 'expansion error (binary, right hand side)'
+unset v
+eval '[[ v = ${v?X} ]]'
+echo not reached
+__IN__
+eval: v: X
 __ERR__
 
 test_Oe -e 2 'syntax error: empty [[ ]]'
