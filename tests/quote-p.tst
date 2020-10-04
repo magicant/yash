@@ -566,7 +566,9 @@ __IN__
 [ok][ok]
 __OUT__
 
-test_oE 'backslashes resulting from expansions'
+test_oE 'backslashes resulting from expansions (not a pattern)'
+# The backslashes are not subject to quote removal since they were not present
+# in the original word before parameter expansion.
 v='\a\b\c'
 bracket "$v"
 bracket $v
@@ -574,6 +576,22 @@ __IN__
 [\a\b\c]
 [\a\b\c]
 __OUT__
+
+(
+(> '\' > '\*') 2>/dev/null || skip="true"
+
+test_oE 'backslashes resulting from expansions (a pattern)'
+# This backslash escapes the asterisk, so pathname expansion does not match
+# with '\' or '\*'.
+v='\*'
+bracket "$v"
+bracket $v
+__IN__
+[\*]
+[\*]
+__OUT__
+
+)
 
 test_oE 'quoted words are not reserved words'
 echo echo if command >if

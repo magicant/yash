@@ -140,7 +140,7 @@ static void add_empty_field(plist_T *dest, const wchar_t *p)
 static inline void add_sq(
 	const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
     __attribute__((nonnull));
-static inline bool should_escape(char c, charcategory_T cc, escaping_T escaping)
+static inline bool should_escape(charcategory_T cc, escaping_T escaping)
     __attribute__((const));
 static wchar_t *quote_removal_free(
 	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
@@ -1857,13 +1857,13 @@ wchar_t *unquote(const wchar_t *s)
 }
 
 /* Tests if a character should be backslash-escaped. */
-bool should_escape(char c, charcategory_T cc, escaping_T escaping)
+bool should_escape(charcategory_T cc, escaping_T escaping)
 {
     switch (escaping) {
 	case ES_NONE:
 	    return false;
 	case ES_QUOTED_HARD:
-	    if (c == L'\\' || (cc & CC_ORIGIN_MASK) == CC_HARD_EXPANSION)
+	    if ((cc & CC_ORIGIN_MASK) == CC_HARD_EXPANSION)
 		return true;
 	    /* falls thru! */
 	case ES_QUOTED:
@@ -1883,7 +1883,7 @@ wchar_t *quote_removal(
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (cc[i] & CC_QUOTATION)
 	    continue;
-	if (should_escape(s[i], cc[i], escaping))
+	if (should_escape(cc[i], escaping))
 	    wb_wccat(&result, L'\\');
 	wb_wccat(&result, s[i]);
     }

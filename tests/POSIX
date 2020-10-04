@@ -58,6 +58,9 @@ Volume 3: Shell & Utilities
 2.6.6 Pathname Expansion
  * path-p.tst
 
+2.6.7 Quote Removal
+ * quote-p.tst
+
 2.7 Redirection
  * redir-p.tst
  * redir-y.tst
