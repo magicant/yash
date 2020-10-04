@@ -315,13 +315,10 @@ plist_T expand_word(const wordunit_T *w,
 wchar_t *expand_single(const wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
 {
-    plist_T list = expand_word(w, tilde, quoting, escaping);
-    if (list.contents == NULL) {
-	maybe_exit_on_error();
+    cc_word_T e = expand_single_cc(w, tilde, quoting);
+    if (e.value == NULL)
 	return NULL;
-    }
-
-    return concatenate_values(pl_toary(&list), escaping != ES_NONE);
+    return quote_removal_free(e.value, e.cc, escaping);
 }
 
 /* Expands a single word: the four expansions, glob, quote removal and unescape.
