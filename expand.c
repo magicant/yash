@@ -452,10 +452,10 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
 		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 		    ss++;
 		    if (*ss != L'\0') {
-			wb_wccat(&valuebuf, *ss);
+			wb_wccat(&valuebuf, *ss++);
 			sb_ccat(&ccbuf, defaultcc | CC_QUOTED);
 		    }
-		    break;
+		    continue;
 		case L':':
 		    if (indq || tilde != TT_MULTI)
 			goto default_;
