@@ -142,9 +142,6 @@ static inline void add_sq(
     __attribute__((nonnull));
 static inline bool should_escape(char c, charcategory_T cc, escaping_T escaping)
     __attribute__((const));
-static wchar_t *quote_removal(
-	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
-    __attribute__((nonnull,malloc,warn_unused_result));
 static wchar_t *quote_removal_free(
 	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
     __attribute__((nonnull,malloc,warn_unused_result));

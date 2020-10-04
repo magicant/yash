@@ -124,6 +124,9 @@ extern struct xwcsbuf_T *wb_quote_as_word(
     __attribute__((nonnull));
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
+extern wchar_t *quote_removal(
+	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 extern wchar_t *parse_and_expand_string(
 	const wchar_t *s, const char *name, _Bool esc)

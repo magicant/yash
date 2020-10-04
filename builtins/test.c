@@ -77,17 +77,20 @@ static enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 #if YASH_ENABLE_DOUBLE_BRACKET
 static int eval_dbexp(const dbexp_T *e)
     __attribute__((nonnull));
-static inline wchar_t *expand_double_bracket_operand_escaped(
-	const wordunit_T *w)
-    __attribute__((nonnull,malloc,warn_unused_result));
+static inline cc_word_T expand_double_bracket_operand(const wordunit_T *w)
+    __attribute__((nonnull,warn_unused_result));
 static inline wchar_t *expand_double_bracket_operand_unescaped(
 	const wordunit_T *w)
     __attribute__((nonnull,malloc,warn_unused_result));
-static bool test_triple_db(
-	const wchar_t *lhs, const wchar_t *op, const wchar_t *rhs_escaped)
+static bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
+	const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
-static bool test_triple_args(
-	const wchar_t *left, const wchar_t *op, const wchar_t *right)
+static bool quote_removal_and_test_triple(
+	const wchar_t *lhs, const wchar_t *op,
+	const wchar_t *rhsvalue, const char *rhscc, escaping_T escaping)
+    __attribute__((nonnull));
+static bool quote_removal_and_pattern_matching(
+	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 #endif
 
@@ -725,7 +728,8 @@ int eval_dbexp(const dbexp_T *e)
 {
     int lhs_result;
     bool result;
-    wchar_t *lhs = NULL, *rhs = NULL;
+    wchar_t *lhs = NULL;
+    cc_word_T rhs = { NULL, NULL };
 
     switch (e->type) {
 	case DBE_OR:
@@ -746,25 +750,27 @@ int eval_dbexp(const dbexp_T *e)
 	    }
 
 	case DBE_UNARY:
-	    rhs = expand_double_bracket_operand_unescaped(e->rhs.word);
-	    if (rhs == NULL)
+	    rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
+	    if (rhs.value == NULL)
 		return Exit_TESTERROR;
-	    result = test_double((void *[]) { e->operator, rhs });
+	    result = test_double((void *[]) { e->operator, rhs.value });
 	    break;
 	case DBE_BINARY:
 	    lhs = expand_double_bracket_operand_unescaped(e->lhs.word);
 	    if (lhs == NULL)
 		return Exit_TESTERROR;
-	    rhs = expand_double_bracket_operand_escaped(e->rhs.word);
-	    if (rhs == NULL)
+	    rhs = expand_double_bracket_operand(e->rhs.word);
+	    if (rhs.value == NULL) {
+		free(lhs);
 		return Exit_TESTERROR;
-	    result = test_triple_db(lhs, e->operator, rhs);
+	    }
+	    result = test_triple_db(lhs, e->operator, rhs.value, rhs.cc);
 	    break;
 	case DBE_STRING:
-	    rhs = expand_double_bracket_operand_unescaped(e->rhs.word);
-	    if (rhs == NULL)
+	    rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
+	    if (rhs.value == NULL)
 		return Exit_TESTERROR;
-	    result = test_single((void *[]) { rhs });
+	    result = test_single((void *[]) { rhs.value });
 	    break;
 
 	default:
@@ -772,17 +778,17 @@ int eval_dbexp(const dbexp_T *e)
     }
 
     free(lhs);
-    free(rhs);
+    free(rhs.value);
+    free(rhs.cc);
     if (yash_error_message_count > 0)
 	return Exit_TESTERROR;
     return result ? Exit_TRUE : Exit_FALSE;
 }
 
-/* Expands the operand of a primary.
- * The result may contain backslash escapes. */
-wchar_t *expand_double_bracket_operand_escaped(const wordunit_T *w)
+/* Expands the operand of a primary, but without quote removal. */
+cc_word_T expand_double_bracket_operand(const wordunit_T *w)
 {
-    return expand_single(w, TT_SINGLE, Q_WORD, ES_QUOTED);
+    return expand_single_cc(w, TT_SINGLE, Q_WORD);
 }
 
 /* Expands the operand of a primary.
@@ -793,10 +799,10 @@ wchar_t *expand_double_bracket_operand_unescaped(const wordunit_T *w)
 }
 
 /* Tests the specified three-token (binary) primary in the double-bracket
- * command. The left-hand-side must be given literal while the right-hand-side
- * backslash-escaped. */
-bool test_triple_db(
-	const wchar_t *lhs, const wchar_t *op, const wchar_t *rhs_escaped)
+ * command. The left-hand-side must be given literal (with quote removal already
+ * performed) while the right-hand-side quoted (without quote removal). */
+bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
+	const wchar_t *rhsvalue, const char *rhscc)
 {
     /* Some string comparison primaries in the double-bracket command are
      * different from those in the test built-in. */
@@ -804,30 +810,44 @@ bool test_triple_db(
 	case L'=':
 	    if (op[1] == L'~') {
 		assert(op[2] == L'\0');
-		return test_triple_args(lhs, op, rhs_escaped);
+		return quote_removal_and_test_triple(
+		    lhs, op, rhsvalue, rhscc, ES_QUOTED);
 	    }
 	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
-		return match_pattern(lhs, rhs_escaped);
+		return quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
 	    break;
 	case L'!':
 	    assert(op[1] == L'=');
 	    if (op[2] == L'\0')
-		return !match_pattern(lhs, rhs_escaped);
+		return
+		    !quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
 	    break;
     }
 
-    wchar_t *rhs = unescape(rhs_escaped);
-    bool result = test_triple_args(lhs, op, rhs);
+    return quote_removal_and_test_triple(lhs, op, rhsvalue, rhscc, ES_NONE);
+}
+
+/* Performs quote removal on the right hand side and then applies `test_triple'.
+ */
+bool quote_removal_and_test_triple(
+	const wchar_t *lhs, const wchar_t *op,
+	const wchar_t *rhsvalue, const char *rhscc, escaping_T escaping)
+{
+    wchar_t *rhs = quote_removal(rhsvalue, rhscc, escaping);
+    void *args[] = { (void *) lhs, (void *) op, (void *) rhs, };
+    bool result = test_triple(args);
     free(rhs);
     return result;
 }
 
-/* Tests the specified three-token expression. */
-bool test_triple_args(
-	const wchar_t *left, const wchar_t *op, const wchar_t *right)
+/* Performs quote removal on the right hand side and then pattern matching. */
+bool quote_removal_and_pattern_matching(
+	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
 {
-    void *args[] = { (void *) left, (void *) op, (void *) right, };
-    return test_triple(args);
+    wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_QUOTED);
+    bool result = match_pattern(lhs, rhs);
+    free(rhs);
+    return result;
 }
 
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
