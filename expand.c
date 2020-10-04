@@ -329,9 +329,9 @@ wchar_t *expand_single(const wordunit_T *w,
  * If successful, the resulting word is returned as a newly malloced string.
  * On error, an error message is printed and NULL is returned.
  * On error in a non-interactive shell, the shell exits. */
-char *expand_single_with_glob(const wordunit_T *arg, tildetype_T tilde)
+char *expand_single_with_glob(const wordunit_T *arg)
 {
-    wchar_t *exp = expand_single(arg, tilde, Q_WORD, ES_QUOTED_HARD);
+    wchar_t *exp = expand_single(arg, TT_SINGLE, Q_WORD, ES_QUOTED_HARD);
     char *result;
 
     if (exp == NULL)

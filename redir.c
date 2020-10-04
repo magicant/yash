@@ -446,7 +446,7 @@ openwithflags:
 char *expand_redir_filename(const struct wordunit_T *filename)
 {
     if (is_interactive) {
-	return expand_single_with_glob(filename, TT_SINGLE);
+	return expand_single_with_glob(filename);
     } else {
 	wchar_t *result = expand_single(filename, TT_SINGLE, Q_WORD, ES_NONE);
 	if (result == NULL)
