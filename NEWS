@@ -28,6 +28,8 @@ Yash 2.51
   *  In pattern matching except for pathname expansion, when an
      unescaped backslash results from an expansion in the pattern,
      it is now treated as an escape character.
+  *  When there are no positional parameters, the nested expansion
+     "${{@}}" now expands to nothing rather than one empty field.
 
 ----------------------------------------------------------------------
 Yash 2.50

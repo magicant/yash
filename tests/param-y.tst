@@ -418,6 +418,21 @@ __IN__
 [nested_expansion][nested\*expansion][\\][\*?]
 __OUT__
 
+test_oE '$@ in nested expansion'
+bracket ${@} - ${{@}} - "${@}" - "${{@}}"
+set ''
+bracket ${@} - ${{@}} - "${@}" - "${{@}}"
+set ' '
+bracket ${@} - ${{@}} - "${@}" - "${{@}}"
+set '' ''
+bracket ${@} - ${{@}} - "${@}" - "${{@}}"
+__IN__
+[-][-][-]
+[-][-][][-][]
+[-][-][ ][-][ ]
+[][][-][][][-][][][-][][]
+__OUT__
+
 test_oE 'disambiguation of ${$...' # None of below are nested expansions
 bracket ${$++} ${$:++}
 [ "${$--}" = "$$" ] || echoraw - [ "${$--}" = "$$" ]

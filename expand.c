@@ -148,9 +148,6 @@ static wchar_t *quote_removal(
 static wchar_t *quote_removal_free(
 	wchar_t *restrict s, char *restrict cc, escaping_T escaping)
     __attribute__((nonnull,malloc,warn_unused_result));
-static void remove_empty_fields_and_quotes(
-	struct expand_four_T *e, escaping_T escaping)
-    __attribute__((nonnull));
 
 static void glob_all(void **restrict patterns, plist_T *restrict list)
     __attribute__((nonnull));
@@ -225,9 +222,22 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	    &expand.valuelist, &expand.cclist);
     assert(expand.valuelist.length == expand.cclist.length);
 
-    /* empty field removal & quote removal */
-    remove_empty_fields_and_quotes(
-	    &expand, shopt_glob ? ES_QUOTED_HARD : ES_NONE);
+    /* empty field removal */
+    if (expand.valuelist.length == 1) {
+	const wchar_t *field = expand.valuelist.contents[0];
+	if (field[0] == L'\0') {
+	    pl_clear(&expand.valuelist, free);
+	    pl_clear(&expand.cclist, free);
+	}
+    }
+
+    /* quote removal */
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+	expand.valuelist.contents[i] = quote_removal_free(
+	    expand.valuelist.contents[i], expand.cclist.contents[i],
+	    shopt_glob ? ES_QUOTED_HARD : ES_NONE);
+
+    pl_destroy(&expand.cclist);
 
     /* globbing (valuelist -> list) */
     if (shopt_glob) {
@@ -298,9 +308,12 @@ plist_T expand_word(const wordunit_T *w)
     /* four expansions */
     struct expand_four_T expand = expand_four(w, TT_NONE, Q_WORD, CC_LITERAL);
 
-    /* empty field removal & quote removal */
-    if (expand.valuelist.contents != NULL)
-	remove_empty_fields_and_quotes(&expand, ES_NONE);
+    /* quote removal */
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+	expand.valuelist.contents[i] = quote_removal_free(
+	    expand.valuelist.contents[i], expand.cclist.contents[i], ES_NONE);
+
+    pl_destroy(&expand.cclist);
 
     return expand.valuelist;
 }
@@ -1886,28 +1899,6 @@ wchar_t *quote_removal_free(
     free(s);
     free(cc);
     return result;
-}
-
-/* Performs empty field removal and quote removal.
- * In this function, `e->valuelist' is modified and `e->cclist' is destroyed. */
-void remove_empty_fields_and_quotes(
-	struct expand_four_T *e, escaping_T escaping)
-{
-    /* empty field removal */
-    if (e->valuelist.length == 1) {
-	const wchar_t *field = e->valuelist.contents[0];
-	if (field[0] == L'\0') {
-	    pl_clear(&e->valuelist, free);
-	    pl_clear(&e->cclist, free);
-	}
-    }
-
-    /* quote removal */
-    for (size_t i = 0; i < e->valuelist.length; i++)
-	e->valuelist.contents[i] = quote_removal_free(
-	    e->valuelist.contents[i], e->cclist.contents[i], escaping);
-
-    pl_destroy(&e->cclist);
 }
 
 
