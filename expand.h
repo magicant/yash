@@ -76,6 +76,12 @@ typedef enum {
  * characters. This does not apply to ES_QUOTED because the pattern is
  * supposed to be matched without quote removal. */
 
+/* result of word expansion */
+typedef struct cc_word_T {
+    wchar_t *value;  /* word value */
+    char *cc;        /* corresponding charcategory_T string */
+} cc_word_T;
+
 struct wordunit_T;
 struct plist_T;
 extern _Bool expand_line(
@@ -86,6 +92,9 @@ extern _Bool expand_line(
 extern _Bool expand_multiple(
 	const struct wordunit_T *restrict w, struct plist_T *restrict list)
     __attribute__((nonnull(2)));
+extern struct cc_word_T expand_single_cc(
+	const struct wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+    __attribute__((warn_unused_result));
 extern wchar_t *expand_single(
 	const struct wordunit_T *w,
 	tildetype_T tilde, quoting_T quoting, escaping_T escaping)

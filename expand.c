@@ -241,6 +241,54 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     return true;
 }
 
+/* Expands a word to a single field.
+ * If successful, the result is a pair of newly malloced strings.
+ * On error, an error message is printed and a NULL pair is returned.
+ * On error in a non-interactive shell, the shell exits. */
+/* This function first expands the word into (possibly many) fields and then
+ * concatenates into one field. */
+struct cc_word_T expand_single_cc(
+	const wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+{
+    struct expand_four_T e = expand_four(w, tilde, quoting, CC_LITERAL);
+
+    if (e.valuelist.contents == NULL) {
+	maybe_exit_on_error();
+	return (struct cc_word_T) { NULL, NULL };
+    }
+
+    const wchar_t *ifs = getvar(L VAR_IFS);
+    wchar_t separator = ifs != NULL ? ifs[0] : L' ';
+
+    size_t totallength;
+    if (e.valuelist.length == 0)
+	totallength = 0;
+    else {
+	totallength = e.valuelist.length - 1;
+	for (size_t i = 0; i < e.valuelist.length; i++)
+	    totallength = add(totallength, wcslen(e.valuelist.contents[i]));
+    }
+
+    xwcsbuf_T valuebuf;
+    xstrbuf_T ccbuf;
+    wb_initwithmax(&valuebuf, totallength);
+    sb_initwithmax(&ccbuf, totallength);
+    for (size_t i = 0; i < e.valuelist.length; i++) {
+	if (i > 0 && separator != L'\0') {
+	    wb_wccat(&valuebuf, separator);
+	    sb_ccat(&ccbuf, CC_SOFT_EXPANSION);
+	}
+	wb_catfree(&valuebuf, e.valuelist.contents[i]);
+	sb_ncat_force(
+		&ccbuf, e.cclist.contents[i], valuebuf.length - ccbuf.length);
+	free(e.cclist.contents[i]);
+    }
+
+    pl_destroy(&e.valuelist);
+    pl_destroy(&e.cclist);
+    return (struct cc_word_T) { wb_towcs(&valuebuf), sb_tostr(&ccbuf) };
+}
+
 /* Expands a word to (possibly any number of) fields.
  * If successful, the return value is a plist_T containing newly malloced wide
  * strings. In most cases, the plist_T contains one string. If the word contains
