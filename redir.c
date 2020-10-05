@@ -315,9 +315,9 @@ static int open_process_redirection(const embedcmd_T *command, redirtype_T type)
     __attribute__((nonnull));
 
 
-/* Opens redirection.
- * If `save' is non-NULL, the original FD is saved and a pointer to the info is
- * assigned to `*save' (whether successful or not).
+/* Opens redirections.
+ * The original FDs are saved and a pointer to the restoration info is assigned
+ * to `*save' (whether successful or not).
  * Returns true iff successful. */
 bool open_redirections(const redir_T *r, savefd_T **save)
 {
