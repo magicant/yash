@@ -25,6 +25,8 @@ Yash 2.51
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".
+  *  When an EXIT trap is executed in a subshell with a redirection,
+     the redirection was incorrectly not begin applied to the trap.
   *  In pattern matching, when an unescaped backslash results from an
      expansion in the pattern, it is now treated as an escape
      character.

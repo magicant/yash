@@ -159,6 +159,10 @@ __IN__
 foo
 __OUT__
 
+test_OE 'trap command in subshell is affected by outer redirections' \
+    -c '(trap "echo foo" EXIT) >/dev/null'
+__IN__
+
 test_oE 'command is evaluated each time trap is executed'
 trap X USR1
 alias X='echo 1'

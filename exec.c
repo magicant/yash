@@ -857,6 +857,10 @@ pid_t exec_process(
 	maybe_redirect_stdin_to_devnull();
 
     if (c->c_type != CT_SIMPLE) {
+	if (c->c_type == CT_SUBSHELL) {
+	    clear_savefd(savefd);
+	    savefd = NULL;
+	}
 	exec_nonsimple_command(c, finally_exit && savefd == NULL);
 	goto done1;
     }
