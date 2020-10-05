@@ -153,6 +153,12 @@ __IN__
 foo
 __OUT__
 
+test_oE 'trap command is not affected by redirections effective when set (4)' \
+    -c 'trap "echo foo" EXIT >/dev/null & wait $!'
+__IN__
+foo
+__OUT__
+
 test_oE 'command is evaluated each time trap is executed'
 trap X USR1
 alias X='echo 1'
