@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,8 @@
 static int parse_signal_number(const wchar_t *number)
     __attribute__((pure));
 
+static int xsigaction(int signum, const struct sigaction *restrict newaction,
+	struct sigaction *restrict oldaction);
 static void set_special_handler(int signum, void (*handler)(int signum));
 static void reset_special_handler(
 	int signum, void (*handler)(int signum), bool leave);
@@ -262,17 +264,19 @@ static wchar_t *rttrap_command[RTSIZE];
  * If false, trap commands are real. */
 static bool is_phantom = false;
 
-/* The signal mask the shell inherited on invocation.
- * This mask is inherited by commands the shell invokes.
+/* Set of signals that should be blocked in commands invoked by the shell.
+ * This is by default the same as the mask the shell inherited from the parent.
  * When a signal's trap is set, the signal is removed from this mask. */
-static sigset_t original_sigmask;
-/* Set of signals whose handler was "ignore" when the shell was invoked but
- * currently is substituted with the shell's handler.
- * The handler of these signals must be reset to "ignore" before the shell
- * invokes another command so that the command inherits "ignore" as the handler.
- * A signal is added to this set also when its trap handler is set to "ignore".
- */
-static sigset_t ignored_signals;
+static sigset_t official_sigmask;
+/* Set of signals that are known whose handler was "default"/"ignore" when the
+ * shell was invoked, respectively. */
+static sigset_t originally_defaulted_signals, originally_ignored_signals;
+/* Set of signals whose handler has been installed for the purpose of the
+ * shell's duty but should be treated as "ignore" in terms of observable
+ * behavior of the shell. The handler of these signals must be reset to "ignore"
+ * before the shell invokes a command so that the command inherits "ignore" as
+ * the handler. */
+static sigset_t officially_ignored_signals;
 /* Set of signals whose trap is set to other than "ignore".
  * These signals are almost always blocked. */
 static sigset_t trapped_signals;
@@ -301,11 +305,13 @@ static bool interactive_handlers_set = false;
 /* Initializes the signal module. */
 void init_signal(void)
 {
-    sigemptyset(&original_sigmask);
-    sigemptyset(&ignored_signals);
+    sigemptyset(&official_sigmask);
+    sigemptyset(&originally_defaulted_signals);
+    sigemptyset(&originally_ignored_signals);
+    sigemptyset(&officially_ignored_signals);
     sigemptyset(&trapped_signals);
-    sigprocmask(SIG_SETMASK, NULL, &original_sigmask);
-    accept_sigmask = original_sigmask;
+    sigprocmask(SIG_SETMASK, NULL, &official_sigmask);
+    accept_sigmask = official_sigmask;
 }
 
 /* Installs signal handlers used by the shell according to the current settings.
@@ -365,7 +371,7 @@ void restore_signals(bool leave)
 #endif
     }
     if (main_handler_set) {
-	sigset_t ss = original_sigmask;
+	sigset_t ss = official_sigmask;
 	if (leave) {
 	    main_handler_set = false;
 	    reset_special_handler(SIGCHLD, sig_handler, leave);
@@ -393,16 +399,45 @@ void reset_job_signals(void)
     }
 }
 
+/* Calls `sigaction' and, if the signal is not in either of
+ * `originally_defaulted_signals' and `originally_ignored_signals', adds it to
+ * one of them. */
+int xsigaction(int signum, const struct sigaction *restrict newaction,
+	struct sigaction *restrict oldaction)
+{
+    struct sigaction oldaction2;
+    sigemptyset(&oldaction2.sa_mask);
+
+    if (sigaction(signum, newaction, &oldaction2) < 0)
+	return -1;
+
+    if (oldaction != NULL)
+	*oldaction = oldaction2;
+
+    if (sigismember(&originally_defaulted_signals, signum) ||
+	    sigismember(&originally_ignored_signals, signum))
+	return 0;
+
+    if (oldaction2.sa_handler != SIG_IGN)
+	sigaddset(&originally_defaulted_signals, signum);
+    else
+	sigaddset(&originally_ignored_signals, signum);
+
+    return 0;
+}
+
 /* Sets the signal handler of signal `signum' to function `handler', which must
  * be either SIG_IGN or `sig_handler'.
- * If the old handler is SIG_IGN, `signum' is added to `ignored_signals'.
+ * If the signal is not in either of `originally_defaulted_signals' and
+ * `originally_ignored_signals', it is added to one of them.
+ * If the previous signal handler was SIG_IGN, the signal is added to
+ * `officially_ignored_signals'.
  * If `handler' is SIG_IGN and the trap for the signal is set, the signal
  * handler is not changed. */
 /* Note that this function does not block or unblock the specified signal. */
 void set_special_handler(int signum, void (*handler)(int signum))
 {
-    const wchar_t *trap = trap_command[sigindex(signum)];
-    if (!is_phantom && trap != NULL && trap[0] != L'\0')
+    if (!is_phantom && sigismember(&trapped_signals, signum))
 	return;  /* The signal handler has already been set. */
 
     struct sigaction action, oldaction;
@@ -410,9 +445,9 @@ void set_special_handler(int signum, void (*handler)(int signum))
     action.sa_handler = handler;
     sigemptyset(&action.sa_mask);
     sigemptyset(&oldaction.sa_mask);
-    if (sigaction(signum, &action, &oldaction) >= 0)
+    if (xsigaction(signum, &action, &oldaction) >= 0)
 	if (oldaction.sa_handler == SIG_IGN)
-	    sigaddset(&ignored_signals, signum);
+	    sigaddset(&officially_ignored_signals, signum);
 }
 
 /* Resets the signal handler for signal `signum' to what external commands
@@ -423,7 +458,7 @@ void set_special_handler(int signum, void (*handler)(int signum))
 void reset_special_handler(int signum, void (*handler)(int signum), bool leave)
 {
     struct sigaction action;
-    if (sigismember(&ignored_signals, signum))
+    if (sigismember(&officially_ignored_signals, signum))
 	action.sa_handler = SIG_IGN;
     else if (sigismember(&trapped_signals, signum))
 	return;
@@ -463,12 +498,12 @@ void ignore_sigquit_and_sigint(void)
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
 	action.sa_handler = SIG_IGN;
-	sigaction(SIGQUIT, &action, NULL);
-	sigaction(SIGINT, &action, NULL);
+	xsigaction(SIGQUIT, &action, NULL);
+	xsigaction(SIGINT, &action, NULL);
     }  /* Don't set the handers if interactive because they are reset when
 	  `restore_signals' is called later. */
-    sigaddset(&ignored_signals, SIGQUIT);
-    sigaddset(&ignored_signals, SIGINT);
+    sigaddset(&officially_ignored_signals, SIGQUIT);
+    sigaddset(&officially_ignored_signals, SIGINT);
 }
 
 /* Sets the action of SIGTSTP to ignoring the signal
@@ -483,9 +518,9 @@ void ignore_sigtstp(void)
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = SIG_IGN;
-    sigaction(SIGTSTP, &action, NULL);
+    xsigaction(SIGTSTP, &action, NULL);
     */
-    sigaddset(&ignored_signals, SIGTSTP);
+    sigaddset(&officially_ignored_signals, SIGTSTP);
 }
 
 /* Sends SIGSTOP to the shell process (and the processes in the same process
@@ -859,12 +894,12 @@ void set_trap(int signum, const wchar_t *command)
 	action.sa_handler = sig_handler;
 
     if (action.sa_handler == SIG_IGN) {
-	sigaddset(&ignored_signals, signum);
+	sigaddset(&officially_ignored_signals, signum);
     } else {
-	sigdelset(&ignored_signals, signum);
+	sigdelset(&officially_ignored_signals, signum);
     }
     if (action.sa_handler == sig_handler) {
-	sigdelset(&original_sigmask, signum);
+	sigdelset(&official_sigmask, signum);
 	sigaddset(&trapped_signals, signum);
 	sigdelset(&accept_sigmask, signum);
     } else {
@@ -906,7 +941,7 @@ default_ignore:
 
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
-    if (sigaction(signum, &action, NULL) < 0) {
+    if (xsigaction(signum, &action, NULL) < 0) {
 	int saveerrno = errno;
 	xerror(saveerrno, "sigaction(SIG%ls)", get_signal_name(signum));
     }
@@ -923,7 +958,7 @@ bool is_ignored(int signum)
 
     if (doing_job_control_now &&
 	    (signum == SIGTTIN || signum == SIGTTOU || signum == SIGTSTP))
-	return sigismember(&ignored_signals, signum);
+	return sigismember(&officially_ignored_signals, signum);
 
     struct sigaction action;
     sigemptyset(&action.sa_mask);
