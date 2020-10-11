@@ -34,17 +34,17 @@ test_oE 'asynchronous list retains SIGINT trap with job control' -m
 "$TESTEE" -c 'kill -s INT $$; echo not printed' &
 wait $!
 kill -l $?
-"$TESTEE" -c '(kill -s INT $$); echo not printed' &
+"$TESTEE" -c '"$TESTEE" -c "kill -s INT $$"; echo not printed' &
 wait $!
 kill -l $?
 trap '' INT
-"$TESTEE" -c 'kill -s INT $$; (kill -s INT $$); echo ok' &
+"$TESTEE" -c 'kill -s INT $$; "$TESTEE" -c "kill -s INT $$"; echo ok' &
 wait $!
 trap 'echo trapped' INT
 "$TESTEE" -c 'kill -s INT $$; echo not printed' &
 wait $!
 kill -l $?
-"$TESTEE" -c '(kill -s INT $$); echo not printed' &
+"$TESTEE" -c '"$TESTEE" -c "kill -s INT $$"; echo not printed' &
 wait $!
 kill -l $?
 __IN__
@@ -59,17 +59,17 @@ test_oE 'asynchronous list retains SIGQUIT trap with job control' -m
 "$TESTEE" -c 'kill -s QUIT $$; echo not printed' &
 wait $!
 kill -l $?
-"$TESTEE" -c '(kill -s QUIT $$); echo not printed' &
+"$TESTEE" -c '"$TESTEE" -c "kill -s QUIT $$"; echo not printed' &
 wait $!
 kill -l $?
 trap '' QUIT
-"$TESTEE" -c 'kill -s QUIT $$; (kill -s QUIT $$); echo ok' &
+"$TESTEE" -c 'kill -s QUIT $$; "$TESTEE" -c "kill -s QUIT $$"; echo ok' &
 wait $!
 trap 'echo trapped' QUIT
 "$TESTEE" -c 'kill -s QUIT $$; echo not printed' &
 wait $!
 kill -l $?
-"$TESTEE" -c '(kill -s QUIT $$); echo not printed' &
+"$TESTEE" -c '"$TESTEE" -c "kill -s QUIT $$"; echo not printed' &
 wait $!
 kill -l $?
 __IN__
