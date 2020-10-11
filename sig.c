@@ -457,15 +457,20 @@ void set_special_handler(int signum, void (*handler)(int signum))
  * unchanged if the handler is supposed to be reset during exec. */
 void reset_special_handler(int signum, void (*handler)(int signum), bool leave)
 {
+    if (sigismember(&trapped_signals, signum)) {
+	assert(!sigismember(&officially_ignored_signals, signum));
+	return;
+    }
+
     struct sigaction action;
     if (sigismember(&officially_ignored_signals, signum))
 	action.sa_handler = SIG_IGN;
-    else if (sigismember(&trapped_signals, signum))
-	return;
     else
 	action.sa_handler = SIG_DFL;
+
     if (leave && handler != SIG_IGN)
 	handler = SIG_DFL;
+
     if (handler != action.sa_handler) {
 	action.sa_flags = 0;
 	sigemptyset(&action.sa_mask);
