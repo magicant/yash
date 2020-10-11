@@ -159,7 +159,7 @@ static pid_t exec_process(
     __attribute__((nonnull));
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
-static void become_child(bool leave);
+static void become_child(sigtype_T sigtype);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -803,7 +803,7 @@ pid_t exec_process(
 	if (c->c_type == CT_SUBSHELL)
 	    /* No command follows this subshell command, so we can execute the
 	     * subshell directly in this process. */
-	    become_child(false);
+	    become_child(0);
     } else {
 	/* fork first if `type' is E_ASYNC, the command type is subshell,
 	 * or there is a pipe. */
@@ -1022,8 +1022,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    sigprocmask(SIG_SETMASK, &savemask, NULL);
     } else {
 	/* child process */
-	bool save_doing_job_control_now = doing_job_control_now;
-	if (save_doing_job_control_now && pgid >= 0) {
+	if (doing_job_control_now && pgid >= 0) {
 	    setpgid(0, pgid);
 	    if (pgid == 0)
 		pgid = getpgrp();
@@ -1031,22 +1030,16 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
 	    if (fg)
 		put_foreground(pgid);
 	}
-	if (sigtype & t_quitint)
-	    if (!save_doing_job_control_now)
-		ignore_sigquit_and_sigint();
-	if (sigtype & t_tstp)
-	    if (save_doing_job_control_now)
-		ignore_sigtstp();
-	become_child(sigtype & t_leave);  /* signal mask is restored here */
+	become_child(sigtype);  /* signal mask is restored here */
     }
     return cpid;
 }
 
 /* Resets traps, signal handlers, etc. for the current process to become a
- * subshell. See `fork_and_reset' for the meaning of the `leave' argument. */
-void become_child(bool leave)
+ * subshell. See `fork_and_reset' for the meaning of the `sigtype' parameter. */
+void become_child(sigtype_T sigtype)
 {
-    if (leave) {
+    if (sigtype & t_leave) {
 	clear_exit_trap();
     } else {
 	phantomize_traps();
@@ -1056,8 +1049,16 @@ void become_child(bool leave)
 #endif
 	reset_execstate(true);
     }
-    restore_signals(leave);  /* signal mask is restored here */
-    clear_shellfds(leave);
+
+    if (sigtype & t_quitint)
+	if (!doing_job_control_now)
+	    ignore_sigquit_and_sigint();
+    if (sigtype & t_tstp)
+	if (doing_job_control_now)
+	    ignore_sigtstp();
+
+    restore_signals(sigtype & t_leave);  /* signal mask is restored here */
+    clear_shellfds(sigtype & t_leave);
     is_interactive_now = false;
     suppresserrreturn = false;
     exitstatus = -1;

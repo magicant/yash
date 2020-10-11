@@ -58,14 +58,22 @@ __OUT__
 test_oE -e 0 'asynchronous list ignores SIGINT'
 "$TESTEE" -c 'kill -s INT $$; "$TESTEE" -c "kill -s INT $$"; echo ok' &
 wait $!
+trap 'echo not printed' INT
+"$TESTEE" -c 'kill -s INT $$; "$TESTEE" -c "kill -s INT $$"; echo ok' &
+wait $!
 __IN__
+ok
 ok
 __OUT__
 
 test_oE -e 0 'asynchronous list ignores SIGQUIT'
 "$TESTEE" -c 'kill -s QUIT $$; "$TESTEE" -c "kill -s QUIT $$"; echo ok' &
 wait $!
+trap 'echo not printed' QUIT
+"$TESTEE" -c 'kill -s QUIT $$; "$TESTEE" -c "kill -s QUIT $$"; echo ok' &
+wait $!
 __IN__
+ok
 ok
 __OUT__
 

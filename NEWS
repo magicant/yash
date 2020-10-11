@@ -29,6 +29,9 @@ Yash 2.51
      the redirection was incorrectly not being applied to the trap.
   *  When job control is off, the "trap" built-in was failing to set
      a new trap for SIGINT and SIGQUIT in an asynchronous list.
+  *  When job control is off, SIGINT and SIGQUIT were not being
+     ignored if a trap had been set for the signal the main shell
+     process.
   *  In pattern matching, when an unescaped backslash results from an
      expansion in the pattern, it is now treated as an escape
      character.
