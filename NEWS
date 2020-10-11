@@ -26,7 +26,9 @@ Yash 2.51
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".
   *  When an EXIT trap is executed in a subshell with a redirection,
-     the redirection was incorrectly not begin applied to the trap.
+     the redirection was incorrectly not being applied to the trap.
+  *  When job control is off, the "trap" built-in was failing to set
+     a new trap for SIGINT and SIGQUIT in an asynchronous list.
   *  In pattern matching, when an unescaped backslash results from an
      expansion in the pattern, it is now treated as an escape
      character.

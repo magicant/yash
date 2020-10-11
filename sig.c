@@ -90,7 +90,7 @@ static void reset_special_handler(
 static void sig_handler(int signum);
 static void handle_sigchld(void);
 static void set_trap(int signum, const wchar_t *command);
-static bool is_ignored(int signum);
+static bool is_originally_ignored(int signum);
 static void banish_phantoms(void);
 #if YASH_ENABLE_LINEEDIT
 # ifdef SIGWINCH
@@ -867,7 +867,7 @@ void set_trap(int signum, const wchar_t *command)
 	receivedp = &signal_received[index];
     }
 
-    if (!is_interactive && *commandp == NULL && is_ignored(signum)) {
+    if (!is_interactive && *commandp == NULL && is_originally_ignored(signum)) {
 	/* Signals that were ignored on entry to a non-interactive shell cannot
 	 * be trapped or reset. (POSIX) */
 #if FIXED_SIGNAL_AS_ERROR
@@ -952,23 +952,22 @@ default_ignore:
     }
 }
 
-/* Checks if the specified signal is ignored.
- * Asserts the shell is not interactive. */
-bool is_ignored(int signum)
+/* Checks if the specified signal was originally ignored when the shell was
+ * invoked. Asserts the shell is not interactive. */
+bool is_originally_ignored(int signum)
 {
     assert(!is_interactive_now);
 
     if (signum == 0)
 	return false;
 
-    if (doing_job_control_now &&
-	    (signum == SIGTTIN || signum == SIGTTOU || signum == SIGTSTP))
-	return sigismember(&officially_ignored_signals, signum);
+    if (sigismember(&originally_ignored_signals, signum))
+	return true;
+    if (sigismember(&originally_defaulted_signals, signum))
+	return false;
 
-    struct sigaction action;
-    sigemptyset(&action.sa_mask);
-    return sigaction(signum, NULL, &action) >= 0
-	&& action.sa_handler == SIG_IGN;
+    xsigaction(signum, NULL, NULL);
+    return sigismember(&originally_ignored_signals, signum);
 }
 
 /* Clears the EXIT trap. */
