@@ -200,7 +200,7 @@ __OUT__
 (
 trap '' USR1 USR2
 
-test_oE 'traps cannot be modified for initially ignored signal'
+test_oE 'traps cannot be modified for initially ignored signal (USR1, USR2)'
 trap -              USR1 2>/dev/null
 trap 'echo trapped' USR2 2>/dev/null
 kill -s USR1 $$ # ignored
@@ -209,6 +209,18 @@ echo reached
 __IN__
 reached
 __OUT__
+
+)
+
+(
+trap '' TTOU
+
+test_O 'traps cannot be modified for initially ignored signal (TTOU)' -m
+trap - TTOU
+"$TESTEE" -c 'kill -s TTOU $$' # TTOU should be ignored, so sh is not suspended
+jobs                           # should print nothing because sh has exited
+fg %                           # just in case TTOU was not ignored
+__IN__
 
 )
 
