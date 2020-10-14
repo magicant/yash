@@ -1798,25 +1798,13 @@ printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 
 
 # create dependency files if there are none
-makedep() {
-    for i in ${1}*.c
-    do
-	if [ -f "${i}" ] && [ ! -f "${i%.c}.d" ]
-	then
-	    printf 'touching %s\n' "${i%.c}.d"
-	    >>"${i%.c}.d"
-	    printf 'Touched %s\n' "${i%.c}.d" >&5
-	fi
-    done
-    for i in ${1}*/
-    do
-	if [ -d "${i}" ]
-	then
-	    makedep "${i}"
-	fi
-    done
-}
-makedep ''
+find . -name '*.c' -exec sh -c '
+dfile="${1%.c}.d"
+[ -f "$dfile" ] && exit
+printf "touching %s\n" "$dfile"
+>>"$dfile"
+printf "Touched %s\n" "$dfile" >&5
+' x {} \;
 
 # create config.status
 printf 'creating %s... ' "${configstatus}"
