@@ -196,6 +196,15 @@ trapped
 trapped
 __OUT__
 
+test_oE -e 0 'setting new trap in trap'
+trap 'trap "echo trapped 2" USR1; echo trapped 1' USR1
+kill -s USR1 $$
+kill -s USR1 $$
+__IN__
+trapped 1
+trapped 2
+__OUT__
+
 test_oE -e 0 'setting new EXIT in subshell in EXIT'
 trap '(trap "echo exit" EXIT)' EXIT
 __IN__
