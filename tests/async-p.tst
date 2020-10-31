@@ -52,35 +52,6 @@ __IN__
 this line should not be consumed by cat
 __OUT__
 
-# This test is in job-p.tst.
-#test_oE 'stdin of asynchronous list is not modified with job control' -m
-
-test_oE -e 0 'asynchronous list ignores SIGINT'
-"$TESTEE" -c 'kill -s INT $$; "$TESTEE" -c "kill -s INT $$"; echo ok' &
-wait $!
-trap 'echo not printed' INT
-"$TESTEE" -c 'kill -s INT $$; "$TESTEE" -c "kill -s INT $$"; echo ok' &
-wait $!
-__IN__
-ok
-ok
-__OUT__
-
-test_oE -e 0 'asynchronous list ignores SIGQUIT'
-"$TESTEE" -c 'kill -s QUIT $$; "$TESTEE" -c "kill -s QUIT $$"; echo ok' &
-wait $!
-trap 'echo not printed' QUIT
-"$TESTEE" -c 'kill -s QUIT $$; "$TESTEE" -c "kill -s QUIT $$"; echo ok' &
-wait $!
-__IN__
-ok
-ok
-__OUT__
-
-# These tests are in job-p.tst.
-#test_oE 'asynchronous list retains SIGINT trap with job control' -m
-#test_oE 'asynchronous list retains SIGQUIT trap with job control' -m
-
 test_o 'exit status of asynchronous list'
 true&
 echo $?

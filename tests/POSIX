@@ -122,9 +122,8 @@ Command Search and Execution
  * redir-y.tst
 
 2.11 Signals and Error Handling
- * async-p.tst
- * job-p.tst
- * signal-p.tst
+ * sig*-p.tst
+ * trap-p.tst
  * wait-p.tst
 
 2.12 Shell Execution Environment
@@ -226,12 +225,7 @@ sh
   Stdin, Input files
     * input-p.tst
   Asynchronous events
-    * signal-p.tst
-    * signal1-y.tst
-    * signal3-y.tst
-    * signal5-y.tst
-    * signal7-y.tst
-    * signal9-y.tst
+    * sig*-p.tst
 
 test
  * test-p.tst

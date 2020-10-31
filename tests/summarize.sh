@@ -1,5 +1,5 @@
 # summarize.sh: extracts results of failed tests
-# (C) 2015-2019 magicant
+# (C) 2015-2020 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,11 +54,11 @@ $line"
     done <"$result_file"
 done
 
-printf '=============\n'
-printf 'TOTAL:   %4d\n' "$((passed + failed + skipped))"
-printf 'PASSED:  %4d\n' "$passed"
-printf 'FAILED:  %4d\n' "$failed"
-printf 'SKIPPED: %4d\n' "$skipped"
-printf '=============\n'
+printf '==============\n'
+printf 'TOTAL:   %5d\n' "$((passed + failed + skipped))"
+printf 'PASSED:  %5d\n' "$passed"
+printf 'FAILED:  %5d\n' "$failed"
+printf 'SKIPPED: %5d\n' "$skipped"
+printf '==============\n'
 
 # vim: set ts=8 sts=4 sw=4 noet:

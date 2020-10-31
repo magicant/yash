@@ -163,28 +163,6 @@ test_OE 'trap command in subshell is affected by outer redirections' \
     -c '(trap "echo foo" EXIT) >/dev/null'
 __IN__
 
-new_trap_in_async_list() {
-    export SIG=$2
-    testcase "$1" "setting new trap for SIG$SIG in asynchronous list" \
-	3<<\__IN__ 4<<\__OUT__ 5</dev/null
-test ${SIG:?} = CHLD || trap "echo wrong trap" $SIG
-{
-trap "echo trapped" $SIG
-"$TESTEE" -c 'kill -s $SIG $PPID'
-echo ok
-} &
-wait $!
-__IN__
-trapped
-ok
-__OUT__
-}
-
-new_trap_in_async_list "$LINENO" INT
-new_trap_in_async_list "$LINENO" QUIT
-new_trap_in_async_list "$LINENO" USR1
-new_trap_in_async_list "$LINENO" CHLD
-
 test_oE 'command is evaluated each time trap is executed'
 trap X USR1
 alias X='echo 1'
@@ -196,32 +174,16 @@ __IN__
 2
 __OUT__
 
+test_oE 'traps are not handled until foreground job finishes'
+trap 'echo trapped' USR1
 (
-trap '' USR1 USR2
-
-test_oE 'traps cannot be modified for initially ignored signal (USR1, USR2)'
-trap -              USR1 2>/dev/null
-trap 'echo trapped' USR2 2>/dev/null
-kill -s USR1 $$ # ignored
-kill -s USR2 $$ # ignored
-echo reached
+    kill -s USR1 $$
+    echo signal sent
+)
 __IN__
-reached
+signal sent
+trapped
 __OUT__
-
-)
-
-(
-trap '' TTOU
-
-test_O 'traps cannot be modified for initially ignored signal (TTOU)' -m
-trap - TTOU
-"$TESTEE" -c 'kill -s TTOU $$' # TTOU should be ignored, so sh is not suspended
-jobs                           # should print nothing because sh has exited
-fg %                           # just in case TTOU was not ignored
-__IN__
-
-)
 
 test_oE -e 0 'single trap may be invoked more than once'
 trap 'echo trapped' USR1
@@ -231,47 +193,6 @@ kill -s USR1 $$
 __IN__
 trapped
 trapped
-trapped
-__OUT__
-
-test_OE -e 0 'ignore trap is inherited to external command'
-trap '' USR1
-"$TESTEE" -c 'kill -s USR1 $$'
-__IN__
-
-test_oE -e 0 'command trap is reset in external command'
-trap 'echo trapped' USR1
-"$TESTEE" -c 'kill -s USR1 $$'
-kill -l $?
-__IN__
-USR1
-__OUT__
-
-test_oE 'default traps remain in subshell'
-trap - USR1
-("$TESTEE" -c 'kill -s USR1 $$')
-kill -l $?
-__IN__
-USR1
-__OUT__
-
-test_OE -e 0 'ignored traps remain in subshell'
-trap '' USR1
-("$TESTEE" -c 'kill -s USR1 $$')
-__IN__
-
-test_oE 'command traps are reset in subshell'
-trap 'echo trapped' USR1
-("$TESTEE" -c 'kill -s USR1 $PPID'; :)
-kill -l $?
-__IN__
-USR1
-__OUT__
-
-test_oE -e 0 'setting new signal trap in subshell'
-trap 'echo X' USR1
-(trap 'echo trapped' USR1; "$TESTEE" -c 'kill -s USR1 $PPID'; :)
-__IN__
 trapped
 __OUT__
 
