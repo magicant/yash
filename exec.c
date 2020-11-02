@@ -1170,16 +1170,38 @@ bool command_not_found_handler(void *const *argv)
 }
 
 /* Executes the specified command whose type is not `CT_SIMPLE'.
- * The redirections for the command is not performed in this function.
- * For CT_SUBSHELL, this function must be called in an already-forked subshell.
- */
+ * The redirections for the command is not performed in this function. */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
-    // TODO fork or become_child(0) if CT_GROUP
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
     case CT_SUBSHELL:
+	if (finally_exit) {
+	    /* This is the last command to execute in the current shell, hence
+	     * no need to make a new child. */
+	    become_child(0);
+	} else {
+	    /* make a child process to execute the command */
+	    pid_t cpid = fork_and_reset(0, true, 0);
+	    if (cpid < 0) {
+		/* parent process: fork failed */
+		laststatus = Exit_NOEXEC;
+		break;
+	    } else if (cpid > 0) {
+		/* parent process: fork succeeded */
+		wchar_t **namep = wait_for_child(
+			cpid,
+			doing_job_control_now ? cpid : 0,
+			doing_job_control_now);
+		if (namep != NULL)
+		    *namep = command_to_wcs(c, false);
+		break;
+	    }
+	    /* child process */
+	    finally_exit = true;
+	}
+	// falls thru!
     case CT_GROUP:
 	exec_and_or_lists(c->c_subcmds, finally_exit);
 	break;
