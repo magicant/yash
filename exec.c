@@ -144,7 +144,9 @@ static void exec_case(const command_T *c, bool finally_exit)
 static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
-static void exec_commands(command_T *c, exec_T type);
+static void exec_commands(command_T *cs, exec_T type);
+static inline size_t number_of_commands_in_pipeline(const command_T *c)
+    __attribute__((nonnull,pure,warn_unused_result));
 static bool is_errexit_condition(void)
     __attribute__((pure));
 static bool is_errreturn_condition(void)
@@ -314,6 +316,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	suppresserrexit |= suppress;
 	suppresserrreturn |= suppress;
 
+	// TODO doing_job_control_now and any_trap_set should be checked in
+	// exec_commands
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
@@ -575,104 +579,113 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 }
 
 /* Executes the commands in a pipeline. */
-void exec_commands(command_T *c, exec_T type)
+void exec_commands(command_T *const cs, exec_T type)
 {
-    // TODO Probably should do this in exec_one_command
-    /* increment the reference count of `c' to prevent `c' from being freed
-     * during execution. */
-    c = comsdup(c);
-
-    if (c->next == NULL) {
-	exec_one_command(c, type);
+    if (cs->next == NULL) {
+	exec_one_command(cs, type);
 	goto done;
     }
 
-    // TODO rewrite below
-    size_t count;
-    pid_t pgid;
-    command_T *cc;
-    job_T *job;
-    process_T *ps, *pp;
-    pipeinfo_T pinfo = PIPEINFO_INIT;
+    size_t count = number_of_commands_in_pipeline(cs);
+    assert(count >= 2);
 
-    /* count the number of the commands */
-    count = 0;
-    for (cc = c; cc != NULL; cc = cc->next)
-	count++;
-    assert(count > 0);
-
-    if (type == E_SELF && shopt_pipefail && count > 1)
+    if (type == E_SELF && shopt_pipefail) {
+	// need to check the exit status of all the commands, not only the last
 	type = E_NORMAL;
+    }
 
-    job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
-    ps = job->j_procs;
+    /* fork a child process for each command in the pipeline */
+    pid_t pgid = 0;
+    pipeinfo_T pipe = PIPEINFO_INIT;
+    job_T *job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
+    command_T *c;
+    process_T *p;
+    for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++) {
+	bool is_last = c->next == NULL;
+	next_pipe(&pipe, !is_last);
 
-    /* execute the commands */
-    pgid = 0, cc = c, pp = ps;
-    do {
-	pid_t pid;
+	if (type == E_SELF && is_last)
+	    goto exec_one_command; /* skip forking */
 
-	next_pipe(&pinfo, cc->next != NULL);
-	pid = exec_process(cc,
-		(type == E_SELF && cc->next != NULL) ? E_NORMAL : type,
-		&pinfo,
-		pgid);
-	pp->pr_pid = pid;
-	if (pid != 0) {
-	    pp->pr_status = JS_RUNNING;
-	    pp->pr_statuscode = 0;
+	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
+	pid_t pid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
+	if (pid == 0) {
+exec_one_command: /* child process */
+	    free(job);
+	    connect_pipes(&pipe);
+	    exec_one_command(c, E_SELF);
+	    assert(false);
+	} else if (pid >= 0) {
+	    /* parent process: fork succeeded */
+	    if (pgid == 0)
+		pgid = pid;
+	    p->pr_pid = pid;
+	    p->pr_status = JS_RUNNING;
+	    // p->pr_statuscode = ?; // The process is still running.
+	    p->pr_name = NULL; // The actual name is given later.
 	} else {
-	    pp->pr_status = JS_DONE;
-	    pp->pr_statuscode = laststatus;
+	    /* parent process: fork failed */
+	    p->pr_pid = 0;
+	    p->pr_status = JS_DONE;
+	    p->pr_statuscode = Exit_NOEXEC;
+	    p->pr_name = NULL;
 	}
-	pp->pr_name = NULL;   /* name is given later */
-	if (pgid == 0)
-	    pgid = pid;
-	cc = cc->next, pp++;
-    } while (cc != NULL);
-    assert(type != E_SELF); /* `exec_process' doesn't return for E_SELF */
-    assert(pinfo.pi_tonextfds[PIPE_IN] < 0);
-    assert(pinfo.pi_tonextfds[PIPE_OUT] < 0);
-    if (pinfo.pi_fromprevfd >= 0)
-	xclose(pinfo.pi_fromprevfd);           /* close leftover pipe */
+    }
 
-    if (pgid == 0) {
-	/* nothing more to do if we didn't fork */
-	free(job);
-    } else {
-	job->j_pgid = doing_job_control_now ? pgid : 0;
-	job->j_status = JS_RUNNING;
-	job->j_statuschanged = true;
-	job->j_legacy = false;
-	job->j_nonotify = false;
-	job->j_pcount = count;
-	set_active_job(job);
-	if (type == E_NORMAL) {
+    assert(pipe.pi_tonextfds[PIPE_IN] < 0);
+    assert(pipe.pi_tonextfds[PIPE_OUT] < 0);
+    if (pipe.pi_fromprevfd >= 0)
+	xclose(pipe.pi_fromprevfd); /* close the leftover pipe */
+
+    /* establish the job and wait for it */
+    job->j_pgid = doing_job_control_now ? pgid : 0;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = true;
+    job->j_legacy = false;
+    job->j_nonotify = false;
+    job->j_pcount = count;
+    set_active_job(job);
+    switch (type) {
+	case E_NORMAL:
 	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	    if (doing_job_control_now)
 		put_foreground(shell_pgid);
 	    laststatus = calc_status_of_job(job);
-	} else {
+	    break;
+	case E_ASYNC:
 	    assert(type == E_ASYNC);
+	    // TODO laststatus should be Exit_NOEXEC if fork failed
 	    laststatus = Exit_SUCCESS;
-	    lastasyncpid = ps[count - 1].pr_pid;
-	}
-	if (job->j_status != JS_DONE) {
-	    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++)
-		pp->pr_name = command_to_wcs(cc, false);
-	    add_job(type == E_NORMAL || shopt_curasync);
-	} else {
-	    notify_signaled_job(ACTIVE_JOBNO);
-	    remove_job(ACTIVE_JOBNO);
-	}
+	    lastasyncpid = job->j_procs[count - 1].pr_pid;
+	    break;
+	case E_SELF:
+	    assert(false);
+    }
+
+    if (job->j_status == JS_DONE) {
+	notify_signaled_job(ACTIVE_JOBNO);
+	remove_job(ACTIVE_JOBNO);
+    } else {
+	/* name the job processes */
+	for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++)
+	    p->pr_name = command_to_wcs(c, false);
+
+	/* remember the suspended job */
+	add_job(type == E_NORMAL || shopt_curasync);
     }
 
 done:
     handle_signals();
 
-    apply_errexit_errreturn(c);
+    apply_errexit_errreturn(cs);
+}
 
-    comsfree(c);
+size_t number_of_commands_in_pipeline(const command_T *c)
+{
+    size_t count = 1;
+    while ((c = c->next) != NULL)
+	count++;
+    return count;
 }
 
 /* Returns true if the shell should exit because of the `errexit' option. */
