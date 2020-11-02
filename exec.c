@@ -113,6 +113,12 @@ typedef struct commandinfo_T {
 #define ci_builtin  value.builtin
 #define ci_function value.function
 
+/* result of `fork_and_wait' */
+typedef struct fork_and_wait_T {
+    pid_t cpid;       /* child process ID */
+    wchar_t **namep;  /* where to place the job name */
+} fork_and_wait_T;
+
 typedef enum exception_T {
     E_NONE,
     E_CONTINUE,
@@ -164,6 +170,8 @@ static void exec_simple_command(const command_T *c, bool finally_exit)
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 static void become_child(sigtype_T sigtype);
+static fork_and_wait_T fork_and_wait(sigtype_T sigtype)
+    __attribute__((warn_unused_result));
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -1043,6 +1051,35 @@ void become_child(sigtype_T sigtype)
     exitstatus = -1;
 }
 
+/* Forks a new child process and wait for it to finish.
+ * `sigtype' is passed to `fork_and_reset'.
+ * In the parent process, this function updates `laststatus' to the exit status
+ * of the child.
+ * In the child process, this function does not wait for anything.
+ * Returns a pair of the return value of `fork' and a pointer to a pointer to
+ * a wide string. If the pointer is non-null, the caller must assign it a
+ * pointer to a newly malloced wide string that is the job name of the child. */
+fork_and_wait_T fork_and_wait(sigtype_T sigtype)
+{
+    fork_and_wait_T result;
+    result.cpid = fork_and_reset(0, true, sigtype);
+    if (result.cpid < 0) {
+	/* Fork failed. */
+	laststatus = Exit_NOEXEC;
+	result.namep = NULL;
+    } if (result.cpid > 0) {
+	/* parent process */
+	result.namep = wait_for_child(
+		result.cpid,
+		doing_job_control_now ? result.cpid : 0,
+		doing_job_control_now);
+    } else {
+	/* child process */
+	result.namep = NULL;
+    }
+    return result;
+}
+
 /* Searches for a command.
  * The result is assigned to `*ci'.
  * `name' and `wname' must contain the same string value.
@@ -1183,22 +1220,12 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 	    become_child(0);
 	} else {
 	    /* make a child process to execute the command */
-	    pid_t cpid = fork_and_reset(0, true, 0);
-	    if (cpid < 0) {
-		/* parent process: fork failed */
-		laststatus = Exit_NOEXEC;
-		break;
-	    } else if (cpid > 0) {
-		/* parent process: fork succeeded */
-		wchar_t **namep = wait_for_child(
-			cpid,
-			doing_job_control_now ? cpid : 0,
-			doing_job_control_now);
-		if (namep != NULL)
-		    *namep = command_to_wcs(c, false);
+	    fork_and_wait_T faw = fork_and_wait(0);
+	    if (faw.cpid != 0) {
+		if (faw.namep != NULL)
+		    *faw.namep = command_to_wcs(c, false);
 		break;
 	    }
-	    /* child process */
 	    finally_exit = true;
 	}
 	// falls thru!
@@ -1245,17 +1272,10 @@ void invoke_simple_command(
 	break;
     case CT_EXTERNALPROGRAM:
 	if (!finally_exit) {
-	    pid_t cpid = fork_and_reset(0, true, t_leave);
-	    if (cpid < 0) {
-		laststatus = Exit_NOEXEC;
-		break;
-	    } else if (cpid > 0) {
-		wchar_t **namep = wait_for_child(
-			cpid,
-			doing_job_control_now ? cpid : 0,
-			doing_job_control_now);
-		if (namep != NULL)
-		    *namep = joinwcsarray(argv, L" ");
+	    fork_and_wait_T faw = fork_and_wait(t_leave);
+	    if (faw.cpid != 0) {
+		if (faw.namep != NULL)
+		    *faw.namep = joinwcsarray(argv, L" ");
 		break;
 	    }
 	    finally_exit = true;
