@@ -158,10 +158,9 @@ static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
 static void exec_one_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
-// TODO Reconsider order of functions around here
-static pid_t exec_process(
-	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
+static void exec_simple_command(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+// TODO Reconsider order of functions around here
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 static void become_child(sigtype_T sigtype);
@@ -613,6 +612,8 @@ void exec_commands(command_T *const cs, exec_T type)
 exec_one_command: /* child process */
 	    free(job);
 	    connect_pipes(&pipe);
+	    if (type == E_ASYNC && pipe.pi_fromprevfd < 0)
+		maybe_redirect_stdin_to_devnull();
 	    exec_one_command(c, true);
 	    assert(false);
 	} else if (pid >= 0) {
@@ -803,81 +804,57 @@ fail:
     xerror(errno, Ngt("cannot open a pipe"));
 }
 
+/* Executes the command. */
 void exec_one_command(command_T *c, bool finally_exit)
 {
     /* prevent the command data from being freed in case the command is part of
      * a function that is unset during execution. */
     c = comsdup(c);
 
-    if (c->c_type == CT_SIMPLE) {
-    } else {
-    }
-    // TODO implement exec_one_command
-
-    comsfree(c);
-}
-
-/* Executes the command.
- * If job control is active, the child process's process group ID is set to
- * `pgid'. If `pgid' is 0, the child process's process ID is used as the process
- * group ID.
- * If the child process forked successfully, its process ID is returned.
- * If the command was executed without forking, `laststatus' is set to the exit
- * status of the command and 0 is returned.
- * if `type' is E_SELF, this function never returns. */
-pid_t exec_process(
-	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
-{
-    bool finally_exit; /* never return? */
-    int argc;
-    void **argv = NULL;
-    char *argv0 = NULL;
-    pid_t cpid = 0;
-
     update_lineno(c->c_lineno);
 
-    finally_exit = (type == E_SELF);
-    if (finally_exit) {
-	if (c->c_type == CT_SUBSHELL)
-	    /* No command follows this subshell command, so we can execute the
-	     * subshell directly in this process. */
-	    become_child(0);
+    if (c->c_type == CT_SIMPLE) {
+	exec_simple_command(c, finally_exit);
     } else {
-	/* fork first if `type' is E_ASYNC, the command type is subshell,
-	 * or there is a pipe. */
-	if (type == E_ASYNC || c->c_type == CT_SUBSHELL
-		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0) {
-	    sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
-	    cpid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
-	    if (cpid != 0)
-		goto done;
-	    finally_exit = true;
+	savefd_T *savefd;
+	if (open_redirections(c->c_redirs, &savefd)) {
+	    exec_nonsimple_command(c, finally_exit && savefd == NULL);
+	    undo_redirections(savefd);
+	} else {
+	    laststatus = Exit_REDIRERR;
+	    apply_errexit_errreturn(NULL);
 	}
     }
 
+    comsfree(c);
+
+    if (finally_exit)
+	exit_shell();
+}
+
+/* Executes the simple command. */
+void exec_simple_command(const command_T *c, bool finally_exit)
+{
     lastcmdsubstatus = Exit_SUCCESS;
 
-    /* connect pipes and close leftovers */
-    connect_pipes(pi);
-
-    if (c->c_type == CT_SIMPLE) {
-	if (!expand_line(c->c_words, &argc, &argv)) {
-	    laststatus = Exit_EXPERROR;
-	    goto done;
-	}
-	if (is_interrupted()) {
-	    plfree(argv, free);
-	    goto done;
-	}
-	if (argc == 0) {
-	    argv0 = NULL;
-	} else {
-	    argv0 = malloc_wcstombs(argv[0]);
-	    if (argv0 == NULL)
-		argv0 = xstrdup("");
-	}
+    /* expand the command words */
+    int argc;
+    void **argv;
+    if (!expand_line(c->c_words, &argc, &argv)) {
+	laststatus = Exit_EXPERROR;
+	goto done;
     }
-    /* `argc' and `argv' are used only for `CT_SIMPLE'. */
+    if (is_interrupted())
+	goto done1;
+
+    char *argv0; // a multi-byte version of argv[0]
+    if (argc == 0) {
+	argv0 = NULL;
+    } else {
+	argv0 = malloc_wcstombs(argv[0]);
+	if (argv0 == NULL)
+	    argv0 = xstrdup("");
+    }
 
     /* open redirections */
     savefd_T *savefd;
@@ -885,22 +862,10 @@ pid_t exec_process(
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
 	apply_errexit_errreturn(NULL);
-	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
+	if (posixly_correct && !is_interactive_now &&
 		argc > 0 && is_special_builtin(argv0))
 	    finally_exit = true;
 	goto done2;
-    }
-    
-    if (type == E_ASYNC && pi->pi_fromprevfd < 0)
-	maybe_redirect_stdin_to_devnull();
-
-    if (c->c_type != CT_SIMPLE) {
-	if (c->c_type == CT_SUBSHELL) {
-	    clear_savefd(savefd);
-	    savefd = NULL;
-	}
-	exec_nonsimple_command(c, finally_exit && savefd == NULL);
-	goto done1;
     }
 
     last_assign = c->c_assigns;
@@ -917,14 +882,13 @@ pid_t exec_process(
 	goto done2;
     }
 
+    /* check if the command is a special built-in or function */
     commandinfo_T cmdinfo;
-    bool temp;
-
-    /* check if the command is a special built-in or a function and determine
-     * whether we have to open a temporary environment. */
     search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
     special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
-    temp = c->c_assigns != NULL && !special_builtin_executed;
+
+    /* open a temporary variable environment */
+    bool temp = c->c_assigns != NULL && !special_builtin_executed;
     if (temp)
 	open_new_environment(true);
 
@@ -953,29 +917,10 @@ pid_t exec_process(
 	}
     }
 
-    /* create a child process to execute the external command */
-    if (cmdinfo.type == CT_EXTERNALPROGRAM && !finally_exit) {
-	assert(type == E_NORMAL);
-	cpid = fork_and_reset(pgid, true, t_leave);
-	if (cpid != 0)
-	    goto done3;
-	finally_exit = true;
-    }
-
     /* execute! */
-    bool finally_exit2;
-    switch (cmdinfo.type) {
-	case CT_EXTERNALPROGRAM:
-	    finally_exit2 = true;
-	    break;
-	case CT_FUNCTION:
-	    finally_exit2 = (finally_exit && /* !temp && */ savefd == NULL);
-	    break;
-	default:
-	    finally_exit2 = false;
-	    break;
-    }
-    invoke_simple_command(&cmdinfo, argc, argv0, argv, finally_exit2);
+    invoke_simple_command(&cmdinfo, argc, argv0, argv,
+	    finally_exit && /* !temp && */ savefd == NULL);
+    // TODO refactor invoke_simple_command
 
     /* Redirections are not undone after a successful "exec" command:
      * remove the saved data of file descriptors. */
@@ -985,22 +930,18 @@ pid_t exec_process(
     }
     exec_builtin_executed = false;
 
+    /* cleanup */
 done3:
     if (temp)
 	close_current_environment();
 done2:
-    if (c->c_type == CT_SIMPLE)
-	plfree(argv, free), free(argv0);
-done1:
     undo_redirections(savefd);
+    free(argv0);
+done1:
+    plfree(argv, free);
 done:
-    if (cpid < 0) {
-	laststatus = Exit_NOEXEC;
-	cpid = 0;
-    }
     if (finally_exit)
 	exit_shell();
-    return cpid;
 }
 
 /* Connects the pipe(s) and closes the pipes left. */
@@ -1234,6 +1175,7 @@ bool command_not_found_handler(void *const *argv)
  */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
+    // TODO fork or become_child(0) if CT_GROUP
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
