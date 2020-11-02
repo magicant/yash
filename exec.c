@@ -154,6 +154,9 @@ static bool is_err_condition_for(const command_T *c)
     __attribute__((pure));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
+static void exec_one_command(command_T *c, exec_T type)
+    __attribute__((nonnull));
+// TODO Reconsider order of functions around here
 static pid_t exec_process(
 	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
     __attribute__((nonnull));
@@ -574,16 +577,23 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 /* Executes the commands in a pipeline. */
 void exec_commands(command_T *c, exec_T type)
 {
+    // TODO Probably should do this in exec_one_command
+    /* increment the reference count of `c' to prevent `c' from being freed
+     * during execution. */
+    c = comsdup(c);
+
+    if (c->next == NULL) {
+	exec_one_command(c, type);
+	goto done;
+    }
+
+    // TODO rewrite below
     size_t count;
     pid_t pgid;
     command_T *cc;
     job_T *job;
     process_T *ps, *pp;
     pipeinfo_T pinfo = PIPEINFO_INIT;
-
-    /* increment the reference count of `c' to prevent `c' from being freed
-     * during execution. */
-    c = comsdup(c);
 
     /* count the number of the commands */
     count = 0;
@@ -657,6 +667,7 @@ void exec_commands(command_T *c, exec_T type)
 	}
     }
 
+done:
     handle_signals();
 
     apply_errexit_errreturn(c);
@@ -777,6 +788,20 @@ void next_pipe(pipeinfo_T *pi, bool next)
 fail:
     pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
     xerror(errno, Ngt("cannot open a pipe"));
+}
+
+void exec_one_command(command_T *c, exec_T type)
+{
+    /* prevent the command data from being freed in case the command is part of
+     * a function that is unset during execution. */
+    c = comsdup(c);
+
+    if (c->c_type == CT_SIMPLE) {
+    } else {
+    }
+    // TODO implement exec_one_command
+
+    comsfree(c);
 }
 
 /* Executes the command.
