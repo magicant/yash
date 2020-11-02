@@ -113,6 +113,12 @@ typedef struct commandinfo_T {
 #define ci_builtin  value.builtin
 #define ci_function value.function
 
+/* result of `fork_and_wait' */
+typedef struct fork_and_wait_T {
+    pid_t cpid;       /* child process ID */
+    wchar_t **namep;  /* where to place the job name */
+} fork_and_wait_T;
+
 typedef enum exception_T {
     E_NONE,
     E_CONTINUE,
@@ -144,7 +150,9 @@ static void exec_case(const command_T *c, bool finally_exit)
 static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
-static void exec_commands(command_T *c, exec_T type);
+static void exec_commands(command_T *cs, exec_T type);
+static inline size_t number_of_commands_in_pipeline(const command_T *c)
+    __attribute__((nonnull,pure,warn_unused_result));
 static bool is_errexit_condition(void)
     __attribute__((pure));
 static bool is_errreturn_condition(void)
@@ -154,12 +162,16 @@ static bool is_err_condition_for(const command_T *c)
     __attribute__((pure));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
-static pid_t exec_process(
-	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
+static void exec_one_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
+static void exec_simple_command(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+// TODO Reconsider order of functions around here
 static inline void connect_pipes(pipeinfo_T *pi)
     __attribute__((nonnull));
 static void become_child(sigtype_T sigtype);
+static fork_and_wait_T fork_and_wait(sigtype_T sigtype)
+    __attribute__((warn_unused_result));
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
 	commandinfo_T *restrict ci, enum srchcmdtype_T type)
@@ -170,9 +182,9 @@ static bool command_not_found_handler(void *const *argv)
     __attribute__((nonnull));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
-static void exec_simple_command(const commandinfo_T *ci,
+static wchar_t **invoke_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
 static void exec_external_program(
 	const char *path, int argc, char *argv0, void **argv, char **envs)
     __attribute__((nonnull));
@@ -311,6 +323,8 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	suppresserrexit |= suppress;
 	suppresserrreturn |= suppress;
 
+	// TODO doing_job_control_now and any_trap_set should be checked in
+	// exec_commands
 	bool self = finally_exit && !doing_job_control_now
 	    && !p->next && !p->pl_neg && !any_trap_set;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
@@ -572,96 +586,115 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 }
 
 /* Executes the commands in a pipeline. */
-void exec_commands(command_T *c, exec_T type)
+void exec_commands(command_T *const cs, exec_T type)
 {
-    size_t count;
-    pid_t pgid;
-    command_T *cc;
-    job_T *job;
-    process_T *ps, *pp;
-    pipeinfo_T pinfo = PIPEINFO_INIT;
+    if (cs->next == NULL && type != E_ASYNC) {
+	exec_one_command(cs, type == E_SELF);
+	goto done;
+    }
 
-    /* increment the reference count of `c' to prevent `c' from being freed
-     * during execution. */
-    c = comsdup(c);
-
-    /* count the number of the commands */
-    count = 0;
-    for (cc = c; cc != NULL; cc = cc->next)
-	count++;
+    size_t count = number_of_commands_in_pipeline(cs);
     assert(count > 0);
 
-    if (type == E_SELF && shopt_pipefail && count > 1)
+    if (type == E_SELF && shopt_pipefail) {
+	// need to check the exit status of all the commands, not only the last
 	type = E_NORMAL;
+    }
 
-    job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
-    ps = job->j_procs;
+    /* fork a child process for each command in the pipeline */
+    pid_t pgid = 0;
+    pipeinfo_T pipe = PIPEINFO_INIT;
+    job_T *job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
+    command_T *c;
+    process_T *p;
+    for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++) {
+	bool is_last = c->next == NULL;
+	next_pipe(&pipe, !is_last);
 
-    /* execute the commands */
-    pgid = 0, cc = c, pp = ps;
-    do {
-	pid_t pid;
+	if (type == E_SELF && is_last)
+	    goto exec_one_command; /* skip forking */
 
-	next_pipe(&pinfo, cc->next != NULL);
-	pid = exec_process(cc,
-		(type == E_SELF && cc->next != NULL) ? E_NORMAL : type,
-		&pinfo,
-		pgid);
-	pp->pr_pid = pid;
-	if (pid != 0) {
-	    pp->pr_status = JS_RUNNING;
-	    pp->pr_statuscode = 0;
+	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
+	pid_t pid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
+	if (pid == 0) {
+exec_one_command: /* child process */
+	    free(job);
+	    connect_pipes(&pipe);
+	    if (type == E_ASYNC && pipe.pi_fromprevfd < 0)
+		maybe_redirect_stdin_to_devnull();
+	    exec_one_command(c, true);
+	    assert(false);
+	} else if (pid >= 0) {
+	    /* parent process: fork succeeded */
+	    if (pgid == 0)
+		pgid = pid;
+	    p->pr_pid = pid;
+	    p->pr_status = JS_RUNNING;
+	    // p->pr_statuscode = ?; // The process is still running.
+	    p->pr_name = NULL; // The actual name is given later.
 	} else {
-	    pp->pr_status = JS_DONE;
-	    pp->pr_statuscode = laststatus;
+	    /* parent process: fork failed */
+	    p->pr_pid = 0;
+	    p->pr_status = JS_DONE;
+	    p->pr_statuscode = Exit_NOEXEC;
+	    p->pr_name = NULL;
 	}
-	pp->pr_name = NULL;   /* name is given later */
-	if (pgid == 0)
-	    pgid = pid;
-	cc = cc->next, pp++;
-    } while (cc != NULL);
-    assert(type != E_SELF); /* `exec_process' doesn't return for E_SELF */
-    assert(pinfo.pi_tonextfds[PIPE_IN] < 0);
-    assert(pinfo.pi_tonextfds[PIPE_OUT] < 0);
-    if (pinfo.pi_fromprevfd >= 0)
-	xclose(pinfo.pi_fromprevfd);           /* close leftover pipe */
+    }
 
-    if (pgid == 0) {
-	/* nothing more to do if we didn't fork */
-	free(job);
-    } else {
-	job->j_pgid = doing_job_control_now ? pgid : 0;
-	job->j_status = JS_RUNNING;
-	job->j_statuschanged = true;
-	job->j_legacy = false;
-	job->j_nonotify = false;
-	job->j_pcount = count;
-	set_active_job(job);
-	if (type == E_NORMAL) {
+    assert(pipe.pi_tonextfds[PIPE_IN] < 0);
+    assert(pipe.pi_tonextfds[PIPE_OUT] < 0);
+    if (pipe.pi_fromprevfd >= 0)
+	xclose(pipe.pi_fromprevfd); /* close the leftover pipe */
+
+    /* establish the job and wait for it */
+    job->j_pgid = doing_job_control_now ? pgid : 0;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = true;
+    job->j_legacy = false;
+    job->j_nonotify = false;
+    job->j_pcount = count;
+    set_active_job(job);
+    switch (type) {
+	case E_NORMAL:
 	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
 	    if (doing_job_control_now)
 		put_foreground(shell_pgid);
 	    laststatus = calc_status_of_job(job);
-	} else {
+	    break;
+	case E_ASYNC:
 	    assert(type == E_ASYNC);
+	    // TODO laststatus should be Exit_NOEXEC if fork failed
 	    laststatus = Exit_SUCCESS;
-	    lastasyncpid = ps[count - 1].pr_pid;
-	}
-	if (job->j_status != JS_DONE) {
-	    for (cc = c, pp = ps; cc != NULL; cc = cc->next, pp++)
-		pp->pr_name = command_to_wcs(cc, false);
-	    add_job(type == E_NORMAL || shopt_curasync);
-	} else {
-	    notify_signaled_job(ACTIVE_JOBNO);
-	    remove_job(ACTIVE_JOBNO);
-	}
+	    lastasyncpid = job->j_procs[count - 1].pr_pid;
+	    break;
+	case E_SELF:
+	    assert(false);
     }
 
+    if (job->j_status == JS_DONE) {
+	notify_signaled_job(ACTIVE_JOBNO);
+	remove_job(ACTIVE_JOBNO);
+    } else {
+	/* name the job processes */
+	for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++)
+	    p->pr_name = command_to_wcs(c, false);
+
+	/* remember the suspended job */
+	add_job(type == E_NORMAL || shopt_curasync);
+    }
+
+done:
     handle_signals();
 
-    apply_errexit_errreturn(c);
+    apply_errexit_errreturn(cs);
+}
 
-    comsfree(c);
+size_t number_of_commands_in_pipeline(const command_T *c)
+{
+    size_t count = 1;
+    while ((c = c->next) != NULL)
+	count++;
+    return count;
 }
 
 /* Returns true if the shell should exit because of the `errexit' option. */
@@ -779,67 +812,57 @@ fail:
     xerror(errno, Ngt("cannot open a pipe"));
 }
 
-/* Executes the command.
- * If job control is active, the child process's process group ID is set to
- * `pgid'. If `pgid' is 0, the child process's process ID is used as the process
- * group ID.
- * If the child process forked successfully, its process ID is returned.
- * If the command was executed without forking, `laststatus' is set to the exit
- * status of the command and 0 is returned.
- * if `type' is E_SELF, this function never returns. */
-pid_t exec_process(
-	command_T *restrict c, exec_T type, pipeinfo_T *restrict pi, pid_t pgid)
+/* Executes the command. */
+void exec_one_command(command_T *c, bool finally_exit)
 {
-    bool finally_exit; /* never return? */
-    int argc;
-    void **argv = NULL;
-    char *argv0 = NULL;
-    pid_t cpid = 0;
+    /* prevent the command data from being freed in case the command is part of
+     * a function that is unset during execution. */
+    c = comsdup(c);
 
     update_lineno(c->c_lineno);
 
-    finally_exit = (type == E_SELF);
-    if (finally_exit) {
-	if (c->c_type == CT_SUBSHELL)
-	    /* No command follows this subshell command, so we can execute the
-	     * subshell directly in this process. */
-	    become_child(0);
+    if (c->c_type == CT_SIMPLE) {
+	exec_simple_command(c, finally_exit);
     } else {
-	/* fork first if `type' is E_ASYNC, the command type is subshell,
-	 * or there is a pipe. */
-	if (type == E_ASYNC || c->c_type == CT_SUBSHELL
-		|| pi->pi_fromprevfd >= 0 || pi->pi_tonextfds[PIPE_OUT] >= 0) {
-	    sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
-	    cpid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
-	    if (cpid != 0)
-		goto done;
-	    finally_exit = true;
+	savefd_T *savefd;
+	if (open_redirections(c->c_redirs, &savefd)) {
+	    exec_nonsimple_command(c, finally_exit && savefd == NULL);
+	    undo_redirections(savefd);
+	} else {
+	    laststatus = Exit_REDIRERR;
+	    apply_errexit_errreturn(NULL);
 	}
     }
 
+    comsfree(c);
+
+    if (finally_exit)
+	exit_shell();
+}
+
+/* Executes the simple command. */
+void exec_simple_command(const command_T *c, bool finally_exit)
+{
     lastcmdsubstatus = Exit_SUCCESS;
 
-    /* connect pipes and close leftovers */
-    connect_pipes(pi);
-
-    if (c->c_type == CT_SIMPLE) {
-	if (!expand_line(c->c_words, &argc, &argv)) {
-	    laststatus = Exit_EXPERROR;
-	    goto done;
-	}
-	if (is_interrupted()) {
-	    plfree(argv, free);
-	    goto done;
-	}
-	if (argc == 0) {
-	    argv0 = NULL;
-	} else {
-	    argv0 = malloc_wcstombs(argv[0]);
-	    if (argv0 == NULL)
-		argv0 = xstrdup("");
-	}
+    /* expand the command words */
+    int argc;
+    void **argv;
+    if (!expand_line(c->c_words, &argc, &argv)) {
+	laststatus = Exit_EXPERROR;
+	goto done;
     }
-    /* `argc' and `argv' are used only for `CT_SIMPLE'. */
+    if (is_interrupted())
+	goto done1;
+
+    char *argv0; // a multi-byte version of argv[0]
+    if (argc == 0) {
+	argv0 = NULL;
+    } else {
+	argv0 = malloc_wcstombs(argv[0]);
+	if (argv0 == NULL)
+	    argv0 = xstrdup("");
+    }
 
     /* open redirections */
     savefd_T *savefd;
@@ -847,22 +870,10 @@ pid_t exec_process(
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
 	apply_errexit_errreturn(NULL);
-	if (posixly_correct && !is_interactive_now && c->c_type == CT_SIMPLE &&
+	if (posixly_correct && !is_interactive_now &&
 		argc > 0 && is_special_builtin(argv0))
 	    finally_exit = true;
 	goto done2;
-    }
-    
-    if (type == E_ASYNC && pi->pi_fromprevfd < 0)
-	maybe_redirect_stdin_to_devnull();
-
-    if (c->c_type != CT_SIMPLE) {
-	if (c->c_type == CT_SUBSHELL) {
-	    clear_savefd(savefd);
-	    savefd = NULL;
-	}
-	exec_nonsimple_command(c, finally_exit && savefd == NULL);
-	goto done1;
     }
 
     last_assign = c->c_assigns;
@@ -879,14 +890,13 @@ pid_t exec_process(
 	goto done2;
     }
 
+    /* check if the command is a special built-in or function */
     commandinfo_T cmdinfo;
-    bool temp;
-
-    /* check if the command is a special built-in or a function and determine
-     * whether we have to open a temporary environment. */
     search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
     special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
-    temp = c->c_assigns != NULL && !special_builtin_executed;
+
+    /* open a temporary variable environment */
+    bool temp = c->c_assigns != NULL && !special_builtin_executed;
     if (temp)
 	open_new_environment(true);
 
@@ -915,29 +925,11 @@ pid_t exec_process(
 	}
     }
 
-    /* create a child process to execute the external command */
-    if (cmdinfo.type == CT_EXTERNALPROGRAM && !finally_exit) {
-	assert(type == E_NORMAL);
-	cpid = fork_and_reset(pgid, true, t_leave);
-	if (cpid != 0)
-	    goto done3;
-	finally_exit = true;
-    }
-
     /* execute! */
-    bool finally_exit2;
-    switch (cmdinfo.type) {
-	case CT_EXTERNALPROGRAM:
-	    finally_exit2 = true;
-	    break;
-	case CT_FUNCTION:
-	    finally_exit2 = (finally_exit && /* !temp && */ savefd == NULL);
-	    break;
-	default:
-	    finally_exit2 = false;
-	    break;
-    }
-    exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit2);
+    wchar_t **namep = invoke_simple_command(&cmdinfo, argc, argv0, argv,
+	    finally_exit && /* !temp && */ savefd == NULL);
+    if (namep != NULL)
+	*namep = command_to_wcs(c, false);
 
     /* Redirections are not undone after a successful "exec" command:
      * remove the saved data of file descriptors. */
@@ -947,22 +939,18 @@ pid_t exec_process(
     }
     exec_builtin_executed = false;
 
+    /* cleanup */
 done3:
     if (temp)
 	close_current_environment();
 done2:
-    if (c->c_type == CT_SIMPLE)
-	plfree(argv, free), free(argv0);
-done1:
     undo_redirections(savefd);
+    free(argv0);
+done1:
+    plfree(argv, free);
 done:
-    if (cpid < 0) {
-	laststatus = Exit_NOEXEC;
-	cpid = 0;
-    }
     if (finally_exit)
 	exit_shell();
-    return cpid;
 }
 
 /* Connects the pipe(s) and closes the pipes left. */
@@ -1062,6 +1050,35 @@ void become_child(sigtype_T sigtype)
     is_interactive_now = false;
     suppresserrreturn = false;
     exitstatus = -1;
+}
+
+/* Forks a new child process and wait for it to finish.
+ * `sigtype' is passed to `fork_and_reset'.
+ * In the parent process, this function updates `laststatus' to the exit status
+ * of the child.
+ * In the child process, this function does not wait for anything.
+ * Returns a pair of the return value of `fork' and a pointer to a pointer to
+ * a wide string. If the pointer is non-null, the caller must assign it a
+ * pointer to a newly malloced wide string that is the job name of the child. */
+fork_and_wait_T fork_and_wait(sigtype_T sigtype)
+{
+    fork_and_wait_T result;
+    result.cpid = fork_and_reset(0, true, sigtype);
+    if (result.cpid < 0) {
+	/* Fork failed. */
+	laststatus = Exit_NOEXEC;
+	result.namep = NULL;
+    } if (result.cpid > 0) {
+	/* parent process */
+	result.namep = wait_for_child(
+		result.cpid,
+		doing_job_control_now ? result.cpid : 0,
+		doing_job_control_now);
+    } else {
+	/* child process */
+	result.namep = NULL;
+    }
+    return result;
 }
 
 /* Searches for a command.
@@ -1191,15 +1208,28 @@ bool command_not_found_handler(void *const *argv)
 }
 
 /* Executes the specified command whose type is not `CT_SIMPLE'.
- * The redirections for the command is not performed in this function.
- * For CT_SUBSHELL, this function must be called in an already-forked subshell.
- */
+ * The redirections for the command is not performed in this function. */
 void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
     switch (c->c_type) {
     case CT_SIMPLE:
 	assert(false);
     case CT_SUBSHELL:
+	if (finally_exit) {
+	    /* This is the last command to execute in the current shell, hence
+	     * no need to make a new child. */
+	    become_child(0);
+	} else {
+	    /* make a child process to execute the command */
+	    fork_and_wait_T faw = fork_and_wait(0);
+	    if (faw.cpid != 0) {
+		if (faw.namep != NULL)
+		    *faw.namep = command_to_wcs(c, false);
+		break;
+	    }
+	    finally_exit = true;
+	}
+	// falls thru!
     case CT_GROUP:
 	exec_and_or_lists(c->c_subcmds, finally_exit);
 	break;
@@ -1228,13 +1258,15 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
     }
 }
 
-/* Executes the simple command. */
+/* Invokes the simple command. */
 /* `argv0' is the multibyte version of `argv[0]' */
-void exec_simple_command(
+wchar_t **invoke_simple_command(
 	const commandinfo_T *ci, int argc, char *argv0, void **argv,
 	bool finally_exit)
 {
     assert(plcount(argv) == (size_t) argc);
+
+    fork_and_wait_T faw = { 0, NULL };
 
     switch (ci->type) {
     case CT_NONE:
@@ -1243,19 +1275,9 @@ void exec_simple_command(
 	break;
     case CT_EXTERNALPROGRAM:
 	if (!finally_exit) {
-	    pid_t cpid = fork_and_reset(0, true, t_leave);
-	    if (cpid < 0) {
-		laststatus = Exit_NOEXEC;
+	    faw = fork_and_wait(t_leave);
+	    if (faw.cpid != 0)
 		break;
-	    } else if (cpid > 0) {
-		wchar_t **namep = wait_for_child(
-			cpid,
-			doing_job_control_now ? cpid : 0,
-			doing_job_control_now);
-		if (namep != NULL)
-		    *namep = joinwcsarray(argv, L" ");
-		break;
-	    }
 	    finally_exit = true;
 	}
 	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
@@ -1278,6 +1300,7 @@ void exec_simple_command(
     }
     if (finally_exit)
 	exit_shell();
+    return faw.namep;
 }
 
 /* Executes the external program.
@@ -2321,7 +2344,11 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     }
 
     search_command(argv0, argv[0], &ci, type);
-    exec_simple_command(&ci, argc, argv0, argv, false);
+
+    wchar_t **namep = invoke_simple_command(&ci, argc, argv0, argv, false);
+    if (namep != NULL)
+	*namep = joinwcsarray(argv, L" ");
+
     free(argv0);
     return laststatus;
 }

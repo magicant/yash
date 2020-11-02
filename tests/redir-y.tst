@@ -66,6 +66,14 @@ __IN__
 /dev/null
 __OUT__
 
+test_o -e 0 'redirection to subshell affects current environment'
+unset x
+(:) < ${x=/dev/null}
+echo $x
+__IN__
+/dev/null
+__OUT__
+
 test_OE -e 0 'input duplication of unwritable file descriptor'
 3>/dev/null <&3
 __IN__
