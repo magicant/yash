@@ -156,7 +156,7 @@ static bool is_err_condition_for(const command_T *c)
     __attribute__((pure));
 static inline void next_pipe(pipeinfo_T *pi, bool next)
     __attribute__((nonnull));
-static void exec_one_command(command_T *c, exec_T type)
+static void exec_one_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 // TODO Reconsider order of functions around here
 static pid_t exec_process(
@@ -581,13 +581,13 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 /* Executes the commands in a pipeline. */
 void exec_commands(command_T *const cs, exec_T type)
 {
-    if (cs->next == NULL) {
-	exec_one_command(cs, type);
+    if (cs->next == NULL && type != E_ASYNC) {
+	exec_one_command(cs, type == E_SELF);
 	goto done;
     }
 
     size_t count = number_of_commands_in_pipeline(cs);
-    assert(count >= 2);
+    assert(count > 0);
 
     if (type == E_SELF && shopt_pipefail) {
 	// need to check the exit status of all the commands, not only the last
@@ -613,7 +613,7 @@ void exec_commands(command_T *const cs, exec_T type)
 exec_one_command: /* child process */
 	    free(job);
 	    connect_pipes(&pipe);
-	    exec_one_command(c, E_SELF);
+	    exec_one_command(c, true);
 	    assert(false);
 	} else if (pid >= 0) {
 	    /* parent process: fork succeeded */
@@ -803,7 +803,7 @@ fail:
     xerror(errno, Ngt("cannot open a pipe"));
 }
 
-void exec_one_command(command_T *c, exec_T type)
+void exec_one_command(command_T *c, bool finally_exit)
 {
     /* prevent the command data from being freed in case the command is part of
      * a function that is unset during execution. */
