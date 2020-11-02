@@ -182,9 +182,9 @@ static bool command_not_found_handler(void *const *argv)
     __attribute__((nonnull));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
-static void invoke_simple_command(const commandinfo_T *ci,
+static wchar_t **invoke_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
-    __attribute__((nonnull));
+    __attribute__((nonnull,warn_unused_result));
 static void exec_external_program(
 	const char *path, int argc, char *argv0, void **argv, char **envs)
     __attribute__((nonnull));
@@ -926,9 +926,10 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     }
 
     /* execute! */
-    invoke_simple_command(&cmdinfo, argc, argv0, argv,
+    wchar_t **namep = invoke_simple_command(&cmdinfo, argc, argv0, argv,
 	    finally_exit && /* !temp && */ savefd == NULL);
-    // TODO refactor invoke_simple_command
+    if (namep != NULL)
+	*namep = command_to_wcs(c, false);
 
     /* Redirections are not undone after a successful "exec" command:
      * remove the saved data of file descriptors. */
@@ -1259,11 +1260,13 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 
 /* Invokes the simple command. */
 /* `argv0' is the multibyte version of `argv[0]' */
-void invoke_simple_command(
+wchar_t **invoke_simple_command(
 	const commandinfo_T *ci, int argc, char *argv0, void **argv,
 	bool finally_exit)
 {
     assert(plcount(argv) == (size_t) argc);
+
+    fork_and_wait_T faw = { 0, NULL };
 
     switch (ci->type) {
     case CT_NONE:
@@ -1272,12 +1275,9 @@ void invoke_simple_command(
 	break;
     case CT_EXTERNALPROGRAM:
 	if (!finally_exit) {
-	    fork_and_wait_T faw = fork_and_wait(t_leave);
-	    if (faw.cpid != 0) {
-		if (faw.namep != NULL)
-		    *faw.namep = joinwcsarray(argv, L" ");
+	    faw = fork_and_wait(t_leave);
+	    if (faw.cpid != 0)
 		break;
-	    }
 	    finally_exit = true;
 	}
 	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
@@ -1300,6 +1300,7 @@ void invoke_simple_command(
     }
     if (finally_exit)
 	exit_shell();
+    return faw.namep;
 }
 
 /* Executes the external program.
@@ -2343,7 +2344,11 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     }
 
     search_command(argv0, argv[0], &ci, type);
-    invoke_simple_command(&ci, argc, argv0, argv, false);
+
+    wchar_t **namep = invoke_simple_command(&ci, argc, argv0, argv, false);
+    if (namep != NULL)
+	*namep = joinwcsarray(argv, L" ");
+
     free(argv0);
     return laststatus;
 }
