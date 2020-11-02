@@ -42,6 +42,30 @@ __OUT__
 
 )
 
+test_o -e 0 'redirection to special built-in affects current environment'
+unset x
+: < ${x=/dev/null}
+echo $x
+__IN__
+/dev/null
+__OUT__
+
+test_o -e 0 'redirection to external command affects current environment'
+unset x
+"$TESTEE" -c : < ${x=/dev/null}
+echo $x
+__IN__
+/dev/null
+__OUT__
+
+test_o -e 0 'redirection to grouping affects current environment'
+unset x
+{ :; } < ${x=/dev/null}
+echo $x
+__IN__
+/dev/null
+__OUT__
+
 test_OE -e 0 'input duplication of unwritable file descriptor'
 3>/dev/null <&3
 __IN__
