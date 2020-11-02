@@ -175,7 +175,7 @@ static bool command_not_found_handler(void *const *argv)
     __attribute__((nonnull));
 static void exec_nonsimple_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
-static void exec_simple_command(const commandinfo_T *ci,
+static void invoke_simple_command(const commandinfo_T *ci,
 	int argc, char *argv0, void **argv, bool finally_exit)
     __attribute__((nonnull));
 static void exec_external_program(
@@ -975,7 +975,7 @@ pid_t exec_process(
 	    finally_exit2 = false;
 	    break;
     }
-    exec_simple_command(&cmdinfo, argc, argv0, argv, finally_exit2);
+    invoke_simple_command(&cmdinfo, argc, argv0, argv, finally_exit2);
 
     /* Redirections are not undone after a successful "exec" command:
      * remove the saved data of file descriptors. */
@@ -1266,9 +1266,9 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
     }
 }
 
-/* Executes the simple command. */
+/* Invokes the simple command. */
 /* `argv0' is the multibyte version of `argv[0]' */
-void exec_simple_command(
+void invoke_simple_command(
 	const commandinfo_T *ci, int argc, char *argv0, void **argv,
 	bool finally_exit)
 {
@@ -2359,7 +2359,7 @@ int command_builtin_execute(int argc, void **argv, enum srchcmdtype_T type)
     }
 
     search_command(argv0, argv[0], &ci, type);
-    exec_simple_command(&ci, argc, argv0, argv, false);
+    invoke_simple_command(&ci, argc, argv0, argv, false);
     free(argv0);
     return laststatus;
 }
