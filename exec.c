@@ -822,6 +822,7 @@ void exec_one_command(command_T *c, bool finally_exit)
 	    exec_nonsimple_command(c, finally_exit && savefd == NULL);
 	    undo_redirections(savefd);
 	} else {
+	    undo_redirections(savefd);
 	    laststatus = Exit_REDIRERR;
 	    apply_errexit_errreturn(NULL);
 	}
