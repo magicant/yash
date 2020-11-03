@@ -323,10 +323,7 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 	suppresserrexit |= suppress;
 	suppresserrreturn |= suppress;
 
-	// TODO doing_job_control_now and any_trap_set should be checked in
-	// exec_commands
-	bool self = finally_exit && !doing_job_control_now
-	    && !p->next && !p->pl_neg && !any_trap_set;
+	bool self = finally_exit && !p->next && !p->pl_neg;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
 	if (p->pl_neg) {
 	    if (laststatus == Exit_SUCCESS)
@@ -588,17 +585,16 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 /* Executes the commands in a pipeline. */
 void exec_commands(command_T *const cs, exec_T type)
 {
-    if (cs->next == NULL && type != E_ASYNC) {
-	exec_one_command(cs, type == E_SELF);
-	goto done;
-    }
-
     size_t count = number_of_commands_in_pipeline(cs);
     assert(count > 0);
 
-    if (type == E_SELF && shopt_pipefail) {
-	// need to check the exit status of all the commands, not only the last
-	type = E_NORMAL;
+    bool short_circuit =
+	type == E_SELF && !doing_job_control_now && !any_trap_set &&
+	(count == 1 || !shopt_pipefail);
+
+    if (count == 1 && type != E_ASYNC) {
+	exec_one_command(cs, /* finally_exit = */ short_circuit);
+	goto done;
     }
 
     /* fork a child process for each command in the pipeline */
@@ -611,7 +607,7 @@ void exec_commands(command_T *const cs, exec_T type)
 	bool is_last = c->next == NULL;
 	next_pipe(&pipe, !is_last);
 
-	if (type == E_SELF && is_last)
+	if (is_last && short_circuit)
 	    goto exec_one_command; /* skip forking */
 
 	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
@@ -654,21 +650,15 @@ exec_one_command: /* child process */
     job->j_nonotify = false;
     job->j_pcount = count;
     set_active_job(job);
-    switch (type) {
-	case E_NORMAL:
-	    wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
-	    if (doing_job_control_now)
-		put_foreground(shell_pgid);
-	    laststatus = calc_status_of_job(job);
-	    break;
-	case E_ASYNC:
-	    assert(type == E_ASYNC);
-	    // TODO laststatus should be Exit_NOEXEC if fork failed
-	    laststatus = Exit_SUCCESS;
-	    lastasyncpid = job->j_procs[count - 1].pr_pid;
-	    break;
-	case E_SELF:
-	    assert(false);
+    if (type != E_ASYNC) {
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
+	if (doing_job_control_now)
+	    put_foreground(shell_pgid);
+	laststatus = calc_status_of_job(job);
+    } else {
+	// TODO laststatus should be Exit_NOEXEC if fork failed
+	laststatus = Exit_SUCCESS;
+	lastasyncpid = job->j_procs[count - 1].pr_pid;
     }
 
     if (job->j_status == JS_DONE) {
@@ -687,6 +677,9 @@ done:
     handle_signals();
 
     apply_errexit_errreturn(cs);
+
+    if (type == E_SELF)
+	exit_shell();
 }
 
 size_t number_of_commands_in_pipeline(const command_T *c)
