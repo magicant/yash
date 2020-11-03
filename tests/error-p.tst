@@ -373,6 +373,13 @@ __IN__
 ok
 __OUT__
 
+test_o 'redirection error without command spares shell'
+<_no_such_file_
+test $? -ne 0 && echo ok
+__IN__
+ok
+__OUT__
+
 # Command syntax error for special built-ins is not tested here because we can
 # not portably cause syntax error since any syntax can be accepted as an
 # extension.
