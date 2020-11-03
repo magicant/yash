@@ -25,6 +25,8 @@ Yash 2.51
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".
+  *  Redirections on a subshell command are now evaluated in the
+     current shell rather than in the subshell.
   *  When an EXIT trap is executed in a subshell with a redirection,
      the redirection was incorrectly not being applied to the trap.
   *  When job control is off, the "trap" built-in was failing to set
