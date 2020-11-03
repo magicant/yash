@@ -150,7 +150,8 @@ static void exec_case(const command_T *c, bool finally_exit)
 static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
-static void exec_commands(command_T *cs, exec_T type);
+static void exec_commands(command_T *cs, exec_T type)
+    __attribute__((nonnull));
 static inline size_t number_of_commands_in_pipeline(const command_T *c)
     __attribute__((nonnull,pure,warn_unused_result));
 static bool is_errexit_condition(void)
