@@ -404,6 +404,7 @@ void exec_commands(command_T *const cs, exec_T type)
     job_T *job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
     command_T *c;
     process_T *p;
+    int forkstatus = Exit_SUCCESS;
     for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++) {
 	bool is_last = c->next == NULL;
 	next_pipe(&pipe, !is_last);
@@ -433,7 +434,7 @@ exec_one_command: /* child process */
 	    /* parent process: fork failed */
 	    p->pr_pid = 0;
 	    p->pr_status = JS_DONE;
-	    p->pr_statuscode = Exit_NOEXEC;
+	    p->pr_statuscode = forkstatus = Exit_NOEXEC;
 	    p->pr_name = NULL;
 	}
     }
@@ -457,8 +458,7 @@ exec_one_command: /* child process */
 	    put_foreground(shell_pgid);
 	laststatus = calc_status_of_job(job);
     } else {
-	// TODO laststatus should be Exit_NOEXEC if fork failed
-	laststatus = Exit_SUCCESS;
+	laststatus = forkstatus;
 	lastasyncpid = job->j_procs[count - 1].pr_pid;
     }
 
