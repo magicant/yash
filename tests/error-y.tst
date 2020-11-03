@@ -330,7 +330,7 @@ test_nonspecial_builtin_redirect "$LINENO" array
 test_nonspecial_builtin_redirect "$LINENO" bg
 test_nonspecial_builtin_redirect "$LINENO" bindkey
 test_nonspecial_builtin_redirect "$LINENO" cat # example of external command
-test_nonspecial_builtin_redirect "$LINENO" cd
+# test_nonspecial_builtin_redirect "$LINENO" cd # tested in error-p.tst
 test_nonspecial_builtin_redirect "$LINENO" command
 test_nonspecial_builtin_redirect "$LINENO" complete
 test_nonspecial_builtin_redirect "$LINENO" dirs
@@ -359,7 +359,6 @@ test_nonspecial_builtin_redirect "$LINENO" ulimit
 test_nonspecial_builtin_redirect "$LINENO" umask
 test_nonspecial_builtin_redirect "$LINENO" unalias
 test_nonspecial_builtin_redirect "$LINENO" wait
-test_nonspecial_builtin_redirect "$LINENO" ./_no_such_command_
 
 )
 

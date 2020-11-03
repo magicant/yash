@@ -359,6 +359,20 @@ test_special_builtin_redirect   "$LINENO" unset
 test_special_builtin_redirect_s "$LINENO" unset
 test_special_builtin_redirect_i "$LINENO" unset
 
+test_o 'redirection error on non-special built-in cd spares shell'
+cd <_no_such_file_
+test $? -ne 0 && echo ok
+__IN__
+ok
+__OUT__
+
+test_o 'redirection error on non-existing command spares shell'
+./_no_such_command_ <_no_such_file_
+test $? -ne 0 && echo ok
+__IN__
+ok
+__OUT__
+
 # Command syntax error for special built-ins is not tested here because we can
 # not portably cause syntax error since any syntax can be accepted as an
 # extension.
