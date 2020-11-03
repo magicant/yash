@@ -138,6 +138,54 @@ typedef struct execstate_T {
 static void exec_pipelines(const pipeline_T *p, bool finally_exit);
 static void exec_pipelines_async(const pipeline_T *p)
     __attribute__((nonnull));
+
+static void exec_commands(command_T *cs, exec_T type)
+    __attribute__((nonnull));
+static inline size_t number_of_commands_in_pipeline(const command_T *c)
+    __attribute__((nonnull,pure,warn_unused_result));
+static void apply_errexit_errreturn(const command_T *c);
+static bool is_errexit_condition(void)
+    __attribute__((pure));
+static bool is_errreturn_condition(void)
+    __attribute__((pure));
+static bool is_err_condition_for(const command_T *c)
+    __attribute__((pure));
+static inline void next_pipe(pipeinfo_T *pi, bool next)
+    __attribute__((nonnull));
+static inline void connect_pipes(pipeinfo_T *pi)
+    __attribute__((nonnull));
+
+static void exec_one_command(command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void exec_simple_command(const command_T *c, bool finally_exit)
+    __attribute__((nonnull));
+static void print_xtrace(void *const *argv);
+static void search_command(
+	const char *restrict name, const wchar_t *restrict wname,
+	commandinfo_T *restrict ci, enum srchcmdtype_T type)
+    __attribute__((nonnull));
+static inline bool is_special_builtin(const char *cmdname)
+    __attribute__((nonnull,pure));
+static bool command_not_found_handler(void *const *argv)
+    __attribute__((nonnull));
+static wchar_t **invoke_simple_command(const commandinfo_T *ci,
+	int argc, char *argv0, void **argv, bool finally_exit)
+    __attribute__((nonnull,warn_unused_result));
+static void exec_external_program(
+	const char *path, int argc, char *argv0, void **argv, char **envs)
+    __attribute__((nonnull));
+static inline int xexecve(
+	const char *path, char *const *argv, char *const *envp)
+    __attribute__((nonnull(1)));
+static void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *env, const char *path)
+    __attribute__((nonnull(2,3,4)));
+static void exec_function_body(
+	command_T *body, void *const *args, bool finally_exit, bool complete)
+    __attribute__((nonnull));
+
+static void exec_nonsimple_command(command_T *c, bool finally_exit)
+    __attribute__((nonnull));
 static void exec_if(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static inline bool exec_condition(const and_or_T *c);
@@ -150,55 +198,9 @@ static void exec_case(const command_T *c, bool finally_exit)
 static void exec_funcdef(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
 
-static void exec_commands(command_T *cs, exec_T type)
-    __attribute__((nonnull));
-static inline size_t number_of_commands_in_pipeline(const command_T *c)
-    __attribute__((nonnull,pure,warn_unused_result));
-static bool is_errexit_condition(void)
-    __attribute__((pure));
-static bool is_errreturn_condition(void)
-    __attribute__((pure));
-static void apply_errexit_errreturn(const command_T *c);
-static bool is_err_condition_for(const command_T *c)
-    __attribute__((pure));
-static inline void next_pipe(pipeinfo_T *pi, bool next)
-    __attribute__((nonnull));
-static void exec_one_command(command_T *c, bool finally_exit)
-    __attribute__((nonnull));
-static void exec_simple_command(const command_T *c, bool finally_exit)
-    __attribute__((nonnull));
-// TODO Reconsider order of functions around here
-static inline void connect_pipes(pipeinfo_T *pi)
-    __attribute__((nonnull));
-static void become_child(sigtype_T sigtype);
 static fork_and_wait_T fork_and_wait(sigtype_T sigtype)
     __attribute__((warn_unused_result));
-static void search_command(
-	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci, enum srchcmdtype_T type)
-    __attribute__((nonnull));
-static inline bool is_special_builtin(const char *cmdname)
-    __attribute__((nonnull,pure));
-static bool command_not_found_handler(void *const *argv)
-    __attribute__((nonnull));
-static void exec_nonsimple_command(command_T *c, bool finally_exit)
-    __attribute__((nonnull));
-static wchar_t **invoke_simple_command(const commandinfo_T *ci,
-	int argc, char *argv0, void **argv, bool finally_exit)
-    __attribute__((nonnull,warn_unused_result));
-static void exec_external_program(
-	const char *path, int argc, char *argv0, void **argv, char **envs)
-    __attribute__((nonnull));
-static void print_xtrace(void *const *argv);
-static void exec_fall_back_on_sh(
-	int argc, char *const *argv, char *const *env, const char *path)
-    __attribute__((nonnull(2,3,4)));
-static void exec_function_body(
-	command_T *body, void *const *args, bool finally_exit, bool complete)
-    __attribute__((nonnull));
-static inline int xexecve(
-	const char *path, char *const *argv, char *const *envp)
-    __attribute__((nonnull(1)));
+static void become_child(sigtype_T sigtype);
 
 static int exec_iteration(void *const *commands, const char *codename)
     __attribute__((nonnull));
@@ -378,6 +380,782 @@ void exec_pipelines_async(const pipeline_T *p)
     } else {
 	/* fork failure */
 	laststatus = Exit_NOEXEC;
+    }
+}
+
+/* Executes the commands in a pipeline. */
+void exec_commands(command_T *const cs, exec_T type)
+{
+    size_t count = number_of_commands_in_pipeline(cs);
+    assert(count > 0);
+
+    bool short_circuit =
+	type == E_SELF && !doing_job_control_now && !any_trap_set &&
+	(count == 1 || !shopt_pipefail);
+
+    if (count == 1 && type != E_ASYNC) {
+	exec_one_command(cs, /* finally_exit = */ short_circuit);
+	goto done;
+    }
+
+    /* fork a child process for each command in the pipeline */
+    pid_t pgid = 0;
+    pipeinfo_T pipe = PIPEINFO_INIT;
+    job_T *job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
+    command_T *c;
+    process_T *p;
+    for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++) {
+	bool is_last = c->next == NULL;
+	next_pipe(&pipe, !is_last);
+
+	if (is_last && short_circuit)
+	    goto exec_one_command; /* skip forking */
+
+	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
+	pid_t pid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
+	if (pid == 0) {
+exec_one_command: /* child process */
+	    free(job);
+	    connect_pipes(&pipe);
+	    if (type == E_ASYNC && pipe.pi_fromprevfd < 0)
+		maybe_redirect_stdin_to_devnull();
+	    exec_one_command(c, true);
+	    assert(false);
+	} else if (pid >= 0) {
+	    /* parent process: fork succeeded */
+	    if (pgid == 0)
+		pgid = pid;
+	    p->pr_pid = pid;
+	    p->pr_status = JS_RUNNING;
+	    // p->pr_statuscode = ?; // The process is still running.
+	    p->pr_name = NULL; // The actual name is given later.
+	} else {
+	    /* parent process: fork failed */
+	    p->pr_pid = 0;
+	    p->pr_status = JS_DONE;
+	    p->pr_statuscode = Exit_NOEXEC;
+	    p->pr_name = NULL;
+	}
+    }
+
+    assert(pipe.pi_tonextfds[PIPE_IN] < 0);
+    assert(pipe.pi_tonextfds[PIPE_OUT] < 0);
+    if (pipe.pi_fromprevfd >= 0)
+	xclose(pipe.pi_fromprevfd); /* close the leftover pipe */
+
+    /* establish the job and wait for it */
+    job->j_pgid = doing_job_control_now ? pgid : 0;
+    job->j_status = JS_RUNNING;
+    job->j_statuschanged = true;
+    job->j_legacy = false;
+    job->j_nonotify = false;
+    job->j_pcount = count;
+    set_active_job(job);
+    if (type != E_ASYNC) {
+	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
+	if (doing_job_control_now)
+	    put_foreground(shell_pgid);
+	laststatus = calc_status_of_job(job);
+    } else {
+	// TODO laststatus should be Exit_NOEXEC if fork failed
+	laststatus = Exit_SUCCESS;
+	lastasyncpid = job->j_procs[count - 1].pr_pid;
+    }
+
+    if (job->j_status == JS_DONE) {
+	notify_signaled_job(ACTIVE_JOBNO);
+	remove_job(ACTIVE_JOBNO);
+    } else {
+	/* name the job processes */
+	for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++)
+	    p->pr_name = command_to_wcs(c, false);
+
+	/* remember the suspended job */
+	add_job(type == E_NORMAL || shopt_curasync);
+    }
+
+done:
+    handle_signals();
+
+    apply_errexit_errreturn(cs);
+
+    if (type == E_SELF)
+	exit_shell();
+}
+
+size_t number_of_commands_in_pipeline(const command_T *c)
+{
+    size_t count = 1;
+    while ((c = c->next) != NULL)
+	count++;
+    return count;
+}
+
+/* Tests the current condition for "errexit" and "errreturn" and then performs
+ * exit or return if applicable. */
+void apply_errexit_errreturn(const command_T *c)
+{
+    if (is_errexit_condition() && is_err_condition_for(c))
+	exit_shell_with_status(laststatus);
+    if (is_errreturn_condition() && is_err_condition_for(c))
+	exception = E_RETURN;
+}
+
+/* Returns true if the shell should exit because of the `errexit' option. */
+bool is_errexit_condition(void)
+{
+    if (!shopt_errexit || suppresserrexit)
+	return false;
+    if (laststatus == Exit_SUCCESS)
+	return false;
+
+#if YASH_ENABLE_LINEEDIT
+    if (le_state & LE_STATE_COMPLETING)
+	return false;
+#endif
+
+    return true;
+}
+
+/* Returns true if the shell should return because of the `errreturn' option. */
+bool is_errreturn_condition(void)
+{
+    if (!shopt_errreturn || suppresserrreturn || execstate.noreturn)
+	return false;
+    return laststatus != Exit_SUCCESS;
+}
+
+/* Returns true if "errexit" and "errreturn" should be applied to the given
+ * command. */
+bool is_err_condition_for(const command_T *c)
+{
+    if (c == NULL)
+	return true;
+
+    /* If this is a multi-command pipeline, the commands are executed in
+     * subshells. Otherwise, we need to check the type of the command. */
+    if (c->next != NULL)
+	return true;
+
+    switch (c->c_type) {
+	case CT_SIMPLE:
+	case CT_SUBSHELL:
+#if YASH_ENABLE_DOUBLE_BRACKET
+	case CT_BRACKET:
+#endif
+	case CT_FUNCDEF:
+	    return true;
+	case CT_GROUP:
+	case CT_IF:
+	case CT_FOR:
+	case CT_WHILE:
+	case CT_CASE:
+	    return false;
+    }
+
+    assert(false);
+}
+
+/* Updates the contents of the `pipeinfo_T' to proceed to the next process
+ * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
+ * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
+ * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'; otherwise,
+ * `pi->pi_tonextfds' is assigned -1.
+ * Returns true iff successful. */
+void next_pipe(pipeinfo_T *pi, bool next)
+{
+    if (pi->pi_fromprevfd >= 0)
+	xclose(pi->pi_fromprevfd);
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
+    pi->pi_fromprevfd = pi->pi_tonextfds[PIPE_IN];
+    if (next) {
+	if (pipe(pi->pi_tonextfds) < 0)
+	    goto fail;
+
+	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
+	 * other when we move the pipe to the standard input/output later. So,
+	 * if they are 0 or 1, we move them to bigger numbers. */
+	int origin  = pi->pi_tonextfds[PIPE_IN];
+	int origout = pi->pi_tonextfds[PIPE_OUT];
+	if (origin < 2 || origout < 2) {
+	    if (origin < 2)
+		pi->pi_tonextfds[PIPE_IN] = dup(origin);
+	    if (origout < 2)
+		pi->pi_tonextfds[PIPE_OUT] = dup(origout);
+	    if (origin < 2)
+		xclose(origin);
+	    if (origout < 2)
+		xclose(origout);
+	    if (pi->pi_tonextfds[PIPE_IN] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_OUT]);
+		goto fail;
+	    }
+	    if (pi->pi_tonextfds[PIPE_OUT] < 0) {
+		xclose(pi->pi_tonextfds[PIPE_IN]);
+		goto fail;
+	    }
+	}
+    } else {
+	pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
+    }
+    return;
+
+fail:
+    pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
+    xerror(errno, Ngt("cannot open a pipe"));
+}
+
+/* Connects the pipe(s) and closes the pipes left. */
+void connect_pipes(pipeinfo_T *pi)
+{
+    if (pi->pi_fromprevfd >= 0) {
+	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
+	xclose(pi->pi_fromprevfd);
+    }
+    if (pi->pi_tonextfds[PIPE_OUT] >= 0) {
+	xdup2(pi->pi_tonextfds[PIPE_OUT], STDOUT_FILENO);
+	xclose(pi->pi_tonextfds[PIPE_OUT]);
+    }
+    if (pi->pi_tonextfds[PIPE_IN] >= 0)
+	xclose(pi->pi_tonextfds[PIPE_IN]);
+}
+
+/* Executes the command. */
+void exec_one_command(command_T *c, bool finally_exit)
+{
+    /* prevent the command data from being freed in case the command is part of
+     * a function that is unset during execution. */
+    c = comsdup(c);
+
+    update_lineno(c->c_lineno);
+
+    if (c->c_type == CT_SIMPLE) {
+	exec_simple_command(c, finally_exit);
+    } else {
+	savefd_T *savefd;
+	if (open_redirections(c->c_redirs, &savefd)) {
+	    exec_nonsimple_command(c, finally_exit && savefd == NULL);
+	    undo_redirections(savefd);
+	} else {
+	    undo_redirections(savefd);
+	    laststatus = Exit_REDIRERR;
+	    apply_errexit_errreturn(NULL);
+	}
+    }
+
+    comsfree(c);
+
+    if (finally_exit)
+	exit_shell();
+}
+
+/* Executes the simple command. */
+void exec_simple_command(const command_T *c, bool finally_exit)
+{
+    lastcmdsubstatus = Exit_SUCCESS;
+
+    /* expand the command words */
+    int argc;
+    void **argv;
+    if (!expand_line(c->c_words, &argc, &argv)) {
+	laststatus = Exit_EXPERROR;
+	goto done;
+    }
+    if (is_interrupted())
+	goto done1;
+
+    char *argv0; // a multi-byte version of argv[0]
+    if (argc == 0) {
+	argv0 = NULL;
+    } else {
+	argv0 = malloc_wcstombs(argv[0]);
+	if (argv0 == NULL)
+	    argv0 = xstrdup("");
+    }
+
+    /* open redirections */
+    savefd_T *savefd;
+    if (!open_redirections(c->c_redirs, &savefd)) {
+	/* On redirection error, the command is not executed. */
+	laststatus = Exit_REDIRERR;
+	apply_errexit_errreturn(NULL);
+	if (posixly_correct && !is_interactive_now &&
+		argc > 0 && is_special_builtin(argv0))
+	    finally_exit = true;
+	goto done2;
+    }
+
+    last_assign = c->c_assigns;
+    if (argc == 0) {
+	/* if there is no command word, just perform assignments */
+	if (do_assignments(c->c_assigns, false, shopt_allexport)) {
+	    laststatus = lastcmdsubstatus;
+	} else {
+	    laststatus = Exit_ASSGNERR;
+	    if (!is_interactive_now)
+		finally_exit = true;
+	}
+	print_xtrace(NULL);
+	goto done2;
+    }
+
+    /* check if the command is a special built-in or function */
+    commandinfo_T cmdinfo;
+    search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
+    special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
+
+    /* open a temporary variable environment */
+    bool temp = c->c_assigns != NULL && !special_builtin_executed;
+    if (temp)
+	open_new_environment(true);
+
+    /* perform the assignments */
+    if (!do_assignments(c->c_assigns, temp, true)) {
+	/* On assignment error, the command is not executed. */
+	print_xtrace(NULL);
+	laststatus = Exit_ASSGNERR;
+	if (!is_interactive_now)
+	    finally_exit = true;
+	goto done3;
+    }
+    print_xtrace(argv);
+
+    /* find command path */
+    if (cmdinfo.type == CT_NONE) {
+	search_command(argv0, argv[0], &cmdinfo,
+		SCT_EXTERNAL | SCT_BUILTIN | SCT_CHECK);
+	if (cmdinfo.type == CT_NONE) {
+	    if (!posixly_correct && command_not_found_handler(argv))
+		goto done3;
+	    if (wcschr(argv[0], L'/') != NULL) {
+		cmdinfo.type = CT_EXTERNALPROGRAM;
+		cmdinfo.ci_path = argv0;
+	    }
+	}
+    }
+
+    /* execute! */
+    wchar_t **namep = invoke_simple_command(&cmdinfo, argc, argv0, argv,
+	    finally_exit && /* !temp && */ savefd == NULL);
+    if (namep != NULL)
+	*namep = command_to_wcs(c, false);
+
+    /* Redirections are not undone after a successful "exec" command:
+     * remove the saved data of file descriptors. */
+    if (exec_builtin_executed && laststatus == Exit_SUCCESS) {
+	clear_savefd(savefd);
+	savefd = NULL;
+    }
+    exec_builtin_executed = false;
+
+    /* cleanup */
+done3:
+    if (temp)
+	close_current_environment();
+done2:
+    undo_redirections(savefd);
+    free(argv0);
+done1:
+    plfree(argv, free);
+done:
+    if (finally_exit)
+	exit_shell();
+}
+
+/* Returns a pointer to the xtrace buffer.
+ * The buffer is initialized if not. */
+xwcsbuf_T *get_xtrace_buffer(void)
+{
+    if (xtrace_buffer.contents == NULL)
+	wb_init(&xtrace_buffer);
+    return &xtrace_buffer;
+}
+
+/* Prints a trace if the "xtrace" option is on. */
+void print_xtrace(void *const *argv)
+{
+    bool tracevars = xtrace_buffer.contents != NULL
+		  && xtrace_buffer.length > 0;
+
+    if (shopt_xtrace
+	    && (!is_executing_auxiliary || shopt_traceall)
+	    && (tracevars || argv != NULL)
+#if YASH_ENABLE_LINEEDIT
+	    && !(le_state & LE_STATE_ACTIVE)
+#endif
+	    ) {
+	bool first = true;
+
+	struct promptset_T prompt = get_prompt(4);
+	print_prompt(prompt.main);
+	print_prompt(prompt.styler);
+
+	if (tracevars) {
+	    fprintf(stderr, "%ls", xtrace_buffer.contents + 1);
+	    first = false;
+	}
+	if (argv != NULL) {
+	    for (void *const *a = argv; *a != NULL; a++) {
+		if (!first)
+		    fputc(' ', stderr);
+		first = false;
+
+		wchar_t *quoted = quote_as_word(*a);
+		fprintf(stderr, "%ls", quoted);
+		free(quoted);
+	    }
+	}
+	fputc('\n', stderr);
+
+	print_prompt(PROMPT_RESET);
+	free_prompt(prompt);
+    }
+    if (xtrace_buffer.contents != NULL) {
+	wb_destroy(&xtrace_buffer);
+	xtrace_buffer.contents = NULL;
+    }
+}
+
+/* Searches for a command.
+ * The result is assigned to `*ci'.
+ * `name' and `wname' must contain the same string value.
+ * If the SCT_ALL flag is not set:
+ *   *  a function whose name contains a slash cannot be found
+ *   *  a regular built-in cannot be found in the POSIXly correct mode if the
+ *      SCT_EXTERNAL flag is not set either.
+ * If the SCT_EXTERNAL flag is set, the SCT_CHECK flag is not set, and `name'
+ * contains a slash, the external command of the given `name' is always found.
+ */
+void search_command(
+	const char *restrict name, const wchar_t *restrict wname,
+	commandinfo_T *restrict ci, enum srchcmdtype_T type)
+{
+    bool slash = wcschr(wname, L'/') != NULL;
+
+    const builtin_T *bi;
+    if (!slash && (type & SCT_BUILTIN))
+	bi = get_builtin(name);
+    else
+	bi = NULL;
+    if (bi != NULL && bi->type == BI_SPECIAL) {
+	ci->type = CT_SPECIALBUILTIN;
+	ci->ci_builtin = bi->body;
+	return;
+    }
+
+    if ((type & SCT_FUNCTION) && (!slash || (type & SCT_ALL))) {
+	command_T *funcbody = get_function(wname);
+	if (funcbody != NULL) {
+	    ci->type = CT_FUNCTION;
+	    ci->ci_function = funcbody;
+	    return;
+	}
+    }
+
+    if (bi != NULL) {
+	if (bi->type == BI_SEMISPECIAL) {
+	    ci->type = CT_SEMISPECIALBUILTIN;
+	    ci->ci_builtin = bi->body;
+	    return;
+	} else if (!posixly_correct) {
+	    goto regular_builtin;
+	}
+    }
+
+    if (slash) {
+	if (type & SCT_EXTERNAL) {
+	    if (!(type & SCT_CHECK) || is_executable_regular(name)) {
+		ci->type = CT_EXTERNALPROGRAM;
+		ci->ci_path = name;
+		return;
+	    }
+	}
+    } else {
+	if ((type & SCT_EXTERNAL) || (bi != NULL && (type & SCT_ALL))) {
+	    const char *cmdpath;
+	    if (type & SCT_STDPATH)
+		cmdpath = get_command_path_default(name);
+	    else
+		cmdpath = get_command_path(name, false);
+	    if (cmdpath != NULL) {
+		if (bi != NULL) {
+regular_builtin:
+		    assert(bi->type == BI_REGULAR);
+		    ci->type = CT_REGULARBUILTIN;
+		    ci->ci_builtin = bi->body;
+		} else {
+		    ci->type = CT_EXTERNALPROGRAM;
+		    ci->ci_path = cmdpath;
+		}
+		return;
+	    }
+	}
+    }
+
+    /* command not found... */
+    ci->type = CT_NONE;
+    ci->ci_path = NULL;
+    return;
+}
+
+/* Returns true iff the specified command is a special built-in. */
+bool is_special_builtin(const char *cmdname)
+{
+    const builtin_T *bi = get_builtin(cmdname);
+    return bi != NULL && bi->type == BI_SPECIAL;
+}
+
+/* Executes $COMMAND_NOT_FOUND_HANDLER if any.
+ * `argv' is set to the positional parameters of the environment in which the
+ * handler is executed.
+ * Returns true iff the hander was executed and $HANDLED was set non-empty. */
+bool command_not_found_handler(void *const *argv)
+{
+    static bool handling = false;
+    if (handling)
+	return false;  /* don't allow reentrance */
+    handling = true;
+
+    bool handled;
+    int result;
+
+    open_new_environment(false);
+    set_positional_parameters(argv);
+    set_variable(L VAR_HANDLED, xwcsdup(L""), SCOPE_LOCAL, false);
+
+    result = exec_variable_as_auxiliary_(VAR_COMMAND_NOT_FOUND_HANDLER);
+    if (result >= 0) {
+	const wchar_t *handledv = getvar(L VAR_HANDLED);
+	handled = (handledv != NULL && handledv[0] != L'\0');
+    } else {
+	handled = false;
+    }
+
+    close_current_environment();
+
+    handling = false;
+    if (handled) {
+	laststatus = result;
+	return true;
+    } else {
+	return false;
+    }
+}
+
+/* Invokes the simple command. */
+/* `argv0' is the multibyte version of `argv[0]' */
+wchar_t **invoke_simple_command(
+	const commandinfo_T *ci, int argc, char *argv0, void **argv,
+	bool finally_exit)
+{
+    assert(plcount(argv) == (size_t) argc);
+
+    fork_and_wait_T faw = { 0, NULL };
+
+    switch (ci->type) {
+    case CT_NONE:
+	xerror(0, Ngt("no such command `%s'"), argv0);
+	laststatus = Exit_NOTFOUND;
+	break;
+    case CT_EXTERNALPROGRAM:
+	if (!finally_exit) {
+	    faw = fork_and_wait(t_leave);
+	    if (faw.cpid != 0)
+		break;
+	    finally_exit = true;
+	}
+	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
+	break;
+    case CT_SPECIALBUILTIN:
+    case CT_SEMISPECIALBUILTIN:
+    case CT_REGULARBUILTIN:
+	yash_error_message_count = 0;
+
+	const wchar_t *savecbn = current_builtin_name;
+	current_builtin_name = argv[0];
+
+	laststatus = ci->ci_builtin(argc, argv);
+
+	current_builtin_name = savecbn;
+	break;
+    case CT_FUNCTION:
+	exec_function_body(ci->ci_function, &argv[1], finally_exit, false);
+	break;
+    }
+    if (finally_exit)
+	exit_shell();
+    return faw.namep;
+}
+
+/* Executes the external program.
+ *  path:  path to the program to be executed
+ *  argc:  number of strings in `argv'
+ *  argv0: multibyte version of `argv[0]'
+ *  argv:  pointer to an array of pointers to wide strings that are passed to
+ *         the program */
+void exec_external_program(
+	const char *path, int argc, char *argv0, void **argv, char **envs)
+{
+    char *mbsargv[argc + 1];
+    mbsargv[0] = argv0;
+    for (int i = 1; i < argc; i++) {
+	mbsargv[i] = malloc_wcstombs(argv[i]);
+	if (mbsargv[i] == NULL)
+	    mbsargv[i] = xstrdup("");
+    }
+    mbsargv[argc] = NULL;
+
+    restore_signals(true);
+
+    xexecve(path, mbsargv, envs);
+    int saveerrno = errno;
+    if (saveerrno != ENOEXEC) {
+	if (saveerrno == EACCES && is_directory(path))
+	    saveerrno = EISDIR;
+	xerror(saveerrno,
+		strcmp(mbsargv[0], path) == 0
+		    ? Ngt("cannot execute command `%s'")
+		    : Ngt("cannot execute command `%s' (%s)"),
+		argv0, path);
+    } else if (saveerrno != ENOENT) {
+	exec_fall_back_on_sh(argc, mbsargv, envs, path);
+    }
+    laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
+
+    set_signals();
+
+    for (int i = 1; i < argc; i++)
+	free(mbsargv[i]);
+}
+
+/* Calls `execve' until it doesn't return EINTR. */
+int xexecve(const char *path, char *const *argv, char *const *envp)
+{
+    do
+	execve(path, argv, envp);
+    while (errno == EINTR);
+    return -1;
+}
+
+/* Executes the specified command as a shell script by `exec'ing a shell.
+ * `path' is the full path to the script file.
+ * Returns iff failed to `exec'. */
+void exec_fall_back_on_sh(
+	int argc, char *const *argv, char *const *envp, const char *path)
+{
+    assert(argv[argc] == NULL);
+
+    char *args[argc + 3];
+    size_t index = 0;
+    args[index++] = "sh";
+    args[index++] = (char *) "-";
+    if (strcmp(path, "--") == 0)
+	args[index++] = "./--";
+    else
+	args[index++] = (char *) path;
+    for (int i = 1; i < argc; i++)
+	args[index++] = argv[i];
+    args[index] = NULL;
+#if HAVE_PROC_SELF_EXE
+    xexecve("/proc/self/exe", args, envp);
+#elif HAVE_PROC_CURPROC_FILE
+    xexecve("/proc/curproc/file", args, envp);
+#elif HAVE_PROC_OBJECT_AOUT
+    char *objpath = malloc_printf(
+	    "/proc/%jd/object/a.out", (intmax_t) getpid());
+    xexecve(objpath, args, envp);
+    free(objpath);
+#elif HAVE_PATHS_H && defined _PATH_BSHELL
+    xexecve(_PATH_BSHELL, args, envp);
+#endif
+    const char *shpath = get_command_path("sh", false);
+    if (shpath != NULL)
+	xexecve(shpath, args, envp);
+    else
+	errno = ENOENT;
+    xerror(errno, Ngt("cannot invoke a new shell to execute script `%s'"),
+	    argv[0]);
+}
+
+/* Executes the specified command as a function.
+ * `args' are the arguments to the function, which are wide strings cast to
+ * (void *).
+ * If `complete' is true, `set_completion_variables' will be called after a new
+ * variable environment was opened before the function body is executed. */
+void exec_function_body(
+	command_T *body, void *const *args, bool finally_exit, bool complete)
+{
+    execstate_T *saveexecstate = save_execstate();
+    reset_execstate(false);
+
+    bool saveser = suppresserrreturn;
+    suppresserrreturn = false;
+
+    open_new_environment(false);
+    set_positional_parameters(args);
+#if YASH_ENABLE_LINEEDIT
+    if (complete)
+	set_completion_variables();
+#else
+    (void) complete;
+#endif
+    exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
+    close_current_environment();
+
+    cancel_return();
+    suppresserrreturn = saveser;
+    restore_execstate(saveexecstate);
+}
+
+/* Executes the specified command whose type is not `CT_SIMPLE'.
+ * The redirections for the command is not performed in this function. */
+void exec_nonsimple_command(command_T *c, bool finally_exit)
+{
+    switch (c->c_type) {
+    case CT_SIMPLE:
+	assert(false);
+    case CT_SUBSHELL:
+	if (finally_exit) {
+	    /* This is the last command to execute in the current shell, hence
+	     * no need to make a new child. */
+	    become_child(0);
+	} else {
+	    /* make a child process to execute the command */
+	    fork_and_wait_T faw = fork_and_wait(0);
+	    if (faw.cpid != 0) {
+		if (faw.namep != NULL)
+		    *faw.namep = command_to_wcs(c, false);
+		break;
+	    }
+	    finally_exit = true;
+	}
+	// falls thru!
+    case CT_GROUP:
+	exec_and_or_lists(c->c_subcmds, finally_exit);
+	break;
+    case CT_IF:
+	exec_if(c, finally_exit);
+	break;
+    case CT_FOR:
+	exec_for(c, finally_exit);
+	break;
+    case CT_WHILE:
+	exec_while(c, finally_exit);
+	break;
+    case CT_CASE:
+	exec_case(c, finally_exit);
+	break;
+#if YASH_ENABLE_DOUBLE_BRACKET
+    case CT_BRACKET:
+	laststatus = exec_double_bracket(c);
+	if (finally_exit)
+	    exit_shell();
+	break;
+#endif /* YASH_ENABLE_DOUBLE_BRACKET */
+    case CT_FUNCDEF:
+	exec_funcdef(c, finally_exit);
+	break;
     }
 }
 
@@ -583,384 +1361,33 @@ void exec_funcdef(const command_T *c, bool finally_exit)
 	exit_shell();
 }
 
-/* Executes the commands in a pipeline. */
-void exec_commands(command_T *const cs, exec_T type)
+/* Forks a new child process and wait for it to finish.
+ * `sigtype' is passed to `fork_and_reset'.
+ * In the parent process, this function updates `laststatus' to the exit status
+ * of the child.
+ * In the child process, this function does not wait for anything.
+ * Returns a pair of the return value of `fork' and a pointer to a pointer to
+ * a wide string. If the pointer is non-null, the caller must assign it a
+ * pointer to a newly malloced wide string that is the job name of the child. */
+fork_and_wait_T fork_and_wait(sigtype_T sigtype)
 {
-    size_t count = number_of_commands_in_pipeline(cs);
-    assert(count > 0);
-
-    bool short_circuit =
-	type == E_SELF && !doing_job_control_now && !any_trap_set &&
-	(count == 1 || !shopt_pipefail);
-
-    if (count == 1 && type != E_ASYNC) {
-	exec_one_command(cs, /* finally_exit = */ short_circuit);
-	goto done;
-    }
-
-    /* fork a child process for each command in the pipeline */
-    pid_t pgid = 0;
-    pipeinfo_T pipe = PIPEINFO_INIT;
-    job_T *job = xmallocs(sizeof *job, count, sizeof *job->j_procs);
-    command_T *c;
-    process_T *p;
-    for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++) {
-	bool is_last = c->next == NULL;
-	next_pipe(&pipe, !is_last);
-
-	if (is_last && short_circuit)
-	    goto exec_one_command; /* skip forking */
-
-	sigtype_T sigtype = (type == E_ASYNC) ? t_quitint : 0;
-	pid_t pid = fork_and_reset(pgid, type == E_NORMAL, sigtype);
-	if (pid == 0) {
-exec_one_command: /* child process */
-	    free(job);
-	    connect_pipes(&pipe);
-	    if (type == E_ASYNC && pipe.pi_fromprevfd < 0)
-		maybe_redirect_stdin_to_devnull();
-	    exec_one_command(c, true);
-	    assert(false);
-	} else if (pid >= 0) {
-	    /* parent process: fork succeeded */
-	    if (pgid == 0)
-		pgid = pid;
-	    p->pr_pid = pid;
-	    p->pr_status = JS_RUNNING;
-	    // p->pr_statuscode = ?; // The process is still running.
-	    p->pr_name = NULL; // The actual name is given later.
-	} else {
-	    /* parent process: fork failed */
-	    p->pr_pid = 0;
-	    p->pr_status = JS_DONE;
-	    p->pr_statuscode = Exit_NOEXEC;
-	    p->pr_name = NULL;
-	}
-    }
-
-    assert(pipe.pi_tonextfds[PIPE_IN] < 0);
-    assert(pipe.pi_tonextfds[PIPE_OUT] < 0);
-    if (pipe.pi_fromprevfd >= 0)
-	xclose(pipe.pi_fromprevfd); /* close the leftover pipe */
-
-    /* establish the job and wait for it */
-    job->j_pgid = doing_job_control_now ? pgid : 0;
-    job->j_status = JS_RUNNING;
-    job->j_statuschanged = true;
-    job->j_legacy = false;
-    job->j_nonotify = false;
-    job->j_pcount = count;
-    set_active_job(job);
-    if (type != E_ASYNC) {
-	wait_for_job(ACTIVE_JOBNO, doing_job_control_now, false, false);
-	if (doing_job_control_now)
-	    put_foreground(shell_pgid);
-	laststatus = calc_status_of_job(job);
+    fork_and_wait_T result;
+    result.cpid = fork_and_reset(0, true, sigtype);
+    if (result.cpid < 0) {
+	/* Fork failed. */
+	laststatus = Exit_NOEXEC;
+	result.namep = NULL;
+    } if (result.cpid > 0) {
+	/* parent process */
+	result.namep = wait_for_child(
+		result.cpid,
+		doing_job_control_now ? result.cpid : 0,
+		doing_job_control_now);
     } else {
-	// TODO laststatus should be Exit_NOEXEC if fork failed
-	laststatus = Exit_SUCCESS;
-	lastasyncpid = job->j_procs[count - 1].pr_pid;
+	/* child process */
+	result.namep = NULL;
     }
-
-    if (job->j_status == JS_DONE) {
-	notify_signaled_job(ACTIVE_JOBNO);
-	remove_job(ACTIVE_JOBNO);
-    } else {
-	/* name the job processes */
-	for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++)
-	    p->pr_name = command_to_wcs(c, false);
-
-	/* remember the suspended job */
-	add_job(type == E_NORMAL || shopt_curasync);
-    }
-
-done:
-    handle_signals();
-
-    apply_errexit_errreturn(cs);
-
-    if (type == E_SELF)
-	exit_shell();
-}
-
-size_t number_of_commands_in_pipeline(const command_T *c)
-{
-    size_t count = 1;
-    while ((c = c->next) != NULL)
-	count++;
-    return count;
-}
-
-/* Returns true if the shell should exit because of the `errexit' option. */
-bool is_errexit_condition(void)
-{
-    if (!shopt_errexit || suppresserrexit)
-	return false;
-    if (laststatus == Exit_SUCCESS)
-	return false;
-
-#if YASH_ENABLE_LINEEDIT
-    if (le_state & LE_STATE_COMPLETING)
-	return false;
-#endif
-
-    return true;
-}
-
-/* Returns true if the shell should return because of the `errreturn' option. */
-bool is_errreturn_condition(void)
-{
-    if (!shopt_errreturn || suppresserrreturn || execstate.noreturn)
-	return false;
-    return laststatus != Exit_SUCCESS;
-}
-
-/* Tests the current condition for "errexit" and "errreturn" and then performs
- * exit or return if applicable. */
-void apply_errexit_errreturn(const command_T *c)
-{
-    if (is_errexit_condition() && is_err_condition_for(c))
-	exit_shell_with_status(laststatus);
-    if (is_errreturn_condition() && is_err_condition_for(c))
-	exception = E_RETURN;
-}
-
-/* Returns true if "errexit" and "errreturn" should be applied to the given
- * command. */
-bool is_err_condition_for(const command_T *c)
-{
-    if (c == NULL)
-	return true;
-
-    /* If this is a multi-command pipeline, the commands are executed in
-     * subshells. Otherwise, we need to check the type of the command. */
-    if (c->next != NULL)
-	return true;
-
-    switch (c->c_type) {
-	case CT_SIMPLE:
-	case CT_SUBSHELL:
-#if YASH_ENABLE_DOUBLE_BRACKET
-	case CT_BRACKET:
-#endif
-	case CT_FUNCDEF:
-	    return true;
-	case CT_GROUP:
-	case CT_IF:
-	case CT_FOR:
-	case CT_WHILE:
-	case CT_CASE:
-	    return false;
-    }
-
-    assert(false);
-}
-
-/* Updates the contents of the `pipeinfo_T' to proceed to the next process
- * execution. `pi->pi_fromprevfd' and `pi->pi_tonextfds[PIPE_OUT]' are closed,
- * `pi->pi_tonextfds[PIPE_IN]' is moved to `pi->pi_fromprevfd', and,
- * if `next' is true, a new pipe is opened in `pi->pi_tonextfds'; otherwise,
- * `pi->pi_tonextfds' is assigned -1.
- * Returns true iff successful. */
-void next_pipe(pipeinfo_T *pi, bool next)
-{
-    if (pi->pi_fromprevfd >= 0)
-	xclose(pi->pi_fromprevfd);
-    if (pi->pi_tonextfds[PIPE_OUT] >= 0)
-	xclose(pi->pi_tonextfds[PIPE_OUT]);
-    pi->pi_fromprevfd = pi->pi_tonextfds[PIPE_IN];
-    if (next) {
-	if (pipe(pi->pi_tonextfds) < 0)
-	    goto fail;
-
-	/* The pipe's FDs must not be 0 or 1, or they may be overridden by each
-	 * other when we move the pipe to the standard input/output later. So,
-	 * if they are 0 or 1, we move them to bigger numbers. */
-	int origin  = pi->pi_tonextfds[PIPE_IN];
-	int origout = pi->pi_tonextfds[PIPE_OUT];
-	if (origin < 2 || origout < 2) {
-	    if (origin < 2)
-		pi->pi_tonextfds[PIPE_IN] = dup(origin);
-	    if (origout < 2)
-		pi->pi_tonextfds[PIPE_OUT] = dup(origout);
-	    if (origin < 2)
-		xclose(origin);
-	    if (origout < 2)
-		xclose(origout);
-	    if (pi->pi_tonextfds[PIPE_IN] < 0) {
-		xclose(pi->pi_tonextfds[PIPE_OUT]);
-		goto fail;
-	    }
-	    if (pi->pi_tonextfds[PIPE_OUT] < 0) {
-		xclose(pi->pi_tonextfds[PIPE_IN]);
-		goto fail;
-	    }
-	}
-    } else {
-	pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
-    }
-    return;
-
-fail:
-    pi->pi_tonextfds[PIPE_IN] = pi->pi_tonextfds[PIPE_OUT] = -1;
-    xerror(errno, Ngt("cannot open a pipe"));
-}
-
-/* Executes the command. */
-void exec_one_command(command_T *c, bool finally_exit)
-{
-    /* prevent the command data from being freed in case the command is part of
-     * a function that is unset during execution. */
-    c = comsdup(c);
-
-    update_lineno(c->c_lineno);
-
-    if (c->c_type == CT_SIMPLE) {
-	exec_simple_command(c, finally_exit);
-    } else {
-	savefd_T *savefd;
-	if (open_redirections(c->c_redirs, &savefd)) {
-	    exec_nonsimple_command(c, finally_exit && savefd == NULL);
-	    undo_redirections(savefd);
-	} else {
-	    undo_redirections(savefd);
-	    laststatus = Exit_REDIRERR;
-	    apply_errexit_errreturn(NULL);
-	}
-    }
-
-    comsfree(c);
-
-    if (finally_exit)
-	exit_shell();
-}
-
-/* Executes the simple command. */
-void exec_simple_command(const command_T *c, bool finally_exit)
-{
-    lastcmdsubstatus = Exit_SUCCESS;
-
-    /* expand the command words */
-    int argc;
-    void **argv;
-    if (!expand_line(c->c_words, &argc, &argv)) {
-	laststatus = Exit_EXPERROR;
-	goto done;
-    }
-    if (is_interrupted())
-	goto done1;
-
-    char *argv0; // a multi-byte version of argv[0]
-    if (argc == 0) {
-	argv0 = NULL;
-    } else {
-	argv0 = malloc_wcstombs(argv[0]);
-	if (argv0 == NULL)
-	    argv0 = xstrdup("");
-    }
-
-    /* open redirections */
-    savefd_T *savefd;
-    if (!open_redirections(c->c_redirs, &savefd)) {
-	/* On redirection error, the command is not executed. */
-	laststatus = Exit_REDIRERR;
-	apply_errexit_errreturn(NULL);
-	if (posixly_correct && !is_interactive_now &&
-		argc > 0 && is_special_builtin(argv0))
-	    finally_exit = true;
-	goto done2;
-    }
-
-    last_assign = c->c_assigns;
-    if (argc == 0) {
-	/* if there is no command word, just perform assignments */
-	if (do_assignments(c->c_assigns, false, shopt_allexport)) {
-	    laststatus = lastcmdsubstatus;
-	} else {
-	    laststatus = Exit_ASSGNERR;
-	    if (!is_interactive_now)
-		finally_exit = true;
-	}
-	print_xtrace(NULL);
-	goto done2;
-    }
-
-    /* check if the command is a special built-in or function */
-    commandinfo_T cmdinfo;
-    search_command(argv0, argv[0], &cmdinfo, SCT_BUILTIN | SCT_FUNCTION);
-    special_builtin_executed = (cmdinfo.type == CT_SPECIALBUILTIN);
-
-    /* open a temporary variable environment */
-    bool temp = c->c_assigns != NULL && !special_builtin_executed;
-    if (temp)
-	open_new_environment(true);
-
-    /* perform the assignments */
-    if (!do_assignments(c->c_assigns, temp, true)) {
-	/* On assignment error, the command is not executed. */
-	print_xtrace(NULL);
-	laststatus = Exit_ASSGNERR;
-	if (!is_interactive_now)
-	    finally_exit = true;
-	goto done3;
-    }
-    print_xtrace(argv);
-
-    /* find command path */
-    if (cmdinfo.type == CT_NONE) {
-	search_command(argv0, argv[0], &cmdinfo,
-		SCT_EXTERNAL | SCT_BUILTIN | SCT_CHECK);
-	if (cmdinfo.type == CT_NONE) {
-	    if (!posixly_correct && command_not_found_handler(argv))
-		goto done3;
-	    if (wcschr(argv[0], L'/') != NULL) {
-		cmdinfo.type = CT_EXTERNALPROGRAM;
-		cmdinfo.ci_path = argv0;
-	    }
-	}
-    }
-
-    /* execute! */
-    wchar_t **namep = invoke_simple_command(&cmdinfo, argc, argv0, argv,
-	    finally_exit && /* !temp && */ savefd == NULL);
-    if (namep != NULL)
-	*namep = command_to_wcs(c, false);
-
-    /* Redirections are not undone after a successful "exec" command:
-     * remove the saved data of file descriptors. */
-    if (exec_builtin_executed && laststatus == Exit_SUCCESS) {
-	clear_savefd(savefd);
-	savefd = NULL;
-    }
-    exec_builtin_executed = false;
-
-    /* cleanup */
-done3:
-    if (temp)
-	close_current_environment();
-done2:
-    undo_redirections(savefd);
-    free(argv0);
-done1:
-    plfree(argv, free);
-done:
-    if (finally_exit)
-	exit_shell();
-}
-
-/* Connects the pipe(s) and closes the pipes left. */
-void connect_pipes(pipeinfo_T *pi)
-{
-    if (pi->pi_fromprevfd >= 0) {
-	xdup2(pi->pi_fromprevfd, STDIN_FILENO);
-	xclose(pi->pi_fromprevfd);
-    }
-    if (pi->pi_tonextfds[PIPE_OUT] >= 0) {
-	xdup2(pi->pi_tonextfds[PIPE_OUT], STDOUT_FILENO);
-	xclose(pi->pi_tonextfds[PIPE_OUT]);
-    }
-    if (pi->pi_tonextfds[PIPE_IN] >= 0)
-	xclose(pi->pi_tonextfds[PIPE_IN]);
+    return result;
 }
 
 /* Forks a subshell and does some settings.
@@ -1047,431 +1474,6 @@ void become_child(sigtype_T sigtype)
     exitstatus = -1;
 }
 
-/* Forks a new child process and wait for it to finish.
- * `sigtype' is passed to `fork_and_reset'.
- * In the parent process, this function updates `laststatus' to the exit status
- * of the child.
- * In the child process, this function does not wait for anything.
- * Returns a pair of the return value of `fork' and a pointer to a pointer to
- * a wide string. If the pointer is non-null, the caller must assign it a
- * pointer to a newly malloced wide string that is the job name of the child. */
-fork_and_wait_T fork_and_wait(sigtype_T sigtype)
-{
-    fork_and_wait_T result;
-    result.cpid = fork_and_reset(0, true, sigtype);
-    if (result.cpid < 0) {
-	/* Fork failed. */
-	laststatus = Exit_NOEXEC;
-	result.namep = NULL;
-    } if (result.cpid > 0) {
-	/* parent process */
-	result.namep = wait_for_child(
-		result.cpid,
-		doing_job_control_now ? result.cpid : 0,
-		doing_job_control_now);
-    } else {
-	/* child process */
-	result.namep = NULL;
-    }
-    return result;
-}
-
-/* Searches for a command.
- * The result is assigned to `*ci'.
- * `name' and `wname' must contain the same string value.
- * If the SCT_ALL flag is not set:
- *   *  a function whose name contains a slash cannot be found
- *   *  a regular built-in cannot be found in the POSIXly correct mode if the
- *      SCT_EXTERNAL flag is not set either.
- * If the SCT_EXTERNAL flag is set, the SCT_CHECK flag is not set, and `name'
- * contains a slash, the external command of the given `name' is always found.
- */
-void search_command(
-	const char *restrict name, const wchar_t *restrict wname,
-	commandinfo_T *restrict ci, enum srchcmdtype_T type)
-{
-    bool slash = wcschr(wname, L'/') != NULL;
-
-    const builtin_T *bi;
-    if (!slash && (type & SCT_BUILTIN))
-	bi = get_builtin(name);
-    else
-	bi = NULL;
-    if (bi != NULL && bi->type == BI_SPECIAL) {
-	ci->type = CT_SPECIALBUILTIN;
-	ci->ci_builtin = bi->body;
-	return;
-    }
-
-    if ((type & SCT_FUNCTION) && (!slash || (type & SCT_ALL))) {
-	command_T *funcbody = get_function(wname);
-	if (funcbody != NULL) {
-	    ci->type = CT_FUNCTION;
-	    ci->ci_function = funcbody;
-	    return;
-	}
-    }
-
-    if (bi != NULL) {
-	if (bi->type == BI_SEMISPECIAL) {
-	    ci->type = CT_SEMISPECIALBUILTIN;
-	    ci->ci_builtin = bi->body;
-	    return;
-	} else if (!posixly_correct) {
-	    goto regular_builtin;
-	}
-    }
-
-    if (slash) {
-	if (type & SCT_EXTERNAL) {
-	    if (!(type & SCT_CHECK) || is_executable_regular(name)) {
-		ci->type = CT_EXTERNALPROGRAM;
-		ci->ci_path = name;
-		return;
-	    }
-	}
-    } else {
-	if ((type & SCT_EXTERNAL) || (bi != NULL && (type & SCT_ALL))) {
-	    const char *cmdpath;
-	    if (type & SCT_STDPATH)
-		cmdpath = get_command_path_default(name);
-	    else
-		cmdpath = get_command_path(name, false);
-	    if (cmdpath != NULL) {
-		if (bi != NULL) {
-regular_builtin:
-		    assert(bi->type == BI_REGULAR);
-		    ci->type = CT_REGULARBUILTIN;
-		    ci->ci_builtin = bi->body;
-		} else {
-		    ci->type = CT_EXTERNALPROGRAM;
-		    ci->ci_path = cmdpath;
-		}
-		return;
-	    }
-	}
-    }
-
-    /* command not found... */
-    ci->type = CT_NONE;
-    ci->ci_path = NULL;
-    return;
-}
-
-/* Returns true iff the specified command is a special built-in. */
-bool is_special_builtin(const char *cmdname)
-{
-    const builtin_T *bi = get_builtin(cmdname);
-    return bi != NULL && bi->type == BI_SPECIAL;
-}
-
-/* Executes $COMMAND_NOT_FOUND_HANDLER if any.
- * `argv' is set to the positional parameters of the environment in which the
- * handler is executed.
- * Returns true iff the hander was executed and $HANDLED was set non-empty. */
-bool command_not_found_handler(void *const *argv)
-{
-    static bool handling = false;
-    if (handling)
-	return false;  /* don't allow reentrance */
-    handling = true;
-
-    bool handled;
-    int result;
-
-    open_new_environment(false);
-    set_positional_parameters(argv);
-    set_variable(L VAR_HANDLED, xwcsdup(L""), SCOPE_LOCAL, false);
-
-    result = exec_variable_as_auxiliary_(VAR_COMMAND_NOT_FOUND_HANDLER);
-    if (result >= 0) {
-	const wchar_t *handledv = getvar(L VAR_HANDLED);
-	handled = (handledv != NULL && handledv[0] != L'\0');
-    } else {
-	handled = false;
-    }
-
-    close_current_environment();
-
-    handling = false;
-    if (handled) {
-	laststatus = result;
-	return true;
-    } else {
-	return false;
-    }
-}
-
-/* Executes the specified command whose type is not `CT_SIMPLE'.
- * The redirections for the command is not performed in this function. */
-void exec_nonsimple_command(command_T *c, bool finally_exit)
-{
-    switch (c->c_type) {
-    case CT_SIMPLE:
-	assert(false);
-    case CT_SUBSHELL:
-	if (finally_exit) {
-	    /* This is the last command to execute in the current shell, hence
-	     * no need to make a new child. */
-	    become_child(0);
-	} else {
-	    /* make a child process to execute the command */
-	    fork_and_wait_T faw = fork_and_wait(0);
-	    if (faw.cpid != 0) {
-		if (faw.namep != NULL)
-		    *faw.namep = command_to_wcs(c, false);
-		break;
-	    }
-	    finally_exit = true;
-	}
-	// falls thru!
-    case CT_GROUP:
-	exec_and_or_lists(c->c_subcmds, finally_exit);
-	break;
-    case CT_IF:
-	exec_if(c, finally_exit);
-	break;
-    case CT_FOR:
-	exec_for(c, finally_exit);
-	break;
-    case CT_WHILE:
-	exec_while(c, finally_exit);
-	break;
-    case CT_CASE:
-	exec_case(c, finally_exit);
-	break;
-#if YASH_ENABLE_DOUBLE_BRACKET
-    case CT_BRACKET:
-	laststatus = exec_double_bracket(c);
-	if (finally_exit)
-	    exit_shell();
-	break;
-#endif /* YASH_ENABLE_DOUBLE_BRACKET */
-    case CT_FUNCDEF:
-	exec_funcdef(c, finally_exit);
-	break;
-    }
-}
-
-/* Invokes the simple command. */
-/* `argv0' is the multibyte version of `argv[0]' */
-wchar_t **invoke_simple_command(
-	const commandinfo_T *ci, int argc, char *argv0, void **argv,
-	bool finally_exit)
-{
-    assert(plcount(argv) == (size_t) argc);
-
-    fork_and_wait_T faw = { 0, NULL };
-
-    switch (ci->type) {
-    case CT_NONE:
-	xerror(0, Ngt("no such command `%s'"), argv0);
-	laststatus = Exit_NOTFOUND;
-	break;
-    case CT_EXTERNALPROGRAM:
-	if (!finally_exit) {
-	    faw = fork_and_wait(t_leave);
-	    if (faw.cpid != 0)
-		break;
-	    finally_exit = true;
-	}
-	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
-	break;
-    case CT_SPECIALBUILTIN:
-    case CT_SEMISPECIALBUILTIN:
-    case CT_REGULARBUILTIN:
-	yash_error_message_count = 0;
-
-	const wchar_t *savecbn = current_builtin_name;
-	current_builtin_name = argv[0];
-
-	laststatus = ci->ci_builtin(argc, argv);
-
-	current_builtin_name = savecbn;
-	break;
-    case CT_FUNCTION:
-	exec_function_body(ci->ci_function, &argv[1], finally_exit, false);
-	break;
-    }
-    if (finally_exit)
-	exit_shell();
-    return faw.namep;
-}
-
-/* Executes the external program.
- *  path:  path to the program to be executed
- *  argc:  number of strings in `argv'
- *  argv0: multibyte version of `argv[0]'
- *  argv:  pointer to an array of pointers to wide strings that are passed to
- *         the program */
-void exec_external_program(
-	const char *path, int argc, char *argv0, void **argv, char **envs)
-{
-    char *mbsargv[argc + 1];
-    mbsargv[0] = argv0;
-    for (int i = 1; i < argc; i++) {
-	mbsargv[i] = malloc_wcstombs(argv[i]);
-	if (mbsargv[i] == NULL)
-	    mbsargv[i] = xstrdup("");
-    }
-    mbsargv[argc] = NULL;
-
-    restore_signals(true);
-
-    xexecve(path, mbsargv, envs);
-    int saveerrno = errno;
-    if (saveerrno != ENOEXEC) {
-	if (saveerrno == EACCES && is_directory(path))
-	    saveerrno = EISDIR;
-	xerror(saveerrno,
-		strcmp(mbsargv[0], path) == 0
-		    ? Ngt("cannot execute command `%s'")
-		    : Ngt("cannot execute command `%s' (%s)"),
-		argv0, path);
-    } else if (saveerrno != ENOENT) {
-	exec_fall_back_on_sh(argc, mbsargv, envs, path);
-    }
-    laststatus = (saveerrno == ENOENT) ? Exit_NOTFOUND : Exit_NOEXEC;
-
-    set_signals();
-
-    for (int i = 1; i < argc; i++)
-	free(mbsargv[i]);
-}
-
-/* Returns a pointer to the xtrace buffer.
- * The buffer is initialized if not. */
-xwcsbuf_T *get_xtrace_buffer(void)
-{
-    if (xtrace_buffer.contents == NULL)
-	wb_init(&xtrace_buffer);
-    return &xtrace_buffer;
-}
-
-/* Prints a trace if the "xtrace" option is on. */
-void print_xtrace(void *const *argv)
-{
-    bool tracevars = xtrace_buffer.contents != NULL
-		  && xtrace_buffer.length > 0;
-
-    if (shopt_xtrace
-	    && (!is_executing_auxiliary || shopt_traceall)
-	    && (tracevars || argv != NULL)
-#if YASH_ENABLE_LINEEDIT
-	    && !(le_state & LE_STATE_ACTIVE)
-#endif
-	    ) {
-	bool first = true;
-
-	struct promptset_T prompt = get_prompt(4);
-	print_prompt(prompt.main);
-	print_prompt(prompt.styler);
-
-	if (tracevars) {
-	    fprintf(stderr, "%ls", xtrace_buffer.contents + 1);
-	    first = false;
-	}
-	if (argv != NULL) {
-	    for (void *const *a = argv; *a != NULL; a++) {
-		if (!first)
-		    fputc(' ', stderr);
-		first = false;
-
-		wchar_t *quoted = quote_as_word(*a);
-		fprintf(stderr, "%ls", quoted);
-		free(quoted);
-	    }
-	}
-	fputc('\n', stderr);
-
-	print_prompt(PROMPT_RESET);
-	free_prompt(prompt);
-    }
-    if (xtrace_buffer.contents != NULL) {
-	wb_destroy(&xtrace_buffer);
-	xtrace_buffer.contents = NULL;
-    }
-}
-
-/* Executes the specified command as a shell script by `exec'ing a shell.
- * `path' is the full path to the script file.
- * Returns iff failed to `exec'. */
-void exec_fall_back_on_sh(
-	int argc, char *const *argv, char *const *envp, const char *path)
-{
-    assert(argv[argc] == NULL);
-
-    char *args[argc + 3];
-    size_t index = 0;
-    args[index++] = "sh";
-    args[index++] = (char *) "-";
-    if (strcmp(path, "--") == 0)
-	args[index++] = "./--";
-    else
-	args[index++] = (char *) path;
-    for (int i = 1; i < argc; i++)
-	args[index++] = argv[i];
-    args[index] = NULL;
-#if HAVE_PROC_SELF_EXE
-    xexecve("/proc/self/exe", args, envp);
-#elif HAVE_PROC_CURPROC_FILE
-    xexecve("/proc/curproc/file", args, envp);
-#elif HAVE_PROC_OBJECT_AOUT
-    char *objpath = malloc_printf(
-	    "/proc/%jd/object/a.out", (intmax_t) getpid());
-    xexecve(objpath, args, envp);
-    free(objpath);
-#elif HAVE_PATHS_H && defined _PATH_BSHELL
-    xexecve(_PATH_BSHELL, args, envp);
-#endif
-    const char *shpath = get_command_path("sh", false);
-    if (shpath != NULL)
-	xexecve(shpath, args, envp);
-    else
-	errno = ENOENT;
-    xerror(errno, Ngt("cannot invoke a new shell to execute script `%s'"),
-	    argv[0]);
-}
-
-/* Executes the specified command as a function.
- * `args' are the arguments to the function, which are wide strings cast to
- * (void *).
- * If `complete' is true, `set_completion_variables' will be called after a new
- * variable environment was opened before the function body is executed. */
-void exec_function_body(
-	command_T *body, void *const *args, bool finally_exit, bool complete)
-{
-    execstate_T *saveexecstate = save_execstate();
-    reset_execstate(false);
-
-    bool saveser = suppresserrreturn;
-    suppresserrreturn = false;
-
-    open_new_environment(false);
-    set_positional_parameters(args);
-#if YASH_ENABLE_LINEEDIT
-    if (complete)
-	set_completion_variables();
-#else
-    (void) complete;
-#endif
-    exec_commands(body, finally_exit ? E_SELF : E_NORMAL);
-    close_current_environment();
-
-    cancel_return();
-    suppresserrreturn = saveser;
-    restore_execstate(saveexecstate);
-}
-
-/* Calls `execve' until it doesn't return EINTR. */
-int xexecve(const char *path, char *const *argv, char *const *envp)
-{
-    do
-	execve(path, argv, envp);
-    while (errno == EINTR);
-    return -1;
-}
-
 /* Executes the command substitution and returns the string to substitute with.
  * This function blocks until the command finishes.
  * The return value is a newly-malloced string without a trailing newline.
@@ -1552,43 +1554,6 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
     }
 }
 
-/* Executes commands in the given array of wide strings (iterative execution).
- * The strings are parsed and executed one by one.
- * If the iteration is interrupted by the "break -i" command, the remaining
- * elements are not executed.
- * `codename' is passed to `exec_wcs' as the command name.
- * Returns the exit status of the executed command (or zero if none executed).
- * When this function returns, `laststatus' is restored to the original value.*/
-int exec_iteration(void *const *commands, const char *codename)
-{
-    int savelaststatus = laststatus, commandstatus = Exit_SUCCESS;
-    bool saveiterating = execstate.iterating;
-    execstate.iterating = true;
-
-    for (void *const *command = commands; *command != NULL; command++) {
-	exec_wcs(*command, codename, false);
-	commandstatus = laststatus;
-	laststatus = savelaststatus;
-	switch (exception) {
-	    case E_BREAK_ITERATION:
-		exception = E_NONE;
-		/* falls thru! */
-	    default:
-		goto done;
-	    case E_CONTINUE_ITERATION:
-		exception = E_NONE;
-		/* falls thru! */
-	    case E_NONE:
-		break;
-	}
-	if (execstate.breakloopnest < execstate.loopnest || is_interrupted())
-	    goto done;
-    }
-done:
-    execstate.iterating = saveiterating;
-    return commandstatus;
-}
-
 /* Executes the value of the specified variable.
  * The variable value is parsed as commands.
  * If the `varname' names an array, every element of the array is executed (but
@@ -1627,6 +1592,43 @@ int exec_variable_as_commands(const wchar_t *varname, const char *codename)
 
     plfree(gv.values, free);
     return result;
+}
+
+/* Executes commands in the given array of wide strings (iterative execution).
+ * The strings are parsed and executed one by one.
+ * If the iteration is interrupted by the "break -i" command, the remaining
+ * elements are not executed.
+ * `codename' is passed to `exec_wcs' as the command name.
+ * Returns the exit status of the executed command (or zero if none executed).
+ * When this function returns, `laststatus' is restored to the original value.*/
+int exec_iteration(void *const *commands, const char *codename)
+{
+    int savelaststatus = laststatus, commandstatus = Exit_SUCCESS;
+    bool saveiterating = execstate.iterating;
+    execstate.iterating = true;
+
+    for (void *const *command = commands; *command != NULL; command++) {
+	exec_wcs(*command, codename, false);
+	commandstatus = laststatus;
+	laststatus = savelaststatus;
+	switch (exception) {
+	    case E_BREAK_ITERATION:
+		exception = E_NONE;
+		/* falls thru! */
+	    default:
+		goto done;
+	    case E_CONTINUE_ITERATION:
+		exception = E_NONE;
+		/* falls thru! */
+	    case E_NONE:
+		break;
+	}
+	if (execstate.breakloopnest < execstate.loopnest || is_interrupted())
+	    goto done;
+    }
+done:
+    execstate.iterating = saveiterating;
+    return commandstatus;
 }
 
 /* Calls `exec_variable_as_commands' with `is_executing_auxiliary' set to true.

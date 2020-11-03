@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.h: command execution */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2020 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,8 +60,8 @@ extern _Bool need_break(void)
 struct and_or_T;
 struct embedcmd_T;
 extern void exec_and_or_lists(const struct and_or_T *a, _Bool finally_exit);
-extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern struct xwcsbuf_T *get_xtrace_buffer(void);
+extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern wchar_t *exec_command_substitution(const struct embedcmd_T *cmdsub)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern int exec_variable_as_commands(
