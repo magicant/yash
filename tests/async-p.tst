@@ -52,6 +52,15 @@ __IN__
 this line should not be consumed by cat
 __OUT__
 
+echo foo > file
+
+test_oE 'stdin of asynchronous list is null for first command only' +m
+cat - file | cat | cat & wait
+exit
+__IN__
+foo
+__OUT__
+
 test_o 'exit status of asynchronous list'
 true&
 echo $?
