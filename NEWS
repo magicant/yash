@@ -22,6 +22,8 @@ Yash 2.51
      expansion inside double-quotes have been changed to match with
      the behavior of other existing shells. For example, "${x-\a'b'}"
      now expands to \a'b' rather than ab.
+  =  When there is no command word in a simple command, redirections
+     are now performed in a subshell after assignments are performed.
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".

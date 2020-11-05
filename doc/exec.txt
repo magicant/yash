@@ -21,11 +21,19 @@ link:syntax.html#simple[A simple command] is executed as follows:
   If there is only one word of the expansion results, there are no command
   argument words.
   If there are none of the expansion results, there is no command name either.
-. link:redir.html[Redirection] specified in the command, if any, is processed.
+. If the command name exists and there are any link:redir.html[redirections]
+  specified in the command, they are processed.
   The word token after each redirection operator is expanded.
-  If an error occurs during processing redirection (including when expanding
-  the word token), the execution of this simple command is aborted with a
-  non-zero exit status.
+  If an error occurs during processing the redirections (including when
+  expanding the word token), the execution of this simple command is aborted
+  with a non-zero exit status.
++
+[NOTE]
+In other shells, redirections may be processed in a different step:
+POSIX does not specify the order in which redirections and assignments are
+processed when there is no command name or the name denotes a
+link:builtin.html#types[special built-in].
+
 . Assignments specified in the command, if any, are processed.
   For each assignment token, the value is expanded and assigned to the
   specified link:params.html#variables[variable].
@@ -52,10 +60,14 @@ functions, assigned variables may not be exported. For functions, assigned
 variables may be persistent, that is, may remain even after the execution of
 the simple command.
 
-. If there is no command name, the command execution ends with the exit status
-  of zero (unless there are any link:expand.html#cmdsub[command substitutions]
-  in the command, in which case the exit status of the simple command is that
-  of the last executed command substitution).
+. If there is no command name, the link:redir.html[redirections] are processed
+  in a <<subshell,subshell>>, then the command execution ends.
+  If an error occurs in the redirections,
+  the exit status of the simple command is non-zero.
+  If there were any link:expand.html#cmdsub[command substitutions] performed
+  in the assignments, the exit status of the simple command is that of the
+  last executed command substitution.
+  Otherwise, the exit status is zero.
 . A command to be executed is determined using the <<search,command search
   algorithm>> and the command is executed.
 +
