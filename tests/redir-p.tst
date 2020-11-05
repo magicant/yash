@@ -87,6 +87,16 @@ echo - 1>/dev/null 3>&1 2>&3 3>&-
 1>&- 2>&1
 __IN__
 
+test_O 'redirection without command name runs in subshell'
+unset x
+< ${x=no/such/file}
+<<END
+${x=foo}
+END
+# The assignments in the subshell are not visible from the main shell.
+${x+echo not printed}
+__IN__
+
 test_oE 'input redirection, success'
 cat 0<in0
 cat  <in1

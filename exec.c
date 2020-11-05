@@ -698,18 +698,26 @@ bool exec_simple_command_without_words(const command_T *c)
 	return !is_interactive_now;
     }
 
-    /* open redirections */
+    /* done? */
+    if (c->c_redirs == NULL) {
+	laststatus = lastcmdsubstatus;
+	return false;
+    }
+
+    /* create a subshell to perform redirections in */
+    fork_and_wait_T faw = fork_and_wait(0);
+    if (faw.cpid != 0) {
+	/* parent process */
+	if (faw.namep != NULL)
+	    *faw.namep = command_to_wcs(c, false);
+	return false;
+    }
+
+    /* open redirections in subshell */
     savefd_T *savefd;
     ok = open_redirections(c->c_redirs, &savefd);
     undo_redirections(savefd);
-    if (ok) {
-	laststatus = lastcmdsubstatus;
-    } else {
-	laststatus = Exit_REDIRERR;
-	apply_errexit_errreturn(NULL);
-    }
-
-    return false;
+    exit_shell_with_status(ok ? lastcmdsubstatus : Exit_REDIRERR);
 }
 
 /* Executes the simple command that has one or more expanded words.
