@@ -33,6 +33,17 @@ __IN__
 1
 __OUT__
 
+test_O -d 'redirections do not apply to assignments w/o command name'
+readonly x=x
+x=y 2>/dev/null
+__IN__
+
+test_x -e 0 'assignment error aborts redirections w/o command name' -i +m
+readonly x=x
+x=y >no_such_file
+! test -f no_such_file
+__IN__
+
 test_o -d 'COMMAND_NOT_FOUND_HANDLER is run when command was not found'
 COMMAND_NOT_FOUND_HANDLER=('echo not found' 'echo handled')
 ./_no_such_command_

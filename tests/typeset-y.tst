@@ -224,7 +224,7 @@ __OUT__
 test_oE -e n 'defining read-only variables (-rp)' -e
 typeset -rp a=1
 echo $a
-a=X 2>/dev/null && test "$a" = 1
+{ a=X; } 2>/dev/null && test "$a" = 1
 __IN__
 1
 __OUT__
@@ -309,7 +309,7 @@ typeset -x a=0
 typeset -rXp a=1
 echo $a
 sh -c 'echo ${a-unset}'
-a=X 2>/dev/null && test "$a" = 1
+{ a=X; } 2>/dev/null && test "$a" = 1
 __IN__
 1
 unset

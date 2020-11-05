@@ -689,32 +689,27 @@ done:
  * Returns true if the shell should exit. */
 bool exec_simple_command_without_words(const command_T *c)
 {
-    bool finally_exit = false;
+    /* perform assignments */
+    bool ok = do_assignments(c->c_assigns, false, shopt_allexport);
+    print_xtrace(NULL);
+    last_assign = c->c_assigns;
+    if (!ok) {
+	laststatus = Exit_ASSGNERR;
+	return !is_interactive_now;
+    }
 
     /* open redirections */
     savefd_T *savefd;
-    if (!open_redirections(c->c_redirs, &savefd)) {
-	laststatus = Exit_REDIRERR;
-	apply_errexit_errreturn(NULL);
-	goto done;
-    }
-
-    /* perform assignments */
-    last_assign = c->c_assigns;
-    if (do_assignments(c->c_assigns, false, shopt_allexport)) {
+    ok = open_redirections(c->c_redirs, &savefd);
+    undo_redirections(savefd);
+    if (ok) {
 	laststatus = lastcmdsubstatus;
     } else {
-	laststatus = Exit_ASSGNERR;
-	if (!is_interactive_now)
-	    finally_exit = true;
+	laststatus = Exit_REDIRERR;
+	apply_errexit_errreturn(NULL);
     }
-    print_xtrace(NULL);
 
-    /* cleanup */
-done:
-    undo_redirections(savefd);
-
-    return finally_exit;
+    return false;
 }
 
 /* Executes the simple command that has one or more expanded words.
