@@ -54,6 +54,14 @@ __OUT__
 
 echo foo > file
 
+test_OE 'stdin of asynchronous list is null even if already redirected' +m -c '
+exec < file
+cat <&0 & wait
+'
+# In this test case, the script is given as a command line argument
+# to prevent the test from being disrupted by the redirection.
+__IN__
+
 test_oE 'stdin of asynchronous list is null for first command only' +m
 cat - file | cat | cat & wait
 exit

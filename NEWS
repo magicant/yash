@@ -24,6 +24,10 @@ Yash 2.51
      now expands to \a'b' rather than ab.
   =  When there is no command word in a simple command, redirections
      are now performed in a subshell after assignments are performed.
+  =  The standard input of asynchronous commands in a non-job-control
+     shell is now always implicitly redirected to /dev/null,
+     regardless of whether the standard input has already been
+     redirected.
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".
@@ -32,7 +36,7 @@ Yash 2.51
   *  When an EXIT trap is executed in a subshell with a redirection,
      the redirection was incorrectly not being applied to the trap.
   *  When job control is off, the "trap" built-in was failing to set
-     a new trap for SIGINT and SIGQUIT in an asynchronous list.
+     a new trap for SIGINT and SIGQUIT in an asynchronous command.
   *  When job control is off, SIGINT and SIGQUIT were not being
      ignored if a trap had been set for the signal the main shell
      process.
@@ -225,12 +229,12 @@ Yash 2.44
        the "do" keyword can now be separated by a semicolon.
     .  Variables that are assigned in a simple command whose command
        is a function no longer persist after the function finishes.
-    .  The standard input of an asynchronous list is now implicitly
+    .  The standard input of an asynchronous command is now implicitly
        redirected to /dev/null when job control is off. Previously,
        this was done when the shell was interactive in the POSIXly-
        correct mode.
-    .  The SIGINT and SIGQUIT signals on an asynchronous list are now
-       ignored only when job control is off.
+    .  The SIGINT and SIGQUIT signals on an asynchronous command are
+       now ignored only when job control is off.
     .  The "bindkey", "complete", "dirs", "disown", "hash", "help",
        "history", "popd", "pushd", "suspend", "type", "typeset", and
        "ulimit" built-ins are now semi-special built-ins.

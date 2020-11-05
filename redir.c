@@ -117,9 +117,6 @@ bool write_all(int fd, const void *data, size_t size)
 static void reset_shellfdmin(void);
 
 
-/* True iff the standard input is redirected */
-static bool is_stdin_redirected = false;
-
 /* Set of file descriptors used by the shell.
  * These file descriptors cannot be used by the user. */
 static fd_set shellfds;
@@ -291,7 +288,6 @@ struct savefd_T {
     struct savefd_T *next;
     int  sf_origfd;            /* original file descriptor */
     int  sf_copyfd;            /* copied file descriptor */
-    bool sf_stdin_redirected;  /* original `is_stdin_redirected' */
 };
 
 static char *expand_redir_filename(const struct wordunit_T *filename)
@@ -433,9 +429,6 @@ openwithflags:
 	    }
 	}
 
-	if (r->rd_fd == STDIN_FILENO)
-	    is_stdin_redirected = true;
-
 	r = r->next;
     }
     return true;
@@ -475,7 +468,6 @@ void save_fd(int fd, savefd_T **save)
     s->next = *save;
     s->sf_origfd = fd;
     s->sf_copyfd = copyfd;
-    s->sf_stdin_redirected = is_stdin_redirected;
     *save = s;
 }
 
@@ -898,7 +890,6 @@ void undo_redirections(savefd_T *save)
 	} else {
 	    xclose(save->sf_origfd);
 	}
-	is_stdin_redirected = save->sf_stdin_redirected;
 
 	savefd_T *next = save->next;
 	free(save);
@@ -926,21 +917,18 @@ void clear_savefd(savefd_T *save)
  * standard input is not yet redirected. */
 void maybe_redirect_stdin_to_devnull(void)
 {
-    int fd;
-
-    if (do_job_control || is_stdin_redirected)
+    if (do_job_control)
 	return;
 
     if (xclose(STDIN_FILENO) < 0)
 	return;
 
-    fd = open("/dev/null", O_RDONLY);
+    int fd = open("/dev/null", O_RDONLY);
     if (fd < 0) {
 	//xerror(errno, Ngt("cannot redirect the standard input to /dev/null"));
     } else {
 	assert(fd == STDIN_FILENO);
     }
-    is_stdin_redirected = true;
 }
 
 
