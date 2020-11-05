@@ -159,6 +159,11 @@ static void exec_one_command(command_T *c, bool finally_exit)
     __attribute__((nonnull));
 static void exec_simple_command(const command_T *c, bool finally_exit)
     __attribute__((nonnull));
+static bool exec_simple_command_without_words(const command_T *c)
+    __attribute__((nonnull,warn_unused_result));
+static bool exec_simple_command_with_words(
+	const command_T *c, int argc, void **argv, bool finally_exit)
+    __attribute__((nonnull,warn_unused_result));
 static void print_xtrace(void *const *argv);
 static void search_command(
 	const char *restrict name, const wchar_t *restrict wname,
@@ -665,14 +670,68 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     if (is_interrupted())
 	goto done1;
 
-    char *argv0; // a multi-byte version of argv[0]
-    if (argc == 0) {
-	argv0 = NULL;
-    } else {
-	argv0 = malloc_wcstombs(argv[0]);
-	if (argv0 == NULL)
-	    argv0 = xstrdup("");
+    /* execute the remaining part */
+    if (argc == 0)
+	finally_exit |= exec_simple_command_without_words(c);
+    else
+	finally_exit |=
+	    exec_simple_command_with_words(c, argc, argv, finally_exit);
+
+    /* cleanup */
+done1:
+    plfree(argv, free);
+done:
+    if (finally_exit)
+	exit_shell();
+}
+
+/* Executes the simple command that has no expanded words.
+ * Returns true if the shell should exit. */
+bool exec_simple_command_without_words(const command_T *c)
+{
+    bool finally_exit = false;
+
+    /* open redirections */
+    savefd_T *savefd;
+    if (!open_redirections(c->c_redirs, &savefd)) {
+	laststatus = Exit_REDIRERR;
+	apply_errexit_errreturn(NULL);
+	goto done;
     }
+
+    /* perform assignments */
+    last_assign = c->c_assigns;
+    if (do_assignments(c->c_assigns, false, shopt_allexport)) {
+	laststatus = lastcmdsubstatus;
+    } else {
+	laststatus = Exit_ASSGNERR;
+	if (!is_interactive_now)
+	    finally_exit = true;
+    }
+    print_xtrace(NULL);
+
+    /* cleanup */
+done:
+    undo_redirections(savefd);
+
+    return finally_exit;
+}
+
+/* Executes the simple command that has one or more expanded words.
+ * `argv' must be a NULL-terminated array of pointers to wide strings that are
+ * the results of the word expansion on the simple command being executed.
+ * `argc' must be the number of words in `argv', which must be at least 1.
+ * If `finally_exit' is true, the shell process may be replaced by the command
+ * process. However, this function still may return in some cases.
+ * Returns true if the shell should exit. */
+bool exec_simple_command_with_words(
+	const command_T *c, int argc, void **argv, bool finally_exit)
+{
+    assert(argc > 0);
+
+    char *argv0 = malloc_wcstombs(argv[0]);
+    if (argv0 == NULL)
+	argv0 = xstrdup("");
 
     /* open redirections */
     savefd_T *savefd;
@@ -680,25 +739,12 @@ void exec_simple_command(const command_T *c, bool finally_exit)
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
 	apply_errexit_errreturn(NULL);
-	if (posixly_correct && !is_interactive_now &&
-		argc > 0 && is_special_builtin(argv0))
+	if (posixly_correct && !is_interactive_now && is_special_builtin(argv0))
 	    finally_exit = true;
-	goto done2;
+	goto done;
     }
 
     last_assign = c->c_assigns;
-    if (argc == 0) {
-	/* if there is no command word, just perform assignments */
-	if (do_assignments(c->c_assigns, false, shopt_allexport)) {
-	    laststatus = lastcmdsubstatus;
-	} else {
-	    laststatus = Exit_ASSGNERR;
-	    if (!is_interactive_now)
-		finally_exit = true;
-	}
-	print_xtrace(NULL);
-	goto done2;
-    }
 
     /* check if the command is a special built-in or function */
     commandinfo_T cmdinfo;
@@ -717,7 +763,7 @@ void exec_simple_command(const command_T *c, bool finally_exit)
 	laststatus = Exit_ASSGNERR;
 	if (!is_interactive_now)
 	    finally_exit = true;
-	goto done3;
+	goto done1;
     }
     print_xtrace(argv);
 
@@ -727,7 +773,7 @@ void exec_simple_command(const command_T *c, bool finally_exit)
 		SCT_EXTERNAL | SCT_BUILTIN | SCT_CHECK);
 	if (cmdinfo.type == CT_NONE) {
 	    if (!posixly_correct && command_not_found_handler(argv))
-		goto done3;
+		goto done1;
 	    if (wcschr(argv[0], L'/') != NULL) {
 		cmdinfo.type = CT_EXTERNALPROGRAM;
 		cmdinfo.ci_path = argv0;
@@ -750,17 +796,14 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     exec_builtin_executed = false;
 
     /* cleanup */
-done3:
+done1:
     if (temp)
 	close_current_environment();
-done2:
+done:
     undo_redirections(savefd);
     free(argv0);
-done1:
-    plfree(argv, free);
-done:
-    if (finally_exit)
-	exit_shell();
+
+    return finally_exit;
 }
 
 /* Returns a pointer to the xtrace buffer.
