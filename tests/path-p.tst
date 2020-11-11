@@ -64,20 +64,28 @@ if { ls for/dir || <foo/no_search_dir/file; } 2>/dev/null; then
 fi
 
 test_oE 'expansion with unreadable directory'
+echo f*o/no_read_dir
+echo foo/no_read_d*r
 echo foo/no_read_d*r/file
 echo foo/no_read_dir/f*e
 echo foo/no_read_d*r/f*e
 __IN__
+foo/no_read_dir
+foo/no_read_dir
 foo/no_read_dir/file
 foo/no_read_dir/f*e
 foo/no_read_d*r/f*e
 __OUT__
 
 test_oE 'expansion with unsearchable directory'
+echo f*o/no_search_dir
+echo foo/no_search_d*r
 echo foo/no_search_d*r/file
 echo foo/no_search_dir/f*e
 echo foo/no_search_d*r/f*e
 __IN__
+foo/no_search_dir
+foo/no_search_dir
 foo/no_search_d*r/file
 foo/no_search_dir/file
 foo/no_search_dir/file
