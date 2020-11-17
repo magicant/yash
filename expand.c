@@ -1420,54 +1420,45 @@ bool try_expand_brace_sequence(
 
     /* parse the starting point */
     const wchar_t *c = &e->word[ci];
-    const wchar_t *dotp = wcschr(c, L'.');
-    if (dotp == NULL || c == dotp || dotp[1] != L'.')
-	return false;
-    bool sign = false;
-    int startlen = has_leading_zero(c, &sign) ? (dotp - c) : 0;
-    errno = 0;
     wchar_t *cp;
+    errno = 0;
     long start = wcstol(c, &cp, 10);
-    if (errno != 0 || cp != dotp)
+    if (c == cp || errno != 0 || cp[0] != L'.' || cp[1] != L'.')
 	return false;
 
-    c = dotp + 2;
+    bool sign = false;
+    int startlen = has_leading_zero(c, &sign) ? (cp - c) : 0;
 
     /* parse the ending point */
-    const wchar_t *dotbracep = wcspbrk(c, L".}");
-    if (dotbracep == NULL || c == dotbracep ||
-	    (dotbracep[0] == L'.' && dotbracep[1] != L'.'))
-	return false;
-    int endlen = has_leading_zero(c, &sign) ? (dotbracep - c) : 0;
+    c = cp + 2;
     errno = 0;
     long end = wcstol(c, &cp, 10);
-    if (errno != 0 || cp != dotbracep)
+    if (c == cp || errno != 0)
 	return false;
+    int endlen = has_leading_zero(c, &sign) ? (cp - c) : 0;
 
     /* parse the delta */
     long delta;
-    const wchar_t *bracep;
-    if (dotbracep[0] == L'.') {
-	assert(dotbracep[1] == L'.');
-	c = dotbracep + 2;
-	bracep = wcschr(c, L'}');
-	if (bracep == NULL || c == bracep)
+    if (cp[0] == L'.') {
+	if (cp[1] != L'.')
 	    return false;
+
+	c = cp + 2;
 	errno = 0;
 	delta = wcstol(c, &cp, 10);
-	if (delta == 0 || errno != 0 || cp != bracep)
+	if (delta == 0 || c == cp || errno != 0 || cp[0] != L'}')
 	    return false;
-    } else {
-	assert(dotbracep[0] == L'}');
-	bracep = dotbracep;
+    } else if (cp[0] == L'}') {
 	if (start <= end)
 	    delta = 1;
 	else
 	    delta = -1;
+    } else {
+	return false;
     }
 
     /* validate charcategory_T */
-    size_t bracei = bracep - e->word;
+    size_t bracei = cp - e->word;
     if (e->cc[bracei] != CC_LITERAL)
 	return false;
     for (ci = starti; ci < bracei; ci++)
@@ -1477,7 +1468,7 @@ bool try_expand_brace_sequence(
     /* expand the sequence */
     long value = start;
     int len = (startlen > endlen) ? startlen : endlen;
-    ci = bracep - e->word + 1;
+    ci = cp - e->word + 1;
     do {
 	xwcsbuf_T valuebuf2;
 	xstrbuf_T ccbuf2;
