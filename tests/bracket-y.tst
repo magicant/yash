@@ -99,6 +99,45 @@ lhs='abc123xyz' rhs='c[[:digit:]]*x'
 [[ "$lhs" =~ $rhs ]] && ! [[ "$lhs" =~ "$rhs" ]]
 __IN__
 
+test_OE -e 0 'dollars with binary primary =~'
+[[ abc =~ c$ ]] && ! [[ abc =~ ^c$ ]]
+__IN__
+
+# Note: zsh rejects this
+test_OE -e 0 'escaping with binary primary =~ (backslash)'
+[[ \\ =~ \\ ]] && ! [[ \\ =~ \\\\ ]]
+__IN__
+
+test_OE -e 0 'escaping with binary primary =~ (parentheses)'
+[[ \(a\) =~ \(a\) ]] && ! [[ a =~ \(a\) ]]
+__IN__
+
+test_OE -e 0 'escaping with binary primary =~ (vertical bar)'
+[[ \| =~ \| ]] && ! [[ '' =~ \| ]]
+__IN__
+
+test_OE -e 0 'escaping with binary primary =~ (braces)'
+[[ a\{3\} =~ a\{3\} ]] && ! [[ aaa =~ a\{3\} ]]
+__IN__
+
+# Note: ksh and zsh differ in these cases
+test_OE -e 0 'quoting with binary primary =~'
+[[ ".+" =~ ".+" ]] && ! [[ a =~ ".+" ]]
+__IN__
+
+test_OE -e 0 'expanded specials with binary primary =~ (w/o quotes)'
+a='*' b='|' bb='\|' p='(a|b)'
+[[ abc =~ ab${a}c ]] && [[ a =~ a${b}b ]] && ! [[ a =~ a${bb}b ]] &&
+    [[ a =~ $p ]]
+__IN__
+
+# Note: zsh differs in most of these cases
+test_OE -e 0 'expanded specials with binary primary =~ (w/ quotes)'
+a='*' b='|' bb='\|' p='(a|b)'
+! [[ abc =~ "ab${a}c" ]] && ! [[ a =~ "a${b}b" ]] && ! [[ a =~ "a${bb}b" ]] &&
+    ! [[ a =~ "$p" ]]
+__IN__
+
 # Note: bash returns exit status of 2 and zsh prints an error message
 test_OE -e 1 'ill-formed regex with binary primary =~'
 [[ foo =~ * ]]
