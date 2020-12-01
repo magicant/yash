@@ -103,6 +103,19 @@ test_OE -e 0 'dollars with binary primary =~'
 [[ abc =~ c$ ]] && ! [[ abc =~ ^c$ ]]
 __IN__
 
+test_OE -e 0 'vertical bars with binary primary =~'
+[[ a =~ a|b ]] && [[ '' =~ a|| ]] && [[ '' =~ ||a ]]
+__IN__
+
+test_OE -e 0 'parentheses with binary primary =~'
+[[ a =~ (a) ]] && [[ '  (  ' =~ ( ( \( ) ) ]]
+__IN__
+
+test_OE -e 0 'combination of specials with binary primary =~'
+a=1 b=2 c=3
+[[ 123 =~ $a($b|\\)$c`` ]]
+__IN__
+
 # Note: zsh rejects this
 test_OE -e 0 'escaping with binary primary =~ (backslash)'
 [[ \\ =~ \\ ]] && ! [[ \\ =~ \\\\ ]]

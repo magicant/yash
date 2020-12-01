@@ -681,6 +681,8 @@ static dbexp_T *parse_double_bracket_primary(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *parse_double_bracket_operand(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
+static wordunit_T *parse_double_bracket_operand_regex(parsestate_T *ps)
+    __attribute__((nonnull,malloc,warn_unused_result));
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
 static command_T *parse_function(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -2849,6 +2851,7 @@ dbexp_T *parse_double_bracket_primary(parsestate_T *ps)
     dbexptype_T type;
     wchar_t *op;
     wordunit_T *lhs, *rhs;
+    bool rhs_regex = false;
 
     if (is_single_string_word(ps->token) &&
 	    is_unary_primary(ps->token->wu_string)) {
@@ -2867,6 +2870,8 @@ dbexp_T *parse_double_bracket_primary(parsestate_T *ps)
     } else if (is_single_string_word(ps->token) &&
 	    is_binary_primary(ps->token->wu_string)) {
 	type = DBE_BINARY;
+	if (wcscmp(ps->token->wu_string, L"=~") == 0)
+	    rhs_regex = true;
 parse_primary_operator:
 	op = ps->token->wu_string, ps->token->wu_string = NULL;
     } else {
@@ -2878,7 +2883,10 @@ parse_primary_operator:
     next_token(ps);
     psubstitute_alias_recursive(ps, 0);
 
-    rhs = parse_double_bracket_operand(ps);
+    if (rhs_regex)
+	rhs = parse_double_bracket_operand_regex(ps);
+    else
+	rhs = parse_double_bracket_operand(ps);
 
 return_result:;
     dbexp_T *result = xmalloc(sizeof *result);
@@ -2889,7 +2897,7 @@ return_result:;
     return result;
 }
 
-/* Parses a operand token of a primary conditional expression in the double-
+/* Parses an operand token of a primary conditional expression in the double-
  * bracket command. Returns NULL on error. */
 wordunit_T *parse_double_bracket_operand(parsestate_T *ps)
 {
@@ -2914,6 +2922,107 @@ wordunit_T *parse_double_bracket_operand(parsestate_T *ps)
     next_token(ps);
     psubstitute_alias_recursive(ps, 0);
     return result;
+}
+
+/* Parses the right-hand-side operand of a "=~" binary operator. Returns NULL on
+ * error. */
+wordunit_T *parse_double_bracket_operand_regex(parsestate_T *ps)
+{
+    /* Unlike a normal word token, this operand token is special because
+     * vertical bars (`|') and parentheses (`(' and `)') can appear in the token
+     * as if they were normal word characters. Additionally, parentheses can
+     * even nest! */
+
+    size_t grandstartindex = ps->index;
+
+    /* So, before calling this function, the current token must have been parsed
+     * as usual by the `next_token' function. We start by examining the current
+     * status to decide how we continue parsing possible remainder of the token.
+     */
+    if (ps->token == NULL) {
+	switch (ps->src.contents[ps->index]) {
+	    case L'(':
+	    case L'|':
+		/* The current token begins with a character that should be
+		 * parsed as part of the token. */
+		break;
+	    default:
+		/* The current token is a normal operator. */
+		return parse_double_bracket_operand(ps);
+	}
+    } else {
+	ps->index = ps->next_index;
+    }
+
+    /* Find the end of the result from the previous `next_token' call. */
+    wordunit_T **lastp = &ps->token;
+    while (*lastp != NULL)
+	lastp = &(*lastp)->next;
+
+    /* Now parse the remainder of the token. */
+    int nestparen = 0;
+    size_t startindex = ps->index;
+    for (;;) {
+	maybe_line_continuations(ps, ps->index);
+	switch (ps->src.contents[ps->index]) {
+	    case L'\0':
+		serror(ps, Ngt("`%ls' is missing"), L"]]");
+		goto end;
+	    case L'\\':
+		if (ps->src.contents[ps->index + 1] != L'\0') {
+		    assert(ps->src.contents[ps->index + 1] != L'\n');
+		    ps->index += 2;
+		    continue;
+		}
+		break;
+	    case L'$':
+	    case L'`':
+		MAKE_WORDUNIT_STRING;
+		wordunit_T *wu = parse_special_word_unit(ps, false);
+		startindex = ps->index;
+		if (wu != NULL) {
+		    *lastp = wu;
+		    lastp = &wu->next;
+		    continue;
+		} else if (ps->src.contents[ps->index] == L'\0') {
+		    continue;
+		}
+		break;
+	    case L'(':
+		nestparen++;
+		break;
+	    case L')':
+		if (nestparen == 0) {
+		    serror(ps, Ngt("encountered `%ls' without a matching `('"),
+			    L")");
+		    goto end;
+		}
+		nestparen--;
+		break;
+	    case L'|':
+		break;
+	    case L'\n':
+		if (nestparen == 0)
+		    goto end;
+		ps->info->lineno++;
+		break;
+	    default:
+		if (nestparen > 0)
+		    break;
+		if (is_token_delimiter_char(ps->src.contents[ps->index]))
+		    goto end;
+		break;
+	}
+	ps->index++;
+    }
+
+end:;
+    MAKE_WORDUNIT_STRING;
+    ps->next_index = ps->index;
+    ps->index = grandstartindex;
+    if (ps->token != NULL)
+	ps->tokentype = TT_WORD;
+    return parse_double_bracket_operand(ps);
 }
 
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */

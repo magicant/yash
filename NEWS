@@ -45,6 +45,8 @@ Yash 2.51
      character.
   *  When there are no positional parameters, the nested expansion
      "${{@}}" now expands to nothing rather than one empty field.
+  *  Unquoted parentheses and vertical bars now can be used in a
+     regular expression in the "[[ word =~ regex ]]" syntax.
 
 ----------------------------------------------------------------------
 Yash 2.50
