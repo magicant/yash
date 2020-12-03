@@ -104,7 +104,14 @@ test_OE -e 0 'dollars with binary primary =~'
 __IN__
 
 test_OE -e 0 'vertical bars with binary primary =~'
-[[ a =~ a|b ]] && [[ '' =~ a|| ]] && [[ '' =~ ||a ]]
+[[ a =~ a|b ]] && [[ b =~ a|b|c ]]
+__IN__
+
+test_OE -e 0 'successive vertical bars with binary primary =~' -n
+# Empty branches of | cause undefined behavior as per POSIX, but it should not
+# be a syntax error.
+[[ '' =~ a|| ]]
+[[ '' =~ ||a ]]
 __IN__
 
 test_OE -e 0 'parentheses with binary primary =~'
