@@ -28,6 +28,9 @@ Yash 2.51
      shell is now always implicitly redirected to /dev/null,
      regardless of whether the standard input has already been
      redirected.
+  =  Quoted characters are now handled in (almost) the same way as
+     Bash in the regular expression in the "[[ word =~ regex ]]"
+     syntax.
   *  The "command" built-in with the -v or -V option was printing
      the pathnames of external commands with a redundant leading slash
      when the current working directory is "/" or "//".
@@ -45,7 +48,7 @@ Yash 2.51
      character.
   *  When there are no positional parameters, the nested expansion
      "${{@}}" now expands to nothing rather than one empty field.
-  *  Unquoted parentheses and vertical bars now can be used in a
+  *  Unquoted parentheses and vertical bars now can be used in the
      regular expression in the "[[ word =~ regex ]]" syntax.
 
 ----------------------------------------------------------------------

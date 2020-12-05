@@ -163,9 +163,12 @@ a='*' b='|' bb='\|' p='(a|b)'
     ! [[ a =~ "$p" ]]
 __IN__
 
+# Note: ksh and zsh behaves differently for some of the below
 test_OE -e 0 'bracket pattern with binary primary =~'
 [[ b =~ [a"-"c] ]] && ! [[ - =~ [a"-"c] ]] &&
-[[ 'a*c' =~ 'a*c' ]] && [[ "a<b" =~ "a<b" ]]
+[[ 'a*c' =~ 'a*c' ]] && [[ "a<b" =~ "a<b" ]] &&
+! [[ \\ =~ ["."] ]] && [[ \\ =~ [[.\\.]] ]] &&
+[[ x] =~ [^"]]]" ]] && [[ a+ =~ [a"[:alnum:]]+" ]]
 __IN__
 
 # Note: bash returns exit status of 2 and zsh prints an error message

@@ -97,6 +97,8 @@ static bool quote_removal_and_regex_matching(
     __attribute__((nonnull));
 static wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
     __attribute__((nonnull,malloc,warn_unused_result));
+static const wchar_t *skip_bracket(const wchar_t *s)
+    __attribute__((nonnull,pure,warn_unused_result));
 #endif
 
 
@@ -871,17 +873,76 @@ bool quote_removal_and_regex_matching(
  * string. */
 wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
 {
-    xwcsbuf_T result;
-    wb_initwithmax(&result, mul(wcslen(s), 2));
+    /* First, remove quotations. */
+    xwcsbuf_T tmp;
+    xstrbuf_T tmpcc;
+    size_t sizehint = wcslen(s);
+    wb_initwithmax(&tmp, sizehint);
+    sb_initwithmax(&tmpcc, sizehint);
     for (size_t i = 0; s[i] != L'\0'; i++) {
 	if (cc[i] & CC_QUOTATION)
 	    continue;
-	if (cc[i] & CC_QUOTED)
-	    if (wcschr(L"^.[$()|*+?{\\", s[i]) != NULL)
-		wb_wccat(&result, L'\\');
-	wb_wccat(&result, s[i]);
+	wb_wccat(&tmp, s[i]);
+	sb_ccat(&tmpcc, cc[i]);
     }
+
+    /* Next, escape unquoted special chars outside brackets */
+    xwcsbuf_T result;
+    wb_initwithmax(&result, sizehint);
+    for (size_t i = 0; tmp.contents[i] != L'\0'; ) {
+	if (tmpcc.contents[i] & CC_QUOTED) {
+	    if (wcschr(L"^.[$()|*+?{\\", tmp.contents[i]) != NULL)
+		wb_wccat(&result, L'\\');
+	    wb_wccat(&result, tmp.contents[i++]);
+	} else {
+	    if (tmp.contents[i] != L'[') {
+		wb_wccat(&result, tmp.contents[i++]);
+	    } else {
+		const wchar_t *s2 = skip_bracket(&tmp.contents[i]);
+		size_t j = s2 - tmp.contents;
+		while (i < j)
+		    wb_wccat(&result, tmp.contents[i++]);
+	    }
+	}
+    }
+
+    sb_destroy(&tmpcc);
+    wb_destroy(&tmp);
     return wb_towcs(&result);
+}
+
+/* Skips a bracket expression in a regular expression pattern.
+ * Returns a pointer to the character just after the closing L']' (or the
+ * terminating null character). */
+const wchar_t *skip_bracket(const wchar_t *s)
+{
+    assert(*s == L'[');
+    s++;
+
+    if (*s == L'^')
+	s++;
+    if (*s == L']')
+	s++;
+
+    while (*s != L'\0') {
+	if (*s == L']')
+	    return s + 1;
+	if (*s++ != L'[')
+	    continue;
+
+	switch (*s) {
+	    case L':': case L'.': case L'=': ;
+		wchar_t end[] = { *s, L']', L'\0', };
+		s++;
+		const wchar_t *endp = wcsstr(s, end);
+		if (endp == NULL)
+		    return s + wcslen(s);
+		s = endp + 2;
+		break;
+	}
+    }
+
+    return s;
 }
 
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
