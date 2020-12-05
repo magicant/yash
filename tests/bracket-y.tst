@@ -65,6 +65,11 @@ lhs='foobar' rhs='f*b?r'
 [[ "$lhs" = $rhs ]] && ! [[ "$lhs" = "$rhs" ]]
 __IN__
 
+# Note: ksh renders reverse results for the first two
+test_OE -e 0 'bracket pattern with binary primary ='
+! [[ b = [a"-"c] ]] && [[ - = [a"-"c] ]] && ! [[ \\ = ["."] ]]
+__IN__
+
 test_OE -e 0 'literal pattern matching with binary primary =='
 [[ foobar == f*b?r ]] && ! [[ foobar == "f*b?r" ]]
 __IN__
@@ -156,6 +161,10 @@ test_OE -e 0 'expanded specials with binary primary =~ (w/ quotes)'
 a='*' b='|' bb='\|' p='(a|b)'
 ! [[ abc =~ "ab${a}c" ]] && ! [[ a =~ "a${b}b" ]] && ! [[ a =~ "a${bb}b" ]] &&
     ! [[ a =~ "$p" ]]
+__IN__
+
+test_OE -e 0 'bracket pattern with binary primary =~'
+[[ b =~ [a"-"c] ]] && ! [[ - =~ [a"-"c] ]]
 __IN__
 
 # Note: bash returns exit status of 2 and zsh prints an error message
