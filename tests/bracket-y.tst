@@ -164,7 +164,8 @@ a='*' b='|' bb='\|' p='(a|b)'
 __IN__
 
 test_OE -e 0 'bracket pattern with binary primary =~'
-[[ b =~ [a"-"c] ]] && ! [[ - =~ [a"-"c] ]]
+[[ b =~ [a"-"c] ]] && ! [[ - =~ [a"-"c] ]] &&
+[[ 'a*c' =~ 'a*c' ]] && [[ "a<b" =~ "a<b" ]]
 __IN__
 
 # Note: bash returns exit status of 2 and zsh prints an error message

@@ -95,6 +95,8 @@ static bool quote_removal_and_pattern_matching(
 static bool quote_removal_and_regex_matching(
 	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
+static wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
+    __attribute__((nonnull,malloc,warn_unused_result));
 #endif
 
 
@@ -857,10 +859,29 @@ bool quote_removal_and_pattern_matching(
 bool quote_removal_and_regex_matching(
 	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
 {
-    wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_QUOTED);
+    wchar_t *rhs = quote_removal_for_regex(rhsvalue, rhscc);
     bool result = match_regex(lhs, rhs);
     free(rhs);
     return result;
+}
+
+/* Removes all quotation marks in the input string `s' and add backslash escapes
+ * to quoted characters that would otherwise be treated specially when parsed as
+ * an extended regular expression pattern. The result is a newly malloced
+ * string. */
+wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
+{
+    xwcsbuf_T result;
+    wb_initwithmax(&result, mul(wcslen(s), 2));
+    for (size_t i = 0; s[i] != L'\0'; i++) {
+	if (cc[i] & CC_QUOTATION)
+	    continue;
+	if (cc[i] & CC_QUOTED)
+	    if (wcschr(L"^.[$()|*+?{\\", s[i]) != NULL)
+		wb_wccat(&result, L'\\');
+	wb_wccat(&result, s[i]);
+    }
+    return wb_towcs(&result);
 }
 
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
