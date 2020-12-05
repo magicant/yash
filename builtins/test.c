@@ -87,9 +87,12 @@ static bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
     __attribute__((nonnull));
 static bool quote_removal_and_test_triple(
 	const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc, escaping_T escaping)
+	const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 static bool quote_removal_and_pattern_matching(
+	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+    __attribute__((nonnull));
+static bool quote_removal_and_regex_matching(
 	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 #endif
@@ -810,8 +813,7 @@ bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
 	case L'=':
 	    if (op[1] == L'~') {
 		assert(op[2] == L'\0');
-		return quote_removal_and_test_triple(
-		    lhs, op, rhsvalue, rhscc, ES_QUOTED);
+		return quote_removal_and_regex_matching(lhs, rhsvalue, rhscc);
 	    }
 	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
 		return quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
@@ -824,16 +826,16 @@ bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
 	    break;
     }
 
-    return quote_removal_and_test_triple(lhs, op, rhsvalue, rhscc, ES_NONE);
+    return quote_removal_and_test_triple(lhs, op, rhsvalue, rhscc);
 }
 
 /* Performs quote removal on the right hand side and then applies `test_triple'.
  */
 bool quote_removal_and_test_triple(
 	const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc, escaping_T escaping)
+	const wchar_t *rhsvalue, const char *rhscc)
 {
-    wchar_t *rhs = quote_removal(rhsvalue, rhscc, escaping);
+    wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_NONE);
     void *args[] = { (void *) lhs, (void *) op, (void *) rhs, };
     bool result = test_triple(args);
     free(rhs);
@@ -846,6 +848,17 @@ bool quote_removal_and_pattern_matching(
 {
     wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_QUOTED);
     bool result = match_pattern(lhs, rhs);
+    free(rhs);
+    return result;
+}
+
+/* Performs quote removal on the right hand side and then regular expression
+ * matching. */
+bool quote_removal_and_regex_matching(
+	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+{
+    wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_QUOTED);
+    bool result = match_regex(lhs, rhs);
     free(rhs);
     return result;
 }
