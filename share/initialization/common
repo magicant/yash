@@ -292,7 +292,7 @@ _update_vcs_info() {
       if [ / -ef . ] || [ . -ef .. ]; then
         exit
       fi
-      cd -P ..
+      \command cd -P ..
     done
   )
   case "$type#$branch" in
