@@ -57,8 +57,10 @@ for file do
 	if ! check "$file"
 	then
 	    printf '%s -std=c99 -MM "%s.c" >|"%s.d"\n' "${CC-gcc}" "$file" "$file"
-	    if ! ${CC-gcc} -std=c99 -MM "${file}.c" >|"${file}.d"
+	    if ${CC-gcc} -std=c99 -MM "${file}.c" >|"${file}.d"
 	    then
+		:
+	    else
 		exitstatus=$?
 		printf '%s: cannot update "%s".\n' "$0" "${file}.d" >&2
 		exit "$exitstatus"
