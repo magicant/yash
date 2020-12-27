@@ -1,5 +1,5 @@
 # This script updates *.d files.
-# (C) 2007-2010 magicant
+# (C) 2007-2020 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,8 +56,8 @@ for file do
 	file=${file%.c}
 	if ! check "$file"
 	then
-	    printf 'gcc -std=c99 -MM "%s.c" >|"%s.d"\n' "$file" "$file"
-	    if ! gcc -std=c99 -MM "${file}.c" >|"${file}.d"
+	    printf '%s -std=c99 -MM "%s.c" >|"%s.d"\n' "${CC-gcc}" "$file" "$file"
+	    if ! ${CC-gcc} -std=c99 -MM "${file}.c" >|"${file}.d"
 	    then
 		exitstatus=$?
 		printf '%s: cannot update "%s".\n' "$0" "${file}.d" >&2

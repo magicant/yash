@@ -95,7 +95,7 @@ copy-distfiles: distfiles
 	cp $(DISTFILES) $(TEST_SOURCES) $(topdir)/$(DISTTARGETDIR)
 makedeps: _PHONY
 	@(cd $(topdir) && $(MAKE) $(TARGET))
-	$(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
+	CC='$(CC)' $(topdir)/$(TARGET) $(topdir)/makedeps.yash $(SOURCES)
 
 mostlyclean:
 	rm -fr $(BYPRODUCTS)
