@@ -231,7 +231,7 @@ distcheck: dist
 	# Currently, distcheck requires tar that automatically uncompresses
 	# the archive.
 	tar -x -f $(DISTDIR).tar.gz
-	(cd $(DISTDIR) && sh configure && make check dist)
+	(unset MAKEFLAGS && cd $(DISTDIR) && sh configure && make check dist)
 	$(RM_DISTDIR)
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash
