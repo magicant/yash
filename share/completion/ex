@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2021 magicant
 
 # Completion script for the "ex" command.
 # Supports POSIX 2008, FreeBSD 8.1, OpenBSD 4.8, NetBSD 5.0, SunOS 5.10,
@@ -6,9 +6,11 @@
 
 function completion/ex {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in (VIM*)
-		command -f completion//reexecute vim
-		return
+	case $(echo :q! |
+		HOME=/dev/null "${WORDS[1]}" -c q! --version 2>/dev/null) in
+		(VIM*)
+			command -f completion//reexecute vim
+			return
 	esac
 	typeset type="$(uname 2>/dev/null)"
 
