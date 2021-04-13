@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -603,7 +603,7 @@ static embedcmd_T extract_command_in_paren(parsestate_T *ps)
     __attribute__((nonnull,warn_unused_result));
 static wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
+static wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsdq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_arith(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1590,9 +1590,9 @@ wchar_t *extract_command_in_paren_unparsed(parsestate_T *ps)
  * When this function is called, the current position must be at the character
  * that just follows the opening backquote L'`'. This function advances the
  * position to the character that just follows the closing backquote L'`'.
- * If `bsbq' is true, backslash-escaped backquotes are handled; otherwise, they
- * are left intact. */
-wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
+ * If `bsdq' is true, backslash-escaped double-quotes are unquoted; otherwise,
+ * they are left intact. */
+wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsdq)
 {
     assert(ps->src.contents[ps->index - 1] == L'`');
 
@@ -1614,7 +1614,7 @@ wordunit_T *parse_cmdsubst_in_backquote(parsestate_T *ps, bool bsbq)
 		case L'$':  case L'`':  case L'\\':
 		    goto default_;
 		case L'"':
-		    if (bsbq)
+		    if (bsdq)
 			goto default_;
 		    /* falls thru! */
 		default:
