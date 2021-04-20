@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.52
+
+  .  Updated completion scripts:
+    *  git: Fixed completion of arguments in a command line containing
+       argument-taking options such as "-C".
+
+----------------------------------------------------------------------
 Yash 2.51
 
   =  When an expansion error occurs, the shell now immediately stops

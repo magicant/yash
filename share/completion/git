@@ -1,4 +1,4 @@
-# (C) 2011-2019 magicant
+# (C) 2011-2021 magicant
 
 # Completion script for the "git" command.
 # Supports Git 2.9.2.
@@ -67,8 +67,11 @@ function completion/git {
 			typeset OPTIND=2 gitcmd=
 			while [ $OPTIND -le ${WORDS[#]} ]; do
 				case ${WORDS[OPTIND]} in
-					(-c)
+					(-[Cc])
 						OPTIND=$((OPTIND+1))
+						;;
+					(--exec-path=*)
+						typeset -x GIT_EXEC_PATH="${WORDS[OPTIND]#*=}"
 						;;
 					(--git-dir)
 						OPTIND=$((OPTIND+1))
@@ -76,6 +79,13 @@ function completion/git {
 						;;
 					(--git-dir=*)
 						typeset -x GIT_DIR="${WORDS[OPTIND]#*=}"
+						;;
+					(--namespace)
+						OPTIND=$((OPTIND+1))
+						typeset -x GIT_NAMESPACE="${WORDS[OPTIND]}"
+						;;
+					(--namespace=*)
+						typeset -x GIT_NAMESPACE="${WORDS[OPTIND]#*=}"
 						;;
 					(--work-tree)
 						OPTIND=$((OPTIND+1))
