@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2020 magicant
+# (C) 2007-2021 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -167,7 +167,7 @@ uninstall-data:
 
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
-ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip
+ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-zstd dist-shar dist-zip
 DIST_TARGETS = dist-gzip dist-xz
 RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar
 $(DISTDIR): _PHONY
@@ -202,6 +202,8 @@ dist-bzip2: $(DISTDIR).tar.bz2
 	$(RM_DISTDIR)
 dist-xz: $(DISTDIR).tar.xz
 	$(RM_DISTDIR)
+dist-zstd: $(DISTDIR).tar.zst
+	$(RM_DISTDIR)
 dist-shar: $(DISTDIR).shar.gz
 	$(RM_DISTDIR)
 dist-zip: $(DISTDIR).zip
@@ -220,6 +222,9 @@ $(DISTDIR).tar.bz2: $(DISTDIR).tar
 $(DISTDIR).tar.xz: $(DISTDIR).tar
 	rm -rf $@
 	xz -k $(DISTDIR).tar
+$(DISTDIR).tar.zst: $(DISTDIR).tar
+	rm -rf $@
+	zstd -19 $(DISTDIR).tar
 $(DISTDIR).shar: $(DISTDIR)
 	shar $(DISTDIR) > $@
 $(DISTDIR).shar.gz: $(DISTDIR).shar
@@ -300,7 +305,7 @@ Makefile: Makefile.in config.status
 config.status: configure
 	$(SHELL) config.status --recheck
 
-.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-xz dist-shar dist-zip dist-all distcheck distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean
+.PHONY: all test tests check tester mofiles docs man html install install-strip install-binary install-binary-strip install-data install-html installdirs installdirs-binary installdirs-data installdirs-data-main installdirs-html uninstall uninstall-binary uninstall-data dist dist-tarZ dist-gzip dist-bzip2 dist-xz dist-zstd dist-shar dist-zip dist-all distcheck distfiles copy-distfiles makedeps cscope mostlyclean _mostlyclean clean _clean distclean _distclean maintainer-clean
 _PHONY:
 
 @MAKE_INCLUDE@ alias.d
