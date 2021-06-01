@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* makesignum.c: outputs string for 'signum.h' contents */
-/* (C) 2007-2009 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ int main(void)
 	for (const signal_T *s = signals; s->no; s++) {
 	    if (!sigismember(&ss, s->no)) {
 		sigaddset(&ss, s->no);
-		wprintf(L"    case SIG%-7s: return %zu;\n", s->name, v++);
+		wprintf(L"    case SIG%-7ls: return %zu;\n", s->name, v++);
 	    }
 	}
 

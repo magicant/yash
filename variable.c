@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1529,7 +1529,7 @@ void generate_dirstack_candidates(const le_compopt_T *compopt)
 
     switch (compopt->src[0]) {
 	case L'+':
-	    index = malloc_wprintf(L"+%zu", 0);
+	    index = malloc_wprintf(L"+%zu", (size_t) 0);
 	    break;
 	case L'-':
 	    index = malloc_wprintf(L"-%zu", totalcount - 1);
