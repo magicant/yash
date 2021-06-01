@@ -61,7 +61,7 @@ int main(void)
 	wprintf(L"__attribute__((const))\n");
 	wprintf(L"static inline size_t sigindex(int signum) {\n");
 	wprintf(L"    switch (signum) {\n");
-	wprintf(L"    case 0         : return 0;\n");
+	wprintf(L"    default        : return 0;\n");
 
 	sigemptyset(&ss);
 	v = 1;
