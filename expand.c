@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1625,20 +1625,19 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
 	    continue;
 	}
 
-	/* Now the current char is either null or a IFS non-whitespace. */
+	/* Now the current char is either null or an IFS non-whitespace. */
 
 	if (!afterfield)
 	    add_empty_field(dest, &s[index]);
 
-	/* skip (only one) IFS non-whitespace */
-	if (is_ifs_char(s[index], cc[index], ifs)) {
-	    index++;
-	    afterfield = false;
-	    continue;
-	}
+	if (s[index] == L'\0')
+	    break;
 
-	/* Now the current char is null. We're done. */
-	break;
+	/* skip (only) one IFS non-whitespace */
+	assert(is_ifs_char(s[index], cc[index], ifs));
+	assert(!is_ifs_whitespace(s[index], cc[index], ifs));
+	index++;
+	afterfield = false;
     }
 
     /* remove the empty last field */
