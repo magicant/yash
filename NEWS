@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.52
 
+  *  Fixed possible memory leak caused by improper use of the realloc
+     function.
   .  Updated completion scripts:
     *  git: Fixed completion of arguments in a command line containing
        argument-taking options such as "-C".

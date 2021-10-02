@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -135,8 +135,20 @@ void *xmallocs(size_t mainsize, size_t count, size_t elemsize)
 /* Attempts `realloc' and aborts the program on failure. */
 void *xrealloc(void *ptr, size_t size)
 {
+    /* The behavior of `realloc(non_null_pointer, 0)' is unreliable. Some
+     * implementations free the previously allocated region and return NULL.
+     * Some reallocate an empty region and return a pointer to it. The latter
+     * may fail to allocate the new region, leaving the previous region intact
+     * and returning NULL. That means, when `realloc(non_null_pointer, 0)'
+     * returned NULL, we cannot tell if the previous region has been freed or
+     * not. */
+    if (size == 0) {
+	free(ptr);
+	return NULL;
+    }
+
     void *result = realloc(ptr, size);
-    if (result == NULL && size > 0)
+    if (result == NULL)
 	alloc_failed();
     return result;
 }
