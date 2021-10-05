@@ -10,6 +10,7 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.52
 
+  *  "typeset -fp" now correctly distinguishes "<<-FOO" and "<< -FOO".
   *  Fixed possible memory leak caused by improper use of the realloc
      function.
   .  Updated completion scripts:

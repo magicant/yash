@@ -582,6 +582,16 @@ EOF
 }
 __OUT__
 
+test_single 'here-document, hyphen-prefixed operand'
+{
+cat fifo << -FOO <<--BA\R
+-FOO
+-BAR
+}
+__IN__
+{ cat fifo 0<< -FOO 0<<- -BA\R; }
+__OUT__
+
 test_multi 'process redirection'
 { <(
     :&

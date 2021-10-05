@@ -3849,6 +3849,9 @@ void print_redirections(
 		print_word(pr, rd->rd_filename, indent);
 		break;
 	    case here:
+		if (rd->rd_hereend[0] == L'-') {
+		    wb_wccat(&pr->buffer, L' ');
+		}
 		wb_cat(&pr->buffer, rd->rd_hereend);
 		pl_add(&pr->pending_heredocs, (void *) rd);
 		break;
