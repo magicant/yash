@@ -430,7 +430,7 @@ __IN__
 [-][-][-]
 [-][-][][-][]
 [-][-][ ][-][ ]
-[][][-][][][-][][][-][][]
+[-][-][][][-][][]
 __OUT__
 
 test_oE 'disambiguation of ${$...' # None of below are nested expansions

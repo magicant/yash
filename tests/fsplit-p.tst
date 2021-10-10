@@ -221,7 +221,7 @@ a='1= ='; bracket $a
 a='1==  ='; bracket $a
 a='1===   ='; bracket $a
 __IN__
-
+[]
 [][]
 [][][]
 [1]
@@ -256,7 +256,7 @@ a='1\ \'; bracket $a
 a='1\\  \'; bracket $a
 a='1\\\   \'; bracket $a
 __IN__
-
+[]
 [][]
 [][][]
 [1]

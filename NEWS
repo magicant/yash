@@ -10,6 +10,11 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.52
 
+  =  Unquoted multiple empty fields resulting from a single word
+     expansion are now removed. For example, the brace expansion {,}
+     now expands to no fields rather than two empty fields.
+  *  In word expansion, if a field consists of a single non-whitespace
+     IFS character, it results in an empty field rather than no field.
   *  "typeset -fp" now correctly distinguishes "<<-FOO" and "<< -FOO".
   *  Fixed possible memory leak caused by improper use of the realloc
      function.

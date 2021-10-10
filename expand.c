@@ -220,15 +220,6 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
 	    &expand.valuelist, &expand.cclist);
     assert(expand.valuelist.length == expand.cclist.length);
 
-    /* empty field removal */
-    if (expand.valuelist.length == 1) {
-	const wchar_t *field = expand.valuelist.contents[0];
-	if (field[0] == L'\0') {
-	    pl_clear(&expand.valuelist, free);
-	    pl_clear(&expand.cclist, free);
-	}
-    }
-
     /* pathname expansion (and quote removal) */
     glob_all(&expand, list);
 
@@ -919,10 +910,18 @@ subst:
     /* create `e.cclist' contents */
     charcategory_T cc = CC_SOFT_EXPANSION | (indq * CC_QUOTED);
     for (size_t i = 0; i < e.valuelist.length; i++) {
-	size_t n = wcslen(e.valuelist.contents[i]);
+	xwcsbuf_T sbuf;
+	wb_initwith(&sbuf, e.valuelist.contents[i]);
+	size_t n = sbuf.length;
 	xstrbuf_T ccbuf;
-	sb_initwithmax(&ccbuf, n);
+	sb_initwithmax(&ccbuf, n + 1);
 	sb_ccat_repeat(&ccbuf, cc, n);
+	if (indq && e.valuelist.length > 1) {
+	    // keep the field from empty field removal by adding a dummy quote
+	    wb_wccat(&sbuf, L'"');
+	    sb_ccat(&ccbuf, cc | CC_QUOTATION);
+	}
+	e.valuelist.contents[i] = wb_towcs(&sbuf);
 	pl_add(&e.cclist, sb_tostr(&ccbuf));
     }
 
@@ -1590,8 +1589,8 @@ void fieldsplit(void **restrict const valuelist, void **restrict const cclist,
  * The return value is a pointer to the end of the input string (but before
  * trailing IFS whitespaces). */
 /* Split examples (assuming `ifs' = L" -" and `shopt_emptylastfield' is true)
- *   ""                  ->   ""
- *   "  "                ->   ""
+ *   ""                  ->   (nothing)
+ *   "  "                ->   (nothing)
  *   " abc 123 "         ->   "abc" "123"
  *   "  abc  123  "      ->   "abc" "123"
  *   "-abc-123-"         ->   "" "abc" "123" ""
@@ -1642,11 +1641,12 @@ wchar_t *extract_fields(const wchar_t *restrict s, const char *restrict cc,
 
     /* remove the empty last field */
     size_t newlen = dest->length;
-    if (!shopt_emptylastfield && newlen - oldlen >= 2 * 2 &&
-	    dest->contents[newlen - 2] == dest->contents[newlen - 1])
-	pl_truncate(dest, newlen - 2);
+    assert(newlen - oldlen >= 2);
+    if (!shopt_emptylastfield || newlen - oldlen == 2)
+	if (dest->contents[newlen - 2] == dest->contents[newlen - 1])
+	    pl_truncate(dest, newlen - 2);
 
-    assert(dest->length - oldlen >= 2);
+    assert(dest->length >= oldlen);
     return (wchar_t *) &s[ifswhitestartindex];
 }
 

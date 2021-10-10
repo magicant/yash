@@ -28,7 +28,7 @@ bracket {,,}
 __IN__
 [a1b][ab][a2b]
 [x][x][x]
-[][][]
+
 __OUT__
 
 test_oE 'nested brace expansions'
