@@ -8,7 +8,7 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
-Yash 2.52
+Yash 2.52 (2021-10-11)
 
   =  Unquoted multiple empty fields resulting from a single word
      expansion are now removed. For example, the brace expansion {,}
@@ -23,7 +23,7 @@ Yash 2.52
        argument-taking options such as "-C".
 
 ----------------------------------------------------------------------
-Yash 2.51
+Yash 2.51 (2020-12-12)
 
   =  When an expansion error occurs, the shell now immediately stops
      expansion rather than trying to expand the remaining part of the
@@ -67,7 +67,7 @@ Yash 2.51
      regular expression in the "[[ word =~ regex ]]" syntax.
 
 ----------------------------------------------------------------------
-Yash 2.50
+Yash 2.50 (2020-05-31)
 
   *  With the "-o notify" option enabled, the "fg" built-in was
      redundantly reporting the status of the job that had been resumed
@@ -84,7 +84,7 @@ Yash 2.50
     +  git-rebase: support new options in Git 2.24.0.
 
 ----------------------------------------------------------------------
-Yash 2.49
+Yash 2.49 (2019-09-22)
 
   +  '--for-local' option.
   =  The '--no-unset' option now rejects unset variables not only in
@@ -110,7 +110,7 @@ Yash 2.49
        rsync command.
 
 ----------------------------------------------------------------------
-Yash 2.48
+Yash 2.48 (2018-12-22)
 
   +  The double-bracket command (the [[ ... ]] syntax)
   +  The "local" built-in
@@ -162,7 +162,7 @@ Yash 2.48
     =  ssh, ssh-keygen: support new options in OpenSSH 7.7.
 
 ----------------------------------------------------------------------
-Yash 2.47
+Yash 2.47 (2018-04-11)
 
   +  '--errreturn' option.
   =  Expansion results printed by the -x option is now quoted to
@@ -181,7 +181,7 @@ Yash 2.47
     +  Example code for enabling "direnv".
 
 ----------------------------------------------------------------------
-Yash 2.46
+Yash 2.46 (2017-10-28)
 
   =  Global aliases are now substituted in all locations, including
      part of compound commands where only operators are syntactically
@@ -199,7 +199,7 @@ Yash 2.46
      substitution.
 
 ----------------------------------------------------------------------
-Yash 2.45
+Yash 2.45 (2017-07-05)
 
   +  [line-editing] new line-editing commands:
         complete-max-then-list, complete-max-then-next-candidate,
@@ -221,7 +221,7 @@ Yash 2.45
     *  git: at most 10 candidates are now proposed for a commit hash.
 
 ----------------------------------------------------------------------
-Yash 2.44
+Yash 2.44 (2017-01-17)
 
   +  Command line prediction and the '--le-predict' option.
   +  A default initialization script is automatically loaded if the
@@ -268,12 +268,12 @@ Yash 2.44
        shell, the shell now exits, regardless of error type.
 
 ----------------------------------------------------------------------
-Yash 2.43
+Yash 2.43 (2016-09-22)
 
   *  Updated completion script for: carthage, cd, su
 
 ----------------------------------------------------------------------
-Yash 2.42
+Yash 2.42 (2016-08-27)
 
   +  '--pipefail' option.
   +  New completion script for: carthage, dnf, git-rev-parse, tree,
@@ -292,7 +292,7 @@ Yash 2.42
      containing command is parsed.
 
 ----------------------------------------------------------------------
-Yash 2.41
+Yash 2.41 (2016-03-20)
 
   +  '--emptylastfield' option.
   +  New option for the "shift" built-in: -A
@@ -340,7 +340,7 @@ Yash 2.41
   *  Backslash escapes are now recognized in parameter indexes.
 
 ----------------------------------------------------------------------
-Yash 2.40
+Yash 2.40 (2016-01-09)
 
   =  The "unset" built-in no longer rejects variable names containing
      the "=" symbol as an error. They are now silently ignored.
@@ -372,7 +372,7 @@ Yash 2.40
      print the job name.
 
 ----------------------------------------------------------------------
-Yash 2.39
+Yash 2.39 (2015-08-27)
 
   +  New options for the "read" built-in: -e, -P, -p
   +  New completion script for: passwd, valgrind
@@ -403,7 +403,7 @@ Yash 2.39
   *  Minor fix in completion script for "git-svn".
 
 ----------------------------------------------------------------------
-Yash 2.38
+Yash 2.38 (2015-06-21)
 
   +  New completion scripts for: git-rm
   =  In the POSIXly-correct mode, functions must now be defined with a
@@ -418,20 +418,20 @@ Yash 2.38
   *  Completion error on untracked file for git-commit.
 
 ----------------------------------------------------------------------
-Yash 2.37
+Yash 2.37 (2015-01-25)
 
   +  Updated completion scripts for:
      git-checkout (Git 2.1.2), git-push (Git 2.0.1), git-submodule
      (Git 2.1.2).
 
 ----------------------------------------------------------------------
-Yash 2.36
+Yash 2.36 (2014-04-06)
 
   +  New completion scripts for: git-describe, tig.
   +  Updated completion script for: git-branch (Git 1.9.0).
 
 ----------------------------------------------------------------------
-Yash 2.35
+Yash 2.35 (2013-06-08)
 
   +  '--traceall' option.
   +  New completion scripts for:
@@ -455,7 +455,7 @@ Yash 2.35
   *  Minor fix in completion script for "git", "ssh" and "rsync".
 
 ----------------------------------------------------------------------
-Yash 2.34
+Yash 2.34 (2013-02-23)
 
   +  New "test" built-in operator: =~, -o (unary)
   +  New completion scripts for:
@@ -470,7 +470,7 @@ Yash 2.34
   *  Fixes in completion scripts for "git".
 
 ----------------------------------------------------------------------
-Yash 2.33
+Yash 2.33 (2012-10-27)
 
   =  The "help" built-in now prints brief usage of built-ins.
   =  Some error messages for command syntax error have been revised.
@@ -479,14 +479,14 @@ Yash 2.33
      as specified in POSIX.
 
 ----------------------------------------------------------------------
-Yash 2.32
+Yash 2.32 (2012-09-22)
 
   +  Man page and HTML manual in English and Japanese.
   =  The "help" built-in now prints part of the man page.
   *  Fixes in completion scripts for "git".
 
 ----------------------------------------------------------------------
-Yash 2.31
+Yash 2.31 (2012-06-24)
 
   +  Completion of directory stack indices in extended tilde
      expansion.
@@ -495,7 +495,7 @@ Yash 2.31
   *  Fixes in "git", "tar" and "su" completion scripts.
 
 ----------------------------------------------------------------------
-Yash 2.30
+Yash 2.30 (2012-02-04)
 
   *  Fixed pathname completion for redirections.
   +  New completion scripts for:
@@ -503,7 +503,7 @@ Yash 2.30
   *  Minor fixes in completion scripts.
 
 ----------------------------------------------------------------------
-Yash 2.29
+Yash 2.29 (2011-10-15)
 
   +  An alias value now can contain newlines.
   *  Fixed invalid memory access on printing an empty array using the
@@ -514,7 +514,7 @@ Yash 2.29
      history entry that is being edited.
 
 ----------------------------------------------------------------------
-Yash 2.28
+Yash 2.28 (2011-08-20)
 
   =  In an interactive shell, mail check is now done before job status
      report.
@@ -538,7 +538,7 @@ Yash 2.28
   *  The EXIT trap now can be completed.
 
 ----------------------------------------------------------------------
-Yash 2.27
+Yash 2.27 (2011-05-16)
 
   *  Minor bug fixes.
   +  New completion scripts for:
@@ -547,7 +547,7 @@ Yash 2.27
   *  Fix in completion scripts for the "set" and "tar" commands.
 
 ----------------------------------------------------------------------
-Yash 2.26
+Yash 2.26 (2011-02-17)
 
   +  New option for the "return" built-in: -n (--no-return)
   =  Error messages have been revised.
@@ -577,7 +577,7 @@ Yash 2.26
      bash, chmod, dash, less, mksh, set, sh, and umask.
 
 ----------------------------------------------------------------------
-Yash 2.25
+Yash 2.25 (2010-11-21)
 
   =  In the completion candidate list, options are now sorted case-
      insensitively.
@@ -596,7 +596,7 @@ Yash 2.25
      df, du, exec, ls, and set.
 
 ----------------------------------------------------------------------
-Yash 2.24
+Yash 2.24 (2010-10-03)
 
   +  New option for the "." built-in: -L
   +  New options for the "command" built-in: -a, -f, -k
@@ -624,7 +624,7 @@ Yash 2.24
      redirection.
 
 ----------------------------------------------------------------------
-Yash 2.23
+Yash 2.23 (2010-07-29)
 
   *  Traps are no longer handled during completion to avoid messing up
      the display.
@@ -636,7 +636,7 @@ Yash 2.23
   *  Fixed completion script for the "kill" built-in.
 
 ----------------------------------------------------------------------
-Yash 2.22
+Yash 2.22 (2010-07-25)
 
   +  New "test" built-in operators: -G, -O, -N
   +  Completion settings are now autoloaded from $YASH_COMPPATH.
@@ -650,7 +650,7 @@ Yash 2.22
   *  Other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.21
+Yash 2.21 (2010-06-18)
 
   +  Command line completion
   =  In an interactive shell, the value of $LINENO is now reset to 1
@@ -661,7 +661,7 @@ Yash 2.21
   *  Input reading functions rewritten, including some bug fixes.
 
 ----------------------------------------------------------------------
-Yash 2.20
+Yash 2.20 (2010-05-16)
 
   +  Function definition using the "function" keyword.
   =  The "-nt" and "-ot" operators of the "test" built-in now consider
@@ -673,7 +673,7 @@ Yash 2.20
   *  [line-editing] the clear-and-redraw-all command was broken.
 
 ----------------------------------------------------------------------
-Yash 2.19
+Yash 2.19 (2010-02-14)
 
   +  The "ulimit" built-in is now available on FreeBSD.
   +  In mail checking, the timestamp of the mail file is now compared
@@ -698,7 +698,7 @@ Yash 2.19
      search-again-forward/backward command in the emacs-like mode.
 
 ----------------------------------------------------------------------
-Yash 2.18
+Yash 2.18 (2009-12-27)
 
   +  New operators for string comparison in the "test" built-in:
      ==, ===, !==, <, <=, >, >=
@@ -718,7 +718,7 @@ Yash 2.18
   *  [line-editing] fixed font color for some terminals.
 
 ----------------------------------------------------------------------
-Yash 2.17
+Yash 2.17 (2009-12-04)
 
   +  '--le-visiblebell' option.
   +  New operators for version comparison in the "test" built-in:
@@ -738,7 +738,7 @@ Yash 2.17
   *  Many other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.16
+Yash 2.16 (2009-10-17)
 
   +  '--curbg' and '--curstop' options.
   =  '--curasync' option is now set by default.
@@ -759,7 +759,7 @@ Yash 2.16
      space(s).
 
 ----------------------------------------------------------------------
-Yash 2.15
+Yash 2.15 (2009-09-07)
 
   +  An interactive shell now can be interrupted by SIGINT.
   +  Bracket expressions in pathname expansion are now fully supported
@@ -783,7 +783,7 @@ Yash 2.15
   *  Various bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.14
+Yash 2.14 (2009-08-07)
 
   +  The -l option for the "bindkey" built-in.
   +  Negative array indices are now allowed.
@@ -809,7 +809,7 @@ Yash 2.14
      correct mode, as described in the help.
 
 ----------------------------------------------------------------------
-Yash 2.13
+Yash 2.13 (2009-07-28)
 
   +  "history" built-in
   +  The -i option for the "eval", "break" and "continue" built-ins.
@@ -828,7 +828,7 @@ Yash 2.13
   *  [line-editing] Fixed some bugs in the vi-edit-and-accept command.
 
 ----------------------------------------------------------------------
-Yash 2.12
+Yash 2.12 (2009-07-18)
 
   +  Emacs-like line-editing.
   +  "bindkey" built-in.
@@ -844,7 +844,7 @@ Yash 2.12
      cursor is at the beginning of line
 
 ----------------------------------------------------------------------
-Yash 2.11
+Yash 2.11 (2009-06-22)
 
   +  Added the "--histspace" and "--le-noconvmeta" options.
   +  Support for the $HISTRMDUP variable.
@@ -862,7 +862,7 @@ Yash 2.11
      line-editing.
 
 ----------------------------------------------------------------------
-Yash 2.10
+Yash 2.10 (2009-05-27)
 
   +  History search in line-editing.
   =  Empty lines are no longer stored in the history.
@@ -874,7 +874,7 @@ Yash 2.10
   *  Some fixes for invalid memory access during line-editing.
 
 ----------------------------------------------------------------------
-Yash 2.9
+Yash 2.9 (2009-05-10)
 
   +  Line-editing in the interactive mode.
   x  Line-editing is not fully implemented.
@@ -893,7 +893,7 @@ Yash 2.9
   *  Fixed the help message for the "pwd" built-in.
 
 ----------------------------------------------------------------------
-Yash 2.8
+Yash 2.8 (2009-04-18)
 
   +  Brace expansion with delta: {a..b..c}
   +  The "command" built-in's -b and -B options now can be used with
@@ -925,7 +925,7 @@ Yash 2.8
      the commands when the "autocd" option is on.
 
 ----------------------------------------------------------------------
-Yash 2.7
+Yash 2.7 (2009-03-02)
 
   +  Parameter expansion ${array[index]:=value} now allows assignment
      to an empty array element.
@@ -940,7 +940,7 @@ Yash 2.7
      matching during filename expansion.
 
 ----------------------------------------------------------------------
-Yash 2.6
+Yash 2.6 (2009-02-11)
 
   +  Added the -q option to the fc built-in.
   +  Compound commands may now contain no commands inside.
@@ -952,7 +952,7 @@ Yash 2.6
      when the "-o notify" option is enabled.
 
 ----------------------------------------------------------------------
-Yash 2.5
+Yash 2.5 (2009-01-16)
 
   =  Redirection of FDs used by the shell is now error.
   *  Some redirection syntax errors were overlooked.
@@ -964,7 +964,7 @@ Yash 2.5
      statement.
 
 ----------------------------------------------------------------------
-Yash 2.4
+Yash 2.4 (2008-12-23)
 
   =  The long option for the -p option of the "jobs" built-in has been
      changed from "--pid-only" to "--pgid-only".
@@ -979,7 +979,7 @@ Yash 2.4
      not a valid command.
 
 ----------------------------------------------------------------------
-Yash 2.3
+Yash 2.3 (2008-12-07)
 
   =  Now changing LC_CTYPE immediately takes effect if the shell is
      interactive and not in the POSIXly-correct mode.
@@ -990,7 +990,7 @@ Yash 2.3
      using the old PATH after the PATH has been changed.
 
 ----------------------------------------------------------------------
-Yash 2.2
+Yash 2.2 (2008-10-31)
 
   +  "help", "pushd", "popd" and "dirs" built-ins
   =  The value of $PWD set by the "cd" built-in is fixed. It now has a
@@ -1000,7 +1000,7 @@ Yash 2.2
      "." or "..".
 
 ----------------------------------------------------------------------
-Yash 2.1
+Yash 2.1 (2008-10-16)
 
   +  Array variables
   +  "array", "echo", "printf" and "test" built-ins
@@ -1019,7 +1019,7 @@ Yash 2.1
      IDs rather than the real user/group IDs.
 
 ----------------------------------------------------------------------
-Yash 2.0
+Yash 2.0 (2008-09-25)
 
   +  "history" built-in
   +  Command redirection
@@ -1029,7 +1029,7 @@ Yash 2.0
   *  Other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.0 beta2
+Yash 2.0 beta2 (2008-09-11)
 
   +  Command history
   +  "type", "hash" and "fc" built-ins
@@ -1041,7 +1041,7 @@ Yash 2.0 beta2
   *  Other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.0 beta1
+Yash 2.0 beta1 (2008-09-06)
 
   +  "read", "getopts" and "command" built-ins
   +  '--autocd' and '--curasync' option
@@ -1057,7 +1057,7 @@ Yash 2.0 beta1
   *  Many other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.0 beta0
+Yash 2.0 beta0 (2008-07-27)
 
   +  "eval", "exec", ".", "times", "umask", "typeset", "export",
      "readonly", "unset", "shift" and "trap" built-ins
@@ -1070,7 +1070,7 @@ Yash 2.0 beta0
   *  Many other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.0 alpha2
+Yash 2.0 alpha2 (2008-07-10)
 
   +  Initialization files such as "/etc/profile" and "~/.yashrc" are
      now sourced on start-up.
@@ -1085,7 +1085,7 @@ Yash 2.0 alpha2
   =  The help message for 'yash --help' is now much briefer.
 
 ----------------------------------------------------------------------
-Yash 2.0 alpha1
+Yash 2.0 alpha1 (2008-06-14)
 
   +  New options implemented: -x, -h, -a
   =  The default value of 'PS3' is not set in POSIXly-correct mode.
@@ -1096,7 +1096,7 @@ Yash 2.0 alpha1
   *  Many other bug fixes
 
 ----------------------------------------------------------------------
-Yash 2.0 alpha0 (the first release of version 2.x)
+Yash 2.0 alpha0 (the first release of version 2.x) (2008-05-26)
 
   x  Arithmetic expansion is not implemented
   x  Built-ins are not implemented at all
