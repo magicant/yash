@@ -959,8 +959,6 @@ ifndef::basebackend-html[`c`]
 
 vi-change-to-eol::
 カーソルの位置からバッファの末尾までにある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
-Delete the characters from the current cursor position to the end of the line
-and switch to the vi insert mode.
 +
 --
 vi-command::
