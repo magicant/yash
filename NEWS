@@ -8,6 +8,13 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.53 (????-??-??)
+
+  *  Fixed a bug where command substitutions contained in the regular
+     expression inside the "[[ word =~ regex ]]" syntax were not
+     parsed correctly.
+
+----------------------------------------------------------------------
 Yash 2.52 (2021-10-11)
 
   =  Unquoted multiple empty fields resulting from a single word

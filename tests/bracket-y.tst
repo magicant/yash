@@ -153,7 +153,7 @@ __IN__
 test_OE -e 0 'expanded specials with binary primary =~ (w/o quotes)'
 a='*' b='|' bb='\|' p='(a|b)'
 [[ abc =~ ab${a}c ]] && [[ a =~ a${b}b ]] && ! [[ a =~ a${bb}b ]] &&
-    [[ a =~ $p ]]
+    [[ a =~ $p ]] && [[ a =~ ($(echo a)) ]]
 __IN__
 
 # Note: zsh differs in most of these cases

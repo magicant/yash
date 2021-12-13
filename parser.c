@@ -2937,8 +2937,8 @@ wordunit_T *parse_double_bracket_operand_regex(parsestate_T *ps)
 
     /* So, before calling this function, the current token must have been parsed
      * as usual by the `next_token' function. We start by examining the current
-     * status to decide how we continue parsing possible remainder of the token.
-     */
+     * status to determine how to continue parsing the token's possible
+     * remainder.*/
     if (ps->token == NULL) {
 	switch (ps->src.contents[ps->index]) {
 	    case L'(':
@@ -2954,8 +2954,13 @@ wordunit_T *parse_double_bracket_operand_regex(parsestate_T *ps)
 	ps->index = ps->next_index;
     }
 
-    /* Find the end of the result from the previous `next_token' call. */
-    wordunit_T **lastp = &ps->token;
+    /* Keep the word units from being overwritten while parsing inner commands
+     * that may be contained in the rest of the token. */
+    wordunit_T *token = ps->token;
+    ps->token = NULL;
+
+    /* Find the place to append results. */
+    wordunit_T **lastp = &token;
     while (*lastp != NULL)
 	lastp = &(*lastp)->next;
 
@@ -3020,8 +3025,8 @@ end:;
     MAKE_WORDUNIT_STRING;
     ps->next_index = ps->index;
     ps->index = grandstartindex;
-    if (ps->token != NULL)
-	ps->tokentype = TT_WORD;
+    wordfree(ps->token), ps->token = token;
+    ps->tokentype = TT_WORD;
     return parse_double_bracket_operand(ps);
 }
 
