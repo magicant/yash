@@ -469,6 +469,7 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
 		    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 
 		    add_sq(&ss, &valuebuf, false);
+		    assert(*ss == L'\'');
 		    fill_ccbuf(&valuebuf, &ccbuf, defaultcc | CC_QUOTED);
 
 		    wb_wccat(&valuebuf, L'\'');
@@ -1681,6 +1682,7 @@ void add_empty_field(plist_T *dest, const wchar_t *p)
  * buffer.
  * `ss' is a pointer to a pointer to the opening quote in the string.
  * `*ss' is incremented so that it points to the closing quote.
+ * If there is no closing quote, `*ss' will point to the L'\0' terminator.
  * If `escape' is true, all the characters added are backslashed. */
 void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
 {
@@ -1689,7 +1691,6 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
 	(*ss)++;
 	switch (**ss) {
 	    case L'\0':
-		assert(false);
 	    case L'\'':
 		return;
 	    default:
@@ -1827,6 +1828,9 @@ wchar_t *unquote(const wchar_t *s)
 	    if (indq)
 		goto default_case;
 	    add_sq(&s, &buf, false);
+	    if (*s == L'\0')
+		return wb_towcs(&buf);
+	    assert(*s == L'\'');
 	    break;
 	case L'"':
 	    indq = !indq;

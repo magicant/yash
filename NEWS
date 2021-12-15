@@ -13,6 +13,8 @@ Yash 2.53 (????-??-??)
   *  Fixed a bug where command substitutions contained in the regular
      expression inside the "[[ word =~ regex ]]" syntax were not
      parsed correctly.
+  *  Fixed a bug where unclosed quotes in an end-of-here-document
+     indicator were causing the shell to crash or misbehave.
 
 ----------------------------------------------------------------------
 Yash 2.52 (2021-10-11)
