@@ -1337,7 +1337,7 @@ void tryhash_word_as_command(const wordunit_T *w)
 {
     if (w != NULL && w->next == NULL && w->wu_type == WT_STRING) {
 	wchar_t *cmdname = unquote(w->wu_string);
-	if (wcschr(cmdname, L'/') == NULL) {
+	if (cmdname != NULL && wcschr(cmdname, L'/') == NULL) {
 	    char *mbsname = malloc_wcstombs(cmdname);
 	    get_command_path(mbsname, false);
 	    free(mbsname);

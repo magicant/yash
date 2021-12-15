@@ -592,22 +592,6 @@ __IN__
 { cat fifo 0<< -FOO 0<<- -BA\R; }
 __OUT__
 
-test_multi 'here-document, unclosed quote in operand'
-{
-<<`'`
-``
-<<`"`
-``
-}
-__IN__
-{
-   0<<`'`
-``
-   0<<`"`
-``
-}
-__OUT__
-
 test_multi 'process redirection'
 { <(
     :&

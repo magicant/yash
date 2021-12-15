@@ -3165,6 +3165,12 @@ void read_heredoc_contents(parsestate_T *ps, redir_T *r)
 void read_heredoc_contents_without_expansion(parsestate_T *ps, redir_T *r)
 {
     wchar_t *eoc = unquote(r->rd_hereend);  // end-of-contents marker
+    if (eoc == NULL) {
+	serror(ps, Ngt("the end-of-here-document indicator "
+		    "is not properly quoted"));
+	return;
+    }
+
     bool skiptab = (r->rd_type == RT_HERERT);
     xwcsbuf_T buf;
 

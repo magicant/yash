@@ -455,6 +455,22 @@ __ERR__
 : <<END
 END
 
+test_Oe -e 2 'unclosed single quote in here-document delimiter'
+cat <<`'`
+``
+`'`
+__IN__
+syntax error: the end-of-here-document indicator is not properly quoted
+__ERR__
+
+test_Oe -e 2 'unclosed double quote in here-document delimiter'
+cat <<`"`
+``
+`"`
+__IN__
+syntax error: the end-of-here-document indicator is not properly quoted
+__ERR__
+
 test_Oe -e 2 'missing newline and here-document delimiter (unquoted)' \
     -c 'cat <<END'
 __IN__

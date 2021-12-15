@@ -1814,7 +1814,9 @@ xwcsbuf_T *wb_quote_as_word(xwcsbuf_T *restrict buf, const wchar_t *restrict s)
     return buf;
 }
 
-/* Removes quotes (', ", \). The result is a newly malloced string. */
+/* Removes quotes (', ", \).
+ * The result is a newly malloced string if successful.
+ * Returns NULL if there is an unclosed quote. */
 wchar_t *unquote(const wchar_t *s)
 {
     bool indq = false;
@@ -1823,13 +1825,19 @@ wchar_t *unquote(const wchar_t *s)
     for (;;) {
 	switch (*s) {
 	case L'\0':
+	    if (indq) {
+		wb_destroy(&buf);
+		return NULL;
+	    }
 	    return wb_towcs(&buf);
 	case L'\'':
 	    if (indq)
 		goto default_case;
 	    add_sq(&s, &buf, false);
-	    if (*s == L'\0')
-		return wb_towcs(&buf);
+	    if (*s == L'\0') {
+		wb_destroy(&buf);
+		return NULL;
+	    }
 	    assert(*s == L'\'');
 	    break;
 	case L'"':
