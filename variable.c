@@ -2123,7 +2123,10 @@ int array_dump_all(const wchar_t *argv0)
 void array_remove_elements(
 	variable_T *array, size_t count, void *const *indexwcss)
 {
-    long indices[count];
+    size_t extended_count = count;
+    if (extended_count == 0)
+	extended_count = 1; // A variable-length array must ot be empty.
+    long indices[extended_count];
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
 

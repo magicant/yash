@@ -3972,7 +3972,10 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
     }
 
     size_t save_count = pr->pending_heredocs.length;
-    void *save_heredocs[save_count];
+    size_t extended_count = save_count;
+    if (extended_count == 0)
+	extended_count = 1; // A variable-length array must not be empty.
+    void *save_heredocs[extended_count];
     memcpy(save_heredocs, pr->pending_heredocs.contents, sizeof save_heredocs);
     pl_truncate(&pr->pending_heredocs, 0);
 
