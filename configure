@@ -857,6 +857,7 @@ fi
 checking 'for strdup'
 cat >"${tempsrc}" <<END
 ${confighdefs}
+#include <stdlib.h>
 #include <string.h>
 #ifndef strdup
 char *strdup(const char*);
@@ -897,14 +898,15 @@ fi
 checking 'for wcsdup'
 cat >"${tempsrc}" <<END
 ${confighdefs}
+#include <stdlib.h>
 #include <wchar.h>
 #ifndef wcsdup
 wchar_t *wcsdup(const wchar_t*);
 #endif
 int main(void) {
-    char *dup = wcsdup("12345");
+    wchar_t *dup = wcsdup(L"12345");
     if (!dup) return 1;
-    int cmp = wcscmp(dup, "12345");
+    int cmp = wcscmp(dup, L"12345");
     free(dup);
     return cmp != 0;
 }
