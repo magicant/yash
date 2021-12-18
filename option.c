@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -320,7 +320,7 @@ static void search_normal_options(const wchar_t *optname, plist_T *resultlist,
 static int handle_search_result(plist_T *options, void *const *argv,
 	bool enable, size_t shelloptindex, size_t noshelloptindex,
 	struct shell_invocation_T *shell_invocation)
-    __attribute__((nonnull));
+    __attribute__((nonnull(1, 2)));
 static int set_shell_option(const struct option_T *option, bool enable,
 	struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));

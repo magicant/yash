@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2021 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1174,8 +1174,8 @@ enum fcprinttype_T {
     FC_FULL, FC_NUMBERED, FC_UNNUMBERED, FC_RAW,
 };
 
-static struct search_result_T fc_search_entry(const wchar_t *name, int number)
-    __attribute__((nonnull));
+static struct search_result_T fc_search_entry(
+	const wchar_t *prefix, int number);
 static void fc_update_history(void);
 static void fc_remove_last_entry(void);
 static histlink_T *fc_search_entry_by_prefix(const wchar_t *prefix)
@@ -1360,14 +1360,17 @@ check_rev:
 }
 
 /* Searches for the specified entry.
+ * If `number` is not 0, the entry identified by the number is returned.
+ * Otherwise, an entry that begins with the `prefix' is returned, in which case
+ * non-NULL `prefix' must be given.
  * The `prev' and `next' members of the returned structure will be `Histlist'
  * if the prefix search fails. */
-struct search_result_T fc_search_entry(const wchar_t *name, int number)
+struct search_result_T fc_search_entry(const wchar_t *prefix, int number)
 {
     struct search_result_T result;
 
     if (number == 0) {
-	result.prev = result.next = fc_search_entry_by_prefix(name);
+	result.prev = result.next = fc_search_entry_by_prefix(prefix);
     } else if (number > 0) {
 	result = search_entry_by_number((unsigned) number);
 	assert(result.prev != Histlist || result.next != Histlist);
