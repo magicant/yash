@@ -15,6 +15,7 @@ Yash 2.53 (????-??-??)
      parsed correctly.
   *  Fixed a bug where unclosed quotes in an end-of-here-document
      indicator were causing the shell to crash or misbehave.
+  *  Fixed a bug where yash crashes when invoked with no argv.
 
 ----------------------------------------------------------------------
 Yash 2.52 (2021-10-11)

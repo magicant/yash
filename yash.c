@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     wargv[argc] = NULL;
 
     /* parse argv[0] */
-    yash_program_invocation_name = wargv[0];
+    yash_program_invocation_name = wargv[0] != NULL ? wargv[0] : L"";
     yash_program_invocation_short_name
 	= wcsrchr(yash_program_invocation_name, L'/');
     if (yash_program_invocation_short_name != NULL)
