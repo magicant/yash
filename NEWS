@@ -10,6 +10,8 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.53 (????-??-??)
 
+  *  A non-interactive yash now exits on an assignment error in a for
+     loop.
   *  Fixed a bug where command substitutions contained in the regular
      expression inside the "[[ word =~ regex ]]" syntax were not
      parsed correctly.

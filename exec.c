@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1285,6 +1285,8 @@ void exec_for(const command_T *c, bool finally_exit)
 			SCOPE_LOCAL : SCOPE_GLOBAL,
 		    false)) {
 	    laststatus = Exit_ASSGNERR;
+	    if (!is_interactive_now)
+		finally_exit = true;
 	    goto done;
 	}
 	exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);

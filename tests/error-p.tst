@@ -275,6 +275,26 @@ test_assign   "$LINENO" ./_no_such_command_
 test_assign_s "$LINENO" ./_no_such_command_
 test_assign_i "$LINENO" ./_no_such_command_
 
+test_O 'assignment error in for loop kills non-interactive shell'
+readonly a=a
+for a in b
+do
+    printf 'not reached 1\n'
+done
+printf 'not reached 2\n'
+__IN__
+
+test_o 'assignment error in for loop spares interactive shell' -i +m
+readonly a=a
+for a in b
+do
+    :
+done
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
 # $1 = line no.
 # $2 = built-in name
 test_special_builtin_redirect() {
