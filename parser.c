@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3233,11 +3233,12 @@ void read_heredoc_contents_with_expansion(parsestate_T *ps, redir_T *r)
 bool is_end_of_heredoc_contents(
 	parsestate_T *ps, const wchar_t *eoc, bool skiptab)
 {
-    assert(ps->src.length > 0 && ps->src.contents[ps->index - 1] == L'\n');
-
     if (ps->src.contents[ps->index] == L'\0')
 	if (read_more_input(ps) != INPUT_OK)
 	    return false;
+
+    assert(ps->src.length > 0 && ps->src.contents[ps->index - 1] == L'\n');
+
     if (skiptab)
 	while (ps->src.contents[ps->index] == L'\t')
 	    ps->index++;
