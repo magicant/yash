@@ -99,8 +99,14 @@ static bool do_binary_calculation(
 	evalinfo_T *info, atokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
     __attribute__((nonnull));
-static long do_long_calculation1(atokentype_T ttype, long v1, long v2);
-static long do_long_calculation2(atokentype_T ttype, long v1, long v2);
+static bool do_long_calculation1(
+	atokentype_T ttype, long v1, long v2, long *result)
+    __attribute__((nonnull,warn_unused_result));
+static bool do_long_calculation2(
+	atokentype_T ttype, long v1, long v2, long *result)
+    __attribute__((nonnull,warn_unused_result));
+static long do_long_comparison(atokentype_T ttype, long v1, long v2)
+    __attribute__((const,warn_unused_result));
 static double do_double_calculation(atokentype_T ttype, double v1, double v2);
 static long do_double_comparison(atokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
@@ -333,8 +339,12 @@ bool do_binary_calculation(
 		return false;
 	    switch (result->type) {
 		case VT_LONG:
-		    result->v_long = do_long_calculation1(
-			    ttype, lhs->v_long, rhs->v_long);
+		    if (!do_long_calculation1(ttype, lhs->v_long, rhs->v_long,
+				&result->v_long)) {
+			info->error = true;
+			result->type = VT_INVALID;
+			return false;
+		    }
 		    break;
 		case VT_DOUBLE:
 		    result->v_double = do_double_calculation(
@@ -354,11 +364,17 @@ bool do_binary_calculation(
 	    coerce_integer(info, lhs);
 	    coerce_integer(info, rhs);
 	    if (lhs->type == VT_LONG && rhs->type == VT_LONG) {
-		result->type = VT_LONG;
-		result->v_long =
-		    do_long_calculation2(ttype, lhs->v_long, rhs->v_long);
+		if (do_long_calculation2(
+			    ttype, lhs->v_long, rhs->v_long, &result->v_long)) {
+		    result->type = VT_LONG;
+		} else {
+		    info->error = true;
+		    result->type = VT_INVALID;
+		    return false;
+		}
 	    } else {
 		result->type = VT_INVALID;
+		return false;
 	    }
 	    break;
 	case TT_EQUAL:
@@ -370,35 +386,62 @@ bool do_binary_calculation(
     return true;
 }
 
-/* Does unary or binary long calculation according to the specified operator
- * token. Division by zero is not allowed. */
-long do_long_calculation1(atokentype_T ttype, long v1, long v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
-	    return v1 + v2;
+	    *result = v1 + v2;
+	    return true;
 	case TT_MINUS:  case TT_MINUSEQUAL:
-	    return v1 - v2;
+	    *result = v1 - v2;
+	    return true;
 	case TT_ASTER:  case TT_ASTEREQUAL:
-	    return v1 * v2;
+	    *result = v1 * v2;
+	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
-	    return v1 / v2;
+	    *result = v1 / v2;
+	    return true;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
-	    return v1 % v2;
+	    *result = v1 % v2;
+	    return true;
 	default:
 	    assert(false);
     }
 }
 
-/* Does unary or binary long calculation according to the specified operator
- * token. */
-long do_long_calculation2(atokentype_T ttype, long v1, long v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_long_calculation2(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
-	    return v1 << v2;
+	    *result = v1 << v2;
+	    return true;
 	case TT_GREATERGREATER:  case TT_GREATERGREATEREQUAL:
-	    return v1 >> v2;
+	    *result = v1 >> v2;
+	    return true;
+	case TT_AMP:  case TT_AMPEQUAL:
+	    *result = v1 & v2;
+	    return true;
+	case TT_HAT:  case TT_HATEQUAL:
+	    *result = v1 ^ v2;
+	    return true;
+	case TT_PIPE:  case TT_PIPEEQUAL:
+	    *result = v1 | v2;
+	    return true;
+	default:
+	    assert(false);
+    }
+}
+
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'. */
+long do_long_comparison(atokentype_T ttype, long v1, long v2)
+{
+    switch (ttype) {
 	case TT_LESS:
 	    return v1 < v2;
 	case TT_LESSEQUAL:
@@ -411,12 +454,6 @@ long do_long_calculation2(atokentype_T ttype, long v1, long v2)
 	    return v1 == v2;
 	case TT_EXCLEQUAL:
 	    return v1 != v2;
-	case TT_AMP:  case TT_AMPEQUAL:
-	    return v1 & v2;
-	case TT_HAT:  case TT_HATEQUAL:
-	    return v1 ^ v2;
-	case TT_PIPE:  case TT_PIPEEQUAL:
-	    return v1 | v2;
 	default:
 	    assert(false);
     }
@@ -660,7 +697,7 @@ void parse_equality(evalinfo_T *info, value_T *result)
 		parse_relational(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation2(ttype,
+			result->v_long = do_long_comparison(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
@@ -702,7 +739,7 @@ void parse_relational(evalinfo_T *info, value_T *result)
 		parse_shift(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation2(ttype,
+			result->v_long = do_long_comparison(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
