@@ -129,8 +129,8 @@ static void parse_prefix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_postfix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
-static void do_increment_or_decrement(atokentype_T ttype, value_T *value)
-    __attribute__((nonnull));
+static bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
+    __attribute__((nonnull,warn_unused_result));
 static void parse_primary(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_as_number(evalinfo_T *info, value_T *result)
@@ -814,8 +814,8 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 	    } else if (result->type == VT_VAR) {
 		word_T saveword = result->v_var;
 		coerce_number(info, result);
-		do_increment_or_decrement(ttype, result);
-		if (!do_assignment(&saveword, result))
+		if (!do_increment_or_decrement(ttype, result) ||
+			!do_assignment(&saveword, result))
 		    info->error = true, result->type = VT_INVALID;
 	    } else if (result->type != VT_INVALID) {
 		/* TRANSLATORS: This error message is shown when the operand of
@@ -901,8 +901,8 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 		    word_T saveword = result->v_var;
 		    coerce_number(info, result);
 		    value_T value = *result;
-		    do_increment_or_decrement(info->atoken.type, &value);
-		    if (!do_assignment(&saveword, &value)) {
+		    if (!do_increment_or_decrement(info->atoken.type, &value) ||
+			    !do_assignment(&saveword, &value)) {
 			info->error = true;
 			result->type = VT_INVALID;
 		    }
@@ -923,24 +923,38 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 
 /* Increment or decrement the specified value.
  * `ttype' must be either TT_PLUSPLUS or TT_MINUSMINUS and the `value' must be
- * `coerce_number'ed. */
-void do_increment_or_decrement(atokentype_T ttype, value_T *value)
+ * `coerce_number'ed.
+ * Returns false on error. */
+bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
 {
     if (ttype == TT_PLUSPLUS) {
 	switch (value->type) {
-	    case VT_LONG:    value->v_long++;    break;
+	    case VT_LONG:
+		if (value->v_long == LONG_MAX) {
+		    xerror(0, Ngt("arithmetic: overflow"));
+		    return false;
+		}
+		value->v_long++;
+		break;
 	    case VT_DOUBLE:  value->v_double++;  break;
 	    case VT_INVALID: break;
 	    default:         assert(false);
 	}
     } else {
 	switch (value->type) {
-	    case VT_LONG:    value->v_long--;    break;
+	    case VT_LONG:
+		if (value->v_long == LONG_MIN) {
+		    xerror(0, Ngt("arithmetic: overflow"));
+		    return false;
+		}
+		value->v_long--;
+		break;
 	    case VT_DOUBLE:  value->v_double--;  break;
 	    case VT_INVALID: break;
 	    default:         assert(false);
 	}
     }
+    return true;
 }
 
 /* Parses a primary expression.
