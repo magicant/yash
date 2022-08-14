@@ -107,7 +107,9 @@ static bool do_long_calculation2(
     __attribute__((nonnull,warn_unused_result));
 static long do_long_comparison(atokentype_T ttype, long v1, long v2)
     __attribute__((const,warn_unused_result));
-static double do_double_calculation(atokentype_T ttype, double v1, double v2);
+static bool do_double_calculation(
+	atokentype_T ttype, double v1, double v2, double *result)
+    __attribute__((nonnull,warn_unused_result));
 static long do_double_comparison(atokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
@@ -149,9 +151,6 @@ static valuetype_T coerce_type(evalinfo_T *info,
 	value_T *value1, value_T *value2)
     __attribute__((nonnull));
 static void next_token(evalinfo_T *info)
-    __attribute__((nonnull));
-static bool fail_if_will_divide_by_zero(
-	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static bool long_mul_will_overflow(long v1, long v2)
     __attribute__((const,warn_unused_result));
@@ -337,8 +336,6 @@ bool do_binary_calculation(
 	case TT_PLUS:  case TT_PLUSEQUAL:
 	case TT_MINUS:  case TT_MINUSEQUAL:
 	    result->type = coerce_type(info, lhs, rhs);
-	    if (fail_if_will_divide_by_zero(ttype, rhs, info, result))
-		return false;
 	    switch (result->type) {
 		case VT_LONG:
 		    if (!do_long_calculation1(ttype, lhs->v_long, rhs->v_long,
@@ -349,8 +346,12 @@ bool do_binary_calculation(
 		    }
 		    break;
 		case VT_DOUBLE:
-		    result->v_double = do_double_calculation(
-			    ttype, lhs->v_double, rhs->v_double);
+		    if (!do_double_calculation(ttype, lhs->v_double,
+				rhs->v_double, &result->v_double)) {
+			info->error = true;
+			result->type = VT_INVALID;
+			return false;
+		    }
 		    break;
 		case VT_VAR:
 		    assert(false);
@@ -410,9 +411,17 @@ bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 	    *result = v1 * v2;
 	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
+	    if (v2 == 0)
+		goto division_by_zero;
+	    if (v1 == LONG_MIN && v2 == -1)
+		goto overflow;
 	    *result = v1 / v2;
 	    return true;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
+	    if (v2 == 0)
+		goto division_by_zero;
+	    if (v1 == LONG_MIN && v2 == -1)
+		goto overflow;
 	    *result = v1 % v2;
 	    return true;
 	default:
@@ -421,6 +430,9 @@ bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 
 overflow:
     xerror(0, Ngt("arithmetic: overflow"));
+    return false;
+division_by_zero:
+    xerror(0, Ngt("arithmetic: division by zero"));
     return false;
 }
 
@@ -471,24 +483,45 @@ long do_long_comparison(atokentype_T ttype, long v1, long v2)
     }
 }
 
-/* Does unary or binary double calculation according to the specified operator
- * token. */
-double do_double_calculation(atokentype_T ttype, double v1, double v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_double_calculation(
+	atokentype_T ttype, double v1, double v2, double *result)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
-	    return v1 + v2;
+	    *result = v1 + v2;
+	    return true;
 	case TT_MINUS:  case TT_MINUSEQUAL:
-	    return v1 - v2;
+	    *result = v1 - v2;
+	    return true;
 	case TT_ASTER:  case TT_ASTEREQUAL:
-	    return v1 * v2;
+	    *result = v1 * v2;
+	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
-	    return v1 / v2;
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+	    if (v2 == 0.0)
+		goto division_by_zero;
+#endif
+	    *result = v1 / v2;
+	    return true;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
-	    return fmod(v1, v2);
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+	    if (v2 == 0.0)
+		goto division_by_zero;
+#endif
+	    *result = fmod(v1, v2);
+	    return true;
 	default:
 	    assert(false);
     }
+
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+division_by_zero:
+    xerror(0, Ngt("arithmetic: division by zero"));
+    return false;
+#endif
 }
 
 /* Does double comparison according to the specified operator token. */
@@ -1397,46 +1430,6 @@ parse_identifier:;
 	    }
 	    break;
     }
-}
-
-/* If `op' is a division operator and `rhs' is zero, then prints an error
- * message, sets `info->error' to true, sets `result->type' to VT_INVALID, and
- * returns true. Otherwise, just returns false.
- * `rhs->type' must not be VT_VAR. */
-bool fail_if_will_divide_by_zero(
-	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
-{
-    switch (op) {
-    case TT_SLASH:
-    case TT_SLASHEQUAL:
-    case TT_PERCENT:
-    case TT_PERCENTEQUAL:
-	switch (rhs->type) {
-	case VT_LONG:
-	    if (rhs->v_long == 0)
-		goto fail;
-	    break;
-	case VT_DOUBLE:
-#if DOUBLE_DIVISION_BY_ZERO_ERROR
-	    if (rhs->v_double == 0.0)
-		goto fail;
-#endif
-	    break;
-	case VT_VAR:
-	    assert(false);
-	case VT_INVALID:
-	    break;
-	}
-	/* falls through */
-    default:
-	return false;
-    }
-
-fail:
-    xerror(0, Ngt("arithmetic: division by zero"));
-    info->error = true;
-    result->type = VT_INVALID;
-    return true;
 }
 
 /* Tests whether the multiplication of the given two long values will overflow.
