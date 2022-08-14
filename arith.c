@@ -153,6 +153,8 @@ static void next_token(evalinfo_T *info)
 static bool fail_if_will_divide_by_zero(
 	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
+static bool long_mul_will_overflow(long v1, long v2)
+    __attribute__((const,warn_unused_result));
 
 
 /* Evaluates the specified string as an arithmetic expression.
@@ -393,12 +395,18 @@ bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
+	    if (v2 >= 0 ? LONG_MAX - v2 < v1 : v1 < LONG_MIN - v2)
+		goto overflow;
 	    *result = v1 + v2;
 	    return true;
 	case TT_MINUS:  case TT_MINUSEQUAL:
+	    if (v2 < 0 ? LONG_MAX + v2 < v1 : v1 < LONG_MIN + v2)
+		goto overflow;
 	    *result = v1 - v2;
 	    return true;
 	case TT_ASTER:  case TT_ASTEREQUAL:
+	    if (long_mul_will_overflow(v1, v2))
+		goto overflow;
 	    *result = v1 * v2;
 	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
@@ -410,6 +418,10 @@ bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 	default:
 	    assert(false);
     }
+
+overflow:
+    xerror(0, Ngt("arithmetic: overflow"));
+    return false;
 }
 
 /* Applies binary operator `ttype' to the given operands `v1' and `v2'.
@@ -1425,6 +1437,25 @@ fail:
     info->error = true;
     result->type = VT_INVALID;
     return true;
+}
+
+/* Tests whether the multiplication of the given two long values will overflow.
+ */
+bool long_mul_will_overflow(long v1, long v2)
+{
+    if (v1 == 0 || v1 == 1 || v2 == 0 || v2 == 1)
+	return false;
+#if LONG_MIN < -LONG_MAX
+    if (v1 == LONG_MIN || v2 == LONG_MIN)
+	return true;
+#endif
+    unsigned long u1 = labs(v1), u2 = labs(v2);
+    unsigned long prod = u1 * u2;
+#if LONG_MIN < -LONG_MAX
+    if (prod == (unsigned long) LONG_MIN)
+	return ((v1 >= 0) == (v2 >= 0)) || prod / u2 != u1;
+#endif
+    return (prod & (unsigned long) LONG_MAX) / u2 != u1;
 }
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */
