@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -833,7 +833,17 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 	    coerce_number(info, result);
 	    if (ttype == TT_MINUS) {
 		switch (result->type) {
-		case VT_LONG:     result->v_long = -result->v_long;      break;
+		case VT_LONG:
+#if LONG_MIN < -LONG_MAX
+		    if (result->v_long == LONG_MIN) {
+			xerror(0, Ngt("arithmetic: overflow"));
+			info->error = true;
+			result->type = VT_INVALID;
+			break;
+		    }
+#endif
+		    result->v_long = -result->v_long;
+		    break;
 		case VT_DOUBLE:   result->v_double = -result->v_double;  break;
 		case VT_INVALID:  break;
 		default:          assert(false);
