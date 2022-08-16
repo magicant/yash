@@ -443,9 +443,18 @@ bool do_long_calculation2(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
+	    if (v1 < 0)
+		goto negative_left_shift;
+	    if (v2 < 0 || v2 >= LONG_BIT)
+		goto invalid_shift_width;
+	    unsigned long u1 = (unsigned long) v1;
+	    if ((u1 << v2 & (unsigned long) LONG_MAX) >> v2 != u1)
+		goto overflow;
 	    *result = v1 << v2;
 	    return true;
 	case TT_GREATERGREATER:  case TT_GREATERGREATEREQUAL:
+	    if (v2 < 0 || v2 >= LONG_BIT)
+		goto invalid_shift_width;
 	    *result = v1 >> v2;
 	    return true;
 	case TT_AMP:  case TT_AMPEQUAL:
@@ -460,6 +469,16 @@ bool do_long_calculation2(atokentype_T ttype, long v1, long v2, long *result)
 	default:
 	    assert(false);
     }
+
+overflow:
+    xerror(0, Ngt("arithmetic: overflow"));
+    return false;
+negative_left_shift:
+    xerror(0, Ngt("arithmetic: negative value cannot be shifted to left"));
+    return false;
+invalid_shift_width:
+    xerror(0, Ngt("arithmetic: invalid shift width"));
+    return false;
 }
 
 /* Applies binary operator `ttype' to the given operands `v1' and `v2'. */
