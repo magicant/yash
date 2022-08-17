@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,9 +99,17 @@ static bool do_binary_calculation(
 	evalinfo_T *info, atokentype_T ttype,
 	value_T *lhs, value_T *rhs, value_T *result)
     __attribute__((nonnull));
-static long do_long_calculation1(atokentype_T ttype, long v1, long v2);
-static long do_long_calculation2(atokentype_T ttype, long v1, long v2);
-static double do_double_calculation(atokentype_T ttype, double v1, double v2);
+static bool do_long_calculation1(
+	atokentype_T ttype, long v1, long v2, long *result)
+    __attribute__((nonnull,warn_unused_result));
+static bool do_long_calculation2(
+	atokentype_T ttype, long v1, long v2, long *result)
+    __attribute__((nonnull,warn_unused_result));
+static long do_long_comparison(atokentype_T ttype, long v1, long v2)
+    __attribute__((const,warn_unused_result));
+static bool do_double_calculation(
+	atokentype_T ttype, double v1, double v2, double *result)
+    __attribute__((nonnull,warn_unused_result));
 static long do_double_comparison(atokentype_T ttype, double v1, double v2);
 static void parse_conditional(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
@@ -129,8 +137,8 @@ static void parse_prefix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_postfix(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
-static void do_increment_or_decrement(atokentype_T ttype, value_T *value)
-    __attribute__((nonnull));
+static bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
+    __attribute__((nonnull,warn_unused_result));
 static void parse_primary(evalinfo_T *info, value_T *result)
     __attribute__((nonnull));
 static void parse_as_number(evalinfo_T *info, value_T *result)
@@ -144,9 +152,8 @@ static valuetype_T coerce_type(evalinfo_T *info,
     __attribute__((nonnull));
 static void next_token(evalinfo_T *info)
     __attribute__((nonnull));
-static bool fail_if_will_divide_by_zero(
-	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
-    __attribute__((nonnull));
+static bool long_mul_will_overflow(long v1, long v2)
+    __attribute__((const,warn_unused_result));
 
 
 /* Evaluates the specified string as an arithmetic expression.
@@ -329,16 +336,22 @@ bool do_binary_calculation(
 	case TT_PLUS:  case TT_PLUSEQUAL:
 	case TT_MINUS:  case TT_MINUSEQUAL:
 	    result->type = coerce_type(info, lhs, rhs);
-	    if (fail_if_will_divide_by_zero(ttype, rhs, info, result))
-		return false;
 	    switch (result->type) {
 		case VT_LONG:
-		    result->v_long = do_long_calculation1(
-			    ttype, lhs->v_long, rhs->v_long);
+		    if (!do_long_calculation1(ttype, lhs->v_long, rhs->v_long,
+				&result->v_long)) {
+			info->error = true;
+			result->type = VT_INVALID;
+			return false;
+		    }
 		    break;
 		case VT_DOUBLE:
-		    result->v_double = do_double_calculation(
-			    ttype, lhs->v_double, rhs->v_double);
+		    if (!do_double_calculation(ttype, lhs->v_double,
+				rhs->v_double, &result->v_double)) {
+			info->error = true;
+			result->type = VT_INVALID;
+			return false;
+		    }
 		    break;
 		case VT_VAR:
 		    assert(false);
@@ -354,11 +367,17 @@ bool do_binary_calculation(
 	    coerce_integer(info, lhs);
 	    coerce_integer(info, rhs);
 	    if (lhs->type == VT_LONG && rhs->type == VT_LONG) {
-		result->type = VT_LONG;
-		result->v_long =
-		    do_long_calculation2(ttype, lhs->v_long, rhs->v_long);
+		if (do_long_calculation2(
+			    ttype, lhs->v_long, rhs->v_long, &result->v_long)) {
+		    result->type = VT_LONG;
+		} else {
+		    info->error = true;
+		    result->type = VT_INVALID;
+		    return false;
+		}
 	    } else {
 		result->type = VT_INVALID;
+		return false;
 	    }
 	    break;
 	case TT_EQUAL:
@@ -370,35 +389,102 @@ bool do_binary_calculation(
     return true;
 }
 
-/* Does unary or binary long calculation according to the specified operator
- * token. Division by zero is not allowed. */
-long do_long_calculation1(atokentype_T ttype, long v1, long v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
-	    return v1 + v2;
+	    if (v2 >= 0 ? LONG_MAX - v2 < v1 : v1 < LONG_MIN - v2)
+		goto overflow;
+	    *result = v1 + v2;
+	    return true;
 	case TT_MINUS:  case TT_MINUSEQUAL:
-	    return v1 - v2;
+	    if (v2 < 0 ? LONG_MAX + v2 < v1 : v1 < LONG_MIN + v2)
+		goto overflow;
+	    *result = v1 - v2;
+	    return true;
 	case TT_ASTER:  case TT_ASTEREQUAL:
-	    return v1 * v2;
+	    if (long_mul_will_overflow(v1, v2))
+		goto overflow;
+	    *result = v1 * v2;
+	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
-	    return v1 / v2;
+	    if (v2 == 0)
+		goto division_by_zero;
+	    if (v1 == LONG_MIN && v2 == -1)
+		goto overflow;
+	    *result = v1 / v2;
+	    return true;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
-	    return v1 % v2;
+	    if (v2 == 0)
+		goto division_by_zero;
+	    if (v1 == LONG_MIN && v2 == -1)
+		goto overflow;
+	    *result = v1 % v2;
+	    return true;
 	default:
 	    assert(false);
     }
+
+overflow:
+    xerror(0, Ngt("arithmetic: overflow"));
+    return false;
+division_by_zero:
+    xerror(0, Ngt("arithmetic: division by zero"));
+    return false;
 }
 
-/* Does unary or binary long calculation according to the specified operator
- * token. */
-long do_long_calculation2(atokentype_T ttype, long v1, long v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_long_calculation2(atokentype_T ttype, long v1, long v2, long *result)
 {
     switch (ttype) {
 	case TT_LESSLESS:  case TT_LESSLESSEQUAL:
-	    return v1 << v2;
+	    if (v1 < 0)
+		goto negative_left_shift;
+	    if (v2 < 0 || v2 >= LONG_BIT)
+		goto invalid_shift_width;
+	    unsigned long u1 = (unsigned long) v1;
+	    if ((u1 << v2 & (unsigned long) LONG_MAX) >> v2 != u1)
+		goto overflow;
+	    *result = v1 << v2;
+	    return true;
 	case TT_GREATERGREATER:  case TT_GREATERGREATEREQUAL:
-	    return v1 >> v2;
+	    if (v2 < 0 || v2 >= LONG_BIT)
+		goto invalid_shift_width;
+	    *result = v1 >> v2;
+	    return true;
+	case TT_AMP:  case TT_AMPEQUAL:
+	    *result = v1 & v2;
+	    return true;
+	case TT_HAT:  case TT_HATEQUAL:
+	    *result = v1 ^ v2;
+	    return true;
+	case TT_PIPE:  case TT_PIPEEQUAL:
+	    *result = v1 | v2;
+	    return true;
+	default:
+	    assert(false);
+    }
+
+overflow:
+    xerror(0, Ngt("arithmetic: overflow"));
+    return false;
+negative_left_shift:
+    xerror(0, Ngt("arithmetic: negative value cannot be shifted to left"));
+    return false;
+invalid_shift_width:
+    xerror(0, Ngt("arithmetic: invalid shift width"));
+    return false;
+}
+
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'. */
+long do_long_comparison(atokentype_T ttype, long v1, long v2)
+{
+    switch (ttype) {
 	case TT_LESS:
 	    return v1 < v2;
 	case TT_LESSEQUAL:
@@ -411,35 +497,50 @@ long do_long_calculation2(atokentype_T ttype, long v1, long v2)
 	    return v1 == v2;
 	case TT_EXCLEQUAL:
 	    return v1 != v2;
-	case TT_AMP:  case TT_AMPEQUAL:
-	    return v1 & v2;
-	case TT_HAT:  case TT_HATEQUAL:
-	    return v1 ^ v2;
-	case TT_PIPE:  case TT_PIPEEQUAL:
-	    return v1 | v2;
 	default:
 	    assert(false);
     }
 }
 
-/* Does unary or binary double calculation according to the specified operator
- * token. */
-double do_double_calculation(atokentype_T ttype, double v1, double v2)
+/* Applies binary operator `ttype' to the given operands `v1' and `v2'.
+ * If successful, assigns the result to `*result' and returns true.
+ * Otherwise, prints an error message and returns false. */
+bool do_double_calculation(
+	atokentype_T ttype, double v1, double v2, double *result)
 {
     switch (ttype) {
 	case TT_PLUS:  case TT_PLUSEQUAL:
-	    return v1 + v2;
+	    *result = v1 + v2;
+	    return true;
 	case TT_MINUS:  case TT_MINUSEQUAL:
-	    return v1 - v2;
+	    *result = v1 - v2;
+	    return true;
 	case TT_ASTER:  case TT_ASTEREQUAL:
-	    return v1 * v2;
+	    *result = v1 * v2;
+	    return true;
 	case TT_SLASH:  case TT_SLASHEQUAL:
-	    return v1 / v2;
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+	    if (v2 == 0.0)
+		goto division_by_zero;
+#endif
+	    *result = v1 / v2;
+	    return true;
 	case TT_PERCENT:  case TT_PERCENTEQUAL:
-	    return fmod(v1, v2);
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+	    if (v2 == 0.0)
+		goto division_by_zero;
+#endif
+	    *result = fmod(v1, v2);
+	    return true;
 	default:
 	    assert(false);
     }
+
+#if DOUBLE_DIVISION_BY_ZERO_ERROR
+division_by_zero:
+    xerror(0, Ngt("arithmetic: division by zero"));
+    return false;
+#endif
 }
 
 /* Does double comparison according to the specified operator token. */
@@ -660,7 +761,7 @@ void parse_equality(evalinfo_T *info, value_T *result)
 		parse_relational(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation2(ttype,
+			result->v_long = do_long_comparison(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
@@ -702,7 +803,7 @@ void parse_relational(evalinfo_T *info, value_T *result)
 		parse_shift(info, &rhs);
 		switch (coerce_type(info, result, &rhs)) {
 		    case VT_LONG:
-			result->v_long = do_long_calculation2(ttype,
+			result->v_long = do_long_comparison(ttype,
 				result->v_long, rhs.v_long);
 			break;
 		    case VT_DOUBLE:
@@ -814,8 +915,8 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 	    } else if (result->type == VT_VAR) {
 		word_T saveword = result->v_var;
 		coerce_number(info, result);
-		do_increment_or_decrement(ttype, result);
-		if (!do_assignment(&saveword, result))
+		if (!do_increment_or_decrement(ttype, result) ||
+			!do_assignment(&saveword, result))
 		    info->error = true, result->type = VT_INVALID;
 	    } else if (result->type != VT_INVALID) {
 		/* TRANSLATORS: This error message is shown when the operand of
@@ -833,7 +934,17 @@ void parse_prefix(evalinfo_T *info, value_T *result)
 	    coerce_number(info, result);
 	    if (ttype == TT_MINUS) {
 		switch (result->type) {
-		case VT_LONG:     result->v_long = -result->v_long;      break;
+		case VT_LONG:
+#if LONG_MIN < -LONG_MAX
+		    if (result->v_long == LONG_MIN) {
+			xerror(0, Ngt("arithmetic: overflow"));
+			info->error = true;
+			result->type = VT_INVALID;
+			break;
+		    }
+#endif
+		    result->v_long = -result->v_long;
+		    break;
 		case VT_DOUBLE:   result->v_double = -result->v_double;  break;
 		case VT_INVALID:  break;
 		default:          assert(false);
@@ -891,8 +1002,8 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 		    word_T saveword = result->v_var;
 		    coerce_number(info, result);
 		    value_T value = *result;
-		    do_increment_or_decrement(info->atoken.type, &value);
-		    if (!do_assignment(&saveword, &value)) {
+		    if (!do_increment_or_decrement(info->atoken.type, &value) ||
+			    !do_assignment(&saveword, &value)) {
 			info->error = true;
 			result->type = VT_INVALID;
 		    }
@@ -913,24 +1024,38 @@ void parse_postfix(evalinfo_T *info, value_T *result)
 
 /* Increment or decrement the specified value.
  * `ttype' must be either TT_PLUSPLUS or TT_MINUSMINUS and the `value' must be
- * `coerce_number'ed. */
-void do_increment_or_decrement(atokentype_T ttype, value_T *value)
+ * `coerce_number'ed.
+ * Returns false on error. */
+bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
 {
     if (ttype == TT_PLUSPLUS) {
 	switch (value->type) {
-	    case VT_LONG:    value->v_long++;    break;
+	    case VT_LONG:
+		if (value->v_long == LONG_MAX) {
+		    xerror(0, Ngt("arithmetic: overflow"));
+		    return false;
+		}
+		value->v_long++;
+		break;
 	    case VT_DOUBLE:  value->v_double++;  break;
 	    case VT_INVALID: break;
 	    default:         assert(false);
 	}
     } else {
 	switch (value->type) {
-	    case VT_LONG:    value->v_long--;    break;
+	    case VT_LONG:
+		if (value->v_long == LONG_MIN) {
+		    xerror(0, Ngt("arithmetic: overflow"));
+		    return false;
+		}
+		value->v_long--;
+		break;
 	    case VT_DOUBLE:  value->v_double--;  break;
 	    case VT_INVALID: break;
 	    default:         assert(false);
 	}
     }
+    return true;
 }
 
 /* Parses a primary expression.
@@ -1326,44 +1451,23 @@ parse_identifier:;
     }
 }
 
-/* If `op' is a division operator and `rhs' is zero, then prints an error
- * message, sets `info->error' to true, sets `result->type' to VT_INVALID, and
- * returns true. Otherwise, just returns false.
- * `rhs->type' must not be VT_VAR. */
-bool fail_if_will_divide_by_zero(
-	atokentype_T op, const value_T *rhs, evalinfo_T *info, value_T *result)
+/* Tests whether the multiplication of the given two long values will overflow.
+ */
+bool long_mul_will_overflow(long v1, long v2)
 {
-    switch (op) {
-    case TT_SLASH:
-    case TT_SLASHEQUAL:
-    case TT_PERCENT:
-    case TT_PERCENTEQUAL:
-	switch (rhs->type) {
-	case VT_LONG:
-	    if (rhs->v_long == 0)
-		goto fail;
-	    break;
-	case VT_DOUBLE:
-#if DOUBLE_DIVISION_BY_ZERO_ERROR
-	    if (rhs->v_double == 0.0)
-		goto fail;
-#endif
-	    break;
-	case VT_VAR:
-	    assert(false);
-	case VT_INVALID:
-	    break;
-	}
-	/* falls through */
-    default:
+    if (v1 == 0 || v1 == 1 || v2 == 0 || v2 == 1)
 	return false;
-    }
-
-fail:
-    xerror(0, Ngt("arithmetic: division by zero"));
-    info->error = true;
-    result->type = VT_INVALID;
-    return true;
+#if LONG_MIN < -LONG_MAX
+    if (v1 == LONG_MIN || v2 == LONG_MIN)
+	return true;
+#endif
+    unsigned long u1 = labs(v1), u2 = labs(v2);
+    unsigned long prod = u1 * u2;
+#if LONG_MIN < -LONG_MAX
+    if (prod == (unsigned long) LONG_MIN)
+	return ((v1 >= 0) == (v2 >= 0)) || prod / u2 != u1;
+#endif
+    return (prod & (unsigned long) LONG_MAX) / u2 != u1;
 }
 
 /* vim: set ts=8 sts=4 sw=4 noet tw=80: */

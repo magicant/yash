@@ -466,6 +466,8 @@ echo $((0 ? foo : foo)) # prints "bar"
 echo $((foo + 0))       # error
 ----
 
+It is an expansion error if the result of an expression is not defined in C. 
+
 [[brace]]
 == Brace expansion
 

@@ -91,9 +91,6 @@ system.
  * In C, a null character represents the end of a string. If input to
    the shell itself contains a null character, characters following
    the null character will be ignored.
- * We assume that an overflow in signed integer arithmetic or type
-   conversion silently yields an implementation-defined integer value
-   rather than resulting in an error.
  * The GCC extension keyword `__attribute__' is used in the source
    code. When not compiled with GCC, this keyword is removed by the
    preprocessor, so generally there is no harm. But if your compiler
