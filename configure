@@ -1,5 +1,5 @@
 # Manually written configuration script for yash
-# (C) 2007-2021 magicant
+# (C) 2007-2022 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ dirs=". builtins doc doc/ja lineedit po tests"
 
 target="yash"
 version="2.52"
-copyright="Copyright (C) 2007-2021 magicant"
+copyright="Copyright (C) 2007-2022 magicant"
 
 # object files to be linked as `yash'
 objs='$(MAIN_OBJS)'
@@ -726,15 +726,24 @@ ${confighdefs}
 #include <ncursesw/ncurses.h>
 #endif
 #include <${i%:*}>
+int putchar(int);
+
 int main(void) {
-    int (*f1)(char *, int, int *) = setupterm; f1("", 0, 0);
-    int (*f2)(char *) = tigetflag; f2("");
-    int (*f3)(char *) = tigetnum; f3("");
-    char *(*f4)(char *) = tigetstr; f4("");
-    int (*f5)(const char *, int, int (*)(int)) = tputs; f5("", 0, 0);
-/*  char *(*f6)(char *, long,long,long,long,long,long,long,long,long) = tparm;
-    f6("", 0, 0, 0, 0, 0, 0, 0, 0, 0); */
-    int (*f7)(TERMINAL *) = del_curterm; f7(cur_term);
+/* Undeclared identifiers are a syntax error in C99, but many compilers assume
+ * implicit declarations when they appear in a function call. We force compilers
+ * to reject undeclared functions by using them in a non-call expression. */
+(void) setupterm, (void) tigetflag, (void) tigetnum, (void) tigetstr;
+(void) tparm, (void) tputs, (void) del_curterm, (void) cur_term;
+
+/* Check if we can actually call them with arguments of suitable types */
+int i1 = setupterm("", 1, (int*)0);
+int i2 = tigetflag("");
+int i3 = tigetnum("");
+char *s1 = tigetstr("");
+char *s2 = tparm(s1, (long) i1, (long) i2, (long) i3, 0L, 0L, 0L, 0L, 0L, 0L);
+int i4 = tputs(s2, 1, putchar);
+(void) del_curterm(cur_term);
+return i4;
 }
 END
 	trycompile
