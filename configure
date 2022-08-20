@@ -1608,11 +1608,17 @@ ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
 #include <sys/resource.h>
+int main(void) {
+    if (0) {
+	struct rlimit r;
+	getrlimit(RLIMIT_${i}, &r);
+    }
 #if HAVE_RLIMIT_AS
-int main(void) { return RLIMIT_${i} == RLIMIT_AS; getrlimit(RLIMIT_${i}, 0); }
+    return RLIMIT_${i} == RLIMIT_AS;
 #else
-int main(void) { return 0; getrlimit(RLIMIT_${i}, 0); }
+    return 0;
 #endif
+}
 END
 	trymake && tryexec
 	checked
