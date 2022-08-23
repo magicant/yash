@@ -8,7 +8,7 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
-Yash 2.53 (????-??-??)
+Yash 2.53 (2022-08-23)
 
   =  The shell now deterministically rejects arithmetic expansions
      that result in undefined behavior.
