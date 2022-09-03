@@ -6,9 +6,9 @@
 
 dfn:[Yet another shell] (yash) は Unix 系 OS 用コマンドラインシェルです。POSIX.1-2008 規格に (一部の例外を除いて) 準拠しています。POSIX 準拠を謳う他のシェルよりも精確な準拠を目指しています。また、コマンド履歴やコマンドライン編集など、対話シェルとして標準的な機能も備えています。
 
-このプログラムは http://www.gnu.org/licenses/gpl.html[GNU General Public License] (Version 2) の元で自由に再配布・変更などができます。**ただし、プログラムの利用は全て各自の自己責任の下で行っていただくことになります。**作者はプログラムの瑕疵に対して一切責任を取りません。また、このマニュアルはhttp://creativecommons.org/licenses/by-sa/2.1/jp/[クリエイティブ・コモンズの表示-継承 2.1 日本ライセンス]の下で自由に再配布・変更などができます。
+このプログラムは http://www.gnu.org/licenses/gpl.html[GNU General Public License] (Version 2) の元で自由に再配布・変更などができます。**ただし、プログラムの利用は全て各自の自己責任の下で行っていただくことになります。**作者はプログラムの瑕疵に対して一切責任を取りません。また、このマニュアルは{zwsp}http://creativecommons.org/licenses/by-sa/2.1/jp/[クリエイティブ・コモンズの表示-継承 2.1 日本ライセンス]の下で自由に再配布・変更などができます。
 
-Yash は渡邊裕貴 (通称まじかんと) という一人の開発者によって開発されています。Yash のhttp://osdn.jp/projects/yash/[開発プロジェクト]および
-http://yash.osdn.jp/[ホームページ]は http://osdn.jp/[OSDN] がホストしています。
+Yash は渡邊裕貴 (通称まじかんと) という一人の開発者によって開発されています。Yash の{zwsp}http://osdn.jp/projects/yash/[開発プロジェクト]および
+{zwsp}http://yash.osdn.jp/[ホームページ]は http://osdn.jp/[OSDN] がホストしています。
 
 // vim: set filetype=asciidoc expandtab:
