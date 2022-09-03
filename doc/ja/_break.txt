@@ -41,7 +41,7 @@ dfn:[Break 組込みコマンド]は実行中のループを中断します。
 
 Break コマンドは{zwsp}link:builtin.html#types[特殊組込みコマンド]です。
 
-POSIX には +-i+ (+--interact+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
+POSIX にはオプションに関する規定はありません。よってオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
 POSIX では、break コマンドを構文的に取り囲んでいないループの扱いを規定していません。例えば以下のような場合が該当します:
 
