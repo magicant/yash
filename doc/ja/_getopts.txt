@@ -73,7 +73,7 @@ echo オペランドは $*
 
 Getopts コマンドが解析するコマンドライン引数では、オプションは全てオペランドより前に指定してある必要があります。最初にオペランドが現れた時点で、getopts コマンドは解析を終了します。
 
-Getopts コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Getopts コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX は、+OPTIND+ 変数に +1+ 以外の値を代入した場合の動作を規定していません。
 

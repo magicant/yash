@@ -31,7 +31,8 @@ Popd コマンドは{zwsp}link:_dirs.html[ディレクトリスタック]から�
 
 ディレクトリスタックに要素が一つしかない場合はそれ以上要素を削除できないので、エラーになります。
 
-Popd コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Popd コマンドは{zwsp}link:builtin.html#types[任意組込みコマンド]です。
 POSIX では popd コマンドの動作は規定されていません。
+このコマンドは link:posix.html[POSIX 準拠モード]では使えません。
 
 // vim: set filetype=asciidoc expandtab:

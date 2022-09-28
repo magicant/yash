@@ -87,7 +87,7 @@ successfully changed and non-zero if there was an error.
 [[notes]]
 == Notes
 
-The cd built-in is a link:builtin.html#types[semi-special built-in].
+The cd built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard does not define the use of the +YASH_AFTER_CD+ variable or
 the +--default-directory=...+ option.

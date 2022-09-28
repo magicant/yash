@@ -80,7 +80,7 @@ Fc コマンドが再実行または表示するコマンドは、{{始点}}と{
 [[notes]]
 == 補足
 
-Fc コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Fc コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX には +-q+ (+--quiet+) および +-v+ (+--verbose+) オプションに関する規定はありません。よってこれらのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 

@@ -79,7 +79,9 @@ the simple command.
   Exported variables are passed to the executed command as environment
   variables.
 - If the command is a link:builtin.html[built-in], the built-in is executed
-  with the command arguments passed to the built-in.
+  with the command arguments passed to the built-in. As an exception, in the
+  link:posix.html[POSIXly-correct mode], the built-in is not executed if it is
+  an link:builtin.html#types[elective built-in].
 - If the command is a <<function,function>>, the contents of the function
   are executed with the command arguments as function arguments.
 
@@ -91,6 +93,8 @@ If the shell failed to execute the determined command, the exit status is
 126.
 If the executed command was killed by a signal, the exit status is the signal
 number plus 384.
+If the elective built-in was not executed in the POSIXly-correct mode, the
+exit status is 127.
 
 [NOTE]
 In shells other than yash, the exit status may be different when the command
@@ -131,8 +135,8 @@ name using the following algorithm:
   built-in is determined as the executed command.
 . If the command name is the name of an existing <<function,function>>, the
   function is determined as the executed command.
-. If the command name is a link:builtin.html#types[semi-special built-in], the
-  built-in is determined as the executed command.
+. If the command name is a link:builtin.html#types[mandatory or elective
+  built-in], the built-in is determined as the executed command.
 . If the command name is a link:builtin.html#types[regular built-in], the
   built-in is determined as the executed command unless the shell is in the
   link:posix.html[POSIXly-correct mode].

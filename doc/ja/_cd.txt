@@ -55,7 +55,7 @@ Cd コマンドはシェルの作業ディレクトリをオペランドで指�
 [[notes]]
 == 補足
 
-Cd コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Cd コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX には +YASH_AFTER_CD+ 変数および +--default-directory=...+ オプションに関する規定はありません。POSIX は{{ディレクトリ}}としてハイフン一つを指定したときに +-L+ または +-P+ オプションを併用することを認めていません。
 

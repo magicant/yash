@@ -17,10 +17,10 @@ PS1= PS2= HISTFILE=$PWD/$histfile
 unset HISTRMDUP HISTSIZE
 __END__
 
-test_oE -e 0 'fc is a semi-special built-in'
+test_oE -e 0 'fc is a mandatory built-in'
 command -V fc
 __IN__
-fc: a semi-special built-in
+fc: a mandatory built-in
 __OUT__
 
 (

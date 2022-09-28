@@ -66,7 +66,7 @@ Read コマンドは標準入力から一行の文字列を読み込み、それ
 [[notes]]
 == 補足
 
-Read コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Read コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
 

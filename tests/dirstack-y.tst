@@ -12,10 +12,10 @@ ln -s .. testdir/parent
 
 ##### dirs
 
-test_oE -e 0 'dirs is a semi-special built-in'
+test_oE -e 0 'dirs is an elective built-in'
 command -V dirs
 __IN__
-dirs: a semi-special built-in
+dirs: an elective built-in
 __OUT__
 
 testcase "$LINENO" -e 0 'printing unset directory stack' \
@@ -180,12 +180,19 @@ dirs: `--no-such-option' is not a valid option
 __ERR__
 #`
 
+test_O -d -e 127 'dirs built-in is unavailable in POSIX mode' --posix
+echo echo not reached > dirs
+chmod a+x dirs
+PATH=$PWD:$PATH
+dirs --help
+__IN__
+
 ##### pushd
 
-test_oE -e 0 'pushd is a semi-special built-in'
+test_oE -e 0 'pushd is an elective built-in'
 command -V pushd
 __IN__
-pushd: a semi-special built-in
+pushd: an elective built-in
 __OUT__
 
 testcase "$LINENO" 'pushing directory' \
@@ -676,12 +683,19 @@ __IN__
 pushd: too many operands are specified
 __ERR__
 
+test_O -d -e 127 'pushd built-in is unavailable in POSIX mode' --posix
+echo echo not reached > pushd
+chmod a+x pushd
+PATH=$PWD:$PATH
+pushd --help
+__IN__
+
 ##### popd
 
-test_oE -e 0 'popd is a semi-special built-in'
+test_oE -e 0 'popd is an elective built-in'
 command -V popd
 __IN__
-popd: a semi-special built-in
+popd: an elective built-in
 __OUT__
 
 test_Oe -e n 'popping default directory from empty stack'
@@ -929,5 +943,12 @@ popd +0 +0
 __IN__
 popd: too many operands are specified
 __ERR__
+
+test_O -d -e 127 'popd built-in is unavailable in POSIX mode' --posix
+echo echo not reached > popd
+chmod a+x popd
+PATH=$PWD:$PATH
+popd --help
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

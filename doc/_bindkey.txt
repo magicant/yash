@@ -64,7 +64,8 @@ The exit status of the bindkey built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The bindkey built-in is a link:builtin.html#types[semi-special built-in]. In
-the POSIX standard, it is defined as a command with unspecified behavior.
+The bindkey built-in is an link:builtin.html#types[elective built-in].
+It cannot be used in the link:posix.html[POSIXly-correct mode]
+because POSIX does not define its behavior.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

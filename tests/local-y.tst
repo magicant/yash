@@ -3,10 +3,10 @@
 # Since "local" is an alias for "typeset", most tests in this file are
 # analogous to those in typeset-y.tst.
 
-test_oE -e 0 'local is a semi-special built-in'
+test_oE -e 0 'local is an elective built-in'
 command -V local
 __IN__
-local: a semi-special built-in
+local: an elective built-in
 __OUT__
 
 test_oE -e 0 'defining variable in global namespace' -e
@@ -122,5 +122,12 @@ local -xX
 __IN__
 local: the -x option cannot be used with the -X option
 __ERR__
+
+test_O -d -e 127 'local built-in is unavailable in POSIX mode' --posix
+echo echo not reached > local
+chmod a+x local
+PATH=$PWD:$PATH
+local --help
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

@@ -75,8 +75,9 @@ The exit status of the history built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The history built-in is a link:builtin.html#types[semi-special built-in]. In
-the POSIX standard, it is defined as a command with unspecified behavior.
+The history built-in is an link:builtin.html#types[elective built-in].
+It cannot be used in the link:posix.html[POSIXly-correct mode]
+because POSIX does not define its behavior.
 
 Command history cannot be modified during link:lineedit.html[line-editing].
 

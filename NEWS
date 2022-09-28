@@ -8,6 +8,16 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.54 (Unreleased)
+
+  =  When the POSIXly-correct mode is active, the shell now refuses to
+     execute built-ins POSIX XCU 2.9.1 lists as utilities that cause
+     unspecified results. To implement the new behavior, the previous
+     "semi-special" built-ins are now categorized in either of the new
+     categories "mandatory" and "elective". The "command" and "type"
+     built-ins now report the new categories of such built-ins.
+
+----------------------------------------------------------------------
 Yash 2.53 (2022-08-23)
 
   =  The shell now deterministically rejects arithmetic expansions

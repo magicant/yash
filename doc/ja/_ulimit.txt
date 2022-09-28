@@ -103,6 +103,6 @@ POSIX メッセージキューのサイズの限界
 
 POSIX が規定しているオプションは +-f+ だけです。また POSIX はオペランドの{{値}}として自然数しか規定していません。
 
-Ulimit コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Ulimit コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

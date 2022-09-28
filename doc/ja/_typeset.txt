@@ -77,8 +77,9 @@ dfn:[Typeset 組込みコマンド]は{zwsp}link:params.html#variables[変数]�
 
 既にローカル変数が存在する場合、それを無視してグローバル変数を新しく作ることはできません (+-g+ (+--global+) オプションを指定していても既存のローカル変数が再設定されます)。
 
-Typeset コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Typeset コマンドは{zwsp}link:builtin.html#types[任意組込みコマンド]です。
 POSIX では typeset コマンドの動作は規定されていません。
+このコマンドは link:posix.html[POSIX 準拠モード]では使えません。
 
 link:_export.html[Export コマンド]は typeset コマンドに +-gx+ オプションを付けたものと同じです。{zwsp}link:_readonly.html[Readonly コマンド]は typeset コマンドに +-gr+ オプションを付けたものと同じです。{zwsp}link:_local.html[Local コマンド]は typeset と同じですが +-f+ (+--functions+) および +-g+ (+--global+) オプションは使えません。
 

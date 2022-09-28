@@ -108,7 +108,7 @@ zero unless there is any error.
 [[notes]]
 == Notes
 
-The command built-in is a link:builtin.html#types[semi-special built-in].
+The command built-in is a link:builtin.html#types[mandatory built-in].
 
 In the link:posix.html[POSIXly-correct mode], options other than +-p+, +-v+,
 and +-V+ cannot be used and at most one {{command}} can be specified.

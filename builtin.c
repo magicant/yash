@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,12 +92,12 @@ void init_builtin(void)
 
     /* defined in "builtin.c" */
     DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help, colon_syntax, NULL);
-    DEFBUILTIN("true", true_builtin, BI_SEMISPECIAL, true_help, true_syntax,
+    DEFBUILTIN("true", true_builtin, BI_MANDATORY, true_help, true_syntax,
 	    NULL);
-    DEFBUILTIN("false", false_builtin, BI_SEMISPECIAL, false_help, false_syntax,
+    DEFBUILTIN("false", false_builtin, BI_MANDATORY, false_help, false_syntax,
 	    NULL);
 #if YASH_ENABLE_HELP
-    DEFBUILTIN("help", help_builtin, BI_SEMISPECIAL, help_help, help_syntax,
+    DEFBUILTIN("help", help_builtin, BI_ELECTIVE, help_help, help_syntax,
 	    help_option);
 #endif
 
@@ -105,27 +105,27 @@ void init_builtin(void)
     DEFBUILTIN("set", set_builtin, BI_SPECIAL, set_help, set_syntax, NULL);
 
     /* defined in "path.c" */
-    DEFBUILTIN("cd", cd_builtin, BI_SEMISPECIAL, cd_help, cd_syntax,
+    DEFBUILTIN("cd", cd_builtin, BI_MANDATORY, cd_help, cd_syntax,
 	    cd_options);
-    DEFBUILTIN("pwd", pwd_builtin, BI_SEMISPECIAL, pwd_help, pwd_syntax,
+    DEFBUILTIN("pwd", pwd_builtin, BI_MANDATORY, pwd_help, pwd_syntax,
 	    pwd_options);
-    DEFBUILTIN("hash", hash_builtin, BI_SEMISPECIAL, hash_help, hash_syntax,
+    DEFBUILTIN("hash", hash_builtin, BI_MANDATORY, hash_help, hash_syntax,
 	    hash_options);
-    DEFBUILTIN("umask", umask_builtin, BI_SEMISPECIAL, umask_help, umask_syntax,
+    DEFBUILTIN("umask", umask_builtin, BI_MANDATORY, umask_help, umask_syntax,
 	    umask_options);
 
     /* defined in "alias.c" */
-    DEFBUILTIN("alias", alias_builtin, BI_SEMISPECIAL, alias_help, alias_syntax,
+    DEFBUILTIN("alias", alias_builtin, BI_MANDATORY, alias_help, alias_syntax,
 	    alias_options);
-    DEFBUILTIN("unalias", unalias_builtin, BI_SEMISPECIAL, unalias_help,
+    DEFBUILTIN("unalias", unalias_builtin, BI_MANDATORY, unalias_help,
 	    unalias_syntax, all_help_options);
 
     /* defined in "variable.c" */
-    DEFBUILTIN("typeset", typeset_builtin, BI_SEMISPECIAL, typeset_help,
+    DEFBUILTIN("typeset", typeset_builtin, BI_ELECTIVE, typeset_help,
 	    typeset_syntax, typeset_options);
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
 	    export_syntax, typeset_options);
-    DEFBUILTIN("local", typeset_builtin, BI_SEMISPECIAL, local_help,
+    DEFBUILTIN("local", typeset_builtin, BI_ELECTIVE, local_help,
 	    local_syntax, local_options);
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
 	    readonly_syntax, typeset_options);
@@ -137,42 +137,42 @@ void init_builtin(void)
 	    unset_options);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help, shift_syntax,
 	    shift_options);
-    DEFBUILTIN("getopts", getopts_builtin, BI_SEMISPECIAL, getopts_help,
+    DEFBUILTIN("getopts", getopts_builtin, BI_MANDATORY, getopts_help,
 	    getopts_syntax, help_option);
-    DEFBUILTIN("read", read_builtin, BI_SEMISPECIAL, read_help, read_syntax,
+    DEFBUILTIN("read", read_builtin, BI_MANDATORY, read_help, read_syntax,
 	    read_options);
 #if YASH_ENABLE_DIRSTACK
-    DEFBUILTIN("pushd", pushd_builtin, BI_SEMISPECIAL, pushd_help, pushd_syntax,
+    DEFBUILTIN("pushd", pushd_builtin, BI_ELECTIVE, pushd_help, pushd_syntax,
 	    pushd_options);
-    DEFBUILTIN("popd", popd_builtin, BI_SEMISPECIAL, popd_help, popd_syntax,
+    DEFBUILTIN("popd", popd_builtin, BI_ELECTIVE, popd_help, popd_syntax,
 	    help_option);
-    DEFBUILTIN("dirs", dirs_builtin, BI_SEMISPECIAL, dirs_help, dirs_syntax,
+    DEFBUILTIN("dirs", dirs_builtin, BI_ELECTIVE, dirs_help, dirs_syntax,
 	    dirs_options);
 #endif
 
     /* defined in "sig.c" */
     DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help, trap_syntax,
 	    trap_options);
-    DEFBUILTIN("kill", kill_builtin, BI_SEMISPECIAL, kill_help, kill_syntax,
+    DEFBUILTIN("kill", kill_builtin, BI_MANDATORY, kill_help, kill_syntax,
 	    NULL);
 
     /* defined in "job.c" */
-    DEFBUILTIN("jobs", jobs_builtin, BI_SEMISPECIAL, jobs_help, jobs_syntax,
+    DEFBUILTIN("jobs", jobs_builtin, BI_MANDATORY, jobs_help, jobs_syntax,
 	    jobs_options);
-    DEFBUILTIN("fg", fg_builtin, BI_SEMISPECIAL, fg_help, fg_syntax,
+    DEFBUILTIN("fg", fg_builtin, BI_MANDATORY, fg_help, fg_syntax,
 	    help_option);
-    DEFBUILTIN("bg", fg_builtin, BI_SEMISPECIAL, bg_help, bg_syntax,
+    DEFBUILTIN("bg", fg_builtin, BI_MANDATORY, bg_help, bg_syntax,
 	    help_option);
-    DEFBUILTIN("wait", wait_builtin, BI_SEMISPECIAL, wait_help, wait_syntax,
+    DEFBUILTIN("wait", wait_builtin, BI_MANDATORY, wait_help, wait_syntax,
 	    help_option);
-    DEFBUILTIN("disown", disown_builtin, BI_SEMISPECIAL, disown_help,
+    DEFBUILTIN("disown", disown_builtin, BI_ELECTIVE, disown_help,
 	    disown_syntax, all_help_options);
 
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
-    DEFBUILTIN("fc", fc_builtin, BI_SEMISPECIAL, fc_help, fc_syntax,
+    DEFBUILTIN("fc", fc_builtin, BI_MANDATORY, fc_help, fc_syntax,
 	    fc_options);
-    DEFBUILTIN("history", history_builtin, BI_SEMISPECIAL, history_help,
+    DEFBUILTIN("history", history_builtin, BI_ELECTIVE, history_help,
 	    history_syntax, history_options);
 #endif
 
@@ -188,9 +188,9 @@ void init_builtin(void)
     DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help, dot_syntax, dot_options);
     DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help, exec_syntax,
 	    exec_options);
-    DEFBUILTIN("command", command_builtin, BI_SEMISPECIAL, command_help,
+    DEFBUILTIN("command", command_builtin, BI_MANDATORY, command_help,
 	    command_syntax, command_options);
-    DEFBUILTIN("type", command_builtin, BI_SEMISPECIAL, type_help, type_syntax,
+    DEFBUILTIN("type", command_builtin, BI_MANDATORY, type_help, type_syntax,
 	    command_options);
     DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help, times_syntax,
 	    help_option);
@@ -198,12 +198,12 @@ void init_builtin(void)
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help, exit_syntax,
 	    force_help_options);
-    DEFBUILTIN("suspend", suspend_builtin, BI_SEMISPECIAL, suspend_help,
+    DEFBUILTIN("suspend", suspend_builtin, BI_ELECTIVE, suspend_help,
 	    suspend_syntax, force_help_options);
 
     /* defined in "builtins/ulimit.c" */
 #if YASH_ENABLE_ULIMIT
-    DEFBUILTIN("ulimit", ulimit_builtin, BI_SEMISPECIAL, ulimit_help,
+    DEFBUILTIN("ulimit", ulimit_builtin, BI_MANDATORY, ulimit_help,
 	    ulimit_syntax, ulimit_options);
 #endif
 
@@ -222,13 +222,13 @@ void init_builtin(void)
 
     /* defined in "lineedit/complete.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("complete", complete_builtin, BI_SEMISPECIAL, complete_help,
+    DEFBUILTIN("complete", complete_builtin, BI_ELECTIVE, complete_help,
 	    complete_syntax, complete_options);
 #endif
 
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
-    DEFBUILTIN("bindkey", bindkey_builtin, BI_SEMISPECIAL, bindkey_help,
+    DEFBUILTIN("bindkey", bindkey_builtin, BI_ELECTIVE, bindkey_help,
 	    bindkey_syntax, bindkey_options);
 #endif
 
@@ -508,9 +508,10 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
     while ((kv = ht_next(&builtins, &i)).key != NULL) {
 	le_candgentype_T type;
 	switch (((const builtin_T *) kv.value)->type) {
-	    case BI_SPECIAL:      type = CGT_SBUILTIN;   break;
-	    case BI_SEMISPECIAL:  type = CGT_SSBUILTIN;  break;
-	    case BI_REGULAR:      type = CGT_RBUILTIN;   break;
+	    case BI_SPECIAL:      type = CGT_SBUILTIN;  break;
+	    case BI_MANDATORY:    type = CGT_MBUILTIN;  break;
+	    case BI_ELECTIVE:     type = CGT_LBUILTIN;  break;
+	    case BI_REGULAR:      type = CGT_RBUILTIN;  break;
 	    default:              assert(false);
 	}
 	if (!(compopt->type & type))

@@ -4,10 +4,10 @@ if ! testee -c 'command -bv history' >/dev/null; then
     skip="true"
 fi
 
-test_oE -e 0 'history is a semi-special built-in'
+test_oE -e 0 'history is an elective built-in'
 command -V history
 __IN__
-history: a semi-special built-in
+history: an elective built-in
 __OUT__
 
 cat >rcfile1 <<\__END__
@@ -480,5 +480,12 @@ history >&-
 __IN__
 
 )
+
+test_O -d -e 127 'history built-in is unavailable in POSIX mode' --posix
+echo echo not reached > history
+chmod a+x history
+PATH=$PWD:$PATH
+history --help
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

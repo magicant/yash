@@ -54,7 +54,8 @@ Vi 風編集モードの挿入モードにおけるキーバインドを表示�
 [[notes]]
 == 補足
 
-Bindkey コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Bindkey コマンドは{zwsp}link:builtin.html#types[任意組込みコマンド]です。
 POSIX では bindkey コマンドの動作は規定されていません。
+このコマンドは link:posix.html[POSIX 準拠モード]では使えません。
 
 // vim: set filetype=asciidoc expandtab:

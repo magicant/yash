@@ -111,7 +111,7 @@ Otherwise, the exit status is zero unless there is any error.
 [[notes]]
 == Notes
 
-The fc built-in is a link:builtin.html#types[semi-special built-in].
+The fc built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard does not define the +-q+ (+--quiet+) or +-v+ (+--verbose+)
 options, so they cannot be used in the link:posix.html[POSIXly-correct mode].

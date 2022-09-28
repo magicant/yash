@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.h: command line completion */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -132,29 +132,30 @@ typedef enum le_candgentype_T {
     CGT_DIRECTORY  = 1 << 1, // directory
     CGT_EXECUTABLE = 1 << 2, // executable file
     CGT_SBUILTIN   = 1 << 3, // special builtin
-    CGT_SSBUILTIN  = 1 << 4, // semi-special builtin
-    CGT_RBUILTIN   = 1 << 5, // regular builtin
-    CGT_BUILTIN    = CGT_SBUILTIN | CGT_SSBUILTIN | CGT_RBUILTIN,
-    CGT_EXTCOMMAND = 1 << 6, // external command
-    CGT_FUNCTION   = 1 << 7, // function
+    CGT_MBUILTIN   = 1 << 4, // mandatory builtin
+    CGT_LBUILTIN   = 1 << 5, // elective builtin
+    CGT_RBUILTIN   = 1 << 6, // regular builtin
+    CGT_BUILTIN    = CGT_SBUILTIN | CGT_MBUILTIN | CGT_LBUILTIN | CGT_RBUILTIN,
+    CGT_EXTCOMMAND = 1 << 7, // external command
+    CGT_FUNCTION   = 1 << 8, // function
     CGT_COMMAND    = CGT_BUILTIN | CGT_EXTCOMMAND | CGT_FUNCTION,
-    CGT_KEYWORD    = 1 << 8, // shell keyword
-    CGT_NALIAS     = 1 << 9, // non-global alias
-    CGT_GALIAS     = 1 << 10, // global alias
+    CGT_KEYWORD    = 1 << 9, // shell keyword
+    CGT_NALIAS     = 1 << 10, // non-global alias
+    CGT_GALIAS     = 1 << 11, // global alias
     CGT_ALIAS      = CGT_NALIAS | CGT_GALIAS,
-    CGT_SCALAR     = 1 << 11, // scalar variable
-    CGT_ARRAY      = 1 << 12, // array variable
+    CGT_SCALAR     = 1 << 12, // scalar variable
+    CGT_ARRAY      = 1 << 13, // array variable
     CGT_VARIABLE   = CGT_SCALAR | CGT_ARRAY,
-    CGT_RUNNING    = 1 << 13, // running job
-    CGT_STOPPED    = 1 << 14, // stopped job
-    CGT_DONE       = 1 << 15, // finished job
+    CGT_RUNNING    = 1 << 14, // running job
+    CGT_STOPPED    = 1 << 15, // stopped job
+    CGT_DONE       = 1 << 16, // finished job
     CGT_JOB        = CGT_RUNNING | CGT_STOPPED | CGT_DONE,
-    CGT_SIGNAL     = 1 << 16, // signal name
-    CGT_LOGNAME    = 1 << 17, // login user name
-    CGT_GROUP      = 1 << 18, // group name
-    CGT_HOSTNAME   = 1 << 19, // host name
-    CGT_BINDKEY    = 1 << 20, // line-editing command name
-    CGT_DIRSTACK   = 1 << 21, // directory stack entry
+    CGT_SIGNAL     = 1 << 17, // signal name
+    CGT_LOGNAME    = 1 << 18, // login user name
+    CGT_GROUP      = 1 << 19, // group name
+    CGT_HOSTNAME   = 1 << 20, // host name
+    CGT_BINDKEY    = 1 << 21, // line-editing command name
+    CGT_DIRSTACK   = 1 << 22, // directory stack entry
 } le_candgentype_T;
 typedef struct le_comppattern_T {
     struct le_comppattern_T *next;

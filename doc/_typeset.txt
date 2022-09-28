@@ -97,8 +97,9 @@ A global variable cannot be newly defined if a local variable has already been
 defined with the same name.
 The local variable will be set regardless of the +-g+ (+--global+) option.
 
-The typeset built-in is a link:builtin.html#types[semi-special built-in]. In
-the POSIX standard, it is defined as a command with unspecified behavior.
+The typeset built-in is an link:builtin.html#types[elective built-in].
+It cannot be used in the link:posix.html[POSIXly-correct mode]
+because POSIX does not define its behavior.
 
 The link:_export.html[export] and link:_readonly.html[readonly] built-ins are
 equivalent to the typeset built-in with the +-gx+ and +-gr+ options,

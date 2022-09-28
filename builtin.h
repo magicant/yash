@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.h: built-in commands */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,10 @@ typedef int main_T(int argc, void **argv)
     __attribute__((nonnull));
 
 typedef enum builtintype_T {
-    BI_SPECIAL, BI_SEMISPECIAL, BI_REGULAR,
+    BI_SPECIAL,   // built-ins defined in POSIX XCU 2.14
+    BI_MANDATORY, // built-ins listed in POSIX XCU 1.6
+    BI_ELECTIVE,  // built-ins listed in POSIX XCU 2.9.1
+    BI_REGULAR,   // built-ins that substitute external utilities
 } builtintype_T;
 
 typedef struct builtin_T {

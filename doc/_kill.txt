@@ -87,7 +87,7 @@ if the signal was not sent to all of the specified processes.
 [[notes]]
 == Notes
 
-The kill built-in is a link:builtin.html#types[semi-special built-in].
+The kill built-in is a link:builtin.html#types[mandatory built-in].
 
 Command arguments that start with a hyphen should be used with care.
 The command +kill -1 -2+, for example, sends signal 1 to process group 2 since

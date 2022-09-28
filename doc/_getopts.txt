@@ -103,7 +103,7 @@ echo Operands are: $*
 In {{argument}}s that are parsed, options must precede operands.
 The built-in ends parsing when it encounters the first operand.
 
-The getopts built-in is a link:builtin.html#types[semi-special built-in].
+The getopts built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard does not specify what will happen when the +OPTIND+
 variable is assigned a value other than +1+.

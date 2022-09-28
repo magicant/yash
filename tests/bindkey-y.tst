@@ -4,10 +4,10 @@ if ! testee -c 'command -bv bindkey' >/dev/null; then
     skip="true"
 fi
 
-test_oE -e 0 'bindkey is a semi-special built-in'
+test_oE -e 0 'bindkey is an elective built-in'
 command -V bindkey
 __IN__
-bindkey: a semi-special built-in
+bindkey: an elective built-in
 __OUT__
 
 sort -k 1 >commands <<\__END__
@@ -571,6 +571,13 @@ __IN__
 
 test_O -d -e 1 'printing to closed stream (-a)'
 bindkey -a >&-
+__IN__
+
+test_O -d -e 127 'bindkey built-in is unavailable in POSIX mode' --posix
+echo echo not reached > bindkey
+chmod a+x bindkey
+PATH=$PWD:$PATH
+bindkey --help
 __IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

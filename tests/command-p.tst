@@ -24,7 +24,7 @@ __IN__
 a
 __OUT__
 
-test_OE -e n 'command ignores function (semi-special built-in)'
+test_OE -e n 'command ignores function (mandatory built-in)'
 false () { true; }
 command false
 __IN__

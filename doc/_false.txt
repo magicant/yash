@@ -24,6 +24,6 @@ The exit status of the false built-in is non-zero.
 [[notes]]
 == Notes
 
-The false built-in is a link:builtin.html#types[semi-special built-in].
+The false built-in is a link:builtin.html#types[mandatory built-in].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

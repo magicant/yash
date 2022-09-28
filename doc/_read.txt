@@ -86,7 +86,7 @@ reading the entire line.
 [[notes]]
 == Notes
 
-The read built-in is a link:builtin.html#types[semi-special built-in].
+The read built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard defines the +-r+  option only:
 other options cannot be used in the link:posix.html[POSIXly-correct mode].

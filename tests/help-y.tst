@@ -4,10 +4,10 @@ if ! testee --version --verbose | grep -Fqx ' * help'; then
     skip="true"
 fi
 
-test_oE -e 0 'help is a semi-special built-in'
+test_oE -e 0 'help is an elective built-in'
 command -V help
 __IN__
-help: a semi-special built-in
+help: an elective built-in
 __OUT__
 
 test_oE -e 0 'without arguments, the help for the help itself is printed'
@@ -208,6 +208,7 @@ Options:
 	-D ...   --description=...
 	-d       --directory
 	         --dirstack-index
+	         --elective-builtin
 	         --executable-file
 	         --external-command
 	-f       --file
@@ -219,6 +220,7 @@ Options:
 	-h       --hostname
 	-j       --job
 	-k       --keyword
+	         --mandatory-builtin
 	-T       --no-termination
 	         --normal-alias
 	-O       --option
@@ -1101,5 +1103,12 @@ __IN__
 help: no such built-in `XXX'
 __ERR__
 #`
+
+test_O -d -e 127 'help built-in is unavailable in POSIX mode' --posix
+echo echo not reached > help
+chmod a+x help
+PATH=$PWD:$PATH
+help --help
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

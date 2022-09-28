@@ -100,7 +100,7 @@ The exit status of the umask built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The umask built-in is a link:builtin.html#types[semi-special built-in].
+The umask built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard does not require the default output format (used when the
 +-S+ option is not specified) to be the octal integer form.

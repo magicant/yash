@@ -122,6 +122,6 @@ The exit status of the ulimit built-in is zero unless there is any error.
 The POSIX standard defines no options other than +-f+.
 It neither defines `hard`, `soft`, or `unlimited` for {{limit}} values.
 
-The ulimit built-in is a link:builtin.html#types[semi-special built-in].
+The ulimit built-in is a link:builtin.html#types[mandatory built-in].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

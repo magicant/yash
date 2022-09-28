@@ -29,6 +29,6 @@ The colon built-in is a link:builtin.html#types[special built-in].
 Arguments are link:expand.html[expanded] and link:redir.html[redirections] are
 performed as usual.
 The colon and link:_true.html[true] built-ins have the same effect, but colon
-is a special built-in while true is a semi-special.
+is a special built-in while true is a mandatory.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

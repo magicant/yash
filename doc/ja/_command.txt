@@ -92,7 +92,7 @@ link:exec.html#search[コマンドの検索]において、{zwsp}link:params.htm
 [[notes]]
 == 補足
 
-Command コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Command コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX に規定のあるオプションは +-p+, +-v+, +-V+ だけです。これ以外のオプションは link:posix.html[POSIX 準拠モード]では使えません。また POSIX 準拠モードでは +-v+ または +-V+ オプションを使用するとき{{コマンド}}はちょうど一つしか指定できません。
 

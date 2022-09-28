@@ -37,7 +37,7 @@ Bg コマンドは{zwsp}link:job.html[ジョブ制御]が有効な時しか使�
 [[notes]]
 == 補足
 
-Bg コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Bg コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX は指定したジョブが既に実行中の場合は bg コマンドは何もしないと規定していますが、yash の bg コマンドはジョブが実行中かどうかにかかわらず SIGCONT シグナルを送信します。
 

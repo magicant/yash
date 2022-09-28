@@ -61,7 +61,7 @@ Jobs コマンドはシェルが現在有している{zwsp}link:job.html[ジョ�
 [[notes]]
 == 補足
 
-Jobs コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Jobs コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX で規定されているオプションは +-l+ と +-p+ だけです。従って link:posix.html[POSIX 準拠モード]ではこれ以外のオプションは使えません。また POSIX 準拠モードでは、+-l+ オプション指定時、プロセスごとではなくジョブごとに状態を表示します。
 

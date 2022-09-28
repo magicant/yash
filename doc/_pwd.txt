@@ -43,6 +43,6 @@ The exit status of the pwd built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The pwd built-in is a link:builtin.html#types[semi-special built-in].
+The pwd built-in is a link:builtin.html#types[mandatory built-in].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

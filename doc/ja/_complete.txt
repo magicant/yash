@@ -60,7 +60,7 @@ link:_bindkey.html[Bindkey コマンド]で利用可能な{zwsp}link:lineedit.ht
 
 +-b+::
 +--builtin-command+::
-link:builtin.html[組込みコマンド] (+--special-builtin --semi-special-builtin --regular-builtin+ に同じ)
+link:builtin.html[組込みコマンド] (+--special-builtin --mandatory-builtin --elective-builtin --regular-builtin+ に同じ)
 
 +-c+::
 +--command+::
@@ -72,6 +72,9 @@ link:builtin.html[組込みコマンド] (+--special-builtin --semi-special-buil
 
 +--dirstack-index+::
 ディレクトリスタックのインデックス
+
++--elective-builtin+::
+link:builtin.html#types[任意組込みコマンド]
 
 +--executable-file+::
 実行可能ファイル
@@ -108,6 +111,9 @@ link:job.html#jobid[ジョブ ID]
 +--keyword+::
 シェルの{zwsp}link:syntax.html#tokens[予約語]
 
++--mandatory-builtin+::
+link:builtin.html#types[必須組込みコマンド]
+
 +--normal-alias+::
 通常の (グローバルでない) link:syntax.html#aliases[エイリアス]
 
@@ -121,7 +127,8 @@ link:job.html#jobid[ジョブ ID]
 (配列を除いた通常の) link:params.html#variables[変数]
 
 +--semi-special-builtin+::
-準特殊{zwsp}link:builtin.html[組込みコマンド]
+後方互換性のために残されている古いオプション。
++--mandatory-builtin --elective-builtin+ に同じ。
 
 +--signal+::
 シグナル
@@ -157,7 +164,10 @@ Complete コマンドのオペランドは、各オペランドがそれぞれ�
 [[notes]]
 == 補足
 
-Complete コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Complete コマンドは{zwsp}link:builtin.html#types[任意組込みコマンド]です。
 POSIX では complete コマンドの動作は規定されていません。
+link:posix.html[POSIX 準拠モード]が有効な場合でも、
+link:lineedit.html#completion[補完関数]の実行時には POSIX
+準拠モードが一時的に無効になるため、complete コマンドを使用できます。
 
 // vim: set filetype=asciidoc expandtab:

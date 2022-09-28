@@ -83,7 +83,7 @@ link:_bindkey.html[+bindkey+ built-in] accepts.
 +-b+::
 +--builtin-command+::
 link:builtin.html[Built-in commands].
-(same as +--special-builtin --semi-special-builtin --regular-builtin+)
+(same as +--special-builtin --mandatory-builtin --elective-builtin --regular-builtin+)
 
 +-c+::
 +--command+::
@@ -96,6 +96,9 @@ Directories.
 
 +--dirstack-index+::
 Valid indices of the link:_dirs.html[directory stack].
+
++--elective-builtin+::
+link:builtin.html#types[Elective built-in commands].
 
 +--executable-file+::
 Executable regular files.
@@ -132,6 +135,9 @@ link:job.html#jobid[Job IDs].
 +--keyword+::
 link:syntax.html#tokens[Keywords].
 
++--mandatory-builtin+::
+link:builtin.html#types[Mandatory built-in commands].
+
 +--normal-alias+::
 Normal link:syntax.html#aliases[aliases].
 
@@ -145,7 +151,7 @@ link:job.html#jobid[Job IDs] of jobs that are being executed.
 link:params.html#variables[Variables] that are not arrays.
 
 +--semi-special-builtin+::
-link:builtin.html#types[Semi-special built-in commands].
+Obsolete synonym for +--mandatory-builtin --elective-builtin+.
 
 +--signal+::
 Signals.
@@ -187,7 +193,9 @@ occurred.
 [[notes]]
 == Notes
 
-The complete built-in is a link:builtin.html#types[semi-special built-in]. In
-the POSIX standard, it is defined as a command with unspecified behavior.
+The complete built-in is an link:builtin.html#types[elective built-in].
+It can be used in link:lineedit.html#completion[completion functions]
+even in the link:posix.html[POSIXly-correct mode]
+because the mode is temporarily disabled during completion.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

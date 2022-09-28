@@ -54,7 +54,7 @@ The characters that cannot be used in an alias name are the space, tab,
 newline, and any of +=$<>\'"`;&|()#+.
 You can use any characters in an alias value.
 
-The alias built-in is a link:builtin.html#types[semi-special built-in].
+The alias built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard defines no options for the alias built-in, thus no options
 are available in the link:posix.html[POSIXly correct mode].

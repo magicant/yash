@@ -39,6 +39,6 @@ It is an error to specify the name of a non-existing alias as {{name}}.
 [[notes]]
 == Notes
 
-The unalias built-in is a link:builtin.html#types[semi-special built-in].
+The unalias built-in is a link:builtin.html#types[mandatory built-in].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

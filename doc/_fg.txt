@@ -46,7 +46,7 @@ The exit status is non-zero when there was some error.
 [[notes]]
 == Notes
 
-The fg built-in is a link:builtin.html#types[semi-special built-in].
+The fg built-in is a link:builtin.html#types[mandatory built-in].
 
 You cannot specify more than one job in the link:posix.html[POSIXly-correct
 mode].

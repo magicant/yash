@@ -58,7 +58,7 @@ If there was any other error, the exit status is between 1 and 126
 [[notes]]
 == Notes
 
-The wait built-in is a link:builtin.html#types[semi-special built-in].
+The wait built-in is a link:builtin.html#types[mandatory built-in].
 
 The process ID of the last process of a job can be obtained by the
 link:params.html#sp-exclamation[+!+ special parameter].

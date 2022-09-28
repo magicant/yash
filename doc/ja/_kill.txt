@@ -59,7 +59,7 @@ Kill コマンドでは、{zwsp}link:posix.html[POSIX 準拠モード]である�
 [[notes]]
 == 補足
 
-Kill コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Kill コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 負数に見えるコマンドライン引数の扱いには注意が必要です。例えば +kill -1 -2+ では +-1+ がシグナル指定オプション、+-2+ がオペランドとなるので、番号 1 のシグナルをプロセスグループ 2 に送信します。+kill -- -1 -2+ や +kill -TERM -1 -2+ では +-1+ と +-2+ はどちらもオペランドになります。
 

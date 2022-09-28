@@ -1,9 +1,9 @@
 # typeset-y.tst: yash-specific test of the typeset built-in
 
-test_oE -e 0 'typeset is a semi-special built-in'
+test_oE -e 0 'typeset is an elective built-in'
 command -V typeset
 __IN__
-typeset: a semi-special built-in
+typeset: an elective built-in
 __OUT__
 
 test_oE -e 0 'defining variable in global namespace' -e
@@ -514,5 +514,12 @@ typeset: no such function `a'
 __ERR__
 #'
 #`
+
+test_O -d -e 127 'typeset built-in is unavailable in POSIX mode' --posix
+echo echo not reached > typeset
+chmod a+x typeset
+PATH=$PWD:$PATH
+typeset --help
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

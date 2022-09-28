@@ -80,26 +80,28 @@ trap: a special built-in
 unset: a special built-in
 __OUT__
 
-# `newgrp' is not a semi-special built-in in yash.
-test_oE -e 0 'describing semi-special built-ins (-V)'
-command -V bg cd command false fg getopts hash jobs kill pwd read true type \
-    umask wait
+# `newgrp' is not a mandatory built-in in yash.
+test_oE -e 0 'describing mandatory built-ins (-V)'
+command -V alias bg cd command false fg getopts hash jobs kill pwd read true \
+    type umask unalias wait
 __IN__
-bg: a semi-special built-in
-cd: a semi-special built-in
-command: a semi-special built-in
-false: a semi-special built-in
-fg: a semi-special built-in
-getopts: a semi-special built-in
-hash: a semi-special built-in
-jobs: a semi-special built-in
-kill: a semi-special built-in
-pwd: a semi-special built-in
-read: a semi-special built-in
-true: a semi-special built-in
-type: a semi-special built-in
-umask: a semi-special built-in
-wait: a semi-special built-in
+alias: a mandatory built-in
+bg: a mandatory built-in
+cd: a mandatory built-in
+command: a mandatory built-in
+false: a mandatory built-in
+fg: a mandatory built-in
+getopts: a mandatory built-in
+hash: a mandatory built-in
+jobs: a mandatory built-in
+kill: a mandatory built-in
+pwd: a mandatory built-in
+read: a mandatory built-in
+true: a mandatory built-in
+type: a mandatory built-in
+umask: a mandatory built-in
+unalias: a mandatory built-in
+wait: a mandatory built-in
 __OUT__
 
 (
@@ -107,10 +109,10 @@ if ! testee -c 'command -bv ulimit' >/dev/null; then
     skip="true"
 fi
 
-test_oE -e 0 'describing semi-special built-in ulimit (-V)'
+test_oE -e 0 'describing mandatory built-in ulimit (-V)'
 command -V ulimit
 __IN__
-ulimit: a semi-special built-in
+ulimit: a mandatory built-in
 __OUT__
 
 )
@@ -262,7 +264,7 @@ command --verbose-identify if : bg
 __IN__
 if: a shell keyword
 :: a special built-in
-bg: a semi-special built-in
+bg: a mandatory built-in
 __OUT__
 
 test_oE -e 0 'describing with type command'
@@ -270,7 +272,7 @@ type if : bg
 __IN__
 if: a shell keyword
 :: a special built-in
-bg: a semi-special built-in
+bg: a mandatory built-in
 __OUT__
 
 test_O -d -e 1 'printing to closed stream'

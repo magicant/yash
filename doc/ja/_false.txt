@@ -23,6 +23,6 @@ False コマンドの終了ステータスは非 0 です。
 [[notes]]
 == 補足
 
-False コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+False コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 // vim: set filetype=asciidoc expandtab:

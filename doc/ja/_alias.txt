@@ -45,7 +45,7 @@ Alias コマンドは{zwsp}link:syntax.html#aliases[エイリアス]をオペラ
 
 Yash でエイリアスの名前として使えない文字は、空白文字・タブ・改行、および +=$<>\'"`;&|()#+ の各文字です。エイリアスの内容にはすべての文字が使えます。
 
-Alias コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+Alias コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
 POSIX にはオプションに関する規定はありません。よってオプションは link:posix.html[POSIX 準拠モード]では使えません。
 

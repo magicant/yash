@@ -23,8 +23,8 @@ True コマンドの終了ステータスは 0 です。
 [[notes]]
 == 補足
 
-True コマンドは{zwsp}link:builtin.html#types[準特殊組込みコマンド]です。
+True コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
-link:_colon.html[コロンコマンド]は true コマンドと同様に何も行いませんが、true コマンドは準特殊組込みコマンドであるのに対しコロンコマンドは特殊組込みコマンドです。
+link:_colon.html[コロンコマンド]は true コマンドと同様に何も行いませんが、true コマンドは必須組込みコマンドであるのに対しコロンコマンドは特殊組込みコマンドです。
 
 // vim: set filetype=asciidoc expandtab:

@@ -40,7 +40,7 @@ The exit status of the bg built-in is zero unless there is any error.
 [[notes]]
 == Notes
 
-The bg built-in is a link:builtin.html#types[semi-special built-in].
+The bg built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard provides that the built-in shall have no effect when the
 job is already running.

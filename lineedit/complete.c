@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1374,6 +1374,7 @@ const struct xgetopt_T complete_options[] = {
     { L'D', L"description",          OPTARG_REQUIRED, true,  NULL, },
     { L'd', L"directory",            OPTARG_NONE,     true,  NULL, },
     { L'-', L"dirstack-index",       OPTARG_NONE,     true,  NULL, },
+    { L'-', L"elective-builtin",     OPTARG_NONE,     true,  NULL, },
     { L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
     { L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
     { L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
@@ -1387,6 +1388,7 @@ const struct xgetopt_T complete_options[] = {
     { L'h', L"hostname",             OPTARG_NONE,     true,  NULL, },
     { L'j', L"job",                  OPTARG_NONE,     true,  NULL, },
     { L'k', L"keyword",              OPTARG_NONE,     true,  NULL, },
+    { L'-', L"mandatory-builtin",    OPTARG_NONE,     true,  NULL, },
     { L'T', L"no-termination",       OPTARG_NONE,     true,  NULL, },
     { L'-', L"normal-alias",         OPTARG_NONE,     true,  NULL, },
     { L'O', L"option",               OPTARG_NONE,     true,  NULL, },
@@ -1466,10 +1468,15 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		    case L'b':  cgtype |= CGT_BINDKEY;  break;
 		    case L'd':  cgtype |= CGT_DIRSTACK;  break;
 		    case L'e':
-			assert(opt->longopt[1] == L'x');
-			switch (opt->longopt[2]) {
-			    case L'e':  cgtype |= CGT_EXECUTABLE;  break;
-			    case L't':  cgtype |= CGT_EXTCOMMAND;  break;
+			switch (opt->longopt[1]) {
+			    case L'l':  cgtype |= CGT_LBUILTIN;  break;
+			    case L'x':
+				switch (opt->longopt[2]) {
+				case L'e':  cgtype |= CGT_EXECUTABLE;  break;
+				case L't':  cgtype |= CGT_EXTCOMMAND;  break;
+				default:    assert(false);
+				}
+				break;
 			    default:    assert(false);
 			}
 			break;
@@ -1486,7 +1493,8 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			exitstatus = print_builtin_help(ARGV(0));
 			goto finish;
 #endif
-		    case L'n':  cgtype |= CGT_NALIAS;  break;
+		    case L'm':  cgtype |= CGT_MBUILTIN;  break;
+		    case L'n':  cgtype |= CGT_NALIAS;    break;
 		    case L'r':
 			switch (opt->longopt[1]) {
 			    case L'e':  cgtype |= CGT_RBUILTIN;  break;
@@ -1496,11 +1504,13 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			break;
 		    case L's':
 			switch (opt->longopt[1]) {
-			    case L'c':  cgtype |= CGT_SCALAR;     break;
-			    case L'e':  cgtype |= CGT_SSBUILTIN;  break;
-			    case L'i':  cgtype |= CGT_SIGNAL;     break;
-			    case L'p':  cgtype |= CGT_SBUILTIN;   break;
-			    case L't':  cgtype |= CGT_STOPPED;    break;
+			    case L'c':  cgtype |= CGT_SCALAR;    break;
+			    case L'e':
+				cgtype |= CGT_MBUILTIN | CGT_LBUILTIN;
+				break;
+			    case L'i':  cgtype |= CGT_SIGNAL;    break;
+			    case L'p':  cgtype |= CGT_SBUILTIN;  break;
+			    case L't':  cgtype |= CGT_STOPPED;   break;
 			    default:    assert(false);
 			}
 			break;

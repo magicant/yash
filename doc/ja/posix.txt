@@ -32,6 +32,7 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - +&lt;&amp;+ および +&gt;&amp;+ link:redir.html#dup[リダイレクト]演算子の対象となるファイル記述子はそれぞれ読み込み可能および書き込み可能でなければなりません。
 - link:redir.html#socket[ソケットリダイレクト]・{zwsp}link:redir.html#here[ヒアストリング]・{zwsp}link:redir.html#pipe[パイプリダイレクト]・{zwsp}link:redir.html#process[プロセスリダイレクト]は使用できません。
 - link:exec.html#simple[単純コマンドの実行]時、コマンドが見つからなくても link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+ 変数]の値は実行しません。
+- link:builtin.html#types[任意組込みコマンド]は実行できません。
 - link:exec.html#search[コマンドの検索]において{zwsp}link:builtin.html#types[通常の組込みコマンド]は対応する外部コマンドがないと見つかりません。
 - いくつかの{zwsp}link:builtin.html[組込みコマンド]で特定のオプションが使えなくなるなど挙動が変わります。特に、長いオプションは使えなくなります。
 - link:interact.html[対話モード]でないとき、{zwsp}link:builtin.html#types[特殊組込みコマンド]のオプションやオペランドの使い方が間違っているとシェルは直ちに終了します。また特殊組込みコマンドで代入エラーやリダイレクトエラーが発生したときも直ちに終了します。

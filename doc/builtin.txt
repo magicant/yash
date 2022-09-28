@@ -5,7 +5,7 @@
 :description: This page describes common properties of built-ins of yash.
 
 dfn:[Built-in commands] are commands that are implemented in the shell and are
-executed by the shell without external programs.
+executed by the shell without starting external programs.
 
 ifdef::basebackend-html[]
 See the link:index.html#builtins[table of contents] for the list of the
@@ -15,23 +15,25 @@ endif::basebackend-html[]
 [[types]]
 == Types of built-in commands
 
-There are three types of built-in commands in yash: special built-in commands,
-semi-special built-in commands and regular built-in commands.
+Yash has several types of built-in commands described below.
 
-dfn:[Special built-in commands] are much more important commands than others.
+dfn:[Special built-in commands] are the most important kinds of built-in
+commands.
 They are executed regardless of whether the corresponding external commands
 exist or not. Results of variable assignments that occur in a
 link:syntax.html#simple[simple command] that invokes a special built-in last
 after the command has finished. Moreover, in the
 link:posix.html[POSIXly-correct mode], a link:interact.html[non-interactive]
-shell immediately exits with a non-zero exit status when a redirect error,
-assignment error, or misuse of option or operand occurs in a special built-in
-command.
+shell immediately exits with a non-zero exit status when an error occurs in a
+simple command executing a special built-in.
 
-dfn:[Semi special built-in commands] are the second important built-in
-commands. They are executed regardless of whether the corresponding external
-commands exist or not. In other parts they are the same as regular built-in
-commands.
+dfn:[Mandatory built-in commands] and dfn:[elective built-in commands] are
+similar to special built-ins in that they do not need external commands to be
+executed but differ in that they may be overridden by
+link:exec.html#function[functions].
+While mandatory built-ins are always available, you cannot use elective
+built-ins in the link:posix.html[POSIXly-correct mode] because POSIX only
+reserves their names without defining their behavior.
 
 dfn:[Regular built-in commands] are less important built-in commands including
 commands that can be implemented as external commands or are not listed in

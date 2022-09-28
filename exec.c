@@ -95,7 +95,8 @@ typedef enum cmdtype_T {
     CT_NONE,
     CT_EXTERNALPROGRAM,
     CT_SPECIALBUILTIN,
-    CT_SEMISPECIALBUILTIN,
+    CT_MANDATORYBUILTIN,
+    CT_ELECTIVEBUILTIN,
     CT_REGULARBUILTIN,
     CT_FUNCTION,
 } cmdtype_T;
@@ -900,12 +901,21 @@ void search_command(
     }
 
     if (bi != NULL) {
-	if (bi->type == BI_SEMISPECIAL) {
-	    ci->type = CT_SEMISPECIALBUILTIN;
-	    ci->ci_builtin = bi->body;
-	    return;
-	} else if (!posixly_correct) {
-	    goto regular_builtin;
+	switch (bi->type) {
+	    case BI_MANDATORY:
+		ci->type = CT_MANDATORYBUILTIN;
+		ci->ci_builtin = bi->body;
+		return;
+	    case BI_ELECTIVE:
+		ci->type = CT_ELECTIVEBUILTIN;
+		ci->ci_builtin = bi->body;
+		return;
+	    case BI_SPECIAL:
+		assert(false);
+	    case BI_REGULAR:
+		if (!posixly_correct)
+		    goto regular_builtin;
+		break;
 	}
     }
 
@@ -1013,8 +1023,17 @@ wchar_t **invoke_simple_command(
 	}
 	exec_external_program(ci->ci_path, argc, argv0, argv, environ);
 	break;
+    case CT_ELECTIVEBUILTIN:
+	if (posixly_correct) {
+	    xerror(0, Ngt("%ls: non-portable built-in is not supported "
+			"in the POSIXly-correct mode"),
+		    (const wchar_t *) argv[0]);
+	    laststatus = Exit_NOTFOUND;
+	    break;
+	}
+	/* falls thru! */
     case CT_SPECIALBUILTIN:
-    case CT_SEMISPECIALBUILTIN:
+    case CT_MANDATORYBUILTIN:
     case CT_REGULARBUILTIN:
 	yash_error_message_count = 0;
 
@@ -2440,9 +2459,12 @@ bool print_command_info(
 	    msgfmt = humanfriendly ? gt("%s: a special built-in\n") : "%s\n";
 	    xprintf(msgfmt, name);
 	    break;
-	case CT_SEMISPECIALBUILTIN:
-	    msgfmt = humanfriendly ? gt("%s: a semi-special built-in\n")
-		                   : "%s\n";
+	case CT_MANDATORYBUILTIN:
+	    msgfmt = humanfriendly ? gt("%s: a mandatory built-in\n") : "%s\n";
+	    xprintf(msgfmt, name);
+	    break;
+	case CT_ELECTIVEBUILTIN:
+	    msgfmt = humanfriendly ? gt("%s: an elective built-in\n") : "%s\n";
 	    xprintf(msgfmt, name);
 	    break;
 	case CT_REGULARBUILTIN:;
