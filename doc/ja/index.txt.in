@@ -18,7 +18,7 @@ v{yashversion},
 == 組込みコマンド
 
 括弧書きの文字は{zwsp}link:builtin.html#types[組込みコマンドの種類]を表します。
-(S) は特殊組込みコマンド、(M) は必須組込みコマンド、(L) は任意組込みコマンド、無印は通常の組込みコマンドです。
+(S) は特殊組込みコマンド、(M) は必須組込みコマンド、(L) は任意組込みコマンド、(X) は拡張組込みコマンド、無印は代替組込みコマンドです。
 
 [[alpha-order]]
 === 組込みコマンド一覧 (アルファベット順)
@@ -28,7 +28,7 @@ v{yashversion},
 - link:_colon.html[+:+ (コロン)] (S)
 - link:_test.html[+[+ (括弧)]
 - link:_alias.html[+alias+] (M)
-- link:_array.html[+array+]
+- link:_array.html[+array+] (X)
 - link:_bg.html[+bg+] (M)
 - link:_bindkey.html[+bindkey+] (L)
 - link:_break.html[+break+] (S)
@@ -125,7 +125,7 @@ v{yashversion},
 - link:_export.html[+export+] (S)
 - link:_local.html[+local+] (L)
 - link:_readonly.html[+readonly+] (S)
-- link:_array.html[+array+]
+- link:_array.html[+array+] (X)
 - link:_set.html[+set+] (S)
 - link:_shift.html[+shift+] (S)
 - link:_read.html[+read+] (M)

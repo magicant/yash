@@ -78,6 +78,7 @@ The exit status of the array built-in is zero unless there is any error.
 == Notes
 
 The array built-in is not defined in the POSIX standard.
+Yash implements the built-in as an link:builtin.html#types[extension].
 
 The command +array {{name}} {{value}}...+ is equivalent to the assignment
 +{{name}}=({{value}}...)+.

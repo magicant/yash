@@ -29,7 +29,7 @@ false () { true; }
 command false
 __IN__
 
-test_E -e 0 'command ignores function (regular built-in)'
+test_E -e 0 'command ignores function (substitutive built-in)'
 echo () { false; }
 command echo
 __IN__
@@ -177,19 +177,19 @@ test_E -e 0 'describing special built-in (-V)'
 command -V :
 __IN__
 
-test_x -e 0 'exit status of describing regular built-in (-v)'
+test_x -e 0 'exit status of describing non-special built-in (-v)'
 command -v echo
 __IN__
 
-test_x -e 0 'exit status of describing regular built-in (-V)'
+test_x -e 0 'exit status of describing non-special built-in (-V)'
 command -V echo
 __IN__
 
-test_E -e 0 'output of describing regular built-in (-v)'
+test_E -e 0 'output of describing non-special built-in (-v)'
 command -v echo | grep '^/'
 __IN__
 
-test_x -e 0 'output of describing regular built-in (-V)'
+test_x -e 0 'output of describing non-special built-in (-V)'
 command -V echo | grep -F "$(command -v echo)"
 __IN__
 

@@ -18,8 +18,8 @@ v{yashversion},
 == Built-ins
 
 Parenthesized letters indicate the link:builtin.html#types[types of built-in
-commands]: (S) for special, (M) mandatory, and (L) elective.
-Regular built-ins are not marked.
+commands]: (S) for special, (M) mandatory, (L) elective, and (X) extension.
+Substitutive built-ins are not marked.
 
 [[alpha-order]]
 === All built-ins in alphabetic order
@@ -29,7 +29,7 @@ Regular built-ins are not marked.
 - link:_colon.html[+:+ (colon)] (S)
 - link:_test.html[+[+ (bracket)]
 - link:_alias.html[+alias+] (M)
-- link:_array.html[+array+]
+- link:_array.html[+array+] (X)
 - link:_bg.html[+bg+] (M)
 - link:_bindkey.html[+bindkey+] (L)
 - link:_break.html[+break+] (S)
@@ -126,7 +126,7 @@ Regular built-ins are not marked.
 - link:_export.html[+export+] (S)
 - link:_local.html[+local+] (L)
 - link:_readonly.html[+readonly+] (S)
-- link:_array.html[+array+]
+- link:_array.html[+array+] (X)
 - link:_set.html[+set+] (S)
 - link:_shift.html[+shift+] (S)
 - link:_read.html[+read+] (M)

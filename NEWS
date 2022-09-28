@@ -16,6 +16,13 @@ Yash 2.54 (Unreleased)
      "semi-special" built-ins are now categorized in either of the new
      categories "mandatory" and "elective". The "command" and "type"
      built-ins now report the new categories of such built-ins.
+  =  The shell now requires a corresponding external executable to
+     exist in $PATH when running a built-in that works like a standard
+     external utility even when the POSIXly-correct mode is inactive.
+     Such built-ins are now categorized as "substitutive" built-ins.
+  =  The "array" built-in is now completely ignored in the POSIXly-
+     correct mode. The built-in, formerly a regular built-in, is now
+     categorized as an "extension" built-in.
 
 ----------------------------------------------------------------------
 Yash 2.53 (2022-08-23)

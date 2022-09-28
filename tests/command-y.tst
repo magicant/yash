@@ -118,12 +118,24 @@ __OUT__
 )
 
 (
+if ! testee -c 'command -bv array' >/dev/null; then
+    skip="true"
+fi
+
+test_oE -e 0 'describing extension built-in (-V)'
+command -V array
+__IN__
+array: an extension built-in
+__OUT__
+)
+
+(
 if ! testee -c 'command -bv echo' >/dev/null; then
     skip="true"
 fi
 
-test_OE 'describing regular built-in (-V)'
-command -V echo | grep -v "^echo: a regular built-in "
+test_OE 'describing substitutive built-in (-V)'
+command -V echo | grep -v "^echo: a substitutive built-in "
 __IN__
 )
 

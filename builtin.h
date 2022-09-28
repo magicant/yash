@@ -26,10 +26,11 @@ typedef int main_T(int argc, void **argv)
     __attribute__((nonnull));
 
 typedef enum builtintype_T {
-    BI_SPECIAL,   // built-ins defined in POSIX XCU 2.14
-    BI_MANDATORY, // built-ins listed in POSIX XCU 1.6
-    BI_ELECTIVE,  // built-ins listed in POSIX XCU 2.9.1
-    BI_REGULAR,   // built-ins that substitute external utilities
+    BI_SPECIAL,      // built-ins defined in POSIX XCU 2.14
+    BI_MANDATORY,    // built-ins listed in POSIX XCU 1.6
+    BI_ELECTIVE,     // built-ins listed in POSIX XCU 2.9.1
+    BI_EXTENSION,    // built-ins not mentioned in POSIX
+    BI_SUBSTITUTIVE, // built-ins that substitute external utilities
 } builtintype_T;
 
 typedef struct builtin_T {

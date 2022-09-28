@@ -137,9 +137,9 @@ name using the following algorithm:
   function is determined as the executed command.
 . If the command name is a link:builtin.html#types[mandatory or elective
   built-in], the built-in is determined as the executed command.
-. If the command name is a link:builtin.html#types[regular built-in], the
-  built-in is determined as the executed command unless the shell is in the
-  link:posix.html[POSIXly-correct mode].
+. If the command name is an link:builtin.html#types[extension built-in] and
+  the shell is not in the link:posix.html[POSIXly-correct mode], the built-in
+  is determined as the executed command.
 . The shell searches the PATH for a executed command:
 +
 --
@@ -152,8 +152,8 @@ any directory directly contains an executable regular file whose name is equal
 to the command name.
 If such a file is found: 
 
-- If the command name is the name of a built-in, the built-in is determined as
-  the executed command.
+- If the command name is the name of a link:builtin.html#types[substitutive
+  built-in], the built-in is determined as the executed command.
 - Otherwise, the file is determined as the executed command.
   (The file will be executed as an external command.)
 

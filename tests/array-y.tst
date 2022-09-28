@@ -382,4 +382,25 @@ __ERR__
 #'
 #`
 
+test_oE -e 0 'array built-in is unavailable in POSIX mode: w/ external' --posix
+mkdir cmdtmp
+cd cmdtmp
+echo echo external script executed > array
+chmod a+x array
+PATH=$PWD:$PATH
+array --help
+__IN__
+external script executed
+__OUT__
+
+test_Oe -e 127 'array built-in is unavailable in POSIX mode: w/o external' \
+    --posix
+PATH=
+eval 'array --help'
+__IN__
+eval: no such command `array'
+__ERR__
+#'
+#`
+
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:

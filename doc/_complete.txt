@@ -83,7 +83,7 @@ link:_bindkey.html[+bindkey+ built-in] accepts.
 +-b+::
 +--builtin-command+::
 link:builtin.html[Built-in commands].
-(same as +--special-builtin --mandatory-builtin --elective-builtin --regular-builtin+)
+(same as +--special-builtin --mandatory-builtin --elective-builtin --extension-builtin --substitutive-builtin+)
 
 +-c+::
 +--command+::
@@ -102,6 +102,9 @@ link:builtin.html#types[Elective built-in commands].
 
 +--executable-file+::
 Executable regular files.
+
++--extension-builtin+::
+link:builtin.html#types[Extension built-in commands].
 
 +--external-command+::
 External commands.
@@ -142,7 +145,7 @@ link:builtin.html#types[Mandatory built-in commands].
 Normal link:syntax.html#aliases[aliases].
 
 +--regular-builtin+::
-link:builtin.html#types[Regular built-in commands].
+Obsolete synonym for +--extension-builtin --substitutive-builtin+.
 
 +--running-job+::
 link:job.html#jobid[Job IDs] of jobs that are being executed.
@@ -161,6 +164,9 @@ link:builtin.html#types[Special built-in commands].
 
 +--stopped-job+::
 link:job.html#jobid[Job IDs] of jobs that are suspended.
+
++--substitutive-builtin+::
+link:builtin.html#types[Substitutive built-in commands].
 
 +-u+::
 +--username+::

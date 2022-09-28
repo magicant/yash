@@ -210,6 +210,7 @@ Options:
 	         --dirstack-index
 	         --elective-builtin
 	         --executable-file
+	         --extension-builtin
 	         --external-command
 	-f       --file
 	         --finished-job
@@ -233,6 +234,7 @@ Options:
 	         --signal
 	         --special-builtin
 	         --stopped-job
+	         --substitutive-builtin
 	-S ...   --suffix=...
 	-u       --username
 	-v       --variable

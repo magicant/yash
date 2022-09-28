@@ -60,7 +60,7 @@ link:_bindkey.html[Bindkey コマンド]で利用可能な{zwsp}link:lineedit.ht
 
 +-b+::
 +--builtin-command+::
-link:builtin.html[組込みコマンド] (+--special-builtin --mandatory-builtin --elective-builtin --regular-builtin+ に同じ)
+link:builtin.html[組込みコマンド] (+--special-builtin --mandatory-builtin --elective-builtin --extension-builtin --substitutive-builtin+ に同じ)
 
 +-c+::
 +--command+::
@@ -78,6 +78,9 @@ link:builtin.html#types[任意組込みコマンド]
 
 +--executable-file+::
 実行可能ファイル
+
++--extension-builtin+::
+link:builtin.html#types[拡張組込みコマンド]
 
 +--external-command+::
 外部コマンド
@@ -118,7 +121,8 @@ link:builtin.html#types[必須組込みコマンド]
 通常の (グローバルでない) link:syntax.html#aliases[エイリアス]
 
 +--regular-builtin+::
-通常の{zwsp}link:builtin.html[組込みコマンド]
+後方互換性のために残されている古いオプション。
++--extension-builtin --substitutive-builtin+ に同じ。
 
 +--running-job+::
 実行中のジョブの{zwsp}link:job.html#jobid[ジョブ ID]
@@ -138,6 +142,9 @@ link:builtin.html#types[必須組込みコマンド]
 
 +--stopped-job+::
 停止中のジョブの{zwsp}link:job.html#jobid[ジョブ ID]
+
++--substitutive-builtin+::
+link:builtin.html#types[代替組込みコマンド]
 
 +-u+::
 +--username+::

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.54\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
-"POT-Creation-Date: 2022-09-26 14:34+0900\n"
-"PO-Revision-Date: 2022-09-26 14:38+0900\n"
+"POT-Creation-Date: 2022-09-27 00:48+0900\n"
+"PO-Revision-Date: 2022-09-27 23:31+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -119,12 +119,12 @@ msgstr "数式展開:「%ls」は有効な数値ではありません"
 msgid "arithmetic: `%lc' is not a valid number or operator"
 msgstr "数式展開:「%lc」は有効な数値や演算子ではありません"
 
-#: builtin.c:249
+#: builtin.c:252
 #, c-format
 msgid "the -%lc option cannot be used with the -%lc option"
 msgstr "-%lc オプションは -%lc オプションとは一緒に使えません"
 
-#: builtin.c:275
+#: builtin.c:278
 #, c-format
 msgid "this command requires an operand"
 msgid_plural "this command requires %zu operands"
@@ -132,27 +132,27 @@ msgstr[0] "オペランドが足りません (%zu 個必要)"
 
 #. TRANSLATORS: This message is printed when a command that takes no
 #. * operand was invoked with some operands.
-#: builtin.c:288
+#: builtin.c:291
 msgid "no operand is expected"
 msgstr "このコマンドはオペランドを受け付けません"
 
 #. TRANSLATORS: This message is printed when a command was invoked with
 #. * the wrong number of operands.
-#: builtin.c:292
+#: builtin.c:295
 msgid "too many operands are specified"
 msgstr "オペランドの数が多すぎます"
 
-#: builtin.c:344 yash.c:391
+#: builtin.c:347 yash.c:391
 msgid "Try `man yash' for details.\n"
 msgstr "詳しくは: man yash\n"
 
-#: builtin.c:359
+#: builtin.c:362
 #, c-format
 msgid "no such built-in `%ls'"
 msgstr "「%ls」というような組込みコマンドはありません"
 
 #. TRANSLATORS: This is printed before syntax info of a built-in.
-#: builtin.c:367
+#: builtin.c:370
 #, c-format
 msgid ""
 "Syntax:\n"
@@ -162,39 +162,39 @@ msgstr ""
 "%s\n"
 
 #. TRANSLATORS: This text is printed before a list of options.
-#: builtin.c:386 builtin.c:406
+#: builtin.c:389 builtin.c:409
 msgid "Options:\n"
 msgstr "オプション:\n"
 
-#: builtin.c:546
+#: builtin.c:550
 msgid "do nothing"
 msgstr "何もしない"
 
-#: builtin.c:549
+#: builtin.c:553
 msgid "\t: [...]\n"
 msgstr "\t: [...]\n"
 
-#: builtin.c:553
+#: builtin.c:557
 msgid "do nothing successfully"
 msgstr "何もせず成功を返す"
 
-#: builtin.c:556
+#: builtin.c:560
 msgid "\ttrue\n"
 msgstr "\ttrue\n"
 
-#: builtin.c:560
+#: builtin.c:564
 msgid "do nothing unsuccessfully"
 msgstr "何もせず失敗を返す"
 
-#: builtin.c:563
+#: builtin.c:567
 msgid "\tfalse\n"
 msgstr "\tfalse\n"
 
-#: builtin.c:588
+#: builtin.c:592
 msgid "print usage of built-in commands"
 msgstr "組込みコマンドの使い方を表示する"
 
-#: builtin.c:591
+#: builtin.c:595
 msgid "\thelp [built-in...]\n"
 msgstr "\thelp [組込みコマンド...]\n"
 
@@ -235,7 +235,7 @@ msgid "`%ls' is not a valid number"
 msgstr "「%ls」は有効な数値ではありません"
 
 #: builtins/printf.c:694 builtins/test.c:585 builtins/test.c:591
-#: builtins/ulimit.c:229 exec.c:1863 exec.c:1936 history.c:1721 sig.c:1429
+#: builtins/ulimit.c:229 exec.c:1871 exec.c:1944 history.c:1721 sig.c:1429
 #: variable.c:2137 variable.c:2197 variable.c:2236 variable.c:2420 yash.c:631
 #, c-format
 msgid "`%ls' is not a valid integer"
@@ -267,8 +267,8 @@ msgstr "「%ls」は有効な演算子ではありません"
 msgid "`%ls' is not a unary operator"
 msgstr "「%ls」は単項演算子ではありません"
 
-#: builtins/test.c:188 builtins/test.c:656 builtins/test.c:664 exec.c:2072
-#: exec.c:2216 exec.c:2225 history.c:1499 lineedit/keymap.c:476 path.c:1274
+#: builtins/test.c:188 builtins/test.c:656 builtins/test.c:664 exec.c:2080
+#: exec.c:2224 exec.c:2233 history.c:1499 lineedit/keymap.c:476 path.c:1274
 #: path.c:1341 strbuf.c:566 strbuf.c:589
 msgid "unexpected error"
 msgstr "想定外のエラーです"
@@ -389,77 +389,77 @@ msgstr ""
 "\tulimit -a [-H|-S]\n"
 "\tulimit [-H|-S] [-efilnqrstuvx] [制限]\n"
 
-#: exec.c:612
+#: exec.c:613
 msgid "cannot open a pipe"
 msgstr "パイプを開けません"
 
-#: exec.c:1014 exec.c:2240 exec.c:2453
+#: exec.c:1021 exec.c:2248 exec.c:2461
 #, c-format
 msgid "no such command `%s'"
 msgstr "「%s」というようなコマンドはありません"
 
-#: exec.c:1028
+#: exec.c:1035
 #, c-format
 msgid "%ls: non-portable built-in is not supported in the POSIXly-correct mode"
 msgstr "%ls: POSIX 準拠モードでは使えません"
 
-#: exec.c:1083
+#: exec.c:1091
 #, c-format
 msgid "cannot execute command `%s'"
 msgstr "コマンド「%s」を実行できません"
 
-#: exec.c:1084
+#: exec.c:1092
 #, c-format
 msgid "cannot execute command `%s' (%s)"
 msgstr "コマンド「%s」(%s) を実行できません"
 
-#: exec.c:1142
+#: exec.c:1150
 #, c-format
 msgid "cannot invoke a new shell to execute script `%s'"
 msgstr "スクリプト「%s」を実行するための新しいシェルを起動できません"
 
-#: exec.c:1492
+#: exec.c:1500
 msgid "cannot make a child process"
 msgstr "子プロセスを生成できません"
 
-#: exec.c:1560 exec.c:1582
+#: exec.c:1568 exec.c:1590
 msgid "cannot open a pipe for the command substitution"
 msgstr "コマンド置換のためのパイプを開けません"
 
-#: exec.c:1619
+#: exec.c:1627
 msgid "command substitution"
 msgstr "コマンド置換"
 
-#: exec.c:1873
+#: exec.c:1881
 msgid "cannot be used in the interactive mode"
 msgstr "対話モードでは使えません"
 
-#: exec.c:1883
+#: exec.c:1891
 msgid "return from a function or script"
 msgstr "関数やスクリプトから抜ける"
 
-#: exec.c:1886
+#: exec.c:1894
 msgid "\treturn [-n] [exit_status]\n"
 msgstr "\treturn [-n] [終了ステータス]\n"
 
-#: exec.c:1918
+#: exec.c:1926
 msgid "not in an iteration"
 msgstr "反復実行の途中ではありません"
 
-#: exec.c:1939
+#: exec.c:1947
 #, c-format
 msgid "%u is not a positive integer"
 msgstr "%u は正の整数ではありません"
 
-#: exec.c:1949
+#: exec.c:1957
 msgid "not in a loop"
 msgstr "ループの途中ではありません"
 
-#: exec.c:1968
+#: exec.c:1976
 msgid "exit a loop"
 msgstr "ループを抜ける"
 
-#: exec.c:1971
+#: exec.c:1979
 msgid ""
 "\tbreak [count]\n"
 "\tbreak -i\n"
@@ -467,11 +467,11 @@ msgstr ""
 "\tbreak [深さ]\n"
 "\tbreak -i\n"
 
-#: exec.c:1976
+#: exec.c:1984
 msgid "continue a loop"
 msgstr "ループの先頭に戻る"
 
-#: exec.c:1979
+#: exec.c:1987
 msgid ""
 "\tcontinue [count]\n"
 "\tcontinue -i\n"
@@ -479,104 +479,109 @@ msgstr ""
 "\tcontinue [深さ]\n"
 "\tcontinue -i\n"
 
-#: exec.c:2019
+#: exec.c:2027
 msgid "evaluate arguments as a command"
 msgstr "引数をコマンドとして実行する"
 
-#: exec.c:2022
+#: exec.c:2030
 msgid "\teval [-i] [argument...]\n"
 msgstr "\teval [-i] [引数...]\n"
 
-#: exec.c:2081
+#: exec.c:2089
 #, c-format
 msgid "file `%s' was not found in $YASH_LOADPATH"
 msgstr "ファイル「%s」は $YASH_LOADPATH 内に見つかりませんでした"
 
-#: exec.c:2091
+#: exec.c:2099
 #, c-format
 msgid "file `%s' was not found in $PATH"
 msgstr "ファイル「%s」は $PATH 内に見つかりませんでした"
 
-#: exec.c:2103 redir.c:276 yash.c:206
+#: exec.c:2111 redir.c:276 yash.c:206
 #, c-format
 msgid "cannot open file `%s'"
 msgstr "ファイル「%s」を開けません"
 
-#: exec.c:2142
+#: exec.c:2150
 msgid "read a file and execute commands"
 msgstr "ファイルをスクリプトとして実行する"
 
-#: exec.c:2145
+#: exec.c:2153
 msgid "\t. [-AL] file [argument...]\n"
 msgstr "\t. [-AL] ファイル [引数...]\n"
 
-#: exec.c:2193 yash.c:618
+#: exec.c:2201 yash.c:618
 #, c-format
 msgid "You have a stopped job!"
 msgid_plural "You have %zu stopped jobs!"
 msgstr[0] "停止中のジョブが %zu 個あります!"
 
-#: exec.c:2197
+#: exec.c:2205
 msgid "  Use the -f option to exec anyway.\n"
 msgstr "  それでも exec するには -f オプションを付けてください。\n"
 
-#: exec.c:2287
+#: exec.c:2295
 msgid "replace the shell process with an external command"
 msgstr "シェルのプロセスを外部コマンドに変える"
 
-#: exec.c:2290
+#: exec.c:2298
 msgid "\texec [-cf] [-a name] [command [argument...]]\n"
 msgstr "\texec [-cf] [-a 名前] [コマンド [引数...]]\n"
 
-#: exec.c:2350
+#: exec.c:2358
 msgid "the -a or -k option must be used with the -v option"
 msgstr "-a および -k オプションは -v オプションと一緒にしか使えません"
 
-#: exec.c:2430
+#: exec.c:2438
 #, c-format
 msgid "%ls: a shell keyword\n"
 msgstr "%ls: シェルの予約語\n"
 
-#: exec.c:2459
+#: exec.c:2467
 #, c-format
 msgid "%s: a special built-in\n"
 msgstr "%s: 特殊組込みコマンド\n"
 
-#: exec.c:2463
+#: exec.c:2471
 #, c-format
 msgid "%s: a mandatory built-in\n"
 msgstr "%s: 必須組込みコマンド\n"
 
-#: exec.c:2467
+#: exec.c:2475
 #, c-format
 msgid "%s: an elective built-in\n"
 msgstr "%s: 任意組込みコマンド\n"
 
-#: exec.c:2478
-#, c-format
-msgid "%s: a regular built-in (not found in $PATH)\n"
-msgstr "%s: 通常の組込みコマンド ($PATH 内に存在せず)\n"
-
 #: exec.c:2479
 #, c-format
-msgid "%s: a regular built-in at %s\n"
-msgstr "%s: 通常の組込みコマンド (%s)\n"
+msgid "%s: an extension built-in\n"
+msgstr "%s: 拡張組込みコマンド\n"
 
-#: exec.c:2486
+#: exec.c:2490
+#, c-format
+msgid "%s: a substitutive built-in (not found in $PATH)\n"
+msgstr "%s: 代替組込みコマンド ($PATH 内に存在せず)\n"
+
+#: exec.c:2491
+#, c-format
+msgid "%s: a substitutive built-in for %s\n"
+msgstr "%s: 代替組込みコマンド (%s)\n"
+
+#: exec.c:2498
 #, c-format
 msgid "%s: a function\n"
 msgstr "%s: 関数\n"
 
-#: exec.c:2536
+#: exec.c:2548
 #, c-format
 msgid "%s: an external command at %s\n"
 msgstr "%s: 外部コマンド (%s)\n"
 
-#: exec.c:2544
+#: exec.c:2556
 msgid "execute or identify a command"
 msgstr "コマンドを実行または特定する"
 
-#: exec.c:2547
+#: exec.c:2559
 msgid ""
 "\tcommand [-befp] command [argument...]\n"
 "\tcommand -v|-V [-abefkp] command...\n"
@@ -584,23 +589,23 @@ msgstr ""
 "\tcommand [-befp] コマンド [引数...]\n"
 "\tcommand -v|-V [-abefkp] コマンド...\n"
 
-#: exec.c:2552
+#: exec.c:2564
 msgid "identify a command"
 msgstr "コマンドを特定する"
 
-#: exec.c:2555
+#: exec.c:2567
 msgid "\ttype command...\n"
 msgstr "\ttype コマンド...\n"
 
-#: exec.c:2593
+#: exec.c:2605
 msgid "cannot get the time data"
 msgstr "時間情報を取得できません"
 
-#: exec.c:2610
+#: exec.c:2622
 msgid "print CPU time usage"
 msgstr "消費 CPU 時間を表示する"
 
-#: exec.c:2613
+#: exec.c:2625
 msgid "\ttimes\n"
 msgstr "\ttimes\n"
 
@@ -890,25 +895,25 @@ msgstr ""
 "\tdisown [ジョブ...]\n"
 "\tdisown -a\n"
 
-#: lineedit/complete.c:1522
+#: lineedit/complete.c:1535
 #, c-format
 msgid "more than one -%lc option is specified"
 msgstr "-%lc が二回以上指定されています"
 
-#: lineedit/complete.c:1534
+#: lineedit/complete.c:1547
 msgid "the complete built-in can be used during command line completion only"
 msgstr "complete 組込みコマンドはコマンドライン補完の最中にしか使えません"
 
-#: lineedit/complete.c:1547
+#: lineedit/complete.c:1560
 #, c-format
 msgid "the specified prefix `%ls' does not match the target word `%ls'"
 msgstr "指定された接頭辞「%ls」は補完対象「%ls」に適合しません"
 
-#: lineedit/complete.c:1595
+#: lineedit/complete.c:1608
 msgid "generate completion candidates"
 msgstr "補完候補を生成する"
 
-#: lineedit/complete.c:1598
+#: lineedit/complete.c:1611
 msgid ""
 "\tcomplete [-A pattern] [-R pattern] [-T] [-P prefix] [-S suffix] \\\n"
 "\t         [-abcdfghjkuv] [[-O] [-D description] words...]\n"

@@ -130,7 +130,7 @@ void init_builtin(void)
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
 	    readonly_syntax, typeset_options);
 #if YASH_ENABLE_ARRAY
-    DEFBUILTIN("array", array_builtin, BI_REGULAR, array_help, array_syntax,
+    DEFBUILTIN("array", array_builtin, BI_EXTENSION, array_help, array_syntax,
 	    array_options);
 #endif
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help, unset_syntax,
@@ -209,15 +209,18 @@ void init_builtin(void)
 
     /* defined in "builtins/printf.c" */
 #if YASH_ENABLE_PRINTF
-    DEFBUILTIN("echo", echo_builtin, BI_REGULAR, echo_help, echo_syntax, NULL);
-    DEFBUILTIN("printf", printf_builtin, BI_REGULAR, printf_help, printf_syntax,
-	    help_option);
+    DEFBUILTIN("echo", echo_builtin, BI_SUBSTITUTIVE, echo_help, echo_syntax,
+	    NULL);
+    DEFBUILTIN("printf", printf_builtin, BI_SUBSTITUTIVE, printf_help,
+	    printf_syntax, help_option);
 #endif
 
     /* defined in "builtins/test.c" */
 #if YASH_ENABLE_TEST
-    DEFBUILTIN("test", test_builtin, BI_REGULAR, test_help, test_syntax, NULL);
-    DEFBUILTIN("[", test_builtin, BI_REGULAR, test_help, test_syntax, NULL);
+    DEFBUILTIN("test", test_builtin, BI_SUBSTITUTIVE, test_help, test_syntax,
+	    NULL);
+    DEFBUILTIN("[", test_builtin, BI_SUBSTITUTIVE, test_help, test_syntax,
+	    NULL);
 #endif
 
     /* defined in "lineedit/complete.c" */
@@ -508,11 +511,12 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
     while ((kv = ht_next(&builtins, &i)).key != NULL) {
 	le_candgentype_T type;
 	switch (((const builtin_T *) kv.value)->type) {
-	    case BI_SPECIAL:      type = CGT_SBUILTIN;  break;
-	    case BI_MANDATORY:    type = CGT_MBUILTIN;  break;
-	    case BI_ELECTIVE:     type = CGT_LBUILTIN;  break;
-	    case BI_REGULAR:      type = CGT_RBUILTIN;  break;
-	    default:              assert(false);
+	    case BI_SPECIAL:       type = CGT_SBUILTIN;  break;
+	    case BI_MANDATORY:     type = CGT_MBUILTIN;  break;
+	    case BI_ELECTIVE:      type = CGT_LBUILTIN;  break;
+	    case BI_EXTENSION:     type = CGT_XBUILTIN;  break;
+	    case BI_SUBSTITUTIVE:  type = CGT_UBUILTIN;  break;
+	    default:               assert(false);
 	}
 	if (!(compopt->type & type))
 	    continue;

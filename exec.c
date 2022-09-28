@@ -97,7 +97,8 @@ typedef enum cmdtype_T {
     CT_SPECIALBUILTIN,
     CT_MANDATORYBUILTIN,
     CT_ELECTIVEBUILTIN,
-    CT_REGULARBUILTIN,
+    CT_EXTENSIONBUILTIN,
+    CT_SUBSTITUTIVEBUILTIN,
     CT_FUNCTION,
 } cmdtype_T;
 
@@ -869,8 +870,8 @@ void print_xtrace(void *const *argv)
  * `name' and `wname' must contain the same string value.
  * If the SCT_ALL flag is not set:
  *   *  a function whose name contains a slash cannot be found
- *   *  a regular built-in cannot be found in the POSIXly correct mode if the
- *      SCT_EXTERNAL flag is not set either.
+ *   *  a substitutive built-in cannot be found if the SCT_EXTERNAL flag is not
+ *      set either.
  * If the SCT_EXTERNAL flag is set, the SCT_CHECK flag is not set, and `name'
  * contains a slash, the external command of the given `name' is always found.
  */
@@ -910,11 +911,18 @@ void search_command(
 		ci->type = CT_ELECTIVEBUILTIN;
 		ci->ci_builtin = bi->body;
 		return;
+	    case BI_EXTENSION:
+		if (posixly_correct) {
+		    bi = NULL;
+		    break;
+		} else {
+		    ci->type = CT_EXTENSIONBUILTIN;
+		    ci->ci_builtin = bi->body;
+		    return;
+		}
 	    case BI_SPECIAL:
 		assert(false);
-	    case BI_REGULAR:
-		if (!posixly_correct)
-		    goto regular_builtin;
+	    case BI_SUBSTITUTIVE:
 		break;
 	}
     }
@@ -936,9 +944,8 @@ void search_command(
 		cmdpath = get_command_path(name, false);
 	    if (cmdpath != NULL) {
 		if (bi != NULL) {
-regular_builtin:
-		    assert(bi->type == BI_REGULAR);
-		    ci->type = CT_REGULARBUILTIN;
+		    assert(bi->type == BI_SUBSTITUTIVE);
+		    ci->type = CT_SUBSTITUTIVEBUILTIN;
 		    ci->ci_builtin = bi->body;
 		} else {
 		    ci->type = CT_EXTERNALPROGRAM;
@@ -1034,7 +1041,8 @@ wchar_t **invoke_simple_command(
 	/* falls thru! */
     case CT_SPECIALBUILTIN:
     case CT_MANDATORYBUILTIN:
-    case CT_REGULARBUILTIN:
+    case CT_EXTENSIONBUILTIN:
+    case CT_SUBSTITUTIVEBUILTIN:
 	yash_error_message_count = 0;
 
 	const wchar_t *savecbn = current_builtin_name;
@@ -2467,7 +2475,11 @@ bool print_command_info(
 	    msgfmt = humanfriendly ? gt("%s: an elective built-in\n") : "%s\n";
 	    xprintf(msgfmt, name);
 	    break;
-	case CT_REGULARBUILTIN:;
+	case CT_EXTENSIONBUILTIN:
+	    msgfmt = humanfriendly ? gt("%s: an extension built-in\n") : "%s\n";
+	    xprintf(msgfmt, name);
+	    break;
+	case CT_SUBSTITUTIVEBUILTIN:;
 	    const char *cmdpath;
 	    if (type & SCT_STDPATH)
 		cmdpath = get_command_path_default(name);
@@ -2475,8 +2487,8 @@ bool print_command_info(
 		cmdpath = get_command_path(name, false);
 	    if (humanfriendly) {
 		msgfmt = (cmdpath == NULL)
-		    ? Ngt("%s: a regular built-in (not found in $PATH)\n")
-		    : Ngt("%s: a regular built-in at %s\n");
+		    ? Ngt("%s: a substitutive built-in (not found in $PATH)\n")
+		    : Ngt("%s: a substitutive built-in for %s\n");
 		xprintf(gt(msgfmt), name, cmdpath);
 	    } else {
 		xprintf("%s\n", (cmdpath == NULL) ? name : cmdpath);

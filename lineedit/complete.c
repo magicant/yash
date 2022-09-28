@@ -1376,6 +1376,7 @@ const struct xgetopt_T complete_options[] = {
     { L'-', L"dirstack-index",       OPTARG_NONE,     true,  NULL, },
     { L'-', L"elective-builtin",     OPTARG_NONE,     true,  NULL, },
     { L'-', L"executable-file",      OPTARG_NONE,     true,  NULL, },
+    { L'-', L"extension-builtin",    OPTARG_NONE,     true,  NULL, },
     { L'-', L"external-command",     OPTARG_NONE,     true,  NULL, },
     { L'f', L"file",                 OPTARG_NONE,     true,  NULL, },
     { L'-', L"finished-job",         OPTARG_NONE,     true,  NULL, },
@@ -1401,6 +1402,7 @@ const struct xgetopt_T complete_options[] = {
     { L'-', L"signal",               OPTARG_NONE,     true,  NULL, },
     { L'-', L"special-builtin",      OPTARG_NONE,     true,  NULL, },
     { L'-', L"stopped-job",          OPTARG_NONE,     true,  NULL, },
+    { L'-', L"substitutive-builtin", OPTARG_NONE,     true,  NULL, },
     { L'S', L"suffix",               OPTARG_REQUIRED, true,  NULL, },
     { L'u', L"username",             OPTARG_NONE,     true,  NULL, },
     { L'v', L"variable",             OPTARG_NONE,     true,  NULL, },
@@ -1473,7 +1475,15 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			    case L'x':
 				switch (opt->longopt[2]) {
 				case L'e':  cgtype |= CGT_EXECUTABLE;  break;
-				case L't':  cgtype |= CGT_EXTCOMMAND;  break;
+				case L't':
+				    assert(opt->longopt[3] == L'e');
+				    switch (opt->longopt[4]) {
+					case L'n':
+					    cgtype |= CGT_XBUILTIN;    break;
+					case L'r':
+					    cgtype |= CGT_EXTCOMMAND;  break;
+				    }
+				    break;
 				default:    assert(false);
 				}
 				break;
@@ -1497,7 +1507,9 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 		    case L'n':  cgtype |= CGT_NALIAS;    break;
 		    case L'r':
 			switch (opt->longopt[1]) {
-			    case L'e':  cgtype |= CGT_RBUILTIN;  break;
+			    case L'e':
+				cgtype |= CGT_XBUILTIN | CGT_UBUILTIN;
+				break;
 			    case L'u':  cgtype |= CGT_RUNNING;   break;
 			    default:    assert(false);
 			}
@@ -1511,6 +1523,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 			    case L'i':  cgtype |= CGT_SIGNAL;    break;
 			    case L'p':  cgtype |= CGT_SBUILTIN;  break;
 			    case L't':  cgtype |= CGT_STOPPED;   break;
+			    case L'u':  cgtype |= CGT_UBUILTIN;  break;
 			    default:    assert(false);
 			}
 			break;

@@ -35,10 +35,15 @@ While mandatory built-ins are always available, you cannot use elective
 built-ins in the link:posix.html[POSIXly-correct mode] because POSIX only
 reserves their names without defining their behavior.
 
-dfn:[Regular built-in commands] are less important built-in commands including
-commands that can be implemented as external commands or are not listed in
-POSIX. In the POSIXly-correct mode, a regular built-in is executed only when
-a corresponding external command is link:exec.html#search[found in PATH].
+An dfn:[extension built-in command] is a built-in that is not mentioned in
+POSIX. Like an elective built-in, it can be executed without an external
+command when the link:posix.html[POSIXly-correct mode] is off. However, when
+the POSIXly-correct mode is on, the shell works as if the built-in does not
+exist.
+
+dfn:[Substitutive built-in commands] work on behalf of external commands
+link:exec.html#search[found in PATH]. These built-ins improve execution speed
+by bypassing invocation overheads for external programs.
 
 [[argsyntax]]
 == Syntax of command arguments

@@ -63,6 +63,7 @@ dfn:[Array 組込みコマンド]は{zwsp}link:params.html#arrays[配列]の表�
 == 補足
 
 POSIX には array コマンドに関する規定はありません。
+Yash ではこれを{zwsp}link:builtin.html#types[拡張組込みコマンド]として実装しています。
 
 +array {{配列名}} [{{値}}...]+ の形式の array コマンドは変数代入を用いて +{{配列名}}=({{値}}...)+ と書くこともできます。
 
