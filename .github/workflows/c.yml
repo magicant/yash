@@ -10,7 +10,9 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: preparation
-      run: sudo apt install asciidoc gettext libncurses-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install asciidoc gettext libncurses-dev
     - name: configure
       run: ./configure
     - name: make
