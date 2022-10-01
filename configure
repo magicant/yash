@@ -395,7 +395,7 @@ esac
 # define options for debugging
 if ${debug}
 then
-    cc="${CC-gcc -std=c99}"
+    cc="${CC-gcc}"
     cflags="${CFLAGS--pedantic -MMD -Wall -Wextra -O1 -fno-inline -ggdb}"
 else
     defconfigh "NDEBUG"
@@ -413,12 +413,12 @@ then
     checked "yes"
 elif
     [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-	cc='gcc -std=c99'
+	cc='gcc'
 	trymake && tryexec
     )
 then
-    checked "yes (using gcc -std=c99)"
-    cc='gcc -std=c99'
+    checked "yes (using gcc)"
+    cc='gcc'
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
@@ -445,6 +445,36 @@ END
 	cflags=${savecflags}
     fi
     unset savecflags
+fi
+
+# find compiler option for C99 support
+checking 'additional option to compile C99 code'
+cat >"${tempsrc}" <<END
+int main(int argc, char **argv) {
+if (argc == 0) return 0;
+int vla[argc];
+vla[0] = 42;
+// one-line comment
+struct s { int v; } i = { .v = argv[0][0] };
+return vla[0] + i.v;
+}
+END
+if
+    trycompile
+then
+    checked "none needed"
+elif
+    [ x"${CFLAGS+set}" != x"set" ] &&
+    cflags="${cflags} -std=c99" &&
+    trycompile
+then
+    checked "with -std=c99"
+else
+    checked "failed"
+    printf 'Compiler "%s" does not seem to support C99.\n' "${CC-${cc}}" >&2
+    printf 'The compiler was tested with these options: %s\n' \
+	"${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
+    fail
 fi
 
 # check if make supports include statements
