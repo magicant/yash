@@ -285,8 +285,22 @@ signal_action_test_combo() {
 		# For +m, handling of TTIN, TTOU and TSTP is POSIXly unspecified.
 		continue
 	    fi
+	    # Skip combinations that would freeze the test.
+	    case $a in
+		(shell)
+		    continue ;;
+		(child)
+		    if [ $b != main ]; then continue; fi ;;
+		(exec)
+		    if [ $b != subshell ]; then continue; fi ;;
+	    esac
+	    if [ $a = shell ]; then
+		continue
+	    fi
 	    if [ $a = child ] && [ $b != main ]; then
-		# This combination would freeze the test.
+		continue
+	    fi
+	    if [ $a = exec ] && [ $b != subshell ]; then
 		continue
 	    fi
 	esac
