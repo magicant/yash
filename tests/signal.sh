@@ -262,6 +262,11 @@ __IN__
 signal_action_test_combo() {
     n=${1}000 d=$2 e=$3 f=$4
     shift 4
+
+    # Enable job-control to make sure every job-controlling testee starts in
+    # the foreground. (See #45760)
+    set $e
+
     for a in shell child exec; do
     for b in main subshell cmdsub async; do
     for g in keep clear ignore command; do
@@ -326,6 +331,8 @@ signal_action_test_combo() {
     done
     done
     done
+
+    set +m
 }
 
 # vim: set ft=sh ts=8 sts=4 sw=4 noet:
