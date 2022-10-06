@@ -24,7 +24,7 @@
 
 
 struct promptset_T {
-    wchar_t *main, *right, *styler;
+    wchar_t *main, *right, *styler, *predict;
 };
 
 #define PROMPT_RESET L"\\fD"
@@ -42,6 +42,7 @@ void free_prompt(struct promptset_T prompt)
     free(prompt.main);
     free(prompt.right);
     free(prompt.styler);
+    free(prompt.predict);
 }
 
 
