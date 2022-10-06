@@ -1,5 +1,7 @@
 # comment-p.tst: test of comments for any POSIX-compliant shell
 
+posix="true"
+
 test_OE 'comment without command'
 #
 
