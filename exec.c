@@ -743,7 +743,6 @@ bool exec_simple_command_with_words(
     if (!open_redirections(c->c_redirs, &savefd)) {
 	/* On redirection error, the command is not executed. */
 	laststatus = Exit_REDIRERR;
-	apply_errexit_errreturn(NULL);
 	if (posixly_correct && !is_interactive_now && is_special_builtin(argv0))
 	    finally_exit = true;
 	goto done;
