@@ -8,6 +8,13 @@ echo 'in*' >'in*'
 
 echo PS1= >yashrc
 
+# Many existing shells return an error in this case, although this does not seem
+# strictly POSIX-conforming.
+test_O -d -e n 'overwrite redirection, -C, symlink to non-existing file' -C
+ln -s _no_such_file_ badsymlink
+echo foo >badsymlink
+__IN__
+
 test_oE -e 0 \
     'pathname expansion in redirection operand (non-POSIX, interactive), success'\
     -i +m --rcfile=yashrc

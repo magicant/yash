@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -484,7 +484,6 @@ int open_file(const char *path, int oflag)
     const mode_t mode =
 	S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
-start:;
     int fd = open(path, oflag, mode);
 
     // Support the no-clobber mode.
@@ -492,10 +491,15 @@ start:;
 	fd = open(path, oflag & ~(O_CREAT | O_EXCL | O_TRUNC), mode);
 	if (fd < 0) {
 	    if (errno == ENOENT) {
-		// A file existed on the first open but not on the second.
-		// Somebody must have removed it between the two opens.
-		// Start over as we might be able to create one this time.
-		goto start;
+		// There are two possibilities now: One is that a file existed
+		// on the first open call and had been removed before the
+		// second. In this case, we might be able to create another if
+		// we start over. The other is that there is a symbolic link
+		// pointing to nothing, in which case retrying would only lead
+		// to the same result. Since there is no reliable way to tell
+		// the situations apart atomically, we give up and return the
+		// initial error.
+		errno = EEXIST;
 	    }
 	} else {
 	    struct stat st;
