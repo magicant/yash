@@ -1311,6 +1311,7 @@ void exec_for(const command_T *c, bool finally_exit)
 			SCOPE_LOCAL : SCOPE_GLOBAL,
 		    false)) {
 	    laststatus = Exit_ASSGNERR;
+	    apply_errexit_errreturn(NULL);
 	    if (!is_interactive_now)
 		finally_exit = true;
 	    goto done;

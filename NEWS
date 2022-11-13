@@ -23,6 +23,8 @@ Yash 2.54 (Unreleased)
   =  The "array" built-in is now completely ignored in the POSIXly-
      correct mode. The built-in, formerly a regular built-in, is now
      categorized as an "extension" built-in.
+  *  The errexit and errreturn options now work for assignment error
+     in a for loop.
   *  The ">" redirection with the noclobber option no longer hangs
      when the operand names a symbolic link to a non-existing file.
 

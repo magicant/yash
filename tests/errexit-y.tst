@@ -24,6 +24,12 @@ for i in ${a?}; do echo not reached; done
 echo not reached
 __IN__
 
+test_O -e n 'assignment error in for word' -i +m
+readonly i=X
+for i in 1; do echo not reached; done
+echo not reached
+__IN__
+
 test_O -e n 'redirection error on subshell'
 ( :; ) <_no_such_file_
 echo not reached
