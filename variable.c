@@ -3114,6 +3114,8 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 	remove_dirstack_entry_at(var, stackindex);
     if (remove_dups)
 	remove_dirstack_dups(var);
+    if (var->v_type & VF_EXPORT)
+	update_environment(L VAR_DIRSTACK);
     return Exit_SUCCESS;
 }
 
@@ -3231,6 +3233,8 @@ int popd_builtin(int argc, void **argv)
 
     if (stackindex < var->v_valc) {
 	remove_dirstack_entry_at(var, stackindex);
+	if (var->v_type & VF_EXPORT)
+	    update_environment(L VAR_DIRSTACK);
 	return Exit_SUCCESS;
     }
 
@@ -3243,6 +3247,8 @@ int popd_builtin(int argc, void **argv)
     var->v_vals[var->v_valc] = NULL;
     result = change_directory(newpwd, true, true);
     free(newpwd);
+    if (var->v_type & VF_EXPORT)
+	update_environment(L VAR_DIRSTACK);
     return result;
 }
 

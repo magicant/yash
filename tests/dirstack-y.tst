@@ -497,6 +497,13 @@ b
 a
 __OUT__
 
+test_oE 'pushd: exported DIRSTACK' -a
+pushd .
+sh -c 'echo ${DIRSTACK:+set}'
+__IN__
+set
+__OUT__
+
 test_Oe -e n 'pushd: index out of range (+1 for 1 directory)'
 pushd +1
 __IN__
@@ -811,6 +818,24 @@ $PWD
 $PWD
 c
 a
+__OUT__
+
+test_oE 'popd: exported DIRSTACK, +0'
+pushd .
+export DIRSTACK
+popd +0 >/dev/null
+sh -c 'echo ${DIRSTACK-unset}'
+__IN__
+
+__OUT__
+
+test_oE 'popd: exported DIRSTACK, -0'
+pushd .
+export DIRSTACK
+popd -0 >/dev/null
+sh -c 'echo ${DIRSTACK-unset}'
+__IN__
+
 __OUT__
 
 # The exit status is success as long as the working directory and the stack are
