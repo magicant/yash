@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2022 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -616,13 +616,17 @@ variable_T *new_variable(const wchar_t *name, scope_T scope)
  * `value' must be a `free'able string or NULL. The caller must not modify or
  * free `value' hereafter, whether or not this function is successful.
  * If `export' is true, the variable is exported (i.e., the VF_EXPORT flag is
- * set to the variable). But this function does not reset an existing VF_EXPORT
- * flag if `export' is false.
+ * set to the variable), but this function does not reset an existing VF_EXPORT
+ * flag if `export' is false. The `shopt_allexport' option, if true, supersedes
+ * `export' unless `name' begins with an '='.
  * Returns true iff successful. On error, an error message is printed to the
  * standard error. */
 bool set_variable(
 	const wchar_t *name, wchar_t *value, scope_T scope, bool export)
 {
+    if (shopt_allexport && name[0] != '=')
+	export = true;
+
     variable_T *var = new_variable(name, scope);
     if (var == NULL) {
 	free(value);
@@ -649,13 +653,17 @@ bool set_variable(
  * `count' is the number of elements in `values'. If `count' is zero, the
  * number is counted in this function.
  * If `export' is true, the variable is exported (i.e., the VF_EXPORT flag is
- * set to the variable). But this function does not reset an existing VF_EXPORT
- * flag if `export' is false.
+ * set to the variable), but this function does not reset an existing VF_EXPORT
+ * flag if `export' is false. The `shopt_allexport' option, if true, supersedes
+ * `export' unless `name' begins with an '='.
  * Returns the set array iff successful. On error, an error message is printed
  * to the standard error and NULL is returned. */
 variable_T *set_array(const wchar_t *name, size_t count, void **values,
 	scope_T scope, bool export)
 {
+    if (shopt_allexport && name[0] != '=')
+	export = true;
+
     variable_T *var = new_variable(name, scope);
     if (var == NULL) {
 	plfree(values, free);
@@ -723,8 +731,9 @@ void set_positional_parameters(void *const *values)
  * If `temp' is true, the variables are assigned in the current environment,
  * which must be a temporary environment. Otherwise, they are assigned globally.
  * If `export' is true, the variables are exported (i.e., the VF_EXPORT flag is
- * set to the variables). But this function does not reset any existing
- * VF_EXPORT flag if `export' is false.
+ * set to the variables), but this function does not reset any existing
+ * VF_EXPORT flag if `export' is false. The `shopt_allexport' option, if true,
+ * supersedes `export'.
  * Returns true iff successful. On error, already-assigned variables are not
  * restored to the previous values. */
 bool do_assignments(const assign_T *assign, bool temp, bool export)
@@ -2658,14 +2667,13 @@ bool set_optind(unsigned long optind, unsigned long optsubind)
     wchar_t *value = malloc_wprintf(
 	    optsubind > 1 ? L"%lu:%lu" : L"%lu",
 	    optind + 1, optsubind);
-    return set_variable(L VAR_OPTIND, value, SCOPE_GLOBAL, shopt_allexport);
+    return set_variable(L VAR_OPTIND, value, SCOPE_GLOBAL, false);
 }
 
 /* Sets $OPTARG to `value'. */
 bool set_optarg(const wchar_t *value)
 {
-    return set_variable(L VAR_OPTARG, xwcsdup(value),
-	    SCOPE_GLOBAL, shopt_allexport);
+    return set_variable(L VAR_OPTARG, xwcsdup(value), SCOPE_GLOBAL, false);
 }
 
 /* Sets the specified variable to the single character `value'. */
@@ -2674,7 +2682,7 @@ bool set_variable_single_char(const wchar_t *varname, wchar_t value)
     wchar_t *v = xmallocn(2, sizeof *v);
     v[0] = value;
     v[1] = L'\0';
-    return set_variable(varname, v, SCOPE_GLOBAL, shopt_allexport);
+    return set_variable(varname, v, SCOPE_GLOBAL, false);
 }
 
 #if YASH_ENABLE_HELP
@@ -2800,7 +2808,7 @@ int read_builtin(int argc, void **argv)
 	const wchar_t *end = list.contents[2 * i + 1];
 	wchar_t *field = xwcsndup(start, end - start);
 	name = ARGV(xoptind + i);
-	set_variable(name, field, SCOPE_GLOBAL, shopt_allexport);
+	set_variable(name, field, SCOPE_GLOBAL, false);
     }
 
     /* assign last variable */
@@ -2814,7 +2822,7 @@ int read_builtin(int argc, void **argv)
 	if (2 * count < list.length)
 	    end = tail;
 	wchar_t *field = xwcsndup(start, end - start);
-	set_variable(name, field, SCOPE_GLOBAL, shopt_allexport);
+	set_variable(name, field, SCOPE_GLOBAL, false);
     }
 
     pl_destroy(&list);
@@ -2986,7 +2994,7 @@ void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
 
     size_t count = fields.length;
     void **values = pl_toary(&fields);
-    set_array(name, count, values, SCOPE_GLOBAL, shopt_allexport);
+    set_array(name, count, values, SCOPE_GLOBAL, false);
 }
 
 #if YASH_ENABLE_HELP

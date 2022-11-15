@@ -2,6 +2,14 @@
 
 # Tests related to globbing are in path-y.tst.
 
+test_oE 'allexport in many contexts' -a
+unset a b
+: $((a=1)) ${b=2}
+sh -c 'echo ${a-unset} ${b-unset}'
+__IN__
+1 2
+__OUT__
+
 test_x -e 0 'hashondef (long) on: $-' -o hashondef
 printf '%s\n' "$-" | grep -q h
 __IN__

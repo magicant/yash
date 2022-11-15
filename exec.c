@@ -692,7 +692,7 @@ done:
 bool exec_simple_command_without_words(const command_T *c)
 {
     /* perform assignments */
-    bool ok = do_assignments(c->c_assigns, false, shopt_allexport);
+    bool ok = do_assignments(c->c_assigns, false, false);
     print_xtrace(NULL);
     last_assign = c->c_assigns;
     if (!ok) {
