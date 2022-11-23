@@ -84,6 +84,19 @@ __ERR__
 #'
 #`
 
+test_oe 'xtrace on: recursion' -x
+PS4='$(echo X)+ '
+echo 1
+echo 2
+__IN__
+1
+2
+__OUT__
+X+ PS4='$(echo X)+ '
+X+ echo 1
+X+ echo 2
+__ERR__
+
 test_x -e 0 'abbreviation of -o argument' -o allex
 echo $- | grep -q a
 __IN__

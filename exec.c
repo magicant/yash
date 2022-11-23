@@ -822,10 +822,12 @@ xwcsbuf_T *get_xtrace_buffer(void)
 /* Prints a trace if the "xtrace" option is on. */
 void print_xtrace(void *const *argv)
 {
+    static bool expanding_ps4 = false;
+
     bool tracevars = xtrace_buffer.contents != NULL
 		  && xtrace_buffer.length > 0;
 
-    if (shopt_xtrace
+    if (shopt_xtrace && !expanding_ps4
 	    && (!is_executing_auxiliary || shopt_traceall)
 	    && (tracevars || argv != NULL)
 #if YASH_ENABLE_LINEEDIT
@@ -834,7 +836,12 @@ void print_xtrace(void *const *argv)
 	    ) {
 	bool first = true;
 
+	// Disallow recursion in case $PS4 contains a command substitution
+	// that may trigger another xtrace, which would be an infinite loop
+	expanding_ps4 = true;
 	struct promptset_T prompt = get_prompt(4);
+	expanding_ps4 = false;
+
 	print_prompt(prompt.main);
 	print_prompt(prompt.styler);
 

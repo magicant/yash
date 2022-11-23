@@ -23,6 +23,8 @@ Yash 2.54 (Unreleased)
   =  The "array" built-in is now completely ignored in the POSIXly-
      correct mode. The built-in, formerly a regular built-in, is now
      categorized as an "extension" built-in.
+  =  The xtrace option is now ignored while expanding the $PS4
+     variable to prevent possible infinite recursion.
   *  The allexport option was wrongly ignored in many assignment
      contexts.
   *  The errexit and errreturn options now work for assignment error
