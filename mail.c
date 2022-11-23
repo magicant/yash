@@ -79,8 +79,7 @@ static time_t lastchecktime = 0;
 
 
 /* If it is time to check mail, checks if the mail file is updated, and if so
- * prints a message. The parsing state must be saved with `save_parse_state'
- * before calling this function. */
+ * prints a message. */
 void check_mail(void)
 {
     if (is_time_to_check_mail())

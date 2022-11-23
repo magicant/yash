@@ -299,9 +299,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 
 /* Returns the prompt string, possibly containing backslash escapes.
  * `type' must be 1, 2 or 4.
- * This function never fails: A newly malloced string is always returned.
- * `save_parse_state' must be called before calling this function because this
- * function calls `parse_string'. */
+ * This function never fails: A newly malloced string is always returned. */
 struct promptset_T get_prompt(int type)
 {
     struct promptset_T result;
