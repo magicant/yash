@@ -322,9 +322,7 @@ void exec_and_or_lists(const and_or_T *a, bool finally_exit)
 /* Executes the pipelines. */
 void exec_pipelines(const pipeline_T *p, bool finally_exit)
 {
-    for (bool first = true;
-	    p != NULL && !need_break();
-	    p = p->next, first = false) {
+    for (bool first = true; p != NULL; p = p->next, first = false) {
 	if (!first && p->pl_cond == (laststatus != Exit_SUCCESS))
 	    continue;
 
@@ -335,14 +333,18 @@ void exec_pipelines(const pipeline_T *p, bool finally_exit)
 
 	bool self = finally_exit && !p->next && !p->pl_neg;
 	exec_commands(p->pl_commands, self ? E_SELF : E_NORMAL);
+
+	suppresserrexit = savesee, suppresserrreturn = saveser;
+
+	if (need_break())
+	    break;
+
 	if (p->pl_neg) {
 	    if (laststatus == Exit_SUCCESS)
 		laststatus = Exit_FAILURE;
 	    else
 		laststatus = Exit_SUCCESS;
 	}
-
-	suppresserrexit = savesee, suppresserrreturn = saveser;
     }
     if (finally_exit)
 	exit_shell();

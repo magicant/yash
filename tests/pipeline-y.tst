@@ -1,5 +1,10 @@
 # pipeline-y.tst: yash-specific test of pipeline
 
+test_OE -e 42 '! with return'
+f() { ! return 42; }
+f
+__IN__
+
 test_Oe -e 2 'no command before |'
 | echo foo
 __IN__
