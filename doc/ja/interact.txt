@@ -94,6 +94,7 @@ link:lineedit.html[行編集]を使用している場合、この記法は端末
 入力するコマンドの右側に表示されるプロンプトを指定することもできます (dfn:[右プロンプト])。+PS1+/+PS2+ 変数に対応する右プロンプトは link:params.html#sv-ps1r[+PS1R+]/link:params.html#sv-ps2r[+PS2R+] 変数で指定します。
 
 また、プロンプトのフォントだけでなく、入力するコマンドのフォントを変えることもできます。{zwsp}link:params.html#sv-ps1s[+PS1S+] (または link:params.html#sv-ps2s[+PS2S+]) 変数に上述のフォントを指定するシーケンスを指定することで、コマンド入力時のコマンドのフォントが変わります。
+link:lineedit.html#prediction[コマンドライン推定]を使用している場合は、推定された部分のフォントを link:params.html#sv-ps1p[+PS1P+] (または link:params.html#sv-ps2p[+PS2P+]) 変数で変えられます。
 
 link:posix.html[POSIX 準拠モード]でないときは、上記の変数は名前に +YASH_+ を付けた名前 (例えば link:params.html#sv-yash_ps1[+YASH_PS1+]) で定義することもできます。これにより、POSIX 準拠モードとは異なるプロンプトを使い分けることができます。
 

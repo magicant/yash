@@ -1817,11 +1817,10 @@ after the last +s+, you can use the accept-line command to execute the
 command. You can also use the accept-prediction command to immediately execute
 the suggested command without moving the cursor.
 
-To distinguish the typed part and the predicted part of a command string, you
-can link:interact.html#prompt[change the font style] of the typed part by
-setting the link:params.html#sv-ps1s[+PS1S+] variable. Customizing the font
-style of the predicted part is not (yet) supported; it is always shown in the
-default style.
+To distinguish the typed and predicted parts of a command string, you can
+link:interact.html#prompt[change the font style] of those parts by setting the
+link:params.html#sv-ps1s[+PS1S+] and link:params.html#sv-ps1p[+PS1P+]
+variables.
 
 When you move the cursor to the right, the predicted part up to the cursor
 becomes the typed part as if you actually typed it. Moving the cursor to the

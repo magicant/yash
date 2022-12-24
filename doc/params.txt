@@ -310,6 +310,11 @@ See link:interact.html#prompt[Prompts] for the format of the variable value.
 The value is initialized to either +$&#x20;+ or +#&#x20;+ depending on whether
 the effective user ID of the shell process is zero or not.
 
+[[sv-ps1p]]+PS1P+::
+This variable specifies the font style of
+link:lineedit.html#prediction[predicted] commands.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
+
 [[sv-ps1r]]+PS1R+::
 This variable specifies the auxiliary prompt string printed to the right of
 the cursor when you input a command line to an link:interact.html[interactive]
@@ -326,6 +331,11 @@ This variable is like the <<sv-ps1,+PS1+>> variable, but it is used for the
 second and following lines of a command that is longer than one line.
 See link:interact.html#prompt[Prompts] for the format of the variable value.
 The value is initialized to +>&#x20;+ when the shell is started.
+
+[[sv-ps2p]]+PS2P+::
+This variable is like the <<sv-ps1p,+PS1P+>> variable, but it is used when
+<<sv-ps2,+PS2+>> is used.
+See link:interact.html#prompt[Prompts] for the format of the variable value.
 
 [[sv-ps2r]]+PS2R+::
 This variable is like the <<sv-ps1r,+PS1R+>> variable, but it is used when
@@ -405,9 +415,11 @@ If you do not define this variable, the default value of 100 milliseconds is
 assumed.
 
 [[sv-yash_ps1]]+YASH_PS1+::
+[[sv-yash_ps1p]]+YASH_PS1P+::
 [[sv-yash_ps1r]]+YASH_PS1R+::
 [[sv-yash_ps1s]]+YASH_PS1S+::
 [[sv-yash_ps2]]+YASH_PS2+::
+[[sv-yash_ps2p]]+YASH_PS2P+::
 [[sv-yash_ps2r]]+YASH_PS2R+::
 [[sv-yash_ps2s]]+YASH_PS2S+::
 [[sv-yash_ps4]]+YASH_PS4+::

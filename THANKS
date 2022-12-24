@@ -6,3 +6,5 @@ The author thanks:
 * Martijn Dekker, who pointed out many long-hidden bugs
 
 * Adrian Perez, for implementing the le-predict-empty option
+
+* Thomas Vigouroux, for implementing font styling of command line predictions

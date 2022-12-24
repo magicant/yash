@@ -179,6 +179,9 @@ ifndef::basebackend-html[`eval -i -- "${PROMPT_COMMAND-}"`]
 +
 この変数はシェルの起動時に実効ユーザ ID が 0 かどうかによって +$&#x20;+ と +#&#x20;+ のどちらかに初期化されます。
 
+[[sv-ps1p]]+PS1P+::
+この変数の値は、対話モードのシェルがコマンドを読み込む際に、{zwsp}link:lineedit.html#prediction[推定された]コマンドを表示するフォントの書式を指定します。この値の書式については{zwsp}link:interact.html#prompt[プロンプト]の項を参照してください。
+
 [[sv-ps1r]]+PS1R+::
 この変数の値は、対話モードのシェルがコマンドを読み込む際に、入力されるコマンドの右側に表示されるプロンプトを指定します。この値の書式については{zwsp}link:interact.html#prompt[プロンプト]の項を参照してください。
 
@@ -188,6 +191,9 @@ ifndef::basebackend-html[`eval -i -- "${PROMPT_COMMAND-}"`]
 [[sv-ps2]]+PS2+::
 この変数の値は、対話モードのシェルが出力する補助的なコマンドプロンプトを指定します。この値の書式については{zwsp}link:interact.html#prompt[プロンプト]の項を参照してください。
 この変数はシェルの起動時に +>&#x20;+ に初期化されます。
+
+[[sv-ps2p]]+PS2P+::
+この変数は <<sv-ps1p,+PS1P+>> 変数と同様ですが、プロンプトとして <<sv-ps1,+PS1+>> 変数ではなく <<sv-ps2,+PS2+>> 変数の値が使用されるときに使用されます。
 
 [[sv-ps2r]]+PS2R+::
 この変数は <<sv-ps1r,+PS1R+>> 変数と同様ですが、プロンプトとして <<sv-ps1,+PS1+>> 変数ではなく <<sv-ps2,+PS2+>> 変数の値が使用されるときに使用されます。
@@ -231,9 +237,11 @@ link:_dot.html[ドット組込みコマンド]で読み込むスクリプトフ�
 この変数は{zwsp}link:lineedit.html[行編集]機能で曖昧な文字シーケンスが入力されたときに、入力文字を確定させるためにシェルが待つ時間をミリ秒単位で指定します。行編集を行う際にこの変数が存在しなければ、デフォルトとして 100 ミリ秒が指定されます。
 
 [[sv-yash_ps1]]+YASH_PS1+::
+[[sv-yash_ps1p]]+YASH_PS1P+::
 [[sv-yash_ps1r]]+YASH_PS1R+::
 [[sv-yash_ps1s]]+YASH_PS1S+::
 [[sv-yash_ps2]]+YASH_PS2+::
+[[sv-yash_ps2p]]+YASH_PS2P+::
 [[sv-yash_ps2r]]+YASH_PS2R+::
 [[sv-yash_ps2s]]+YASH_PS2S+::
 [[sv-yash_ps4]]+YASH_PS4+::

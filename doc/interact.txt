@@ -168,6 +168,10 @@ link:params.html#sv-ps1s[+PS1S+] and link:params.html#sv-ps2s[+PS2S+]
 variables, each corresponding to the
 link:params.html#sv-ps1[+PS1+] and link:params.html#sv-ps2[+PS2+] variables.
 The value can contain the +\f{{fontspecs}}.+ notation only.
+If you enable link:lineedit.html#prediction[command line prediction], the
+predicted part of the command line can also be styled with the
+link:params.html#sv-ps1p[+PS1P+] and link:params.html#sv-ps2p[+PS2P+]
+variables.
 
 When the shell is not in the link:posix.html[POSIXly-correct mode], the prompt
 variables can be defined with a name prefixed with +YASH_+ (e.g.
