@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1850,11 +1850,11 @@ and_or_T *parse_command_list(parsestate_T *ps, bool toeol)
 	    }
 	    if (ps->tokentype == TT_END_OF_INPUT) {
 		break;
-	    } else if (ps->tokentype == TT_RPAREN) {
-		print_errmsg_token_unexpected(ps);
-		break;
 	    } else if (need_separator) {
-		serror(ps, Ngt("`;' or `&' is missing"));
+		if (is_closing_tokentype(ps->tokentype))
+		    print_errmsg_token_unexpected(ps);
+		else
+		    serror(ps, Ngt("`;' or `&' is missing"));
 		break;
 	    }
 	} else {

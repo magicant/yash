@@ -63,7 +63,7 @@ __ERR__
 test_Oe -e 2 ';; outside case (after simple command)'
 echo foo;;
 __IN__
-syntax error: `;' or `&' is missing
+syntax error: `;;' is used outside `case'
 __ERR__
 #'
 #`
