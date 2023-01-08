@@ -567,6 +567,7 @@ Options:
 	         -o lepredictempty
 	         -o lepromptsp
 	         -o levisiblebell
+	         -o letrimright
 	         -o log
 	-l       -o login
 	         -o markdirs
@@ -625,6 +626,7 @@ Options:
 	         -o lepredictempty
 	         -o lepromptsp
 	         -o levisiblebell
+	         -o letrimright
 	         -o log
 	-l       -o login
 	         -o markdirs
