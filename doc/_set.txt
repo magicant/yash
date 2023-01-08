@@ -162,6 +162,7 @@ This prevents the shell from exiting when you accidentally hit Ctrl-D.
 [[so-lepredictempty]]le-predict-empty::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
+[[so-letrimright]]le-trim-right::
 See link:lineedit.html#options[shell options on line-editing].
 
 [[so-markdirs]]mark-dirs::

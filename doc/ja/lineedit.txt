@@ -52,6 +52,9 @@ link:_set.html#so-lepromptsp[le-prompt-sp]::
 link:_set.html#so-levisiblebell[le-visible-bell]::
 シェルが警告を発する際、警告音を鳴らす代わりに端末を点滅させます。
 
+link:_set.html#so-letrimright[le-trim-right]::
+I don't know japenese lol :)
+
 [[modes]]
 == 編集モード
 

@@ -82,6 +82,11 @@ link:_set.html#so-levisiblebell[le-visible-bell]::
 When enabled, the shell flashes the terminal instead of sounding an alarm when
 an alert is required.
 
+link:_set.html#so-letrimright[le-trim-right]::
+When enabled, the right prompt, set by YASH_PS1R will right justify all the
+way to the edge of the screen, the default behaviour is to leave an empty
+space for the cursor when the prompt is too large.
+
 [[modes]]
 == Editing modes
 
