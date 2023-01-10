@@ -782,14 +782,15 @@ void reset_style_before_moving(void)
  * The edit line must have been printed when this function is called. */
 void update_right_prompt(void)
 {
+    int trim = (int)shopt_le_trimright;
     if (rprompt_line >= 0)
 	return;
     if (rprompt.width == 0)
 	return;
-    if (lebuf.maxcolumn - rprompt.width - 2 < 0)
+    if (lebuf.maxcolumn - rprompt.width - 2 + trim < 0)
 	return;
     int c = cursor_positions[le_main_buffer.length] % lebuf.maxcolumn;
-    bool has_enough_room = (c <= lebuf.maxcolumn - rprompt.width - 2);
+    bool has_enough_room = (c <= lebuf.maxcolumn - rprompt.width - 2 + trim);
     if (!has_enough_room && !shopt_le_alwaysrp)
 	return;
 
@@ -798,9 +799,9 @@ void update_right_prompt(void)
 	lebuf_print_nel();
 	check_cand_overwritten();
     }
-    lebuf_print_cuf(lebuf.maxcolumn - rprompt.width - lebuf.pos.column - 1);
+    lebuf_print_cuf(lebuf.maxcolumn - rprompt.width - lebuf.pos.column - 1 + trim);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
-    lebuf.pos.column += rprompt.width;
+    lebuf.pos.column += rprompt.width - trim;
     last_edit_line = rprompt_line = lebuf.pos.line;
     styler_active = false;
 }

@@ -57,7 +57,8 @@ extern _Bool shopt_clobber;
 extern enum shopt_lineedit_T shopt_lineedit;
 extern enum shopt_yesnoauto_T shopt_le_convmeta;
 extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
-       shopt_le_predict, shopt_le_predictempty, shopt_le_compdebug;
+    shopt_le_predict, shopt_le_predictempty, shopt_le_compdebug,
+    shopt_le_trimright;
 #endif
 
 /* Whether or not this shell process is doing job control right now. */

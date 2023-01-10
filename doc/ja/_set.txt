@@ -107,6 +107,7 @@ link:syntax.html#for[For ループ]が{zwsp}link:exec.html#function[関数]の�
 [[so-lepredictempty]]le-predict-empty::
 [[so-lepromptsp]]le-prompt-sp::
 [[so-levisiblebell]]le-visible-bell::
+[[so-letrimright]]le-trim-right::
 これらのオプションは{zwsp}link:lineedit.html[行編集]の動作に影響します。{zwsp}link:lineedit.html#options[行編集のオプション]を参照してください。
 
 [[so-markdirs]]mark-dirs::

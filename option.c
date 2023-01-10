@@ -196,6 +196,9 @@ bool shopt_le_predict = false;
 bool shopt_le_predictempty = false;
 /* If set, debugging information is printed during command completion. */
 bool shopt_le_compdebug = false;
+/* If set, the right prompt will trim the extra space left at end for cursor
+ * to sit if prompt is too large */
+bool shopt_le_trimright = false;
 #endif
 
 
@@ -242,6 +245,7 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"lepredictempty", &shopt_le_predictempty,true, },
     { 0,    0,    L"lepromptsp",     &shopt_le_promptsp,    true, },
     { 0,    0,    L"levisiblebell",  &shopt_le_visiblebell, true, },
+    { 0,    0,    L"letrimright",    &shopt_le_trimright,   true, },
 #endif
     { 0,    0,    L"log",            &shopt_log,            true, },
     { L'l', 0,    L"login",          &is_login_shell,       false, },
