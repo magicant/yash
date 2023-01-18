@@ -441,6 +441,10 @@ curstop         on
 dotglob         on
 __OUT__
 
+test_E -e 0 'set -o: sorted'
+set -o | sort -c
+__IN__
+
 test_x -e 0 'set +o: exit status'
 set +o
 __IN__

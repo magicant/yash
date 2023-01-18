@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -244,8 +244,8 @@ static const struct option_T shell_options[] = {
     { 0,    0,    L"lepredict",      &shopt_le_predict,     true, },
     { 0,    0,    L"lepredictempty", &shopt_le_predictempty,true, },
     { 0,    0,    L"lepromptsp",     &shopt_le_promptsp,    true, },
-    { 0,    0,    L"levisiblebell",  &shopt_le_visiblebell, true, },
     { 0,    0,    L"letrimright",    &shopt_le_trimright,   true, },
+    { 0,    0,    L"levisiblebell",  &shopt_le_visiblebell, true, },
 #endif
     { 0,    0,    L"log",            &shopt_log,            true, },
     { L'l', 0,    L"login",          &is_login_shell,       false, },

@@ -788,8 +788,8 @@ Options:
 	         -o lepredict
 	         -o lepredictempty
 	         -o lepromptsp
-	         -o levisiblebell
 	         -o letrimright
+	         -o levisiblebell
 	         -o log
 	-l       -o login
 	         -o markdirs
