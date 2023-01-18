@@ -8,3 +8,5 @@ The author thanks:
 * Adrian Perez, for implementing the le-predict-empty option
 
 * Thomas Vigouroux, for implementing font styling of command line predictions
+
+* leath-dub, for implementing the le-trim-right option

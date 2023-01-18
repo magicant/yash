@@ -1,4 +1,4 @@
-# (C) 2011-2019 magicant
+# (C) 2011-2023 magicant
 
 # Completion script for the "set" built-in command.
 # Completion function "completion/set" is used for the "ksh" and "yash"
@@ -270,6 +270,7 @@ function completion/set::getopt {
 		"levisiblebell; alert with a flash, not a bell"
 		"lepromptsp; ensure the prompt is printed at the beginning of a line"
 		"lealwaysrp; always show the right prompt during line-editing"
+		"letrimright; trim the space to the right of the right prompt"
 		"lecompdebug; print debugging info during command line completion"
 		"notifyle; print job status immediately when done while line-editing"
 		"nullglob; remove words that matched nothing in pathname expansion"
