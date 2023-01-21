@@ -37,6 +37,8 @@ Yash 2.54 (Unreleased)
      updated correctly in the "pushd" and "popd" built-ins.
   *  The effect of "!" no longer applies to the exit status of the
      "break", "continue", and "return" built-ins.
+  .  Updated the sample initialization script (yashrc):
+    +  The "o" alias for WSL
 
 ----------------------------------------------------------------------
 Yash 2.53 (2022-08-23)
