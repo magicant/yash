@@ -32,7 +32,8 @@ When job control is active:
   +link:_jobs.html[jobs] -n+ is executed.
 - The standard input of an link:syntax.html#async[asynchronous command] is not
   automatically redirected to /dev/null.
-- The shell does not exit when it receives the SIGTSTP signal.
+- The shell does not stop when it receives the SIGTTIN, SIGTTOU, or SIGTSTP
+  signal.
 - The value of the link:params.html#sp-hyphen[+-+ special parameter] contains
   +m+.
 - When a job finished for which the link:_wait.html[wait built-in] has been
