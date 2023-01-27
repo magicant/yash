@@ -22,11 +22,6 @@ When job control is active:
   job.
   When the job is finished (or suspended),
   the shell gets back to the foreground.
-- The link:exec.html#subshell[subshell] executing a
-  link:expand.html#cmdsub[command substitution] has its own unique process
-  group ID like a job.
-  However, the shell does not remember the subshell as a job,
-  so it cannot be suspended or resumed.
 - If the shell is link:interact.html[interactive], job status is reported
   before every command line prompt as if the command
   +link:_jobs.html[jobs] -n+ is executed.
