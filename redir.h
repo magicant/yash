@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.h: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ extern void clear_shellfds(_Bool leavefds);
 extern int copy_as_shellfd(int fd);
 extern int move_to_shellfd(int fd);
 extern void open_ttyfd(void);
-extern int get_ttyfd(void) __attribute__((pure));
 
 typedef struct savefd_T savefd_T;
 struct redir_T;
