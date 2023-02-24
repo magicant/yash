@@ -170,6 +170,15 @@ __IN__
 ABC
 __OUT__
 
+test_oE 'alias substitution to empty string'
+alias a=
+a
+a echo foo | a
+cat
+__IN__
+foo
+__OUT__
+
 (
 setup 'alias b=" "'
 
