@@ -37,6 +37,9 @@ Yash 2.54 (Unreleased)
      updated correctly in the "pushd" and "popd" built-ins.
   *  The effect of "!" no longer applies to the exit status of the
      "break", "continue", and "return" built-ins.
+  *  An alias value ending with a blank followed by a line
+     continuation no longer subjects the next token to alias
+     substitution.
   .  Updated the sample initialization script (yashrc):
     +  The "o" alias for WSL
 

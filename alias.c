@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* alias.c: alias substitution */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,8 +86,10 @@ static void add_to_aliaslist(
 static bool remove_expired_aliases(
 	aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
     __attribute__((nonnull));
-static bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
-    __attribute__((nonnull));
+static bool ends_with_blank(const alias_T *alias)
+    __attribute__((nonnull,pure));
+static bool is_blank_range(const xwcsbuf_T *buf, size_t from, size_t to)
+    __attribute__((nonnull,pure));
 static bool is_redir_fd(const wchar_t *s)
     __attribute__((nonnull,pure));
 static bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix);
@@ -222,8 +224,9 @@ void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
 }
 
 /* Removes items that are no longer significant. An item is significant if (1)
- * its limit index is larger than `index', or (2) it is a non-global alias and
- * all the characters are blank between the indexes `limitindex-1' and `index'.
+ * its limit index is larger than `index', or (2) it is a non-global
+ * blank-ending alias and all the characters between `limitindex' and `index'
+ * are blank.
  * Returns true iff a significant item of type (2) is left. */
 /* If this function returns true, the `index' is just after the result of alias
  * substitution that ends with a blank, in which case the next word should be
@@ -236,8 +239,8 @@ bool remove_expired_aliases(
 
     /* List items are ordered by index; we don't have to check all the items. */
     while (item != NULL && item->limitindex <= index) {
-	if (!item->alias->isglobal
-		&& is_after_blank(item->limitindex, index, buf)) {
+	if (!item->alias->isglobal && ends_with_blank(item->alias) &&
+		is_blank_range(buf, item->limitindex, index)) {
 	    afterblank = true;
 	    break;
 	}
@@ -251,16 +254,17 @@ bool remove_expired_aliases(
     return afterblank;
 }
 
-/* Tests if the character just before `i` in `buf' is a blank and all the
- * characters between `i' and `j' are blanks. */
-bool is_after_blank(size_t i, size_t j, const xwcsbuf_T *buf)
+/* Tests if the alias value ends with a blank. */
+bool ends_with_blank(const alias_T *alias)
 {
-    assert(i <= j);
-    assert(j <= buf->length);
+    return alias->valuelen > 0 && iswblank(alias->value[alias->valuelen - 1]);
+}
 
-    if (i == 0)
-	return false;
-    for (i--; i < j; i++)
+/* Tests if the characters in the range [from, to) are all blank. */
+bool is_blank_range(const xwcsbuf_T *buf, size_t from, size_t to)
+{
+    assert(from >= to || to <= buf->length);
+    for (size_t i = from; i < to; i++)
 	if (!iswblank(buf->contents[i]))
 	    return false;
     return true;

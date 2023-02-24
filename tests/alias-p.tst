@@ -484,6 +484,14 @@ cat cat cat
 x . x . echo x . x .
 __OUT__
 
+test_oE 'alias ending with blank followed by line continuation'
+alias foo=bar a='echo \
+'
+a foo
+__IN__
+foo
+__OUT__
+
 test_OE 'alias substitution can be part of an operator'
 alias lt='<'
 # The "lt" token followed by ">" becomes the "<>" redirection operator.
