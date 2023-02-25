@@ -8,7 +8,7 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
-Yash 2.54 (Unreleased)
+Yash 2.54 (2023-02-25)
 
   +  Changing font style of command line predictions with $PS1P, etc.
   +  The '--le-trim-right' option.
