@@ -38,12 +38,11 @@ Notable features are:
 <li>Command line prediction based on command history
 </ul>
 <p>Yash can be modified/redistributed under the terms of the <a
-href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>
-(Version 2) but the use of this program is
+href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
+>GNU General Public License (Version 2)</a> but the use of this program is
 <strong>without any warranty</strong>.
 <p><a href="//osdn.net/"><img id="sfbanner"
-src="//osdn.net/sflogo.php?group_id=3863&amp;type=2"
-alt="OSDN"></a>:
+src="//osdn.net/sflogo.php?group_id=3863&amp;type=2" alt="OSDN:"></a>
 Yash is an OSDN-hosted project. See also the
 <a href="//osdn.net/projects/yash/">project summary page</a>.
 
@@ -51,7 +50,8 @@ Yash is an OSDN-hosted project. See also the
 <p>Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
 except for the limitations listed in <a
 href="https://github.com/magicant/yash/blob/trunk/README">README</a>.
-<p>Yash is stable. A maintenance update is released every three months or so.
+<p>Yash is stable.
+Maintenance updates are released once or twice a year.
 For the change history, see <a
 href="https://github.com/magicant/yash/blob/trunk/NEWS">NEWS</a>.
 <p>The source code is versioned in the <a
@@ -62,13 +62,21 @@ on <a href="https://github.com/magicant/yash">GitHub</a>.
 <p>Yash is supposed to build and run on any POSIX.1-2001 environment
 with the Software Development Utilities and the C-Language Development Utilities
 options.
-Currently, yash is mainly tested on Fedora, macOS, and Cygwin.
+Currently, yash is mainly tested on Fedora.
 
 <h2 id="downloads">Installation</h2>
 <p>The source tarball can be downloaded from the
 <a href="//osdn.net/projects/yash/releases/">release page</a>
 (or the <a href="releases">release list</a>).
-<p>On <a href="https://getfedora.org/">Fedora</a>, the yash package can be installed by <kbd>sudo dnf install yash</kbd>. On <a href="https://www.debian.org/">Debian</a> and <a href="https://www.ubuntu.com/">Ubuntu</a>, the yash package can be installed by <kbd>sudo apt-get install yash</kbd>. For macOS, <a href="https://www.macports.org/">MacPorts</a> and <a href="http://brew.sh/">Homebrew</a> provide yash installation.
+<p>On <a href="https://getfedora.org/">Fedora</a>, the yash package can be
+installed by <kbd>sudo dnf install yash</kbd>.
+On <a href="https://www.debian.org/">Debian</a> and
+<a href="https://www.ubuntu.com/">Ubuntu</a>, the yash package can be installed
+by <kbd>sudo apt-get install yash</kbd>.
+For macOS, <a href="https://www.macports.org/">MacPorts</a> and
+<a href="https://brew.sh/">Homebrew</a> provide yash installation.
+On NetBSD and other supported platforms, yash is available through
+<a href="https://pkgsrc.org/">pkgsrc</a>.
 <p>After installation, enter <kbd>yash</kbd> in the terminal to start yash.
 The <a href="doc/">manual</a> can be viewed by <kbd>man yash</kbd>.
 
@@ -90,7 +98,8 @@ Depending on your system, you may have to use another command to change the logi
 See documentation on your system.
 
 <address id="about_this_document">
-© 2009-2017 <a href="mailto:magicant@users.osdn.me">magicant</a> / Last modified: 2017-01-18
+© 2009-2023 <a href="mailto:magicant@users.osdn.me">magicant</a> /
+Last modified: 2023-03-03
 </address>
 
 </body>
