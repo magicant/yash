@@ -258,6 +258,7 @@ abort-expect-char::
 
 redraw-all::
 行編集のプロンプトやバッファを端末に表示しなおします。
+引数を与えた場合は端末の表示もクリアします。
 +
 --
 vi-insert::
@@ -271,6 +272,7 @@ ifndef::basebackend-html[`\^L`]
 
 clear-and-redraw-all::
 端末の表示をクリアし、行編集のプロンプトやバッファを端末に表示しなおします。
+引数を与えた場合は端末の表示をクリアせずに表示しなおします。
 
 [[motion-commands]]
 === 移動コマンド

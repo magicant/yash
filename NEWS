@@ -8,6 +8,12 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
+Yash 2.55 (Unreleased)
+
+  =  The line-editing commands redraw-all and clear-and-redraw-all now
+     can be used with an argument to swap their behavior.
+
+----------------------------------------------------------------------
 Yash 2.54 (2023-02-25)
 
   +  Changing font style of command line predictions with $PS1P, etc.

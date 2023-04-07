@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1020,16 +1020,20 @@ void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
     reset_state();
 }
 
-/* Redraws everything. */
+/* Redraws everything.
+ * If the count is set, clears the screen before redrawing. */
 void cmd_redraw_all(wchar_t c __attribute__((unused)))
 {
-    redraw_all(false);
+    redraw_all(state.count.sign != 0);
+    reset_state();
 }
 
-/* Clears the screen and redraws everything at the top of the screen. */
+/* Clears the screen and redraws everything at the top of the screen.
+ * If the count is set, skips clearing the screen and only redraws. */
 void cmd_clear_and_redraw_all(wchar_t c __attribute__((unused)))
 {
-    redraw_all(true);
+    redraw_all(state.count.sign == 0);
+    reset_state();
 }
 
 void redraw_all(bool clear)

@@ -332,6 +332,7 @@ They are used by the shell to implement some other commands.
 
 redraw-all::
 Reprint the prompt and the current line to the terminal.
+If any argument is passed, the terminal screen is cleared.
 +
 --
 vi-insert::
@@ -344,7 +345,8 @@ ifndef::basebackend-html[`\^L`]
 --
 
 clear-and-redraw-all::
-Clear the terminal and reprint the prompt and the current line.
+Clear the terminal screen and reprint the prompt and the current line.
+If any argument is passed, the screen is not cleared.
 
 [[motion-commands]]
 === Motion commands
