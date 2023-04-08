@@ -1,6 +1,9 @@
 # sigwinch5-y.tst: yash-specific test of SIGWINCH handling (5)
 
 posix="true"
+if ! kill -WINCH $$ 2>/dev/null; then
+    skip="true"
+fi
 
 . ../signal.sh
 

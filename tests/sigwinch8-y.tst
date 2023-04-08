@@ -2,6 +2,9 @@
 ../checkfg || skip="true" # %REQUIRETTY%
 
 posix="true"
+if ! kill -WINCH $$ 2>/dev/null; then
+    skip="true"
+fi
 
 . ../signal.sh
 
