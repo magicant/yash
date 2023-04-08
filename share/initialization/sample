@@ -14,6 +14,11 @@
 #alias --global L='|$PAGER'
 #alias --global N='>/dev/null 2>&1' N1='>/dev/null' N2='2>/dev/null'
 
+# Uncomment if you want to clear the screen with Ctrl-L.
+#bindkey --emacs '\^L' clear-and-redraw-all
+#bindkey --vi-insert '\^L' clear-and-redraw-all
+#bindkey --vi-command '\^L' clear-and-redraw-all
+
 # Uncomment to enable direnv support. (jq required)
 #_update_direnv() {
 #  eval "$(
