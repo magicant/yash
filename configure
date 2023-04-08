@@ -756,7 +756,9 @@ ${confighdefs}
 #include <ncursesw/ncurses.h>
 #endif
 #include <${i%:*}>
+#ifndef putchar
 int putchar(int);
+#endif
 
 int main(void) {
 /* Undeclared identifiers are a syntax error in C99, but many compilers assume
