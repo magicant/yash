@@ -264,6 +264,7 @@ function completion/git::completecmd { #>>#
 	# discouraged: complete -P "$PREFIX" -D "" stripspace
 	complete -P "$PREFIX" -D "manipulate submodules" submodule
 	complete -P "$PREFIX" -D "operate with a Subversion repository" svn
+	complete -P "$PREFIX" -D "switch a branch" switch
 	complete -P "$PREFIX" -D "make or resolve a symbolic ref" symbolic-ref
 	complete -P "$PREFIX" -D "manipulate tags" tag
 	# deprecated: complete -P "$PREFIX" -D "" tar-tree

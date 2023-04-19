@@ -1,0 +1,85 @@
+# (C) 2023 Victorien Elvinger
+
+# Completion script for the "git-switch" command.
+# Supports Git 2.23.0.
+
+function completion/git-switch {
+	WORDS=(git switch "${WORDS[2,-1]}")
+	command -f completion//reexecute
+}
+
+function completion/git::switch:arg {
+	OPTIONS=( #>#
+	"C: --force-create:; create or reset a new branch and switch to it"
+	"--conflict:; like --merge, but specify format of unmerged files"
+	"c: --create:; create a new branch and switch to it"
+	"d --detach; leave HEAD in detached head state"
+	"--guess; guess which branch to track based on its name"
+	"f --force; overwrite local changes or ignore unmerged files"
+	"--discard-changes; restore the index and worktree to match the destination branch"
+	"--ignore-other-worktrees; switch even if it is checked out by other worktrees"
+	"m --merge; do 3-way merge for destination branch"
+	"--no-guess; don't guess which branch to track based on its name"
+	"--no-progress; don't report progress status on standard error"
+	"--no-recurse-submodules; don't update the content of all active submodules"
+	"--no-track; create a non-tracking branch"
+	"--orphan:; create a new branch with no parent"
+	"--progress; report progress status on standard error"
+	"q --quiet; print error and warning messages only"
+	"--recurse-submodules; update the content of all active submodules"
+	"t --track; create a tracking branch"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		([Cc]|--create|--force-create|--orphan)
+			command -f completion/git::completeref --branches
+			;;
+		(--conflict) #>>#
+			complete -P "$PREFIX" -D "ours and theirs" merge
+			complete -P "$PREFIX" -D "ours, theirs, and original" diff3
+			;; #<<#
+		('')
+			# Parse options that modify completion behavior,
+			# and find first non-option argument.
+			typeset OPTIND=2 branch=0 detach=0 orphan=0
+			while [ $OPTIND -le ${WORDS[#]} ]; do
+				case ${WORDS[OPTIND]} in
+					(-[Cc]*|--create=*|--force-create=*)
+						branch=1
+						;;
+					(-d|--detach)
+						detach=1
+						;;
+					(--orphan=*)
+						branch=1
+						orphan=1
+						;;
+					(-?*)
+						;;
+					(*)
+						break
+						;;
+				esac
+				OPTIND=$((OPTIND+1))
+			done
+
+			# no operands yet
+			if [ $OPTIND -gt ${WORDS[#]} ]; then
+				if [ $detach -eq 1 ]; then
+					command -f completion/git::completeref
+				elif [ $branch -eq 0 ]; then
+					command -f completion/git::completeref --branches
+				elif [ $orphan -eq 0 ]; then
+					command -f completion/git::completeref
+				fi
+			fi
+			;;
+	esac
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
