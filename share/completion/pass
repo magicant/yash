@@ -1,0 +1,234 @@
+# (C) 2023 Victorien Elvinger
+
+# Completion script for the "pass" command.
+
+function completion/pass {
+    OPTIONS=( #>#
+	"c:: --clip::; copy the password to clipboard"
+	"--help"
+	"q:: --qrcode::; encode the password in a QR Code"
+	"--version"
+	) #<#
+	command -f completion//parseoptions -n
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			if [ ${WORDS[#]} -eq 1 ]; then
+				command -f completion/pass::completecmd
+				command -f completion/pass::passwords
+			else
+				typeset passcmd="${WORDS[2]}"
+				command -f completion//parseoptions
+				command -f completion//getoperands
+				if command -vf "completion/pass::$passcmd:arg" >/dev/null 2>&1; then
+					command -f "completion/pass::$passcmd:arg"
+				elif [ ${WORDS[#]} -eq 0 ]; then
+						command -f completion/pass::passwords
+				fi
+			fi
+            ;;
+    esac
+}
+
+function completion/pass::completecmd { #>>#
+    complete -P "$PREFIX" -D "copy a password" cp
+    complete -P "$PREFIX" -D "edit a password" edit
+    complete -P "$PREFIX" -D "list passwords matching a name" find
+    complete -P "$PREFIX" -D "generate a password" generate
+    complete -P "$PREFIX" -D "git commands inside the password store" git
+    complete -P "$PREFIX" -D "grep inside passwords" grep
+    complete -P "$PREFIX" -D "show help" help
+    complete -P "$PREFIX" -D "initialize  new  password store" init
+    complete -P "$PREFIX" -D "insert a new password" insert
+    complete -P "$PREFIX" -D "list passwords" list ls
+    complete -P "$PREFIX" -D "move a password" mv
+    complete -P "$PREFIX" -D "remove a password" rm
+    complete -P "$PREFIX" -D "show a password" show
+    complete -P "$PREFIX" -D "show version" version
+	#<<#
+}
+
+function completion/pass::cp:arg {
+	OPTIONS=( #>#
+	"f --force; don't prompt when overriding a password"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -lt 2 ]; then
+				command -f completion/pass::passwords
+				command -f completion/pass::subfolders
+			fi
+			;;
+	esac
+}
+
+function completion/pass::edit:arg {
+    if [ ${WORDS[#]} -eq 1 ]; then
+        command -f completion/pass::passwords
+    fi
+}
+
+function completion/pass::generate:arg {
+	OPTIONS=( #>#
+	"c --clip; copy the password to clipboard"
+	"f --force; override if a password with the same name exists"
+	"i --in-place; update the password keeping other lines unchanged"
+	"n --no-symbols; don't use any non-alphanumeric characters"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				command -f completion/pass::passwords
+			fi
+			;;
+	esac
+}
+
+function completion/pass::git:arg {
+	# delegate to git completion
+    command -f completion//reexecute
+}
+
+function completion/pass::grep:arg {
+	# delegate to grep completion
+    command -f completion//reexecute
+}
+
+function completion/pass::init:arg {
+    OPTIONS=( #>#
+	"p: --path:; path of the password store"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion/pass::gpgids
+			;;
+	esac
+}
+
+function completion/pass::insert:arg {
+	OPTIONS=( #>#
+	"e --echo; don't print entered characters"
+	"f --force; override if a password with the same name exists"
+	"m --multiline; add several lines in the password file"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				command -f completion/pass::passwords
+			fi
+			;;
+	esac
+}
+
+function completion/pass::ls:arg {
+    if [ ${WORDS[#]} -eq 1 ]; then
+        command -f completion/pass::subfolders
+    fi
+}
+
+function completion/pass::mv:arg {
+	# same completion as `pass cp`
+    command -f completion/pass::cp:arg
+}
+
+function completion/pass::show:arg {
+	OPTIONS=( #>#
+	"c:: --clip::; copy the password to clipboard"
+	"q:: --qrcode::; encode the password in a QR Code"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			command -f completion//getoperands
+			if [ ${WORDS[#]} -eq 0 ]; then
+				command -f completion/pass::passwords
+			fi
+			;;
+	esac
+}
+
+function completion/pass::rm:arg {
+	OPTIONS=( #>#
+	"f --force; don't prompt before removing"
+	"r --recursive; remove passwords recursively if it is a directory"
+	) #<#
+
+	command -f completion//parseoptions
+	case $ARGOPT in
+		(-)
+			command -f completion//completeoptions
+			;;
+		('')
+			# find first non-option argument parse options that modify completion behavior
+			typeset OPTIND=2 isrec=0
+			while [ $OPTIND -le ${WORDS[#]} ]; do
+				case ${WORDS[OPTIND]} in
+					(-r|--recursive)
+						isrec=1
+						;;
+					(-?*)
+						;;
+					(*)
+						break
+						;;
+				esac
+				OPTIND=$((OPTIND+1))
+			done
+
+			if [ $OPTIND -gt ${WORDS[#]} ]; then
+				if [ $isrec -eq 1 ]; then
+					command -f completion/pass::subfolders
+				else
+					command -f completion/pass::passwords
+				fi
+			fi
+			;;
+	esac
+}
+
+function completion/pass::passwords {
+    typeset passdir="${PASSWORD_STORE_DIR:-"$HOME/.password-store"}"
+	complete -P "$PREFIX" -- $(find -L "$passdir" -name '.git' -prune -o -name '*.gpg' -print 2>/dev/null | sed -e "s#${passdir}/\{0,1\}##" -e 's#\.gpg##' -e 's#\\#\\\\#g' -e 's#:#\\:#g')
+}
+
+function completion/pass::subfolders {
+    typeset passdir="${PASSWORD_STORE_DIR:-"$HOME/.password-store"}"
+	complete -P "$PREFIX" -- $(find -L "$passdir" -name '.git' -prune -o -type d -print | sed -e "s#${passdir}/\{0,1\}##" -e 's#\\#\\\\#g' -e 's#:#\\:#g')
+}
+
+function completion/pass::gpgids {
+    # suggest emails and public key ids
+	complete -P "$PREFIX" -- $(gpg2 --list-keys 2>/dev/null | grep '^uid.*>$' | sed -e 's/.*<\(.*\)>$/\1/') $(gpg2 --list-keys --with-colons 2> /dev/null | grep '^pub:' | cut -d: -f5)
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 noet:
