@@ -865,6 +865,7 @@ void serror(parsestate_T *restrict ps, const char *restrict format, ...)
 void print_errmsg_token(parsestate_T *ps, const char *message)
 {
     assert(ps->index <= ps->next_index);
+    assert(ps->next_index <= ps->src.length);
     size_t length = ps->next_index - ps->index;
     wchar_t token[length + 1];
     wcsncpy(token, &ps->src.contents[ps->index], length);

@@ -16,6 +16,11 @@
    fun:__wcsnlen_sse4_1
 }
 {
+   Memcheck:Addr32:wcsncpy
+   Memcheck:Addr32
+   fun:__wcsncpy_avx2
+}
+{
    Memcheck:Leak:getpwnam_r@@GLIBC_2.2.5
    Memcheck:Leak
    match-leak-kinds: definite
