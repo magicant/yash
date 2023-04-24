@@ -55,8 +55,8 @@ Maintenance updates are released once or twice a year.
 For the change history, see <a
 href="https://github.com/magicant/yash/blob/trunk/NEWS">NEWS</a>.
 <p>The source code is versioned in the <a
-href="//osdn.net/projects/yash/scm/svn/">Subversion repository</a> and mirrored
-on <a href="https://github.com/magicant/yash">GitHub</a>.
+href="https://osdn.net/projects/yash/scm/git/yash/">Git repository</a> and
+mirrored on <a href="https://github.com/magicant/yash">GitHub</a>.
 
 <h2 id="requirements">Requirements</h2>
 <p>Yash is supposed to build and run on any POSIX.1-2001 environment
@@ -99,7 +99,7 @@ See documentation on your system.
 
 <address id="about_this_document">
 © 2009-2023 <a href="mailto:magicant@users.osdn.me">magicant</a> /
-Last modified: 2023-03-03
+Last modified: 2023-04-24
 </address>
 
 </body>

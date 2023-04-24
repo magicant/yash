@@ -48,7 +48,7 @@ src="//osdn.jp/sflogo.php?group_id=3863&amp;type=2" alt="OSDN:"></a>
 を全てサポートしています (ただし<a href="https://github.com/magicant/yash/blob/trunk/README.ja">制限事項</a>を除く)。
 <p>Yash は安定しています。新しいバージョンは一年に一度か二度リリースされます。(<a
 href="https://github.com/magicant/yash/blob/trunk/NEWS.ja">更新履歴</a>)
-<p>ソースコードは <a href="//osdn.jp/projects/yash/scm/svn/">Subversion
+<p>ソースコードは <a href="https://osdn.net/projects/yash/scm/git/yash/">Git
 レポジトリー</a>で管理されています。<a href="https://github.com/magicant/yash"
 >GitHub</a> にもミラーされています。
 
@@ -91,7 +91,7 @@ href="https://github.com/magicant/yash/blob/trunk/share/initialization/sample"
 
 <address id="about_this_document">
 © 2007-2023 <a href="mailto:magicant@users.osdn.me">Magicant</a> /
-最終更新 2023-03-03
+最終更新 2023-04-24
 </address>
 
 </body>
