@@ -14,6 +14,8 @@ Yash 2.55 (Unreleased)
      can be used with an argument to swap their behavior.
   .  Updated the sample initialization script (yashrc):
     +  Code example for binding Ctrl-L to clear-and-redraw-all.
+  .  Updated completion scripts:
+    +  Completion for git-switch and pass
 
 ----------------------------------------------------------------------
 Yash 2.54 (2023-02-25)
