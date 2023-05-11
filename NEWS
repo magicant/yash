@@ -10,8 +10,11 @@ History of Yash
 ----------------------------------------------------------------------
 Yash 2.55 (Unreleased)
 
-  =  The line-editing commands redraw-all and clear-and-redraw-all now
-     can be used with an argument to swap their behavior.
+  +  [line-editing] The Enter/Send key ("\et") now has a default
+     binding to the command the Ctrl-M key ("\^M") is bound to in each
+     mode.
+  =  [line-editing] The redraw-all and clear-and-redraw-all commands
+     now can be used with an argument to swap their behavior.
   .  Updated the sample initialization script (yashrc):
     +  Code example for binding Ctrl-L to clear-and-redraw-all.
   .  Updated completion scripts:

@@ -168,11 +168,16 @@ accept-line::
 vi-insert::
 vi-command::
 emacs::
+ifdef::basebackend-html[]
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>+++
+endif::basebackend-html[]
+ifndef::basebackend-html[`\^J`, `\^M`, `\et`]
 emacs-search::
 ifdef::basebackend-html[]
-+++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
++++<kbd><code>\^M</code></kbd>, <kbd><code>\et</code></kbd>+++
 endif::basebackend-html[]
-ifndef::basebackend-html[`\^J`, `\^M`]
+ifndef::basebackend-html[`\^M`, `\et`]
 --
 
 abort-line::
@@ -1368,9 +1373,10 @@ srch-accept-search::
 --
 vi-search::
 ifdef::basebackend-html[]
-+++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>+++
++++<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>+++
 endif::basebackend-html[]
-ifndef::basebackend-html[`\^J`, `\^M`]
+ifndef::basebackend-html[`\^J`, `\^M`, `\et`]
 emacs-search::
 ifdef::basebackend-html[]
 +++<kbd><code>\^J</code></kbd>, <kbd><code>\^[</code></kbd>+++

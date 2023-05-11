@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +76,7 @@ void le_keymap_init(void)
     Set(Key_left,      cmd_backward_char);
     Set(Key_home,      cmd_beginning_of_line);
     Set(Key_end,       cmd_end_of_line);
+    Set(Key_enter,     cmd_accept_line);
     Set(Key_c_j,       cmd_accept_line);
     Set(Key_c_m,       cmd_accept_line);
     Set(Key_interrupt, cmd_abort_line);
@@ -112,6 +113,7 @@ void le_keymap_init(void)
     Set(L"8",          cmd_digit_argument);
     Set(L"9",          cmd_digit_argument);
     Set(L"0",          cmd_bol_or_digit);
+    Set(Key_enter,     cmd_accept_line);
     Set(Key_c_j,       cmd_accept_line);
     Set(Key_c_m,       cmd_accept_line);
     Set(Key_interrupt, cmd_abort_line);
@@ -204,6 +206,7 @@ void le_keymap_init(void)
     Set(Key_c_h,       cmd_srch_backward_delete_char);
     Set(Key_kill,      cmd_srch_backward_delete_line);
     Set(Key_c_u,       cmd_srch_backward_delete_line);
+    Set(Key_enter,     cmd_srch_accept_search);
     Set(Key_c_j,       cmd_srch_accept_search);
     Set(Key_c_m,       cmd_srch_accept_search);
     Set(Key_escape,    cmd_srch_abort_search);
@@ -226,6 +229,7 @@ void le_keymap_init(void)
     Set(Key_escape "8",     cmd_digit_argument);
     Set(Key_escape "9",     cmd_digit_argument);
     Set(Key_escape "-",     cmd_digit_argument);
+    Set(Key_enter,          cmd_accept_line);
     Set(Key_c_j,            cmd_accept_line);
     Set(Key_c_m,            cmd_accept_line);
     Set(Key_interrupt,      cmd_abort_line);
@@ -301,6 +305,7 @@ void le_keymap_init(void)
     le_modes[LE_MODE_EMACS_SEARCH].default_command = cmd_srch_self_insert;
     t = trie_create();
     Set(Key_c_v,       cmd_expect_verbatim);
+    Set(Key_enter,     cmd_accept_line);
     Set(Key_c_m,       cmd_accept_line);
     Set(Key_interrupt, cmd_abort_line);
     Set(Key_c_c,       cmd_abort_line);

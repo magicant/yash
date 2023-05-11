@@ -177,6 +177,7 @@ __IN__
 sort >vi_insert <<\__END__
 bindkey -v '\\' self-insert
 bindkey -v '\^V' expect-verbatim
+bindkey -v '\et' accept-line
 bindkey -v '\^J' accept-line
 bindkey -v '\^M' accept-line
 bindkey -v '\!' abort-line
@@ -248,6 +249,7 @@ bindkey -a 7 digit-argument
 bindkey -a 8 digit-argument
 bindkey -a 9 digit-argument
 bindkey -a 0 bol-or-digit
+bindkey -a '\et' accept-line
 bindkey -a '\^J' accept-line
 bindkey -a '\^M' accept-line
 bindkey -a '\!' abort-line
@@ -376,6 +378,7 @@ bindkey -e '\^[7' digit-argument
 bindkey -e '\^[8' digit-argument
 bindkey -e '\^[9' digit-argument
 bindkey -e '\^[-' digit-argument
+bindkey -e '\et' accept-line
 bindkey -e '\^J' accept-line
 bindkey -e '\^M' accept-line
 bindkey -e '\!' abort-line
