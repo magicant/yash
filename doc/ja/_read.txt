@@ -68,7 +68,7 @@ Read コマンドは標準入力から一行の文字列を読み込み、それ
 
 Read コマンドは{zwsp}link:builtin.html#types[必須組込みコマンド]です。
 
-POSIX には +-A+ (+--array+) オプションに関する規定はありません。よってこのオプションは link:posix.html[POSIX 準拠モード]では使えません。
+POSIX では +-r+ オプションのみが規定されています。他のオプションは link:posix.html[POSIX 準拠モード]では使えません。
 
 +PS1+ 変数をプロンプトとして表示する際、{zwsp}link:params.html#sv-ps1r[+PS1R+] および link:params.html#sv-ps1s[+PS1S+] 変数も使用されます。 +PS2+ についても同様です。
 
