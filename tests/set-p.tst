@@ -41,7 +41,7 @@ __OUT__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_short_option_on() {
-    testcase "$1" -e 0 "$3 (short) on: \$-" 3<<__IN__
+    testcase "$1" -e 0 "$3 (short) on: \$-" 3<<__IN__ 4<&- 5<&-
 set -$2 &&
 printf '%s\n' "\$-" | grep -q $2
 __IN__
@@ -49,7 +49,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_short_option_off() {
-    testcase "$1" -e 0 "$3 (short) off: \$-" "-$2" 3<<__IN__
+    testcase "$1" -e 0 "$3 (short) off: \$-" "-$2" 3<<__IN__ 4<&- 5<&-
 set +$2 &&
 printf '%s\n' "\$-" | grep -qv $2
 __IN__
@@ -57,7 +57,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_long_option_on() {
-    testcase "$1" -e 0 "$3 (long) on: \$-" 3<<__IN__
+    testcase "$1" -e 0 "$3 (long) on: \$-" 3<<__IN__ 4<&- 5<&-
 set -o $3 &&
 printf '%s\n' "\$-" | grep -q $2
 __IN__
@@ -65,7 +65,7 @@ __IN__
 
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_long_option_off() {
-    testcase "$1" -e 0 "$3 (long) off: \$-" "-$2" 3<<__IN__
+    testcase "$1" -e 0 "$3 (long) off: \$-" "-$2" 3<<__IN__ 4<&- 5<&-
 set +o $3 &&
 printf '%s\n' "\$-" | grep -qv $2
 __IN__

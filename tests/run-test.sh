@@ -45,13 +45,8 @@ esac
 
 ##### Script startup
 
-# require yash for alias support and ulimit built-ins
-if ! [ "${YASH_VERSION-}" ]; then
-    eprintf '%s: must be run with yash\n' "$0"
-    exit 64 # sysexits.h EX_USAGE
-fi
-
-command -b ulimit -c 0 2>/dev/null || :
+# The -c option is not POSIXly-portable, but many shells support it.
+ulimit -c 0 2>/dev/null || :
 
 exec </dev/null 3>&- 4>&- 5>&-
 
@@ -72,8 +67,10 @@ while getopts rv opt; do
 done
 shift "$((OPTIND-1))"
 
-testee="$(command -v "${1:?testee not specified}")"
+testee="${1:?testee not specified}"
 test_file="${2:?test file not specified}"
+
+testee="$(absolute "$(command -v -- "$testee")")"
 
 exec >|"${test_file%.*}.trs"
 
@@ -83,13 +80,12 @@ export YASH_LOADPATH= # ignore default yashrc
 unset -v CDPATH COLUMNS COMMAND_NOT_FOUND_HANDLER DIRSTACK ECHO_STYLE ENV
 unset -v FCEDIT HANDLED HISTFILE HISTRMDUP HISTSIZE HOME IFS LC_ALL
 unset -v LC_COLLATE LC_MESSAGES LC_MONETARY LC_NUMERIC LC_TIME LINES MAIL
-unset -v MAILCHECK MAILPATH NLSPATH OLDPWD OPTARG PROMPT_COMMAND
+unset -v MAILCHECK MAILPATH NLSPATH OLDPWD PROMPT_COMMAND
 unset -v PS1 PS1R PS1S PS2 PS2R PS2S PS3 PS3R PS3S PS4 PS4R PS4S 
 unset -v RANDOM TERM YASH_AFTER_CD YASH_LE_TIMEOUT YASH_VERSION
 unset -v A B C D E F G H I J K L M N O P Q R S T U V W X Y Z _
 unset -v a b c d e f g h i j k l m n o p q r s t u v w x y z
 unset -v posix skip
-export -X LINENO OPTIND
 
 ##### Prepare temporary directory
 
@@ -156,6 +152,9 @@ $1"
 # If the "use_valgrind" variable is true, Valgrind is used to run the testee,
 # in which case the testee will ignore argv[0].
 testee() (
+    exec_testee "$@"
+)
+exec_testee() {
     if [ "${posix:+set}" = set ]; then
 	testee="$testee_sh"
 	export TESTEE="$testee"
@@ -170,7 +169,7 @@ testee() (
 	    "$testee" "$@" \
 	    17>>"${valgrind_file-0.valgrind}"
     fi
-)
+}
 
 # The test case runner.
 #
@@ -254,7 +253,11 @@ testcase() {
     log_stdout START
     set +e
     # Output files are opened in append mode to ensure write atomicity.
-    testee "$@" <"$in_file" >>"$out_file" 2>>"$err_file" 3>&- 4>&- 5>&-
+    # To ignore a description message printed by some shells in case the testee
+    # is terminated by a signal, "$err_file" must be opened in a subshell.
+    (
+    exec_testee "$@" <"$in_file" >>"$out_file" 2>>"$err_file" 3>&- 4>&- 5>&-
+    ) 2>/dev/null
     actual_exit_status="$?"
     set -e
 
@@ -303,9 +306,9 @@ testcase() {
     esac
 
     # check standard output
-    if { exec <&4; } 2>/dev/null; then
+    if { <&4; } 2>/dev/null; then
 	printf '%% standard output diff:\n'
-	if ! diff $diff_opt - "$out_file"; then
+	if ! diff $diff_opt - "$out_file" <&4; then
 	    failed="true"
 	    eprintf '%s:%d: %s: standard output mismatch\n' \
 		"$test_file" "$test_lineno" "$test_case_name"
@@ -323,9 +326,9 @@ testcase() {
 		"$test_file" "$test_lineno" "$test_case_name"
 	fi
 	echo
-    elif { exec <&5; } 2>/dev/null; then
+    elif { <&5; } 2>/dev/null; then
 	printf '%% standard error diff:\n'
-	if ! diff $diff_opt - "$err_file"; then
+	if ! diff $diff_opt - "$err_file" <&5; then
 	    failed="true"
 	    eprintf '%s:%d: %s: standard error mismatch\n' \
 		"$test_file" "$test_lineno" "$test_case_name"
@@ -360,13 +363,13 @@ testcase() {
     echo
 }
 
-alias test_x='testcase "$LINENO" 3<<\__IN__'
-alias test_o='testcase "$LINENO" 3<<\__IN__ 4<<\__OUT__'
-alias test_O='testcase "$LINENO" 3<<\__IN__ 4</dev/null'
-alias test_e='testcase "$LINENO" 3<<\__IN__ 5<<\__ERR__'
+alias test_x='testcase "$LINENO" 3<<\__IN__ 4<&- 5<&-'
+alias test_o='testcase "$LINENO" 3<<\__IN__ 4<<\__OUT__ 5<&-'
+alias test_O='testcase "$LINENO" 3<<\__IN__ 4</dev/null 5<&-'
+alias test_e='testcase "$LINENO" 3<<\__IN__ 4<&- 5<<\__ERR__'
 alias test_oe='testcase "$LINENO" 3<<\__IN__ 4<<\__OUT__ 5<<\__ERR__'
 alias test_Oe='testcase "$LINENO" 3<<\__IN__ 4</dev/null 5<<\__ERR__'
-alias test_E='testcase "$LINENO" 3<<\__IN__ 5</dev/null'
+alias test_E='testcase "$LINENO" 3<<\__IN__ 4<&- 5</dev/null'
 alias test_oE='testcase "$LINENO" 3<<\__IN__ 4<<\__OUT__ 5</dev/null'
 alias test_OE='testcase "$LINENO" 3<<\__IN__ 4</dev/null 5</dev/null'
 

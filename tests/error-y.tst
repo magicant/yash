@@ -161,7 +161,7 @@ __OUT__
 test_special_builtin_syntax_i() {
     testcase "$1" -d \
     "argument syntax error on special built-in $2 spares interactive shell${posix:+" (POSIX)"}" \
-	-i +m 3<<__IN__ 4<<\__OUT__
+	-i +m 3<<__IN__ 4<<\__OUT__ 5<&-
 $2 --no-such-option--
 echo \$?
 __IN__
@@ -178,7 +178,7 @@ test_nonspecial_builtin_syntax() (
 
     testcase "$1" -d \
     "argument syntax error on non-special built-in $2 spares shell${posix:+" (POSIX)"}" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 # -l and -n are mutually exclusive for the kill built-in.
 # Four arguments are too many for the test built-in.
 $2 -l -n --no-such-option-- -
@@ -193,7 +193,7 @@ __OUT__
 test_nonspecial_builtin_redirect() {
     testcase "$1" -d \
     "redirection error on non-special built-in $2 spares shell${posix:+" (POSIX)"}" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 $2 <_no_such_file_
 echo \$?
 __IN__
@@ -209,7 +209,7 @@ posix="true"
 test_special_builtin_syntax() {
     testcase "$1" -d \
     "argument syntax error on special built-in $2 kills non-interactive shell (POSIX)" \
-	3<<__IN__ 4</dev/null
+	3<<__IN__ 4</dev/null 5<&-
 $2 --no-such-option--
 printf 'not reached\n'
 __IN__
@@ -220,7 +220,7 @@ __IN__
 test_special_builtin_syntax_s() {
     testcase "$1" -d \
 	"argument syntax error on special built-in $2 in subshell (POSIX)" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 ($2 --no-such-option--; echo not reached)
 echo \$?
 __IN__
@@ -367,7 +367,7 @@ test_nonspecial_builtin_redirect "$LINENO" wait
 test_special_builtin_syntax() {
     testcase "$1" -d \
     "argument syntax error on special built-in $2 spares non-interactive shell" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 $2 --no-such-option--
 echo \$?
 __IN__
@@ -380,7 +380,7 @@ __OUT__
 test_special_builtin_syntax_s() {
     testcase "$1" -d \
 	"argument syntax error on special built-in $2 in subshell" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 ($2 --no-such-option--; echo \$?)
 __IN__
 2
@@ -392,7 +392,7 @@ __OUT__
 test_special_builtin_redirect() {
     testcase "$1" -d \
 	"redirection error on special built-in $2 spares shell" \
-	3<<__IN__ 4<<\__OUT__
+	3<<__IN__ 4<<\__OUT__ 5<&-
 $2 <_no_such_file_
 echo \$?
 __IN__

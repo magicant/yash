@@ -3,7 +3,7 @@
 mkfifo fifo
 
 testcase_single() {
-    testcase "$@" 3<<__IN__ 4<<__OUT__
+    testcase "$@" 3<<__IN__ 5<&- 4<<__OUT__
 $(cat <&3) &
 jobs
 >fifo
@@ -13,7 +13,7 @@ __OUT__
 }
 
 testcase_multi() {
-    testcase "$@" 3<<__IN__ 4<<__OUT__
+    testcase "$@" 3<<__IN__ 5<&- 4<<__OUT__
 eval "\$(
 f()
 $(cat <&3)
@@ -26,8 +26,8 @@ $(cat <&4)
 __OUT__
 }
 
-alias test_single='testcase_single "$LINENO" 3<<\__IN__ 4<<\__OUT__'
-alias test_multi='testcase_multi "$LINENO" 3<<\__IN__ 4<<\__OUT__'
+alias test_single='testcase_single "$LINENO" 3<<\__IN__ 4<<\__OUT__ 5<&-'
+alias test_multi='testcase_multi "$LINENO" 3<<\__IN__ 4<<\__OUT__ 5<&-'
 
 test_single 'one simple command, single line'
 cat fifo
