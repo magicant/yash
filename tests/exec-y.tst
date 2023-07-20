@@ -17,6 +17,12 @@ __IN__
 reached
 __OUT__
 
+test_O -d -e 127 'executing non-existing command (empty path)'
+PATH=
+exec _no_such_command_
+echo not reached
+__IN__
+
 test_oE -e 0 'executing with specific name (-a)'
 exec -a foo sh -c 'echo "$0"'
 echo not reached

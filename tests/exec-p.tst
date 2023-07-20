@@ -58,12 +58,6 @@ exec ./_no_such_command_
 echo not reached
 __IN__
 
-test_O -d -e 127 'executing non-existing command (empty path)'
-PATH=
-exec _no_such_command_
-echo not reached
-__IN__
-
 test_x -d -e 0 'redirection error on exec'
 command exec <_no_such_file_
 status=$?
