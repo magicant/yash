@@ -377,45 +377,46 @@ __IN__
 __OUT__
 
 test_oE 'nest between if and then'
-if { echo foo; } then echo bar; fi
+if if true; then echo foo; fi then echo bar; fi
 __IN__
 foo
 bar
 __OUT__
 
 test_oE 'nest between then and fi'
-if echo foo; then { echo bar; } fi
+if echo foo; then if true; then echo bar; fi fi
 __IN__
 foo
 bar
 __OUT__
 
 test_oE 'nest between then and elif'
-if echo foo; then { echo bar; } elif echo baz; then echo qux; fi
+if echo foo; then if echo bar; then true; fi elif echo baz; then echo qux; fi
 __IN__
 foo
 bar
 __OUT__
 
 test_oE 'nest between elif and then'
-if echo foo; then echo bar; elif { echo baz; } then echo qux; fi
+if echo foo; then echo bar; elif if true; then echo baz; fi then echo qux; fi
 __IN__
 foo
 bar
 __OUT__
 
 test_oE 'nest between then and else'
-if ! echo foo; then { echo bar; } else echo baz; fi
+if echo foo; then if echo bar; then true; fi else echo baz; fi
 __IN__
 foo
-baz
+bar
 __OUT__
 
-test_oE 'nest between then and else'
-if ! echo foo; then echo bar; else { echo baz; } fi
+test_oE 'nest between else and if'
+if ! echo foo; then echo bar; else if echo baz; then echo qux; fi fi
 __IN__
 foo
 baz
+qux
 __OUT__
 
 test_oE 'redirection on if'
