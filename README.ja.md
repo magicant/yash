@@ -148,13 +148,11 @@ share/initialization/sample) ファイルを参考に自分用の `~/.yashrc`
 感想・提案・バグ報告等を歓迎します。ただし、全ての提案やバグ報告に
 応じることを約束するものではありません。
 
- * 課題管理システム
-   <https://osdn.net/projects/yash/ticket/>
- * 掲示板
-   <https://osdn.net/projects/yash/forums/>
+ * [課題管理システム](https://osdn.net/projects/yash/ticket/)
+ * [掲示板](https://osdn.net/projects/yash/forums/)
 
 翻訳に興味がおありの場合は以下のページをご覧ください
-<https://osdn.net/projects/yash/wiki/HowToTranslate>
+[HowToTranslate](https://osdn.net/projects/yash/wiki/HowToTranslate)
 
 
 ----------------------

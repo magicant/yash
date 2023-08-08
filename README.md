@@ -143,13 +143,11 @@ system.
 
 Comments, suggestions, and bug reports are welcome at:
 
- * Issue tracking system
-   <https://osdn.net/projects/yash/ticket/>
- * Discussion forum
-   <https://osdn.net/projects/yash/forums/>
+ * [Issue tracking system](https://osdn.net/projects/yash/ticket/)
+ * [Discussion forum](https://osdn.net/projects/yash/forums/)
 
 If you are interested in translation, please refer to
-<https://osdn.net/projects/yash/wiki/HowToTranslate>.
+[HowToTranslate](https://osdn.net/projects/yash/wiki/HowToTranslate).
 
 
 ----------------------
