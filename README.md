@@ -21,7 +21,7 @@ interactive and scripting use. Notable features are:
 
 Yash can be modified/redistributed under the terms of the GNU General
 Public License (Version 2) but the use of this program is without any
-warranty. See the "COPYING" file for the full text of GPL.
+warranty. See the [COPYING](COPYING) file for the full text of GPL.
 
 Yash is an OSDN-hosted project. See also the project summary page at
 <https://osdn.net/projects/yash/>.
@@ -33,7 +33,7 @@ Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
 except for the limitations listed below.
 
 Yash is stable. A maintenance update is released every three months or
-so. For the change history, see the "NEWS" file.
+so. For the change history, see the [NEWS](NEWS) file.
 
 
 ## Requirements
@@ -47,7 +47,7 @@ Currently, yash is mainly tested on Fedora, macOS, and Cygwin.
 
 ## Installation
 
-See the "INSTALL" file to see how to build and install yash.
+See the [INSTALL](INSTALL) file to see how to build and install yash.
 
 After installation, the manual can be viewed by
 
@@ -72,8 +72,8 @@ When yash is started for an interactive use, it reads `~/.yashrc` (after
 reading `~/.yash_profile` if it is a login shell also). In this file,
 you make other configurations such as aliases, prompt strings, key
 bindings for command line editing, and command-not-found handler.
-Use the "share/initialization/sample" file as a template for your
-`~/.yashrc`.
+Use the [share/initialization/sample](share/initialization/sample) file
+as a template for your `~/.yashrc`.
 
 ### Making yash your login shell
 
