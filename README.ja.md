@@ -2,6 +2,7 @@ Yash: yet another shell
 =======================
 
 http://yash.osdn.jp/
+This README is also available in [English](README.md).
 
 
 このプログラムは C 言語 (C99: ISO/IEC 9899:1999, JIS X 3010:2003) で

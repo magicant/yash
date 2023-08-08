@@ -2,6 +2,7 @@ Yash: yet another shell
 =======================
 
 http://yash.osdn.jp/
+This README is also available in [日本語](README.ja.md).
 
 
 Yash, yet another shell, is a POSIX-compliant command line shell
