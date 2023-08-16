@@ -1,12 +1,12 @@
 This directory includes automated test cases for yash.
 
 The test cases are grouped into POSIX tests and yash-specific tests, which
-are written in files named *-p.tst and *-y.tst, respectively. Every POSIX
+are written in files named `*-p.tst` and `*-y.tst`, respectively. Every POSIX
 shell is supposed to pass the POSIX tests, so those test cases does not
 test any yash-specific behavior at all. To run the POSIX tests on a shell
 other than yash, run in this directory:
 
-$ make TESTEE=<shell_command_name> test-posix
+    $ make TESTEE=<shell_command_name> test-posix
 
 ---------------------------------------------------------------------------
 
@@ -24,17 +24,17 @@ sequentially if a pseudo-terminal cannot be opened to obtain a control
 terminal that can be used for testing. In that case, you have to run the
 tests in the foreground process group so that they can make use of the
 current control terminal. Test case files containing such tests are marked
-with the %REQUIRETTY% keyword.
+with the `%REQUIRETTY%` keyword.
 
 ---------------------------------------------------------------------------
 
-To test yash with Valgrind, run "make test-valgrind" in this directory.
+To test yash with Valgrind, run `make test-valgrind` in this directory.
 Yash must have been built without enabling any of the following variables
-in config.h:
+in `config.h`:
 
- * HAVE_PROC_SELF_EXE
- * HAVE_PROC_CURPROC_FILE
- * HAVE_PROC_OBJECT_AOUT
+ * `HAVE_PROC_SELF_EXE`
+ * `HAVE_PROC_CURPROC_FILE`
+ * `HAVE_PROC_OBJECT_AOUT`
 
 Otherwise, some tests would fail after Valgrind is invoked as a shell where
 yash should be invoked.

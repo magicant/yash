@@ -239,7 +239,7 @@ distcheck: dist
 	(unset MAKEFLAGS && cd $(DISTDIR) && sh configure && make check dist)
 	$(RM_DISTDIR)
 
-DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README README.ja COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash
+DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README.md README.ja.md COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash
 distfiles: makedeps $(DISTFILES)
 copy-distfiles: distfiles
 	mkdir -p $(topdir)/$(DISTTARGETDIR)
