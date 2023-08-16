@@ -15,6 +15,7 @@ Yash 2.55 (Unreleased)
      mode.
   =  [line-editing] The redraw-all and clear-and-redraw-all commands
      now can be used with an argument to swap their behavior.
+  *  Fixed mistranslation in the Japanese language support.
   .  Updated the sample initialization script (yashrc):
     +  Code example for binding Ctrl-L to clear-and-redraw-all.
   .  Updated completion scripts:

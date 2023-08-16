@@ -1,15 +1,15 @@
 # Japanese translations for yash package
 # yash パッケージのメッセージの和訳
-# Copyright (C) 2010-2022 Magicant
+# Copyright (C) 2010-2023 Magicant
 # This file is distributed under the same license as the yash package.
-# WATANABE Yuki <magicant@users.osdn.me>, 2010-2022.
+# WATANABE Yuki <magicant@users.osdn.me>, 2010-2023.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.54\n"
 "Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
 "POT-Creation-Date: 2022-09-27 00:48+0900\n"
-"PO-Revision-Date: 2022-09-27 23:31+0900\n"
+"PO-Revision-Date: 2023-08-17 01:20+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -985,7 +985,7 @@ msgstr "「%ls」は有効なオプションではありません"
 #: option.c:612 xgetopt.c:417
 #, c-format
 msgid "the --%ls option requires an argument"
-msgstr "--%ls オプションは引数を取りません"
+msgstr "--%ls オプションの引数が抜けています"
 
 #: option.c:625 xgetopt.c:431
 #, c-format
