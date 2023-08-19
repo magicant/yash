@@ -265,7 +265,9 @@ signal_action_test_combo() {
 
     # Enable job-control to make sure every job-controlling testee starts in
     # the foreground. (See #45760)
-    set $e
+    if ! [ "${skip-}" ]; then
+	set $e
+    fi
 
     for a in shell child exec; do
     for b in main subshell cmdsub async; do
