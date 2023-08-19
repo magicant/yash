@@ -8,7 +8,7 @@ History of Yash
    x: new bug
 
 ----------------------------------------------------------------------
-Yash 2.55 (2023-08-19)
+Yash 2.55 (2023-08-20)
 
   +  [line-editing] The Enter/Send key ("\et") now has a default
      binding to the command the Ctrl-M key ("\^M") is bound to in each
