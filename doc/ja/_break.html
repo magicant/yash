@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Break 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Break 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Break 組込みコマンド</dfn>は実行中のループを中断します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>break [<var>深さ</var>]</code>
+</p>
+</li>
+<li>
+<p>
+<code>break -i</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><code>-i</code> (<code>--iteration</code>) オプションを付けずに実行すると、break コマンドは現在実行中の <a href="syntax.html#for">for ループ</a>または <a href="syntax.html#while-until">while ループ</a>または <a href="syntax.html#while-until">until ループ</a>を中断します。多重ループの中で実行した場合、内側から数えて<var>深さ</var>番目のループを中断します。<var>深さ</var>が指定されていないときは、最も内側のループを中断します (<var>深さ</var> = 1)。指定された<var>深さ</var>が実際に実行している多重ループの深さより大きい場合は最も外側のループを中断します。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--iteration</code>) オプションを付けて実行すると、break コマンドは現在実行中の&#8203;<a href="_eval.html#iter">反復実行</a>を中断します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--iteration</code>
+</dt>
+<dd>
+<p>
+ループではなく反復実行を中断します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>深さ</var>
+</dt>
+<dd>
+<p>
+内側から何番目のループを中断するのかを指定する 1 以上の自然数です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ループの中断に成功すると終了ステータスは 0 です。反復実行の中断に成功すると break コマンドの直前に実行されたコマンドの終了ステータスが break コマンドの終了ステータスになります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Break コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX にはオプションに関する規定はありません。よってオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>POSIX では、break コマンドを構文的に取り囲んでいないループの扱いを規定していません。例えば以下のような場合が該当します:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+ループの中で&#8203;<a href="exec.html#function">関数</a>が実行され、その中で break コマンドが実行される
+</p>
+</li>
+<li>
+<p>
+ループの実行中に&#8203;<a href="_trap.html">トラップ</a>が実行され、その中で break コマンドが実行される
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash では、このようなループは break の対象に出来ません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

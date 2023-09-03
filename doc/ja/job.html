@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash のジョブ制御の動作について" />
+<title>ジョブ制御</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>ジョブ制御</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>ジョブ制御</dfn>とは、複数のコマンドを同時に実行し、必要に応じてそれらを中断・再開させる機能です。シェルは、オペレーティングシステムが提供する端末の機能やプロセスグループ管理機構などを用いて、ジョブ制御を実現します。</p></div>
+<div class="paragraph"><p>ジョブ制御が有効な時……</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+シェルが起動する各プロセスは、&#8203;<a href="syntax.html#pipelines">パイプライン</a>ごとに共通の一意なプロセスグループに属します。すなわち、シェルが起動するコマンドはそれぞれパイプラインごとに<dfn>ジョブ</dfn>として扱われます。
+</p>
+</li>
+<li>
+<p>
+シェルがジョブを起動しそのジョブのプロセスが終了するのを待っている間にそのプロセスが停止した場合、シェルは (プロセスが実際に終了したときと同様に) 次のコマンドの処理に移ります。このときシェルはジョブが停止したことを覚えているので、後でジョブを再開させることができます。
+</p>
+</li>
+<li>
+<p>
+ジョブが&#8203;<a href="syntax.html#async">同期的</a>に実行される場合、そのジョブの実行中はそのジョブのプロセスグループが端末のフォアグラウンドプロセスグループになります。ジョブの実行が終了 (または停止) すると、再びシェルがフォアグラウンドになります。
+</p>
+</li>
+<li>
+<p>
+シェルが&#8203;<a href="interact.html">対話モード</a>の場合、プロンプトを出す前に毎回コマンド <code><a href="_jobs.html">jobs</a> -n</code> を実行するのと同様にしてジョブの状態変化を報告します。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#async">非同期コマンド</a>の標準入力が自動的に /dev/null にリダイレクトされません。
+</p>
+</li>
+<li>
+<p>
+SIGTTIN, SIGTTOU, SIGTSTP シグナルを受けても、シェルは停止しません。
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#sp-hyphen">特殊パラメータ <code>-</code></a> の値に <code>m</code> が含まれます。
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html">Wait 組込みコマンド</a>で待っているジョブが終了したとき、そのことを示すメッセージを出力します。(<a href="interact.html">対話モード</a>の時のみ。&#8203;<a href="posix.html">POSIX 準拠モード</a>を除く)
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>ジョブ制御が無効な時、シェルが起動する各プロセスはシェルと同じプロセスグループに属しますが、実行した&#8203;<a href="syntax.html#async">非同期コマンド</a>はそれぞれジョブ制御の対象となっていないジョブとして扱います。</p></div>
+<div class="paragraph"><p>ここでジョブ制御に関連する組込みコマンドを簡単に紹介します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_jobs.html">jobs</a>
+</dt>
+<dd>
+<p>
+現在シェルが管理しているジョブを表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_fg.html">fg</a> および <a href="_bg.html">bg</a>
+</dt>
+<dd>
+<p>
+ジョブをフォアグラウンドまたはバックグラウンドで実行します。主に停止したジョブを再開させるのに使います。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_wait.html">wait</a>
+</dt>
+<dd>
+<p>
+ジョブが終了 (または停止) するまで待ちます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_disown.html">disown</a>
+</dt>
+<dd>
+<p>
+ジョブの存在を忘れます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_kill.html">kill</a>
+</dt>
+<dd>
+<p>
+プロセスにシグナルを送ります。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>対話モードでジョブ制御が有効な時、シェルはプロンプトを出す直前にジョブの状態変化を報告します。これ以外のタイミングで状態変化を報告してほしい場合は、以下の&#8203;<a href="_set.html#options">オプション</a>を指定することができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-notify">notify</a>
+</dt>
+<dd>
+<p>
+タイミングにかかわらず、ジョブの状態が変化したら直ちにそれを報告します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-notifyle">notify-le</a>
+</dt>
+<dd>
+<p>
+<a href="lineedit.html">行編集</a>を行っている最中にジョブの状態が変化したら直ちにそれを報告します。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>シェルが管理しているジョブは以下のタイミングで削除されます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+ジョブの実行が終了した後、そのことを <a href="_jobs.html">jobs 組込みコマンド</a>で表示したとき
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html">Wait 組込みコマンド</a>でジョブの終了を待ったとき
+</p>
+</li>
+<li>
+<p>
+<a href="_disown.html">Disown 組込みコマンド</a>でジョブを削除したとき
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>対話シェルが自動的にジョブの状態変化を報告するときにはジョブは削除されません。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="jobid">ジョブ ID</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>いくつかの&#8203;<a href="builtin.html">組込みコマンド</a>では、操作対象のジョブを指定するために<dfn>ジョブ ID</dfn> という以下のような記法を用います。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>%</code>
+</dt>
+<dt class="hdlist1">
+<code>%%</code>
+</dt>
+<dt class="hdlist1">
+<code>%&#43;</code>
+</dt>
+<dd>
+<p>
+現在のジョブ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%-</code>
+</dt>
+<dd>
+<p>
+前のジョブ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>n</var></code>
+</dt>
+<dd>
+<p>
+ジョブ番号が <var>n</var> のジョブ (<var>n</var> は自然数)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>文字列</var></code>
+</dt>
+<dd>
+<p>
+ジョブ名が<var>文字列</var>で始まるジョブ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%?<var>文字列</var></code>
+</dt>
+<dd>
+<p>
+ジョブ名が<var>文字列</var>を含むジョブ
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><dfn>現在のジョブ</dfn>及び<dfn>前のジョブ</dfn>とは、シェルが特定の方法で選んだジョブのことで、&#8203;<a href="_fg.html">fg 組込みコマンド</a>などでジョブを選択しやすくするために用意されています。現在のジョブと前のジョブは以下の規則を満たすように選ばれます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+停止中のジョブがある場合は、現在のジョブはその中から選ばれます。
+</p>
+</li>
+<li>
+<p>
+現在のジョブ以外に停止中のジョブがある場合は、前のジョブはその中から選ばれます。
+</p>
+</li>
+<li>
+<p>
+現在のジョブと前のジョブは異なるジョブになるように選ばれます。ジョブが一つしかないときはそれが現在のジョブになり、前のジョブはなくなります。
+</p>
+</li>
+<li>
+<p>
+現在のジョブが終了したときは、前のジョブが現在のジョブになります。これ以外に現在のジョブが変更される場合は、元の現在のジョブは前のジョブになります。
+</p>
+</li>
+<li>
+<p>
+フォアグラウンドで実行していたジョブが停止したときは、そのジョブは現在のジョブになります。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash には、現在のジョブを選択する方針を指示するためにいくつかの&#8203;<a href="_set.html#options">オプション</a>が用意されています。ただしこれらのオプションよりも上記の規則のほうが優先します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-curasync">cur-async</a>
+</dt>
+<dd>
+<p>
+新しく&#8203;<a href="syntax.html#async">非同期コマンド</a>を起動したとき、それは現在のジョブになります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-curbg">cur-bg</a>
+</dt>
+<dd>
+<p>
+<a href="_bg.html">Bg 組込みコマンド</a>でジョブを再開したとき、そのジョブは現在のジョブになります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-curstop">cur-stop</a>
+</dt>
+<dd>
+<p>
+実行中のジョブが停止したとき、そのジョブは現在のジョブになります。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>これらの規則・オプションに反しない限り、一度選ばれた現在のジョブ・前のジョブはずっと現在のジョブ・前のジョブのままです。</p></div>
+<div class="paragraph"><p>POSIX は現在のジョブ・前のジョブの選択方法を細かく定めていないため、他のシェルでは選び方が異なることがあります。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

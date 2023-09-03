@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page gives the formal definition of yash command syntax." />
+<title>Formal definition of command syntax</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Formal definition of command syntax</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>This chapter defines the syntax of the shell command language.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Some of the syntactic features described below are not supported in the
+<a href="posix.html">POSIXly-correct mode</a>.</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="token">Tokenization</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The characters of the input source code are first delimited into tokens.
+Tokens are delimited so that the earlier token spans as long as possible.
+A sequence of one or more unquoted blank characters delimits a token.</p></div>
+<div class="paragraph"><p>The following tokens are the operator tokens:</p></div>
+<div class="paragraph"><p><code>&amp;</code> <code>&amp;&amp;</code> <code>(</code> <code>)</code> <code>;</code> <code>;;</code> <code>|</code> <code>||</code>
+<code>&lt;</code> <code>&lt;&lt;</code> <code>&lt;&amp;</code> <code>&lt;(</code> <code>&lt;&lt;-</code> <code>&lt;&lt;&lt;</code> <code>&lt;&gt;</code>
+<code>&gt;</code> <code>&gt;&gt;</code> <code>&gt;&amp;</code> <code>&gt;(</code> <code>&gt;&gt;|</code> <code>&gt;|</code> (newline)</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Unlike other programming languages, the newline operator is a token rather
+than a white space.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>Characters that are not blank nor part of an operator compose a word token.
+Words are parsed by the following parsing expression grammar:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="d-word"></a>Word
+</dt>
+<dd>
+<p>
+(<a href="#d-word-element">WordElement</a> / !<a href="#d-special-char">SpecialChar</a> .)+
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-word-element"></a>WordElement
+</dt>
+<dd>
+<p>
+<code>\</code> . /<br />
+<code>'</code> (!<code>'</code> .)* <code>'</code> /<br />
+<code>"</code> <a href="#d-quote-element">QuoteElement</a>* <code>"</code> /<br />
+<a href="#d-parameter">Parameter</a> /<br />
+<a href="#d-arithmetic">Arithmetic</a> /<br />
+<a href="#d-command-substitution">CommandSubstitution</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-quote-element"></a>QuoteElement
+</dt>
+<dd>
+<p>
+<code>\</code> ([<code>$&#96;"&#92;</code>] / &lt;newline&gt;) /<br />
+<a href="#d-parameter">Parameter</a> /<br />
+<a href="#d-arithmetic">Arithmetic</a> /<br />
+<a href="#d-command-substitution-quoted">CommandSubstitutionQuoted</a> /<br />
+![<code>&#96;"&#92;</code>] .
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter"></a>Parameter
+</dt>
+<dd>
+<p>
+<code>$</code> [<code>@*#?-$!</code> [:digit:]] /<br />
+<code>$</code> <a href="#d-portable-name">PortableName</a> /<br />
+<code>$</code> <a href="#d-parameter-body">ParameterBody</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-portable-name"></a>PortableName
+</dt>
+<dd>
+<p>
+![<code>0</code>-<code>9</code>] [<code>0</code>-<code>9</code> <code>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_</code>]+
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-body"></a>ParameterBody
+</dt>
+<dd>
+<p>
+<code>{</code> <a href="#d-parameter-number">ParameterNumber</a>?
+(<a href="#d-parameter-name">ParameterName</a> / ParameterBody / <code>$</code> ParameterBody /
+<a href="#d-arithmetic">Arithmetic</a> / <a href="#d-command-substitution">CommandSubstitution</a>)
+<a href="#d-parameter-index">ParameterIndex</a>? <a href="#d-parameter-match">ParameterMatch</a>?
+<code>}</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-number"></a>ParameterNumber
+</dt>
+<dd>
+<p>
+<code>#</code> ![<code>}+=:/%</code>] !([<code>-?#</code>] !<code>}</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-name"></a>ParameterName
+</dt>
+<dd>
+<p>
+[<code>@*#?-$!</code>] /<br />
+[[:alnum:] <code>_</code>]+
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-index"></a>ParameterIndex
+</dt>
+<dd>
+<p>
+<code>[</code> <a href="#d-parameter-index-word">ParameterIndexWord</a> (<code>,</code> ParameterIndexWord)?
+<code>]</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-index-word"></a>ParameterIndexWord
+</dt>
+<dd>
+<p>
+(<a href="#d-word-element">WordElement</a> / ![<code>"'],</code>] .)+
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-match"></a>ParameterMatch
+</dt>
+<dd>
+<p>
+<code>:</code>? [<code>-+=?</code>] <a href="#d-parameter-match-word">ParameterMatchWord</a> /<br />
+(<code>#</code> / <code>##</code> / <code>%</code> / <code>%%</code>) ParameterMatchWord /<br />
+(<code>:/</code> / <code>/</code> [<code>#%/</code>]?)
+<a href="#d-parameter-match-word-no-slash">ParameterMatchWordNoSlash</a>
+(<code>/</code> ParameterMatchWord)?
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-match-word"></a>ParameterMatchWord
+</dt>
+<dd>
+<p>
+(<a href="#d-word-element">WordElement</a> / ![<code>"'}</code>] .)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-parameter-match-word-no-slash"></a>ParameterMatchWordNoSlash
+</dt>
+<dd>
+<p>
+(<a href="#d-word-element">WordElement</a> / ![<code>"'/}</code>] .)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-arithmetic"></a>Arithmetic
+</dt>
+<dd>
+<p>
+<code>$((</code> <a href="#d-arithmetic-body">ArithmeticBody</a>* <code>))</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-arithmetic-body"></a>ArithmeticBody
+</dt>
+<dd>
+<p>
+<code>\</code> . /<br />
+<a href="#d-parameter">Parameter</a> /<br />
+<a href="#d-arithmetic">Arithmetic</a> /<br />
+<a href="#d-command-substitution">CommandSubstitution</a> /<br />
+<code>(</code> ArithmeticBody <code>)</code> /<br />
+![<code>`()</code>] .
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-command-substitution"></a>CommandSubstitution
+</dt>
+<dd>
+<p>
+<code>$(</code> <a href="#d-complete-program">CompleteProgram</a> <code>)</code> /<br />
+<code>&#96;</code> <a href="#d-command-substitution-body">CommandSubstitutionBody</a>* <code>&#96;</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-command-substitution-quoted"></a>CommandSubstitutionQuoted
+</dt>
+<dd>
+<p>
+<code>$(</code> <a href="#d-complete-program">CompleteProgram</a> <code>)</code> /<br />
+<code>&#96;</code> <a href="#d-command-substitution-body-quoted">CommandSubstitutionBodyQuoted</a>*
+<code>&#96;</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-command-substitution-body"></a>CommandSubstitutionBody
+</dt>
+<dd>
+<p>
+<code>\</code> [<code>$&#96;\</code>] /<br />
+!<code>&#96;</code> .
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-command-substitution-body-quoted"></a>CommandSubstitutionBodyQuoted
+</dt>
+<dd>
+<p>
+<code>\</code> [<code>$&#96;\`</code>] /<br />
+!<code>&#96;</code> .
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-special-char"></a>SpecialChar
+</dt>
+<dd>
+<p>
+[<code>|&amp;;&lt;&gt;()&#96;&#92;"'</code> [:blank:]] / &lt;newline&gt;
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The set of terminals of the grammar is the set of characters that can
+be handled on the environment in which the shell is run (a.k.a. execution
+character set), with the exception that the set does not contain the null
+character (<code>'\0'</code>).</p></div>
+<div class="paragraph"><p>Strictly speaking, the definition above is not a complete parsing expression
+grammar because the rule for <a href="#d-command-substitution">CommandSubstitution</a>
+(<a href="#d-command-substitution-quoted">Quoted</a>) depends on
+<a href="#d-complete-program">CompleteProgram</a> which is a non-terminal of the syntax.</p></div>
+<div class="sect2">
+<h3 id="classification">Token classification</h3>
+<div class="paragraph"><p>After a word token is delimited, the token may be further classified as an
+IO_NUMBER token, reserved word, name word, assignment word, or just normal
+word.
+Classification other than the normal word is applied only when applicable in
+the context in which the word appears.
+See <a href="syntax.html#tokens">Tokens and keywords</a> for the list of the reserved
+words (keywords) and the context in which a word may be recognized as a
+reserved word.</p></div>
+<div class="paragraph"><p>A token is an IO_NUMBER token iff it is composed of digit characters only and
+immediately followed by <code>&lt;</code> or <code>&gt;</code>.</p></div>
+<div class="paragraph"><p>An assignment token is a token that starts with a name followed by <code>=</code>:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="d-assignment-word"></a>AssignmentWord
+</dt>
+<dd>
+<p>
+<a href="#d-assignment-prefix">AssignmentPrefix</a> <a href="#d-word">Word</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-assignment-prefix"></a>AssignmentPrefix
+</dt>
+<dd>
+<p>
+<a href="#d-name">Name</a> <code>=</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-name"></a>Name
+</dt>
+<dd>
+<p>
+![[:digit:]] \[[:alnum:] <code>_</code>]+
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="comments">Comments</h3>
+<div class="paragraph"><p>A comment begins with <code>#</code> and continues up to (but not including) the next
+newline character.
+Comments are treated like a blank character and do not become part of a token.
+The initial <code>#</code> of a comment must appear as if it would otherwise be the first
+character of a word token; Other <code>#</code>s are just treated as part of a word
+token.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="d-comment"></a>Comment
+</dt>
+<dd>
+<p>
+<code>#</code> (!&lt;newline&gt; .)*
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>After tokens have been delimited, the sequence of the tokens is parsed
+according to the context-free grammar defined below, where <code>*</code>, <code>+</code>, and <code>?</code>
+should be interpreted in the same manner as standard regular expression:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="d-complete-program"></a>CompleteProgram
+</dt>
+<dd>
+<p>
+<a href="#d-nl">NL</a>* | <a href="#d-compound-list">CompoundList</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-compound-list"></a>CompoundList
+</dt>
+<dd>
+<p>
+<a href="#d-nl">NL</a>* <a href="#d-and-or-list">AndOrList</a>
+(&#8203;(<code>;</code> | <code>&amp;</code> | NL) <a href="#d-complete-program">CompleteProgram</a>)?
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-and-or-list"></a>AndOrList
+</dt>
+<dd>
+<p>
+<a href="#d-pipeline">Pipeline</a> &#40;(<code>&amp;&amp;</code> | <code>||</code>) <a href="#d-nl">NL</a>* Pipeline)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-pipeline"></a>Pipeline
+</dt>
+<dd>
+<p>
+<code>!</code>? <a href="#d-command">Command</a> (<code>|</code> <a href="#d-nl">NL</a>* Command)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-command"></a>Command
+</dt>
+<dd>
+<p>
+<a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>* |<br />
+<a href="#d-function-definition">FunctionDefinition</a> |<br />
+<a href="#d-simple-command">SimpleCommand</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-compound-command"></a>CompoundCommand
+</dt>
+<dd>
+<p>
+<a href="#d-subshell">Subshell</a> |<br />
+<a href="#d-grouping">Grouping</a> |<br />
+<a href="#d-if-command">IfCommand</a> |<br />
+<a href="#d-for-command">ForCommand</a> |<br />
+<a href="#d-while-command">WhileCommand</a> |<br />
+<a href="#d-case-command">CaseCommand</a> |<br />
+<a href="#d-double-bracket-command">DoubleBracketCommand</a> |<br />
+<a href="#d-function-command">FunctionCommand</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-subshell"></a>Subshell
+</dt>
+<dd>
+<p>
+<code>(</code> <a href="#d-compound-list">CompoundList</a> <code>)</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-grouping"></a>Grouping
+</dt>
+<dd>
+<p>
+<code>{</code> <a href="#d-compound-list">CompoundList</a> <code>}</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-if-command"></a>IfCommand
+</dt>
+<dd>
+<p>
+<code>if</code> <a href="#d-compound-list">CompoundList</a> <code>then</code> CompoundList
+(<code>elif</code> CompoundList <code>then</code> CompoundList)*
+(<code>else</code> CompoundList)? <code>fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-for-command"></a>ForCommand
+</dt>
+<dd>
+<p>
+<code>for</code> <a href="#d-name">Name</a>
+(&#8203;(<a href="#d-nl">NL</a>* <code>in</code> <a href="#d-word">Word</a>*)? (<code>;</code> | NL) NL*)?
+<code>do</code> <a href="#d-compound-list">CompoundList</a> <code>done</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-while-command"></a>WhileCommand
+</dt>
+<dd>
+<p>
+(<code>while</code> | <code>until</code>) <a href="#d-compound-list">CompoundList</a> <code>do</code> CompoundList <code>done</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-case-command"></a>CaseCommand
+</dt>
+<dd>
+<p>
+<code>case</code> <a href="#d-word">Word</a> <a href="#d-nl">NL</a>* <code>in</code> NL* <a href="#d-case-list">CaseList</a>? <code>esac</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-case-list"></a>CaseList
+</dt>
+<dd>
+<p>
+<a href="#d-case-item">CaseItem</a> (<code>;;</code> <a href="#d-nl">NL</a>* CaseList)?
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-case-item"></a>CaseItem
+</dt>
+<dd>
+<p>
+<code>(</code>? <a href="#d-word">Word</a> (<code>|</code> Word)* <code>)</code> <a href="#d-complete-program">CompleteProgram</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-double-bracket-command"></a>DoubleBracketCommand
+</dt>
+<dd>
+<p>
+<code>[[</code> <a href="#d-ors">Ors</a> <code>]]</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-ors"></a>Ors
+</dt>
+<dd>
+<p>
+<a href="#d-ands">Ands</a> (<code>||</code> Ands)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-ands"></a>Ands
+</dt>
+<dd>
+<p>
+<a href="#d-nots">Nots</a> (<code>&amp;&amp;</code> Nots)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-nots"></a>Nots
+</dt>
+<dd>
+<p>
+<code>!</code>* <a href="#d-primary">Primary</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-primary"></a>Primary
+</dt>
+<dd>
+<p>
+(<code>-b</code> | <code>-c</code> | <code>-d</code> | <code>-e</code> | <code>-f</code> | <code>-G</code> | <code>-g</code> | <code>-h</code> | <code>-k</code> | <code>-L</code> | <code>-N</code> |
+<code>-n</code> | <code>-O</code> | <code>-o</code> | <code>-p</code> | <code>-r</code> | <code>-S</code> | <code>-s</code> | <code>-t</code> | <code>-u</code> | <code>-w</code> | <code>-x</code> |
+<code>-z</code>) <a href="#d-word">Word</a> |<br />
+Word (<code>-ef</code> | <code>-eq</code> | <code>-ge</code> | <code>-gt</code> | <code>-le</code> | <code>-lt</code> | <code>-ne</code> | <code>-nt</code> | <code>-ot</code> |
+<code>-veq</code> | <code>-vge</code> | <code>-vgt</code> | <code>-vle</code> | <code>-vlt</code> | <code>-vne</code> | <code>=</code> | <code>==</code> | <code>===</code> |
+<code>=~</code> | <code>!=</code> | <code>!==</code> | <code>&lt;</code> | <code>&gt;</code>) Word |<br />
+<code>(</code> <a href="#d-ors">Ors</a> <code>)</code> |<br />
+Word
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-function-command"></a>FunctionCommand
+</dt>
+<dd>
+<p>
+<code>function</code> <a href="#d-word">Word</a> (<code>(</code> <code>)</code>)? <a href="#d-nl">NL</a>*
+<a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-function-definition"></a>FunctionDefinition
+</dt>
+<dd>
+<p>
+<a href="#d-name">Name</a> <code>(</code> <code>)</code> <a href="#d-nl">NL</a>*
+<a href="#d-compound-command">CompoundCommand</a> <a href="#d-redirection">Redirection</a>*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-simple-command"></a>SimpleCommand
+</dt>
+<dd>
+<p>
+(<a href="#d-assignment">Assignment</a> | <a href="#d-redirection">Redirection</a>) SimpleCommand?
+|<br />
+<a href="#d-word">Word</a> (Word | <a href="#d-redirection">Redirection</a>)*
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-assignment"></a>Assignment
+</dt>
+<dd>
+<p>
+<a href="#d-assignment-word">AssignmentWord</a> |<br />
+<a href="#d-assignment-prefix">AssignmentPrefix</a><code>(</code>
+<a href="#d-nl">NL</a>* (<a href="#d-word">Word</a> NL*)* <code>)</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-redirection"></a>Redirection
+</dt>
+<dd>
+<p>
+IO_NUMBER? <a href="#d-redirection-operator">RedirectionOperator</a> <a href="#d-word">Word</a> |<br />
+IO_NUMBER? <code>&lt;(</code> <a href="#d-complete-program">CompleteProgram</a> <code>)</code> |<br />
+IO_NUMBER? <code>&gt;(</code> CompleteProgram <code>)</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-redirection-operator"></a>RedirectionOperator
+</dt>
+<dd>
+<p>
+<code>&lt;</code> | <code>&lt;&gt;</code> | <code>&gt;</code> | <code>&gt;|</code> | <code>&gt;&gt;</code> | <code>&gt;&gt;|</code> | <code>&lt;&amp;</code> | <code>&gt;&amp;</code> | <code>&lt;&lt;</code> | <code>&lt;&lt;-</code> | <code>&lt;&lt;&lt;</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="d-nl"></a>NL
+</dt>
+<dd>
+<p>
+&lt;newline&gt;
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>In the rule for <a href="#d-primary">Primary</a>, <a href="#d-word">Word</a> tokens must not be
+<code>]]</code>. Additionally, if a Primary starts with a Word, it must not be any of the
+possible unary operators allowed in the rule.</p></div>
+<div class="paragraph"><p>In the rule for <a href="#d-simple-command">SimpleCommand</a>, a <a href="#d-word">Word</a> token is
+accepted only when the token cannot be parsed as the first token of an
+<a href="#d-assignment">Assignment</a>.</p></div>
+<div class="paragraph"><p>In the rule for <a href="#d-assignment">Assignment</a>, the <code>(</code> token must immediately
+follow the <a href="#d-assignment-prefix">AssignmentPrefix</a> token, without any blank
+characters in between.</p></div>
+<div class="paragraph"><p><a href="redir.html#here">Here-document</a> contents do not appear as part of the
+grammar above.
+They are parsed just after the newline (<a href="#d-nl">NL</a>) token that follows the
+corresponding redirection operator.</p></div>
+<div class="sect2">
+<h3 id="alias">Alias substitution</h3>
+<div class="paragraph"><p>Word tokens are subject to <a href="syntax.html#aliases">alias substitution</a>.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If a word is going to be parsed as a <a href="#d-word">Word</a> of a
+  <a href="#d-simple-command">SimpleCommand</a>, the word is subjected to alias
+  substitution of any kind (normal and global aliases).
+</p>
+</li>
+<li>
+<p>
+If a word is the next token after the result of an alias substitution and
+  the substitution string ends with a blank character, then the word is also
+  subjected to alias substitution of any kind.
+</p>
+</li>
+<li>
+<p>
+Other words are subjected to global alias substitution unless the shell is
+  in the <a href="posix.html">POSIXly-correct mode</a>.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Tokens that are classified as reserved words are not subject to alias
+substitution.</p></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

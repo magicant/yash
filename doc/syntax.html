@@ -1,0 +1,704 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page defines yash's command syntax and semantics." />
+<title>Syntax</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Syntax</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The shell reads, parses, and executes command line by line. If there is more
+than one command on a line, all the commands are parsed before executed. If a
+command is continued to next lines, the shell reads more enough lines to
+complete the command. On a syntax error, the shell neither reads nor executes
+any more commands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="tokens">Tokens and keywords</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A command is composed of one or more tokens. In the shell syntax, a
+<dfn>token</dfn> is a word that is part of a command. Normally, tokens are
+separated by whitespaces, that is, the space or tab character. Whitespaces
+inside a command substitution or a parameter expansion, however, do not
+separate tokens.</p></div>
+<div class="paragraph"><p>The following symbols have special meanings in the shell syntax and in most
+cases separate tokens:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>; &amp; | &lt; &gt; ( ) [newline]</code></pre>
+</div></div>
+<div class="paragraph"><p>The following symbols do not separate tokens, but have syntactic meanings:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$ ` \ " ' * ? [ # ~ = %</code></pre>
+</div></div>
+<div class="paragraph"><p>The following tokens are treated as <dfn>keywords</dfn> depending on the context in
+which they appear:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>! { } [[ case do done elif else esac fi
+for function if in then until while</code></pre>
+</div></div>
+<div class="paragraph"><p>A token is treated as a keyword when:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+it is the first token of a command,
+</p>
+</li>
+<li>
+<p>
+it follows another keyword (except <code>case</code>, <code>for</code>, and <code>in</code>), or
+</p>
+</li>
+<li>
+<p>
+it is a non-first token of a command and is supposed to be a keyword to
+  compose a composite command.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>If a token begins with <code>#</code>, then the <code>#</code> and any following characters up to
+the end of the line are treated as a <dfn>comment</dfn>, which is completely
+ignored in syntax parsing.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="quotes">Quotations</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If you want whitespaces, separator characters, or keywords described above to
+be treated as a normal characters, you must quote the characters using
+appropriate quotation marks. Quotation marks are not treated as normal
+characters unless they are themselves quoted. You can use the following three
+quotation marks:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+A backslash (<code>\</code>) quotes a character that immediately follows.
+ <br />
+  The only exception about a backslash is the case where a backslash is
+  followed by a newline. In this case, the two characters are treated as a
+  <dfn>line continuation</dfn> rather than a newline being quoted. The two
+  characters are removed from the input and the two lines surrounding the line
+  continuation are concatenated into a single line.
+</p>
+</li>
+<li>
+<p>
+A pair of single-quotation marks (<code>'</code>) quote any characters between them
+  except another single-quotation. Note that newlines can be quoted using
+  single-quotations.
+</p>
+</li>
+<li>
+<p>
+Double-quotation marks (<code>"</code>) are like single-quotations, but they have a few
+  exceptions: Parameter expansion, command substitution, and arithmetic
+  expansion are interpreted as usual even between double-quotations. A
+  backslash between double-quotations is treated as a quotation mark only when
+  it is followed by <code>$</code>, <code>`</code>, <code>"</code>, <code>\</code>, or a newline; other backslashes are
+  treated as normal characters.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="aliases">Aliases</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Tokens that compose a command are subject to <dfn>alias substitution</dfn>. A token
+that matches the name of an alias that has already been defined is substituted
+with the value of the alias before the command is parsed.</p></div>
+<div class="paragraph"><p>Tokens that contain quotations are not alias-substituted since an alias name
+cannot contain quotation marks. Keywords and command separator characters are
+not alias-substituted either.</p></div>
+<div class="paragraph"><p>There are two kinds of aliases: normal aliases and global aliases. A
+<dfn>normal alias</dfn> can only substitute the first token of a command while a
+<dfn>global alias</dfn> can substitute any part of a command. Global aliases are
+yash extension that is not defined in POSIX.</p></div>
+<div class="paragraph"><p>If a token is alias-substituted with the value of a normal alias that ends
+with a whitespace, the next token is exceptionally subject to alias
+substitution for normal aliases.</p></div>
+<div class="paragraph"><p>The results of alias substitution are again subject to alias substitution for
+other aliases (but not for the aliases that have been already applied).</p></div>
+<div class="paragraph"><p>You can define aliases using the <a href="_alias.html">alias built-in</a> and remove
+using the <a href="_unalias.html">unalias built-in</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="simple">Simple commands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A command that does not start with a keyword token is a <dfn>simple command</dfn>.
+Simple commands are executed as defined in <a href="exec.html#simple">Execution of
+simple commands</a>.</p></div>
+<div class="paragraph"><p>If the first and any number of following tokens of a simple command have the
+form <code><var>name</var>=<var>value</var></code>, they are interpreted as
+<a href="params.html#variables">variable</a> assignments.
+A variable name must consist of one or more alphabets, digits and/or
+underlines (<code>_</code>) and must not start with a digit.
+The first token that is not a variable assignment is considered as a command
+name and all the following tokens (whether or not they have the form
+<code><var>name</var>=<var>value</var></code>) as command arguments.</p></div>
+<div class="paragraph"><p>A variable assignment of the form <code><var>var</var>=(<var>tokens</var>)</code> is interpreted as
+assignment to an <a href="params.html#arrays">array</a>.
+You can write any number of tokens between a pair of parentheses. Tokens can
+be separated by not only spaces and tabs but also newlines.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="pipelines">Pipelines</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A <dfn>pipeline</dfn> is a sequence of one or more <a href="#simple">simple commands</a>,
+<a href="#compound">compound commands</a>, and/or <a href="#funcdef">function definitions</a> that
+are separated by <code>|</code>.</p></div>
+<div class="paragraph"><p>A pipeline that has more than one subcommand is executed by executing each
+subcommand of the pipeline in a subshell simultaneously. The standard output
+of each subcommand except the last one is redirected to the standard input of
+the next subcommand. The standard input of the first subcommand and the
+standard output of the last subcommand are not redirected.</p></div>
+<div class="paragraph"><p>The exit status of the pipeline is that of the last subcommand unless the
+<a href="_set.html#so-pipefail">pipe-fail option</a> is enabled, in which case the
+exit status of the pipeline is that of the last subcommand that exits with a
+non-zero exit status. If all the subcommands exit with an exit status of zero,
+the exit status of the pipeline is also zero.</p></div>
+<div class="paragraph"><p>A pipeline can be prefixed by <code>!</code>, in which case the exit status of the
+pipeline is <em>reversed</em>: the exit status of the pipeline is 1 if that of the
+last subcommand is 0, and 0 otherwise.</p></div>
+<div class="paragraph"><p>Korn shell treats a word of the form <code>!(&#8230;)</code> as an extended pathname
+expansion pattern that is not defined in POSIX.
+In the <a href="posix.html">POSIXly-correct mode</a>, the tokens <code>!</code> and <code>(</code> must be
+separated by one or more white spaces.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">When the execution of a pipeline finishes, at least the execution of the last
+subcommand has finished since the exit status of the last subcommand defines
+that of the whole pipeline. The execution of other subcommands, however, may
+not have finished then. On the other hand, the execution of the pipeline may
+not finish soon after that of the last subcommand finished because the shell
+may choose to wait for the execution of other subcommands to finish.</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The POSIX standard allows executing any of subcommands in the current shell
+rather than subshells, though yash does not do so.</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="and-or">And/or lists</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>An <dfn>and/or list</dfn> is a sequence of one or more <a href="#pipelines">pipelines</a>
+separated by <code>&amp;&amp;</code> or <code>||</code>.</p></div>
+<div class="paragraph"><p>An and/or list is executed by executing some of the pipelines conditionally.
+The first pipeline is always executed. The other pipelines are either executed
+or not executed according to the exit status of the previous pipelines.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If two pipelines are separated by <code>&amp;&amp;</code> and the exit status of the first
+  pipeline is zero, the second pipeline is executed.
+</p>
+</li>
+<li>
+<p>
+If two pipelines are separated by <code>||</code> and the exit status of the first
+  pipeline is not zero, the second pipeline is executed.
+</p>
+</li>
+<li>
+<p>
+In other cases, the execution of the and/or list ends: the second and any
+  remaining pipelines are not executed.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The exit status of an and/or list is that of the last pipeline that was
+executed.</p></div>
+<div class="paragraph"><p>Normally, an and/or list must be terminated by a semicolon, ampersand, or
+newline. See <a href="#async">Command separators and asynchronous commands</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="async">Command separators and asynchronous commands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The whole input to the shell must be composed of any number of <a href="#and-or">and/or lists</a> separated by a semicolon or ampersand.
+A terminating semicolon can be omitted if it is followed by <code>;;</code>, <code>)</code>, or a
+newline.
+Otherwise, an and/or list must be terminated by a semicolon or ampersand.</p></div>
+<div class="paragraph"><p>If an and/or list is terminated by a semicolon, it is executed synchronously:
+the shell waits for the and/or list to finish before executing the next and/or
+list. If an and/or list is terminated by an ampersand, it is executed
+asynchronously: after the execution of the and/or list is started, the next
+and/or list is executed immediately. An asynchronous and/or list is always
+executed in a <a href="exec.html#subshell">subshell</a> and its exit status is zero.</p></div>
+<div class="paragraph"><p>If the shell is not doing <a href="job.html">job control</a>,
+the standard input of an asynchronous and/or list is automatically redirected
+to /dev/null. Signal handlers of the and/or list for the SIGINT and SIGQUIT
+signals are set to &#8220;ignore&#8221; the signal so that the execution of the and/or
+list cannot be stopped by those signals.</p></div>
+<div class="paragraph"><p>When the execution of an asynchronous and/or list is started, the shell
+remembers its process ID. You can obtain the ID by referencing the
+<a href="params.html#sp-exclamation"><code>!</code> special parameter</a>. You can obtain the
+current and exit status of the asynchronous list as well by using the
+<a href="_jobs.html">jobs</a> and <a href="_wait.html">wait</a> built-ins.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="compound">Compound commands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Compound commands provide you with programmatic control of shell command
+execution.</p></div>
+<div class="sect2">
+<h3 id="grouping">Grouping</h3>
+<div class="paragraph"><p>A grouping is a list of commands that is treated as a <a href="#simple">simple command</a>.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Normal grouping syntax
+</dt>
+<dd>
+<p>
+  <code>{ <var>command</var>&#8230;; }</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Subshell grouping syntax
+</dt>
+<dd>
+<p>
+  <code>(<var>command</var>&#8230;)</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <code>{</code> and <code>}</code> tokens are keywords, which must be separated from other
+tokens. The <code>(</code> and <code>)</code> tokens, however, are special separators that need not
+to be separated.</p></div>
+<div class="paragraph"><p>In the normal grouping syntax, the commands in a grouping are executed in the
+current shell. In the subshell grouping syntax, the commands are executed in a
+new <a href="exec.html#subshell">subshell</a>.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, a grouping must contain at least
+one command. If the shell is not in the POSIXly-correct mode, a grouping may
+contain no commands.</p></div>
+<div class="paragraph"><p>The exit status of a grouping is that of the last command in the grouping. If
+the grouping contains no commands, its exit status is that of the last
+executed command before the grouping.</p></div>
+</div>
+<div class="sect2">
+<h3 id="if">If command</h3>
+<div class="paragraph"><p>The if command performs a conditional branch.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Basic if command syntax
+</dt>
+<dd>
+<p>
+  <code>if <var>condition</var>&#8230;; then <var>body</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Syntax with the else clause
+</dt>
+<dd>
+<p>
+  <code>if <var>condition</var>&#8230;; then <var>body</var>&#8230;; else <var>body</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Syntax with the elif clause
+</dt>
+<dd>
+<p>
+  <code>if <var>condition</var>&#8230;; then <var>body</var>&#8230;; elif <var>condition</var>&#8230;; then <var>body</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Syntax with the elif clause
+</dt>
+<dd>
+<p>
+  <code>if <var>condition</var>&#8230;; then <var>body</var>&#8230;; elif <var>condition</var>&#8230;; then <var>body</var>&#8230;; else <var>body</var>&#8230;; fi</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>For all the syntaxes, the execution of an if command starts with the execution
+of the <var>condition</var> commands that follows the <code>if</code> token. If the exit status
+of the condition commands is zero, the condition is considered as &#8220;true&#8221;. In
+this case, the <var>body</var> commands that follows the <code>then</code> token are executed
+and the execution of the if command finishes. If the exit status of the
+condition commands is non-zero, the condition is considered as &#8220;false&#8221;. In
+this case, the <var>condition</var> commands for the next elif clause are executed
+and the exit status is tested in the same manner as above. If there is no elif
+clause, the <var>body</var> commands that follow the <code>else</code> token are executed and
+the execution of the if command finishes. If there is no else clause either,
+the execution of the if command just ends.</p></div>
+<div class="paragraph"><p>An if command may have more than one elif-then clause.</p></div>
+<div class="paragraph"><p>The exit status of an if command is that of the <var>body</var> commands that were
+executed. The exit status is zero if no <var>body</var> commands were executed, that
+is, all the conditions were false and there was no else clause.</p></div>
+</div>
+<div class="sect2">
+<h3 id="while-until">While and until loops</h3>
+<div class="paragraph"><p>The while loop and until loop are simple loops with condition.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+While loop syntax
+</dt>
+<dd>
+<p>
+  <code>while <var>condition</var>&#8230;; do <var>body</var>&#8230;; done</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Until loop syntax
+</dt>
+<dd>
+<p>
+  <code>until <var>condition</var>&#8230;; do <var>body</var>&#8230;; done</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If the shell is not in the <a href="posix.html">POSIXly-correct mode</a>, you can omit
+the <var>condition</var> and/or <var>body</var> commands of a while/until loop.</p></div>
+<div class="paragraph"><p>The execution of a while loop is started by executing the <var>condition</var>
+commands. If the exit status of the <var>condition</var> commands is zero, the shell
+executes the <var>body</var> commands and returns to the execution of the
+<var>condition</var> commands. The <var>condition</var> and <var>body</var> commands are repeatedly
+executed until the exit status of the <var>condition</var> commands is non-zero.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The <var>body</var> commands are not executed at all if the first execution of the
+<var>condition</var> commands yields a non-zero exit status.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>An until loop is executed in the same manner as a while loop except that the
+condition to repeat the loop is reversed: the <var>body</var> commands are executed
+when the exit status of the <var>condition</var> commands is non-zero.</p></div>
+<div class="paragraph"><p>The exit status of a while/until loop is that of the last executed <var>body</var>
+command. The exit status is zero if the <var>body</var> commands are empty or were
+not executed at all.</p></div>
+</div>
+<div class="sect2">
+<h3 id="for">For loop</h3>
+<div class="paragraph"><p>The for loop repeats commands with a variable assigned one of given values in
+each round.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+For loop syntax
+</dt>
+<dd>
+<p>
+  <code>for <var>varname</var> in <var>word</var>&#8230;; do <var>command</var>&#8230;; done</code>
+ <br />
+  <code>for <var>varname</var> do <var>command</var>&#8230;; done</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>word</var> list after the <code>in</code> token may be empty, but the semicolon (or
+newline) before the <code>do</code> token is required even in that case. The <var>word</var>s
+are not treated as keywords, but you need to <a href="#quotes">quote</a> separator
+characters (such as <code>&amp;</code> and <code>|</code>) to include them as part of a <var>word</var>. The
+<var>command</var> list may be empty if not in the <a href="posix.html">POSIXly-correct
+mode</a>.</p></div>
+<div class="paragraph"><p>The <var>varname</var> must be a portable (ASCII-only) name in the POSIXly-correct
+mode.</p></div>
+<div class="paragraph"><p>The execution of a for loop is started by expanding the <var>word</var>s in the same
+manner as in the execution of a <a href="#simple">simple command</a>. If the <code>in</code>
+and <var>word</var> tokens are omitted, the shell assumes the <var>word</var> tokens to be
+<code>"$@"</code>. Next, the following steps are taken for each word expanded (in the
+order the words were expanded):</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Assign the word to the variable whose name is <var>varname</var>.
+</p>
+</li>
+<li>
+<p>
+Execute the <var>command</var>s.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>By default, if a for loop is executed within a function, <var>varname</var> is
+created as a <a href="exec.html#localvar">local variable</a>, even if it already
+exists globally. Turning off the <a href="_set.html#so-forlocal">for-local</a> shell
+option or enabling the <a href="posix.html">POSIXly-correct mode</a> mode will
+disable this behavior.</p></div>
+<div class="paragraph"><p>If the expansion of the <var>word</var>s yields no words, no variable is created
+and the <var>command</var>s are not executed at all.</p></div>
+<div class="paragraph"><p>The exit status of a for loop is that of the last executed <var>command</var>. The
+exit status is zero if the <var>command</var>s are not empty and not executed at all.
+If the <var>command</var>s are empty, the exit status is that of the last executed
+command before the for loop.</p></div>
+<div class="paragraph"><p>If the variable is read-only, the execution of the for loop is interrupted and
+the exit status will be non-zero.</p></div>
+</div>
+<div class="sect2">
+<h3 id="case">Case command</h3>
+<div class="paragraph"><p>The case command performs a pattern matching to select commands to execute.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Case command syntax
+</dt>
+<dd>
+<p>
+  <code>case <var>word</var> in <var>caseitem</var>&#8230; esac</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Case item syntax
+</dt>
+<dd>
+<p>
+  <code>(<var>patterns</var>) <var>command</var>&#8230;;;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>word</var> between the <code>case</code> and <code>in</code> tokens must be exactly one word. The
+<var>word</var> is not treated as a keyword, but you need to <a href="#quotes">quote</a>
+separator characters (such as <code>&amp;</code> and <code>|</code>) to include them as part of the
+<var>word</var>. Between the <code>in</code> and <code>esac</code> tokens you can put any number of case
+items (may be none). You can omit the first <code>(</code> token of a case item and the
+last <code>;;</code> token before the <code>esac</code> token. If the last <var>command</var> of a case
+item is terminated by a semicolon, you can omit the semicolon as well. The
+<var>command</var>s in a case item may be empty.</p></div>
+<div class="paragraph"><p>The <var>patterns</var> in a case item are one or more tokens each separated by a <code>|</code>
+token.</p></div>
+<div class="paragraph"><p>The execution of a case command starts with subjecting the <var>word</var> to
+<a href="expand.html">the four expansions</a>. Next, the following steps are taken for
+each case item (in the order of appearance):</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+For each word in the <var>patterns</var>, expand the word in the same manner as the
+  <var>word</var> and test if the expanded pattern <a href="pattern.html">matches</a> the
+  expanded word. (If a pattern is found that matches the word, the remaining
+  patterns are not expanded nor tested, so some of the <var>patterns</var> may not be
+  expanded. Yash expands and tests the patterns in the order of appearance,
+  but it may not be the case for other shells.)
+</p>
+</li>
+<li>
+<p>
+If one of the <var>patterns</var> was found to match the <var>word</var> in the previous
+  step, the <var>command</var>s in this case item are executed and the execution of
+  the whole case item ends. Otherwise, proceed to the next case item.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>The exit status of a case command is that of the <var>command</var>s executed. The
+exit status is zero if no
+<var>command</var>s were executed, that is, there were no case items, no matching
+pattern was found, or no commands were associated with the matching pattern.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, the first pattern in a case item
+cannot be <code>esac</code> (even if you do not omit the <code>(</code> token).</p></div>
+</div>
+<div class="sect2">
+<h3 id="double-bracket">Double-bracket command</h3>
+<div class="paragraph"><p>The <dfn>double-bracket command</dfn> is a syntactic construct that works similarly
+to the <a href="_test.html">test built-in</a>.
+It expands and evaluates the words between the brackets.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Double-bracket command syntax
+</dt>
+<dd>
+<p>
+  <code>[[ <var>expression</var> ]]</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>expression</var> can be a single primary or combination of primaries and
+operators.
+The expression syntax is parsed when the command is parsed, not executed.
+Operators (either primary or non-primary) must not be <a href="#quotes">quoted</a>, or
+it will be parsed as a normal word.</p></div>
+<div class="paragraph"><p>When the command is executed, operand words are subjected to the
+<a href="expand.html">four expansions</a>, but not brace expansion, field splitting,
+or pathname expansion.</p></div>
+<div class="paragraph"><p>In the double-bracket command, the following primaries from the test built-in
+can be used:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Unary primaries
+</dt>
+<dd>
+<p>
+  <code>-b</code>, <code>-c</code>, <code>-d</code>, <code>-e</code>, <code>-f</code>, <code>-G</code>, <code>-g</code>, <code>-h</code>, <code>-k</code>, <code>-L</code>, <code>-N</code>, <code>-n</code>,
+  <code>-O</code>, <code>-o</code>, <code>-p</code>, <code>-r</code>, <code>-S</code>, <code>-s</code>, <code>-t</code>, <code>-u</code>, <code>-w</code>, <code>-x</code>, <code>-z</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Binary primaries
+</dt>
+<dd>
+<p>
+  <code>-ef</code>, <code>-eq</code>, <code>-ge</code>, <code>-gt</code>, <code>-le</code>, <code>-lt</code>, <code>-ne</code>, <code>-nt</code>, <code>-ot</code>, <code>-veq</code>,
+  <code>-vge</code>, <code>-vgt</code>, <code>-vle</code>, <code>-vlt</code>, <code>-vne</code>, <code>===</code>, <code>!==</code>, <code>=~</code>, <code>&lt;</code>, <code>&gt;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>Additionally, some binary primaries can be used to compare strings, which
+works slightly differently from those for the test built-in:
+The <code>=</code> primary treats the right-hand-side operand word as a
+<a href="pattern.html">pattern</a> and tests if it matches the left-hand-side operand
+word.
+The <code>==</code> primary is the same as <code>=</code>.
+The <code>!=</code> primary is negation of the <code>=</code> primary (reverse result).</p></div>
+<div class="paragraph"><p>The operand word of a primary must be quoted if it is <code>]]</code> or can be confused
+with another primary operator.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">More primaries may be added in future versions of the shell.
+You should quote any words that start with a hyphen.</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The <code>&lt;=</code> and <code>&gt;=</code> binary primaries cannot be used in the double-bracket
+command because it cannot be parsed correctly in the shell grammar.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>The following operands (listed in the descending order of precedence) can be
+used to combine primaries:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>( <var>expression</var> )</code>
+</dt>
+<dd>
+<p>
+  A pair of parentheses change operator precedence.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>! <var>expression</var></code>
+</dt>
+<dd>
+<p>
+  An exclamation mark negates (reverses) the result.
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>expression</var> &amp;&amp; <var>expression</var></code>
+</dt>
+<dd>
+<p>
+  A double ampersand represents logical conjugation (the &#8220;and&#8221; operation).
+  The entire expression is true if and only if the operand expressions are
+  both true.
+  The left-hand-side expression is first expanded and tested.
+  The right-hand-side is expanded only if the left-hand-side is true.
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>expression</var> || <var>expression</var></code>
+</dt>
+<dd>
+<p>
+  A double vertical line represents logical conjugation (the &#8220;or&#8221;
+  operation).
+  The entire expression is false if and only if the operand expressions are
+  both false.
+  The left-hand-side expression is first expanded and tested.
+  The right-hand-side is expanded only if the left-hand-side is false.
+</p>
+</dd>
+</dl></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Unlike the test built-in, neither <code>-a</code> nor <code>-o</code> can be used as a binary
+operator in the double-bracket command.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>The exit status of the double-bracket command is 0 if <var>expression</var> is true,
+1 if false, and 2 if it cannot be evaluated because of expansion error or any
+other reasons.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The double-bracket command is also supported in bash, ksh, mksh, and zsh, but
+not defined in the POSIX standard.
+The behavior slightly differs between the shells.
+The test built-in should be preferred over the double-bracket command for
+maximum portability.</td>
+</tr></table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="funcdef">Function definition</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The function definition command defines a <a href="exec.html#function">function</a>.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Function definition syntax
+</dt>
+<dd>
+<p>
+  <code><var>funcname</var> ( ) <var>compound_command</var></code>
+ <br />
+  <code>function <var>funcname</var> <var>compound_command</var></code>
+ <br />
+  <code>function <var>funcname</var> ( ) <var>compound_command</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>In the first syntax without the <code>function</code> keyword, <var>funcname</var> cannot
+contain any special characters such as semicolons and quotation marks. In the
+second and third syntax, which cannot be used in the
+<a href="posix.html">POSIXly-correct mode</a>, <var>funcname</var> is subjected to
+<a href="expand.html">the four expansions</a> when executed. In the POSIXly-correct
+mode, <var>funcname</var> is limited to a portable (ASCII-only) name.</p></div>
+<div class="paragraph"><p>When a function definition command is executed, a function whose name is
+<var>funcname</var> is defined with its body being <var>compound_command</var>.</p></div>
+<div class="paragraph"><p>A function definition command cannot be directly <a href="redir.html">redirected</a>.
+Any redirections that follow a function definition are associated with
+<var>compound_command</var> rather than the whole function definition command.
+In <code>func() { cat; } &gt;/dev/null</code>, for example, it is not <code>func() { cat; }</code> but
+<code>{ cat; }</code> that is redirected.</p></div>
+<div class="paragraph"><p>The exit status of a function definition is zero if the function was defined
+without errors, and non-zero otherwise.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

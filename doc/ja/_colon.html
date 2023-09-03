@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>コロン組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>コロン組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>コロン組込みコマンド</dfn>は何も行わない組込みコマンドです。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>: [<var>引数</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コロンコマンドは何も行いません。コマンドライン引数は一切無視します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コロンコマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コロンコマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>引数の&#8203;<a href="expand.html">展開</a>と&#8203;<a href="redir.html">リダイレクト</a>は他のコマンドと同様に行います。</p></div>
+<div class="paragraph"><p><a href="_true.html">True コマンド</a>はコロンコマンドと同様に何も行いませんが、コロンコマンドは特殊組込みコマンドであるのに対し true コマンドは必須組込みコマンドです。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

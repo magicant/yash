@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>ドット組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>ドット組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>ドット組込みコマンド</dfn>はテキストファイルを開いて、その内容をコマンドとして解釈し実行します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>. [-AL] <var>ファイル名</var> [<var>引数</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ドットコマンドは与えられた<var>ファイル名</var>のファイルを開き、その内容をコマンドとして解釈し&#8203;<a href="exec.html#environment">現在のコマンド実行環境</a>で実行します。</p></div>
+<div class="paragraph"><p><var>ファイル名</var>に続けて<var>引数</var>が与えられているときは、&#8203;<a href="exec.html#function">関数</a>の実行の時と同様に、コマンドの実行前に<var>引数</var>が&#8203;<a href="params.html#positional">位置パラメータ</a>に設定され、実行後に元の位置パラメータに戻ります。</p></div>
+<div class="paragraph"><p><var>ファイル名</var>にスラッシュ (<code>/</code>) が一つも入っていない場合は、&#8203;<a href="exec.html#search">コマンドの検索</a>のときと同様に <a href="params.html#sv-path"><code>PATH</code> 変数</a>の検索を行い、開くべきファイルを探します。ただしファイルは読み込み可能でさえあれば実行可能である必要はありません。検索の結果ファイルが見つかれば、そのファイルの内容を解釈・実行します。ファイルが見つからなかった場合、<a href="posix.html">POSIX 準拠モード</a>では直ちにエラーになります。POSIX 準拠モードでないときは現在の作業ディレクトリのファイルを開くことを試みます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-alias</code>
+</dt>
+<dd>
+<p>
+ファイルを読み込んで実行する際、エイリアス展開を行いません。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-L</code>
+</dt>
+<dt class="hdlist1">
+<code>--autoload</code>
+</dt>
+<dd>
+<p>
+<var>ファイル名</var>がスラッシュを含んでいるかどうかにかかわらず、<code>PATH</code> 変数の代わりに <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code> 変数</a>を検索して開くべきファイルを探します。<var>ファイル名</var>は現在の作業ディレクトリからの相対パス名とはみなしません。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ドットコマンドでは、最初のオペランドより後にあるコマンドライン引数は全てオペランドとして解釈します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>ファイル名</var>
+</dt>
+<dd>
+<p>
+読み込むファイルのパス名です。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>引数</var>&#8230;
+</dt>
+<dd>
+<p>
+ファイルの内容を実行している間に位置パラメータに設定する文字列です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ドットコマンドの終了ステータスは、ファイルから読み込んで実行した最後のコマンドの終了ステータスです。ファイルの内容に一つもコマンドが入っていなかったときは終了ステータスは 0 です。ファイルが見つからなかったり開けなかったりしたときは終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ドットコマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>シェルが&#8203;<a href="interact.html">対話モード</a>でないとき、読み込むべきファイルが見つからなかったり開けなかったりするとシェルは直ちに終了します。</p></div>
+<div class="paragraph"><p>POSIX にはオプションに関する規定はありません。よってオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>POSIX には<var>引数</var>オペランドによって位置パラメータを変更できることについての規定はありません。よって POSIX 準拠モードでは<var>引数</var>オペランドを与えるとエラーになります。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Break built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Break built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>break built-in</dfn> aborts a loop being executed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>break [<var>nest</var>]</code>
+</p>
+</li>
+<li>
+<p>
+<code>break -i</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed without the <code>-i</code> (<code>--iteration</code>) option, the built-in aborts a
+currently executed <a href="syntax.html#for">for</a>,
+<a href="syntax.html#while-until">while</a>, or <a href="syntax.html#while-until">until</a>
+loop.
+When executed in nested loops, it aborts the <var>nest</var>th innermost loop.
+The default <var>nest</var> is one.
+If the number of currently executed nested loops is less than <var>nest</var>, the
+built-in aborts the outermost loop.</p></div>
+<div class="paragraph"><p>When executed with the <code>-i</code> (<code>--iteration</code>) option, the built-in aborts the
+currently executed (innermost) <a href="_eval.html#iter">iterative execution</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--iteration</code>
+</dt>
+<dd>
+<p>
+Abort an iterative execution instead of a loop.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>nest</var>
+</dt>
+<dd>
+<p>
+The number of loops to abort, which must be a positive integer.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the break built-in is:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+zero if a loop was successfully aborted.
+</p>
+</li>
+<li>
+<p>
+that of the command that was executed just before the break built-in if an
+  iterative execution was successfully aborted.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The break built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the break built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>Treatment of currently executed loops that are not lexically enclosing the
+break built-in is unspecified in POSIX. Examples of such loops include:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+A loop invoking a function in which the break built-in is used.
+</p>
+</li>
+<li>
+<p>
+A loop in which a <a href="_trap.html">trap</a> action is executed in which the
+  break built-in is used.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash does not allow breaking such loops.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

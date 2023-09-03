@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Disown 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Disown 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Disown 組込みコマンド</dfn>はジョブを削除します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>disown [-a] [<var>ジョブ</var>&#8230;}</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Disown コマンドはシェルが管理しているジョブを削除します。削除したジョブは&#8203;<a href="job.html">ジョブ制御</a>の対象から外れますが、ジョブを構成するコマンドの実行は継続します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--all</code>
+</dt>
+<dd>
+<p>
+全てのジョブを削除します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>ジョブ</var>
+</dt>
+<dd>
+<p>
+削除するジョブの&#8203;<a href="job.html#jobid">ジョブ ID</a>。
+</p>
+<div class="paragraph"><p>複数指定することもできます。何も指定しないと現在のジョブを削除します。非 <a href="posix.html">POSIX 準拠モード</a>ではジョブ ID の先頭の <code>%</code> は省略できます。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り disown コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Disown コマンドは&#8203;<a href="builtin.html#types">任意組込みコマンド</a>です。
+POSIX では disown コマンドの動作は規定されていません。
+このコマンドは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

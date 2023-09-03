@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Fg 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Fg 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Fg 組込みコマンド</dfn>はジョブをフォアグラウンドで実行します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fg [<var>ジョブ</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Fg コマンドはジョブをフォアグラウンドに移動し SIGCONT シグナルを送ります。これにより、ジョブが停止していた場合はフォアグラウンドで実行が再開されます。Fg コマンドはジョブの実行が終了するまで待機し、ジョブの終了ステータスを返します。</p></div>
+<div class="paragraph"><p>ジョブの実行を再開する前に fg コマンドはジョブの名前を標準出力に出力します。
+非 <a href="posix.html">POSIX 準拠モード</a>ではジョブの番号も出力されます。</p></div>
+<div class="paragraph"><p>Fg コマンドは&#8203;<a href="job.html">ジョブ制御</a>が有効な時しか使えません。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>ジョブ</var>
+</dt>
+<dd>
+<p>
+実行するジョブの&#8203;<a href="job.html#jobid">ジョブ ID</a>。
+</p>
+<div class="paragraph"><p>複数指定すると指定した順に一つずつジョブをフォアグラウンドで実行します。何も指定しないと現在のジョブを実行します。</p></div>
+<div class="paragraph"><p>非 <a href="posix.html">POSIX 準拠モード</a>ではジョブ ID の先頭の <code>%</code> は省略できます。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ジョブを正しく実行できた場合、fg コマンドの終了ステータスは (最後に) 実行したジョブの終了ステータスです。エラーが発生した場合は終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Fg コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では<var>ジョブ</var>は一つまでしか指定できません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

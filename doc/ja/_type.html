@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Type 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Type 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Type 組込みコマンド</dfn>はコマンドの種類を特定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>type [-abefkp] [<var>コマンド</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Type コマンドは <a href="_command.html">command コマンド</a>に <code>-V</code> オプションを付けたものと同じです。その他オプション・オペランド・終了ステータスは command コマンドと同じです。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>POSIX では、type コマンドと command コマンドとの関係について規定していません。従って他のシェルの type コマンドは command コマンドに <code>-V</code> オプションを付けたものとは異なる動作をすることがあります。また POSIX は type コマンドのオプションを規定していません。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では少なくとも一つ<var>コマンド</var>を指定する必要があります。</p></div>
+<div class="paragraph"><p>Type コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

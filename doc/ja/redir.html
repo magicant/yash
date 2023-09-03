@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash がサポートするリダイレクト機能の説明" />
+<title>リダイレクト</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>リダイレクト</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>リダイレクト</dfn>はコマンドのファイル記述子を変更する機能です。リダイレクトを使用すると、コマンドの標準入力や標準出力を通常とは異なるファイルに繋ぎ換えた状態でコマンドを実行することができます。</p></div>
+<div class="paragraph"><p>リダイレクトはコマンド (<a href="syntax.html#simple">単純コマンド</a>または&#8203;<a href="syntax.html#compound">複合コマンド</a>) にリダイレクト演算子を付することで行います。単純コマンドでは (他のトークンとくっつかない限り) どこでもリダイレクト演算子を置くことができます。複合コマンドではコマンドの最後にリダイレクト演算子を付けます。</p></div>
+<div class="paragraph"><p>リダイレクトはコマンドの実行が始まる前に処理されます。一つのコマンドに複数のリダイレクトがある場合は、リダイレクト演算子が書いてある順序で処理されます。オペランドなしの <a href="_exec.html">exec 組込みコマンド</a>を実行する場合を除き、リダイレクトは対象となっているコマンドに対してのみ働きます。すなわち、対象のコマンドの実行が終わるとリダイレクトによって変更されたファイル記述子は元の状態に戻ります。</p></div>
+<div class="paragraph"><p>リダイレクト演算子は、<code>&lt;</code> または <code>&gt;</code> で始まります。<code>&lt;</code> で始まるリダイレクト演算子はデフォルトでは標準入力 (ファイル記述子 0) に作用します。<code>&gt;</code> で始まるリダイレクト演算子はデフォルトでは標準出力 (ファイル記述子 1) に作用します。どちらの種類の演算子でも、演算子の直前に非負整数を指定することでデフォルト以外のファイル記述子に作用させることができます (このとき整数と演算子との間に一切空白などを入れてはいけません。また整数を&#8203;<a href="syntax.html#quotes">クォート</a>してもいけません)。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="file">ファイルへのリダイレクト</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>最もよく使われるリダイレクトは、ファイルへのリダイレクトです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+入力のリダイレクト
+</dt>
+<dd>
+<p>
+<code>&lt; <var>トークン</var></code>
+</p>
+</dd>
+<dt class="hdlist1">
+出力のリダイレクト
+</dt>
+<dd>
+<p>
+<code>&gt; <var>トークン</var></code>
+</p>
+<div class="paragraph"><p><code>&gt;| <var>トークン</var></code></p></div>
+<div class="paragraph"><p><code>&gt;&gt; <var>トークン</var></code></p></div>
+</dd>
+<dt class="hdlist1">
+入出力のリダイレクト
+</dt>
+<dd>
+<p>
+<code>&lt;&gt; <var>トークン</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>リダイレクトに含まれる<var>トークン</var>は&#8203;<a href="expand.html">四種展開</a>されます。&#8203;<a href="interact.html">対話シェル</a>ではさらに&#8203;<a href="expand.html#glob">パス名展開</a>も行われます (パス名展開の結果が一つのファイルでなければエラーです)。<var>トークン</var>の展開結果がリダイレクト対象のファイル名として使われます。</p></div>
+<div class="paragraph"><p>入力のリダイレクトでは標準入力が対象ファイルからの読み込み専用ファイル記述子に置き換えられます。対象ファイルを開くことができなければエラーになります。</p></div>
+<div class="paragraph"><p>出力のリダイレクトでは標準出力が対象ファイルへの書き込み専用ファイル記述子に置き換えられます。対象ファイルが存在しなければ空の通常ファイルが作成されます。対象ファイルが既にある場合はそのファイルが開かれます。ただし演算子の種類によって以下のように挙動が異なります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+演算子 <code>&gt;|</code> では、対象ファイルが存在しそれが通常のファイルの場合、ファイルを開く際にファイルの内容を空にします。
+</p>
+</li>
+<li>
+<p>
+演算子 <code>&gt;</code> は、&#8203;<a href="_set.html#so-clobber">clobber オプション</a>が有効ならば演算子 <code>&gt;|</code> と同じです。しかし clobber オプションが無効ならば、対象ファイルが存在しそれが通常のファイルの場合、エラーになります。
+</p>
+</li>
+<li>
+<p>
+演算子 <code>&gt;&gt;</code> では、ファイルを追記モードで開きます。ファイルへの書き込みは常にファイルの末尾へ追記する形で行われます。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>入出力のリダイレクトでは標準入力が対象ファイルへの読み書き両用ファイル記述子に置き換えられます。対象ファイルが存在しなければ空の通常ファイルが作成されます。</p></div>
+<div class="sect2">
+<h3 id="socket">ソケットリダイレクト</h3>
+<div class="paragraph"><p>ファイルのリダイレクトにおいて、対象ファイル名が <code>/dev/tcp/<var>ホスト名</var>/<var>ポート</var></code> または <code>/dev/udp/<var>ホスト名</var>/<var>ポート</var></code> の形式をしていて、そのファイルを開くことができない場合、ファイル名に含まれる<var>ホスト名</var>と<var>ポート</var>に対して通信を行うためのソケットが開かれます。</p></div>
+<div class="paragraph"><p><code>/dev/tcp/<var>ホスト名</var>/<var>ポート</var></code> が対象の場合はストリーム通信ソケットを、<code>/dev/udp/<var>ホスト名</var>/<var>ポート</var></code> が対象の場合はデータグラム通信ソケットを開きます。典型的には、前者は TCP を、後者は UDP をプロトコルとして使用します。</p></div>
+<div class="paragraph"><p>ソケットリダイレクトはどのリダイレクト演算子を使っているかにかかわらず常に読み書き両用のファイル記述子を開きます。</p></div>
+<div class="paragraph"><p>ソケットリダイレクトは POSIX 規格にはない yash の独自拡張です。ただし、bash にも同様の機能があります。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="dup">ファイル記述子の複製</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ファイル記述子の複製のリダイレクトでは、既存のファイル記述子をコピーしたり閉じたりできます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+ファイル記述子の複製
+</dt>
+<dd>
+<p>
+<code>&lt;&amp; <var>トークン</var></code>
+</p>
+<div class="paragraph"><p><code>&gt;&amp; <var>トークン</var></code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p><var>トークン</var>は<a href="#file">ファイルのリダイレクト</a>の場合と同様に展開されますが、これはファイル名ではなくファイル記述子として解釈されます。すなわち、<var>トークン</var>の展開結果はファイル記述子を表す非負整数となる必要があります。</p></div>
+<div class="paragraph"><p>演算子 <code>&lt;&amp;</code> は<var>トークン</var>の展開結果で示されたファイル記述子を標準入力に複製します。演算子 <code>&gt;&amp;</code> は<var>トークン</var>の展開結果で示されたファイル記述子を標準出力に複製します。演算子の直前に非負整数を指定することで、複製先のファイル記述子を変更できます。</p></div>
+<div class="paragraph"><p><var>トークン</var>の展開結果が非負整数ではなくハイフン (<code>-</code>) となった場合は、ファイル記述子を複製する代わりに閉じます。演算子 <code>&lt;&amp;</code> では標準入力が、演算子 <code>&gt;&amp;</code> では標準出力がデフォルトで閉じられますが、演算子の直前に非負整数を指定することで、閉じるファイル記述子を変更できます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では、<code>&lt;&amp;</code> で複製するファイル記述子は読み込み可能でなければならず、<code>&gt;&amp;</code> で複製するファイル記述子は書き込み可能でなければなりません。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="here">ヒアドキュメントとヒアストリング</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>ヒアドキュメント</dfn>・<dfn>ヒアストリング</dfn>を使うとコマンドに直接テキストを渡すことができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+ヒアドキュメント
+</dt>
+<dd>
+<p>
+<code>&lt;&lt; <var>トークン</var></code>
+</p>
+<div class="paragraph"><p><code>&lt;&lt;- <var>トークン</var></code></p></div>
+</dd>
+<dt class="hdlist1">
+ヒアストリング
+</dt>
+<dd>
+<p>
+<code>&lt;&lt;&lt; <var>トークン</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ヒアドキュメント・ヒアストリングでは、標準入力がヒアドキュメント・ヒアストリングの内容を読み込み可能なファイル記述子に置き換えられます。</p></div>
+<div class="paragraph"><p>ヒアドキュメント演算子 (<code>&lt;&lt;</code> または <code>&lt;&lt;-</code>) がコマンド中に現れると、その演算子のある行の次の行からはヒアドキュメントの内容とみなされます。ヒアドキュメントの内容の部分は、シェルのコマンドとしては解釈されません。演算子の後にある<var>トークン</var>はヒアドキュメントの内容の終わりを表します。(<var>トークン</var>では&#8203;<a href="expand.html">展開</a>は行われませんが、&#8203;<a href="syntax.html">クォート</a>は認識されます。) 演算子のある行より後の行で<var>トークン</var>だけからなる行が現れた時点でヒアドキュメントの内容は終わりだと判断されます。終わりを表す行はヒアドキュメントの内容には含まれません。演算子 <code>&lt;&lt;-</code> を使っている場合は、ヒアドキュメントの内容の各行頭にあるタブはすべて削除されます。このとき<var>トークン</var>の前にタブがあっても (その行に他の余計な文字がなければ) ヒアドキュメントの内容の終わりとして認識します。</p></div>
+<div class="paragraph"><p>一行のコマンドに複数のリダイレクト演算子がある場合は、リダイレクトの内容は順番に処理されます。すなわち、その行の次の行からは最初のリダイレクトの内容として扱われ、その内容が終わったら、その次の行からは次のリダイレクトの内容として扱われます。最後のリダイレクトの内容が終わったら、その次の行からは再びコマンドとして解釈されます。</p></div>
+<div class="paragraph"><p>リダイレクトの内容は基本的に単なる文字列として扱われます。内容に含まれる空白やタブ、その他の記号はそのままコマンドに渡されます。ただし、<var>トークン</var>が全くクォートされていない場合は、ヒアドキュメントの内容は&#8203;<a href="expand.html#params">パラメータ展開</a>・&#8203;<a href="expand.html#cmdsub">コマンド置換</a>・&#8203;<a href="expand.html#arith">数式展開</a>され、<code>$</code>, <code>`</code>, <code>"</code>, <code>&#x5C;</code> の直前にある場合および行の連結を行う場合にのみバックスラッシュを&#8203;<a href="syntax.html#quotes">引用符</a>として扱えます。</p></div>
+<div class="paragraph"><p>ヒアストリングでは、演算子の後にある<var>トークン</var>は<a href="#file">ファイルのリダイレクト</a>の場合と同様に展開されます。この展開結果がヒアストリングの内容となります。ただしヒアストリングの内容の末尾には自動的に改行が付きます。</p></div>
+<div class="paragraph"><p>ヒアストリングは POSIX 規格にはない yash の独自拡張ですが、bash, ksh, zsh にも同様の機能があります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="pipe">パイプリダイレクト</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>パイプリダイレクト</dfn>を用いるとプロセス間通信に利用可能なパイプを開くことができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+パイプリダイレクト
+</dt>
+<dd>
+<p>
+<code>&gt;&gt;| <var>トークン</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><var>トークン</var>は<a href="#file">ファイルのリダイレクト</a>の場合と同様に展開されますが、これはファイル名ではなくファイル記述子として解釈されます。すなわち、<var>トークン</var>の展開結果はファイル記述子を表す非負整数となる必要があります。</p></div>
+<div class="paragraph"><p>パイプリダイレクトはパイプを開きます。標準出力 (演算子 <code>&gt;&gt;|</code> の直前に非負整数を指定している場合はその値のファイル記述子) がパイプに書きこむためのファイル記述子になります。また<var>トークン</var>の展開結果で示されたファイル記述子がパイプから読み込むためのファイル記述子になります。</p></div>
+<div class="paragraph"><p>パイプリダイレクトは POSIX 規格にはない yash の独自拡張です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="process">プロセスリダイレクト</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>プロセスリダイレクトを用いると別のコマンドの入力または出力を受け渡せるパイプを開くことができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+プロセスリダイレクト
+</dt>
+<dd>
+<p>
+<code>&lt;(<var>サブコマンド</var>…)</code>
+</p>
+<div class="paragraph"><p><code>&gt;(<var>サブコマンド</var>…)</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>プロセスリダイレクトでは、<var>サブコマンド</var>が&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。このとき、<code>&lt;(<var>サブコマンド</var>…)</code> の形式のプロセスリダイレクトでは、<var>サブコマンド</var>の標準出力がこのコマンドの標準入力に渡るようパイプが開かれます。<code>&gt;(<var>サブコマンド</var>…)</code> の形式のプロセスリダイレクトでは、このコマンドの標準出力が<var>サブコマンド</var>の標準入力に渡るようパイプが開かれます。</p></div>
+<div class="paragraph"><p>プロセスリダイレクトは POSIX 規格にはない yash の独自拡張です。Bash と zsh にはプロセスリダイレクトと同様の構文を用いるプロセス置換という機能がありますが、プロセスリダイレクトとプロセス置換の挙動は異なっており、互換性はありません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

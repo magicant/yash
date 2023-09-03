@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Echo 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Echo 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Echo 組込みコマンド</dfn>はコマンドライン引数を標準出力に出力します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>echo [<var>文字列</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Echo コマンドはコマンドライン引数を全てオペランドとして解釈します。オプションは、以下に述べる例外を除いて一切解釈しません。オプションはオペランドより前に置く必要があります。Echo コマンドでは構文エラーは絶対に起きません。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Echo コマンドは与えられたコマンドライン引数と改行を標準出力に出力します。引数がない場合は改行だけを出力します。引数が複数ある場合はそれぞれを空白文字で区切って出力します。</p></div>
+<div class="sect2">
+<h3 id="escapes">エスケープシーケンス</h3>
+<div class="paragraph"><p>Echo コマンドに与える引数では、後述の <code>ECHO_STYLE</code> 変数と <code>-e</code> オプションの指定によって以下のエスケープシーケンスを使用することができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\a</code>
+</dt>
+<dd>
+<p>
+ベル文字 (ASCII コード番号 7)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\b</code>
+</dt>
+<dd>
+<p>
+バックスペース (ASCII コード番号 8)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c</code>
+</dt>
+<dd>
+<p>
+これ以降何も出力しない。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\e</code>
+</dt>
+<dd>
+<p>
+エスケープ文字 (ASCII コード番号 27)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\f</code>
+</dt>
+<dd>
+<p>
+フォームフィード (ASCII コード番号 12)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\n</code>
+</dt>
+<dd>
+<p>
+改行文字 (ASCII コード番号 10)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\r</code>
+</dt>
+<dd>
+<p>
+復帰文字 (ASCII コード番号 13)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\t</code>
+</dt>
+<dd>
+<p>
+水平タブ (ASCII コード番号 9)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\v</code>
+</dt>
+<dd>
+<p>
+垂直タブ (ASCII コード番号 11)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+バックスラッシュ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\0<var>xxx</var></code>
+</dt>
+<dd>
+<p>
+八進数 <var>xxx</var> (最大三桁) で表わされるコード番号の文字
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>エスケープシーケンスが無効の時は、エスケープシーケンスは解釈せずにそのまま出力します。</p></div>
+</div>
+<div class="sect2">
+<h3 id="echo_style"><code>ECHO_STYLE</code> 変数</h3>
+<div class="paragraph"><p>Echo コマンドがオプションやエスケープシーケンスを解釈するかどうかは <a href="params.html#sv-echo_style"><code>ECHO_STYLE</code> 変数</a>の値によります。以下に、この変数の値と echo コマンドの動作との対応を示します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>SYSV</code>
+</dt>
+<dt class="hdlist1">
+<code>XSI</code>
+</dt>
+<dd>
+<p>
+オプションは一切解釈しません。常にエスケープシーケンスを解釈します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>BSD</code>
+</dt>
+<dd>
+<p>
+<code>-n</code> オプションを解釈します。エスケープシーケンスは一切解釈しません。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>GNU</code>
+</dt>
+<dd>
+<p>
+<code>-n</code>, <code>-e</code>, <code>-E</code> オプションを解釈します。エスケープシーケンスは <code>-e</code> オプションを指定したときだけ解釈します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>ZSH</code>
+</dt>
+<dd>
+<p>
+<code>-n</code>, <code>-e</code>, <code>-E</code> オプションを解釈します。エスケープシーケンスは <code>-E</code> オプションを指定しないかぎり解釈します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>DASH</code>
+</dt>
+<dd>
+<p>
+<code>-n</code> オプションを解釈します。常にエスケープシーケンスを解釈します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>RAW</code>
+</dt>
+<dd>
+<p>
+オプションもエスケープシーケンスも一切解釈しません。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>ECHO_STYLE</code> 変数が設定されていないときは、値が <code>SYSV</code> または <code>XSI</code> の場合の動作をします。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dd>
+<p>
+最後に改行を出力しないようにする。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dd>
+<p>
+エスケープシーケンスを解釈するようにする。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-E</code>
+</dt>
+<dd>
+<p>
+エスケープシーケンスを解釈せず、全ての文字をそのまま出力するようにする。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り echo コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>POSIX には <code>ECHO_STYLE</code> 変数およびオプションに関する規定はありません。POSIX では、<code>-n</code> オプションが指定されたときまたは引数にバックスラッシュが含まれている場合の動作を規定していません。可搬性のあるシェルスクリプトを書くには、echo コマンドよりも <a href="_printf.html">printf コマンド</a>の使用を推奨します。</p></div>
+<div class="paragraph"><p><code>ECHO_STYLE</code> 変数のとれる値は主に他のシェルの実装を基に決めてありますが、これらの実装を yash が完全に模倣することを意図するものではありません。Zsh の echo 組込みには単一のハイフンをオプションとオペランドの区切りとして解釈するという挙動がありますが、yash ではこのようなハイフンの使い方はできません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

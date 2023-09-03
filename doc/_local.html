@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Local built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Local built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>local built-in</dfn> prints or sets local variables.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>local [-rxX] [<var>name</var>[=<var>value</var>]&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The local built-in is equivalent to the <a href="_typeset.html">typeset built-in</a>
+except that the <code>-f</code> (<code>--functions</code>) and <code>-g</code> (<code>--global</code>) options cannot be
+used.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The local built-in is an <a href="builtin.html#types">elective built-in</a>.
+It cannot be used in the <a href="posix.html">POSIXly-correct mode</a>
+because POSIX does not define its behavior.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

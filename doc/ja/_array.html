@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Array 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Array 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Array 組込みコマンド</dfn>は&#8203;<a href="params.html#arrays">配列</a>の表示や操作を行います。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>array</code>
+</p>
+</li>
+<li>
+<p>
+<code>array <var>配列名</var> [<var>値</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>array -d <var>配列名</var> [<var>インデックス</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>array -i <var>配列名</var> <var>インデックス</var> [<var>値</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>array -s <var>配列名</var> <var>インデックス</var> <var>値</var></code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オプションもオペランドも指定せずに実行すると、array コマンドは全ての配列の定義を (コマンドとして解釈可能な形式で) 標準出力に出力します。</p></div>
+<div class="paragraph"><p>オプションを指定せずに<var>配列名</var>と<var>値</var>を与えて実行すると、array コマンドはその配列の内容を指定された値に設定します。</p></div>
+<div class="paragraph"><p><code>-d</code> (<code>--delete</code>) オプションを指定して実行すると、array コマンドは指定した配列の指定したインデックスにある要素を削除します。配列の要素数は削除した要素の分だけ少なくなります。存在しない要素のインデックスを指定したときは無視します。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--insert</code>) オプションを指定して実行すると、array コマンドは指定した配列の指定したインデックスにある要素の直後に指定した値を要素として追加します。配列の要素数は追加した要素の分だけ増えます。<var>インデックス</var> として 0 を指定すると配列の先頭に要素を追加します。<var>インデックス</var>として配列の要素数より大きな数を指定すると配列の末尾に要素を追加します。</p></div>
+<div class="paragraph"><p><code>-s</code> (<code>--set</code>) オプションを指定して実行すると、array コマンドは指定した配列の指定したインデックスにある要素の値を指定した値に変更します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--delete</code>
+</dt>
+<dd>
+<p>
+配列の要素を削除します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--insert</code>
+</dt>
+<dd>
+<p>
+配列に要素を挿入します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s</code>
+</dt>
+<dt class="hdlist1">
+<code>--set</code>
+</dt>
+<dd>
+<p>
+配列の要素を変更します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>配列名</var>
+</dt>
+<dd>
+<p>
+表示または操作する配列の名前です。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>インデックス</var>
+</dt>
+<dd>
+<p>
+配列の要素を指定する自然数です。インデックスは最初の要素から順に 1, 2, 3, … と割り振られます。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>値</var>
+</dt>
+<dd>
+<p>
+配列の要素となる文字列です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り array コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>POSIX には array コマンドに関する規定はありません。
+Yash ではこれを&#8203;<a href="builtin.html#types">拡張組込みコマンド</a>として実装しています。</p></div>
+<div class="paragraph"><p><code>array <var>配列名</var> [<var>値</var>&#8230;]</code> の形式の array コマンドは変数代入を用いて <code><var>配列名</var>=(<var>値</var>&#8230;)</code> と書くこともできます。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Umask 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Umask 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Umask 組込みコマンド</dfn>はシェルプロセスのファイルモード作成マスクを表示・設定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>umask <var>マスク</var></code>
+</p>
+</li>
+<li>
+<p>
+<code>umask [-S]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オペランドが与えられていないとき、umask コマンドはシェルプロセスの現在のファイルモード作成マスクを標準出力に出力します。<code>-S</code> (<code>--symbolic</code>) オプションで出力の形式を指定できます。出力はオペランドとして再利用可能な形式になっています。</p></div>
+<div class="paragraph"><p>オペランドが与えられているとき、umask コマンドはシェルプロセスのファイルモード作成マスクを与えられたオペランドの値に設定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-S</code>
+</dt>
+<dt class="hdlist1">
+<code>--symbolic</code>
+</dt>
+<dd>
+<p>
+このオプションが指定されているときは、記号形式でファイルモード作成マスクを出力します。このオプションが指定されていないときは、数値形式で出力します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>マスク</var>
+</dt>
+<dd>
+<p>
+このオペランドが与えられているときは、umask コマンドはファイルモード作成マスクをこの値に設定します。値は以下に述べる数値形式と記号形式のどちらかで与えます。
+</p>
+</dd>
+</dl></div>
+<div class="sect2">
+<h3 id="_数値形式">数値形式</h3>
+<div class="paragraph"><p>数値形式は 0 以上の八進整数でマスクを指定します。これは以下の各モードを表す自然数のいくつかの和です。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+0400
+</dt>
+<dd>
+<p>
+ユーザの読み取り権限
+</p>
+</dd>
+<dt class="hdlist1">
+0200
+</dt>
+<dd>
+<p>
+ユーザの書き込み権限
+</p>
+</dd>
+<dt class="hdlist1">
+0100
+</dt>
+<dd>
+<p>
+ユーザの実行権限
+</p>
+</dd>
+<dt class="hdlist1">
+0040
+</dt>
+<dd>
+<p>
+グループの読み取り権限
+</p>
+</dd>
+<dt class="hdlist1">
+0020
+</dt>
+<dd>
+<p>
+グループの書き込み権限
+</p>
+</dd>
+<dt class="hdlist1">
+0010
+</dt>
+<dd>
+<p>
+グループの実行権限
+</p>
+</dd>
+<dt class="hdlist1">
+0004
+</dt>
+<dd>
+<p>
+その他の読み取り権限
+</p>
+</dd>
+<dt class="hdlist1">
+0002
+</dt>
+<dd>
+<p>
+その他の書き込み権限
+</p>
+</dd>
+<dt class="hdlist1">
+0001
+</dt>
+<dd>
+<p>
+その他の実行権限
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="_記号形式">記号形式</h3>
+<div class="paragraph"><p>記号形式は以下のような書式の記号列でマスク<strong>しない</strong>権限を指定します。</p></div>
+<div class="paragraph"><p>記号列は一つ以上の<var>節</var>をカンマ (<code>,</code>) で区切ったものです。
+<var>節</var>は<var>対象</var>の列と一つ以上の<var>動作</var>からなります。</p></div>
+<div class="paragraph"><p><var>対象</var>には以下の記号をいくつでも指定できます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>u</code>
+</dt>
+<dd>
+<p>
+ユーザ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>g</code>
+</dt>
+<dd>
+<p>
+グループ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>o</code>
+</dt>
+<dd>
+<p>
+その他
+</p>
+</dd>
+<dt class="hdlist1">
+<code>a</code>
+</dt>
+<dd>
+<p>
+ユーザ・グループ・その他の全て
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><var>対象</var>が一つも指定されていない場合は <code>a</code> が指定されているものとみなします。</p></div>
+<div class="paragraph"><p><var>動作</var>は以下の<var>演算子</var>と<var>権限</var>の組み合わせです。
+<var>演算子</var>は以下のどれかです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>=</code>
+</dt>
+<dd>
+<p>
+<var>対象</var>に対する設定を<var>権限</var>にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#43;</code>
+</dt>
+<dd>
+<p>
+<var>対象</var>に対する設定に<var>権限</var>を加えます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-</code>
+</dt>
+<dd>
+<p>
+<var>対象</var>に対する設定から<var>権限</var>を除きます。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><var>権限</var>は以下のどれかです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>r</code>
+</dt>
+<dd>
+<p>
+読み取り権限
+</p>
+</dd>
+<dt class="hdlist1">
+<code>w</code>
+</dt>
+<dd>
+<p>
+書き込み権限
+</p>
+</dd>
+<dt class="hdlist1">
+<code>x</code>
+</dt>
+<dd>
+<p>
+実行権限
+</p>
+</dd>
+<dt class="hdlist1">
+<code>X</code>
+</dt>
+<dd>
+<p>
+実行権限 (元々実行権限が設定されていた場合のみ)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>s</code>
+</dt>
+<dd>
+<p>
+Set-user-ID, Set-group-ID
+</p>
+</dd>
+<dt class="hdlist1">
+<code>u</code>
+</dt>
+<dd>
+<p>
+現在のユーザの値
+</p>
+</dd>
+<dt class="hdlist1">
+<code>g</code>
+</dt>
+<dd>
+<p>
+現在のグループの値
+</p>
+</dd>
+<dt class="hdlist1">
+<code>o</code>
+</dt>
+<dd>
+<p>
+現在のその他の値
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>r</code>, <code>w</code>, <code>x</code>, <code>X</code>, <code>s</code> の記号同士は一度に組み合わせて指定できます。</p></div>
+<div class="paragraph"><p>例えば <code>umask u=rwx,go+r-w</code> を実行すると、ユーザの読み取り権限と書き込み権限と実行権限をマスクしないようにし、グループとその他の読み取り権限をマスクしないようにし、グループとその他の書き込み権限をマスクするようにします。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ファイルモード作成マスクが正しく出力または設定できたときは、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Ulimit コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX は <code>-S</code> オプションを指定しなかった場合の出力形式が必ずしも数値形式であるとは規定していません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

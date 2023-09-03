@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Alias built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Alias built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>alias built-in</dfn> defines and/or prints
+<a href="syntax.html#aliases">aliases</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>alias [-gp] [<var>name</var>[=<var>value</var>]&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The alias built-in defines and/or prints <a href="syntax.html#aliases">aliases</a> as
+specified by operands.
+The printed aliases can be used as (part of) shell commands.
+The built-in prints all currently defined aliases when given no operands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-g</code>
+</dt>
+<dt class="hdlist1">
+<code>--global</code>
+</dt>
+<dd>
+<p>
+With this option, aliases are defined as global aliases;
+without this option, as normal aliases.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--prefix</code>
+</dt>
+<dd>
+<p>
+With this option, aliases are printed in a full command form like
+<code>alias -g foo='bar'</code>.
+Without this option, only command operands are printed like <code>foo='bar'</code>.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>name</var>
+</dt>
+<dd>
+<p>
+The name of an alias that should be printed.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>name</var>=<var>value</var>
+</dt>
+<dd>
+<p>
+The name and value of an alias that is being defined.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the alias built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The characters that cannot be used in an alias name are the space, tab,
+newline, and any of <code>=$&lt;&gt;\'"`;&amp;|()#</code>.
+You can use any characters in an alias value.</p></div>
+<div class="paragraph"><p>The alias built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the alias built-in, thus no options
+are available in the <a href="posix.html">POSIXly correct mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

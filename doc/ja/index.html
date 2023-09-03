@@ -1,0 +1,1167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash のマニュアルの目次" />
+<title>Yet another shell (yash) マニュアル</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Yet another shell (yash) マニュアル</h1>
+<span id="author">渡邊裕貴</span><br />
+<span id="email"><code>&lt;<a href="mailto:magicant@users.osdn.me">magicant@users.osdn.me</a>&gt;</code></span><br />
+<span id="revnumber">version 2.55,</span>
+<span id="revdate">2023-08-20</span>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="contents-list">目次</h2>
+<div class="sectionbody">
+<div class="openblock list-group">
+<div class="content">
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<a href="intro.html">はじめに</a>
+</p>
+</li>
+<li>
+<p>
+<a href="invoke.html">シェルの起動</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="invoke.html#arguments">起動時のコマンドライン引数</a>
+</p>
+</li>
+<li>
+<p>
+<a href="invoke.html#init">シェルの初期化処理</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="syntax.html">コマンドの文法</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="syntax.html#tokens">トークンの解析と予約語</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#quotes">クォート</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#aliases">エイリアス</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#simple">単純コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#pipelines">パイプライン</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#and-or">And/or リスト</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#async">コマンドの区切りと非同期コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#compound">複合コマンド</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="syntax.html#grouping">グルーピング</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#if">If 文</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#while-until">While および until ループ</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#for">For ループ</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#case">Case 文</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#double-bracket">二重ブラケットコマンド</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="syntax.html#funcdef">関数定義</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="params.html">パラメータと変数</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="params.html#positional">位置パラメータ</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#special">特殊パラメータ</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#variables">変数</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="params.html#shellvars">シェルが使用する変数</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#arrays">配列</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="expand.html">単語の展開</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="expand.html#tilde">チルダ展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#params">パラメータ展開</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="expand.html#param-prefix">前置詞</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-name">パラメータ名</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-index">インデックス</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-mod">加工指定</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="expand.html#cmdsub">コマンド置換</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#arith">数式展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#brace">ブレース展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#split">単語分割</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#glob">パス名展開</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="expand.html#extendedglob">パス名展開の拡張機能</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="pattern.html">パターンマッチング記法</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="pattern.html#normal">通常の文字</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#single">一文字ワイルドカード</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#multiple">複数文字ワイルドカード</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bracket">ブラケット記法</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-normal">(ブラケット記法パターンにおける) 通常の文字</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-range">範囲指定</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-colsym">照合シンボル</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-eqclass">等価クラス</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-chclass">文字クラス</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="redir.html">リダイレクト</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="redir.html#file">ファイルへのリダイレクト</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="redir.html#socket">ソケットリダイレクト</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="redir.html#dup">ファイル記述子の複製</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#here">ヒアドキュメントとヒアストリング</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#pipe">パイプリダイレクト</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#process">プロセスリダイレクト</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html">コマンドの実行とその環境</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="exec.html#simple">単純コマンドの実行</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#search">コマンドの検索</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html#exit">シェルの終了</a>
+</p>
+</li>
+<li>
+<p>
+<a href="exec.html#function">関数</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#localvar">ローカル変数</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html#environment">コマンドの実行環境</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#subshell">サブシェル</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="interact.html">対話モード</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="interact.html#prompt">プロンプト</a>
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html#history">コマンド履歴</a>
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html#mailcheck">メールチェック</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="job.html">ジョブ制御</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="job.html#jobid">ジョブ ID</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="builtin.html">組込みコマンド</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="builtin.html#types">組込みコマンドの種類</a>
+</p>
+</li>
+<li>
+<p>
+<a href="builtin.html#argsyntax">コマンドの引数の構文</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html">行編集</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="lineedit.html#options">行編集のオプション</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#modes">編集モード</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#commands">行編集コマンド</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="lineedit.html#basic-commands">基本的な編集コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#motion-commands">移動コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#editing-commands">編集コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#completion-commands">補完コマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#vi-commands">Vi 固有のコマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#emacs-commands">Emacs 固有のコマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#history-commands">コマンド履歴関連のコマンド</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#search-commands">コマンド履歴検索モードのコマンド</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html#escape">エスケープシーケンス</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#completion">コマンドライン補完</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="lineedit.html#completion-detail">補完動作の詳細</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html#prediction">コマンドライン推定</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="posix.html">POSIX 準拠モード</a>
+</p>
+</li>
+<li>
+<p>
+<a href="faq.html">よくある質問 / 困ったときは</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="faq.html#unicode">Unicode (非 ASCII) 文字を使うには?</a>
+</p>
+</li>
+<li>
+<p>
+<a href="faq.html#lineediting">行編集が動かない</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="fgrammar.html">構文の形式的定義</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="fgrammar.html#token">トークン分割</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="fgrammar.html#classification">トークン分類</a>
+</p>
+</li>
+<li>
+<p>
+<a href="fgrammar.html#comments">コメント</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="fgrammar.html#syntax">構文</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="fgrammar.html#alias">エイリアス置換</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="builtins">組込みコマンド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>括弧書きの文字は&#8203;<a href="builtin.html#types">組込みコマンドの種類</a>を表します。
+(S) は特殊組込みコマンド、(M) は必須組込みコマンド、(L) は任意組込みコマンド、(X) は拡張組込みコマンド、無印は代替組込みコマンドです。</p></div>
+<div class="sect2">
+<h3 id="alpha-order">組込みコマンド一覧 (アルファベット順)</h3>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_dot.html"><code>.</code> (ドット)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_colon.html"><code>:</code> (コロン)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>[</code> (括弧)</a>
+</p>
+</li>
+<li>
+<p>
+<a href="_alias.html"><code>alias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_array.html"><code>array</code></a> (X)
+</p>
+</li>
+<li>
+<p>
+<a href="_bg.html"><code>bg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_bindkey.html"><code>bindkey</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_break.html"><code>break</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_command.html"><code>command</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_complete.html"><code>complete</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_continue.html"><code>continue</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_dirs.html"><code>dirs</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_disown.html"><code>disown</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_echo.html"><code>echo</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_eval.html"><code>eval</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exec.html"><code>exec</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exit.html"><code>exit</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_export.html"><code>export</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_false.html"><code>false</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fc.html"><code>fc</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fg.html"><code>fg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_getopts.html"><code>getopts</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_hash.html"><code>hash</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_help.html"><code>help</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_history.html"><code>history</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_jobs.html"><code>jobs</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_kill.html"><code>kill</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_local.html"><code>local</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_popd.html"><code>popd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_printf.html"><code>printf</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_pushd.html"><code>pushd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_read.html"><code>read</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_readonly.html"><code>readonly</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_return.html"><code>return</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_shift.html"><code>shift</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_suspend.html"><code>suspend</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>test</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_times.html"><code>times</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_true.html"><code>true</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_type.html"><code>type</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_typeset.html"><code>typeset</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_ulimit.html"><code>ulimit</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_umask.html"><code>umask</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unalias.html"><code>unalias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unset.html"><code>unset</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html"><code>wait</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect2">
+<h3 id="groups">種類別組込みコマンド一覧</h3>
+<div class="sect3">
+<h4 id="g-control">実行制御</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_eval.html"><code>eval</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_dot.html"><code>.</code> (ドット)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exec.html"><code>exec</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_command.html"><code>command</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_hash.html"><code>hash</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_break.html"><code>break</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_continue.html"><code>continue</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_return.html"><code>return</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_suspend.html"><code>suspend</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_exit.html"><code>exit</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-environ">コマンド実行環境関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_ulimit.html"><code>ulimit</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_umask.html"><code>umask</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_times.html"><code>times</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-job">ジョブ制御・シグナル関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_jobs.html"><code>jobs</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fg.html"><code>fg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_bg.html"><code>bg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html"><code>wait</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_disown.html"><code>disown</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_kill.html"><code>kill</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-variable">パラメータ・変数関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_typeset.html"><code>typeset</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_export.html"><code>export</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_local.html"><code>local</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_readonly.html"><code>readonly</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_array.html"><code>array</code></a> (X)
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_shift.html"><code>shift</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_read.html"><code>read</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_getopts.html"><code>getopts</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unset.html"><code>unset</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-directory">作業ディレクトリ関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pushd.html"><code>pushd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_popd.html"><code>popd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_dirs.html"><code>dirs</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-alias">エイリアス関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_alias.html"><code>alias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unalias.html"><code>unalias</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-history">コマンド履歴関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_fc.html"><code>fc</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_history.html"><code>history</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-print">文字列出力</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_echo.html"><code>echo</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_printf.html"><code>printf</code></a>
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-lineedit">行編集関連</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_bindkey.html"><code>bindkey</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_complete.html"><code>complete</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-misc">その他のコマンド</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_help.html"><code>help</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_colon.html"><code>:</code> (コロン)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_true.html"><code>true</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_false.html"><code>false</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>[</code> (括弧), <code>test</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_type.html"><code>type</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+バージョン 2.55<br />
+ 2023-08-20 08:39:46 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

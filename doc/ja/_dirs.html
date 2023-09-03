@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Dirs 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Dirs 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Dirs 組込みコマンド</dfn>はディレクトリスタックの内容を表示します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>dirs [-cv] [<var>インデックス</var>..]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>ディレクトリスタック</dfn>とは、作業ディレクトリの変更の履歴をとる仕組みです。&#8203;<a href="_pushd.html">Pushd コマンド</a>で作業ディレクトリを変更すると、元の作業ディレクトリがディレクトリスタックに追加されます。&#8203;<a href="_popd.html">Popd コマンド</a>を使うと、ディレクトリスタックに保存してある元の作業ディレクトリに戻ることができます。Dirs コマンドを使うと、ディレクトリスタックの内容を表示することができます。ディレクトリスタックの内容は <a href="params.html#sv-dirstack"><code>DIRSTACK</code> 配列</a>と <a href="params.html#sv-pwd"><code>PWD</code> 変数</a>に保存されます。これらの値を変更すると、ディレクトリスタックの動作に影響します。</p></div>
+<div class="paragraph"><p>ディレクトリスタックに保存してあるディレクトリは<dfn>インデックス</dfn>で区別します。インデックスは <code>-v</code> (<code>--verbose</code>) オプションを付けて dirs コマンドを実行することで知ることができます。インデックスは正号 (<code>&#x2B;</code>) または負号 (<code>-</code>) の付いた整数の形で表わします。整数は pushd コマンドでディレクトリスタックに追加した順に振られます。例えばインデックス <code>&#x2B;0</code> は現在の作業ディレクトリに対応します。インデックス <code>&#x2B;1</code> は最後に追加したディレクトリで、インデックス <code>&#x2B;2</code> はその一つ前に追加したディレクトリに対応します。インデックス <code>-0</code> は最初に 追加したディレクトリ、インデックス <code>-1</code> はその次に追加したディレクトリに対応します。</p></div>
+<div class="paragraph"><p><code>-c</code> (<code>--clear</code>) オプションを付けずに実行すると、dirs コマンドは現在のディレクトリスタックの要素を一つずつ標準出力に出力します。 <code>-c</code> (<code>--clear</code>) オプションを付けて実行すると、dirs コマンドはディレクトリスタックのインデックス <code>+0</code> 以外の要素をすべて削除します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-c</code>
+</dt>
+<dt class="hdlist1">
+<code>--clear</code>
+</dt>
+<dd>
+<p>
+ディレクトリスタックの要素を (現在の作業ディレクトリに対応するものを除いて) すべて削除します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose</code>
+</dt>
+<dd>
+<p>
+ディレクトリスタックの要素のインデックスも出力します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>インデックス</var>
+</dt>
+<dd>
+<p>
+表示するディレクトリスタックの要素のインデックスです。インデックスを一つも指定しないときは、全ての要素をインデックス <code>&#x2B;0</code> のものから順に表示します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り dirs コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Dirs コマンドは&#8203;<a href="builtin.html#types">任意組込みコマンド</a>です。
+POSIX では dirs コマンドの動作は規定されていません。
+このコマンドは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

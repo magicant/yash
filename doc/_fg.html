@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Fg built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Fg built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>fg built-in</dfn> resumes a job in the foreground.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fg [<var>job</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The fg built-in brings the specified job to the foreground and sends the
+SIGCONT signal to the job.
+As a result, the job is resumed in the foreground (if it has been suspended).
+The built-in then waits for the job to finish and returns the exit status of
+it.</p></div>
+<div class="paragraph"><p>The name of the job is printed when the job is resumed.
+When not in the <a href="posix.html">POSIXly-correct mode</a>, the job number is also
+printed.</p></div>
+<div class="paragraph"><p>The built-in can be used only when <a href="job.html">job control</a> is enabled.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>job</var>
+</dt>
+<dd>
+<p>
+The <a href="job.html#jobid">job ID</a> of the job to be resumed.
+</p>
+<div class="paragraph"><p>If more than one job is specified, they are resumed in order, one at a time.
+The current job is resumed if none is specified.</p></div>
+<div class="paragraph"><p>The percent sign (<code>%</code>) at the beginning of a job ID can be omitted if the
+shell is not in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the fg built-in is that of the (last) job resumed.
+The exit status is non-zero when there was some error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The fg built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>You cannot specify more than one job in the <a href="posix.html">POSIXly-correct
+mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

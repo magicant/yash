@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Getopts 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Getopts 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Getopts 組込みコマンド</dfn>はコマンドライン引数のオプションを解析します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>getopts <var>オプションリスト</var> <var>変数名</var> [<var>引数</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Getopts コマンドは、オペランドで与えられたコマンドライン引数に含まれている&#8203;<a href="builtin.html#argsyntax">一文字のオプション</a>を解析します。Getopts コマンドを一回呼び出すたびにオプションが一つ解析され、そのオプションを表す一文字が<var>変数名</var>で指定した&#8203;<a href="params.html#variables">変数</a>に代入されます。</p></div>
+<div class="paragraph"><p>解析の対象となるオプションの種類もオペランドで指定します。<var>オプションリスト</var>には受け付けるオプションの文字を並べて指定します。文字の後にコロン (<code>:</code>) を付けるとそのオプションは引数をとるものとみなします。例えば、<code>-a</code>, <code>-b</code>, <code>-c</code> の三種類のオプションを受け付け、さらにこれらのうち <code>-b</code> が引数をとる場合、<var>オプションリスト</var>には <code>ab:c</code> を指定します。</p></div>
+<div class="paragraph"><p>引数をとるオプションを解析したとき、その引数の値が <a href="params.html#sv-optarg"><code>OPTARG</code> 変数</a>に代入されます。</p></div>
+<div class="paragraph"><p><var>オプションリスト</var>で与えられていないオプションに出くわしたときまたは引数をとるオプションに引数が与えられていないときの動作は、<var>オプションリスト</var>の最初の文字がコロン (<code>:</code>) であるかどうかで決まります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<var>オプションリスト</var>の最初の文字がコロンの場合、そのオプションの文字が <code>OPTARG</code> 変数に代入され、<var>変数名</var>で指定した変数には <code>?</code> (<var>オプションリスト</var>で与えられていないオプションに出くわしたとき) または <code>:</code> (引数をとるオプションに引数が与えられていないとき) が代入されます。
+</p>
+</li>
+<li>
+<p>
+<var>オプションリスト</var>の最初の文字がコロンでない場合、<code>OPTARG</code> 変数は削除され、<var>変数名</var>で指定した変数には <code>?</code> が代入されます。またこのとき標準エラーにエラーメッセージが出力されますが、それでも getopts コマンドの終了ステータスは 0 になります。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Getopts コマンドは、実行するたびに一つずつオプションを解析します。全てのオプションを解析するには、毎回同じ<var>引数</var>で getopts コマンドを繰り返し実行する必要があります。シェルは、オプションをどこまで解析したかを覚えておくために、&#8203;<a href="params.html#sv-optind"><code>OPTIND</code> 変数</a>を用います。全てのオプションを解析し終わるまでにこの変数を変更してはいけません。全てのオプションを解析し終わると、<code>OPTIND</code> 変数には<var>引数</var> (または位置パラメータ) の中で最初のオペランドに当たるもののインデックスが代入されます (オペランドがない場合は<var>引数</var>または位置パラメータの個数 + 1 になります)。</p></div>
+<div class="paragraph"><p>異なる<var>引数</var>を解析させたい場合は、getopts コマンドに新しい<var>引数</var>を与える前に <code>OPTIND</code> 変数に <code>1</code> を代入してください。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>オプションリスト</var>
+</dt>
+<dd>
+<p>
+解析の対象となるオプションの文字の羅列です。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>変数名</var>
+</dt>
+<dd>
+<p>
+解析結果の値を代入する変数の名前です。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>引数</var>s
+</dt>
+<dd>
+<p>
+解析するコマンドライン引数です。
+</p>
+<div class="paragraph"><p>このオペランドを指定しない場合は、&#8203;<a href="params.html#positional">位置パラメータ</a>を解析します。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><var>引数</var>の中にオプションが見つかった場合は、(それが<var>オプションリスト</var>に含まれているかどうかにかかわらず) 終了ステータスは 0 です。全てのオプションを解析し終わった時は、終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="example">使用例</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre><code>aopt=false bopt= copt=false
+while getopts ab:c opt
+do
+  case $opt in
+  a) aopt=true ;;
+  b) bopt=$OPTARG ;;
+  c) copt=true ;;
+  \?) return 2 ;;
+  esac
+done
+if $aopt;          then echo オプション -a が指定されました;       fi
+if [ -n "$bopt" ]; then echo オプション -b $bopt が指定されました; fi
+if $copt;          then echo オプション -c が指定されました;       fi
+shift $((OPTIND - 1))
+echo オペランドは $*</code></pre>
+</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Getopts コマンドが解析するコマンドライン引数では、オプションは全てオペランドより前に指定してある必要があります。最初にオペランドが現れた時点で、getopts コマンドは解析を終了します。</p></div>
+<div class="paragraph"><p>Getopts コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX は、<code>OPTIND</code> 変数に <code>1</code> 以外の値を代入した場合の動作を規定していません。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では、<var>オプションリスト</var>に含まれるオプションは英数字でなければなりません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

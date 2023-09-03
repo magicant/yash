@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Cd 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Cd 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Cd 組込みコマンド</dfn>はシェルの作業ディレクトリを変更します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>cd [-L|-P] [<var>ディレクトリ</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Cd コマンドはシェルの作業ディレクトリをオペランドで指定したディレクトリに変更します。</p></div>
+<div class="paragraph"><p>新しい作業ディレクトリに応じて <a href="params.html#sv-pwd"><code>PWD</code> 変数</a>の値が再設定されるとともに、前の <code>PWD</code> 変数の値が <a href="params.html#sv-oldpwd"><code>OLDPWD</code> 変数</a>に設定されます。新しい <code>PWD</code> の値は <code>.</code> や <code>..</code> のディレクトリ成分を含みません (<a href="posix.html">POSIX 準拠モード</a>で新しいパスが <code>/..</code> で始まる場合を除く)。</p></div>
+<div class="paragraph"><p>指定した<var>ディレクトリ</var>が相対パスの場合 (最初が <code>.</code> または <code>..</code> で始まるものを除く)、&#8203;<a href="exec.html#search">コマンドの検索</a>における <a href="params.html#sv-path"><code>PATH</code> 変数</a>の検索と同様にして、&#8203;<a href="params.html#sv-cdpath"><code>CDPATH</code> 変数</a>の値にあるコロンで区切った各ディレクトリ内に指定した<var>ディレクトリ</var>があるかどうか調べます。ディレクトリが見つかった場合は、そのディレクトリが新しい作業ディレクトリになります。見つからなかった場合は、<var>ディレクトリ</var>は現在の作業ディレクトリからの相対パスとなります。</p></div>
+<div class="paragraph"><p><code>CDPATH</code> 変数の検索で新しい作業ディレクトリが見つかった場合または<var>ディレクトリ</var>として <code>-</code> が指定された場合は新しい作業ディレクトリのパスを標準出力に出力します。</p></div>
+<div class="paragraph"><p>作業ディレクトリの変更に成功した場合、&#8203;<a href="params.html#sv-yash_after_cd"><code>YASH_AFTER_CD</code> 変数</a>が設定されていればその値がコマンドとして解釈・実行されます (非 <a href="posix.html">POSIX 準拠モード</a>時)。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-L</code>
+</dt>
+<dt class="hdlist1">
+<code>--logical</code>
+</dt>
+<dd>
+<p>
+ディレクトリパスに含まれるシンボリックリンクを解決せずに新しい作業ディレクトリを決定します。新しい <code>PWD</code> 変数の値にはシンボリックリンクになっているパス名コンポーネントがそのまま残ります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-P</code>
+</dt>
+<dt class="hdlist1">
+<code>--physical</code>
+</dt>
+<dd>
+<p>
+ディレクトリパスに含まれるシンボリックリンクを解決します。新しい <code>PWD</code> 変数の値はシンボリックリンクを含みません。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--default-directory=<var>ディレクトリ</var></code>
+</dt>
+<dd>
+<p>
+<var>ディレクトリ</var>オペランドが与えられていない場合は、代わりにこのオプションで指定した<var>ディレクトリ</var>を新しい作業ディレクトリとします。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>-L</code> (<code>--logical</code>) オプションと <code>-P</code> (<code>--physical</code>) オプションの両方を指定した場合、後に指定したほうを優先します。どちらも指定していない場合は、<code>-L</code> を指定したものとみなします。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>ディレクトリ</var>
+</dt>
+<dd>
+<p>
+新しい作業ディレクトリのパス名です。絶対パスまたは元の作業ディレクトリからの相対パスで指定します。
+</p>
+<div class="paragraph"><p>この値がハイフン一つ (「-」) の場合、&#8203;<a href="params.html#sv-oldpwd"><code>OLDPWD</code> 変数</a>の値が指定されたものとみなします。このオペランドが与えられていない場合、&#8203;<a href="params.html#sv-home"><code>HOME</code> 変数</a>の値が指定されたものとみなします (<code>--default-directory</code> オプションを指定した場合を除く)。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>作業ディレクトリを正しく変更できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Cd コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX には <code>YASH_AFTER_CD</code> 変数および <code>--default-directory=&#8230;</code> オプションに関する規定はありません。POSIX は<var>ディレクトリ</var>としてハイフン一つを指定したときに <code>-L</code> または <code>-P</code> オプションを併用することを認めていません。</p></div>
+<div class="paragraph"><p><code>YASH_AFTER_CD</code> 変数の実行結果は cd コマンドの終了ステータスには影響しません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

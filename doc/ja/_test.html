@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Test 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Test 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Test 組込みコマンド</dfn>は引数で指定した内容の判定を行います。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>test <var>判定式</var></code>
+</p>
+</li>
+<li>
+<p>
+<code>[ <var>判定式</var> ]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Test コマンドはオプションとオペランドとを区別しません。コマンドライン引数は全て<var>判定式</var>として解釈します。コマンドが <code>[</code> の名前で実行された時は、判定式の後に <code>]</code> が必要です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Test コマンドは引数で与えられた<var>判定式</var>を評価し、結果が真ならば 0 の終了ステータスを、偽ならば 1 の終了ステータスで終了します。判定式は何種類かの演算子とそれに対する被演算子とからなります。</p></div>
+<div class="paragraph"><p>ファイルに関する判定を行う単項演算子は以下の通りです。指定したファイルがシンボリックリンクの場合、そのシンボリックリンクが指している先のファイルについて判定を行います (<code>-h</code>, <code>-L</code> 演算子を除く)。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-b <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>がブロックスペシャルファイルかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-c <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>がキャラクタスペシャルファイルかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>がディレクトリかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が存在するかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が通常のファイルかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-G <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>のグループ ID がシェルの実効グループ ID に等しいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-g <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>の set-group-ID ビットが設定されているかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-h <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<code>-L <var>ファイル</var></code> に同じ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>の sticky ビットが設定されているかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-L <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>がシンボリックリンクかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-N <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>の最終変更日時が最終アクセス日時より後かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-O <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>のユーザ ID がシェルの実効ユーザ ID に等しいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が FIFO (名前付きパイプ) かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が読み込み可能かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-S <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>がソケットかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>サイズが空でないかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-u <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>の set-user-ID ビットが設定されているかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-w <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が書き込み可能かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-x <var>ファイル</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル</var>が実行可能かどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ファイル記述子に関する判定を行う単項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-t <var>ファイル記述子</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル記述子</var>が端末かどうか (ファイル記述子は 0 以上の自然数で指定します)
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>文字列に関する判定を行う単項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n <var>文字列</var></code>
+</dt>
+<dd>
+<p>
+文字列が空文字列でないかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-z <var>文字列</var></code>
+</dt>
+<dd>
+<p>
+文字列が空文字列かどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><a href="_set.html">シェルのオプション</a>に関する判定を行う単項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-o ?<var>オプション</var></code>
+</dt>
+<dd>
+<p>
+<var>オプション</var>が正しいオプション名であるかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-o <var>オプション</var></code>
+</dt>
+<dd>
+<p>
+<var>オプション</var>が正しいオプション名であり、かつオプションが有効に設定されているかどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ファイルに関する判定を行う二項演算子は以下の通りです (存在しないファイルは他のファイルより古いとみなします)。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>ファイル1</var> -nt <var>ファイル2</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル1</var>の更新時刻が<var>ファイル2</var>より新しいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>ファイル1</var> -ot <var>ファイル2</var></code>
+</dt>
+<dd>
+<p>
+<var>ファイル1</var>の更新時刻が<var>ファイル2</var>より古いかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>ファイル1</var> -ef <var>ファイル2</var></code>
+</dt>
+<dd>
+<p>
+二つのファイルが互いのハードリンクであるかどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>文字列に関する判定を行う二項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>文字列1</var> = <var>文字列2</var></code>
+</dt>
+<dt class="hdlist1">
+<code><var>文字列1</var> == <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+二つの文字列が同じかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> != <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+二つの文字列が異なるかどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>以下の二項演算子は現在のロケールの辞書式順序に従って文字列を比較します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>文字列1</var> === <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+二つの文字列が同じかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> !== <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+二つの文字列が異なるかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> &lt; <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+<var>文字列1</var> が <var>文字列2</var> よりも順序が手前かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> &lt;= <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+<var>文字列1</var> が <var>文字列2</var> よりも順序が手前または同じかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> &gt; <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+<var>文字列1</var> が <var>文字列2</var> よりも順序が後かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>文字列1</var> &gt;= <var>文字列2</var></code>
+</dt>
+<dd>
+<p>
+<var>文字列1</var> が <var>文字列2</var> よりも順序が後または同じかどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>パターンマッチングを行う二項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>文字列</var> =~ <var>パターン</var></code>
+</dt>
+<dd>
+<p>
+拡張正規表現<var>パターン</var>が<var>文字列</var>(の一部)にマッチするかどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>整数に関する判定を行う二項演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>v1</var> -eq <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> と <var>v2</var> が等しいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -ne <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> と <var>v2</var> が異なるかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -gt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> よりも大きいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -ge <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> 以上かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -lt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> よりも小さいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -le <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> 以下かどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>バージョン番号を表す文字列に関する判定を行う二項演算子は以下の通りです。文字列のバージョン番号としての比較のしかたは後述します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>v1</var> -veq <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> と <var>v2</var> が等しいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vne <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> と <var>v2</var> が異なるかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vgt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> よりも大きいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vge <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> 以上かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vlt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> よりも小さいかどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vle <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> が <var>v2</var> 以下かどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>他の判定式を組み合わせてより複雑な判定式を作る演算子は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>! <var>判定式</var></code>
+</dt>
+<dd>
+<p>
+<var>判定式</var>が偽かどうか (判定式の真偽を逆転します)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>( <var>判定式</var> )</code>
+</dt>
+<dd>
+<p>
+<var>判定式</var>が真かどうか (判定式の構文上の優先順位を高くします)
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>判定式1</var> -a <var>判定式2</var></code>
+</dt>
+<dd>
+<p>
+二つの判定式が両方とも真かどうか
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>判定式1</var> -o <var>判定式2</var></code>
+</dt>
+<dd>
+<p>
+二つの判定式の少なくとも片方が真かどうか
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>判定式が空の場合、結果は偽とみなします。判定式が (演算子の付いていない) 文字列一つの場合、その文字列が空文字列でないかどうかを判定します。</p></div>
+<div class="sect2">
+<h3 id="version-compare">バージョン番号の比較</h3>
+<div class="paragraph"><p>文字列のバージョン番号としての比較は、基本的には現在のロケール情報に従った辞書式順序で行います。ただし、連続する数字は一つの自然数として比較します。また数字とそれ以外の文字との比較では常に数字の方が大きいとみなします。</p></div>
+<div class="paragraph"><p>例えば、<code>0.1.2-3</code> と <code>00.001.02-3</code> は等しく、<code>0.2.1</code> と <code>0.10.0</code> とでは後者の方が大きいと判定されます。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Test コマンドの終了ステータスは、<var>判定式</var>の評価結果が真ならば 0、偽ならば 1 です。<var>判定式</var>の構文に誤りがある場合その他のエラーが発生したときは、終了ステータスは 2 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>複雑な判定式は誤って解釈されることがあるので避けることをお勧めします。例えば <code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code> は <code>[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] &amp;&amp; ! [ foo ]</code> のようにコマンドを分けると式がより明確になります。</p></div>
+<div class="paragraph"><p>POSIX は、エラーが発生した場合の終了ステータスを 『2 以上』 と定めています。また POSIX には以下の演算子の規定はありません: <code>-G</code>, <code>-k</code>, <code>-N</code>, <code>-O</code>, <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>=~</code>, <code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>。
+POSIX に <code>-o</code> の単項演算子としての規定はありません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

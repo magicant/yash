@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Return 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Return 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Return 組込みコマンド</dfn>は現在実行中の&#8203;<a href="exec.html#function">関数</a>またはスクリプトの実行を終了します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>return [-n] [<var>終了ステータス</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><code>-n</code> (<code>--no-return</code>) オプションを付けずに return コマンドを実行すると、以下のうち当てはまる動作を行います:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="exec.html#function">関数</a>の実行中の場合は、その関数の実行を終了します。
+</p>
+</li>
+<li>
+<p>
+<a href="_dot.html">ドットコマンド</a>でファイルを開いてコマンドを実行している途中の場合は、そのファイルの読み込み・実行を終了します。
+</p>
+</li>
+<li>
+<p>
+<a href="invoke.html#init">シェルの初期化スクリプト</a>を実行中の場合は、そのスクリプトの実行を終了します。
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html">トラップ</a>を実行中の場合は、そのトラップの実行を終了します。(ただし他のシグナルに関するトラップの実行が控えている場合はそれらは通常通り実行されます。)
+</p>
+</li>
+<li>
+<p>
+これ以外の場合は、(<a href="interact.html">対話モード</a>のときを除いて) シェルは終了します。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p><code>-n</code> (<code>--no-return</code>) オプションを付けて return コマンドを実行すると、return コマンドはただ単にオペランドで指定されている終了ステータスを返します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-return</code>
+</dt>
+<dd>
+<p>
+コマンドの実行を中断しません。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>終了ステータス</var>
+</dt>
+<dd>
+<p>
+Return コマンドの終了ステータスを指定する 0 以上の自然数です。
+</p>
+<div class="paragraph"><p>このオペランドが与えられていない場合は、return コマンドの直前に実行されたコマンドの終了ステータスを用います (ただし&#8203;<a href="_trap.html">トラップ</a>を実行中の場合はトラップに入る直前のコマンドの終了ステータス)。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Return コマンドの終了ステータスはオペランドで与えられた値です。Return コマンドの終了ステータスは return コマンドが終了する関数・ドットコマンド・初期化スクリプト・シェル自身の終了ステータスにもなります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Return コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX では、<var>終了ステータス</var>の値は 0 以上 256 未満でなければならないとしています。Yash では拡張として 256 以上の値も受け付けるようになっています。</p></div>
+<div class="paragraph"><p>POSIX では関数あるいはドットコマンドの実行中以外における return コマンドの動作を定めていません。</p></div>
+<div class="paragraph"><p>POSIX には <code>-n</code> (<code>--no-return</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

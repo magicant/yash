@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash のコマンドの文法とその意味論の説明" />
+<title>コマンドの文法</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>コマンドの文法</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>シェルはコマンドを一行ずつ読み込んで解釈し、実行します。一行に複数のコマンドがある場合は、それら全てを解釈してから実行します。一つのコマンドが複数行にまたがっている場合は、そのコマンドを解釈し終えるのに必要なだけ後続の行が読み込まれます。コマンドを正しく解釈できない場合は、文法エラーとなり、コマンドは実行されません。</p></div>
+<div class="paragraph"><p>非&#8203;<a href="interact.html">対話モード</a>で文法エラーが発生した時は、シェルはコマンドの読み込みを中止するため、それ以降のコマンドは一切読み込まれません。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="tokens">トークンの解析と予約語</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドは、いくつかのトークンによって構成されます。<dfn>トークン</dfn>とは、シェルの文法における一つ一つの単語のことを言います。トークンは原則として空白 (空白文字またはタブ文字) によって区切られます。ただしコマンド置換などに含まれる空白はトークンの区切りとは見なしません。</p></div>
+<div class="paragraph"><p>以下の記号は、シェルの文法において特別な意味を持っています。これらの記号も多くの場合他の通常のトークンの区切りとなります。</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>; &amp; | &lt; &gt; ( ) [newline]</code></pre>
+</div></div>
+<div class="paragraph"><p>以下の記号はトークンの区切りにはなりませんが、文法上特別な意味を持っています。</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>$ ` \ " ' * ? [ # ~ = %</code></pre>
+</div></div>
+<div class="paragraph"><p>以下のトークンは特定の場面において<dfn>予約語</dfn>と見なされます。予約語は複合コマンドなどを構成する一部となります。</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>! { } [[ case do done elif else esac fi
+for function if in then until while</code></pre>
+</div></div>
+<div class="paragraph"><p>これらのトークンは以下の場面において予約語となります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+それがコマンドの最初のトークンのとき
+</p>
+</li>
+<li>
+<p>
+それが他の予約語 (<code>case</code>, <code>for</code>, <code>in</code> を除く) の直後のトークンのとき
+</p>
+</li>
+<li>
+<p>
+それがコマンドの最初のトークンではないが、複合コマンドの中で予約語として扱われるべきトークンであるとき
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>トークンが <code>#</code> で始まる場合、その <code>#</code> から行末までは<dfn>コメント</dfn>と見なされます。コマンドの解釈においてコメントは完全に無視されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="quotes">クォート</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>空白や上記の区切り記号・予約語などを通常の文字と同じように扱うには、適切な引用符でクォートする必要があります。引用符は、それ自体をクォートしない限り通常の文字としては扱われません。シェルでは以下の三種類の引用符が使えます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+バックスラッシュ (<code>\</code>) は直後の一文字をクォートします。
+ <br />
+  例外として、バックスラッシュの直後に改行がある場合、それは改行をクォートしているのではなく、<dfn>行の連結</dfn>と見なされます。バックスラッシュと改行が削除され、バックスラッシュがあった行とその次の行が元々一つの行であったかのように扱われます。
+</p>
+</li>
+<li>
+<p>
+二つの一重引用符 (<code>'</code>) で囲んだ部分では、全ての文字は通常の文字と同じように扱われます。改行を一重引用符で囲むこともできます。ただし、一重引用符を一重引用符で囲むことはできません。
+</p>
+</li>
+<li>
+<p>
+二つの二重引用符 (<code>"</code>) で囲んだ部分も一重引用符で囲んだ部分と同様にクォートされますが、いくつか例外があります。二重引用符で囲んだ部分では、パラメータ展開・コマンド置換・数式展開が通常通り解釈されます。またバックスラッシュは <code>$</code>, <code>`</code>, <code>"</code>, <code>\</code> の直前にある場合および行の連結を行う場合にのみ引用符として扱われ、それ以外のバックスラッシュは通常の文字と同様に扱われます。
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="aliases">エイリアス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドを構成する各トークンは、それが予め登録されたエイリアスの名前に一致するかどうか調べられます。一致するものがあれば、そのトークンはそのエイリアスの内容に置き換えられて、その後コマンドの解析が続けられます。これを<dfn>エイリアス置換</dfn>といいます。</p></div>
+<div class="paragraph"><p>エイリアスの名前に引用符を含めることはできないので、引用符を含むトークンはエイリアス置換されません。また、予約語やコマンドを区切る記号もエイリアス置換されません。</p></div>
+<div class="paragraph"><p>エイリアスには通常のエイリアスとグローバルエイリアスの二種類があります。<dfn>通常のエイリアス</dfn>は、コマンドの最初のトークンにのみ一致します。<dfn>グローバルエイリアス</dfn>はコマンド内の全てのトークンが一致の対象です。グローバルエイリアスは POSIX 規格にはない拡張機能です。</p></div>
+<div class="paragraph"><p>通常のエイリアスで置換された部分の最後の文字が空白の場合、特例としてその直後のトークンにも通常のエイリアスの置換が行われます。</p></div>
+<div class="paragraph"><p>エイリアス置換の結果がさらに別のエイリアスに一致して置換される場合もあります。しかし、同じエイリアスに再び一致することはありません。</p></div>
+<div class="paragraph"><p>エイリアスを登録するには <a href="_alias.html">alias 組込みコマンド</a>を、登録を削除するには <a href="_unalias.html">unalias 組込みコマンド</a>を使用します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="simple">単純コマンド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>最初のトークンが予約語でないコマンドは、<dfn>単純コマンド</dfn>です。単純コマンドは&#8203;<a href="exec.html#simple">単純コマンドの実行</a>のしかたに従って実行されます。</p></div>
+<div class="paragraph"><p>単純コマンドの初めのトークンが <var>名前</var>=<var>値</var> の形式になっている場合は、それは&#8203;<a href="params.html#variables">変数</a>代入と見なされます。ただしここでの<var>名前</var>は、一文字以上のアルファベット・数字または下線 (<code>_</code>) で、かつ最初が数字でないものです。変数代入ではない最初のトークンはコマンドの名前と解釈されます。それ以降のトークンは (たとえ変数代入の形式をしていたとしても) コマンドの引数と解釈されます。</p></div>
+<div class="paragraph"><p><var>名前</var>=(<var>トークン列</var>) の形になっている変数代入は、&#8203;<a href="params.html#arrays">配列</a>の代入となります。括弧内には任意の個数のトークンを書くことができます。またこれらのトークンは空白・タブだけでなく改行で区切ることもできます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="pipelines">パイプライン</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>パイプライン</dfn>は、一つ以上のコマンド (<a href="#simple">単純コマンド</a>、<a href="#compound">複合コマンド</a>、または<a href="#funcdef">関数定義</a>) を記号 <code>|</code> で繋いだものです。</p></div>
+<div class="paragraph"><p>二つ以上のコマンドからなるパイプラインの実行は、パイプラインに含まれる各コマンドをそれぞれ独立した&#8203;<a href="exec.html#subshell">サブシェル</a>で同時に実行することで行われます。この時、各コマンドの標準出力は次のコマンドの標準入力にパイプで受け渡されます。最初のコマンドの標準入力と最後のコマンドの標準出力は元のままです。</p></div>
+<div class="paragraph"><p><a href="_set.html#so-pipefail">Pipe-fail オプション</a>が無効な時は、最後のコマンドの終了ステータスがパイプラインの終了ステータスになります。有効な時は、終了ステータスが 0 でなかった最後のコマンドの終了ステータスがパイプラインの終了ステータスになります。全てのコマンドの終了ステータスが 0 だった時は、パイプラインの終了ステータスも 0 になります。</p></div>
+<div class="paragraph"><p>パイプラインの先頭には、記号 <code>!</code> を付けることができます。この場合、パイプラインの終了ステータスが<em>逆転</em>します。つまり、最後のコマンドの終了ステータスが 0 のときはパイプラインの終了ステータスは 1 になり、それ以外の場合は 0 になります。</p></div>
+<div class="paragraph"><p>Korn シェルでは構文 <code>!(&#8230;)</code> は POSIX で定義されていない独自のパス名展開パターンと見做されます。&#8203;<a href="posix.html">POSIX 準拠モード</a>では <code>!</code> と <code>(</code> の二つのトークンは一つ以上の空白で区切る必要があります。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">最後のコマンドの終了ステータスがパイプラインの終了ステータスになるため、パイプラインの実行が終了するのは少なくとも最後のコマンドの実行が終了した後です。しかしそのとき他のコマンドの実行が終了しているとは限りません。また、最後のコマンドの実行が終了したらすぐにパイプラインの実行が終了するとも限りません。(シェルは、他のコマンドの実行が終わるまで待つ場合があります)</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">POSIX 規格では、パイプライン内の各コマンドはサブシェルではなく現在のシェルで実行してもよいことになっています。</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="and-or">And/or リスト</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>And/or リスト</dfn>は一つ以上の<a href="#pipelines">パイプライン</a>を記号 <code>&amp;&amp;</code> または <code>||</code> で繋いだものです。</p></div>
+<div class="paragraph"><p>And/or リストの実行は、and/or リストに含まれる各パイプラインを条件付きで実行することで行われます。最初のパイプラインは常に実行されます。それ以降のパイプラインの実行は、前のパイプラインの終了ステータスによります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+二つのパイプラインが <code>&amp;&amp;</code> で繋がれている場合、前のパイプラインの終了ステータスが 0 ならば後のパイプラインが実行されます。
+</p>
+</li>
+<li>
+<p>
+二つのパイプラインが <code>||</code> で繋がれている場合、前のパイプラインの終了ステータスが 0 でなければ後のパイプラインが実行されます。
+</p>
+</li>
+<li>
+<p>
+それ以外の場合は、and/or リストの実行はそこで終了し、それ以降のパイプラインは実行されません。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>最後に実行したパイプラインの終了ステータスが and/or リストの終了ステータスになります。</p></div>
+<div class="paragraph"><p>構文上、and/or リストの直後には原則として記号 <code>;</code> または <code>&amp;</code> が必要です (<a href="#async">コマンドの区切りと非同期コマンド</a>参照)。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="async">コマンドの区切りと非同期コマンド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>シェルが受け取るコマンドの全体は、<a href="#and-or">and/or リスト</a>を <code>;</code> または <code>&amp;</code> で区切ったものです。行末、 <code>;;</code> または <code>)</code> の直前にある <code>;</code> は省略できますが、それ以外の場合は and/or リストの直後には必ず <code>;</code> と <code>&amp;</code> のどちらかが必要です。</p></div>
+<div class="paragraph"><p>And/or リストの直後に <code>;</code> がある場合は、その and/or リストは同期的に実行されます。すなわち、その and/or リストの実行が終わった後に次の and/or リストが実行されます。And/or リストの直後に <code>&amp;</code> がある場合は、その and/or リストは非同期的に実行されます。すなわち、その and/or リストの実行を開始した後、終了を待たずに、すぐさま次の and/or リストの実行に移ります。非同期な and/or リストは常に&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。また終了ステータスは常に 0 です。</p></div>
+<div class="paragraph"><p><a href="job.html">ジョブ制御</a>を行っていないシェルにおける非同期な and/or リストでは、標準入力が自動的に /dev/null にリダイレクトされるとともに、SIGINT と SIGQUIT を受信したときの動作が 『無視』 に設定されこれらのシグナルを受けてもプログラムが終了しないようにします。</p></div>
+<div class="paragraph"><p>ジョブ制御を行っているかどうかにかかわらず、非同期コマンドを実行するとシェルはそのコマンドのプロセス ID を記憶します。&#8203;<a href="params.html#sp-exclamation">特殊パラメータ <code>!</code></a> を参照すると非同期コマンドのプロセス ID を知ることができます。非同期コマンドの状態や終了ステータスは <a href="_jobs.html">jobs</a> や <a href="_wait.html">wait</a> 組込みコマンドで知ることができます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="compound">複合コマンド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>複合コマンドは、より複雑なプログラムの制御を行う手段を提供します。</p></div>
+<div class="sect2">
+<h3 id="grouping">グルーピング</h3>
+<div class="paragraph"><p>グルーピングを使うと、複数のコマンドを一つのコマンドとして扱うことができます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+通常のグルーピングの構文
+</dt>
+<dd>
+<p>
+  <code>{ <var>コマンド</var>&#8230;; }</code>
+</p>
+</dd>
+<dt class="hdlist1">
+サブシェルのグルーピングの構文
+</dt>
+<dd>
+<p>
+  <code>(<var>コマンド</var>&#8230;)</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>{</code> と <code>}</code> は予約語なので、他のコマンドのトークンとくっつけて書いてはいけません。一方 <code>(</code> と <code>)</code> は特殊な区切り記号と見なされるので、他のトークンとくっつけて書くことができます。</p></div>
+<div class="paragraph"><p>通常のグルーピング構文 (<code>{</code> と <code>}</code> で囲む) では、コマンドは (他のコマンドと同様に) 現在のシェルで実行されます。サブシェルのグルーピング構文 (<code>(</code> と <code>)</code> で囲む) では、括弧内のコマンドは新たな&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では括弧内に少なくとも一つのコマンドが必要ですが、非 POSIX 準拠モードではコマンドは一つもなくても構いません。</p></div>
+<div class="paragraph"><p>グルーピングの終了ステータスは、グルーピングの中で実行された最後のコマンドの終了ステータスです。グルーピング内にコマンドが一つもない場合、グルーピングの終了ステータスはグルーピングの直前に実行されたコマンドの終了ステータスになります。</p></div>
+</div>
+<div class="sect2">
+<h3 id="if">If 文</h3>
+<div class="paragraph"><p>If 文は条件分岐を行います。分岐の複雑さに応じていくつか構文のバリエーションがあります。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+If 文の基本構文
+</dt>
+<dd>
+<p>
+  <code>if <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Else がある場合
+</dt>
+<dd>
+<p>
+  <code>if <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; else <var>内容コマンド</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Elif がある場合
+</dt>
+<dd>
+<p>
+  <code>if <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; elif <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; fi</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Elif と else がある場合
+</dt>
+<dd>
+<p>
+  <code>if <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; elif <var>条件コマンド</var>&#8230;; then <var>内容コマンド</var>&#8230;; else <var>内容コマンド</var>&#8230;; fi</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If 文の実行では、どの構文の場合でも、<code>if</code> の直後にある<var>条件コマンド</var>がまず実行されます。条件コマンドの終了ステータスが 0 ならば、条件が真であると見なされて <code>then</code> の直後にある<var>内容コマンド</var>が実行され、if 文の実行はそれで終了します。終了ステータスが 0 でなければ、条件が偽であると見なされます。ここで <code>else</code> も <code>elif</code> もなければ、if 文の実行はこれで終わりです。<code>else</code> がある場合は、<code>else</code> の直後の<var>内容コマンド</var>が実行されます。<code>elif</code> がある場合は、<code>elif</code> の直後の<var>条件コマンド</var>が実行され、その終了ステータスが 0 であるかどうか判定されます。その後は先程と同様に条件分岐を行います。</p></div>
+<div class="paragraph"><p><code>elif …; then …;</code> は一つの if 文内に複数あっても構いません。</p></div>
+<div class="paragraph"><p>If 文全体の終了ステータスは、実行された内容コマンドの終了ステータスです。内容コマンドが実行されなかった場合 (どの条件も偽で、<code>else</code> がない場合) は 0 です。</p></div>
+</div>
+<div class="sect2">
+<h3 id="while-until">While および until ループ</h3>
+<div class="paragraph"><p>While ループと until ループは単純なループ構文です。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+While ループの構文
+</dt>
+<dd>
+<p>
+  <code>while <var>条件コマンド</var>&#8230;; do <var>内容コマンド</var>&#8230;; done</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Until ループの構文
+</dt>
+<dd>
+<p>
+  <code>until <var>条件コマンド</var>&#8230;; do <var>内容コマンド</var>&#8230;; done</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>非 <a href="posix.html">POSIX 準拠モード</a>では <code><var>条件コマンド</var>…;</code> および <code><var>内容コマンド</var>…;</code> は省略可能です。</p></div>
+<div class="paragraph"><p>While ループの実行ではまず<var>条件コマンド</var>が実行されます。そのコマンドの終了ステータスが 0 ならば、<var>内容コマンド</var>が実行されたのち、再び<var>条件コマンド</var>の実行に戻ります。この繰り返しは<var>条件コマンド</var>の終了ステータスが 0 でなくなるまで続きます。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content"><var>条件コマンド</var>の終了ステータスが最初から 0 でないときは、<var>内容コマンド</var>は一度も実行されません。</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>Until ループは、ループを続行する条件が逆になっている以外は while ループと同じです。すなわち、<var>条件コマンド</var>の終了ステータスが 0 でなければ<var>内容コマンド</var>が実行されます。</p></div>
+<div class="paragraph"><p>While/until ループ全体の終了ステータスは、最後に実行した<var>内容コマンド</var>の終了ステータスです。(<var>内容コマンド</var>が存在しないか、一度も実行されなかったときは 0)</p></div>
+</div>
+<div class="sect2">
+<h3 id="for">For ループ</h3>
+<div class="paragraph"><p>For ループは指定されたそれぞれの単語について同じコマンドを実行します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+For ループの構文
+</dt>
+<dd>
+<p>
+  <code>for <var>変数名</var> in <var>単語</var>&#8230;; do <var>コマンド</var>&#8230;; done</code>
+ <br />
+  <code>for <var>変数名</var> do <var>コマンド</var>&#8230;; done</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>in</code> の直後の<var>単語</var>は一つもなくても構いませんが、<code>do</code> の直前の <code>;</code> (または改行) は必要です。これらの単語トークンは予約語としては認識されませんが、<code>&amp;</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。非 <a href="posix.html">POSIX 準拠モード</a>では <code><var>コマンド</var>…;</code> がなくても構いません。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードでは、<var>変数名</var>はポータブルな (すなわち ASCII 文字のみからなる) 名前でなければなりません。</p></div>
+<div class="paragraph"><p>For ループの実行ではまず<var>単語</var>が<a href="#simple">単純コマンド</a>実行時の単語の展開と同様に展開されます (<code>in …;</code> がない構文を使用している場合は、<code>in "$@";</code> が省略されているものと見なされます)。続いて、展開で生成されたそれぞれの単語について順番に一度ずつ以下の処理を行います。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+単語を<var>変数名</var>で指定した変数に代入する
+</p>
+</li>
+<li>
+<p>
+<var>コマンド</var>を実行する
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>単語は&#8203;<a href="exec.html#localvar">ローカル変数</a>として代入されます (<a href="posix.html">POSIX 準拠モード</a>が有効なときまたは <a href="_set.html#so-forlocal">for-local オプション</a>が無効なときを除く)。</p></div>
+<div class="paragraph"><p>展開の結果単語が一つも生成されなかった場合は、変数は作られず<var>コマンド</var>も一切実行されません。</p></div>
+<div class="paragraph"><p>For ループ全体の終了ステータスは、最後に実行した<var>コマンド</var>の終了ステータスです。<var>コマンド</var>があるのに一度も実行されなかったときは 0 です。<var>コマンド</var>がない場合、for ループの終了ステータスは for ループの一つ前に実行されたコマンドの終了ステータスになります。</p></div>
+<div class="paragraph"><p>変数が読み取り専用の場合、for ループの実行は 0 でない終了ステータスで中断されます。</p></div>
+</div>
+<div class="sect2">
+<h3 id="case">Case 文</h3>
+<div class="paragraph"><p>Case 文は単語に対してパターンマッチングを行い、その結果に対応するコマンドを実行します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Case 文の構文
+</dt>
+<dd>
+<p>
+  <code>case <var>単語</var> in <var>caseitem</var>&#8230; esac</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Caseitem の構文
+</dt>
+<dd>
+<p>
+  <code>(<var>パターン</var>) <var>コマンド</var>&#8230;;;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>case</code> と <code>in</code> の間の単語はちょうど一トークンでなければなりません。この単語トークンは予約語としては認識されませんが、<code>&amp;</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in</code> と <code>esac</code> の間には任意の個数の caseitem を置きます (0 個でもよい)。Caseitem の最初の <code>(</code> と <code>esac</code> の直前の <code>;;</code> は省略できます。また<var>コマンド</var>が <code>;</code> で終わる場合はその <code>;</code> も省略できます。Caseitem の <code>)</code> と <code>;;</code> との間に<var>コマンド</var>が一つもなくても構いません。</p></div>
+<div class="paragraph"><p>Caseitem の<var>パターン</var>にはトークンを指定します。各トークンを <code>|</code> で区切ることで複数のトークンをパターンとして指定することもできます。</p></div>
+<div class="paragraph"><p>Case 文の実行では、まず<var>単語</var>が&#8203;<a href="expand.html">四種展開</a>されます。その後、各 caseitem に対して順に以下の動作を行います。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<var>パターン</var>トークンを<var>単語</var>と同様に展開し、展開したパターンが展開した単語にマッチするかどうか調べます (<a href="pattern.html">パターンマッチング記法</a>参照)。<var>パターン</var>として指定されたトークンが複数ある場合はそれら各トークンに対してマッチするかどうか調べます (どれかのパターントークンがマッチしたらそれ以降のパターントークンは展開されません。Yash はトークンが書かれている順番にマッチするかどうかを調べますが、他のシェルもこの順序で調べるとは限りません)。
+</p>
+</li>
+<li>
+<p>
+マッチした場合は、直後の<var>コマンド</var>を実行し、それでこの case 文の実行は終了です。マッチしなかった場合は、次の caseitem の処理に移ります。
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Case 文全体の終了ステータスは、実行した<var>コマンド</var>の終了ステータスです。<var>コマンド</var>が実行されなかった場合 (どのパターンもマッチしなかったか、caseitem が一つもないか、マッチしたパターンの後にコマンドがない場合) は、終了ステータスは 0 です。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では、(<code>|</code> で区切られた最初の) <var>パターン</var>トークンを <code>esac</code> にすることはできません。</p></div>
+</div>
+<div class="sect2">
+<h3 id="double-bracket">二重ブラケットコマンド</h3>
+<div class="paragraph"><p><dfn>二重ブラケットコマンド</dfn>は <a href="_test.html">test コマンド</a>に近い動作をする構文です。ブラケットに囲まれた式を展開して評価します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+二重ブラケットコマンド構文
+</dt>
+<dd>
+<p>
+  <code>[[ <var>式</var> ]]</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><var>式</var>は単一の原子式とすることも原子式や演算子の組み合わせとすることもできます。式の構文解析は、コマンドの実行時ではなく構文解析時に行われます。演算子 (原子式の演算子もそうでないものも) は&#8203;<a href="#quotes">クォート</a>してはなりません。クォートすると通常の単語と見なされます。</p></div>
+<div class="paragraph"><p>コマンドが実行されるとき、被演算子となる単語は&#8203;<a href="expand.html">四種展開</a>されます。ブレース展開・単語分割・パス名展開は行われません。</p></div>
+<div class="paragraph"><p>二重ブラケットコマンドでは test コマンドと同様に以下の原子式が使用できます:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+単項原子式
+</dt>
+<dd>
+<p>
+  <code>-b</code>, <code>-c</code>, <code>-d</code>, <code>-e</code>, <code>-f</code>, <code>-G</code>, <code>-g</code>, <code>-h</code>, <code>-k</code>, <code>-L</code>, <code>-N</code>, <code>-n</code>,
+  <code>-O</code>, <code>-o</code>, <code>-p</code>, <code>-r</code>, <code>-S</code>, <code>-s</code>, <code>-t</code>, <code>-u</code>, <code>-w</code>, <code>-x</code>, <code>-z</code>
+</p>
+</dd>
+<dt class="hdlist1">
+二項原子式
+</dt>
+<dd>
+<p>
+  <code>-ef</code>, <code>-eq</code>, <code>-ge</code>, <code>-gt</code>, <code>-le</code>, <code>-lt</code>, <code>-ne</code>, <code>-nt</code>, <code>-ot</code>, <code>-veq</code>,
+  <code>-vge</code>, <code>-vgt</code>, <code>-vle</code>, <code>-vlt</code>, <code>-vne</code>, <code>===</code>, <code>!==</code>, <code>=~</code>, <code>&lt;</code>, <code>&gt;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>さらに、文字列を比較するための三つの二項原子式が使用できますが、test コマンドとは動作が異なります:
+<code>=</code> および <code>==</code> 原子式は右辺を&#8203;<a href="pattern.html">パターン</a>として扱い、左辺がそれにマッチするかどうかを判定します。
+<code>!=</code> 原子式は同様の判定を行い、逆の結果を返します。</p></div>
+<div class="paragraph"><p>原子式の被演算子となる単語が <code>]]</code> であるか他の演算子と紛らわしい場合は、クォートする必要があります。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">将来新しい種類の原子式が導入される可能性があります。ハイフンで始まる単語は全てクォートすることをお勧めします。</td>
+</tr></table>
+</div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content"><code>&lt;=</code> および <code>&gt;=</code> 二項原子式は二重ブラケットコマンド内においては正しく構文解析できないため使用できません。</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>以下の演算子を使用して原子式を組み合わせることができます (ここでは演算子の結合順位が高い順に示します):</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>( <var>式</var> )</code>
+</dt>
+<dd>
+<p>
+  式を括弧で囲むと演算子の優先順位を変更できます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>! <var>式</var></code>
+</dt>
+<dd>
+<p>
+  感嘆符は式の結果を反転します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>式</var> &amp;&amp; <var>式</var></code>
+</dt>
+<dd>
+<p>
+  二重アンパサンドは連言 (論理積) を表します。両辺が共に真である時、全体も真となります。左辺が先に展開・判定されます。左辺が真である場合のみ右辺が展開・判定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>式</var> || <var>式</var></code>
+</dt>
+<dd>
+<p>
+  二重縦棒は選言 (論理和) を表します。両辺が共に偽である時、全体も偽となります。左辺が先に展開・判定されます。左辺が偽である場合のみ右辺が展開・判定されます。
+</p>
+</dd>
+</dl></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">二重ブラケットコマンドでは、test コマンドの様に <code>-a</code> および <code>-o</code> を連言・選言演算子として使用することはできません。</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>二重ブラケットコマンドの終了ステータスは、<var>式</var>が真ならば 0、偽ならば 1、展開エラーやその他の理由で判定が行えない場合は 2 です。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">二重ブラケットコマンドは bash, ksh, mksh, zsh にもありますが、POSIX にはない拡張機能です。シェルによって多少動作が異なります。移植性を高めるには二重ブラケットコマンドよりも test コマンドを使用することをお勧めします。</td>
+</tr></table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="funcdef">関数定義</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>関数定義コマンドは、&#8203;<a href="exec.html#function">関数</a>を定義します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+関数定義コマンドの構文
+</dt>
+<dd>
+<p>
+  <code><var>関数名</var> ( ) <var>複合コマンド</var></code>
+ <br />
+  <code>function <var>関数名</var> <var>複合コマンド</var></code>
+ <br />
+  <code>function <var>関数名</var> ( ) <var>複合コマンド</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>予約語 <code>function</code> を用いない一つ目の形式では、<var>関数名</var>には引用符などの特殊な記号を含めることはできません。予約語 <code>function</code> を用いる二つ目または三つ目の形式では、<var>関数名</var>は実行時に&#8203;<a href="expand.html">四種展開</a>されます。(<a href="posix.html">POSIX 準拠モード</a>では、予約語 <code>function</code> を用いる形式の関数定義は使えません。また<var>関数名</var>はポータブルな (すなわち ASCII 文字のみからなる) 名前でなければなりません。)</p></div>
+<div class="paragraph"><p>関数定義コマンドを実行すると、指定した<var>関数名</var>の関数が<var>複合コマンド</var>を内容として定義されます。</p></div>
+<div class="paragraph"><p>関数定義コマンドに対して直接&#8203;<a href="redir.html">リダイレクト</a>を行うことはできません。関数定義コマンドの最後にあるリダイレクトは、関数の内容である<var>複合コマンド</var>に対するリダイレクトと見なされます。例えば <code>func() { cat; } &gt;/dev/null</code> と書いた場合、リダイレクトされるのは <code>func() { cat; }</code> ではなく <code>{ cat; }</code> です。</p></div>
+<div class="paragraph"><p>関数定義コマンドの終了ステータスは、関数が正しく定義された場合は 0、そうでなければ非 0 です。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

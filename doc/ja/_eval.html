@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Eval 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Eval 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Eval 組込みコマンド</dfn>はオペランドをコマンドとして解釈して実行します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>eval [-i] [<var>コマンド</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Eval コマンドでは、&#8203;<a href="posix.html">POSIX 準拠モード</a>であるかどうかにかかわらずオプションはオペランドより先に全て指定しなければなりません。最初のオペランドより後にあるコマンドライン引数は全てオペランドとして解釈します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Eval コマンドは、与えられたオペランドをシェルのコマンドとして解釈し、&#8203;<a href="exec.html#environment">現在のコマンド実行環境</a>で実行します。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--iteration</code>) オプションが指定されていないときは、コマンドをまとめて一度に解釈・実行します。複数のオペランドがある場合は、それらを順に連結して一つにしてから解釈・実行します (連結の際、各オペランド間に空白文字を一つずつ区切りとして挿入します)。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--iteration</code>) オプションが指定されているときは、オペランドを順に一つずつ解釈・実行します。これを<dfn id="iter">反復実行</dfn>といいます。反復実行の途中で <a href="_continue.html">continue コマンド</a>を <code>-i</code> オプション付きで実行した場合、コマンドの実行は中断され、eval コマンドに与えられた次のオペランドの解釈・実行に移ります。反復実行の途中で <a href="_break.html">break コマンド</a>を <code>-i</code> オプション付きで実行した場合、反復実行は中断され、この eval コマンドの実行は終了します。&#8203;<a href="params.html#special">特殊パラメータ <code>?</code></a> の値が反復実行の開始前に保存されます。オペランドを一つ解釈・実行するたびに特殊パラメータ <code>?</code> の値は保存された値にもどります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--iteration</code>
+</dt>
+<dd>
+<p>
+与えられたコマンドを順に反復実行します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>コマンド</var>
+</dt>
+<dd>
+<p>
+コマンドとして解釈・実行する文字列です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オペランドが一つもない場合またはオペランドの中にコマンドが一つも含まれていなかった場合、終了ステータスは 0 です。コマンドが一つ以上解釈・実行された場合、最後に実行したコマンドの終了ステータスが eval コマンドの終了ステータスになります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Eval コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX にはオプションに関する規定はありません。よってオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

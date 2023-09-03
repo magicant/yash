@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Kill built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Kill built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>kill built-in</dfn> sends a signal to processes.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>kill [-<var>signal</var>|-s <var>signal</var>|-n <var>signal</var>] <var>process</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>kill -l [-v] [<var>signal</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The kill built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed without the <code>-l</code> option, the built-in sends a signal to
+processes.
+The signal sent can be specified by option.
+The SIGTERM signal is sent if no signal is specified.</p></div>
+<div class="paragraph"><p>When executed with the <code>-l</code> option, the built-in prints information of
+<var>signal</var>s to the standard output.
+If no <var>signal</var> is specified, information of all signals is printed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_signal_specifying_options">Signal-specifying options</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-<var>signal</var></code>
+</dt>
+<dt class="hdlist1">
+<code>-s <var>signal</var></code>
+</dt>
+<dt class="hdlist1">
+<code>-n <var>signal</var></code>
+</dt>
+<dd>
+<p>
+A signal-specifying option specifies a signal to be sent to processes.
+<var>signal</var> can be specified by name or number.
+If number <code>0</code> is specified, the built-in checks if a signal could be sent to
+the processes but no signal is actually sent.
+Signal names are case-insensitive.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>You can specify at most one signal-specifying option at a time.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_other_options">Other options</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-l</code>
+</dt>
+<dd>
+<p>
+Print signal information instead of sending a signal.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dd>
+<p>
+Print more signal information.
+</p>
+<div class="paragraph"><p>Without this option, the built-in prints the signal name only.
+This option adds the signal number and a short description.</p></div>
+<div class="paragraph"><p>When the <code>-v</code> option is specified, the <code>-l</code> option can be omitted.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>process</var>es
+</dt>
+<dd>
+<p>
+Specify processes to which a signal is sent.
+</p>
+<div class="paragraph"><p>Processes can be specified by the process ID, the process group ID, or the
+<a href="job.html#jobid">job ID</a>.
+The process group ID must be prefixed with a hyphen (<code>-</code>) so that it is not
+treated as a process ID.</p></div>
+<div class="paragraph"><p>When <code>0</code> is specified as <var>process</var>, the signal is sent to the process group
+to which the shell process belongs.
+When <code>-1</code> is specified, the signal is sent to all processes on the system.</p></div>
+</dd>
+<dt class="hdlist1">
+<var>signal</var>
+</dt>
+<dd>
+<p>
+Specify a signal of which information is printed.
+</p>
+<div class="paragraph"><p>The signal can be specified by the name, the number, or the exit status of a
+command that was killed by the signal.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the kill built-in is zero unless there is any error.
+If the signal was sent to at least one process, the exit status is zero even
+if the signal was not sent to all of the specified processes.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The kill built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>Command arguments that start with a hyphen should be used with care.
+The command <code>kill -1 -2</code>, for example, sends signal 1 to process group 2 since
+<code>-1</code> is treated as a signal-specifying option and <code>-2</code> as an operand that
+specifies a process group.
+The commands <code>kill -- -1 -2</code> and <code>kill -TERM -1 -2</code>, on the other hand, treats
+both <code>-1</code> and <code>-2</code> as operands.</p></div>
+<div class="paragraph"><p>The POSIX standard does not define the <code>-n</code> or <code>-v</code> options, so they cannot be
+used in the <a href="posix.html">POSIXly-correct mode</a>.
+The standard does not allow specifying a signal number as the argument of the
+<code>-s</code> option or a signal name as the <var>signal</var> operand.</p></div>
+<div class="paragraph"><p>The standard requires signal names to be specified without the <code>SIG</code> prefix,
+like <code>INT</code> and <code>QUIT</code>.
+If the shell is not in the POSIXly-correct mode, the built-in accepts
+<code>SIG</code>-prefixed signal names as well.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

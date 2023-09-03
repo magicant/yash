@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Return built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Return built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>return built-in</dfn> returns from a function or script.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>return [-n] [<var>exit_status</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed without the <code>-n</code> (<code>--no-return</code>) option, one of the following
+happens:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If the shell is executing a <a href="exec.html#function">function</a>, the execution
+  of the function is terminated.
+</p>
+</li>
+<li>
+<p>
+If the <a href="_dot.html">dot built-in</a> is executing a script, the execution of
+  the script is terminated.
+</p>
+</li>
+<li>
+<p>
+If the shell is executing a script during
+  <a href="invoke.html#init">initialization</a>, the execution of the script is
+  terminated.
+</p>
+</li>
+<li>
+<p>
+If the shell is executing a <a href="_trap.html">trap</a>, the execution of the
+  trap is terminated for the currently handled signal.
+</p>
+</li>
+<li>
+<p>
+Otherwise, the shell exits unless it is <a href="interact.html">interactive</a>.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>When executed with the <code>-n</code> (<code>--no-return</code>) option, the built-in does nothing
+but return the specified <var>exit_status</var>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-return</code>
+</dt>
+<dd>
+<p>
+Do not terminate a function, script, trap, or the shell.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>exit_status</var>
+</dt>
+<dd>
+<p>
+The exit status of the built-in.
+</p>
+<div class="paragraph"><p>The value must be a non-negative integer.</p></div>
+<div class="paragraph"><p>If omitted, the exit status of the last executed command is used.
+(But when the shell is executing a <a href="_trap.html">trap</a>, the exit status of
+the last command before the trap is used.)</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the return built-in is defined by the <var>exit_status</var>
+operand.
+The exit status is used also as the exit status of the terminated function,
+script, or the shell.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The return built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard provides that the <var>exit_status</var> operand should be between
+0 and 255 (inclusive).
+Yash accepts integers larger than 255 as an extension.</p></div>
+<div class="paragraph"><p>In the POSIX standard, the behavior of the return built-in is defined only
+when the shell is executing a function or script.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the return built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

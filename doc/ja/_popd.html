@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Popd 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Popd 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Popd 組込みコマンド</dfn>は&#8203;<a href="_dirs.html">ディレクトリスタック</a>からディレクトリを削除し、シェルの作業ディレクトリを戻します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>popd [<var>インデックス</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Popd コマンドは&#8203;<a href="_dirs.html">ディレクトリスタック</a>からオペランドで指定したインデックスの要素を削除します。インデックス <code>&#x2B;0</code> の要素を削除した場合は、新たにインデックス <code>&#x2B;0</code> の要素となったディレクトリにシェルの作業ディレクトリを変更し、そのディレクトリ名を標準出力に出力します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>インデックス</var>
+</dt>
+<dd>
+<p>
+削除するディレクトリスタックの要素のインデックスです。省略すると <code>&#x2B;0</code> を指定したものとみなします。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ディレクトリスタックの要素を正しく削除し作業ディレクトリを変更できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ディレクトリスタックに要素が一つしかない場合はそれ以上要素を削除できないので、エラーになります。</p></div>
+<div class="paragraph"><p>Popd コマンドは&#8203;<a href="builtin.html#types">任意組込みコマンド</a>です。
+POSIX では popd コマンドの動作は規定されていません。
+このコマンドは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

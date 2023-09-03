@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Hash 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Hash 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Hash 組込みコマンド</dfn>は外部コマンドのパスを検索・表示します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>hash <var>コマンド</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -r [<var>コマンド</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash [-a]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -d <var>ユーザ名</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -dr [<var>ユーザ名</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -d</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オプションを指定しない場合、hash コマンドはオペランドで指定した&#8203;<a href="exec.html#search">外部コマンドのパスを検索</a>し、結果を記憶します (既に記憶している場合は再度検索・記憶します)。</p></div>
+<div class="paragraph"><p><code>-r</code> (<code>--remove</code>) オプションを指定している場合、hash コマンドはオペランドで指定した外部コマンドのパスに関する記憶を消去します。<code>-r</code> (<code>--remove</code>) オプションを指定しかつ<var>コマンド</var>を指定しない場合、全ての記憶を消去します。</p></div>
+<div class="paragraph"><p><code>-r</code> (<code>--remove</code>) オプションを指定せず<var>コマンド</var>も指定しない場合、記憶しているパスの一覧を標準出力に出力します。</p></div>
+<div class="paragraph"><p><code>-d</code> (<code>--directory</code>) オプションを指定した場合、hash コマンドは外部コマンドのパスの代わりにユーザのホームディレクトリのパスを検索・記憶または表示します。記憶したパスは&#8203;<a href="expand.html#tilde">チルダ展開</a>で使用します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--all</code>
+</dt>
+<dd>
+<p>
+シェルが記憶している全てのパスを出力します。
+</p>
+<div class="paragraph"><p>このオプションを指定しない場合、シェルが記憶しているパスのうち組込みコマンドに対するものは出力しません。</p></div>
+</dd>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--directory</code>
+</dt>
+<dd>
+<p>
+外部コマンドのパスの代わりにユーザのホームディレクトリのパスを扱います。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--remove</code>
+</dt>
+<dd>
+<p>
+指定したコマンドまたはユーザ名に対するパスの記憶を消去します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>コマンド</var>
+</dt>
+<dd>
+<p>
+パスを記憶・消去する外部コマンドの名前です。スラッシュを含むパスを指定することはできません。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>ユーザ名</var>
+</dt>
+<dd>
+<p>
+ホームディレクトリのパスを記憶・消去するユーザ名です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り hash コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>シェルは、外部コマンド (またはチルダ展開) を実行する際に自動的にコマンド (またはホームディレクトリ) のパスを記憶するので、通常はわざわざ hash コマンドを使ってパスを記憶させる必要はありません。</p></div>
+<div class="paragraph"><p><a href="params.html#sv-path"><code>PATH</code> 変数</a>の値が変わった時は、記憶した外部コマンドのパスは自動的にすべて消去されます。</p></div>
+<div class="paragraph"><p>POSIX が規定しているオプションは <code>-r</code> だけです。よって他のオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>Hash コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

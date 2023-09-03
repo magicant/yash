@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Unset built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Unset built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>unset built-in</dfn> undefines variables or functions.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>unset [-fv] [<var>name</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The unset built-in removes the definition of the
+<a href="params.html#variables">variables</a> or <a href="exec.html#function">functions</a>
+specified by operands.</p></div>
+<div class="paragraph"><p>It is not an error if any of the specified variables or functions do not
+exist; they are silently ignored.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--functions</code>
+</dt>
+<dd>
+<p>
+Undefine functions.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--variables</code>
+</dt>
+<dd>
+<p>
+Undefine variables.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>These options are mutually exclusive:
+only the last specified one is effective.
+If neither is specified, <code>-v</code> is assumed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>name</var>
+</dt>
+<dd>
+<p>
+The name of a variable or function to be undefined.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the unset built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The unset built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>Although yash does not do so, the POSIX standard allows removing a function if
+neither of the <code>-f</code> and <code>-v</code> options is specified and the specified variable
+does not exist.</p></div>
+<div class="paragraph"><p>At least one <var>name</var> operand must be specified in the
+<a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

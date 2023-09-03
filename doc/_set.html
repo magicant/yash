@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Set built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Set built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>set built-in</dfn> sets shell options and positional parameters.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set [<var>option</var>s] [<var>operand</var>s]</code>
+</p>
+</li>
+<li>
+<p>
+<code>set -o</code>
+</p>
+</li>
+<li>
+<p>
+<code>set +o</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The set built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed without any command arguments, the built-in prints a list of all
+existing <a href="params.html#variables">variables</a> to the standard input in a form
+that can be reused as commands that will restore the variable definitions.</p></div>
+<div class="paragraph"><p>When <code>-o</code> is the only command argument, the built-in prints a list of shell
+options with their current settings.
+When <code>+o</code> is the only command argument, the built-in prints commands that can
+be reused to restore the current shell option settings.</p></div>
+<div class="paragraph"><p>In other cases, the built-in changes shell option settings and/or
+<a href="params.html#positional">positional parameters</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When one or more options are specified, the built-in enables or disables the
+shell options.
+A normal hyphen-prefixed option enables a shell option.
+An option that is prefixed with a plus (<code>+</code>) instead of a hyphen disables a
+shell option.
+For example, options <code>-m</code>, <code>-o monitor</code>, and <code>--monitor</code> enable the monitor
+option and options <code>+m</code>, <code>+o monitor</code>, <code>++monitor</code> disable it.</p></div>
+<div class="paragraph"><p>The name of a long option is case-insensitive and may include irrelevant
+non-alphanumeric characters, which are ignored.
+For example, options <code>--le-comp-debug</code> and <code>--LeCompDebug</code> are equivalent.
+If <code>no</code> is prepended to the name of a long option, the meaning is reversed.
+For example, <code>--noallexport</code> is equivalent to <code>++allexport</code> and <code>++nonotify</code>
+to <code>--notify</code>.</p></div>
+<div class="paragraph"><p>An option can be specified in one of the following forms:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+a long option e.g. <code>--allexport</code>
+</p>
+</li>
+<li>
+<p>
+an <code>-o</code> option with a option name specified as the argument
+  e.g. <code>-o allexport</code>
+</p>
+</li>
+<li>
+<p>
+a single-character option e.g. <code>-a</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Not all options can be specified as single-character options.</p></div>
+<div class="paragraph"><p>The available options are:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="so-allexport"></a>all-export (<code>-a</code>)
+</dt>
+<dd>
+<p>
+When enabled, all <a href="params.html#variables">variables</a> are automatically
+<a href="params.html#variables">exported</a> when assigned.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-braceexpand"></a>brace-expand
+</dt>
+<dd>
+<p>
+This option enables <a href="expand.html#brace">brace expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-caseglob"></a>case-glob
+</dt>
+<dd>
+<p>
+(Enabled by default)
+When enabled, pattern matching is case-sensitive in
+<a href="expand.html#glob">pathname expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-clobber"></a>clobber (<code>+C</code>)
+</dt>
+<dd>
+<p>
+(Enabled by default)
+When enabled, the <code>&gt;</code> <a href="redir.html#file">redirection</a> behaves the same as
+the <code>&gt;|</code> redirection.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-curasync"></a>cur-async
+</dt>
+<dt class="hdlist1">
+<a id="so-curbg"></a>cur-bg
+</dt>
+<dt class="hdlist1">
+<a id="so-curstop"></a>cur-stop
+</dt>
+<dd>
+<p>
+(Enabled by default)
+These options affect choice of the current job
+(cf. <a href="job.html#jobid">job ID</a>).
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-dotglob"></a>dot-glob
+</dt>
+<dd>
+<p>
+When enabled, periods at the beginning of filenames are not treated specially
+in <a href="expand.html#glob">pathname expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-emacs"></a>emacs
+</dt>
+<dd>
+<p>
+This option enables <a href="lineedit.html">line-editing</a> in the
+<a href="lineedit.html#modes">emacs mode</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-emptylastfield"></a>empty-last-field
+</dt>
+<dd>
+<p>
+When enabled, <a href="expand.html#split">field splitting</a> does not remove the last
+field even if it is empty.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-errexit"></a>err-exit (<code>-e</code>)
+</dt>
+<dd>
+<p>
+When enabled, if a <a href="syntax.html#pipelines">pipeline</a> ends with a non-zero
+exit status, the shell immediately exits unless the following suppress
+condition is met:
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+the pipeline is a condition of an <a href="syntax.html#if">if command</a> or
+  <a href="syntax.html#while-until">while or until loop</a>;
+</p>
+</li>
+<li>
+<p>
+the pipeline is prefixed by <code>!</code>; or
+</p>
+</li>
+<li>
+<p>
+the pipeline is a single <a href="syntax.html#compound">compound command</a> other
+  than a subshell <a href="syntax.html#grouping">grouping</a>.
+</p>
+</li>
+</ul></div>
+</dd>
+<dt class="hdlist1">
+<a id="so-errreturn"></a>err-return
+</dt>
+<dd>
+<p>
+This option is like the err-exit option, but the <a href="_return.html">return
+built-in</a> is executed instead of the shell exiting on a non-zero exit status.
+Unlike err-exit, the suppress condition does not apply inside a
+<a href="exec.html#function">function</a>,
+subshell <a href="syntax.html#grouping">grouping</a>, or <a href="_dot.html">script file</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-exec"></a>exec (<code>+n</code>)
+</dt>
+<dd>
+<p>
+(Enabled by default)
+Commands are actually executed only when this option is enabled.
+Otherwise, commands are just parsed and not executed.
+Disabling this option may be useful for syntax checking.
+In an <a href="interact.html">interactive shell</a>, this option is always assumed
+enabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-extendedglob"></a>extended-glob
+</dt>
+<dd>
+<p>
+This option enables <a href="expand.html#extendedglob">extension in pathname
+expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-forlocal"></a>for-local
+</dt>
+<dd>
+<p>
+(Enabled by default)
+If a <a href="syntax.html#for">for loop</a> is executed within a
+<a href="exec.html#function">function</a>, this option causes the iteration variable
+to be created as a <a href="exec.html#localvar">local variable</a>, even if the
+variable already exists globally.
+This option has no effect if the <a href="posix.html">POSIXly-correct mode</a> is
+active.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-glob"></a>glob (<code>+f</code>)
+</dt>
+<dd>
+<p>
+(Enabled by default)
+This option enables <a href="expand.html#glob">pathname expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-hashondef"></a>hash-on-def (<code>-h</code>)
+</dt>
+<dd>
+<p>
+When a <a href="exec.html#function">function</a> is defined when this option is
+enabled, the shell immediately performs <a href="exec.html#search">command path
+search</a> for each command that appears in the function and caches the command&#8217;s
+full path.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-histspace"></a>hist-space
+</dt>
+<dd>
+<p>
+When enabled, command lines that start with a whitespace are not saved in
+<a href="interact.html#history">command history</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-ignoreeof"></a>ignore-eof
+</dt>
+<dd>
+<p>
+When enabled, an <a href="interact.html">interactive shell</a> does not exit when EOF
+(end of file) is input.
+This prevents the shell from exiting when you accidentally hit Ctrl-D.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-lealwaysrp"></a>le-always-rp
+</dt>
+<dt class="hdlist1">
+<a id="so-lecompdebug"></a>le-comp-debug
+</dt>
+<dt class="hdlist1">
+<a id="so-leconvmeta"></a>le-conv-meta
+</dt>
+<dt class="hdlist1">
+<a id="so-lenoconvmeta"></a>le-no-conv-meta
+</dt>
+<dt class="hdlist1">
+<a id="so-lepredict"></a>le-predict
+</dt>
+<dt class="hdlist1">
+<a id="so-lepredictempty"></a>le-predict-empty
+</dt>
+<dt class="hdlist1">
+<a id="so-lepromptsp"></a>le-prompt-sp
+</dt>
+<dt class="hdlist1">
+<a id="so-levisiblebell"></a>le-visible-bell
+</dt>
+<dt class="hdlist1">
+<a id="so-letrimright"></a>le-trim-right
+</dt>
+<dd>
+<p>
+See <a href="lineedit.html#options">shell options on line-editing</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-markdirs"></a>mark-dirs
+</dt>
+<dd>
+<p>
+When enabled, resulting directory names are suffixed by a slash in
+<a href="expand.html#glob">pathname expansion</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-monitor"></a>monitor (<code>-m</code>)
+</dt>
+<dd>
+<p>
+This option enables <a href="job.html">job control</a>.
+This option is enabled by default for an <a href="interact.html">interactive
+shell</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-notify"></a>notify (<code>-b</code>)
+</dt>
+<dd>
+<p>
+When the status of a <a href="job.html">job</a> changes when this option is enabled,
+the shell immediately notifies at any time.
+This option overrides the notify-le option.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-notifyle"></a>notify-le
+</dt>
+<dd>
+<p>
+This option is similar to the notify option, but the status change is notified
+only while the shell is waiting for input with
+<a href="lineedit.html">line-editing</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-nullglob"></a>null-glob
+</dt>
+<dd>
+<p>
+When enabled, in <a href="expand.html#glob">pathname expansion</a>, patterns that do
+not match any pathname are removed from the command line rather than left as
+is.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-pipefail"></a>pipe-fail
+</dt>
+<dd>
+<p>
+When enabled, the exit status of a <a href="syntax.html#pipelines">pipeline</a> is
+zero if and only if all the subcommands of the pipeline exit with an exit
+status of zero.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-posixlycorrect"></a>posixly-correct
+</dt>
+<dd>
+<p>
+This option enables the <a href="posix.html">POSIXly-correct mode</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-traceall"></a>trace-all
+</dt>
+<dd>
+<p>
+(Enabled by default)
+When this option is disabled, the <a href="#so-xtrace">x-trace option</a> is temporarily
+disabled while the shell is executing commands defined in the
+<a href="params.html#sv-command_not_found_handler"><code>COMMAND_NOT_FOUND_HANDLER</code></a>,
+<a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code></a>, or
+<a href="params.html#sv-yash_after_cd"><code>YASH_AFTER_CD</code></a> variable.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-unset"></a>unset (<code>+u</code>)
+</dt>
+<dd>
+<p>
+(Enabled by default)
+When enabled, an undefined parameter is expanded to an empty string in
+<a href="expand.html#params">parameter expansion</a> and treated as zero in
+<a href="expand.html#arith">arithmetic expansion</a>.
+When disabled, expansion of an undefined parameter results in an error.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-verbose"></a>verbose (<code>-v</code>)
+</dt>
+<dd>
+<p>
+When enabled, the shell prints each command line to the standard error before
+parsing and executing it.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-vi"></a>vi
+</dt>
+<dd>
+<p>
+This option enables <a href="lineedit.html">line-editing</a> in the
+<a href="lineedit.html#modes">vi mode</a>.
+This option is enabled by default in an <a href="interact.html">interactive shell</a>
+if the standard input and error are both terminals.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-xtrace"></a>x-trace (<code>-x</code>)
+</dt>
+<dd>
+<p>
+When enabled, the results of <a href="expand.html">expansion</a> are printed to the
+standard error for each <a href="syntax.html#simple">simple command</a> being
+executed.
+When printed, each line is prepended with an expansion result of the
+<a href="params.html#sv-ps4"><code>PS4</code> variable</a>.
+See also the <a href="#so-traceall">trace-all option</a>.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If one or more operands are passed to the set built-in, current
+<a href="params.html#positional">positional parameters</a> are all removed and the
+operands are set as new positional parameters.
+If the <code>--</code> separator (cf. <a href="builtin.html#argsyntax">syntax of command
+arguments</a>) is passed, the positional parameters are set even when there are
+no operands, in which case new positional parameters will be nothing.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the set built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The set built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>In the POSIX standard, available shell options are much limited.
+The standard does not define:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+long options such as <code>--allexport</code>,
+</p>
+</li>
+<li>
+<p>
+prepending <code>no</code> to negate an option,
+</p>
+</li>
+<li>
+<p>
+using uppercase letters and/or non-alphanumeric characters in option names
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The options defined in the standard are:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>-a</code>, <code>-o allexport</code>
+</p>
+</li>
+<li>
+<p>
+<code>-e</code>, <code>-o errexit</code>
+</p>
+</li>
+<li>
+<p>
+<code>-m</code>, <code>-o monitor</code>
+</p>
+</li>
+<li>
+<p>
+<code>-C</code>, <code>-o noclobber</code>
+</p>
+</li>
+<li>
+<p>
+<code>-n</code>, <code>-o noexec</code>
+</p>
+</li>
+<li>
+<p>
+<code>-f</code>, <code>-o noglob</code>
+</p>
+</li>
+<li>
+<p>
+<code>-b</code>, <code>-o notify</code>
+</p>
+</li>
+<li>
+<p>
+<code>-u</code>, <code>-o nounset</code>
+</p>
+</li>
+<li>
+<p>
+<code>-v</code>, <code>-o verbose</code>
+</p>
+</li>
+<li>
+<p>
+<code>-x</code>, <code>-o xtrace</code>
+</p>
+</li>
+<li>
+<p>
+<code>-h</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o ignoreeof</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o nolog</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o vi</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash does not support the nolog option, which prevents
+<a href="syntax.html#funcdef">function definitions</a> from being added to
+<a href="interact.html#history">command history</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

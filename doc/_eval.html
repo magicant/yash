@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Eval built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Eval built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>eval built-in</dfn> evaluates operands as commands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>eval [-i] [<var>command</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The eval built-in requires that all options precede operands.
+Any command line arguments after the first operand are all treated as
+operands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The eval parses operands as commands and executes them in the current
+<a href="exec.html#environment">command execution environment</a>.</p></div>
+<div class="paragraph"><p>When executed without the <code>-i</code> (<code>--iteration</code>) option, all the operands are
+concatenated into one string (with a space inserted between each operand) and
+parsed/executed at once.</p></div>
+<div class="paragraph"><p>With the <code>-i</code> (<code>--iteration</code>) option, the built-in performs <dfn id="iter">iterative
+execution</dfn>: operands are parsed/executed one by one.
+If the <a href="_continue.html">continue built-in</a> is executed with the <code>-i</code>
+(<code>--iteration</code>) option during the iterative execution, the execution of the
+current operand is aborted and the next operand is parsed/executed
+immediately.
+The <a href="_break.html">break built-in</a> with the <code>-i</code> (<code>--iteration</code>) option is
+similar but the remaining operands are not parsed/executed.
+The value of the <a href="params.html#sp-hash"><code>?</code> special parameter</a> is saved
+before the iterative execution is started. The parameter value is restored to
+the saved one after each iteration.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--iteration</code>
+</dt>
+<dd>
+<p>
+Perform iterative execution.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>command</var>
+</dt>
+<dd>
+<p>
+A string that is parsed and executed as commands.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status is zero if no <var>command</var> was specified or <var>command</var>
+contained no actual command that can be executed.
+Otherwise, that is, if the eval built-in executed one or more commands, the
+exit status of the eval built-in is that of the last executed command.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The eval built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the eval built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes the behavior of yash's POSIXly-correct mode." />
+<title>POSIXly-correct mode</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>POSIXly-correct mode</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>Yash behaves as defined in
+<a href="http://pubs.opengroup.org/onlinepubs/9699919799/">POSIX.1-2008</a>, Shell &amp;
+Utilities for the most part, but some functionalities disobey POSIX for
+usability.
+When full POSIX-conformance is needed, you can enable the <dfn>POSIXly-correct
+mode</dfn> to make yash obey POSIX as much as possible.</p></div>
+<div class="paragraph"><p>If yash is started with the name &#8220;sh&#8221;, the POSIXly-correct mode is
+automatically enabled.
+The <code>-o posixly-correct</code> command-line option also enables the POSIXly-correct
+mode.
+After yash has been started, the POSIXly-correct mode can be enabled by
+executing the command string <code><a href="_set.html">set</a> -o posixly-correct</code>.</p></div>
+<div class="paragraph"><p>When the POSIXly-correct mode is on, yash not only tries to obey the
+requirements by POSIX, but also treats as errors most conditions where the
+behavior is <em>undefined</em> or <em>unspecified</em> by POSIX.
+As a result, most yash-specific functionalities are disabled in the
+POSIXly-correct mode.</p></div>
+<div class="paragraph"><p>Below is the complete list of the behavioral differences between when yash is
+in the POSIXly-correct mode and when not.
+When the POSIXly-correct mode is enabled:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Different <a href="invoke.html#init">initialization scripts</a> are used.
+</p>
+</li>
+<li>
+<p>
+If the shell was started with the <a href="invoke.html#arguments"><code>-c</code> option</a>,
+  <code>sh -c</code> (instead of <code>yash -c</code>) is printed as the script pathname on a syntax
+  error.
+</p>
+</li>
+<li>
+<p>
+Global <a href="syntax.html#aliases">aliases</a> are not substituted.
+</p>
+</li>
+<li>
+<p>
+Nested commands in a <a href="syntax.html#compound">compound command</a> must not be
+  empty.
+</p>
+</li>
+<li>
+<p>
+The <a href="syntax.html#for">for loop</a> iteration variable is created as global,
+  regardless of the <a href="_set.html#so-forlocal">for-local</a> shell option.
+  The variable must have a portable (ASCII-only) name.
+</p>
+</li>
+<li>
+<p>
+The first pattern in a <a href="syntax.html#case">case command</a> cannot be <code>esac</code>.
+</p>
+</li>
+<li>
+<p>
+The <code>!</code> keyword cannot be followed by <code>(</code> without any whitespaces
+  in-between.
+</p>
+</li>
+<li>
+<p>
+The <a href="syntax.html#double-bracket">double-bracket command</a> cannot be used.
+</p>
+</li>
+<li>
+<p>
+The <code>function</code> keyword cannot be used for <a href="syntax.html#funcdef">function
+  definition</a>. The function must have a portable (ASCII-only) name.
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#simple">Simple commands</a> cannot assign to
+  <a href="params.html#arrays">arrays</a>.
+</p>
+</li>
+<li>
+<p>
+Changing the value of the <a href="params.html#sv-lc_ctype"><code>LC_CTYPE</code> variable</a>
+  after the shell has been initialized does not affect the shell&#8217;s locale.
+</p>
+</li>
+<li>
+<p>
+The <a href="params.html#sv-random"><code>RANDOM</code> variable</a> cannot be used to generate
+  random numbers.
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#tilde">Tilde expansion</a> only expands <code>~</code> and
+  <code>~<var>username</var></code>.
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#params">Parameter expansion</a> cannot be nested.
+  No <a href="expand.html#param-index">indexes</a> or
+  <a href="expand.html#param-mod">modifiers</a> with <var>word2</var> are allowed.
+</p>
+</li>
+<li>
+<p>
+The commands in a <a href="expand.html#cmdsub">command substitution</a> of the form
+  <code>$(<var>commands</var>)</code> are parsed every time the substitution is executed.
+</p>
+</li>
+<li>
+<p>
+In <a href="expand.html#arith">arithmetic expansion</a>, fractional numbers and the
+  <code>++</code> and <code>--</code> operators cannot be used. All variables must be numeric.
+</p>
+</li>
+<li>
+<p>
+The operand of a <a href="redir.html">redirection</a> cannot be the integer prefix
+  to a next redirection operator.
+</p>
+</li>
+<li>
+<p>
+A <a href="syntax.html#compound">compound command</a> with a
+  <a href="redir.html">redirection</a> cannot be immediately followed by a keyword
+  like <code>}</code> and <code>fi</code>.
+</p>
+</li>
+<li>
+<p>
+In a <a href="redir.html#file">redirection to a file</a>, if the
+  <a href="expand.html#glob">pathname expansion</a> yielded more than one or no
+  pathname, it is not immediately treated as an error. Instead, the shell
+  tries to treat the word before the expansion as a pathname.
+</p>
+</li>
+<li>
+<p>
+A file descriptor must be readable and writable when duplicated by the
+  <code>&lt;&amp;</code> and <code>&gt;&amp;</code> <a href="redir.html#dup">redirection</a> operator,
+  respectively.
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#socket">Socket redirection</a>, <a href="redir.html#here">here
+  strings</a>, <a href="redir.html#pipe">pipe redirection</a>, and
+  <a href="redir.html#process">process redirection</a> cannot be used.
+</p>
+</li>
+<li>
+<p>
+When <a href="exec.html#simple">executing a simple command</a>, failure in command
+  search does not trigger execution of the
+  <a href="params.html#sv-command_not_found_handler"><code>COMMAND_NOT_FOUND_HANDLER</code>
+  variable</a>.
+</p>
+</li>
+<li>
+<p>
+<a href="builtin.html#types">Elective and extension built-ins</a> cannot be executed.
+</p>
+</li>
+<li>
+<p>
+Some <a href="builtin.html">built-ins</a> behave differently.
+  Especially, long command-line options (as well as some others) cannot be
+  used.
+</p>
+</li>
+<li>
+<p>
+A <a href="interact.html">non-interactive</a> shell exits when a
+  <a href="builtin.html#types">special built-in</a> is given a syntactically wrong
+  arguments or when an error occurs in assignment or redirection with a
+  special built-in.
+</p>
+</li>
+<li>
+<p>
+An <a href="interact.html">interactive</a> shell does not execute the
+  <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> variable</a> before
+  printing a prompt.
+  The values of the <a href="params.html#sv-ps1"><code>PS1</code></a>,
+  <a href="params.html#sv-ps2"><code>PS2</code></a>, and <a href="params.html#sv-ps4"><code>PS4</code></a> variables
+  are parsed differently.
+  Prompt variables with a <code>YASH_</code> prefix (e.g.
+  <a href="params.html#sv-yash_ps1"><code>YASH_PS1</code></a>) are not used.
+</p>
+</li>
+<li>
+<p>
+In <a href="interact.html#mailcheck">mail checking</a>, a notification message is
+  printed if the file has been modified, regardless of whether the file is
+  empty.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

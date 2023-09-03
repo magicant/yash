@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Exec built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Exec built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>exec built-in</dfn> replaces the shell process with another external
+command.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>exec [-cf] [-a <var>name</var>] [<var>command</var> [<var>argument</var>&#8230;]]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The exec built-in requires that all options precede operands.
+It is important so that options to the exec built-in are not confused with
+options to <var>command</var>.
+Any command line arguments after <var>command</var> are treated as <var>argument</var>s.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When the exec built-in is executed with <var>command</var>, the shell executes
+<var>command</var> with <var>argument</var>s in a manner similar to the last step of
+<a href="exec.html#simple">execution of a simple command</a>.
+The differences are that <var>command</var> is always treated as an external command
+ignoring any existing functions and built-ins and that the exec system call
+that starts the external command is called in the current
+<a href="exec.html#environment">command execution environment</a> instead of a
+subshell, replacing the shell process with the new command process.</p></div>
+<div class="paragraph"><p>If the shell is in the <a href="posix.html">POSIXly-correct mode</a> or not
+<a href="interact.html">interactive</a>, failure in execution of <var>command</var> causes
+the shell to exit immediately.</p></div>
+<div class="paragraph"><p>If an interactive shell that is not in the POSIXly-correct mode has a stopped
+<a href="job.html">job</a>, the shell prints a warning message and refuses to execute
+<var>command</var>.
+Once the shell process is replaced with an external command, information about
+the shell&#8217;s jobs is lost, so you will have to resume or kill the stopped jobs
+by sending signals by hand.
+To force the shell to execute <var>command</var> regardless, specify the <code>-f</code>
+(<code>--force</code>) option.</p></div>
+<div class="paragraph"><p>When executed without <var>command</var>, the built-in does nothing.
+As a side effect, however, <a href="redir.html">redirection</a> applied to the
+built-in remains in the current <a href="exec.html#environment">command execution
+environment</a> even after the built-in finished.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a <var>name</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--as=<var>name</var></code>
+</dt>
+<dd>
+<p>
+Pass <var>name</var>, instead of <var>command</var>, to the external command as its name.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-c</code>
+</dt>
+<dt class="hdlist1">
+<code>--clear</code>
+</dt>
+<dd>
+<p>
+Pass to the external command only variables that are assigned in the
+<a href="exec.html#simple">simple command</a> in which the built-in is being executed.
+Other environment variables are not passed to the command.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--force</code>
+</dt>
+<dd>
+<p>
+Suppress warnings that would prevent command execution.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>command</var>
+</dt>
+<dd>
+<p>
+An external command to be executed.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>argument</var>&#8230;
+</dt>
+<dd>
+<p>
+Arguments to be passed to the command.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If the shell process was successfully replaced with the external command,
+there is no exit status since the shell process no longer exists.</p></div>
+<div class="paragraph"><p>The exit status is:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+127 if the command was not found,
+</p>
+</li>
+<li>
+<p>
+126 if the command was found but could not be executed, and
+</p>
+</li>
+<li>
+<p>
+zero if no <var>command</var> was specified.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exec built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the exec built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

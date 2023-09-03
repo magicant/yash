@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash の起動時の初期化処理について" />
+<title>シェルの起動</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>シェルの起動</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>Yash がプログラムとして起動されると、yash はいくつかの初期化処理を行った後、コマンドを読み取って実行する処理に移ります。これらの処理の内容は、主に起動時のコマンドライン引数によって決まります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="arguments">起動時のコマンドライン引数</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Yash の起動時のコマンドライン引数は POSIX に準拠しています。POSIX で定められているとおり、引数は <dfn>オプション</dfn> と <dfn>オペランド</dfn> に分類されます。引数の書式に関する一般的な説明については&#8203;<a href="builtin.html#argsyntax">コマンドの引数の構文</a>を参照してください。オプションはオペランドより前に指定する必要があります。</p></div>
+<div class="paragraph"><p>オプションに <code>-c</code> (<code>--cmdline</code>) オプションが含まれている場合、オペランドを少なくとも一つ与える必要があります。シェルは、この最初のオペランドをコマンドとして解釈・実行します。二つ目のオペランドがある場合は、&#8203;<a href="params.html#sp-zero">特殊パラメータ <code>0</code></a> がそれに初期化されます。三つ目以降のオペランドは、&#8203;<a href="params.html#positional">位置パラメータ</a>になります。 <code>-c</code> (<code>--cmdline</code>) オプションを指定した場合は、ファイルや標準入力からコマンドを読み込むことはありません (ドット組込みコマンドを使用したときを除く)。</p></div>
+<div class="paragraph"><p>オプションに <code>-s</code> (<code>--stdin</code>) オプションが含まれている場合、シェルは標準入力から一行ずつコマンドを読み取って、解釈・実行します。オペランドはすべて&#8203;<a href="params.html#positional">位置パラメータ</a>の初期化に使われます。&#8203;<a href="params.html#sp-zero">特殊パラメータ <code>0</code></a> はこのシェルが起動されたときに元のプログラムから受け取った最初の引数に初期化されます。</p></div>
+<div class="paragraph"><p><code>-c</code> (<code>--cmdline</code>) オプションも <code>-s</code> (<code>--stdin</code>) オプションも指定されなかった場合は、シェルはファイルからコマンドを読み取って解釈・実行します。最初のオペランドが読み込むファイル名と見なされ、特殊パラメータ <code>0</code> の値となります。残りのオペランドは&#8203;<a href="params.html#positional">位置パラメータ</a>になります。オペランドが一つもない場合は、 <code>-s</code> (<code>--stdin</code>) オプションを指定したときと同様に標準入力からコマンドを読み込みます。</p></div>
+<div class="paragraph"><p><code>-c</code> (<code>--cmdline</code>) オプションと <code>-s</code> (<code>--stdin</code>) オプションを同時に使用することはできません。</p></div>
+<div class="paragraph"><p><code>--help</code> オプションまたは <code>-V</code> (<code>--version</code>) オプションが指定されている場合は、通常の初期化処理やコマンドの解釈・実行は一切行いません。それぞれシェルのコマンドライン引数の簡単な説明とバージョン情報を標準出力に出力した後、そのままシェルは終了します。 <code>-V</code> (<code>--version</code>) オプションを <code>-v</code> (<code>--verbose</code>) オプションと共に使用すると、シェルで利用可能な機能の一覧も出力されます。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--interactive</code>) オプションが指定されている場合、シェルは対話モードになります。逆に <code>+i</code> (<code>++interactive</code>) オプションが指定されている場合、シェルは対話モードになりません。</p></div>
+<div class="paragraph"><p><code>-l</code> (<code>--login</code>) オプションが指定されている場合、シェルはログインシェルとして動作します。</p></div>
+<div class="paragraph"><p><code>--noprofile</code>, <code>--norcfile</code>, <code>--profile</code>, <code>--rcfile</code> 各オプションは、シェルの初期化処理の動作を指定します (後述)。</p></div>
+<div class="paragraph"><p>その他のオプションとして、&#8203;<a href="_set.html">set 組込みコマンド</a>で指定可能な各種オプションをシェルの起動時に指定することができます。(<code>+</code> で始まるオプションを含む)</p></div>
+<div class="paragraph"><p>最初のオペランドが <code>-</code> であり、かつオプションとオペランドが <code>--</code> で区切られていない場合、そのオペランドは特別に無視されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="init">シェルの初期化処理</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>シェルの初期化処理は以下のように行われます。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Yash はまず、(コマンドライン引数の前に渡される) それ自身の起動時の名前を解析します。その名前が <code>-</code> で始まる場合は、シェルはログインシェルとして動作します。また名前が <code>sh</code> である場合 (<code>/bin/sh</code> のように <code>sh</code> で終わる場合を含む) は、シェルは <a href="posix.html">POSIX 準拠モード</a>になります。
+</p>
+</li>
+<li>
+<p>
+オペランドが一つもなく、かつ標準入力と標準エラーがどちらも端末ならば、シェルは自動的に&#8203;<a href="interact.html">対話モード</a>になります。ただし <code>+i</code> (<code>++interactive</code>) オプションが指定されている場合はそちらを優先します。
+</p>
+</li>
+<li>
+<p>
+対話モードのシェルでは自動的に&#8203;<a href="job.html">ジョブ制御</a>が有効になります。ただし <code>+m</code> (<code>++monitor</code>) オプションが指定されている場合はそちらを優先します。
+</p>
+</li>
+<li>
+<p>
+シェルは以下の初期化スクリプトを読み込んで解釈・実行します。(ただしシェルプロセスの実ユーザ ID と実効ユーザ ID が異なっているか、実グループ ID と実効グループ ID が異なっている場合を除く)
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+シェルがログインシェルとして動作している場合は、 <code>--profile=<var>ファイル名</var></code> オプションで指定したファイルを読み込んで実行します。(ただし <code>--noprofile</code> オプションが指定されているか <a href="posix.html">POSIX 準拠モード</a>の場合を除く)
+   <br />
+    <code>--profile=<var>ファイル名</var></code> オプションが指定されていない場合は、&#8203;<a href="expand.html#tilde">~</a>/.yash_profile がデフォルトのファイルとして使われます。
+</p>
+</li>
+<li>
+<p>
+シェルが対話モードの場合は、 <code>--rcfile=<var>ファイル名</var></code> オプションで指定したファイルを読み込んで実行します。(ただし <code>--norcfile</code> オプションが指定されている場合を除く)
+   <br />
+    <code>--rcfile</code> オプションが指定されていない場合は、非 POSIX 準拠モードではファイル <a href="expand.html#tilde">~</a>/.yashrc がデフォルトのファイルとして使われます。&#x7e;/.yashrc が読み込めない場合は、ファイル initialization/default を <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> から探して読み込みます。POSIX 準拠モードでは、&#8203;<a href="params.html#sv-env"><code>ENV</code> 環境変数</a>の値が&#8203;<a href="expand.html#params">パラメータ展開</a>され、その結果をファイル名と見なしてファイルを読み込みます。
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">Yash は /etc/profile や /etc/yashrc や <a href="expand.html#tilde">~</a>/.profile を自動的に読むことはありません。</td>
+</tr></table>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

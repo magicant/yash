@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Trap built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Trap built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>trap built-in</dfn> sets or prints signal handlers.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>trap</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap <var>action</var> <var>signal</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap <var>signal_number</var> [<var>signal</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap -p [<var>signal</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The trap built-in sets or prints actions that are taken when the shell
+receives signals.
+(Those actions are called <dfn>traps</dfn>.)</p></div>
+<div class="paragraph"><p>When executed with <var>action</var> and one or more <var>signal</var>s, the built-in sets
+the traps for <var>signal</var>s to <var>action</var>.
+If the shell receives one of the signals, the action will be taken.</p></div>
+<div class="paragraph"><p>If the first operand is <var>signal_number</var> instead of <var>action</var>, the built-in
+resets the traps for <var>signal_number</var> and <var>signal</var>s as if <var>action</var> was
+<code>-</code>.</p></div>
+<div class="paragraph"><p>When executed with the <code>-p</code> (<code>--print</code>) option or with no operands, the
+built-in prints currently set traps to the standard output in a format that
+can be executed as commands that restore the current traps.
+If one or more <var>signal</var>s are specified, only those signals are printed.
+Otherwise, all signals with non-default actions are printed.
+(In some situations, however, the built-in may print previous trap settings
+instead of the current. See notes below.)</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--print</code>
+</dt>
+<dd>
+<p>
+Print current trap settings.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>action</var>
+</dt>
+<dd>
+<p>
+An action that will be taken when <var>signal</var> is received.
+</p>
+<div class="paragraph"><p>If <var>action</var> is a single hyphen (<code>-</code>), the action is reset to the default
+action that is defined by the operating system.
+If <var>action</var> is an empty string, the signal is ignored on receipt.
+Otherwise, <var>action</var> is treated as a command string: the string is parsed and
+executed as commands when the signal is received.
+(If a signal is received while a command is being executed, the action is
+taken just after the command finishes.)</p></div>
+</dd>
+<dt class="hdlist1">
+<var>signal</var>
+</dt>
+<dd>
+<p>
+The number or name of a signal.
+</p>
+<div class="paragraph"><p>If <var>signal</var> is number <code>0</code> or name <code>EXIT</code>, it is treated as a special
+imaginary signal that is always received when the shell exits.
+The action set for this signal is taken when the shell exits normally.</p></div>
+</dd>
+<dt class="hdlist1">
+<var>signal_number</var>
+</dt>
+<dd>
+<p>
+This is like <var>signal</var>, but must be a number.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the trap built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The trap built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the trap built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard requires that signal names must be specified without the
+<code>SIG</code>-prefix, like <code>INT</code> and <code>QUIT</code>.
+As an extension, yash accepts <code>SIG</code>-prefixed names like <code>SIGINT</code> and <code>SIGQUIT</code>
+and treats signal names case-insensitively.</p></div>
+<div class="sect2">
+<h3 id="_reusing_output_of_the_built_in">Reusing output of the built-in</h3>
+<div class="paragraph"><p>Output of the trap built-in can be saved in a variable, which can be later
+executed by the <a href="_eval.html">eval built-in</a> to restore the traps.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>saved_traps=$(trap)
+trap '...' INT
+eval "$saved_traps"</code></pre>
+</div></div>
+<div class="paragraph"><p>There are some tricks behind the scenes to allow this idiom. You use a
+<a href="expand.html#cmdsub">command substitution</a> to save the output of the trap
+built-in in the variable. The command substitution is executed in a
+<a href="exec.html#subshell">subshell</a>. The subshell resets all traps (except
+ignored ones) at the beginning of itself. This seemingly would result in
+(almost) empty output from the built-in that would fail to restore the traps
+as expected.</p></div>
+<div class="paragraph"><p>To avoid that pitfall, POSIX requires the shell to follow one of the two
+options below:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If a command substitution just contains a single trap built-in, traps should
+  not be reset when the subshell is started to execute the built-in; or
+</p>
+</li>
+<li>
+<p>
+A subshell always resets the traps but remembers the previous traps. If the
+  trap built-in is executed in the subshell but no other trap built-in has
+  been executed to modify traps in the subshell, then the built-in should
+  print the remembered traps.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash obeys the second.</p></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

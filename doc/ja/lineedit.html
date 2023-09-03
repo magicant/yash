@@ -1,0 +1,3952 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash の行編集機能の説明" />
+<title>行編集</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>行編集</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>行編集</dfn>機能は、&#8203;<a href="interact.html">対話モード</a>のシェルにコマンドを入力する際に使える、コマンドの簡易編集機能です。行編集機能は、コマンドを編集するための簡単なエディタとして働きます。行編集機能は&#8203;<a href="interact.html#history">コマンド履歴</a>とも連携しており、&#8203;<a href="_fc.html">fc コマンド</a>を使ってエディタを起動する代わりに行編集で直接コマンドを編集・再実行できます。</p></div>
+<div class="paragraph"><p>行編集には複数の編集モードがあり、モードごとにキー操作の割り当てが異なります。行編集の有効・無効を切り替えたりモードを選択したりするには、&#8203;<a href="_set.html">set 組込みコマンド</a>で編集モードに対応するオプションを設定します。あるモードに対応するオプションを有効にすると、そのモードの行編集が有効になります (同時に他のモードのオプションは自動的に無効になります)。現在有効になっているモードのオプションを無効にすると、行編集は無効になります。現在 yash が搭載している編集モードは vi 風と emacs 風の二種類で、それぞれ対応するオプションは <code>-o vi</code> と <code>-o emacs</code> です。</p></div>
+<div class="paragraph"><p>シェルが対話モードで起動したとき、標準入力と標準エラーがともに端末ならば、vi 風行編集が自動的に有効になります。</p></div>
+<div class="paragraph"><p>行編集は、標準入力と標準エラーがともに端末のときだけ使えます。この条件が満たされていないときは、行編集は働きません。行編集が働くとき、シェルは termios インタフェースを使用して端末の入出力モードを一時的に変更し、terminfo インタフェースを使用して入力されたキーの判別などを行います。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">行編集のオプション</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>行編集を有効にし編集モードを選択するオプションとして、以下のオプションが <a href="_set.html">set 組込みコマンド</a>で設定できます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-vi">vi</a>
+</dt>
+<dd>
+<p>
+Vi 風編集モードを有効にします
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-emacs">emacs</a>
+</dt>
+<dd>
+<p>
+Emacs 風編集モードを有効にします
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>この他に、行編集に関わるものとして以下のオプションが設定できます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-lealwaysrp">le-always-rp</a>
+</dt>
+<dd>
+<p>
+このオプションが無効な時は、長いコマンドを入力してコマンドが右プロンプトに達すると、右プロンプトは見えなくなります。このオプションが有効な時は、右プロンプトは見えなくなる代わりに下に移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lecompdebug">le-comp-debug</a>
+</dt>
+<dd>
+<p>
+<a href="#completion">補完</a>を行う際にデバッグ用の情報を出力します
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-leconvmeta">le-conv-meta</a>
+</dt>
+<dd>
+<p>
+Terminfo データベースで得られた情報を無視し、入力の 8 ビット目を常に meta-key フラグとみなします。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lenoconvmeta">le-no-conv-meta</a>
+</dt>
+<dd>
+<p>
+Terminfo データベースで得られた情報を無視し、入力の 8 ビット目を他のビットと同様に扱います。
+</p>
+<div class="paragraph"><p>Le-conv-meta オプションと le-no-conv-meta オプションは片方しか有効にできません (片方を有効にするともう片方は自動的に無効になります)。どちらも無効な時は terminfo データベースの情報に従って 8 ビット目を meta-key とみなすかどうか判断します。</p></div>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepredict">le-predict</a>
+</dt>
+<dd>
+<p>
+<a href="#prediction">コマンドライン推定</a>を有効にします
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepredictempty">le-predict-empty</a>
+</dt>
+<dd>
+<p>
+<a href="#prediction">コマンドライン推定</a>とこのオプションが有効な時、まだ何も入力されていないコマンドラインでも推定結果を表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepromptsp">le-prompt-sp</a>
+</dt>
+<dd>
+<p>
+このオプションが有効な時、シェルは&#8203;<a href="interact.html#prompt">プロンプト</a>を出力する前に、プロンプトが必ず行頭に来るようにカーソルを移動するための特殊な文字列を出力します。
+</p>
+<div class="paragraph"><p>このオプションは最初から有効になっています。</p></div>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-levisiblebell">le-visible-bell</a>
+</dt>
+<dd>
+<p>
+シェルが警告を発する際、警告音を鳴らす代わりに端末を点滅させます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-letrimright">le-trim-right</a>
+</dt>
+<dd>
+<p>
+このオプションが無効な時、右プロンプトは端末右端から 1 マス空けて表示されます。このオプションを有効にすると右プロンプトを右端に付けて表示します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="modes">編集モード</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Vi 風編集モード</dfn>は vi に似たキー操作で編集を行う編集モードです。Vi 風編集モードでは、挿入モードとコマンドモードの二つのモードを適宜切り替えて編集を行います。編集が始まるときはモードは必ず挿入モードになっています。挿入モードでは入力した文字が基本的にそのままバッファに挿入されます。コマンドモードでは入力した文字はカーソルを移動したり文字を消去したりするコマンドとして解釈されます。</p></div>
+<div class="paragraph"><p><dfn>Emacs 風編集モード</dfn>は emacs に似たキー操作で編集を行う編集モードです。入力した文字は基本的にそのままバッファに挿入されますが、コマンドとして解釈される一部のキー操作が vi 風編集モードの挿入モードと異なります。</p></div>
+<div class="paragraph"><p>これらのモードの他に、コマンドの検索の際に用いる検索モードが vi 風と emacs 風とそれぞれにあります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="commands">行編集コマンド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>行編集中に入力された文字は全て以下の行編集コマンドのいずれかとして解釈されます。コマンドとキーの対応は <a href="_bindkey.html">bindkey 組込みコマンド</a>で変更できます (検索モードを除く)。</p></div>
+<div class="paragraph"><p>以下の一覧には各コマンドに対応するキー入力の初期設定も示してあります。なお、 『vi-insert』 は vi 風編集モードの挿入モードを、 『vi-command』 は vi 風編集モードのコマンドモードを、 『vi-search』 は vi 風編集モードの検索モードを、 『emacs』 は emacs 風編集モードを、 『emacs-search』 は emacs 風編集モードの検索モードを示します。</p></div>
+<div class="paragraph"><p>コマンドの中には引数を指定することでその動作を変更できるものがあります。例えば forward-char コマンドは通常はカーソルを一文字分前に移動しますが、引数を指定するとその引数の文字数分だけカーソルを移動します。引数は、目的のコマンドの直前に digit-argument コマンドを使うことで指定できます。</p></div>
+<div class="sect2">
+<h3 id="basic-commands">基本的な編集コマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+noop
+</dt>
+<dd>
+<p>
+何も行いません。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+alert
+</dt>
+<dd>
+<p>
+警告音を発しまたは端末を点滅させます。
+</p>
+</dd>
+<dt class="hdlist1">
+self-insert
+</dt>
+<dd>
+<p>
+入力した文字を現在のカーソルの位置に挿入します。(<a href="#escape">エスケープシーケンス</a>によるエスケープの対象となる文字は挿入できません)
+</p>
+<div class="paragraph"><p><a href="#prediction">コマンドライン推定</a>が有効な場合、推定された部分は無視します。Accept-prediction コマンドも参照。</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+insert-tab
+</dt>
+<dd>
+<p>
+タブを現在のカーソルの位置に挿入します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+expect-verbatim
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力する一文字を現在のカーソル位置に挿入します。このコマンドを使うと self-insert コマンドで入力できない文字も入力できます (ナル文字 <code>'\0'</code> を除く)。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^V</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+digit-argument
+</dt>
+<dd>
+<p>
+このコマンドは数字またはハイフンの入力に対してのみ有効です。入力した数字を次のコマンドへの引数として受け付けます (ハイフンの場合は符号を反転します)。
+</p>
+<div class="paragraph"><p>Digit-argument コマンドを連続して使うことで複数桁の引数を指定できます。例えば vi 風編集モードのコマンドモードで <code>12l</code> と入力すると、forward-char コマンドに引数 12 を与えたことになります (すなわちカーソルが左に 12 文字分移動します)。</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,
+<kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>0</kbd>, <kbd><code>\^[</code>1</kbd>,
+<kbd><code>\^[</code>2</kbd>, <kbd><code>\^[</code>3</kbd>,
+<kbd><code>\^[</code>4</kbd>, <kbd><code>\^[</code>5</kbd>,
+<kbd><code>\^[</code>6</kbd>, <kbd><code>\^[</code>7</kbd>,
+<kbd><code>\^[</code>8</kbd>, <kbd><code>\^[</code>9</kbd>,
+<kbd><code>\^[</code>-</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+bol-or-digit
+</dt>
+<dd>
+<p>
+引数がない場合は beginning-of-line コマンドと同じように、引数がある場合は digit-argument コマンドと同じように動作します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>0</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-line
+</dt>
+<dd>
+<p>
+行編集を終了し、現在のバッファの内容をシェルへの入力として与えます。行の末尾には自動的に改行が付け加わります。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^M</code></kbd>, <kbd><code>\et</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+abort-line
+</dt>
+<dd>
+<p>
+行編集を中止し、空の入力をシェルに与えます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\!</code></kbd>, <kbd><code>\^C</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+eof
+</dt>
+<dd>
+<p>
+シェルに入力の終わりを知らせます (これによりシェルは終了します)。
+</p>
+</dd>
+<dt class="hdlist1">
+eof-if-empty
+</dt>
+<dd>
+<p>
+バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、alert コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+eof-or-delete
+</dt>
+<dd>
+<p>
+バッファが空ならば、行編集を終了し、シェルに入力の終わりを知らせます (これによりシェルは終了します)。バッファが空でなければ、delete-char コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-with-hash
+</dt>
+<dd>
+<p>
+引数が与えられていないかバッファの最初の文字が <code>&#x23;</code> でなければ、バッファの最初に <code>&#x23;</code> を挿入します。そうでなければバッファの最初の <code>&#x23;</code> を削除します。いずれの場合も、その後 accept-line コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>#</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>#</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-prediction
+</dt>
+<dd>
+<p>
+Accept-line コマンドと同様に行編集を終了しますが、<a href="#prediction">推定</a>された部分も含めたコマンドを入力として扱います。
+</p>
+</dd>
+<dt class="hdlist1">
+setmode-viinsert
+</dt>
+<dd>
+<p>
+編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>i</kbd>, <kbd><code>\I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+setmode-vicommand
+</dt>
+<dd>
+<p>
+編集モードを vi 風編集モードのコマンドモードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+setmode-emacs
+</dt>
+<dd>
+<p>
+編集モードを emacs 風編集モードに変更します。
+</p>
+</dd>
+<dt class="hdlist1">
+expect-char
+</dt>
+<dt class="hdlist1">
+abort-expect-char
+</dt>
+<dd>
+<p>
+これは find-char コマンドなどを実装するために yash 内部で使われているコマンドで、直接使用しても意味はありません。
+</p>
+</dd>
+<dt class="hdlist1">
+redraw-all
+</dt>
+<dd>
+<p>
+行編集のプロンプトやバッファを端末に表示しなおします。
+引数を与えた場合は端末の表示もクリアします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^L</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+clear-and-redraw-all
+</dt>
+<dd>
+<p>
+端末の表示をクリアし、行編集のプロンプトやバッファを端末に表示しなおします。
+引数を与えた場合は端末の表示をクリアせずに表示しなおします。
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="motion-commands">移動コマンド</h3>
+<div class="paragraph"><p><dfn>移動コマンド</dfn>はカーソルを移動させるコマンドです。ほとんどの移動コマンドは引数を与えることでそのコマンドを引数の回数だけ実行するのと同じように動作させられます。例えば forward-char コマンドに引数 4 を与えると、カーソルを 4 文字先に進めます。</p></div>
+<div class="paragraph"><p>以下、<dfn>bigword</dfn> とは一文字以上の連続した空白でない文字をいい、<dfn>semiword</dfn> とは一文字以上の連続した空白でも句読点でもない文字をいい、<dfn>emacsword</dfn> とは一文字以上の連続した英数字をいいます。また <dfn>viword</dfn> とは以下のいずれかをいいます</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+一文字以上の連続した英数字または下線 (<code>_</code>)
+</p>
+</li>
+<li>
+<p>
+一文字以上の連続した、英数字でも下線でも空白でもない文字
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>以下に移動コマンドの一覧を示します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+forward-char
+</dt>
+<dd>
+<p>
+カーソルを次の文字に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\R</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>l</kbd>, <kbd> </kbd> (空白文字), <kbd><code>\R</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\R</code></kbd>, <kbd><code>\^F</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-char
+</dt>
+<dd>
+<p>
+カーソルを前の文字に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\L</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>h</kbd>, <kbd><code>\B</code></kbd>, <kbd><code>\L</code></kbd>,
+<kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>, 
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\L</code></kbd>, <kbd><code>\^B</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-bigword
+</dt>
+<dd>
+<p>
+カーソルを次の bigword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>W</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-bigword
+</dt>
+<dd>
+<p>
+カーソルを bigword の終わりまで移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>E</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-bigword
+</dt>
+<dd>
+<p>
+カーソルを前の bigword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>B</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-semiword
+</dt>
+<dd>
+<p>
+カーソルを次の semiword に移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+end-of-semiword
+</dt>
+<dd>
+<p>
+カーソルを semiword の終わりまで移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-semiword
+</dt>
+<dd>
+<p>
+カーソルを前の semiword に移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+forward-viword
+</dt>
+<dd>
+<p>
+カーソルを次の viword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>w</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-viword
+</dt>
+<dd>
+<p>
+カーソルを viword の終わりまで移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>e</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-viword
+</dt>
+<dd>
+<p>
+カーソルを前の viword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>b</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-emacsword
+</dt>
+<dd>
+<p>
+カーソルを次の emacsword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>f</kbd>, <kbd><code>\^[</code>F</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-emacsword
+</dt>
+<dd>
+<p>
+カーソルを前の emacsword に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>b</kbd>, <kbd><code>\^[</code>B</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+beginning-of-line
+</dt>
+<dd>
+<p>
+カーソルをバッファの先頭に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\H</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\H</code></kbd>, <kbd><code>\^A</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-line
+</dt>
+<dd>
+<p>
+カーソルをバッファの末尾に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\E</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>$</kbd>, <kbd><code>\E</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\E</code></kbd>, <kbd><code>\^E</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+go-to-column
+</dt>
+<dd>
+<p>
+カーソルをバッファ内の <var>n</var> 文字目に移動します。ただし <var>n</var> は引数です (引数が与えられていない場合は 1)。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>|</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+first-nonblank
+</dt>
+<dd>
+<p>
+カーソルをバッファ内の最初の空白でない文字に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>^</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+find-char
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力した文字がある位置までカーソルを進めます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>f</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^]</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+find-char-rev
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力した文字がある位置までカーソルを戻します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>F</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^]</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+till-char
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力した文字がある位置の直前までカーソルを進めます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>t</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+till-char-rev
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力した文字がある位置の直後までカーソルを戻します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>T</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+refind-char
+</dt>
+<dd>
+<p>
+前回実行した find-char, find-char-rev, till-char, till-char-rev コマンドを再実行します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+refind-char-rev
+</dt>
+<dd>
+<p>
+前回実行した find-char, find-char-rev, till-char, till-char-rev コマンドを、カーソルの進む向きを逆にして再実行します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>,</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="editing-commands">編集コマンド</h3>
+<div class="paragraph"><p>編集コマンドはバッファの内容を変更するコマンドです。ほとんどの編集コマンドは引数を与えることでそのコマンドを引数の回数だけ実行するのと同じように動作させられます。</p></div>
+<div class="paragraph"><p>名前に 『kill』 が付くコマンドで削除した文字列は<dfn>キルリング</dfn>という場所に保管され、後で put などのコマンドでバッファに戻すことができます。</p></div>
+<div class="paragraph"><p>以下に編集コマンドの一覧を示します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+delete-char
+</dt>
+<dd>
+<p>
+カーソルのところにある文字を削除します。引数を与えた場合は kill-char コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\X</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+delete-bigword
+</dt>
+<dd>
+<p>
+カーソルのところにある bigword を削除します。引数を与えた場合は kill-bigword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+delete-semiword
+</dt>
+<dd>
+<p>
+カーソルのところにある semiword を削除します。引数を与えた場合は kill-semiword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+delete-viword
+</dt>
+<dd>
+<p>
+カーソルのところにある viword を削除します。引数を与えた場合は kill-viword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+delete-emacsword
+</dt>
+<dd>
+<p>
+カーソルのところにある emacsword を削除します。引数を与えた場合は kill-emacsword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-char
+</dt>
+<dd>
+<p>
+カーソルの前にある文字を削除します。引数を与えた場合は backward-kill-char コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-delete-bigword
+</dt>
+<dd>
+<p>
+カーソルの前にある bigword を削除します。引数を与えた場合は backward-kill-bigword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-semiword
+</dt>
+<dd>
+<p>
+カーソルの前にある semiword を削除します。引数を与えた場合は backward-kill-semiword コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\^W</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-delete-viword
+</dt>
+<dd>
+<p>
+カーソルの前にある viword を削除します。引数を与えた場合は backward-kill-viword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-emacsword
+</dt>
+<dd>
+<p>
+カーソルの前にある emacsword を削除します。引数を与えた場合は backward-kill-emacsword コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+delete-line
+</dt>
+<dd>
+<p>
+バッファの内容を全て削除します。
+</p>
+</dd>
+<dt class="hdlist1">
+forward-delete-line
+</dt>
+<dd>
+<p>
+カーソル以降の全ての文字を削除します。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-line
+</dt>
+<dd>
+<p>
+カーソルより前の全ての文字を削除します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-char
+</dt>
+<dd>
+<p>
+カーソルのところにある文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>x</kbd>, <kbd><code>\X</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-bigword
+</dt>
+<dd>
+<p>
+カーソルのところにある bigword を削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+kill-semiword
+</dt>
+<dd>
+<p>
+カーソルのところにある semiword を削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+kill-viword
+</dt>
+<dd>
+<p>
+カーソルのところにある viword を削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+kill-emacsword
+</dt>
+<dd>
+<p>
+カーソルのところにある emacsword を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>d</kbd>, <kbd><code>\^[</code>D</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-char
+</dt>
+<dd>
+<p>
+カーソルの前にある文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>X</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-bigword
+</dt>
+<dd>
+<p>
+カーソルの前にある bigword を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^W</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-semiword
+</dt>
+<dd>
+<p>
+カーソルの前にある semiword を削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-kill-viword
+</dt>
+<dd>
+<p>
+カーソルの前にある viword を削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+backward-kill-emacsword
+</dt>
+<dd>
+<p>
+カーソルの前にある emacsword を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\B</code></kbd>,
+<kbd><code>\^[</code><code>\?</code></kbd>,
+<kbd><code>\^[</code><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-line
+</dt>
+<dd>
+<p>
+バッファの内容を全て削除し、キルリングに保管します。
+</p>
+</dd>
+<dt class="hdlist1">
+forward-kill-line
+</dt>
+<dd>
+<p>
+カーソル以降の全ての文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^K</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-line
+</dt>
+<dd>
+<p>
+カーソルより前の全ての文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>,
+<kbd><code>\^X</code><code>\B</code></kbd>,
+<kbd><code>\^X</code><code>\?</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-before
+</dt>
+<dd>
+<p>
+最後にキルリングに保管した文字列をカーソルの直前に挿入します。カーソルは挿入した文字列の最後の文字のところに移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>P</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put
+</dt>
+<dd>
+<p>
+最後にキルリングに保管した文字列をカーソルの直後に挿入します。カーソルは挿入した文字列の最後の文字のところに移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>p</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-left
+</dt>
+<dd>
+<p>
+最後にキルリングに保管した文字列をカーソルの直前に挿入します。カーソルは挿入した文字列の直後に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^Y</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-pop
+</dt>
+<dd>
+<p>
+このコマンドは put-before, put, put-left, put-pop コマンドの直後にだけ使えます。このコマンドは直前のコマンドでキルリングから挿入した文字列を削除し、代わりにその文字列の前にキルリングに保管した文字列を挿入します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>y</kbd>, <kbd><code>\^[</code>Y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+undo
+</dt>
+<dd>
+<p>
+直前の編集コマンドを取り消し、バッファの内容を前の状態に戻します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd>u</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>,
+<kbd><code>\^X</code><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+undo-all
+</dt>
+<dd>
+<p>
+全ての編集コマンドを取り消し、バッファの内容を初期状態に戻します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd>U</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^R</code></kbd>, <kbd><code>\^[</code>r</kbd>,
+<kbd><code>\^[</code>R</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+cancel-undo
+</dt>
+<dd>
+<p>
+undo, undo-all による編集コマンドの取り消しを取り消し、バッファの内容を復元します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+cancel-undo-all
+</dt>
+<dd>
+<p>
+undo, undo-all による編集コマンドの取り消しを全て取り消し、バッファの内容を復元します。
+</p>
+</dd>
+<dt class="hdlist1">
+redo
+</dt>
+<dd>
+<p>
+直前の編集コマンドを繰り返します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>.</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="completion-commands">補完コマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+complete
+</dt>
+<dd>
+<p>
+現在のカーソル位置で<a href="#completion">補完</a>を行います。補完候補が複数ある場合はその一覧を表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-next-candidate
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から次の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-prev-candidate
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から前の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\bt</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-next-column
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から次の列の最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-prev-column
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から前の列の最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-next-page
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から次のページの最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-prev-page
+</dt>
+<dd>
+<p>
+補完候補の一覧を既に表示している場合は一覧の中から前のページの最初の候補を選択します。それ以外の場合は complete コマンドと同じ動作をします。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-list
+</dt>
+<dd>
+<p>
+現在のカーソル位置で補完を行います。引数を指定しない場合、補完候補の一覧を表示します。引数を指定すると、その番号の候補で補完内容を確定します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-all
+</dt>
+<dd>
+<p>
+現在のカーソル位置で補完を行い、カーソル位置にある単語をすべての補完候補で置き換えます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>*</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-max
+</dt>
+<dd>
+<p>
+現在のカーソル位置で補完を行い、各補完候補の最長共通先頭部分をカーソル位置に挿入します。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-list
+</dt>
+<dd>
+<p>
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete コマンドと同様に候補の一覧を表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-next-candidate
+</dt>
+<dd>
+<p>
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete-next-candidate コマンドと同様に候補を選択します。
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-prev-candidate
+</dt>
+<dd>
+<p>
+一回目はまず complete-max コマンドと同様に共通部分を挿入します。二回目以降は
+complete-prev-candidate コマンドと同様に候補を選択します。
+</p>
+</dd>
+<dt class="hdlist1">
+clear-candidates
+</dt>
+<dd>
+<p>
+補完候補の一覧を消去します。
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="vi-commands">Vi 固有のコマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-replace-char
+</dt>
+<dd>
+<p>
+カーソルのところにある文字を、このコマンドの直後に入力した文字に置き換えます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>r</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-insert-beginning
+</dt>
+<dd>
+<p>
+カーソルをバッファの先頭に移動したのち、setmode-viinsert コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>I</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append
+</dt>
+<dd>
+<p>
+カーソルを次の文字に移動したのち、setmode-viinsert コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>I</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append-to-eol
+</dt>
+<dd>
+<p>
+カーソルをバッファの末尾に移動したのち、setmode-viinsert コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>A</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-replace
+</dt>
+<dd>
+<p>
+Setmode-viinsert コマンドと同じ動作をしますが、同時に上書きモードを有効にします。上書きモードでは、self-insert コマンドは文字を挿入する代わりにカーソルのところにある文字を置き換えます。上書きモードは編集モードを変更するまで有効です。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>R</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-switch-case
+</dt>
+<dd>
+<p>
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字の大文字と小文字を入れ替えます。
+</p>
+</dd>
+<dt class="hdlist1">
+vi-switch-case-char
+</dt>
+<dd>
+<p>
+カーソルのところにある文字の大文字と小文字を入れ替えて、カーソルを次の文字に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>~</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank
+</dt>
+<dd>
+<p>
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字をキルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank-to-eol
+</dt>
+<dd>
+<p>
+カーソルの位置からバッファの末尾までにある文字をキルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>Y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-delete
+</dt>
+<dd>
+<p>
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>d</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-delete-to-eol
+</dt>
+<dd>
+<p>
+カーソルの位置からバッファの末尾までにある文字を削除し、キルリングに保管します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>D</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change
+</dt>
+<dd>
+<p>
+このコマンドの直後には移動コマンドを入力する必要があります。移動コマンドが動かしたカーソルの範囲にある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>c</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change-to-eol
+</dt>
+<dd>
+<p>
+カーソルの位置からバッファの末尾までにある文字を削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>C</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change-line
+</dt>
+<dd>
+<p>
+バッファの内容を全て削除し、その後編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>S</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change
+</dt>
+<dd>
+<p>
+Vi-change コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+</p>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change-to-eol
+</dt>
+<dd>
+<p>
+Vi-change-to-eol コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+</p>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change-line
+</dt>
+<dd>
+<p>
+Vi-change-line コマンドと同様ですが、削除した文字列はキルリングに補完されます。
+</p>
+</dd>
+<dt class="hdlist1">
+vi-substitute
+</dt>
+<dd>
+<p>
+カーソルのところにある文字を削除しキルリングに保管した後、編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>s</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append-last-bigword
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドにおける最後の bigword を、空白文字に続けてカーソルの位置の直後に挿入します。引数 <var>n</var> を与えたときは最後の bigword の代わりに <var>n</var> 番目の bigword を挿入します。その後、setmode-viinsert コマンドと同じ動作をします。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>_</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-exec-alias
+</dt>
+<dd>
+<p>
+このコマンドの直後に入力した文字を <var>c</var> とすると、<code>_<var>c</var></code> という名前の&#8203;<a href="syntax.html#aliases">エイリアス</a>の内容をシェルへの入力とみなして行編集コマンドとして解釈・実行します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>@</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-edit-and-accept
+</dt>
+<dd>
+<p>
+エディタとして vi を起動し、バッファの内容を編集させます。エディタが終了すると編集後の内容をバッファに反映した後 accept-line コマンドと同じ動作をします。ただしエディタの終了ステータスが 0 でないときは何も行いません。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>v</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-list
+</dt>
+<dd>
+<p>
+Complete-list コマンドと同様ですが、候補を確定したとき編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>=</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-all
+</dt>
+<dd>
+<p>
+Complete-all コマンドと同様ですが、単語を置き換えた後、編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>*</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-max
+</dt>
+<dd>
+<p>
+Complete-max コマンドと同様ですが、候補を挿入した後、編集モードを vi 風編集モードの挿入モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-search-forward
+</dt>
+<dd>
+<p>
+順方向の&#8203;<a href="interact.html#history">履歴</a>検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>?</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-search-backward
+</dt>
+<dd>
+<p>
+逆方向の&#8203;<a href="interact.html#history">履歴</a>検索を開始します。編集モードを vi 風編集モードの検索モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>/</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="emacs-commands">Emacs 固有のコマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-transpose-chars
+</dt>
+<dd>
+<p>
+カーソルの前にある文字を右に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^T</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-transpose-words
+</dt>
+<dd>
+<p>
+カーソルの前にある emacsword を右に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>t</kbd>, <kbd><code>\^[</code>T</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-downcase-word
+</dt>
+<dd>
+<p>
+カーソルの後にある emacsword を小文字に変換します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>l</kbd>, <kbd><code>\^[</code>L</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-upcase-word
+</dt>
+<dd>
+<p>
+カーソルの後にある emacsword を大文字に変換します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>u</kbd>, <kbd><code>\^[</code>U</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-capitalize-word
+</dt>
+<dd>
+<p>
+カーソルの後にある emacsword をキャピタライズします (各単語の頭文字だけ大文字にする)。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>c</kbd>, <kbd><code>\^[</code>C</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-delete-horizontal-space
+</dt>
+<dd>
+<p>
+カーソルの前後にある空白を削除します。引数を与えるとカーソルの前にある空白を削除します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-just-one-space
+</dt>
+<dd>
+<p>
+カーソルの前後にある空白の個数を一つに調整します。引数を与えるとその引数の数だけ空白を残します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code> </kbd>
+(エスケープの後に空白文字)
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-search-forward
+</dt>
+<dd>
+<p>
+順方向の履歴検索を開始します。編集モードを emacs 風編集モードの検索モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^S</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-search-backward
+</dt>
+<dd>
+<p>
+順方向の履歴検索を開始します。編集モードを emacs 風編集モードの検索モードに変更します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="history-commands">コマンド履歴関連のコマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+oldest-history
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+newest-history
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+return-history
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルの位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+oldest-history-bol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>G</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+newest-history-bol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+return-history-bol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの先頭に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>g</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+oldest-history-eol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も古いコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>&lt;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+newest-history-eol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で最も新しいコマンドに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
+</p>
+</dd>
+<dt class="hdlist1">
+return-history-eol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>のどのコマンドにも対応しない新規バッファに移動します。引数を与えるとそれを履歴番号とみなしてその番号のコマンドに移動します。カーソルはバッファの末尾に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>&gt;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+next-history
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で次のコマンドに移動します。カーソルの位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+prev-history
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で前のコマンドに移動します。カーソルの位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+next-history-bol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で次のコマンドに移動します。カーソルはバッファの先頭に移動します
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>j</kbd>, <kbd>+</kbd>, <kbd><code>\D</code></kbd>,
+<kbd><code>\^N</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+prev-history-bol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で前のコマンドに移動します。カーソルはバッファの先頭に移動します
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>k</kbd>, <kbd>-</kbd>, <kbd><code>\U</code></kbd>,
+<kbd><code>\^P</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+next-history-eol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で次のコマンドに移動します。カーソルはバッファの末尾に移動します
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\D</code></kbd>, <kbd><code>\^N</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+prev-history-eol
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の中で前のコマンドに移動します。カーソルはバッファの末尾に移動します
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\U</code></kbd>, <kbd><code>\^P</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again
+</dt>
+<dd>
+<p>
+最後に行ったコマンド履歴検索をもう一度行います。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>n</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again-rev
+</dt>
+<dd>
+<p>
+最後に行ったコマンド履歴検索を方向を逆にしてもう一度行います。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>N</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again-forward
+</dt>
+<dd>
+<p>
+最後に行ったコマンド履歴検索を順方向にもう一度行います。
+</p>
+</dd>
+<dt class="hdlist1">
+search-again-backward
+</dt>
+<dd>
+<p>
+最後に行ったコマンド履歴検索を逆方向にもう一度行います。
+</p>
+</dd>
+<dt class="hdlist1">
+beginning-search-forward
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>を順方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ次のコマンドに移動します。カーソル位置は変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+beginning-search-backward
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>を逆方向に検索し、バッファの先頭から現在のカーソル位置までの間にある文字列が同じ前のコマンドに移動します。カーソル位置は変わりません。
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="search-commands">コマンド履歴検索モードのコマンド</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+srch-self-insert
+</dt>
+<dd>
+<p>
+入力した文字を検索用バッファに挿入します。(<a href="#escape">エスケープシーケンス</a>によるエスケープの対象となる文字は挿入できません)
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-backward-delete-char
+</dt>
+<dd>
+<p>
+検索用バッファの最後の一文字を削除します。検索用バッファが空の場合は:
+</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist"><ul>
+<li>
+<p>
+vi 風編集モードでは srch-abort-search コマンドと同じ動作をします。
+</p>
+</li>
+<li>
+<p>
+emacs 風編集モードでは alert コマンドと同じ動作をします。
+</p>
+</li>
+</ul></div>
+</div></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-backward-delete-line
+</dt>
+<dd>
+<p>
+検索用バッファの内容を全て削除します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-continue-forward
+</dt>
+<dd>
+<p>
+現在表示している暫定検索結果の次の結果を順方向に探します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^S</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-continue-backward
+</dt>
+<dd>
+<p>
+現在表示している暫定検索結果の次の結果を逆方向に探します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-accept-search
+</dt>
+<dd>
+<p>
+検索を終了し、現在表示している暫定検索結果を確定します。検索結果に移動します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-abort-search
+</dt>
+<dd>
+<p>
+検索を中止し、検索を開始する前の状態に戻ります。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^G</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="escape">エスケープシーケンス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><a href="_bindkey.html">Bindkey コマンド</a>で行編集のキー設定を表示・設定する際、ファンクションキーなどの特殊なキーはエスケープシーケンスで表わします。エスケープシーケンスは全てバックスラッシュ (<code>\</code>) で始まります。またバックスラッシュそのものもエスケープの対象です。エスケープシーケンスに対するキーの割り当ては以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+バックスラッシュ (<code>\</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\B</code>
+</dt>
+<dd>
+<p>
+Backspace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\D</code>
+</dt>
+<dd>
+<p>
+↓矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\E</code>
+</dt>
+<dd>
+<p>
+End
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\H</code>
+</dt>
+<dd>
+<p>
+Home
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\I</code>
+</dt>
+<dd>
+<p>
+Insert (Insert-char, Enter-insert-mode)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\L</code>
+</dt>
+<dd>
+<p>
+←矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\N</code>
+</dt>
+<dd>
+<p>
+Page-down (Next-page)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\P</code>
+</dt>
+<dd>
+<p>
+Page-up (Previous-page)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\R</code>
+</dt>
+<dd>
+<p>
+→矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\U</code>
+</dt>
+<dd>
+<p>
+↑矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\X</code>
+</dt>
+<dd>
+<p>
+Delete
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\!</code>
+</dt>
+<dd>
+<p>
+INTR
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\#</code>
+</dt>
+<dd>
+<p>
+EOF
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\$</code>
+</dt>
+<dd>
+<p>
+KILL
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\?</code>
+</dt>
+<dd>
+<p>
+ERASE
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^@</code>
+</dt>
+<dd>
+<p>
+Ctrl + @
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^A</code>, <code>\^B</code>, &#8230;, <code>\^Z</code>
+</dt>
+<dd>
+<p>
+Ctrl + A, Ctrl + B, &#8230;, Ctrl + Z
+</p>
+<div class="paragraph"><p>※ Ctrl + I は Tab、Ctrl + J は Newline、Ctrl + M は Carriage-return です。</p></div>
+</dd>
+<dt class="hdlist1">
+<code>\^[</code>
+</dt>
+<dd>
+<p>
+Ctrl + [ (Escape)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^\</code>
+</dt>
+<dd>
+<p>
+Ctrl + \
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^]</code>
+</dt>
+<dd>
+<p>
+Ctrl + ]
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^^</code>
+</dt>
+<dd>
+<p>
+Ctrl + ^
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^_</code>
+</dt>
+<dd>
+<p>
+Ctrl + _
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^?</code>
+</dt>
+<dd>
+<p>
+Ctrl + ? (Delete)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\F00</code>, <code>\F01</code>, &#8230;, <code>\F63</code>
+</dt>
+<dd>
+<p>
+F0, F1, &#8230;, F63
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a1</code>
+</dt>
+<dd>
+<p>
+キーパッドの左上キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a3</code>
+</dt>
+<dd>
+<p>
+キーパッドの右上キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\b2</code>
+</dt>
+<dd>
+<p>
+キーパッドの中央キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\bg</code>
+</dt>
+<dd>
+<p>
+Beginning
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\bt</code>
+</dt>
+<dd>
+<p>
+Back-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c1</code>
+</dt>
+<dd>
+<p>
+キーパッドの左下キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c3</code>
+</dt>
+<dd>
+<p>
+キーパッドの右下キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ca</code>
+</dt>
+<dd>
+<p>
+Clear-all-tabs
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cl</code>
+</dt>
+<dd>
+<p>
+Close
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cn</code>
+</dt>
+<dd>
+<p>
+Cancel
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\co</code>
+</dt>
+<dd>
+<p>
+Command
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cp</code>
+</dt>
+<dd>
+<p>
+Copy
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cr</code>
+</dt>
+<dd>
+<p>
+Create
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cs</code>
+</dt>
+<dd>
+<p>
+Clear-screen または erase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ct</code>
+</dt>
+<dd>
+<p>
+Clear-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\dl</code>
+</dt>
+<dd>
+<p>
+Delete-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ei</code>
+</dt>
+<dd>
+<p>
+Exit-insert-mode
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\el</code>
+</dt>
+<dd>
+<p>
+Clear-to-end-of-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\es</code>
+</dt>
+<dd>
+<p>
+Clear-to-end-of-screen
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\et</code>
+</dt>
+<dd>
+<p>
+Enter (Send)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ex</code>
+</dt>
+<dd>
+<p>
+Exit
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\fd</code>
+</dt>
+<dd>
+<p>
+Find
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\hp</code>
+</dt>
+<dd>
+<p>
+Help
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\il</code>
+</dt>
+<dd>
+<p>
+Insert-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ll</code>
+</dt>
+<dd>
+<p>
+Home-down
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\me</code>
+</dt>
+<dd>
+<p>
+Message
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\mk</code>
+</dt>
+<dd>
+<p>
+Mark
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ms</code>
+</dt>
+<dd>
+<p>
+マウスイベント
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\mv</code>
+</dt>
+<dd>
+<p>
+Move
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\nx</code>
+</dt>
+<dd>
+<p>
+Next-object
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\on</code>
+</dt>
+<dd>
+<p>
+Open
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\op</code>
+</dt>
+<dd>
+<p>
+Options
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\pr</code>
+</dt>
+<dd>
+<p>
+Print (Copy)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\pv</code>
+</dt>
+<dd>
+<p>
+Previous-object
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rd</code>
+</dt>
+<dd>
+<p>
+Redo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\re</code>
+</dt>
+<dd>
+<p>
+Resume
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rf</code>
+</dt>
+<dd>
+<p>
+Ref (Reference)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rh</code>
+</dt>
+<dd>
+<p>
+Refresh
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rp</code>
+</dt>
+<dd>
+<p>
+Replace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rs</code>
+</dt>
+<dd>
+<p>
+Restart
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sf</code>
+</dt>
+<dd>
+<p>
+Scroll-forward (Scroll-down)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sl</code>
+</dt>
+<dd>
+<p>
+Select
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sr</code>
+</dt>
+<dd>
+<p>
+Scroll-backward (Scroll-up)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\st</code>
+</dt>
+<dd>
+<p>
+Set-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\su</code>
+</dt>
+<dd>
+<p>
+Suspend
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sv</code>
+</dt>
+<dd>
+<p>
+Save
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ud</code>
+</dt>
+<dd>
+<p>
+Undo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SE</code>
+</dt>
+<dd>
+<p>
+Shift + End
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SH</code>
+</dt>
+<dd>
+<p>
+Shift + Home
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SI</code>
+</dt>
+<dd>
+<p>
+Shift + Insert
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SL</code>
+</dt>
+<dd>
+<p>
+Shift + ←矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SR</code>
+</dt>
+<dd>
+<p>
+Shift + →矢印キー
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SX</code>
+</dt>
+<dd>
+<p>
+Shift + Delete
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sbg</code>
+</dt>
+<dd>
+<p>
+Shift + Beginning
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scn</code>
+</dt>
+<dd>
+<p>
+Shift + Cancel
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sco</code>
+</dt>
+<dd>
+<p>
+Shift + Command
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scp</code>
+</dt>
+<dd>
+<p>
+Shift + Copy
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scr</code>
+</dt>
+<dd>
+<p>
+Shift + Create
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sdl</code>
+</dt>
+<dd>
+<p>
+Shift + Delete-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sel</code>
+</dt>
+<dd>
+<p>
+Shift + End-of-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sex</code>
+</dt>
+<dd>
+<p>
+Shift + Exit
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sfd</code>
+</dt>
+<dd>
+<p>
+Shift + Find
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Shp</code>
+</dt>
+<dd>
+<p>
+Shift + Help
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Smg</code>
+</dt>
+<dd>
+<p>
+Shift + Message
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Smv</code>
+</dt>
+<dd>
+<p>
+Shift + Move
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Snx</code>
+</dt>
+<dd>
+<p>
+Shift + Next
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sop</code>
+</dt>
+<dd>
+<p>
+Shift + Options
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Spr</code>
+</dt>
+<dd>
+<p>
+Shift + Print
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Spv</code>
+</dt>
+<dd>
+<p>
+Shift + Previous
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Srd</code>
+</dt>
+<dd>
+<p>
+Shift + Redo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sre</code>
+</dt>
+<dd>
+<p>
+Shift + Resume
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Srp</code>
+</dt>
+<dd>
+<p>
+Shift + Replace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Ssu</code>
+</dt>
+<dd>
+<p>
+Shift + Suspend
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Ssv</code>
+</dt>
+<dd>
+<p>
+Shift + Save
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sud</code>
+</dt>
+<dd>
+<p>
+Shift + Undo
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>INTR, EOF, KILL, ERASE の四つは stty コマンドなどで設定される端末の特殊文字です。一般的な環境では、INTR は Ctrl + C に、EOF は Ctrl + D に、KILL は Ctrl + U に、ERASE は Ctrl + H または Ctrl + ? に設定されています。これら四つは他のキー入力よりも優先して認識されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="completion">コマンドライン補完</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>行編集でコマンドを入力している途中で Tab キーを押すことで、コマンドの名前やオプション、引数を補完することができます。コマンド名やファイル名を途中まで打ち込んだところで Tab キーを押すと、その名前に一致するコマンド名やファイル名の一覧が現れます。さらに続けて Tab キーを押すと、入力したい名前を一覧の中から選ぶことができます。(一致する名前が一つしかない場合は、一覧は現れず、直接名前がコマンドラインに入力されます。)</p></div>
+<div class="paragraph"><p>補完の対象となる名前に <code>*</code> や <code>?</code> などの文字が入っている場合は、その&#8203;<a href="pattern.html">パターン</a>に一致する名前全てがコマンドラインに展開されます。(一覧による選択はできません)</p></div>
+<div class="paragraph"><p>標準状態では、コマンド名を入力しているときはコマンド名が、コマンドの引数を入力しているときはファイル名が補完されます。しかし補完を行う関数 (<dfn>補完関数</dfn>) を定義することで補完内容を変更することができます。</p></div>
+<div class="sect2">
+<h3 id="completion-detail">補完動作の詳細</h3>
+<div class="paragraph"><p>シェルを起動してから初めて補完を行おうとしたとき、コマンド <code><a href="_dot.html">.</a> -AL completion/INIT</code> を実行するのと同様にして、ファイル completion/INIT を&#8203;<a href="params.html#sv-yash_loadpath">ロードパス</a>から読み込みます。ファイルが見つからない場合は、そのまま補完動作を続けます。(この処理は主にシェルに付属している補完関数を読み込むためのものですが、ロードパス内に自分で用意したファイルを置いておくことで代わりにそれを読み込ませることもできます。)</p></div>
+<div class="paragraph"><p>補完は、対象に応じて以下のように行います。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+コマンド名
+</dt>
+<dd>
+<p>
+関数 <code>completion//command</code> が定義されている場合は、それを補完関数として実行します。定義されていない場合は、入力中の単語をコマンド名として補完します。
+</p>
+</dd>
+<dt class="hdlist1">
+コマンドの引数
+</dt>
+<dd>
+<p>
+関数 <code>completion//argument</code> が定義されている場合は、それを補完関数として実行します。定義されていない場合は、入力中の単語をファイル名として補完します。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>この他、&#8203;<a href="expand.html#tilde">チルダ展開</a>におけるユーザ名や&#8203;<a href="expand.html#params">パラメータ展開</a>におけるパラメータ名を入力しているときは、ユーザ名やパラメータ名が常に補完されます。(補完のしかたを変更することはできません)</p></div>
+<div class="paragraph"><p>補完関数は普通の&#8203;<a href="exec.html#function">関数</a>と同様に (<a href="params.html#positional">位置パラメータ</a>なしで) 実行されます。ただし、補完関数の実行時には以下の&#8203;<a href="exec.html#localvar">ローカル変数</a>が自動的に設定されます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="params.html#sv-ifs"><code>IFS</code></a>
+</dt>
+<dd>
+<p>
+空白文字・タブ・改行の三文字 (シェル起動時のデフォルト)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>WORDS</code>
+</dt>
+<dd>
+<p>
+既に入力されているコマンド名とコマンドの引数を含む&#8203;<a href="params.html#arrays">配列</a>です。コマンド名を補完しようとしているときは、この配列は空になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>TARGETWORD</code>
+</dt>
+<dd>
+<p>
+現在補完を行おうとしている、途中まで入力されたコマンド名またはコマンドの引数です。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>補完関数の中で <a href="_complete.html">complete 組込みコマンド</a>を実行することで、補完候補が生成されます。シェルは補完関数実行中に生成された補完候補を用いて補完を行います。</p></div>
+<div class="paragraph"><p>補完関数の実行中は、端末に対して入出力を行ってはなりません (端末の表示が乱れてしまいます)。スムーズな補完を行うために、補完の実行中に長い時間のかかる処理を行うのは避けてください。</p></div>
+<div class="paragraph"><p>補完の実行中は、&#8203;<a href="posix.html">POSIX 準拠モード</a>と <a href="_set.html#so-errreturn">err-return オプション</a>が強制的に解除されます。また <a href="_set.html#so-errexit">err-exit オプション</a>は無視され、&#8203;<a href="_trap.html">トラップ</a>は実行されません。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="prediction">コマンドライン推定</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドライン推定は実験的な機能です。&#8203;<a href="_set.html#so-lepredict">Le-predict</a> オプションが有効なとき、行編集で入力したコマンドの部分に続けて入力されそうなコマンド文字列を推定します。</p></div>
+<div class="paragraph"><p>例えば、あなたは既に一度 <code>ls Documents</code> というコマンドを実行したとします。次にあなたが <code>ls Doc</code> と打ったとき、シェルはカーソルの直後に <code>uments</code> と表示します。入力しようとしているコマンドがこの通りなら、コマンドを打ち続ける代わりにカーソルを右に動かす (forward-char コマンドを始めどの<a href="#motion-commands">移動コマンド</a>でも構いません) ことでコマンドを入力できます。最後の <code>s</code> の後ろまでカーソルを動かした後、accept-line コマンドでコマンドを実行できます。あるいは、カーソルを動かさなくても accept-prediction コマンドを使えば推定されたコマンドを直接実行できます。</p></div>
+<div class="paragraph"><p>打ったコマンドと推定されたコマンドの部分を区別するために、&#8203;<a href="params.html#sv-ps1s"><code>PS1S</code></a> および <a href="params.html#sv-ps1p"><code>PS1P</code></a> 変数を設定してコマンドの&#8203;<a href="interact.html#prompt">フォントの表示を変更</a>することができます。</p></div>
+<div class="paragraph"><p>カーソルを右に動かしたとき、カーソルを動かした位置までの部分は実際に打ったのと同様に取り扱われます。しかしその後カーソルを左に戻しても入力を取り消したことにはなりません。推定機能を使っているかどうかに関係なく、backward-delete-char などのコマンドで文字を削除する必要があります。</p></div>
+<div class="paragraph"><p>コマンドの推定はカーソルが入力中のコマンドの末尾にあるときのみ機能します。</p></div>
+<div class="paragraph"><p>デフォルトでは、コマンドを打ち始めると推定が行われます。&#8203;<a href="_set.html#so-lepredictempty">Le-predict-empty</a> オプションを有効にするとコマンドを一文字も入力する前から推定されたコマンドが表示されます。</p></div>
+<div class="paragraph"><p>推定アルゴリズムは&#8203;<a href="interact.html#history">コマンド履歴</a>に基づいてコマンドを推定します。より新しい履歴はより確率が高いと判断します。また複数行に亘るコマンドの出現パターンも考慮します。確率が十分に高いと判断した部分のみを推定結果として表示するため、推定結果は必ずしも完全なコマンドにはなりません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-05-12 01:59:06 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

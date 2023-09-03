@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Shift built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Shift built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>shift built-in</dfn> removes some
+<a href="params.html#positional">positional parameters</a> or
+<a href="params.html#arrays">array</a> values.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>shift [-A <var>array</var>] [<var>count</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The shift built-in removes the first <var>count</var>
+<a href="params.html#positional">positional parameters</a> or
+<a href="params.html#arrays">array</a> values, where <var>count</var> is specified by the
+operand.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A <var>array</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--array=<var>array</var></code>
+</dt>
+<dd>
+<p>
+Remove first <var>count</var> values of <var>array</var> instead of positional parameters.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>count</var>
+</dt>
+<dd>
+<p>
+The number of positional parameters or array values to be removed.
+</p>
+<div class="paragraph"><p>It is an error if the actual number of positional parameters or array values
+is less than <var>count</var>.
+If omitted, the default value is one.
+If negative, the last -<var>count</var> positional parameters or array values are
+removed instead of the first ones.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the shift built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The shift built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The number of positional parameters can be obtained with the
+<a href="params.html#sp-hash"><code>&#35;</code> special parameter</a>.
+The number of array values can be obtained with <code>$&#123;<var>array</var>[&#35;]}</code>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the shift built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>Negative operands are not allowed in the POSIXly-correct mode.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

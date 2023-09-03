@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash が扱うパラメータの種類や特別な意味を持つ変数について" />
+<title>パラメータと変数</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>パラメータと変数</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>パラメータ</dfn>とは、&#8203;<a href="expand.html">パラメータ展開</a>で値に置き換えられるデータを言います。パラメータには<a href="#positional">位置パラメータ</a>・<a href="#special">特殊パラメータ</a>・<a href="#variables">変数</a>の三種類があります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="positional">位置パラメータ</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>位置パラメータ</dfn>は 1 以上の自然数によって識別されるパラメータです。例えば位置パラメータが三つある場合、それらは順に <code>1</code>, <code>2</code>, <code>3</code> という名称で識別されます。位置パラメータの個数は<a href="#sp-hash">特殊パラメータ <code>#</code></a> で取得できます。また全ての位置パラメータを表す特殊パラメータとして <code>*</code> と <code>@</code> があります。</p></div>
+<div class="paragraph"><p>位置パラメータは、シェルの起動時に、シェルのコマンドライン引数を元に初期化されます (<a href="invoke.html#arguments">起動時のコマンドライン引数</a>参照)。引数のうち、位置パラメータの値として与えられたオペランドが順に一つずつ位置パラメータとなります。</p></div>
+<div class="paragraph"><p>シェルのコマンド実行中に&#8203;<a href="exec.html#function">関数</a>が呼び出されるとき、位置パラメータはその関数の呼び出しに対する引数に変更されます。すなわち、関数の実行中は位置パラメータによって関数の引数を参照できます。関数呼び出しの直前の位置パラメータの値は保存されており、関数の実行が終了する際に元の値に戻ります。</p></div>
+<div class="paragraph"><p>位置パラメータは、&#8203;<a href="_set.html">set</a> や <a href="_shift.html">shift</a> などの組込みコマンドによって変更できます。</p></div>
+<div class="paragraph"><p><code>0</code> は位置パラメータとは見なされません (特殊パラメータの一つです)。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="special">特殊パラメータ</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>特殊パラメータ</dfn>は一文字の記号によって識別されるパラメータです。特殊パラメータにはユーザが明示的に値を代入することはできません。</p></div>
+<div class="paragraph"><p>Yash では以下の特殊パラメータが利用可能です。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="sp-zero"></a><code>0</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、シェルの起動時に与えられたシェルの実行ファイルの名称またはスクリプトファイルの名称です。(<a href="invoke.html#arguments">起動時のコマンドライン引数</a>参照)
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-hash"></a><code>#</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、現在の位置パラメータの個数を表す 0 以上の整数です。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-dollar"></a><code>$</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、シェル自身のプロセス ID を表す正の整数です。この値はサブシェルにおいても変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-hyphen"></a><code>-</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、現在シェルで有効になっているオプションの文字をつなげたものです。この値には、&#8203;<a href="invoke.html">シェルの起動</a>時にコマンドライン引数で指定できる一文字のオプションのうち現在有効になっているものが全て含まれます。&#8203;<a href="_set.html">Set 組込みコマンド</a>でオプションを変更した場合は、その変更がこのパラメータの値にも反映されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-question"></a><code>?</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、最後に終了した&#8203;<a href="syntax.html#pipelines">パイプライン</a>の終了ステータスを表す 0 以上の整数です。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-exclamation"></a><code>!</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、最後に実行した&#8203;<a href="syntax.html#async">非同期コマンド</a>のプロセス ID です。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sp-asterisk"></a><code>*</code>
+</dt>
+<dd>
+<p>
+このパラメータの値は、現在の<a href="#positional">位置パラメータ</a>の値です。位置パラメータが一つもない場合、このパラメータの値は空文字列です。位置パラメータが複数ある場合、このパラメータの値は全ての位置パラメータの値を連結したものです。各位置パラメータの値の間は以下に従って区切られます。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist"><ul>
+<li>
+<p>
+変数 <a href="#sv-ifs"><code>IFS</code></a> が存在し、その値が空でない場合、各位置パラメータは変数 <code>IFS</code> の値の最初の文字で区切られます。
+</p>
+</li>
+<li>
+<p>
+変数 <code>IFS</code> が存在し、その値が空の場合、各位置パラメータは間に何も置かずに連結されます。
+</p>
+</li>
+<li>
+<p>
+変数 <code>IFS</code> が存在しない場合、各位置パラメータは空白文字で区切られます。
+</p>
+</li>
+</ul></div>
+</div></div>
+<div class="paragraph"><p>このパラメータの展開結果に対して&#8203;<a href="expand.html#split">単語分割</a>が行われる場合、値はまず元の位置パラメータに一致するように分割されさらに変数 <code>IFS</code> の値に従って分割されます。この最初の分割は <code>IFS</code> が空文字列でも行います。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sp-at"></a><code>@</code>
+</dt>
+<dd>
+<p>
+このパラメータは、パラメータ <code>&#42;</code> と同様に現在の全ての<a href="#positional">位置パラメータ</a>を表します。ただし、このパラメータが二重引用符による&#8203;<a href="syntax.html#quotes">クォート</a>の中で&#8203;<a href="expand.html#params">展開</a>される場合の扱いがパラメータ <code>&#42;</code> と異なります。この場合、結果は各位置パラメータに正確に一致するように&#8203;<a href="expand.html#split">単語分割</a>されます。また位置パラメータが一つもない場合、このパラメータは展開後の単語には残りません。(よって、引用符の中であるにもかかわらず、展開結果は一つの単語になるとは限りません。)
+</p>
+<div class="paragraph"><p>例えば位置パラメータが一つもないとき、コマンドライン <code>echo 1 "$@" 2</code> は <code>echo</code>、<code>1</code>、<code>2</code> という三つの単語に展開されます。位置パラメータが <code>1</code>、<code>2  2</code>、<code>3</code> の三つのとき、コマンドライン <code>echo "$@"</code> は <code>echo</code>、<code>1</code>、<code>2  2</code>、<code>3</code> という四つの単語に展開され、コマンドライン <code>echo "a$@b"</code> は <code>echo</code>、<code>a1</code>、<code>2  2</code>、<code>3b</code> という四つの単語に展開されます。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="variables">変数</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>変数</dfn>とはユーザが自由に代入可能なパラメータです。各変数は名前で区別され、それぞれが文字列の値を持ちます。</p></div>
+<div class="paragraph"><p>変数の名前は、英数字と下線 (<code>_</code>) から構成されます。ただし変数名の頭文字を数字にすることはできません。環境によってはこれ以外の文字も変数名に使用できます。</p></div>
+<div class="paragraph"><p>シェルが扱う変数のうち、エクスポートの対象となっているものは<dfn>環境変数</dfn>といいます。これらの変数はシェルが外部コマンドを起動する際に外部コマンドに渡されます。シェルが起動されたときにシェルを起動したプログラムから渡された変数は自動的に環境変数になります。</p></div>
+<div class="paragraph"><p>変数は、&#8203;<a href="syntax.html#simple">単純コマンド</a>によって代入できます。また <a href="_typeset.html">typeset 組込みコマンド</a>などでも変数に代入することができます。変数を削除するには <a href="_unset.html">unset 組込みコマンド</a>を使います。</p></div>
+<div class="sect2">
+<h3 id="shellvars">シェルが使用する変数</h3>
+<div class="paragraph"><p>以下の名前の変数は、yash の実行において特別な意味を持っています。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="sv-cdpath"></a><code>CDPATH</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="_cd.html">cd 組込みコマンド</a>で移動先ディレクトリを検索するために使われます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-columns"></a><code>COLUMNS</code>
+</dt>
+<dd>
+<p>
+この変数は端末ウィンドウの横幅 (文字数) を指定します。この変数が設定されている場合、デフォルトの横幅ではなくこの変数の値で指定された横幅が&#8203;<a href="lineedit.html">行編集</a>で使われます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-command_not_found_handler"></a><code>COMMAND_NOT_FOUND_HANDLER</code>
+</dt>
+<dd>
+<p>
+シェルが実行しようとしたコマンドが見つからなかったとき、この変数の値がコマンドとして実行されます。不明なコマンドを実行したときに何か別のコマンドを実行させたい時に便利です。&#8203;<a href="exec.html#simple">単純コマンドの実行</a>を参照。
+</p>
+<div class="paragraph"><p>この機能は <a href="posix.html">POSIX 準拠モード</a>では働きません。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-dirstack"></a><code>DIRSTACK</code>
+</dt>
+<dd>
+<p>
+この配列変数はディレクトリスタックの実装に使われています。&#8203;<a href="_pushd.html">pushd 組込みコマンド</a>でディレクトリを移動したとき、前のディレクトリを覚えておくためにそのパス名がこの配列に入れられます。この配列の内容を変更することは、ディレクトリスタックの内容を直接変更することになります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-echo_style"></a><code>ECHO_STYLE</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="_echo.html">echo 組込みコマンド</a>の挙動を指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-env"></a><code>ENV</code>
+</dt>
+<dd>
+<p>
+<a href="posix.html">POSIX 準拠モード</a>で対話モードのシェルが起動されたとき、この変数の値で示されるパスのファイルが初期化スクリプトとして読み込まれます (<a href="invoke.html#init">シェルの初期化処理</a>参照)。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-fcedit"></a><code>FCEDIT</code>
+</dt>
+<dd>
+<p>
+<a href="_fc.html">Fc 組込みコマンド</a>でコマンドを編集する際、この変数の値で示されたエディタがコマンドの編集に使われます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-handled"></a><code>HANDLED</code>
+</dt>
+<dd>
+<p>
+この変数は <code>COMMAND_NOT_FOUND_HANDLER</code> 変数の値が実行された後に、コマンドが見つからなかったことをエラーとするかどうかを指示します。&#8203;<a href="exec.html#simple">単純コマンドの実行</a>を参照。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-histfile"></a><code>HISTFILE</code>
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>を保存するファイルのパスを指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-histrmdup"></a><code>HISTRMDUP</code>
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>の重複をチェックする個数を指定します。履歴にコマンドを追加する際、既に履歴にあるコマンドのうちここで指定した個数のコマンドが新しく追加されるコマンドと同じかどうかをチェックします。同じコマンドが既に履歴にあれば、それは履歴から削除されます。
+</p>
+<div class="paragraph"><p>例えばこの変数の値が <code>1</code> のときは、履歴に追加されるコマンドが一つ前のコマンドと同じならばそれは削除されます。それより古い履歴のコマンドは、(履歴に追加されるコマンドと同じでも) 削除されません。もしこの変数の値が <code>HISTSIZE</code> 変数の値と同じなら、履歴の中で重複するコマンドはすべて削除されます。あるいはもしこの変数の値が <code>0</code> なら、重複する履歴は一切削除されません。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-histsize"></a><code>HISTSIZE</code>
+</dt>
+<dd>
+<p>
+<a href="interact.html#history">コマンド履歴</a>に保存される履歴項目の個数を指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-home"></a><code>HOME</code>
+</dt>
+<dd>
+<p>
+ユーザのホームディレクトリのパスを指定します。&#8203;<a href="expand.html#tilde">チルダ展開</a>や <a href="_cd.html">cd 組込みコマンド</a>の動作に影響します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ifs"></a><code>IFS</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="expand.html#split">単語分割</a>の区切りを指定します。シェルの起動時にこの変数の値は空白文字・タブ・改行の三文字に初期化されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-lang"></a><code>LANG</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_all"></a><code>LC_ALL</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_collate"></a><code>LC_COLLATE</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_ctype"></a><code>LC_CTYPE</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_messages"></a><code>LC_MESSAGES</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_monetary"></a><code>LC_MONETARY</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_numeric"></a><code>LC_NUMERIC</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-lc_time"></a><code>LC_TIME</code>
+</dt>
+<dd>
+<p>
+これらの変数はシェルが動作するロケールを指定します。シェルが読み書きするファイルのエンコーディングやエラーメッセージの内容などはこの変数で指定されたロケールに従います。
+</p>
+<div class="paragraph"><p><code>LC_CTYPE</code> 変数の値はシェルの起動時にのみ反映されます。シェルの実行中にこの変数を変更してもシェルのロケールは変わりません (シェルが非 <a href="posix.html">POSIX 準拠モード</a>で&#8203;<a href="interact.html">対話モード</a>の場合を除く)。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-lineno"></a><code>LINENO</code>
+</dt>
+<dd>
+<p>
+この変数の値は、現在シェルが読み込んで実行しているファイルにおける、現在実行中のコマンドのある行番号を示します。(<a href="interact.html">対話モード</a>では、コマンドを入力して実行するたびに行番号は 1 に戻ります)
+</p>
+<div class="paragraph"><p>一度この変数に代入したり変数を削除したりすると、この変数を用いて行番号を取得することはできなくなります。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-lines"></a><code>LINES</code>
+</dt>
+<dd>
+<p>
+この変数は端末ウィンドウの行数を指定します。この変数が設定されている場合、デフォルトの行数ではなくこの変数の値で指定された行数が&#8203;<a href="lineedit.html">行編集</a>で使われます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-mail"></a><code>MAIL</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="interact.html#mailcheck">メールチェック</a>の対象となるファイルのパスを指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-mailcheck"></a><code>MAILCHECK</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="interact.html#mailcheck">メールチェック</a>を行う間隔を秒単位で指定します。この変数の値はシェルの起動時に <code>600</code> に初期化されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-mailpath"></a><code>MAILPATH</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="interact.html#mailcheck">メールチェック</a>の対象となるファイルのパスを指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-nlspath"></a><code>NLSPATH</code>
+</dt>
+<dd>
+<p>
+POSIX によるとこの変数の値はロケール依存のメッセージデータファイルのパスを指示することになっていますが、yash では使用していません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-oldpwd"></a><code>OLDPWD</code>
+</dt>
+<dd>
+<p>
+<a href="_cd.html">Cd 組込みコマンド</a>などで作業ディレクトリを変更したときに、変更前の作業ディレクトリパスがこの変数に設定されます。この変数はデフォルトでエクスポート対象になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-optarg"></a><code>OPTARG</code>
+</dt>
+<dd>
+<p>
+<a href="_getopts.html">Getopts 組込みコマンド</a>で引数付きのオプションを読み込んだとき、その引数の値がこの変数に設定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-optind"></a><code>OPTIND</code>
+</dt>
+<dd>
+<p>
+この変数の値は、&#8203;<a href="_getopts.html">getopts 組込みコマンド</a>で次に読み込むオプションのインデックスを表します。シェルの起動時にこの変数は <code>1</code> に初期化されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-path"></a><code>PATH</code>
+</dt>
+<dd>
+<p>
+この変数は、&#8203;<a href="exec.html#search">コマンドの検索時</a>にコマンドのありかを示すパスを指定します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ppid"></a><code>PPID</code>
+</dt>
+<dd>
+<p>
+この変数の値は、シェルの親プロセスのプロセス ID を表す正の整数です。この変数はシェルの起動時に初期化されます。この変数の値は&#8203;<a href="exec.html#subshell">サブシェル</a>においても変わりません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-prompt_command"></a><code>PROMPT_COMMAND</code>
+</dt>
+<dd>
+<p>
+<a href="posix.html">POSIX 準拠モード</a>でない&#8203;<a href="interact.html">対話モード</a>のシェルにおいて、シェルが各コマンドのプロンプトを出す直前に、この変数の値がコマンドとして解釈・実行されます。これは、プロンプトを出す直前に毎回
+<code><a href="_eval.html">eval</a> -i -- "${PROMPT_COMMAND-}"</code>
+というコマンドが実行されるのと同じですが、このコマンドの実行結果は次のコマンドでの <code>?</code> 特殊パラメータの値には影響しません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps1"></a><code>PS1</code>
+</dt>
+<dd>
+<p>
+この変数の値は、対話モードのシェルが出力する標準のコマンドプロンプトを指定します。この値の書式については&#8203;<a href="interact.html#prompt">プロンプト</a>の項を参照してください。
+</p>
+<div class="paragraph"><p>この変数はシェルの起動時に実効ユーザ ID が 0 かどうかによって <code>$&#x20;</code> と <code>#&#x20;</code> のどちらかに初期化されます。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps1p"></a><code>PS1P</code>
+</dt>
+<dd>
+<p>
+この変数の値は、対話モードのシェルがコマンドを読み込む際に、&#8203;<a href="lineedit.html#prediction">推定された</a>コマンドを表示するフォントの書式を指定します。この値の書式については&#8203;<a href="interact.html#prompt">プロンプト</a>の項を参照してください。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps1r"></a><code>PS1R</code>
+</dt>
+<dd>
+<p>
+この変数の値は、対話モードのシェルがコマンドを読み込む際に、入力されるコマンドの右側に表示されるプロンプトを指定します。この値の書式については&#8203;<a href="interact.html#prompt">プロンプト</a>の項を参照してください。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps1s"></a><code>PS1S</code>
+</dt>
+<dd>
+<p>
+この変数の値は、対話モードのシェルがコマンドを読み込む際に、入力されるコマンドを表示するフォントの書式を指定します。この値の書式については&#8203;<a href="interact.html#prompt">プロンプト</a>の項を参照してください。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps2"></a><code>PS2</code>
+</dt>
+<dd>
+<p>
+この変数の値は、対話モードのシェルが出力する補助的なコマンドプロンプトを指定します。この値の書式については&#8203;<a href="interact.html#prompt">プロンプト</a>の項を参照してください。
+この変数はシェルの起動時に <code>&gt;&#x20;</code> に初期化されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps2p"></a><code>PS2P</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="#sv-ps1p"><code>PS1P</code></a> 変数と同様ですが、プロンプトとして <a href="#sv-ps1"><code>PS1</code></a> 変数ではなく <a href="#sv-ps2"><code>PS2</code></a> 変数の値が使用されるときに使用されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps2r"></a><code>PS2R</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="#sv-ps1r"><code>PS1R</code></a> 変数と同様ですが、プロンプトとして <a href="#sv-ps1"><code>PS1</code></a> 変数ではなく <a href="#sv-ps2"><code>PS2</code></a> 変数の値が使用されるときに使用されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps2s"></a><code>PS2S</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="#sv-ps1s"><code>PS1S</code></a> 変数と同様ですが、プロンプトとして <a href="#sv-ps1"><code>PS1</code></a> 変数ではなく <a href="#sv-ps2"><code>PS2</code></a> 変数の値が使用されるときに使用されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps4"></a><code>PS4</code>
+</dt>
+<dd>
+<p>
+<a href="_set.html#options">Xtrace オプション</a>が有効なとき、この変数の値が各トレース出力の前に出力されます。ただし出力の前にこの変数の値に対して&#8203;<a href="expand.html#params">パラメータ展開</a>、&#8203;<a href="expand.html#cmdsub">コマンド置換</a>、&#8203;<a href="expand.html#arith">数式展開</a>を行います。また <a href="posix.html">POSIX 準拠モード</a>でなければ、<a href="#sv-ps1"><code>PS1</code></a> 変数と同様に、バックスラッシュで始まる特殊な記法が利用できます。
+</p>
+<div class="paragraph"><p>この変数はシェルの起動時に <code>&#x2B;&#x20;</code> に初期化されます。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-ps4s"></a><code>PS4S</code>
+</dt>
+<dd>
+<p>
+この変数は <a href="#sv-ps1s"><code>PS1S</code></a> 変数と同様ですが、プロンプトとして <a href="#sv-ps1"><code>PS1</code></a> 変数が使用されるときではなく、トレース出力の際に <a href="#sv-ps4"><code>PS4</code></a> 変数の値が使用されるときに使用されます。この変数を使うとトレース出力のフォントの書式を変更することができます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-pwd"></a><code>PWD</code>
+</dt>
+<dd>
+<p>
+この変数の値は現在の作業ディレクトリの絶対パスを表します。この変数はシェルの起動時に正しいパスに初期化され、&#8203;<a href="_cd.html">cd 組込みコマンド</a>などで作業ディレクトリを変更する度に再設定されます。この変数はデフォルトでエクスポート対象になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-random"></a><code>RANDOM</code>
+</dt>
+<dd>
+<p>
+この変数は乱数を取得するために使用できます。この変数の値は 0 以上 32768 未満の一様分布乱数になっています。
+</p>
+<div class="paragraph"><p>この変数に非負整数を代入すると乱数を生成する<em>種</em>を再設定できます。</p></div>
+<div class="paragraph"><p>一度この変数を削除すると、この変数を用いて乱数を取得することはできなくなります。またシェルが <a href="posix.html">POSIX 準拠モード</a>で起動された場合、この変数で乱数を取得することはできません。</p></div>
+</dd>
+<dt class="hdlist1">
+<a id="sv-term"></a><code>TERM</code>
+</dt>
+<dd>
+<p>
+この変数は対話モードのシェルが動作している端末の種類を指定します。ここで指定された端末の種類に従って&#8203;<a href="lineedit.html">行編集</a>機能は端末を制御します。この変数の効力を得るためには変数がエクスポートされている必要があります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-yash_after_cd"></a><code>YASH_AFTER_CD</code>
+</dt>
+<dd>
+<p>
+この変数の値は、&#8203;<a href="_cd.html">cd 組込みコマンド</a>や <a href="_pushd.html">pushd 組込みコマンド</a>で作業ディレクトリが変更された後にコマンドとして解釈・実行されます。これは、作業ディレクトリが変わった後に毎回
+<code><a href="_eval.html">eval</a> -i -- "${YASH_AFTER_CD-}"</code>
+というコマンドが実行されるのと同じです。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-yash_loadpath"></a><code>YASH_LOADPATH</code>
+</dt>
+<dd>
+<p>
+<a href="_dot.html">ドット組込みコマンド</a>で読み込むスクリプトファイルのあるディレクトリを指定します。<a href="#sv-path"><code>PATH</code></a> 変数と同様に、コロンで区切って複数のディレクトリを指定できます。この変数はシェルの起動時に、yash に付属している共通スクリプトのあるディレクトリ名に初期化されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-yash_le_timeout"></a><code>YASH_LE_TIMEOUT</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="lineedit.html">行編集</a>機能で曖昧な文字シーケンスが入力されたときに、入力文字を確定させるためにシェルが待つ時間をミリ秒単位で指定します。行編集を行う際にこの変数が存在しなければ、デフォルトとして 100 ミリ秒が指定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-yash_ps1"></a><code>YASH_PS1</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps1p"></a><code>YASH_PS1P</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps1r"></a><code>YASH_PS1R</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps1s"></a><code>YASH_PS1S</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps2"></a><code>YASH_PS2</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps2p"></a><code>YASH_PS2P</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps2r"></a><code>YASH_PS2R</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps2s"></a><code>YASH_PS2S</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps4"></a><code>YASH_PS4</code>
+</dt>
+<dt class="hdlist1">
+<a id="sv-yash_ps4s"></a><code>YASH_PS4S</code>
+</dt>
+<dd>
+<p>
+<a href="posix.html">POSIX 準拠モード</a>ではないとき、これらの変数は名前に <code>YASH_</code> が付かない <code>PS1</code> 等の変数の代わりに優先して使われます。POSIX 準拠モードではこれらの変数は無視されます。&#8203;<a href="interact.html#prompt">プロンプト</a>で yash 固有の記法を使用する場合はこれらの変数を使用すると POSIX 準拠モードで yash 固有の記法が解釈されずに表示が乱れるのを避けることができます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="sv-yash_version"></a><code>YASH_VERSION</code>
+</dt>
+<dd>
+<p>
+この変数はシェルの起動時にシェルのバージョン番号に初期化されます。
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="arrays">配列</h3>
+<div class="paragraph"><p><dfn>配列</dfn>とは、一つの変数に複数の値 (文字列) を持たせたものです。一つの配列の複数の値は<a href="#positional">位置パラメータ</a>と同様に 1 以上の自然数で識別されます。</p></div>
+<div class="paragraph"><p>配列は、&#8203;<a href="syntax.html#simple">単純コマンド</a>によって代入できます。また <a href="_array.html">array 組込みコマンド</a>などでも配列に代入することができます。配列を削除するには変数と同様に <a href="_unset.html">unset 組込みコマンド</a>を使います。</p></div>
+<div class="paragraph"><p>配列を配列のままエクスポートすることはできません。配列をエクスポートしようとすると、配列の各値をコロンで区切って繋いだ一つの文字列の値を持つ変数としてエクスポートされます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では配列は使えません。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

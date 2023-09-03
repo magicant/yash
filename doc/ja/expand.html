@@ -1,0 +1,729 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash がサポートする単語展開について" />
+<title>単語の展開</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>単語の展開</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドを構成する各単語は、そのコマンドが実行されるときに展開されます。<dfn>展開</dfn>とは単語に含まれるパラメータやパターンを処理して具体的な文字列値に置き換えることです。展開には以下の七種類があります。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<a href="#tilde">チルダ展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#params">パラメータ展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#cmdsub">コマンド置換</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#arith">数式展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#brace">ブレース展開</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#split">単語分割</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#glob">パス名展開</a>
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>これらの展開は上に挙げた順序で行われます。特に最初の四つ (チルダ展開・パラメータ展開・コマンド置換・数式展開) を<dfn>四種展開</dfn>といいます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="tilde">チルダ展開</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>チルダ展開</dfn>は、<code>~</code> で始まる単語を特定のパス名に置き換える展開です。単語の先頭にある <code>~</code> から最初の <code>/</code> まで (<code>/</code> がない場合は単語全体) が指定されたパス名に変換されます。ただし、置き換えられる部分が一文字でも&#8203;<a href="syntax.html#quotes">クォート</a>されている場合は、チルダ展開は行われません。</p></div>
+<div class="paragraph"><p>展開される内容は、置き換えられる部分の書式によって以下のように決まります。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>~</code>
+</dt>
+<dd>
+<p>
+単なる <code>~</code> は、&#8203;<a href="params.html#sv-home"><code>HOME</code> 変数</a>の値に置き換えられます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~<var>ユーザ名</var></code>
+</dt>
+<dd>
+<p>
+<code>~</code> の後にユーザ名が書かれている場合は、そのユーザのホームディレクトリのパス名に置き換えられます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~&#x2B;</code>
+</dt>
+<dd>
+<p>
+<code>~&#x2B;</code> は、&#8203;<a href="params.html#sv-pwd"><code>PWD</code> 変数</a>の値に置き換えられます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~-</code>
+</dt>
+<dd>
+<p>
+<code>~-</code> は、&#8203;<a href="params.html#sv-oldpwd"><code>OLDPWD</code> 変数</a>の値に置き換えられます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~&#x2B;<var>n</var></code>
+</dt>
+<dt class="hdlist1">
+<code>~-<var>n</var></code>
+</dt>
+<dd>
+<p>
+この <var>n</var> は 0 以上の整数でなければなりません。この形式のチルダ展開は、+<var>n</var> または -<var>n</var> で指定されるディレクトリスタック内のパスの一つに展開されます。(<a href="_dirs.html">dirs 組込みコマンド</a>参照)
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>変数代入の値に対してチルダ展開が行われる際、値がコロンで区切ってある場合は、コロンで区切ってある各部分をそれぞれ単語とみなしてチルダ展開します。例えば <code>HOME</code> 変数の値が <code>/home/foo</code> のとき、</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>VAR=~/a:~/b:~/c</code></pre>
+</div></div>
+<div class="paragraph"><p>は</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>VAR=/home/foo/a:/home/foo/b:/home/foo/c</code></pre>
+</div></div>
+<div class="paragraph"><p>と等価です。</p></div>
+<div class="paragraph"><p>チルダ展開に失敗した場合 (指定されたパス名が何らかの原因で得られなかった場合) の動作は POSIX では規定されていませんが、yash では何事もなかったかのように処理を続行します (置き換えられるはずだった部分はそのまま残され、エラーメッセージなどは出ません)。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では <code>~</code> と <code>~<var>ユーザ名</var></code> の形式の展開のみが有効です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="params">パラメータ展開</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>パラメータ展開</dfn>は、単語の一部をパラメータの値に置き換える展開です。</p></div>
+<div class="paragraph"><p>よく使われる単純なパラメータ展開の形式は <code>$&#x7B;<var>パラメータ名</var>}</code> です。これは<var>パラメータ名</var>で指定されたパラメータの値に展開されます。さらに、以下の場合には<var>パラメータ名</var>を囲む括弧を省略して <code>$<var>パラメータ名</var></code> のように書くこともできます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<var>パラメータ名</var>が&#8203;<a href="params.html#special">特殊パラメータ</a>の場合
+</p>
+</li>
+<li>
+<p>
+<var>パラメータ名</var>が一桁の&#8203;<a href="params.html#positional">位置パラメータ</a>の場合
+</p>
+</li>
+<li>
+<p>
+<var>パラメータ名</var>が変数名で、直後に変数名の一部として誤解される恐れのある文字がない場合。例えば <code>$&#x7B;path}-name</code> という単語は <code>$path-name</code> と書くこともできますが、 <code>$&#x7B;path}name</code> を <code>$pathname</code> と書くことはできません。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p><var>パラメータ名</var>として特殊パラメータでも位置パラメータでも変数名でもないものを指定した場合は、構文エラーになります。(Yash 以外のシェルでは構文エラーではなく展開エラーになるものもあります)</p></div>
+<div class="paragraph"><p>シェルの <a href="_set.html#so-unset">unset オプション</a>が無効な場合、<var>パラメータ名</var>に存在しない変数を指定すると展開エラーになります。Unset オプションが有効な場合は、存在しない変数は空文字列に展開されます。</p></div>
+<div class="paragraph"><p>より複雑なパラメータ展開の形式では、パラメータの値を加工することができます。パラメータ展開の一般形は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+パラメータ展開
+</dt>
+<dd>
+<p>
+<code>$&#x7B; <var>前置詞</var> <var>パラメータ名</var> <var>インデックス</var> <var>加工指定</var> }</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ここでは便宜上<var>パラメータ名</var>や<var>インデックス</var>の周りに空白を入れましたが、実際には空白を入れてはいけません。<var>パラメータ名</var>以外の部分はいずれも省略可能です。</p></div>
+<div class="sect2">
+<h3 id="param-prefix">前置詞</h3>
+<div class="paragraph"><p><var>前置詞</var>として<var>パラメータ名</var>の直前に記号 <code>#</code> を置くことができます。この場合、このパラメータ展開はいま展開しようとしている値の文字数を表す整数に展開されます。展開しようとしているのが配列変数の場合、各要素がそれぞれ文字数を表す整数に置き換えられます。</p></div>
+</div>
+<div class="sect2">
+<h3 id="param-name">パラメータ名</h3>
+<div class="paragraph"><p><var>パラメータ名</var>には、&#8203;<a href="params.html#special">特殊パラメータ</a>・&#8203;<a href="params.html#positional">位置パラメータ</a>・変数を指定することができます。この場合、パラメータ展開は指定されたパラメータの値に展開されます。指定した<var>パラメータ名</var>が&#8203;<a href="params.html#arrays">配列</a>変数の場合、配列の各要素が特殊パラメータ <code>@</code> の場合と同様に単語分割されます (インデックス <code>[*]</code> が指定された場合を除く)。</p></div>
+<div class="paragraph"><p><var>パラメータ名</var>としてパラメータ展開・<a href="#cmdsub">コマンド置換</a>・<a href="#arith">数式展開</a>を指定することもできます。これは特に<dfn>展開の入れ子</dfn>と言います。この場合、パラメータ展開は内側の展開の展開結果に展開されます。なお、内側のパラメータ展開の括弧 <code>{ }</code> は省略できません。また展開の入れ子は <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+<div class="sect2">
+<h3 id="param-index">インデックス</h3>
+<div class="paragraph"><p><var>インデックス</var>は展開する値の一部を抜き出すのに使います。インデックスは以下の書式をしています。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+インデックス
+</dt>
+<dd>
+<p>
+<code>[<var>単語1</var>]</code>
+</p>
+<div class="paragraph"><p><code>[<var>単語1</var>,<var>単語2</var>]</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>ここでの<var>単語1</var>および<var>単語2</var>は通常の&#8203;<a href="syntax.html#tokens">トークン</a>と同様に解釈されますが、<code>,</code> と <code>]</code> で強制的に区切られます。また空白やタブはトークンの区切りとはみなしません。</p></div>
+<div class="paragraph"><p>インデックスは、以下のように解釈されます。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+まず、<var>インデックス</var>に含まれる<var>単語1</var>・<var>単語2</var>に対してパラメータ展開・<a href="#cmdsub">コマンド置換</a>・<a href="#arith">数式展開</a>を行います。
+</p>
+</li>
+<li>
+<p>
+<var>インデックス</var>が <code>[<var>単語1</var>]</code> の書式をしていて、<var>単語1</var>の上記展開結果が <code>*</code>、<code>@</code>、<code>#</code> のいずれかの場合は、インデックスの解釈は終了です。
+</p>
+</li>
+<li>
+<p>
+<var>単語1</var>と<var>単語2</var>の上記展開結果を数式とみなして、数式展開と同様に計算します。計算の結果得られる整数がインデックスとなります。数式展開の結果が整数でない場合は展開エラーです。<var>単語2</var>がない形式でインデックスを指定している場合は、<var>単語2</var>は<var>単語1</var>と同じ整数を指定しているものとみなされます。
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p><var>パラメータ名</var>が&#8203;<a href="params.html#arrays">配列</a>変数の場合または特殊パラメータ <a href="params.html#sp-asterisk"><code>*</code></a> または <a href="params.html#sp-at"><code>@</code></a> の場合、インデックスは配列の要素または位置パラメータの一部を指定しているものとみなされます。<var>パラメータ名</var>が上記以外の場合は、パラメータの値の一部を指定しているものとみなされます。インデックスで選択された配列の要素またはパラメータの値の一部のみが、パラメータ展開の結果として展開結果に残ります。インデックスによる選択について以下の規則が適用されます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+インデックスの整数が負数のときは、要素または文字を最後から数えるものとみなされます。例えばインデックス <code>[-2,-1]</code> は配列の最後の二つの要素 (またはパラメータの値の最後の 2 文字) を選択します。
+</p>
+</li>
+<li>
+<p>
+インデックスの整数が存在しない要素または文字を指示している場合でも、エラーにはなりません。例えば配列の要素数が 4 のときにインデックス <code>[3,5]</code> が与えられたときは 3 番目以降の全ての要素が選択され、インデックス <code>[5,7]</code> が与えられた時はどの要素も選択されません。
+</p>
+</li>
+<li>
+<p>
+インデックスの整数の一方が 0 ならば、(もう一方が何であれ) 展開結果には何も残りません。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p><var>インデックス</var>が <code>[<var>単語1</var>]</code> の書式をしていて、<var>単語1</var>の展開結果が <code>*</code>、<code>@</code>、<code>#</code> のいずれかだった場合は、パラメータは以下のように処理されます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>*</code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が配列変数の場合、&#8203;<a href="params.html#sp-asterisk">特殊パラメータ <code>&#x2A;</code></a> と同様に配列の全要素を&#8203;<a href="expand.html#split">単語分割</a>または連結します。<var>パラメータ名</var>が特殊パラメータ <code>&#x2A;</code> または <code>@</code> の場合、同様に位置パラメータを単語分割・連結します。それ以外の場合はインデックス <code>[1,-1]</code> と同様です。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>@</code>
+</dt>
+<dd>
+<p>
+インデックス <code>[1,-1]</code> と同様です。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>#</code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が配列変数の場合、このパラメータ展開は配列の要素数を表す整数に展開されます。<var>パラメータ名</var>が特殊パラメータ <code>&#x2A;</code> または <code>@</code> の場合、このパラメータ展開は位置パラメータの個数を表す整数に展開されます。それ以外の場合、このパラメータ展開はいま展開しようとしている値の文字数を表す整数に展開されます。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>パラメータ展開に<var>インデックス</var>が指定されていない場合は、<var>インデックス</var>として <code>[@]</code> が指定されたものとみなされます。<var>インデックス</var>は&#8203;<a href="posix.html">POSIX 準拠モード</a>では一切使えません。</p></div>
+<div class="exampleblock">
+<div class="title">例 1. 通常の変数の展開</div>
+<div class="content">
+<div class="paragraph"><p>以下のコマンドは文字列 <code>ABC</code> を出力します:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>var='123ABC789'
+echo "${var[4,6]}"</code></pre>
+</div></div>
+</div></div>
+<div class="exampleblock">
+<div class="title">例 2. 位置パラメータの展開</div>
+<div class="content">
+<div class="paragraph"><p>以下のコマンドは文字列 <code>2 3 4</code> を出力します:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>set 1 2 3 4 5
+echo "${*[2,-2]}"</code></pre>
+</div></div>
+</div></div>
+<div class="exampleblock">
+<div class="title">例 3. 配列の展開</div>
+<div class="content">
+<div class="paragraph"><p>以下のコマンドは文字列 <code>2 3 4</code> を出力します:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>array=(1 2 3 4 5)
+echo "${array[2,-2]}"</code></pre>
+</div></div>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="param-mod">加工指定</h3>
+<div class="paragraph"><p><var>加工指定</var>はパラメータの値を加工します。加工された後の値がパラメータ展開の結果として展開されます。加工指定には以下の形式があります。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-<var>単語</var></code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が存在しない変数を指示している場合は、このパラメータ展開は<var>単語</var>に展開されます。(<a href="_set.html#so-unset">Unset オプション</a>が無効な時でもエラーになりません)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#x2B;<var>単語</var></code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が存在する変数を指示している場合は、このパラメータ展開は<var>単語</var>に展開されます。(<a href="_set.html#so-unset">Unset オプション</a>が無効な時でもエラーになりません)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>=<var>単語</var></code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が存在しない変数を指示している場合は、<var>単語</var>の展開結果がその変数に代入された後、このパラメータ展開はその値に展開されます。変数以外のものに対して代入しようとすると展開エラーになります。(<a href="_set.html#so-unset">Unset オプション</a>が無効な時でもエラーになりません)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>?<var>単語</var></code>
+</dt>
+<dd>
+<p>
+<var>パラメータ名</var>が存在しない変数を指示している場合は、エラーメッセージとして<var>単語</var>を標準エラーに出力します。(<var>単語</var>がない場合はデフォルトのエラーメッセージが出ます)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>:-<var>単語</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:&#x2B;<var>単語</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:=<var>単語</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:?<var>単語</var></code>
+</dt>
+<dd>
+<p>
+これらは上記の <code>-</code>、<code>&#x2B;</code>、<code>=</code>、<code>?</code> と<var>単語</var>の組み合わせの加工指定と同様ですが、<var>単語</var>を使用する条件が異なります。先頭に <code>:</code> が付かないものでは 『変数が存在するかどうか』 で判定されますが、<code>:</code> が付くものでは 『変数が存在し、その値が空文字列でないかどうか』 で判定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>#<var>単語</var></code>
+</dt>
+<dd>
+<p>
+<var>単語</var>を&#8203;<a href="pattern.html">パターン</a>として見たとき、それがいま展開しようとしている値の先頭部分にマッチするならば、そのマッチする部分を削除します。結果として、このパラメータ展開はマッチしなかった残りの部分に展開されます。マッチの仕方が複数通りある場合はできるだけ短くマッチさせます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>##<var>単語</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>#<var>単語</var></code> と同様ですが、マッチの仕方が複数通りある場合はできるだけ長くマッチさせる点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>単語</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>#<var>単語</var></code> と同様ですが、値の先頭部分ではなく末尾部分にマッチさせる点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%%<var>単語</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>%<var>単語</var></code> と同様ですが、マッチの仕方が複数通りある場合はできるだけ長くマッチさせる点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>/<var>単語1</var>/<var>単語2</var></code>
+</dt>
+<dd>
+<p>
+<var>単語1</var>をパターンとして見たとき、それがいま展開しようとしている値の一部にマッチするならば、そのマッチする部分を<var>単語2</var>に置き換えます。結果として、このパラメータ展開はマッチした部分を<var>単語2</var>に置き換えた値に展開されます。マッチする箇所が複数ある場合は、最初の箇所が選ばれます。マッチの仕方が複数通りある場合はできるだけ長くマッチさせます。
+</p>
+<div class="paragraph"><p>この加工指定は <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</dd>
+<dt class="hdlist1">
+<code>/#<var>単語1</var>/<var>単語2</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>/<var>単語1</var>/<var>単語2</var></code> と同様ですが、いま展開しようとしている値の先頭部分にしかマッチしない点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>/%<var>単語1</var>/<var>単語2</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>/<var>単語1</var>/<var>単語2</var></code> と同様ですが、いま展開しようとしている値の末尾部分にしかマッチしない点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>//<var>単語1</var>/<var>単語2</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>/<var>単語1</var>/<var>単語2</var></code> と同様ですが、マッチする箇所が複数ある場合は最初の箇所だけではなく全ての箇所を<var>単語2</var>に置き換える点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>:/<var>単語1</var>/<var>単語2</var></code>
+</dt>
+<dd>
+<p>
+この加工指定は <code>/<var>単語1</var>/<var>単語2</var></code> と同様ですが、いま展開しようとしている値全体にマッチする場合しか対象としない点が異なります。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>いずれの形式においても、加工指定に含まれる単語は (それが使用されるときのみ) 四種展開されます。</p></div>
+<div class="paragraph"><p>展開しようとしている<var>パラメータ名</var>が配列変数または特殊パラメータ &#8203;<a href="params.html#sp-at"><code>@</code></a> または <a href="params.html#sp-asterisk"><code>*</code></a> の場合、加工指定は配列の各要素または各位置パラメータに対してそれぞれ作用します。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="cmdsub">コマンド置換</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>コマンド置換</dfn>は、指定されたコマンドを実行してその出力をコマンドラインに展開します。コマンド置換の書式は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+コマンド置換
+</dt>
+<dd>
+<p>
+<code>$(<var>コマンド</var>)</code>
+</p>
+<div class="paragraph"><p><code>&#x60;<var>コマンド</var>&#x60;</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>コマンド置換では、<var>コマンド</var>が&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。このときコマンドの標準出力がパイプを通じてシェルに送られます。結果として、コマンド置換はコマンドの出力結果に置き換えられます。ただし、コマンドの出力の末尾にある改行は除きます。</p></div>
+<div class="paragraph"><p><code>$(</code> と <code>)</code> で囲んだコマンド置換の<var>コマンド</var>は、コマンド置換の入れ子やリダイレクトなどを考慮して予め解析されます。従って、<code>$(</code> と <code>)</code> の間には基本的に通常通りコマンドを書くことができます。ただし、<a href="#arith">数式展開</a>との混同を避けるため、中の<var>コマンド</var>が <code>(</code> で始まる場合は<var>コマンド</var>の最初に空白を挿し挟んでください。</p></div>
+<div class="paragraph"><p><code>&#x60;</code> で囲むコマンド置換では、コマンド置換の入れ子などは考慮せずに、<var>コマンド</var>の中に最初に (バックスラッシュで&#8203;<a href="syntax.html#quotes">クォート</a>していない) <code>&#x60;</code> が現れたところでコマンド置換の終わりとみなされます。<code>&#x60;</code> で囲んだコマンド置換の中に <code>&#x60;</code> で囲んだコマンド置換を書く場合は、内側の <code>&#x60;</code> をバックスラッシュでクォートする必要があります。その他、<var>コマンド</var>の一部として <code>&#x60;</code> を入れたいときは、(それが<var>コマンド</var>内部で一重または二重引用符でクォートされていても) バックスラッシュでクォートする必要があります。<var>コマンド</var>の中ではバックスラッシュは <code>$</code>・<code>&#x60;</code>・バックスラッシュ・改行の直前にある場合のみ引用符として扱われます。また、<code>&#x60;</code> で囲んだコマンド置換が二重引用符の中で使われる場合は、<var>コマンド</var>の中に現れる二重引用符もバックスラッシュでクォートする必要があります。これらのバックスラッシュは<var>コマンド</var>が解析される前に削除されます。</p></div>
+<div class="paragraph"><p><code>$(</code> と <code>)</code> で囲んだコマンド置換の中のコマンドは、そのコマンド置換を含むコマンドを解析する時に一緒に解析されます (<a href="posix.html">POSIX 準拠モード</a>を除く)。<code>`</code> で囲んだコマンド置換の中のコマンドは、POSIX 準拠モードであるかどうかに関わらず、そのコマンド置換が実行される時に毎回解析されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="arith">数式展開</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>数式展開</dfn>は、文字列を数式として解釈して、その計算結果を表す数値に展開します。数式展開の書式は以下の通りです。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+数式展開
+</dt>
+<dd>
+<p>
+<code>$&#x28;&#x28;<var>式</var>&#x29;&#x29;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>数式展開では、まず<var>式</var>に対して<a href="#params">パラメータ展開</a>・<a href="#cmdsub">コマンド置換</a>・(入れ子の) 数式展開が行われます。その結果得られた文字列を以下のように数式として解釈し、その計算結果を表す数値に展開されます。</p></div>
+<div class="paragraph"><p>Yash では、数式の中で整数 (C 言語の long 型) と浮動小数点数 (C 言語の double 型) を扱うことができます。ただし <a href="posix.html">POSIX 準拠モード</a>では浮動小数点数は使えません。整数同士の演算の結果は整数に、浮動小数点数を含む演算の結果は浮動小数点数になります。</p></div>
+<div class="paragraph"><p>数式では C 言語と (ほぼ) 同様に以下の演算子が使えます。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<code>( )</code>
+</p>
+</li>
+<li>
+<p>
+<code>++</code> <code>--</code> (後置演算子)
+</p>
+</li>
+<li>
+<p>
+<code>++</code> <code>--</code> <code>+</code> <code>-</code> <code>~</code> <code>!</code> (前置演算子)
+</p>
+</li>
+<li>
+<p>
+<code>*</code> <code>/</code> <code>%</code>
+</p>
+</li>
+<li>
+<p>
+<code>+</code> <code>-</code> (二項演算子)
+</p>
+</li>
+<li>
+<p>
+<code>&lt;&lt;</code> <code>&gt;&gt;</code>
+</p>
+</li>
+<li>
+<p>
+<code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code>
+</p>
+</li>
+<li>
+<p>
+<code>==</code> <code>!=</code>
+</p>
+</li>
+<li>
+<p>
+<code>&amp;</code>
+</p>
+</li>
+<li>
+<p>
+<code>^</code>
+</p>
+</li>
+<li>
+<p>
+<code>|</code>
+</p>
+</li>
+<li>
+<p>
+<code>&amp;&amp;</code>
+</p>
+</li>
+<li>
+<p>
+<code>||</code>
+</p>
+</li>
+<li>
+<p>
+<code>? :</code> (三項演算子)
+</p>
+</li>
+<li>
+<p>
+<code>=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>+=</code> <code>-=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code> <code>&amp;=</code> <code>^=</code> <code>|=</code>
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p><code>++</code> および <code>--</code> 演算子は POSIX 準拠モードでは使えません。</p></div>
+<div class="paragraph"><p>原子式としては整数リテラル・浮動小数点数リテラル・変数が使用できます。数リテラルの書式は C 言語に準じます。<code>0</code> で始まる整数リテラルは八進数、<code>0x</code> で始まる整数リテラルは十六進数とみなされます。浮動小数点数リテラルでは指数表記も使えます (例えば 1.23×10<sup>6</sup> は <code>1.23e+6</code>)。変数の値が計算で使われるとき、その値が数値でない場合はエラーになります。<a href="_set.html#so-unset">Unset オプション</a>が有効ならば未定義の変数は 0 とみなします。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードでは、変数は必ず数値として解釈されます。
+POSIX 準拠モードでないときは、計算で使われる変数のみが数値として解釈され、他の変数はそのまま残ります。</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>set +o posixly-correct
+foo=bar
+echo $((0 ? foo : foo)) # 「bar」を出力
+echo $((foo + 0))       # エラー</code></pre>
+</div></div>
+<div class="paragraph"><p>C 言語で結果が定義されていない数式は展開エラーになります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="brace">ブレース展開</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>ブレース展開</dfn>は、ブレース (<code>{ }</code>) で囲んだ部分をいくつかの単語に分割します。ブレース展開は <a href="_set.html#so-braceexpand">brace-expand オプション</a>が有効な時のみ行われます。ブレース展開には二種類の形式があります。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+カンマ区切りのブレース展開
+</dt>
+<dd>
+<p>
+<code>&#x7B;<var>単語1</var>,<var>単語2</var>,&#8230;,<var>単語n</var>&#x7D;</code>
+</p>
+</dd>
+<dt class="hdlist1">
+連続した数値のブレース展開
+</dt>
+<dd>
+<p>
+<code>&#x7B;<var>始点</var>..<var>終点</var>&#x7D;</code>
+</p>
+<div class="paragraph"><p><code>&#x7B;<var>始点</var>..<var>終点</var>..<var>差分</var>&#x7D;</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>一つ目の形式は、ブレースで囲んだ部分を一つ以上のカンマ (<code>,</code>) で区切ったものです。区切られたそれぞれの部分がブレース展開の前後の部分と結合されて、それぞれ単語として展開されます。例えば <code>a{1,2,3}b</code> は <code>a1b</code>、<code>a2b</code>、<code>a3b</code> という三つの単語に展開されます。</p></div>
+<div class="paragraph"><p>二つ目の形式は <code><var>{始点</var>..<var>終点</var>}</code> または <code><var>{始点</var>..<var>終点</var>..<var>差分</var>}</code> です。<var>始点</var>・<var>終点</var>・<var>差分</var>は全て整数である必要があります。この形式のブレース展開では、<var>始点</var>から<var>終点</var>までの各整数がブレース展開の前後の部分と結合されて、それぞれ単語として展開されます。<var>差分</var>は整数の間隔を指定します。例えば <code>a{1..3}b</code> は <code>a1b</code>、<code>a2b</code>、<code>a3b</code> という三つの単語に展開され、<code>a{1..7..2}b</code> は <code>a1b</code>、<code>a3b</code>、<code>a5b</code>、<code>a7b</code> という四つの単語に展開されます。<var>始点</var>が<var>終点</var>より大きい場合は整数は降順に展開されます。</p></div>
+<div class="paragraph"><p>複数のブレース展開を組み合わせたり、入れ子にしたりすることもできます。ブレースをブレース展開としてでなく通常の文字として扱うには、ブレースをクォートしてください。またカンマを区切りとしてでなく通常の文字として扱うには、カンマをクォートしてください。</p></div>
+<div class="paragraph"><p>ブレース展開では展開エラーは発生しません。ブレース展開が正しくできない場合は、単にそれはブレース展開ではなかったものとして、そのまま残されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="split">単語分割</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>単語分割</dfn>は、展開の結果をいくつかの単語に分割します。</p></div>
+<div class="paragraph"><p>単語分割で分割の対象となるのは、<a href="#params">パラメータ展開</a>・<a href="#cmdsub">コマンド置換</a>・<a href="#arith">数式展開</a>で展開された結果の部分だけです。また、二重引用符による&#8203;<a href="syntax.html#quotes">クォート</a>の中で展開された部分は、(<a href="params.html#sp-at">特殊パラメータ <code>@</code></a> の展開を除いて) 分割の対象となりません。</p></div>
+<div class="paragraph"><p>単語分割は <a href="params.html#sv-ifs"><code>IFS</code> 変数</a>の値に従って行われます。<code>IFS</code> 変数が存在しない場合は、空白文字・タブ・改行の三文字が <code>IFS</code> 変数の値として使われます。</p></div>
+<div class="paragraph"><p><code>IFS</code> 変数の値に含まれている文字を <dfn>IFS 文字</dfn>といいます。IFS 文字のうち空白文字またはタブまたは改行であるものを <dfn>IFS 空白類</dfn>といいます。IFS 空白類以外の IFS 文字を <dfn>IFS 非空白類</dfn>といいます。</p></div>
+<div class="paragraph"><p>分割は以下の規則に従って行われます。</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+分割は、分割の対象となる展開結果の部分の中で、IFS 文字が現れる箇所で行われます。以下このような箇所を<dfn>分割点</dfn>と呼びます。複数の IFS 文字が連続して現れる場合は、それらをまとめて一つの分割点とします。
+</p>
+</li>
+<li>
+<p>
+分割点に IFS 非空白類が含まれている場合、その分割点に含まれる IFS 空白類はすべて無視されます。そして分割点に含まれる各 IFS 非空白類の前後で単語が分割されます。
+</p>
+</li>
+<li>
+<p>
+分割点に IFS 非空白類が含まれていない (分割点が IFS 空白類だけからなる) 場合、その分割点の前後で単語が分割されます。ただし、このような分割点が元の単語の先頭または末尾にある場合を除きます。
+</p>
+</li>
+<li>
+<p>
+いずれの場合も、分割点は単語分割後の単語には残りません。
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>最後に、以下の条件がすべて成り立つならば、分割された最後の単語が結果から削除されます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="_set.html#so-emptylastfield">empty-last-field オプション</a>が無効
+</p>
+</li>
+<li>
+<p>
+分割結果が複数の単語である
+</p>
+</li>
+<li>
+<p>
+最後の単語が空文字列である
+</p>
+</li>
+</ul></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content"><code>IFS</code> 変数の値が空文字列の場合は、単語は一切分割されません。</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="glob">パス名展開</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>パス名展開</dfn>は、単語を&#8203;<a href="pattern.html">パターン</a>とみなしてファイルを検索し、パターンにマッチする実在のファイルへのパス名に展開します。 パス名展開は <a href="_set.html#so-glob">glob オプション</a>が無効な時は行われません。</p></div>
+<div class="paragraph"><p>パス名展開においてパターンがマッチするには、検索の対象となるディレクトリの読み込み権限が必要です。検索しようとしたディレクトリがシェルにとって読み込み可能でなければ、シェルはそのディレクトリは空であるとみなします。</p></div>
+<div class="paragraph"><p>以下のオプションがパス名展開の結果に影響します。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="opt-nullglob"></a>null-glob
+</dt>
+<dd>
+<p>
+マッチするファイルがない時、通常 (このオプションが無効な時) はパターンはそのまま残りますが、このオプションが有効な時はパターンは削除され何も残りません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-caseglob"></a>case-glob
+</dt>
+<dd>
+<p>
+通常 (このオプションが有効な時) は、大文字と小文字を区別してマッチングを行いますが、このオプションが無効な時は大文字と小文字を区別せずマッチングを行います。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-dotglob"></a>dot-glob
+</dt>
+<dd>
+<p>
+通常 (このオプションが無効な時) は、<code>*</code> や <code>?</code> などのワイルドカードやブラケット記法で始まるパターンはピリオドで始まるファイル名にマッチしません。しかしこのオプションが有効な時はこのような制約は解除されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-markdirs"></a>mark-dirs
+</dt>
+<dd>
+<p>
+このオプションを有効にすると、マッチしたファイルの種類がディレクトリの場合に展開されるパス名の最後に <code>/</code> が付きます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-extendedglob"></a>extended-glob
+</dt>
+<dd>
+<p>
+このオプションを有効にすると、パス名展開における<a href="#extendedglob">拡張機能</a>が使えるようになります。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>パス名展開ではエラーは発生しません。マッチするファイルがない場合またはパターンが不正な場合は、展開は行われずパターンはそのまま残ります (null-glob オプションが有効な時を除く)。</p></div>
+<div class="paragraph"><p>ファイルの検索とパターンマッチングは <code>/</code> で区切られたパス名の構成要素ごとに行われます。ワイルドカードやブラケット記法を全く含まない構成要素はパターンとはみなされず、検索とマッチングは行われません。従って、case-glob オプションが無効な時、<code>/&#x2A;/foo</code> と <code>/&#x2A;/fo[o]</code> の展開結果が異なる可能性があります (前者では <code>foo</code> の部分がパターンとはみなされないので、例えば /bar/FOO というファイルがあってもマッチしません。)。</p></div>
+<div class="sect2">
+<h3 id="extendedglob">パス名展開の拡張機能</h3>
+<div class="paragraph"><p><a href="#opt-extendedglob">Extended-glob オプション</a>が有効な時は、以下の特殊なパターンが使えるようになります。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>**</code>
+</dt>
+<dd>
+<p>
+指定されたディレクトリツリーに対し再帰的に検索を行います。すなわち、指定されたディレクトリと、そのサブディレクトリ、さらにそのサブディレクトリなどに対し検索を行います。ただし名前がピリオドで始まるディレクトリは検索の対象になりません。例えば <code>dir/**/file</code> というパターンは、dir/file や dir/foo/file や dir/a/b/c/file など、dir ディレクトリの中にある全ての file ファイルへのパスに展開されます。
+</p>
+<div class="paragraph"><p>この特殊なパターンは、 <code>foo/bar/**</code> のようにパターン全体の最後にある場合には効果がありません。</p></div>
+</dd>
+<dt class="hdlist1">
+<code>.**</code>
+</dt>
+<dd>
+<p>
+<code>**</code> パターンと同様ですが、名前がピリオドで始まるディレクトリも含めて検索する点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#x2A;&#x2A;&#x2A;</code>
+</dt>
+<dd>
+<p>
+<code>**</code> パターンと同様ですが、検索の中でディレクトリへのシンボリックリンクが見つかった場合、そのディレクトリの中も検索の対象に含める点が異なります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>.&#x2A;&#x2A;&#x2A;</code>
+</dt>
+<dd>
+<p>
+<code>&#x2A;&#x2A;&#x2A;</code> パターンと同様ですが、名前がピリオドで始まるディレクトリも含めて検索する点が異なります。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

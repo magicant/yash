@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes redirections supported by yash." />
+<title>Redirection</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Redirection</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Redirection</dfn> is a feature you can use to modify file descriptors of
+commands.
+By using redirection, you can execute commands with their standard
+input/output connected with files or devices other than the terminal.</p></div>
+<div class="paragraph"><p>You can do redirection by adding redirection operators to a command
+(<a href="syntax.html#simple">simple command</a> or
+<a href="syntax.html#compound">compound command</a>)
+In a simple command, redirection operators may appear anywhere in the command
+as long as operator tokens are separated from other tokens.
+In a compound command, redirection operators must appear at the end of the
+command.</p></div>
+<div class="paragraph"><p>Redirection operators are processed before the command body is executed. More
+than one redirection operator in a command are processed in the order of
+appearance.
+Redirection operators affect only the command in which they appear,
+except when they appear in an <a href="_exec.html">exec built-in</a>
+without command operands.
+That is, file descriptors modified by redirection are restored after the
+command has finished.</p></div>
+<div class="paragraph"><p>A redirection operator starts with <code>&lt;</code> or <code>&gt;</code>.
+Redirection operators starting with <code>&lt;</code> affects the standard input (file
+descriptor 0) by default.
+Redirection operators starting with <code>&gt;</code> affects the standard output (file
+descriptor 1) by default.
+To affect another file descriptor, you can prefix a redirection operator with
+a non-negative integer; the operator will affect the file descriptor specified
+by the integer.
+The integer must immediately precede the <code>&lt;</code> or <code>&gt;</code> without any whitespaces
+in between. The integer must not be <a href="syntax.html#quotes">quoted</a>, either.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="file">Redirection to files</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The most common type of redirection is redirection to files.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Redirection of input
+</dt>
+<dd>
+<p>
+<code>&lt; <var>token</var></code>
+</p>
+</dd>
+<dt class="hdlist1">
+Redirection of output
+</dt>
+<dd>
+<p>
+<code>&gt; <var>token</var></code>
+</p>
+<div class="paragraph"><p><code>&gt;| <var>token</var></code></p></div>
+<div class="paragraph"><p><code>&gt;&gt; <var>token</var></code></p></div>
+</dd>
+<dt class="hdlist1">
+Redirection of input and output
+</dt>
+<dd>
+<p>
+<code>&lt;&gt; <var>token</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>token</var> is subject to the <a href="expand.html">four expansions</a>.
+It is also subject to <a href="expand.html#glob">pathname expansion</a>
+if the shell is <a href="interact.html">interactive</a>.
+The expansion result is treated as the pathname of the file to which
+redirection is performed.
+If the pathname expansion does not result in a single pathname,
+it is an error.</p></div>
+<div class="paragraph"><p>In redirection of input, the standard input is replaced with a file descriptor
+which is open for read-only access to the target file.
+If the target file cannot be opened for read-only access, it is an error.</p></div>
+<div class="paragraph"><p>In redirection of output, the standard output is replaced with a file
+descriptor which is open for write-only access to the target file.
+If the target file cannot be opened for write-only access, it is an error.
+If the target file does not exist, a new empty file is created and opened.
+If the target file already exists, the file is opened as follows:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+For the <code>&gt;|</code> operator, the file is emptied when opened if it is a regular
+  file.
+</p>
+</li>
+<li>
+<p>
+For the <code>&gt;</code> operator, the behavior is the same as the <code>&gt;|</code> operator
+  if the <a href="_set.html#so-clobber">clobber option</a> is enabled.
+  If the option is disabled and the file is a regular file, it is treated as
+  an error.
+</p>
+</li>
+<li>
+<p>
+For the <code>&gt;&gt;</code> operator, the file is opened for appending;
+  any output to the file descriptor is appended to the end of the file.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>In redirection of input and output, the standard input is replaced with a file
+descriptor which is open for read-and-write access to the target file.
+If the file does not exist, a new empty file is created and opened.</p></div>
+<div class="sect2">
+<h3 id="socket">Socket redirection</h3>
+<div class="paragraph"><p>If the pathname of the target file is of the form
+<code>/dev/tcp/<var>host</var>/<var>port</var></code> or <code>/dev/udp/<var>host</var>/<var>port</var></code> and
+the file cannot be opened in the usual manner,
+a new socket is opened for communication with the <var>port</var> of the <var>host</var>.
+The redirection replaces the standard input or output with the file descriptor
+to the socket.</p></div>
+<div class="paragraph"><p>A stream socket is opened for the form <code>/dev/tcp/<var>host</var>/<var>port</var></code> and
+a datagram socket for the form <code>/dev/udp/<var>host</var>/<var>port</var></code>.
+The protocol actually used for communication is determined by the socket
+library the shell uses.
+Typically, stream sockets use TCP and datagram sockets UDP.</p></div>
+<div class="paragraph"><p>In socket redirection, the file descriptor is both readable and writable
+regardless of the type of the redirection operator used.</p></div>
+<div class="paragraph"><p>Socket redirection is yash&#8217;s extension that is not defined in POSIX.
+Bash as well has socket redirection as extension.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="dup">Duplication of file descriptors</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Redirection allows duplicating or closing existing file descriptors.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Duplication of file descriptor
+</dt>
+<dd>
+<p>
+<code>&lt;&amp; <var>token</var></code>
+</p>
+<div class="paragraph"><p><code>&gt;&amp; <var>token</var></code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>token</var> is subject to expansion as in <a href="#file">redirection to files</a>,
+but it is treated as a file descriptor rather than a pathname.
+Thus the expanded <var>token</var> must be a non-negative integer.</p></div>
+<div class="paragraph"><p>The <code>&lt;&amp;</code> and <code>&gt;&amp;</code> operators duplicate the file descriptor
+specified by <var>token</var> to the standard input and output, respectively.
+(The operators can be prefixed with a non-negative integer so that the file
+descriptor is duplicated to a file descriptor other than the standard input or
+output.)</p></div>
+<div class="paragraph"><p>If the expanded <var>token</var> is a single hyphen rather than a non-negative
+integer, the file descriptor is closed rather than duplicated.
+By default, the <code>&lt;&amp;</code> and <code>&gt;&amp;</code> operators close the standard input
+and output, respectively, but the operators can be prefixed with a
+non-negative integer so that another file descriptor is closed.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, a file descriptor must be
+readable when duplicated by the <code>&lt;&amp;</code> operator and writable when
+duplicated by the <code>&gt;&amp;</code> operator.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="here">Here documents and here strings</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Here document</dfn> and <dfn>here string</dfn> allow redirection to file
+descriptors that reads strings directly specified in shell commands.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Here document
+</dt>
+<dd>
+<p>
+<code>&lt;&lt; <var>token</var></code>
+</p>
+<div class="paragraph"><p><code>&lt;&lt;- <var>token</var></code></p></div>
+</dd>
+<dt class="hdlist1">
+Here string
+</dt>
+<dd>
+<p>
+<code>&lt;&lt;&lt; <var>token</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>In a here document or here string, the standard input is replaced with a
+readable file descriptor.
+When the command reads from the file descriptor, it will read the contents of
+the here document/string, which is defined below.</p></div>
+<div class="paragraph"><p>When a here document operator (<code>&lt;&lt;</code> or <code>&lt;&lt;-</code>) appears in a
+command, the shell reads the contents of the here document starting from the
+next line.
+The contents of here documents are not parsed nor executed as commands.
+The <var>token</var> after the operand specifies a delimiter that indicates the end
+of the contents.
+(The <var>token</var> is not subject to any <a href="expand.html">expansion</a>, but
+<a href="syntax.html#quotes">quotation</a> is processed.)
+The contents of the here document is terminated just before the first line
+containing the <var>token</var> only.
+When using the <code>&lt;&lt;-</code> operator, all tab characters at the beginning of
+each line in the here document contents are removed and the delimiter
+<var>token</var> may be preceded by tab characters.</p></div>
+<div class="paragraph"><p>If there are more than one here document operator on one line,
+the contents of the here documents are parsed in order:
+The contents of the first here document starts from the next line and ends
+before the first line containing the <var>token</var> that followed the first
+operator.
+Just after that line, the contents of the second here document starts, and so
+on.</p></div>
+<div class="paragraph"><p>The contents of here documents are treated literally:
+whitespaces, tabs, etc. remain as is.
+The exception is that, when the <var>token</var> is not
+<a href="syntax.html#quotes">quoted</a> at all:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+the contents are subject to
+  <a href="expand.html#params">parameter expansion</a>,
+  <a href="expand.html#cmdsub">command substitution</a>,
+  <a href="expand.html#arith">arithmetic expansion</a>.
+</p>
+</li>
+<li>
+<p>
+a backslash in the contents is treated as <a href="syntax.html#quotes">quotation</a>
+  if and only if it precedes <code>$</code>, <code>`</code>, <code>"</code>, or another backslash.
+</p>
+</li>
+<li>
+<p>
+a backslash followed by a newline is treated as
+  <a href="syntax.html#quotes">line continuation</a>.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>In here string, the <var>token</var> after the operator is subject to expansion
+as in <a href="#file">redirection to files</a>.
+The expansion result becomes the contents of the here string.
+A newline character is automatically appended to the end of here string
+contents.</p></div>
+<div class="paragraph"><p>Here string is yash&#8217;s extension that is not defined in POSIX.
+Other shells like bash, ksh, and zsh have the same feature.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="pipe">Pipeline redirection</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Pipeline redirection</dfn> allows opening pipelines that can be used for
+arbitrary purposes.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Pipeline redirection
+</dt>
+<dd>
+<p>
+<code>&gt;&gt;| <var>token</var></code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <var>token</var> is subject to expansion as in <a href="#file">redirection to files</a>,
+but it is treated as a file descriptor rather than a pathname.
+Thus the expanded <var>token</var> must be a non-negative integer.</p></div>
+<div class="paragraph"><p>Pipeline redirection opens a new pipeline.
+The standard output (or the file descriptor specified before the operator, if
+any) is replaced with the file descriptor open for writing to the pipeline.
+The file descriptor specified by <var>token</var> is replaced with the file
+descriptor open for reading from the pipeline.</p></div>
+<div class="paragraph"><p>Pipeline redirection is yash&#8217;s extension that is not defined in POSIX.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="process">Process redirection</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Process redirection</dfn> creates a pipeline connected to another command.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Process redirection
+</dt>
+<dd>
+<p>
+<code>&lt;(<var>command</var>&#8230;)</code>
+</p>
+<div class="paragraph"><p><code>&gt;(<var>command</var>&#8230;)</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>In process redirection, the <var>command</var> specified is executed in a
+<a href="exec.html#subshell">subshell</a>.
+If the process redirection is of the form <code>&lt;(<var>command</var>&#8230;)</code>, the standard
+output of <var>command</var> is connected with a pipeline to the standard input of
+the command the redirection is associated with.
+If the process redirection is of the form <code>&gt;(<var>command</var>&#8230;)</code>, the standard
+input of <var>command</var> is connected with a pipeline to the standard output of
+the command the redirection is associated with.</p></div>
+<div class="paragraph"><p>Process redirection is yash&#8217;s extension that is not defined in POSIX.
+Bash and zsh have a feature called process substitution, which uses the same
+syntax as yash&#8217;s process redirection, but incompatibly differs in behavior.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

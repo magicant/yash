@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Read built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Read built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>read built-in</dfn> reads a line from the standard input.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>read [-Aer] [-P|-p] <var>variable</var>&#8230;</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The read built-in reads a line of string from the standard input and assigns
+it to the specified <a href="params.html#variables">variables</a>.</p></div>
+<div class="paragraph"><p>If the <code>-r</code> (<code>--raw-mode</code>) option is specified, all characters in the line are
+treated literally.</p></div>
+<div class="paragraph"><p>If the <code>-r</code> (<code>--raw-mode</code>) option is not specified, backslashes in the line
+are treated as <a href="syntax.html#quotes">quotations</a>.
+If a backslash is at the end of the line, it is treated as a line
+continuation.
+When the built-in reads the next line, the <a href="params.html#sv-ps2"><code>PS2</code>
+variable</a> is used as a prompt if the shell is <a href="interact.html">interactive</a>
+and the standard input is a terminal.</p></div>
+<div class="paragraph"><p>The input line is subject to <a href="expand.html#split">field splitting</a>.
+The resulting words are assigned to <var>variable</var>s in order.
+If there are more words than <var>variable</var>s, the last variable is assigned all
+the remaining words (as if the words were not split).
+If the words are fewer than <var>variable</var>s, the remaining variables are
+assigned empty strings.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A</code>
+</dt>
+<dt class="hdlist1">
+<code>--array</code>
+</dt>
+<dd>
+<p>
+Make the last <var>variable</var> an <a href="params.html#arrays">array</a>.
+Instead of assigning a concatenation of the remaining words to a normal
+variable, the words are assigned to an array.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--line-editing</code>
+</dt>
+<dd>
+<p>
+Use <a href="lineedit.html">line-editing</a> to read the line.
+</p>
+<div class="paragraph"><p>To use line-editing, all of the following conditions must also be met:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+The shell is <a href="interact.html">interactive</a>.
+</p>
+</li>
+<li>
+<p>
+The <a href="_set.html#so-vi">vi</a> or <a href="_set.html#so-emacs">emacs</a> option is
+  enabled.
+</p>
+</li>
+<li>
+<p>
+The standard input and standard error are connected to a terminal.
+</p>
+</li>
+</ul></div>
+</dd>
+<dt class="hdlist1">
+<code>-P</code>
+</dt>
+<dt class="hdlist1">
+<code>--ps1</code>
+</dt>
+<dd>
+<p>
+Print the <a href="params.html#sv-ps1"><code>PS1</code> variable</a> as a prompt before reading
+the (first) line if the shell is interactive and the standard input is a
+terminal.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p <var>prompt</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--prompt=<var>prompt</var></code>
+</dt>
+<dd>
+<p>
+Print the specified <var>prompt</var> before reading the (first) line if the shell
+is interactive and the standard input is a terminal.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--raw-mode</code>
+</dt>
+<dd>
+<p>
+Don&#8217;t treat backslashes as quotations.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>variable</var>s
+</dt>
+<dd>
+<p>
+Names of variables to which input words are assigned.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the read built-in is zero unless there is any error.</p></div>
+<div class="paragraph"><p>Note that the exit status is non-zero if an end of input is encountered before
+reading the entire line.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The read built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines the <code>-r</code>  option only:
+other options cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>The <a href="params.html#sv-ps1r"><code>PS1R</code></a> and <a href="params.html#sv-ps1s"><code>PS1S</code></a>
+variables affect the behavior of line-editing if the <code>PS1</code> prompt is used. The
+same for <code>PS2</code>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Complete built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Complete built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>complete built-in</dfn> generates completion candidates.
+This built-in can only be executed from completion functions during
+<a href="lineedit.html#completion">command line completion</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>complete [-A <var>pattern</var>] [-R <var>pattern</var>] [-T] [-P <var>prefix</var>] [-S <var>suffix</var>] [-abcdfghjkuv] [[-O] [-D <var>description</var>] <var>word</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The built-in generates completion candidates according to the specified
+arguments.
+No matter how candidates are generated, only candidates that match the word
+being completed are generated.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A <var>pattern</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--accept=<var>pattern</var></code>
+</dt>
+<dd>
+<p>
+Only accept candidates that match the <a href="pattern.html">pattern</a> specified by
+this option.
+When more than one of this option is specified, only candidates that match all
+of the patterns are generated.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-D <var>description</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--description=<var>description</var></code>
+</dt>
+<dd>
+<p>
+Give a description of the <var>word</var> candidates.
+The description is shown beside the candidates in the candidate list.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-O</code>
+</dt>
+<dt class="hdlist1">
+<code>--option</code>
+</dt>
+<dd>
+<p>
+The candidates are treated as command line options.
+A hyphen is prepended to each candidate that is treated as an option.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-P <var>prefix</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--prefix=<var>prefix</var></code>
+</dt>
+<dd>
+<p>
+Ignore <var>prefix</var> of the word being completed when generating candidates.
+The specified <var>prefix</var> must be initial part of the word.
+</p>
+<div class="paragraph"><p>If the word being completed is <code>file:///home/user/docume</code> for example, the
+command line <code>complete -P file:// -f</code> will generate pathname candidates that
+complete <code>/home/user/docume</code>.</p></div>
+</dd>
+<dt class="hdlist1">
+<code>-R <var>pattern</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--reject=<var>pattern</var></code>
+</dt>
+<dd>
+<p>
+Reject candidates that match the <a href="pattern.html">pattern</a> specified by this
+option.
+When more than one of this option is specified, only candidates that match
+none of the patterns are generated.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-S <var>suffix</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--suffix=<var>suffix</var></code>
+</dt>
+<dd>
+<p>
+Append <var>suffix</var> to each generated candidate.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-T</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-termination</code>
+</dt>
+<dd>
+<p>
+Do not append a space after the word is completed.
+Without this option, a space is appended to the completed word so that you do
+not have to enter a space before the next word.
+</p>
+</dd>
+</dl></div>
+<div class="sect2">
+<h3 id="_options_that_select_candidate_types">Options that select candidate types</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--alias</code>
+</dt>
+<dd>
+<p>
+<a href="syntax.html#aliases">Aliases</a>.
+(same as <code>--normal-alias --global-alias</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--array-variable</code>
+</dt>
+<dd>
+<p>
+<a href="params.html#arrays">Arrays</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--bindkey</code>
+</dt>
+<dd>
+<p>
+<a href="lineedit.html#commands">Line-editing commands</a> the
+<a href="_bindkey.html"><code>bindkey</code> built-in</a> accepts.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-b</code>
+</dt>
+<dt class="hdlist1">
+<code>--builtin-command</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html">Built-in commands</a>.
+(same as <code>--special-builtin --mandatory-builtin --elective-builtin --extension-builtin --substitutive-builtin</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-c</code>
+</dt>
+<dt class="hdlist1">
+<code>--command</code>
+</dt>
+<dd>
+<p>
+Commands.
+(same as <code>--builtin-command --external-command --function</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--directory</code>
+</dt>
+<dd>
+<p>
+Directories.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--dirstack-index</code>
+</dt>
+<dd>
+<p>
+Valid indices of the <a href="_dirs.html">directory stack</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--elective-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">Elective built-in commands</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--executable-file</code>
+</dt>
+<dd>
+<p>
+Executable regular files.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--extension-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">Extension built-in commands</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--external-command</code>
+</dt>
+<dd>
+<p>
+External commands.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--file</code>
+</dt>
+<dd>
+<p>
+Files (including directories).
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--finished-job</code>
+</dt>
+<dd>
+<p>
+<a href="job.html#jobid">Job IDs</a> of finished jobs.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--function</code>
+</dt>
+<dd>
+<p>
+<a href="exec.html#function">Functions</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--global-alias</code>
+</dt>
+<dd>
+<p>
+Global <a href="syntax.html#aliases">aliases</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-g</code>
+</dt>
+<dt class="hdlist1">
+<code>--group</code>
+</dt>
+<dd>
+<p>
+User groups.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-h</code>
+</dt>
+<dt class="hdlist1">
+<code>--hostname</code>
+</dt>
+<dd>
+<p>
+Host names.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-j</code>
+</dt>
+<dt class="hdlist1">
+<code>--job</code>
+</dt>
+<dd>
+<p>
+<a href="job.html#jobid">Job IDs</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k</code>
+</dt>
+<dt class="hdlist1">
+<code>--keyword</code>
+</dt>
+<dd>
+<p>
+<a href="syntax.html#tokens">Keywords</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--mandatory-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">Mandatory built-in commands</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--normal-alias</code>
+</dt>
+<dd>
+<p>
+Normal <a href="syntax.html#aliases">aliases</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--regular-builtin</code>
+</dt>
+<dd>
+<p>
+Obsolete synonym for <code>--extension-builtin --substitutive-builtin</code>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--running-job</code>
+</dt>
+<dd>
+<p>
+<a href="job.html#jobid">Job IDs</a> of jobs that are being executed.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--scalar-variable</code>
+</dt>
+<dd>
+<p>
+<a href="params.html#variables">Variables</a> that are not arrays.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--semi-special-builtin</code>
+</dt>
+<dd>
+<p>
+Obsolete synonym for <code>--mandatory-builtin --elective-builtin</code>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--signal</code>
+</dt>
+<dd>
+<p>
+Signals.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--special-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">Special built-in commands</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--stopped-job</code>
+</dt>
+<dd>
+<p>
+<a href="job.html#jobid">Job IDs</a> of jobs that are suspended.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--substitutive-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">Substitutive built-in commands</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-u</code>
+</dt>
+<dt class="hdlist1">
+<code>--username</code>
+</dt>
+<dd>
+<p>
+Users' log-in names.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--variable</code>
+</dt>
+<dd>
+<p>
+<a href="params.html#variables">Variables</a>.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If the <code>-d</code> (<code>--directory</code>) option is specified without the <code>-f</code> (<code>--file</code>)
+option, the <code>-S / -T</code> options are assumed.</p></div>
+<div class="paragraph"><p>Generated candidates for <a href="job.html#jobid">job IDs</a> do not have leading
+percent signs (<code>%</code>).
+If the word being completed starts with a percent sign, the <code>-P %</code> option
+should be specified.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Operands are treated as completion candidates.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the built-in is zero if one or more candidates were
+generated, one if no candidates were generated, or larger than one if an error
+occurred.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The complete built-in is an <a href="builtin.html#types">elective built-in</a>.
+It can be used in <a href="lineedit.html#completion">completion functions</a>
+even in the <a href="posix.html">POSIXly-correct mode</a>
+because the mode is temporarily disabled during completion.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

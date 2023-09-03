@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes common properties of built-ins of yash." />
+<title>Built-in commands</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Built-in commands</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Built-in commands</dfn> are commands that are implemented in the shell and are
+executed by the shell without starting external programs.</p></div>
+<div class="paragraph"><p>See the <a href="index.html#builtins">table of contents</a> for the list of the
+built-ins.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="types">Types of built-in commands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Yash has several types of built-in commands described below.</p></div>
+<div class="paragraph"><p><dfn>Special built-in commands</dfn> are the most important kinds of built-in
+commands.
+They are executed regardless of whether the corresponding external commands
+exist or not. Results of variable assignments that occur in a
+<a href="syntax.html#simple">simple command</a> that invokes a special built-in last
+after the command has finished. Moreover, in the
+<a href="posix.html">POSIXly-correct mode</a>, a <a href="interact.html">non-interactive</a>
+shell immediately exits with a non-zero exit status when an error occurs in a
+simple command executing a special built-in.</p></div>
+<div class="paragraph"><p><dfn>Mandatory built-in commands</dfn> and <dfn>elective built-in commands</dfn> are
+similar to special built-ins in that they do not need external commands to be
+executed but differ in that they may be overridden by
+<a href="exec.html#function">functions</a>.
+While mandatory built-ins are always available, you cannot use elective
+built-ins in the <a href="posix.html">POSIXly-correct mode</a> because POSIX only
+reserves their names without defining their behavior.</p></div>
+<div class="paragraph"><p>An <dfn>extension built-in command</dfn> is a built-in that is not mentioned in
+POSIX. Like an elective built-in, it can be executed without an external
+command when the <a href="posix.html">POSIXly-correct mode</a> is off. However, when
+the POSIXly-correct mode is on, the shell works as if the built-in does not
+exist.</p></div>
+<div class="paragraph"><p><dfn>Substitutive built-in commands</dfn> work on behalf of external commands
+<a href="exec.html#search">found in PATH</a>. These built-ins improve execution speed
+by bypassing invocation overheads for external programs.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="argsyntax">Syntax of command arguments</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In this section we explain common rules about command arguments.
+The built-in commands of yash follow the rules unless otherwise stated.</p></div>
+<div class="paragraph"><p>There are two types of command arguments. One is options and the other is
+operands. An option is an argument that starts with a hyphen (<code>-</code>) and
+changes the way the command behaves. Some options take arguments. An operand
+is an argument that is not an option and specifies objects the command
+operates on.</p></div>
+<div class="paragraph"><p>If you specify more than one option to a command, the order of the options are
+normally not significant. The order of operands, however, affects the command
+behavior.</p></div>
+<div class="paragraph"><p>An option is either a single-character option or a long option.
+A single-character option is identified by one alphabetic character. A long
+option is identified by multiple alphabetic characters. The POSIX standard only
+prescribes single-character options, so in the <a href="posix.html">POSIXly-correct
+mode</a> you cannot use long options.</p></div>
+<div class="paragraph"><p>A single-character option is composed of a hyphen followed by a letter. For
+example, <code>-a</code> is a single-character option. A single-character option that
+takes an argument requires the argument to be just after the option name.</p></div>
+<div class="exampleblock">
+<div class="title">Example 1. The set built-in and single-character options</div>
+<div class="content">
+<div class="paragraph"><p>For the set built-in, <code>-m</code> is a single-character option that does not take an
+argument and <code>-o</code> is one that takes an argument.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set -o errexit -m</code>
+</p>
+</li>
+<li>
+<p>
+<code>set -oerrexit -m</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>In these two command lines, <code>errexit</code> is the argument to the <code>-o</code> option.</p></div>
+</div></div>
+<div class="paragraph"><p>In the second example above, the <code>-o</code> option and its argument are combined
+into a single command line argument.
+The POSIX standard deprecates that style and any POSIX-conforming applications
+must specify options and their arguments as separate command line arguments,
+although yash accepts both styles.</p></div>
+<div class="paragraph"><p>You can combine single-character options that do not take arguments into a
+single command line argument. For example, the three options <code>-a</code>, <code>-b</code> and
+<code>-c</code> can be combined into <code>-abc</code>.</p></div>
+<div class="paragraph"><p>A long option is composed of two hyphens followed by an option name.
+For example, <code>--long-option</code> is a long option.
+You can omit some last characters of a long option name as long as it is not ambiguous.
+For example, you can use <code>--long</code> instead of <code>--long-option</code>
+if there is no other options beginning with <code>--long</code>.
+Like a single-character option, a long option that takes an argument requires
+the argument to be a command line argument just after the option name or to be
+specified in the same command line argument as the option name,
+separated by an equal sign (<code>=</code>).</p></div>
+<div class="exampleblock">
+<div class="title">Example 2. The fc built-in and long options</div>
+<div class="content">
+<div class="paragraph"><p>For the fc built-in, <code>--quiet</code> is a long option that does not take an argument
+and <code>--editor</code> is one that takes an argument.</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fc --editor vi --quiet</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc --editor=vi --quiet</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>In these command lines, <code>vi</code> is the argument to the <code>--editor</code> option.</p></div>
+</div></div>
+<div class="paragraph"><p>Arguments that are not options (nor arguments to them) are interpreted as
+operands. The POSIX standard requires all options should be specified before
+any operands. Therefore, in the <a href="posix.html">POSIXly-correct mode</a>, any
+arguments that come after the first operand are interpreted as operands (even
+if they look like options). If not in the POSIXly-correct mode, you can
+specify options after operand.</p></div>
+<div class="paragraph"><p>Regardless of whether the shell is in the POSIXly-correct mode or not, an
+argument that is just composed of two hyphens (<code>--</code>) can be used as a
+separator between options and operands. All command line arguments after the
+<code>--</code> separator are interpreted as operands, so you can specify operands that
+start with a hyphen correctly using the separator.</p></div>
+<div class="exampleblock">
+<div class="title">Example 3. Options and operands to the set built-in</div>
+<div class="content">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set -a -b -- -c -d</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>In this example, <code>-a</code> and <code>-b</code> are options and <code>-c</code> and <code>-d</code> are operands. The
+<code>--</code> separator itself is neither an option nor an operand.</p></div>
+</div></div>
+<div class="paragraph"><p>Regardless of whether the shell is in the POSIXly-correct mode or not, an
+argument that is just composed of a single hyphen (<code>-</code>) is interpreted as an
+operand.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

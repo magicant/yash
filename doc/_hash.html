@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Hash built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Hash built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>hash built-in</dfn> remembers, forgets, or reports command locations.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>hash <var>command</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -r [<var>command</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash [-a]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -d <var>user</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -dr [<var>user</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>hash -d</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed with <var>command</var>s but without options, the built-in immediately
+performs <a href="exec.html#search">command path search</a> and caches <var>command</var>s'
+full paths.</p></div>
+<div class="paragraph"><p>When executed with the <code>-r</code> (<code>--remove</code>) option, it removes the paths of
+<var>command</var>s (or all cached paths if none specified) from the cache.</p></div>
+<div class="paragraph"><p>When executed without options or <var>command</var>s, it prints the currently cached
+paths to the standard output.</p></div>
+<div class="paragraph"><p>With the <code>-d</code> (<code>--directory</code>) option, the built-in does the same things to the
+home directory cache, rather than the command path cache.
+Cached home directory paths are used in <a href="expand.html#tilde">tilde
+expansion</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--all</code>
+</dt>
+<dd>
+<p>
+Print all cached paths.
+</p>
+<div class="paragraph"><p>Without this option, paths for built-ins are not printed.</p></div>
+</dd>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--directory</code>
+</dt>
+<dd>
+<p>
+Affect the home directory cache instead of the command path cache.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--remove</code>
+</dt>
+<dd>
+<p>
+Remove cached paths.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>command</var>
+</dt>
+<dd>
+<p>
+The name of an external command (that does not contain any slash).
+</p>
+</dd>
+<dt class="hdlist1">
+<var>user</var>
+</dt>
+<dd>
+<p>
+A user name.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the hash built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The shell automatically caches command and directory paths when executing a
+command or performing tilde expansion, so normally there is no need to use
+this built-in explicitly to cache paths.</p></div>
+<div class="paragraph"><p>Assigning a value to the <a href="params.html#sv-path"><code>PATH</code> variable</a> removes all
+command paths from the cache as if <code>hash -r</code> was executed.</p></div>
+<div class="paragraph"><p>The POSIX standard defines the <code>-r</code> option only:
+other options cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>The hash built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

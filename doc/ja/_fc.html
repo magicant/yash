@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Fc 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Fc 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Fc 組込みコマンド</dfn>は&#8203;<a href="interact.html#history">コマンド履歴</a>に記録されたコマンドを再実行・表示します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fc [-qr] [-e <var>エディタ</var>] [<var>始点</var> [<var>終点</var>]]</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc -s[q] [<var>前</var>=<var>後</var>] [<var>始点</var>]</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc -l[nrv] [<var>始点</var> [<var>終点</var>]]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><code>-l</code> (<code>--list</code>) オプションを付けずに実行すると、fc コマンドはオペランドで指定した&#8203;<a href="interact.html#history">コマンド履歴</a>のコマンドを再実行します。<code>-s</code> (<code>--silent</code>) オプションを付けていない場合、シェルはコマンドを再実行する前にエディタを起動し、コマンドを編集できるようにします。エディタが終了するとシェルは編集後のコマンドを実行します。<code>-s</code> (<code>--silent</code>) オプションを付けた場合、シェルはエディタを起動せず直接コマンドを再実行します。いずれの場合も、実行するコマンドは標準出力に出力しコマンド履歴に追加されます。</p></div>
+<div class="paragraph"><p><code>-l</code> (<code>--list</code>) オプションを付けて実行すると、fc コマンドはオペランドで指定した範囲のコマンド履歴を標準出力に出力します。標準では履歴内のコマンドの内容を履歴番号とともに表示しますが、<code>-n</code> (<code>--no-numbers</code>) および <code>-v</code> (<code>--verbose</code>) オプションにより出力形式を変更できます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-e <var>エディタ</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--editor=<var>エディタ</var></code>
+</dt>
+<dd>
+<p>
+コマンドの編集に用いるエディタ。
+</p>
+<div class="paragraph"><p>このオプションを指定しない場合、&#8203;<a href="params.html#sv-fcedit"><code>FCEDIT</code> 変数</a>の値をエディタとして使用します。<code>FCEDIT</code> 変数も設定されていない場合は、ed をエディタとして使用します。</p></div>
+</dd>
+<dt class="hdlist1">
+<code>-l</code>
+</dt>
+<dt class="hdlist1">
+<code>--list</code>
+</dt>
+<dd>
+<p>
+コマンド履歴の内容を表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-numbers</code>
+</dt>
+<dd>
+<p>
+コマンド履歴の内容を表示する際、履歴番号を省いてコマンドのみ表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-q</code>
+</dt>
+<dt class="hdlist1">
+<code>--quiet</code>
+</dt>
+<dd>
+<p>
+コマンドを実行する前にコマンドを出力しないようにします。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--reverse</code>
+</dt>
+<dd>
+<p>
+<var>始点</var>と<var>終点</var>を入れ替えます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s</code>
+</dt>
+<dt class="hdlist1">
+<code>--silent</code>
+</dt>
+<dd>
+<p>
+コマンドを編集せずに直接再実行します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose</code>
+</dt>
+<dd>
+<p>
+コマンド履歴の内容を表示する際、コマンドの時刻も表示します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>始点</var>と<var>終点</var>
+</dt>
+<dd>
+<p>
+<var>始点</var>と<var>終点</var>のオペランドは、再実行または表示するコマンドの範囲を指定します。<var>始点</var>あるいは<var>終点</var>に整数を指定すると、それは履歴番号とみなします。負の整数は最新の履歴から数えた番号となります。例えば <code>-2</code> は最後から二番目に履歴に登録されたコマンドを表します。整数以外の文字列を<var>始点</var>あるいは<var>終点</var>に指定すると、その文字列で始まる最新の履歴を指定しているものとみなします。
+</p>
+<div class="paragraph"><p>Fc コマンドが再実行または表示するコマンドは、<var>始点</var>と<var>終点</var>で指定したコマンドとその間にある履歴のコマンドです。<var>始点</var>が<var>終点</var>より後のコマンドを指している場合、コマンドの順序は逆になります。</p></div>
+<div class="paragraph"><p><var>始点</var>または<var>終点</var>が与えられていない場合のデフォルト値は以下の表のとおりです。</p></div>
+<div class="tableblock">
+<table rules="all"
+width="50%"
+frame="border"
+cellspacing="0" cellpadding="4">
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+<thead>
+<tr>
+<th align="left" valign="top">         </th>
+<th align="left" valign="top"><code>-l</code> あり </th>
+<th align="left" valign="top"><code>-l</code> なし</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" valign="top"><p class="table"><var>始点</var></p></td>
+<td align="left" valign="top"><p class="table">-16</p></td>
+<td align="left" valign="top"><p class="table">-1</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table"><var>終点</var></p></td>
+<td align="left" valign="top"><p class="table">-16</p></td>
+<td align="left" valign="top"><p class="table"><var>始点</var>に同じ</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</dd>
+<dt class="hdlist1">
+<var>前</var>=<var>後</var>
+</dt>
+<dd>
+<p>
+<var>前</var>=<var>後</var>の形式のオペランドは、コマンドの一部を書き換えることを指示します。再実行するコマンドの中に<var>前</var>と同じ文字列がある場合は、その部分を<var>後</var>に置き換えて実行します。該当部分が複数ある場合は、最初のものだけを置き換えます。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドを正しく再実行できた場合、fc コマンドの終了ステータスは再実行したコマンドの終了ステータスになります。<code>-l</code> (<code>--list</code>) オプションを指定した場合は、履歴が正しく出力できれば終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Fc コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX には <code>-q</code> (<code>--quiet</code>) および <code>-v</code> (<code>--verbose</code>) オプションに関する規定はありません。よってこれらのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p><a href="lineedit.html">行編集</a>の動作中は履歴の内容を変更することはできません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

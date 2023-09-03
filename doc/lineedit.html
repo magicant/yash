@@ -1,0 +1,4242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes yash's line-editing feature." />
+<title>Line-editing</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Line-editing</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>With the <dfn>line-editing</dfn> feature, you can edit the command text
+when you input a command to an <a href="interact.html">interactive shell</a>.
+It not only works as a simple visual-interface editor, but also is integrated
+with the <a href="interact.html#history">command history</a>.
+You can recall, edit, and execute commands in the history with line-editing
+instead of using the <a href="_fc.html">fc built-in</a>.</p></div>
+<div class="paragraph"><p>Line-editing has two editing modes, the vi and emacs modes, which each have
+their own key binding settings.
+By switching editing modes, you can change key bindings used in line-editing.
+Each mode has a corresponding <a href="_set.html#options">shell option</a>,
+which determines whether the mode is currently active or not.
+No more than one mode can be active at a time, so the options for the other
+modes are automatically turned off when you turn on the option for one mode.
+The whole line-editing feature is deactivated when those options are off.</p></div>
+<div class="paragraph"><p>When an interactive shell is started, the vi mode is automatically activated
+if the standard input and error are both connected to a terminal.</p></div>
+<div class="paragraph"><p>Line-editing can be used only when the standard input and error are both
+connected to a terminal.
+If not, the shell silently falls back to the normal input mechanism.
+While line-editing is being used, the shell uses the termios interface to
+change I/O settings of the terminal and the terminfo interface to parse input
+key sequences.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Shell options on line-editing</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The following options can be set by the <a href="_set.html">set built-in</a>
+to enable line-editing and choose an editing mode to activate:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-vi">vi</a>
+</dt>
+<dd>
+<p>
+activates the vi mode.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-emacs">emacs</a>
+</dt>
+<dd>
+<p>
+activates the emacs mode.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The other line-editing-related options are:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-lealwaysrp">le-always-rp</a>
+</dt>
+<dd>
+<p>
+When this options is enabled, the right prompt is always visible:
+when the cursor reaches the right prompt, it moves to the next line from the
+original position, which would otherwise be overwritten by input text.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lecompdebug">le-comp-debug</a>
+</dt>
+<dd>
+<p>
+When enabled, internal information is printed during
+<a href="#completion">completion</a>, which will help debugging completion scripts.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-leconvmeta">le-conv-meta</a>
+</dt>
+<dd>
+<p>
+When enabled, the 8th bit of each input byte is always treated as a meta-key
+flag, regardless of terminfo data.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lenoconvmeta">le-no-conv-meta</a>
+</dt>
+<dd>
+<p>
+When enabled, the 8th bit of each input byte is never treated as a meta-key
+flag, regardless of terminfo data.
+</p>
+<div class="paragraph"><p>The le-conv-meta and le-no-conv-meta options cannot be both enabled at a time.
+When either is enabled, the other is automatically disabled.
+When neither is enabled, the 8th bit may be treated as a meta-key flag
+depending on terminfo data.</p></div>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepredict">le-predict</a>
+</dt>
+<dd>
+<p>
+activates <a href="#prediction">command line prediction</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepredictempty">le-predict-empty</a>
+</dt>
+<dd>
+<p>
+When enabled, and <a href="#prediction">command line prediction</a> is active,
+suggestions are also provided for empty input lines.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-lepromptsp">le-prompt-sp</a>
+</dt>
+<dd>
+<p>
+When enabled, the shell prints a special character sequence before printing
+each prompt so that every prompt is printed at the beginning of a line.
+</p>
+<div class="paragraph"><p>This option is enabled by default.</p></div>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-levisiblebell">le-visible-bell</a>
+</dt>
+<dd>
+<p>
+When enabled, the shell flashes the terminal instead of sounding an alarm when
+an alert is required.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-letrimright">le-trim-right</a>
+</dt>
+<dd>
+<p>
+When enabled, the right prompt, set by YASH_PS1R will right justify all the
+way to the edge of the screen, the default behaviour is to leave an empty
+space for the cursor when the prompt is too large.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="modes">Editing modes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>vi mode</dfn> is an editing mode that offers key bindings similar to that
+of the vi editor.
+The vi mode has two sub-modes that are switched during editing:
+the insert and command modes.
+The sub-mode is always reset to the insert mode when line-editing is started
+for a new command line.
+In the insert mode, most characters are inserted to the buffer as typed.
+In the command mode, input characters are treated as commands that move the
+cursor, insert/delete text, etc.</p></div>
+<div class="paragraph"><p>The <dfn>emacs mode</dfn> offers key bindings similar to the emacs editor.
+Most characters are inserted to the buffer as typed, but more characters are
+treated as commands than the vi insert mode.</p></div>
+<div class="paragraph"><p>Another sub-mode is used while you enter search keywords.
+The sub-mode is called the <dfn>search mode</dfn>, which offers slightly different
+key bindings depending on the active editing mode.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="commands">Line-editing commands</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>All characters the user enters while line-editing is active are treated as
+line-editing commands listed below.
+The <a href="_bindkey.html">bindkey built-in</a> allows customizing the key bindings
+of each mode (except for the search mode).</p></div>
+<div class="paragraph"><p>The list below shows not only the functions of commands but also the default
+key bindings.
+The keywords &#8220;vi-insert&#8221;, &#8220;vi-command&#8221;, &#8220;vi-search&#8221;, &#8220;emacs&#8221;,
+&#8220;emacs-search&#8221; means the vi insert mode, the vi command mode, the search
+mode for the vi mode (the vi search mode), the emacs mode, and the search mode
+for the emacs mode (the emacs search mode), respectively.</p></div>
+<div class="paragraph"><p>Some commands take an argument that affects the function of the commands.
+For example, the forward-char command moves the cursor by as many characters
+as specified by the argument.
+To specify an argument, use the digit-argument command just before another
+command that takes an argument.</p></div>
+<div class="sect2">
+<h3 id="basic-commands">Basic editing commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+noop
+</dt>
+<dd>
+<p>
+Do nothing.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+alert
+</dt>
+<dd>
+<p>
+Alert.
+</p>
+</dd>
+<dt class="hdlist1">
+self-insert
+</dt>
+<dd>
+<p>
+Insert the input character at the current cursor position.
+Characters escaped by <a href="#escape">escape sequences</a> cannot be inserted.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+insert-tab
+</dt>
+<dd>
+<p>
+Insert a tab character at the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+expect-verbatim
+</dt>
+<dd>
+<p>
+Insert a character that is entered just after this command
+at the current cursor position.
+This command can input a character that cannot be input by the self-insert
+command, except a null character (<code>'\0'</code>).
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^V</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^Q</code></kbd>, <kbd><code>\^V</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+digit-argument
+</dt>
+<dd>
+<p>
+Pass the input digit to the next command as an argument.
+</p>
+<div class="paragraph"><p>This command can be bound to a digit or hyphen.
+To pass &#8220;12&#8221; as an argument to the forward-char command in the vi mode,
+for example, enter <code>12l</code>.</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>, <kbd>5</kbd>,
+<kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>0</kbd>, <kbd><code>\^[</code>1</kbd>,
+<kbd><code>\^[</code>2</kbd>, <kbd><code>\^[</code>3</kbd>,
+<kbd><code>\^[</code>4</kbd>, <kbd><code>\^[</code>5</kbd>,
+<kbd><code>\^[</code>6</kbd>, <kbd><code>\^[</code>7</kbd>,
+<kbd><code>\^[</code>8</kbd>, <kbd><code>\^[</code>9</kbd>,
+<kbd><code>\^[</code>-</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+bol-or-digit
+</dt>
+<dd>
+<p>
+Like the beginning-of-line command if there is no argument;
+like the digit-argument command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>0</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-line
+</dt>
+<dd>
+<p>
+Finish editing the current line.
+A newline is automatically appended to the line.
+The line will be executed by the shell.
+</p>
+<div class="paragraph"><p>If <a href="#prediction">command line prediction</a> is active, the current prediction
+(if any) is ignored. See also the accept-prediction command.</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^M</code></kbd>, <kbd><code>\et</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+abort-line
+</dt>
+<dd>
+<p>
+Abandon the current buffer and finish editing as if an empty line was input.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\!</code></kbd>, <kbd><code>\^C</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+eof
+</dt>
+<dd>
+<p>
+Abandon the current buffer and finish editing as if the shell reached the end
+of input.
+This normally makes the shell exit.
+</p>
+</dd>
+<dt class="hdlist1">
+eof-if-empty
+</dt>
+<dd>
+<p>
+Like the eof command if the buffer is empty;
+like the alert command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+eof-or-delete
+</dt>
+<dd>
+<p>
+Like the eof command if the buffer is empty;
+like the delete-char command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\#</code></kbd>, <kbd><code>\^D</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-with-hash
+</dt>
+<dd>
+<p>
+If the current line does not begin with a hash sign (<code>#</code>) or there is no
+argument specified for this command, a hash sign is inserted at the beginning
+of the line. Otherwise, the beginning hash sign is removed from the line.
+Finally, the line is accepted like the accept-line command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>#</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>#</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+accept-prediction
+</dt>
+<dd>
+<p>
+Like the accept-line command, but include the <a href="#prediction">predicted</a> part.
+</p>
+</dd>
+<dt class="hdlist1">
+setmode-viinsert
+</dt>
+<dd>
+<p>
+Switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>i</kbd>, <kbd><code>\I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+setmode-vicommand
+</dt>
+<dd>
+<p>
+Switch to the vi command mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+setmode-emacs
+</dt>
+<dd>
+<p>
+Switch to the emacs mode.
+</p>
+</dd>
+<dt class="hdlist1">
+expect-char
+</dt>
+<dt class="hdlist1">
+abort-expect-char
+</dt>
+<dd>
+<p>
+These commands are not meant for use by the user.
+They are used by the shell to implement some other commands.
+</p>
+</dd>
+<dt class="hdlist1">
+redraw-all
+</dt>
+<dd>
+<p>
+Reprint the prompt and the current line to the terminal.
+If any argument is passed, the terminal screen is cleared.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^L</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+clear-and-redraw-all
+</dt>
+<dd>
+<p>
+Clear the terminal screen and reprint the prompt and the current line.
+If any argument is passed, the screen is not cleared.
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="motion-commands">Motion commands</h3>
+<div class="paragraph"><p><dfn>Motion commands</dfn> move the cursor on the line.
+Most motion commands accept an argument.
+When passed an argument, they repeat the cursor motion as many times as
+specified by the argument.
+Passing &#8220;4&#8221; as an argument to the forward-char command, for example,
+advances the cursor by four characters.</p></div>
+<div class="openblock">
+<div class="content">
+<div class="paragraph"><p>The shell has several definitions of words as units of distance:
+A <dfn>bigword</dfn> is one or more adjacent non-whitespace characters.
+A <dfn>semiword</dfn> is one or more adjacent characters that contain no
+whitespaces or punctuations.
+An <dfn>emacsword</dfn> is one or more adjacent alphanumeric characters.
+A <dfn>viword</dfn> is either:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+one or more adjacent alphanumeric characters and/or underscores (<code>_</code>), or
+</p>
+</li>
+<li>
+<p>
+one or more adjacent characters that contain none of alphanumeric
+  characters, underscores, and whitespaces.
+</p>
+</li>
+</ul></div>
+</div></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+forward-char
+</dt>
+<dd>
+<p>
+Move the cursor to the next character.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\R</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>l</kbd>, <kbd> </kbd> (a space), <kbd><code>\R</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\R</code></kbd>, <kbd><code>\^F</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-char
+</dt>
+<dd>
+<p>
+Move the cursor to the previous character.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\L</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>h</kbd>, <kbd><code>\B</code></kbd>, <kbd><code>\L</code></kbd>,
+<kbd><code>\?</code></kbd>, <kbd><code>\^H</code></kbd>, 
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\L</code></kbd>, <kbd><code>\^B</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-bigword
+</dt>
+<dd>
+<p>
+Move the cursor to the next bigword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>W</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-bigword
+</dt>
+<dd>
+<p>
+Move the cursor to the next end of a bigword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>E</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-bigword
+</dt>
+<dd>
+<p>
+Move the cursor to the previous bigword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>B</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-semiword
+</dt>
+<dd>
+<p>
+Move the cursor to the next semiword.
+</p>
+</dd>
+<dt class="hdlist1">
+end-of-semiword
+</dt>
+<dd>
+<p>
+Move the cursor to the next end of a semiword.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-semiword
+</dt>
+<dd>
+<p>
+Move the cursor to the previous semiword.
+</p>
+</dd>
+<dt class="hdlist1">
+forward-viword
+</dt>
+<dd>
+<p>
+Move the cursor to the next viword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>w</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-viword
+</dt>
+<dd>
+<p>
+Move the cursor to the next end of a viword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>e</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-viword
+</dt>
+<dd>
+<p>
+Move the cursor to the previous viword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>b</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+forward-emacsword
+</dt>
+<dd>
+<p>
+Move the cursor to the next emacsword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>f</kbd>, <kbd><code>\^[</code>F</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-emacsword
+</dt>
+<dd>
+<p>
+Move the cursor to the previous emacsword.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>b</kbd>, <kbd><code>\^[</code>B</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+beginning-of-line
+</dt>
+<dd>
+<p>
+Move the cursor to the beginning of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\H</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\H</code></kbd>, <kbd><code>\^A</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+end-of-line
+</dt>
+<dd>
+<p>
+Move the cursor to the end of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\E</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>$</kbd>, <kbd><code>\E</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\E</code></kbd>, <kbd><code>\^E</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+go-to-column
+</dt>
+<dd>
+<p>
+Move the cursor to the <var>n</var>th character on the line,
+where <var>n</var> is the argument.
+Assume <var>n</var> = 1 when no argument.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>|</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+first-nonblank
+</dt>
+<dd>
+<p>
+Move the cursor to the first non-blank character on the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>^</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+find-char
+</dt>
+<dd>
+<p>
+Move the cursor to the first position where a character that is entered just
+after this command appears after the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>f</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^]</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+find-char-rev
+</dt>
+<dd>
+<p>
+Move the cursor to the last position where a character that is entered just
+after this command appears before the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>F</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^]</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+till-char
+</dt>
+<dd>
+<p>
+Move the cursor to the first position just before a character that is entered
+just after this command appears after the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>t</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+till-char-rev
+</dt>
+<dd>
+<p>
+Move the cursor to the last position just after a character that is entered
+just after this command appears before the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>T</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+refind-char
+</dt>
+<dd>
+<p>
+Redo the last find-char, find-char-rev, till-char, till-char-rev command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+refind-char-rev
+</dt>
+<dd>
+<p>
+Redo the last find-char, find-char-rev, till-char, till-char-rev command
+in the reverse direction.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>,</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="editing-commands">Editing commands</h3>
+<div class="paragraph"><p>Editing commands modify contents of the buffer.
+Most editing commands accept an argument.
+When passed an argument, they repeat the modification as many times as
+specified by the argument.</p></div>
+<div class="paragraph"><p>Texts deleted by commands whose name starts with &#8220;kill&#8221; are saved in
+<dfn>kill ring</dfn>, from which deleted contents can be restored to the buffer.
+The most recent 32 texts are kept in the kill ring.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+delete-char
+</dt>
+<dd>
+<p>
+Delete a character at the current cursor position if no argument is passed;
+like the kill-char command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\X</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+delete-bigword
+</dt>
+<dd>
+<p>
+Delete a bigword at the current cursor position if no argument is passed;
+like the kill-bigword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+delete-semiword
+</dt>
+<dd>
+<p>
+Delete a semiword at the current cursor position if no argument is passed;
+like the kill-semiword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+delete-viword
+</dt>
+<dd>
+<p>
+Delete a viword at the current cursor position if no argument is passed;
+like the kill-viword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+delete-emacsword
+</dt>
+<dd>
+<p>
+Delete a emacsword at the current cursor position if no argument is passed;
+like the kill-emacsword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-char
+</dt>
+<dd>
+<p>
+Delete a character just before the current cursor position if no argument is
+passed;
+like the backward-kill-char command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-delete-bigword
+</dt>
+<dd>
+<p>
+Delete a bigword just before the current cursor position if no argument is
+passed;
+like the backward-kill-bigword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-semiword
+</dt>
+<dd>
+<p>
+Delete a semiword just before the current cursor position if no argument is
+passed;
+like the backward-kill-semiword command otherwise.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\^W</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-delete-viword
+</dt>
+<dd>
+<p>
+Delete a viword just before the current cursor position if no argument is
+passed;
+like the backward-kill-viword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-emacsword
+</dt>
+<dd>
+<p>
+Delete a emacsword just before the current cursor position if no argument is
+passed;
+like the backward-kill-emacsword command otherwise.
+</p>
+</dd>
+<dt class="hdlist1">
+delete-line
+</dt>
+<dd>
+<p>
+Delete the whole buffer contents.
+</p>
+</dd>
+<dt class="hdlist1">
+forward-delete-line
+</dt>
+<dd>
+<p>
+Delete all characters from the current cursor position to the end of the
+buffer.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-delete-line
+</dt>
+<dd>
+<p>
+Delete all characters before the current cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-char
+</dt>
+<dd>
+<p>
+Delete a character at the current cursor position and add it to the kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>x</kbd>, <kbd><code>\X</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-bigword
+</dt>
+<dd>
+<p>
+Delete a bigword at the current cursor position and add it to the kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+kill-semiword
+</dt>
+<dd>
+<p>
+Delete a semiword at the current cursor position and add it to the kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+kill-viword
+</dt>
+<dd>
+<p>
+Delete a viword at the current cursor position and add it to the kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+kill-emacsword
+</dt>
+<dd>
+<p>
+Delete a emacsword at the current cursor position and add it to the kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>d</kbd>, <kbd><code>\^[</code>D</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-char
+</dt>
+<dd>
+<p>
+Delete a character just before the current cursor position and add it to the
+kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>X</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-bigword
+</dt>
+<dd>
+<p>
+Delete a bigword just before the current cursor position and add it to the
+kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^W</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-semiword
+</dt>
+<dd>
+<p>
+Delete a semiword just before the current cursor position and add it to the
+kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-kill-viword
+</dt>
+<dd>
+<p>
+Delete a viword just before the current cursor position and add it to the kill
+ring.
+</p>
+</dd>
+<dt class="hdlist1">
+backward-kill-emacsword
+</dt>
+<dd>
+<p>
+Delete a emacsword just before the current cursor position and add it to the
+kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\B</code></kbd>,
+<kbd><code>\^[</code><code>\?</code></kbd>,
+<kbd><code>\^[</code><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+kill-line
+</dt>
+<dd>
+<p>
+Delete the whole buffer contents and add it to the kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+forward-kill-line
+</dt>
+<dd>
+<p>
+Delete all characters from the current cursor position to the end of the
+buffer and add it to the kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^K</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+backward-kill-line
+</dt>
+<dd>
+<p>
+Delete all characters before the current cursor position and add it to the
+kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>,
+<kbd><code>\^X</code><code>\B</code></kbd>,
+<kbd><code>\^X</code><code>\?</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-before
+</dt>
+<dd>
+<p>
+Insert the last-killed text before the current cursor position and move the
+cursor to the last character that was inserted.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>P</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put
+</dt>
+<dd>
+<p>
+Insert the last-killed text after the current cursor position and move the
+cursor to the last character that was inserted.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>p</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-left
+</dt>
+<dd>
+<p>
+Insert the last-killed text before the current cursor position and move the
+cursor to the last character that was inserted.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^Y</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+put-pop
+</dt>
+<dd>
+<p>
+Replace the just put text with the next older killed text.
+</p>
+<div class="paragraph"><p>This command can be used only just after the put-before, put, put-left, or
+put-pop command.</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>y</kbd>, <kbd><code>\^[</code>Y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+undo
+</dt>
+<dd>
+<p>
+Cancel modification by the last editing command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd>u</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^_</code></kbd>, <kbd><code>\^X</code><code>\$</code></kbd>,
+<kbd><code>\^X</code><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+undo-all
+</dt>
+<dd>
+<p>
+Cancel all modification in the current buffer, restoring the initial contents.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd>U</kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\^R</code></kbd>, <kbd><code>\^[</code>r</kbd>,
+<kbd><code>\^[</code>R</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+cancel-undo
+</dt>
+<dd>
+<p>
+Cancel cancellation by the last undo or undo-all command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+cancel-undo-all
+</dt>
+<dd>
+<p>
+Cancel all cancellation by all most recent undo and undo-all commands.
+</p>
+</dd>
+<dt class="hdlist1">
+redo
+</dt>
+<dd>
+<p>
+Repeat modification by the last editing command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>.</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="completion-commands">Completion commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+complete
+</dt>
+<dd>
+<p>
+<a href="#completion">Complete</a> a word just before the cursor position and, if there
+is more than one candidate, show a list of the candidates.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-next-candidate
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the next candidate in the list.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^I</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-prev-candidate
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the previous candidate in the list.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\bt</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-next-column
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the next column in the list.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-prev-column
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the previous column in the list.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-next-page
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the next page in the list.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-prev-page
+</dt>
+<dd>
+<p>
+Like the complete command when candidates are not being listed;
+otherwise, select the first candidate in the previous page in the list.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-list
+</dt>
+<dd>
+<p>
+Complete a word just before the cursor position.
+</p>
+<div class="paragraph"><p>If you pass no argument, a list of completion candidates is shown.
+Otherwise, the word is completed with the <var>n</var>th candidate where <var>n</var> is the
+argument.</p></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>?</kbd>, <kbd><code>\^[</code>=</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-all
+</dt>
+<dd>
+<p>
+Replace a word just before the cursor position with all possible completion
+candidates, each separated by a space.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>*</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+complete-max
+</dt>
+<dd>
+<p>
+Complete a word just before the cursor position with the longest prefix of all
+possible completion candidates.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-list
+</dt>
+<dd>
+<p>
+Works like the complete-max command for the first use, then like the complete
+command when used successively.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-next-candidate
+</dt>
+<dd>
+<p>
+Works like the complete-max command for the first use, then like the
+complete-next-candidate command when used successively.
+</p>
+</dd>
+<dt class="hdlist1">
+complete-max-then-prev-candidate
+</dt>
+<dd>
+<p>
+Works like the complete-max command for the first use, then like the
+complete-prev-candidate command when used successively.
+</p>
+</dd>
+<dt class="hdlist1">
+clear-candidates
+</dt>
+<dd>
+<p>
+Clear the list of completion candidates.
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="vi-commands">Vi-specific commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-replace-char
+</dt>
+<dd>
+<p>
+Replace the character at the cursor position with a character that is entered
+just after this command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>r</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-insert-beginning
+</dt>
+<dd>
+<p>
+Move the cursor to the beginning of the line and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>I</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append
+</dt>
+<dd>
+<p>
+Move the cursor to the next character and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>I</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append-to-eol
+</dt>
+<dd>
+<p>
+Move the cursor to the end of the line and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>A</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-replace
+</dt>
+<dd>
+<p>
+Switch to the vi insert mode and start overwriting. While overwriting, the
+self-insert command replaces the character at cursor position rather than
+inserting a character. Overwriting ends when the editing mode is changed.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>R</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-switch-case
+</dt>
+<dd>
+<p>
+Switch case of characters between the current and next cursor positions.
+This command must be followed by a motion command, which determines the next
+cursor position.
+</p>
+</dd>
+<dt class="hdlist1">
+vi-switch-case-char
+</dt>
+<dd>
+<p>
+Switch case of the character at the current cursor position and move the
+cursor to the next character.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>~</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank
+</dt>
+<dd>
+<p>
+Add to the kill ring the characters between the current and next cursor
+positions.
+This command must be followed by a motion command, which determines the next
+cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank-to-eol
+</dt>
+<dd>
+<p>
+Add to the kill ring the characters from the current cursor position to the
+end of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>Y</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-delete
+</dt>
+<dd>
+<p>
+Delete characters between the current and next cursor positions and add it to
+the kill ring.
+This command must be followed by a motion command, which determines the next
+cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>d</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-delete-to-eol
+</dt>
+<dd>
+<p>
+Delete the characters from the current cursor position to the end of the line
+and add it to the kill ring.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>D</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change
+</dt>
+<dd>
+<p>
+Delete characters between the current and next cursor positions and switch to
+the vi insert mode.
+This command must be followed by a motion command, which determines the next
+cursor position.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>c</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change-to-eol
+</dt>
+<dd>
+<p>
+Delete the characters from the current cursor position to the end of the line
+and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>C</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-change-line
+</dt>
+<dd>
+<p>
+Delete the whole buffer contents and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>S</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change
+</dt>
+<dd>
+<p>
+Like the vi-change command, but the deleted text is added to the kill ring.
+</p>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change-to-eol
+</dt>
+<dd>
+<p>
+Like the vi-change-to-eol command, but the deleted text is added to the kill
+ring.
+</p>
+</dd>
+<dt class="hdlist1">
+vi-yank-and-change-line
+</dt>
+<dd>
+<p>
+Like the vi-change-line command, but the deleted text is added to the kill
+ring.
+</p>
+</dd>
+<dt class="hdlist1">
+vi-substitute
+</dt>
+<dd>
+<p>
+Delete a character at the current cursor position, add it to the kill ring,
+and switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>s</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-append-last-bigword
+</dt>
+<dd>
+<p>
+Insert a space and the last bigword in the most recent command
+<a href="interact.html#history">history</a> entry just after the current cursor
+position and switch to the vi insert mode.
+If argument <var>n</var> is passed, the <var>n</var>th bigword in the entry is inserted
+instead of the last.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>_</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-exec-alias
+</dt>
+<dd>
+<p>
+Execute the value of an <a href="syntax.html#aliases">alias</a> named <code>_<var>c</var></code> as
+editing commands where <var>c</var> is a character input just after this command.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>@</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-edit-and-accept
+</dt>
+<dd>
+<p>
+Start the vi editor to edit the current buffer contents.
+When the editor finished, the edited buffer contents is accepted like the
+accept-line command unless the exit status of the editor is non-zero.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>v</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-list
+</dt>
+<dd>
+<p>
+Like the complete-list command, but also switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>=</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-all
+</dt>
+<dd>
+<p>
+Like the complete-all command, but also switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>*</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-complete-max
+</dt>
+<dd>
+<p>
+Like the complete-max command, but also switch to the vi insert mode.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-search-forward
+</dt>
+<dd>
+<p>
+Switch to the vi search mode and start forward
+<a href="interact.html#history">history</a> search.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>?</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+vi-search-backward
+</dt>
+<dd>
+<p>
+Switch to the vi search mode and start backward
+<a href="interact.html#history">history</a> search.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>/</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="emacs-commands">Emacs-specific commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-transpose-chars
+</dt>
+<dd>
+<p>
+Move a character just before the cursor to the right.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^T</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-transpose-words
+</dt>
+<dd>
+<p>
+Move an emacsword just before the cursor to the right.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>t</kbd>, <kbd><code>\^[</code>T</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-downcase-word
+</dt>
+<dd>
+<p>
+Make an emacsword just after the cursor lowercase.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>l</kbd>, <kbd><code>\^[</code>L</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-upcase-word
+</dt>
+<dd>
+<p>
+Make an emacsword just after the cursor uppercase.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>u</kbd>, <kbd><code>\^[</code>U</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-capitalize-word
+</dt>
+<dd>
+<p>
+Capitalize the first letter of an emacsword just after the cursor.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>c</kbd>, <kbd><code>\^[</code>C</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-delete-horizontal-space
+</dt>
+<dd>
+<p>
+Delete spaces around the cursor.
+If any argument was passed, delete spaces just before the cursor only.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-just-one-space
+</dt>
+<dd>
+<p>
+Delete spaces around the cursor and leave one space.
+If an argument is specified, leave as many spaces as the argument.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code> </kbd>
+(Escape followed by a space)
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-search-forward
+</dt>
+<dd>
+<p>
+Switch to the emacs search mode and start forward
+<a href="interact.html#history">history</a> search.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^S</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+emacs-search-backward
+</dt>
+<dd>
+<p>
+Switch to the emacs search mode and start backward
+<a href="interact.html#history">history</a> search.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="history-commands">History-related commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+oldest-history
+</dt>
+<dd>
+<p>
+Recall the oldest entry in the <a href="interact.html#history">history</a>.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+newest-history
+</dt>
+<dd>
+<p>
+Recall the newest entry in the <a href="interact.html#history">history</a>.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+return-history
+</dt>
+<dd>
+<p>
+Return to the initial buffer corresponding to none of existing
+<a href="interact.html#history">history</a> entries.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+oldest-history-bol
+</dt>
+<dd>
+<p>
+Recall the oldest entry in the <a href="interact.html#history">history</a> and move
+the cursor to the beginning of the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>G</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+newest-history-bol
+</dt>
+<dd>
+<p>
+Recall the newest entry in the <a href="interact.html#history">history</a> and move
+the cursor to the beginning of the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+</dd>
+<dt class="hdlist1">
+return-history-bol
+</dt>
+<dd>
+<p>
+Return to the initial buffer corresponding to none of existing
+<a href="interact.html#history">history</a> entries and move the cursor to the
+beginning of the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>g</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+oldest-history-eol
+</dt>
+<dd>
+<p>
+Recall the oldest entry in the <a href="interact.html#history">history</a> and move
+the cursor to the end of the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>&lt;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+newest-history-eol
+</dt>
+<dd>
+<p>
+Recall the newest entry in the <a href="interact.html#history">history</a> and move
+the cursor to the end of the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+</dd>
+<dt class="hdlist1">
+return-history-eol
+</dt>
+<dd>
+<p>
+Return to the initial buffer corresponding to none of existing
+<a href="interact.html#history">history</a> entries and move the cursor to the end of
+the line.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is recalled
+instead.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code>&gt;</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+next-history
+</dt>
+<dd>
+<p>
+Recall the next <a href="interact.html#history">history</a> entry.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+prev-history
+</dt>
+<dd>
+<p>
+Recall the previous <a href="interact.html#history">history</a> entry.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+next-history-bol
+</dt>
+<dd>
+<p>
+Recall the next <a href="interact.html#history">history</a> entry and move the cursor
+to the beginning of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>j</kbd>, <kbd>+</kbd>, <kbd><code>\D</code></kbd>,
+<kbd><code>\^N</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+prev-history-bol
+</dt>
+<dd>
+<p>
+Recall the previous <a href="interact.html#history">history</a> entry and move the
+cursor to the beginning of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>k</kbd>, <kbd>-</kbd>, <kbd><code>\U</code></kbd>,
+<kbd><code>\^P</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+next-history-eol
+</dt>
+<dd>
+<p>
+Recall the next <a href="interact.html#history">history</a> entry and move the cursor
+to the end of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\D</code></kbd>, <kbd><code>\^N</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+prev-history-eol
+</dt>
+<dd>
+<p>
+Recall the previous <a href="interact.html#history">history</a> entry and move the
+cursor to the end of the line.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-insert
+</dt>
+<dt class="hdlist1">
+emacs
+</dt>
+<dd>
+<p>
+<kbd><code>\U</code></kbd>, <kbd><code>\^P</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again
+</dt>
+<dd>
+<p>
+Repeat the last command history search.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>n</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again-rev
+</dt>
+<dd>
+<p>
+Repeat the last command history search in the reverse direction.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-command
+</dt>
+<dd>
+<p>
+<kbd>N</kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+search-again-forward
+</dt>
+<dd>
+<p>
+Repeat the last command history search in the forward direction.
+</p>
+</dd>
+<dt class="hdlist1">
+search-again-backward
+</dt>
+<dd>
+<p>
+Repeat the last command history search in the backward direction.
+</p>
+</dd>
+<dt class="hdlist1">
+beginning-search-forward
+</dt>
+<dd>
+<p>
+Recall the next <a href="interact.html#history">history</a> entry that starts with the
+same text as the text from the beginning of the line up to the current cursor
+position.
+The cursor position remains unchanged.
+</p>
+</dd>
+<dt class="hdlist1">
+beginning-search-backward
+</dt>
+<dd>
+<p>
+Recall the previous <a href="interact.html#history">history</a> entry that starts with
+the same text as the text from the beginning of the line up to the current
+cursor position.
+The cursor position remains unchanged.
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect2">
+<h3 id="search-commands">Search mode commands</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+srch-self-insert
+</dt>
+<dd>
+<p>
+Insert the input character at the current cursor position.
+Characters escaped by <a href="#escape">escape sequences</a> cannot be inserted.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\\</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-backward-delete-char
+</dt>
+<dd>
+<p>
+Delete the last character in the search text.
+If the text is empty:
+</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist"><ul>
+<li>
+<p>
+like the srch-abort-search command when in the vi search mode, or
+</p>
+</li>
+<li>
+<p>
+like the alert command when in the emacs search mode.
+</p>
+</li>
+</ul></div>
+</div></div>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\B</code></kbd>, <kbd><code>\?</code></kbd>,
+<kbd><code>\^H</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-backward-delete-line
+</dt>
+<dd>
+<p>
+Delete the whole search text.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\$</code></kbd>, <kbd><code>\^U</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-continue-forward
+</dt>
+<dd>
+<p>
+Find the next matching history entry.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^S</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-continue-backward
+</dt>
+<dd>
+<p>
+Find the previous matching history entry.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^R</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-accept-search
+</dt>
+<dd>
+<p>
+Finish the search mode, accepting the result being shown.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^M</code></kbd>,
+<kbd><code>\et</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^J</code></kbd>, <kbd><code>\^[</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+<dt class="hdlist1">
+srch-abort-search
+</dt>
+<dd>
+<p>
+Abort search and restore the previous buffer contents.
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+vi-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^[</code></kbd>
+</p>
+</dd>
+<dt class="hdlist1">
+emacs-search
+</dt>
+<dd>
+<p>
+<kbd><code>\^G</code></kbd>
+</p>
+</dd>
+</dl></div>
+</div></div>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="escape">Escape sequences</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In the <a href="_bindkey.html">bindkey built-in</a>, escape sequences are used to
+represent special keys such as function keys and arrow keys.
+Every escape sequence starts with a backslash (<code>\</code>) and thus there is also an
+escape sequence for a backslash itself.</p></div>
+<div class="paragraph"><p>Below are available escape sequences:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+Backslash (<code>\</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\B</code>
+</dt>
+<dd>
+<p>
+Backspace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\D</code>
+</dt>
+<dd>
+<p>
+Down arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\E</code>
+</dt>
+<dd>
+<p>
+End
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\H</code>
+</dt>
+<dd>
+<p>
+Home
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\I</code>
+</dt>
+<dd>
+<p>
+Insert (Insert-char, Enter-insert-mode)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\L</code>
+</dt>
+<dd>
+<p>
+Left arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\N</code>
+</dt>
+<dd>
+<p>
+Page-down (Next-page)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\P</code>
+</dt>
+<dd>
+<p>
+Page-up (Previous-page)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\R</code>
+</dt>
+<dd>
+<p>
+Right arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\U</code>
+</dt>
+<dd>
+<p>
+Up arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\X</code>
+</dt>
+<dd>
+<p>
+Delete
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\!</code>
+</dt>
+<dd>
+<p>
+INTR
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\#</code>
+</dt>
+<dd>
+<p>
+EOF
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\$</code>
+</dt>
+<dd>
+<p>
+KILL
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\?</code>
+</dt>
+<dd>
+<p>
+ERASE
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^@</code>
+</dt>
+<dd>
+<p>
+Ctrl + @
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^A</code>, <code>\^B</code>, &#8230;, <code>\^Z</code>
+</dt>
+<dd>
+<p>
+Ctrl + A, Ctrl + B, &#8230;, Ctrl + Z
+</p>
+<div class="paragraph"><p>Note that Ctrl + I, Ctrl + J, and Ctrl + M are tab, newline, and carriage
+return, respectively.</p></div>
+</dd>
+<dt class="hdlist1">
+<code>\^[</code>
+</dt>
+<dd>
+<p>
+Ctrl + [ (Escape)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^\</code>
+</dt>
+<dd>
+<p>
+Ctrl + \
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^]</code>
+</dt>
+<dd>
+<p>
+Ctrl + ]
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^^</code>
+</dt>
+<dd>
+<p>
+Ctrl + ^
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^_</code>
+</dt>
+<dd>
+<p>
+Ctrl + _
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\^?</code>
+</dt>
+<dd>
+<p>
+Ctrl + ? (Delete)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\F00</code>, <code>\F01</code>, &#8230;, <code>\F63</code>
+</dt>
+<dd>
+<p>
+F0, F1, &#8230;, F63
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a1</code>
+</dt>
+<dd>
+<p>
+Top-left on keypad
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a3</code>
+</dt>
+<dd>
+<p>
+Top-right on keypad
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\b2</code>
+</dt>
+<dd>
+<p>
+Center on keypad
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\bg</code>
+</dt>
+<dd>
+<p>
+Beginning
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\bt</code>
+</dt>
+<dd>
+<p>
+Back-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c1</code>
+</dt>
+<dd>
+<p>
+Bottom-left on keypad
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c3</code>
+</dt>
+<dd>
+<p>
+Bottom-right on keypad
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ca</code>
+</dt>
+<dd>
+<p>
+Clear-all-tabs
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cl</code>
+</dt>
+<dd>
+<p>
+Close
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cn</code>
+</dt>
+<dd>
+<p>
+Cancel
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\co</code>
+</dt>
+<dd>
+<p>
+Command
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cp</code>
+</dt>
+<dd>
+<p>
+Copy
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cr</code>
+</dt>
+<dd>
+<p>
+Create
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\cs</code>
+</dt>
+<dd>
+<p>
+Clear-screen or erase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ct</code>
+</dt>
+<dd>
+<p>
+Clear-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\dl</code>
+</dt>
+<dd>
+<p>
+Delete-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ei</code>
+</dt>
+<dd>
+<p>
+Exit-insert-mode
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\el</code>
+</dt>
+<dd>
+<p>
+Clear-to-end-of-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\es</code>
+</dt>
+<dd>
+<p>
+Clear-to-end-of-screen
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\et</code>
+</dt>
+<dd>
+<p>
+Enter (Send)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ex</code>
+</dt>
+<dd>
+<p>
+Exit
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\fd</code>
+</dt>
+<dd>
+<p>
+Find
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\hp</code>
+</dt>
+<dd>
+<p>
+Help
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\il</code>
+</dt>
+<dd>
+<p>
+Insert-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ll</code>
+</dt>
+<dd>
+<p>
+Home-down
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\me</code>
+</dt>
+<dd>
+<p>
+Message
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\mk</code>
+</dt>
+<dd>
+<p>
+Mark
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ms</code>
+</dt>
+<dd>
+<p>
+Mouse event
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\mv</code>
+</dt>
+<dd>
+<p>
+Move
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\nx</code>
+</dt>
+<dd>
+<p>
+Next-object
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\on</code>
+</dt>
+<dd>
+<p>
+Open
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\op</code>
+</dt>
+<dd>
+<p>
+Options
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\pr</code>
+</dt>
+<dd>
+<p>
+Print (Copy)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\pv</code>
+</dt>
+<dd>
+<p>
+Previous-object
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rd</code>
+</dt>
+<dd>
+<p>
+Redo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\re</code>
+</dt>
+<dd>
+<p>
+Resume
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rf</code>
+</dt>
+<dd>
+<p>
+Ref (Reference)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rh</code>
+</dt>
+<dd>
+<p>
+Refresh
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rp</code>
+</dt>
+<dd>
+<p>
+Replace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\rs</code>
+</dt>
+<dd>
+<p>
+Restart
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sf</code>
+</dt>
+<dd>
+<p>
+Scroll-forward (Scroll-down)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sl</code>
+</dt>
+<dd>
+<p>
+Select
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sr</code>
+</dt>
+<dd>
+<p>
+Scroll-backward (Scroll-up)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\st</code>
+</dt>
+<dd>
+<p>
+Set-tab
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\su</code>
+</dt>
+<dd>
+<p>
+Suspend
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\sv</code>
+</dt>
+<dd>
+<p>
+Save
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\ud</code>
+</dt>
+<dd>
+<p>
+Undo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SE</code>
+</dt>
+<dd>
+<p>
+Shift + End
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SH</code>
+</dt>
+<dd>
+<p>
+Shift + Home
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SI</code>
+</dt>
+<dd>
+<p>
+Shift + Insert
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SL</code>
+</dt>
+<dd>
+<p>
+Shift + Left arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SR</code>
+</dt>
+<dd>
+<p>
+Shift + Right arrow
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\SX</code>
+</dt>
+<dd>
+<p>
+Shift + Delete
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sbg</code>
+</dt>
+<dd>
+<p>
+Shift + Beginning
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scn</code>
+</dt>
+<dd>
+<p>
+Shift + Cancel
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sco</code>
+</dt>
+<dd>
+<p>
+Shift + Command
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scp</code>
+</dt>
+<dd>
+<p>
+Shift + Copy
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Scr</code>
+</dt>
+<dd>
+<p>
+Shift + Create
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sdl</code>
+</dt>
+<dd>
+<p>
+Shift + Delete-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sel</code>
+</dt>
+<dd>
+<p>
+Shift + End-of-line
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sex</code>
+</dt>
+<dd>
+<p>
+Shift + Exit
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sfd</code>
+</dt>
+<dd>
+<p>
+Shift + Find
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Shp</code>
+</dt>
+<dd>
+<p>
+Shift + Help
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Smg</code>
+</dt>
+<dd>
+<p>
+Shift + Message
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Smv</code>
+</dt>
+<dd>
+<p>
+Shift + Move
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Snx</code>
+</dt>
+<dd>
+<p>
+Shift + Next
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sop</code>
+</dt>
+<dd>
+<p>
+Shift + Options
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Spr</code>
+</dt>
+<dd>
+<p>
+Shift + Print
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Spv</code>
+</dt>
+<dd>
+<p>
+Shift + Previous
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Srd</code>
+</dt>
+<dd>
+<p>
+Shift + Redo
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sre</code>
+</dt>
+<dd>
+<p>
+Shift + Resume
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Srp</code>
+</dt>
+<dd>
+<p>
+Shift + Replace
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Ssu</code>
+</dt>
+<dd>
+<p>
+Shift + Suspend
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Ssv</code>
+</dt>
+<dd>
+<p>
+Shift + Save
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\Sud</code>
+</dt>
+<dd>
+<p>
+Shift + Undo
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>INTR, EOF, KILL, and ERASE are special characters configured by the stty
+command.
+In a typical configuration, they are sent by typing Ctrl+C, Ctrl+D, Ctrl+U,
+and Ctrl+H, respectively, but some configuration uses Ctrl+? instead of Ctrl+H
+for ERASE.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="completion">Command line completion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>By using the complete and complete-next-candidate commands, etc., you can
+complete command names, options, and operands.
+By default, the complete-next-candidate command is bound with the Tab key in
+the vi insert and emacs modes.</p></div>
+<div class="paragraph"><p>Type a few first letters of a command name or pathname and hit the Tab key,
+and a list of matching names will be shown.
+You can choose a candidate from the list to complete the name by hitting the
+Tab key again.
+If there is only one matching name, no list will be shown and the name will
+directly be completed.</p></div>
+<div class="paragraph"><p>If the name to be completed contains characters like <code>*</code> and <code>?</code>, it is
+treated as a <a href="pattern.html">pattern</a>.
+The name on the command line will be directly substituted with all possible
+names matching the pattern (you cannot choose from a list).</p></div>
+<div class="paragraph"><p>Normally, command names are completed with command names and command arguments
+with pathnames.
+However, <dfn>completion functions</dfn> can be defined to refine completion
+results.</p></div>
+<div class="sect2">
+<h3 id="completion-detail">Completion details</h3>
+<div class="paragraph"><p>When doing completion for the first time after the shell has been started, the
+INIT file is loaded as if the command string
+<code><a href="_dot.html">.</a> -AL completion/INIT</code> is executed.
+If the file is not found, it is silently ignored.
+This automatic loading is mainly intended for loading completion functions
+bundled with the shell, but you can let the shell load your own functions by
+putting a file in the <a href="params.html#sv-yash_loadpath">load path</a>.</p></div>
+<div class="paragraph"><p>When completing a command name, the shell executes the <code>completion//command</code>
+function and when completing a command argument, the <code>completion//argument</code>
+function.
+If those completion functions are not defined, the shell just completes with
+command names or pathnames.
+When completing other names, such as the user name in
+<a href="expand.html#tilde">tilde expansion</a> and the parameter name in
+<a href="expand.html#params">parameter expansion</a>, completion functions are never
+used: the shell just completes with user names, parameter names, or whatever
+applicable.</p></div>
+<div class="paragraph"><p>Completion functions are <a href="exec.html#function">executed</a> without any
+arguments.
+The following <a href="exec.html#localvar">local variables</a> are automatically
+defined while executing completion functions:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="params.html#sv-ifs"><code>IFS</code></a>
+</dt>
+<dd>
+<p>
+The value is the three characters of a space, a tab, and a newline, which are
+the default value of the variable.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>WORDS</code>
+</dt>
+<dd>
+<p>
+This variable is an <a href="params.html#arrays">array</a> whose elements are a
+command name and arguments that have already been entered before the argument
+being completed.
+When completing a command name, the array has no elements.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>TARGETWORD</code>
+</dt>
+<dd>
+<p>
+The value is the partially entered command name or argument that is being
+completed.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>Completion candidates are generated by executing the
+<a href="_complete.html">complete built-in</a> during a completion function.</p></div>
+<div class="paragraph"><p>Completion functions must not perform I/O to the terminal, or displayed text
+will be corrupted.
+Completion functions should run as quickly as possible for better user
+experience.</p></div>
+<div class="paragraph"><p>While a completion function is being executed:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+the <a href="posix.html">POSIXly-correct mode</a> and the
+  <a href="_set.html#so-errreturn">err-return option</a> are temporarily disabled,
+</p>
+</li>
+<li>
+<p>
+the <a href="_set.html#so-errexit">err-exit option</a> is temporarily ignored, and
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html">traps</a> are not executed.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="prediction">Command line prediction</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>This is an experimental feature. When the
+<a href="_set.html#so-lepredict">le-predict</a> option is enabled, the shell
+automatically tries to predict a command string fragment that follows the part
+of the command you have already typed in line-editing.</p></div>
+<div class="paragraph"><p>For example, assume you have once typed the command <code>ls Documents</code>. Next
+time you start typing <code>ls Doc</code>, the shell will show <code>uments</code> just after
+the cursor. If you are satisfied with this suggestion, you can move the cursor
+to the right by the forward-char or any other <a href="#motion-commands">motion commands</a> instead of typing the rest of the command. After moving the cursor
+after the last <code>s</code>, you can use the accept-line command to execute the
+command. You can also use the accept-prediction command to immediately execute
+the suggested command without moving the cursor.</p></div>
+<div class="paragraph"><p>To distinguish the typed and predicted parts of a command string, you can
+<a href="interact.html#prompt">change the font style</a> of those parts by setting the
+<a href="params.html#sv-ps1s"><code>PS1S</code></a> and <a href="params.html#sv-ps1p"><code>PS1P</code></a>
+variables.</p></div>
+<div class="paragraph"><p>When you move the cursor to the right, the predicted part up to the cursor
+becomes the typed part as if you actually typed it. Moving the cursor to the
+left does <em>not</em> turn the typed part back to the prediction. Use deletion
+commands such as backward-delete-char to delete typed command fragment.</p></div>
+<div class="paragraph"><p>The predicted part of the command is shown only when the cursor is at the end
+of the typed part.</p></div>
+<div class="paragraph"><p>By default, the predicted part is shown after you start typing a command
+string.
+By enabling the <a href="_set.html#so-lepredictempty">le-predict-empty</a> option, the
+predicted part is also shown before you type the first character of the
+command string.</p></div>
+<div class="paragraph"><p>The prediction algorithm suggests command fragments on the basis of the
+<a href="interact.html#history">command history</a>. The algorithm considers recent
+history entries more probable. It also takes command succession patterns into
+account. A predicted command fragment is not always a complete valid command
+because less probable part of the fragment is excluded from prediction.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-05-12 01:59:06 JST
+</div>
+</div>
+</body>
+</html>

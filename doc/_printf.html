@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Printf built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Printf built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>printf built-in</dfn> prints formatted values.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>printf <var>format</var> [<var>value</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The printf built-in formats <var>value</var>s according to <var>format</var> and prints them
+to the standard output.
+Unlike the <a href="_echo.html">echo built-in</a>, the printf built-in does not print
+a newline automatically.</p></div>
+<div class="paragraph"><p>The formatting process is very similar to that of the printf function in the C
+programming language.
+You can use conversion specifications (which start with <code>%</code>) and escape
+sequences (which start with <code>\</code>) in <var>format</var>.
+Any other characters that are not part of a conversion specification or escape
+sequence are printed literally.</p></div>
+<div class="sect2">
+<h3 id="convspec">Conversion specifications</h3>
+<div class="paragraph"><p>A conversion specification starts with a percent sign (<code>%</code>).</p></div>
+<div class="paragraph"><p>A conversion specification except <code>%%</code> consumes a <var>value</var>, which is
+formatted according to the specification and printed.
+Each conversion specification consumes one <var>value</var> in the order of
+appearance.
+If there are more <var>value</var>s than conversion specifications, the entire
+<var>format</var> is re-processed until all the <var>value</var>s are consumed.
+If a <var>value</var> to be consumed is missing, it is assumed to be an empty string
+(if the specification requires a string) or zero (if a number).
+If no <var>value</var>s are given, <var>format</var> is processed just once.</p></div>
+<div class="paragraph"><p>Available conversion specifications are:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>%d</code>
+</dt>
+<dt class="hdlist1">
+<code>%i</code>
+</dt>
+<dd>
+<p>
+prints a signed integer in decimal
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%u</code>
+</dt>
+<dd>
+<p>
+prints an unsigned integer in decimal
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%o</code>
+</dt>
+<dd>
+<p>
+prints an unsigned integer in octal
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%x</code>
+</dt>
+<dd>
+<p>
+prints an unsigned integer in lowercase hexadecimal
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%X</code>
+</dt>
+<dd>
+<p>
+prints an unsigned integer in uppercase hexadecimal
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%f</code>
+</dt>
+<dd>
+<p>
+prints a floating-point number in lowercase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%F</code>
+</dt>
+<dd>
+<p>
+prints a floating-point number in uppercase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%e</code>
+</dt>
+<dd>
+<p>
+prints a floating-point number with exponent in lowercase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%E</code>
+</dt>
+<dd>
+<p>
+prints a floating-point number with exponent in uppercase
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%g</code>
+</dt>
+<dd>
+<p>
+the same as <code>%f</code> or <code>%e</code>, automatically selected
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%G</code>
+</dt>
+<dd>
+<p>
+the same as <code>%F</code> or <code>%E</code>, automatically selected
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%c</code>
+</dt>
+<dd>
+<p>
+prints the first character of string
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%s</code>
+</dt>
+<dd>
+<p>
+prints a string
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%b</code>
+</dt>
+<dd>
+<p>
+prints a string (recognizing escape sequences like the
+<a href="_echo.html#escapes">echo built-in</a>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%%</code>
+</dt>
+<dd>
+<p>
+prints a percent sign (<code>%</code>)
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>For <code>%g</code> and <code>%G</code>, the specification that is actually used is <code>%f</code> or <code>%F</code> if
+the exponent part is between -5 and the precision (exclusive); <code>%e</code> or <code>%E</code>
+otherwise.</p></div>
+<div class="paragraph"><p>In a conversion specification except <code>%%</code>, the leading percent sign may be
+followed by flags, field width, and/or precision in this order.</p></div>
+<div class="sect3">
+<h4 id="convspec-flags">Flags</h4>
+<div class="paragraph"><p>The flags are a sequence of any number of the following characters:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Minus sign (<code>-</code>)
+</dt>
+<dd>
+<p>
+With this flag, spaces are appended to the formatted value to fill up to the
+field width.
+Otherwise, spaces are prepended.
+</p>
+</dd>
+<dt class="hdlist1">
+Plus sign (<code>&#43;</code>)
+</dt>
+<dd>
+<p>
+A plus or minus sign is always prepended to a number.
+</p>
+</dd>
+<dt class="hdlist1">
+Space (<code>&#32;</code>)
+</dt>
+<dd>
+<p>
+A space is prepended to a formatted number if it has no plus or minus sign.
+</p>
+</dd>
+<dt class="hdlist1">
+Hash sign (<code>#</code>)
+</dt>
+<dd>
+<p>
+The value is formatted in an alternative form:
+For <code>%o</code>, the printed octal integer has at least one leading zero.
+For <code>%x</code> and <code>%X</code>, a non-zero integer is formatted with <code>0x</code> and <code>0X</code>
+prefixes, respectively.
+For <code>%e</code>, <code>%E</code>, <code>%f</code>, <code>%F</code>, <code>%g</code>, and <code>%G</code>, a decimal mark (a.k.a. radix
+character) is always printed even if the value is an exact integer.
+For <code>%g</code> and <code>%G</code>, the printed number has at least one digit in the fractional
+part.
+</p>
+</dd>
+<dt class="hdlist1">
+Zero (<code>0</code>)
+</dt>
+<dd>
+<p>
+Zeros are prepended to a formatted number to fill up to the field width.
+This flag is ignored if the minus flag is specified or if the conversion
+specification is <code>%d</code>, <code>%i</code>, <code>%u</code>, <code>%o</code>, <code>%x</code>, or <code>%X</code> with a precision.
+</p>
+</dd>
+</dl></div>
+</div>
+<div class="sect3">
+<h4 id="convspec-width">Field width</h4>
+<div class="paragraph"><p>A field width is specified as a decimal integer that has no leading zeros.</p></div>
+<div class="paragraph"><p>A field width defines a minimum byte count of a formatted value.
+If the formatted value does not reach the minimum byte count, so many spaces
+are prepended that the printed value has the specified byte
+count.</p></div>
+</div>
+<div class="sect3">
+<h4 id="convspec-precision">Precision</h4>
+<div class="paragraph"><p>A precision is specified as a period (<code>.</code>) followed by a decimal integer.
+If the integer is omitted after the period, the precision is assumed to be
+zero.</p></div>
+<div class="paragraph"><p>For conversion specifications <code>%d</code>, <code>%i</code>, <code>%u</code>, <code>%o</code>, <code>%x</code>, and <code>%X</code>, a
+precision defines a minimum digit count.
+If the formatted integer does not reach the minimum digit count, so many zeros
+are prepended that the printed integer has the specified number of digits.
+The default precision is one for these conversion specifications.</p></div>
+<div class="paragraph"><p>For conversion specifications <code>%e</code>, <code>%E</code>, <code>%f</code>, and <code>%F</code>, a precision defines
+the number of digits after the decimal mark.
+The default precision is six for these conversion specifications.</p></div>
+<div class="paragraph"><p>For conversion specifications <code>%g</code>, and <code>%G</code>, a precision defines a maximum
+number of significant digits in the printed value.
+The default precision is six for these conversion specifications.</p></div>
+<div class="paragraph"><p>For conversion specifications <code>%s</code>, and <code>%b</code>, a precision defines a maximum
+byte count of the printed string.
+The default precision is infinity for these conversion specifications.</p></div>
+</div>
+<div class="sect3">
+<h4 id="convspec-examples">Examples</h4>
+<div class="paragraph"><p>In the conversion specification <code>%08.3f</code>, the zero flag is specified, the
+field width is 8, and the precision is 3.
+If this specification is applied to value 12.34, the output will be
+<code>0012.340</code>.</p></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="escapes">Escape sequences</h3>
+<div class="paragraph"><p>The following escape sequences are recognized in <var>format</var>:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\a</code>
+</dt>
+<dd>
+<p>
+Bell character (ASCII code: 7)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\b</code>
+</dt>
+<dd>
+<p>
+Backspace (ASCII code: 8)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\f</code>
+</dt>
+<dd>
+<p>
+Form feed character (ASCII code: 12)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\n</code>
+</dt>
+<dd>
+<p>
+Newline character (ASCII code: 10)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\r</code>
+</dt>
+<dd>
+<p>
+Carriage return character (ASCII code: 13)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\t</code>
+</dt>
+<dd>
+<p>
+Horizontal tab character (ASCII code: 9)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\v</code>
+</dt>
+<dd>
+<p>
+Vertical tab character (ASCII code: 11)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+Backslash
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\"</code>
+</dt>
+<dd>
+<p>
+Double quotation
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\'</code>
+</dt>
+<dd>
+<p>
+Single quotation (apostrophe)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#x5C;<var>xxx</var></code>
+</dt>
+<dd>
+<p>
+Character whose code is <var>xxx</var>, where <var>xxx</var> is an octal number of at most
+three digits.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>format</var>
+</dt>
+<dd>
+<p>
+A string that defines how <var>value</var>s should be formatted.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>value</var>s
+</dt>
+<dd>
+<p>
+Values that are formatted according to <var>format</var>.
+</p>
+<div class="paragraph"><p>A value is either a number or a string.</p></div>
+<div class="paragraph"><p>When a numeric value is required, <var>value</var> can be a single or double
+quotation followed by a character, instead of a normal number.
+For example, the command <code>printf '%d' '"3'</code> will print <code>51</code> on a typical
+environment where character <code>3</code> has character code 51.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the printf built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The POSIX standard does not precisely define how multibyte characters should
+be handled by the built-in.
+When you use the <code>%s</code> conversion specification with precision or the <code>%c</code>
+conversion specification, you may obtain unexpected results if the formatted
+value contains a character that is represented by more than one byte.
+Yash never prints only part of the bytes that represent a single multibyte
+character because all multibyte characters are converted to wide characters
+when processed in the shell.</p></div>
+<div class="paragraph"><p>If the shell is not in the <a href="posix.html">POSIXly-correct mode</a> and the
+&#8220;long double&#8221; floating-point arithmetic is supported on the running system,
+then &#8220;long double&#8221; is used for floating-point conversion specifications.
+Otherwise, &#8220;double&#8221; is used.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

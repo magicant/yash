@@ -1,0 +1,1168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="The table of contents for the yash manual." />
+<title>Yet another shell (yash) manual</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Yet another shell (yash) manual</h1>
+<span id="author">Yuki Watanabe</span><br />
+<span id="email"><code>&lt;<a href="mailto:magicant@users.osdn.me">magicant@users.osdn.me</a>&gt;</code></span><br />
+<span id="revnumber">version 2.55,</span>
+<span id="revdate">2023-08-20</span>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="contents-list">Contents</h2>
+<div class="sectionbody">
+<div class="openblock list-group">
+<div class="content">
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<a href="intro.html">Introduction</a>
+</p>
+</li>
+<li>
+<p>
+<a href="invoke.html">Invocation</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="invoke.html#arguments">Command line arguments</a>
+</p>
+</li>
+<li>
+<p>
+<a href="invoke.html#init">Initialization of yash</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="syntax.html">Syntax</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="syntax.html#tokens">Tokens and keywords</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#quotes">Quotations</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#aliases">Aliases</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#simple">Simple commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#pipelines">Pipelines</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#and-or">And/or lists</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#async">Command separators and asynchronous commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#compound">Compound commands</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="syntax.html#grouping">Grouping</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#if">If command</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#while-until">While and until loops</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#for">For loop</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#case">Case command</a>
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#double-bracket">Double-bracket command</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="syntax.html#funcdef">Function definition</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="params.html">Parameters and variables</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="params.html#positional">Positional parameters</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#special">Special parameters</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#variables">Variables</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="params.html#shellvars">Variables used by the shell</a>
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#arrays">Arrays</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="expand.html">Word expansions</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="expand.html#tilde">Tilde expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#params">Parameter expansion</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="expand.html#param-prefix">Prefix</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-name">Parameter name</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-index">Index</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#param-mod">Modifier</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="expand.html#cmdsub">Command substitution</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#arith">Arithmetic expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#brace">Brace expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#split">Field splitting</a>
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#glob">Pathname expansion</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="expand.html#extendedglob">Extension in pathname expansion</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="pattern.html">Pattern matching notation</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="pattern.html#normal">Normal characters</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#single">Single-character wildcard</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#multiple">Multi-character wildcard</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bracket">Bracket expression</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-normal">Normal characters (in bracket expression pattern)</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-range">Range expressions</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-colsym">Collating symbols</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-eqclass">Equivalence classes</a>
+</p>
+</li>
+<li>
+<p>
+<a href="pattern.html#bra-chclass">Character classes</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="redir.html">Redirection</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="redir.html#file">Redirection to files</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="redir.html#socket">Socket redirection</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="redir.html#dup">Duplication of file descriptors</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#here">Here documents and here strings</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#pipe">Pipeline redirection</a>
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#process">Process redirection</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html">Command execution</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="exec.html#simple">Execution of simple commands</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#search">Command search</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html#exit">Termination of the shell</a>
+</p>
+</li>
+<li>
+<p>
+<a href="exec.html#function">Functions</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#localvar">Local variables</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="exec.html#environment">Command execution environment</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="exec.html#subshell">Subshells</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="interact.html">Interactive mode</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="interact.html#prompt">Prompts</a>
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html#history">Command history</a>
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html#mailcheck">Mail checking</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="job.html">Job control</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="job.html#jobid">Job ID</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="builtin.html">Built-in commands</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="builtin.html#types">Types of built-in commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="builtin.html#argsyntax">Syntax of command arguments</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html">Line-editing</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="lineedit.html#options">Shell options on line-editing</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#modes">Editing modes</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#commands">Line-editing commands</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="lineedit.html#basic-commands">Basic editing commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#motion-commands">Motion commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#editing-commands">Editing commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#completion-commands">Completion commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#vi-commands">Vi-specific commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#emacs-commands">Emacs-specific commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#history-commands">History-related commands</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#search-commands">Search mode commands</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html#escape">Escape sequences</a>
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html#completion">Command line completion</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="lineedit.html#completion-detail">Completion details</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="lineedit.html#prediction">Command line prediction</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="posix.html">POSIXly-correct mode</a>
+</p>
+</li>
+<li>
+<p>
+<a href="faq.html">Frequently asked questions and troubleshooting</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="faq.html#unicode">How can I use Unicode (non-ASCII) characters?</a>
+</p>
+</li>
+<li>
+<p>
+<a href="faq.html#lineediting">Line-editing does not work</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="fgrammar.html">Formal definition of command syntax</a>
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<a href="fgrammar.html#token">Tokenization</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="fgrammar.html#classification">Token classification</a>
+</p>
+</li>
+<li>
+<p>
+<a href="fgrammar.html#comments">Comments</a>
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+<a href="fgrammar.html#syntax">Syntax</a>
+</p>
+<div class="olist lowerroman"><ol class="lowerroman">
+<li>
+<p>
+<a href="fgrammar.html#alias">Alias substitution</a>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="builtins">Built-ins</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Parenthesized letters indicate the <a href="builtin.html#types">types of built-in
+commands</a>: (S) for special, (M) mandatory, (L) elective, and (X) extension.
+Substitutive built-ins are not marked.</p></div>
+<div class="sect2">
+<h3 id="alpha-order">All built-ins in alphabetic order</h3>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_dot.html"><code>.</code> (dot)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_colon.html"><code>:</code> (colon)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>[</code> (bracket)</a>
+</p>
+</li>
+<li>
+<p>
+<a href="_alias.html"><code>alias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_array.html"><code>array</code></a> (X)
+</p>
+</li>
+<li>
+<p>
+<a href="_bg.html"><code>bg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_bindkey.html"><code>bindkey</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_break.html"><code>break</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_command.html"><code>command</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_complete.html"><code>complete</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_continue.html"><code>continue</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_dirs.html"><code>dirs</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_disown.html"><code>disown</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_echo.html"><code>echo</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_eval.html"><code>eval</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exec.html"><code>exec</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exit.html"><code>exit</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_export.html"><code>export</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_false.html"><code>false</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fc.html"><code>fc</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fg.html"><code>fg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_getopts.html"><code>getopts</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_hash.html"><code>hash</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_help.html"><code>help</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_history.html"><code>history</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_jobs.html"><code>jobs</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_kill.html"><code>kill</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_local.html"><code>local</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_popd.html"><code>popd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_printf.html"><code>printf</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_pushd.html"><code>pushd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_read.html"><code>read</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_readonly.html"><code>readonly</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_return.html"><code>return</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_shift.html"><code>shift</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_suspend.html"><code>suspend</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>test</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_times.html"><code>times</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_true.html"><code>true</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_type.html"><code>type</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_typeset.html"><code>typeset</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_ulimit.html"><code>ulimit</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_umask.html"><code>umask</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unalias.html"><code>unalias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unset.html"><code>unset</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html"><code>wait</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect2">
+<h3 id="groups">Categorized list of built-ins</h3>
+<div class="sect3">
+<h4 id="g-control">Execution control commands</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_eval.html"><code>eval</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_dot.html"><code>.</code> (dot)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_exec.html"><code>exec</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_command.html"><code>command</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_hash.html"><code>hash</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_break.html"><code>break</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_continue.html"><code>continue</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_return.html"><code>return</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_suspend.html"><code>suspend</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_exit.html"><code>exit</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-environ">Command execution environment</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_ulimit.html"><code>ulimit</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_umask.html"><code>umask</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_times.html"><code>times</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-job">Job control and signalling</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_jobs.html"><code>jobs</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_fg.html"><code>fg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_bg.html"><code>bg</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html"><code>wait</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_disown.html"><code>disown</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_kill.html"><code>kill</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_trap.html"><code>trap</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-variable">Parameters and variables</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_typeset.html"><code>typeset</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_export.html"><code>export</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_local.html"><code>local</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_readonly.html"><code>readonly</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_array.html"><code>array</code></a> (X)
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html"><code>set</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_shift.html"><code>shift</code></a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_read.html"><code>read</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_getopts.html"><code>getopts</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unset.html"><code>unset</code></a> (S)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-directory">Working directory</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_cd.html"><code>cd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pwd.html"><code>pwd</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_pushd.html"><code>pushd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_popd.html"><code>popd</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_dirs.html"><code>dirs</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-alias">Aliases</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_alias.html"><code>alias</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_unalias.html"><code>unalias</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-history">Command history</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_fc.html"><code>fc</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_history.html"><code>history</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-print">Printing strings</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_echo.html"><code>echo</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_printf.html"><code>printf</code></a>
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-lineedit">Line-editing</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_bindkey.html"><code>bindkey</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_complete.html"><code>complete</code></a> (L)
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect3">
+<h4 id="g-misc">Miscellaneous</h4>
+<div class="ulist list-group"><ul>
+<li>
+<p>
+<a href="_help.html"><code>help</code></a> (L)
+</p>
+</li>
+<li>
+<p>
+<a href="_colon.html"><code>:</code> (colon)</a> (S)
+</p>
+</li>
+<li>
+<p>
+<a href="_true.html"><code>true</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_false.html"><code>false</code></a> (M)
+</p>
+</li>
+<li>
+<p>
+<a href="_test.html"><code>[</code> (bracket), <code>test</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_type.html"><code>type</code></a> (M)
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Version 2.55<br />
+Last updated
+ 2023-08-20 08:39:27 JST
+</div>
+</div>
+</body>
+</html>

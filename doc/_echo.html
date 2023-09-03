@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Echo built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Echo built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>echo built-in</dfn> prints its arguments.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>echo [<var>string</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The built-in treats all command line arguments as operands except for the
+options described below.
+Any word that cannot be parsed as an acceptable option is treated as an
+operand.
+Options must precede all operands.
+Syntax errors never happen in the echo built-in.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The echo built-in prints the operand <var>string</var>s followed by a newline to the
+standard output.
+The <var>string</var>s are each separated by a space.</p></div>
+<div class="sect2">
+<h3 id="escapes">Escape sequences</h3>
+<div class="paragraph"><p>The <code>ECHO_STYLE</code> variable and the <code>-e</code> option enable escape sequences that are
+replaced with corresponding characters:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\a</code>
+</dt>
+<dd>
+<p>
+Bell character (ASCII code: 7)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\b</code>
+</dt>
+<dd>
+<p>
+Backspace (ASCII code: 8)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c</code>
+</dt>
+<dd>
+<p>
+Nothing. After this escape sequence, no characters are printed at all.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\e</code>
+</dt>
+<dd>
+<p>
+Escape character (ASCII code: 27)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\f</code>
+</dt>
+<dd>
+<p>
+Form feed character (ASCII code: 12)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\n</code>
+</dt>
+<dd>
+<p>
+Newline character (ASCII code: 10)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\r</code>
+</dt>
+<dd>
+<p>
+Carriage return character (ASCII code: 13)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\t</code>
+</dt>
+<dd>
+<p>
+Horizontal tab character (ASCII code: 9)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\v</code>
+</dt>
+<dd>
+<p>
+Vertical tab character (ASCII code: 11)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+Backslash
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\0<var>xxx</var></code>
+</dt>
+<dd>
+<p>
+Character whose code is <var>xxx</var>, where <var>xxx</var> is an octal number of at most
+three digits.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>When escape sequences are not enabled, they are just printed intact.</p></div>
+</div>
+<div class="sect2">
+<h3 id="echo_style"><code>ECHO_STYLE</code> variable</h3>
+<div class="paragraph"><p>The <a href="params.html#sv-echo_style"><code>ECHO_STYLE</code> variable</a> defines which
+options are accepted and whether escape sequences are enabled by default.
+The variable value should be set to one of the following:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>SYSV</code>
+</dt>
+<dt class="hdlist1">
+<code>XSI</code>
+</dt>
+<dd>
+<p>
+No options are accepted.
+Escape sequences are always enabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>BSD</code>
+</dt>
+<dd>
+<p>
+The <code>-n</code> option is accepted.
+Escape sequences are never enabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>GNU</code>
+</dt>
+<dd>
+<p>
+The <code>-n</code>, <code>-e</code>, and <code>-E</code> options are accepted.
+Escape sequences are not enabled by default, but can be enabled by the <code>-e</code>
+option.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>ZSH</code>
+</dt>
+<dd>
+<p>
+The <code>-n</code>, <code>-e</code>, and <code>-E</code> options are accepted.
+Escape sequences are enabled by default, but can be disabled by the <code>-E</code>
+option.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>DASH</code>
+</dt>
+<dd>
+<p>
+The <code>-n</code> option is accepted.
+Escape sequences are always enabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>RAW</code>
+</dt>
+<dd>
+<p>
+No options are accepted.
+Escape sequences are never enabled.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>When the <code>ECHO_STYLE</code> variable is not set, it defaults to <code>SYSV</code>.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dd>
+<p>
+Do not print a newline at the end.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dd>
+<p>
+Enable escape sequences.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-E</code>
+</dt>
+<dd>
+<p>
+Disable escape sequences.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the echo built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The POSIX standard does not define the <code>ECHO_STYLE</code> variable nor any options
+for the built-in.
+According to POSIX, the behavior of the built-in is implementation-defined
+when the first argument is <code>-n</code> or when any argument contains a backslash.
+For maximum portability, the <a href="_printf.html">printf built-in</a> should be
+preferred over the echo built-in.</p></div>
+<div class="paragraph"><p>Although many values for the <code>ECHO_STYLE</code> variable are defined on the basis of
+other existing implementations, yash is not intended to exactly imitate those
+originals. Zsh&#8217;s echo built-in interprets a single hyphen argument as a
+separator between options and operands. Yash does not support such use of
+hyphen.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

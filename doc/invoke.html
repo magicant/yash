@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes how yash is initialized when invoked." />
+<title>Invocation</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Invocation</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>When invoked as a program, yash performs the predefined initialization steps
+and repeatedly reads and executed commands. Command line arguments given in
+the invocation determines how the shell initializes itself and executes
+commands.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="arguments">Command line arguments</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The syntax of command line arguments for yash conforms to POSIX. As defined in
+POSIX, arguments are separated into <dfn>options</dfn> and <dfn>operands</dfn>. For more
+detailed explanation about options and operands, see
+<a href="builtin.html#argsyntax">Command argument syntax</a>. All options must come
+before operands. The interpretation of operands depends on options specified.</p></div>
+<div class="paragraph"><p>When you specify the <code>-c</code> (<code>--cmdline</code>) option, you must give at least one
+operand. The shell interprets and executes the first operand as a command
+string. The second operand, if any, is used to initialize the
+<a href="params.html#sp-zero"><code>0</code> special parameter</a>.
+The other operands, if any, are used to initialize the
+<a href="params.html#positional">positional parameters</a>.
+When the <code>-c</code> (<code>--cmdline</code>) option is specified, the shell does not read any
+file or the standard input (unless the <a href="_dot.html">dot built-in</a> is used).</p></div>
+<div class="paragraph"><p>If you specify the <code>-s</code> (<code>--stdin</code>) option, the shell reads the standard
+input, interprets the input as commands, and executes them. All the operands
+given are used to initialize the <a href="params.html#positional">positional
+parameters</a>.
+The <a href="params.html#sp-zero"><code>0</code> special parameter</a> is initialized to the name
+the shell is invoked as.</p></div>
+<div class="paragraph"><p>If you specify neither the <code>-c</code> (<code>--cmdline</code>) nor <code>-s</code> (<code>--stdin</code>) option, the
+shell reads a file, interprets the file contents as commands, and executes
+them. The first operand specifies the pathname of the file. The remaining
+operands are used to initialize the <a href="params.html#positional">positional
+parameters</a>.
+If you do not give any operands, the shell reads the standard input as if the
+<code>-s</code> (<code>--stdin</code>) option is specified.</p></div>
+<div class="paragraph"><p>You cannot use both the <code>-c</code> (<code>--cmdline</code>) and <code>-s</code> (<code>--stdin</code>) options at a
+time.</p></div>
+<div class="paragraph"><p>If you specify either the <code>--help</code> or <code>-V</code> (<code>--version</code>) option, the shell
+never performs the usual initialization or command execution. Instead, it just
+prints brief usage (for <code>--help</code>) or version information (for <code>-V</code> and
+<code>--version</code>). If the <code>-V</code> (<code>--version</code>) option is accompanied by the <code>-v</code>
+(<code>--verbose</code>) option, the shell prints a list of the available optional
+features as well.</p></div>
+<div class="paragraph"><p>If you specify the <code>-i</code> (<code>--interactive</code>) option, the shell goes into the
+<a href="interact.html">interactive mode</a>.
+If you specify the <code>+i</code> (<code>++interactive</code>) option, conversely, the shell never
+goes into the interactive mode.</p></div>
+<div class="paragraph"><p>If you specify the <code>-l</code> (<code>--login</code>) option, the shell behaves as a login
+shell.</p></div>
+<div class="paragraph"><p>The <code>--noprofile</code>, <code>--norcfile</code>, <code>--profile</code>, and <code>--rcfile</code> options determine
+how the shell is initialized (see below for details).</p></div>
+<div class="paragraph"><p>In addition to the options described above, you can specify options that can
+be specified to the <a href="_set.html">set built-in</a>.</p></div>
+<div class="paragraph"><p>If the first operand is <code>-</code> and the options and the operands are not separated
+by <code>--</code>, the first operand is ignored.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="init">Initialization of yash</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Yash initializes itself as follows:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Yash first parses the name it was invoked as. If the name starts with <code>-</code>,
+  the shell behaves as a login shell. If the name is <code>sh</code> (including names
+  such as <code>/bin/sh</code>), the shell goes into the <a href="posix.html">POSIXly-correct
+  mode</a>.
+</p>
+</li>
+<li>
+<p>
+If no operands are given and the standard input and standard error are both
+  connected to a terminal, the shell goes into the
+  <a href="interact.html">interactive mode</a> unless the <code>+i</code> (<code>++interactive</code>)
+  option is specified.
+</p>
+</li>
+<li>
+<p>
+<a href="job.html">Job control</a> is automatically enabled in an interactive shell
+  unless the <code>+m</code> (<code>++monitor</code>) option is specified.
+</p>
+</li>
+<li>
+<p>
+Yash reads and executes commands from the following files (unless the real
+  and effective user IDs of the shell process are different or the real and
+  effective group IDs of the shell process are different):
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+If it is behaving as a login shell, the shell reads the file specified by
+    the <code>--profile=<var>filename</var></code> option unless the <code>--noprofile</code> option is
+    specified or the shell is in the <a href="posix.html">POSIXly-correct mode</a>.
+   <br />
+    If the <code>--profile=<var>filename</var></code> option is not specified, the shell reads
+    <a href="expand.html#tilde">~</a>/.yash_profile as a default.
+</p>
+</li>
+<li>
+<p>
+If in the interactive mode, the shell reads the file specified by the
+    <code>--rcfile=<var>filename</var></code> option unless the <code>--norcfile</code> option is specified.
+   <br />
+    If the <code>--rcfile=<var>filename</var></code> option is not specified, the shell instead
+    reads the following files:
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+If not in the POSIXly-correct mode, the shell reads
+      <a href="expand.html#tilde">~</a>/.yashrc. If it cannot be read, the shell
+      searches <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> for a file
+      named initialization/default.
+</p>
+</li>
+<li>
+<p>
+If in the POSIXly-correct mode, the shell performs
+      <a href="expand.html">parameter expansion</a> on the value of the
+      <a href="params.html#sv-env"><code>ENV</code> environment variable</a> and treats the
+      expansion result as the name of the file to read.
+</p>
+</li>
+</ul></div>
+</li>
+</ol></div>
+</li>
+</ol></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Yash never automatically reads /etc/profile, /etc/yashrc, nor
+<a href="expand.html#tilde">~</a>/.profile.</td>
+</tr></table>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

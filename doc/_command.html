@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Command built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Command built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>command built-in</dfn> executes or identifies a command.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>command [-befp] <var>command</var> [<var>argument</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>command -v|-V [-abefkp] <var>command</var>&#8230;</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Without the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>) option, the
+built-in executes <var>command</var> with <var>argument</var>s in the same manner as the
+last step of <a href="exec.html#simple">execution of simple commands</a>.
+The command is treated as a built-in or external command or a function
+according to the options specified to the command built-in.
+The shell does not exit on argument syntax error etc. even if the command is a
+<a href="builtin.html#types">special built-in</a></p></div>
+<div class="paragraph"><p>With the <code>-v</code> (<code>--identify</code>) option, <var>command</var> is identified.
+If the command is found in <a href="params.html#sv-path"><code>$PATH</code></a>, its full
+pathname is printed.
+If it is a <a href="syntax.html#tokens">keyword</a>, <a href="exec.html#function">function</a>, or <a href="builtin.html">built-in</a> that is not found in <code>$PATH</code>,
+the command name is simply printed.
+If it is an <a href="syntax.html#aliases">alias</a>, it is printed in the form like
+<code>alias ll='ls -l'</code>.
+If the command is not found, nothing is printed and the exit status is
+non-zero.</p></div>
+<div class="paragraph"><p>The <code>-V</code> (<code>--verbose-identify</code>) option is similar to the <code>-v</code> (<code>--identify</code>)
+option, but the output format is more human-friendly.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--alias</code>
+</dt>
+<dd>
+<p>
+Search for the command as an <a href="syntax.html#aliases">alias</a>.
+Must be used with the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>)
+option.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-b</code>
+</dt>
+<dt class="hdlist1">
+<code>--builtin-command</code>
+</dt>
+<dd>
+<p>
+Search for the command as a <a href="builtin.html">built-in</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--external-command</code>
+</dt>
+<dd>
+<p>
+Search for the command as an external command.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--function</code>
+</dt>
+<dd>
+<p>
+Search for the command as a <a href="exec.html#function">function</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k</code>
+</dt>
+<dt class="hdlist1">
+<code>--keyword</code>
+</dt>
+<dd>
+<p>
+Search for the command as a <a href="syntax.html#tokens">keyword</a>.
+Must be used with the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>)
+option.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--standard-path</code>
+</dt>
+<dd>
+<p>
+Search the system&#8217;s default <code>PATH</code> instead of the current
+<a href="params.html#sv-path"><code>$PATH</code></a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--identify</code>
+</dt>
+<dd>
+<p>
+Identify <var>command</var>s and print in the format defined in the POSIX standard.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-V</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose-identify</code>
+</dt>
+<dd>
+<p>
+Identify <var>command</var>s and print in a human-friendly format.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If none of the <code>-a</code> (<code>--alias</code>), <code>-b</code> (<code>--builtin-command</code>), <code>-e</code>
+(<code>--external-command</code>), <code>-f</code> (<code>--function</code>), and <code>-k</code> (<code>--keyword</code>) options
+is specified, the following defaults are assumed:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Without the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>) option
+</dt>
+<dd>
+<p>
+<code>-b -e</code>
+</p>
+</dd>
+<dt class="hdlist1">
+With the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>) option
+</dt>
+<dd>
+<p>
+<code>-a -b -e -f -k</code>
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>command</var>
+</dt>
+<dd>
+<p>
+A command to be executed or identified.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>argument</var>&#8230;
+</dt>
+<dd>
+<p>
+Arguments passed to the executed command.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the command built-in is:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Without the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>) option
+</dt>
+<dd>
+<p>
+the exit status of the executed command.
+</p>
+</dd>
+<dt class="hdlist1">
+With the <code>-v</code> (<code>--identify</code>) or <code>-V</code> (<code>--verbose-identify</code>) option
+</dt>
+<dd>
+<p>
+zero unless there is any error.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The command built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, options other than <code>-p</code>, <code>-v</code>,
+and <code>-V</code> cannot be used and at most one <var>command</var> can be specified.
+The POSIX standard does not allow specifying both <code>-v</code> and <code>-V</code> together, but
+yash does (only the last specified one is effective).</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

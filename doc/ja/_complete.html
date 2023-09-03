@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Complete 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Complete 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Complete 組込みコマンド</dfn>は&#8203;<a href="lineedit.html#completion">コマンドライン補完</a>において補完候補を生成します。この組込みコマンドは補完関数の実行中にだけ使えます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>complete [-A <var>パターン</var>] [-R <var>パターン</var>] [-T] [-P <var>接頭辞</var>] [-S <var>接尾辞</var>] [-abcdfghjkuv] [[-O] [-D <var>説明</var>] <var>単語</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>補完関数の中でこの組込みコマンドを実行すると、complete コマンドは指定した引数に従って補完候補を生成します。どのオプション・オペランドで候補を生成するにせよ、実際に生成される候補は現在補完しようとしている (コマンドライン上に途中まで入力された) 単語に一致するものに限られます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A <var>パターン</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--accept=<var>パターン</var></code>
+</dt>
+<dd>
+<p>
+このオプションを指定すると、指定した<var><a href="pattern.html">パターン</a></var>にマッチする候補だけを生成します。このオプションは複数回指定できます (指定した全ての<var>パターン</var>にマッチする候補だけを生成します)。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-D <var>説明</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--description=<var>説明</var></code>
+</dt>
+<dd>
+<p>
+このオプションを指定すると、このオプションで指定した<var>説明</var>が補完の際に候補の説明として表示されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-O</code>
+</dt>
+<dt class="hdlist1">
+<code>--option</code>
+</dt>
+<dd>
+<p>
+生成する候補をコマンドのオプションとみなすようにします。候補を画面上に一覧表示する際に自動的に先頭にハイフンを付加します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-P <var>接頭辞</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--prefix=<var>接頭辞</var></code>
+</dt>
+<dd>
+<p>
+このオプションで指定する<var>接頭辞</var>は現在補完しようとしている単語の接頭辞になっていなければなりません。このオプションを指定すると、候補生成の際にこのオプションで指定した<var>接頭辞</var>を無視してマッチングを行います。例えば補完しようとしている単語が <code>file:///home/user/docume</code> であり、この URL をファイル名として補完したいとしましょう。この場合は、<code>complete -P file:// -f</code> とすると URL から <code>file://</code> を除いた残りの <code>/home/user/docume</code> の部分に対してファイル名としての補完候補が生成されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-R <var>パターン</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--reject=<var>パターン</var></code>
+</dt>
+<dd>
+<p>
+このオプションを指定すると、指定した<var><a href="pattern.html">パターン</a></var>にマッチする候補を生成しません。このオプションは複数回指定できます (指定した<var>パターン</var>の少なくとも一つにマッチする候補を全て除外します)。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-S <var>接尾辞</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--suffix=<var>接尾辞</var></code>
+</dt>
+<dd>
+<p>
+生成した各候補の末尾に<var>接尾辞</var>を付加します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-T</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-termination</code>
+</dt>
+<dd>
+<p>
+通常は、補完が終わった後に次の単語をすぐ入力できるように、補完した単語の直後に空白を自動的に挿入しますが、このオプションを指定したときは空白を挿入しません。
+</p>
+</dd>
+</dl></div>
+<div class="sect2">
+<h3 id="_補完方式設定のためのオプション">補完方式設定のためのオプション</h3>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--alias</code>
+</dt>
+<dd>
+<p>
+<a href="syntax.html#aliases">エイリアス</a> (<code>--normal-alias --global-alias</code> に同じ)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--array-variable</code>
+</dt>
+<dd>
+<p>
+<a href="params.html#arrays">配列</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--bindkey</code>
+</dt>
+<dd>
+<p>
+<a href="_bindkey.html">Bindkey コマンド</a>で利用可能な&#8203;<a href="lineedit.html#commands">行編集コマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-b</code>
+</dt>
+<dt class="hdlist1">
+<code>--builtin-command</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html">組込みコマンド</a> (<code>--special-builtin --mandatory-builtin --elective-builtin --extension-builtin --substitutive-builtin</code> に同じ)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-c</code>
+</dt>
+<dt class="hdlist1">
+<code>--command</code>
+</dt>
+<dd>
+<p>
+コマンド (<code>--builtin-command --external-command --function</code> に同じ)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--directory</code>
+</dt>
+<dd>
+<p>
+ディレクトリ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--dirstack-index</code>
+</dt>
+<dd>
+<p>
+ディレクトリスタックのインデックス
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--elective-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">任意組込みコマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--executable-file</code>
+</dt>
+<dd>
+<p>
+実行可能ファイル
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--extension-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">拡張組込みコマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--external-command</code>
+</dt>
+<dd>
+<p>
+外部コマンド
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--file</code>
+</dt>
+<dd>
+<p>
+ファイル (ディレクトリ含む)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--finished-job</code>
+</dt>
+<dd>
+<p>
+終了したジョブの&#8203;<a href="job.html#jobid">ジョブ ID</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--function</code>
+</dt>
+<dd>
+<p>
+<a href="exec.html#function">関数</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--global-alias</code>
+</dt>
+<dd>
+<p>
+グローバル&#8203;<a href="syntax.html#aliases">エイリアス</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-g</code>
+</dt>
+<dt class="hdlist1">
+<code>--group</code>
+</dt>
+<dd>
+<p>
+(ファイルのパーミッションなどにおける) グループ
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-h</code>
+</dt>
+<dt class="hdlist1">
+<code>--hostname</code>
+</dt>
+<dd>
+<p>
+ホスト名
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-j</code>
+</dt>
+<dt class="hdlist1">
+<code>--job</code>
+</dt>
+<dd>
+<p>
+<a href="job.html#jobid">ジョブ ID</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k</code>
+</dt>
+<dt class="hdlist1">
+<code>--keyword</code>
+</dt>
+<dd>
+<p>
+シェルの&#8203;<a href="syntax.html#tokens">予約語</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--mandatory-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">必須組込みコマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--normal-alias</code>
+</dt>
+<dd>
+<p>
+通常の (グローバルでない) <a href="syntax.html#aliases">エイリアス</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--regular-builtin</code>
+</dt>
+<dd>
+<p>
+後方互換性のために残されている古いオプション。
+<code>--extension-builtin --substitutive-builtin</code> に同じ。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--running-job</code>
+</dt>
+<dd>
+<p>
+実行中のジョブの&#8203;<a href="job.html#jobid">ジョブ ID</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--scalar-variable</code>
+</dt>
+<dd>
+<p>
+(配列を除いた通常の) <a href="params.html#variables">変数</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--semi-special-builtin</code>
+</dt>
+<dd>
+<p>
+後方互換性のために残されている古いオプション。
+<code>--mandatory-builtin --elective-builtin</code> に同じ。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--signal</code>
+</dt>
+<dd>
+<p>
+シグナル
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--special-builtin</code>
+</dt>
+<dd>
+<p>
+特殊&#8203;<a href="builtin.html">組込みコマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--stopped-job</code>
+</dt>
+<dd>
+<p>
+停止中のジョブの&#8203;<a href="job.html#jobid">ジョブ ID</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--substitutive-builtin</code>
+</dt>
+<dd>
+<p>
+<a href="builtin.html#types">代替組込みコマンド</a>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-u</code>
+</dt>
+<dt class="hdlist1">
+<code>--username</code>
+</dt>
+<dd>
+<p>
+ユーザのログイン名
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--variable</code>
+</dt>
+<dd>
+<p>
+<a href="params.html#variables">変数</a>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>-d</code> (<code>--directory</code>) オプションを指定せずに <code>-f</code> (<code>--file</code>) オプションを指定した場合、<code>-S …</code> (<code>--suffix=…</code>) オプションの指定の有無にかかわらず、ディレクトリ名を表す補完候補には接尾辞としてスラッシュが付き、候補の直後には空白が入りません (<code>-S / -T</code> を指定したときと同じ動作)。</p></div>
+<div class="paragraph"><p><a href="job.html#jobid">ジョブ ID</a> の補完は先頭の <code>%</code> を除いた部分に対して行われるので、補完しようとしている単語が既に <code>%</code> を含んでいる場合は <code>%</code> を接頭辞として指定してください。</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Complete コマンドのオペランドは、各オペランドがそれぞれ補完候補として扱われます。指定したオペランドのうち、現在補完しようとしている単語に合うものが補完候補となります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>候補が少なくとも一つ生成できた場合は、終了ステータスは 0 です。新たな候補が一つも生成できなかったときは、終了ステータスは 1 です。その他のエラーの場合は 2 以上の終了ステータスになります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Complete コマンドは&#8203;<a href="builtin.html#types">任意組込みコマンド</a>です。
+POSIX では complete コマンドの動作は規定されていません。
+<a href="posix.html">POSIX 準拠モード</a>が有効な場合でも、
+<a href="lineedit.html#completion">補完関数</a>の実行時には POSIX
+準拠モードが一時的に無効になるため、complete コマンドを使用できます。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

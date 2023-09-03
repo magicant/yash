@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Suspend built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Suspend built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>suspend built-in</dfn> suspends the shell.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>suspend [-f]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The suspend built-in sends a SIGSTOP signal to all processes in the process
+group to which the shell process belongs.
+The signal suspends the processes (including the shell).
+The suspended processes resume when they receive a SIGCONT signal.</p></div>
+<div class="paragraph"><p>If the shell is <a href="interact.html">interactive</a> and its process group ID is
+equal to the process ID of the session leader, the shell prints a warning
+message and refuses to send a signal unless the <code>-f</code> (<code>--force</code>) option is
+specified.
+(In such a case, there is no other job-controlling shell that can send a
+SIGCONT signal to resume the suspended shell, so the shell could never be
+resumed.)</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--force</code>
+</dt>
+<dd>
+<p>
+Suppress warnings that would prevent the shell from sending a signal.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status is zero if the signal was successfully sent and non-zero
+otherwise.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The suspend built-in is an <a href="builtin.html#types">elective built-in</a>.
+It cannot be used in the <a href="posix.html">POSIXly-correct mode</a>
+because POSIX does not define its behavior.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes yash's job control feature." />
+<title>Job control</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Job control</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Job control</dfn> is a function of the shell that executes multiple commands
+simultaneously and suspends/resumes the commands.</p></div>
+<div class="paragraph"><p>When job control is active:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Every <a href="syntax.html#pipelines">pipeline</a> executed by the shell becomes a
+  <dfn>job</dfn>.
+  A job has its unique process group ID that is shared among all processes in
+  the job.
+</p>
+</li>
+<li>
+<p>
+If the processes of a job are suspended while the shell is waiting for the
+  processes to finish, the shell continues to the next command as if the
+  process have finished.
+  The shell remembers the job as suspended so that it can be resumed later.
+</p>
+</li>
+<li>
+<p>
+If a job is executed <a href="syntax.html#async">synchronously</a>, the shell sets
+  the foreground process group of the terminal to the process group of the
+  job.
+  When the job is finished (or suspended),
+  the shell gets back to the foreground.
+</p>
+</li>
+<li>
+<p>
+If the shell is <a href="interact.html">interactive</a>, job status is reported
+  before every command line prompt as if the command
+  <code><a href="_jobs.html">jobs</a> -n</code> is executed.
+</p>
+</li>
+<li>
+<p>
+The standard input of an <a href="syntax.html#async">asynchronous command</a> is not
+  automatically redirected to /dev/null.
+</p>
+</li>
+<li>
+<p>
+The shell does not stop when it receives the SIGTTIN, SIGTTOU, or SIGTSTP
+  signal.
+</p>
+</li>
+<li>
+<p>
+The value of the <a href="params.html#sp-hyphen"><code>-</code> special parameter</a> contains
+  <code>m</code>.
+</p>
+</li>
+<li>
+<p>
+When a job finished for which the <a href="_wait.html">wait built-in</a> has been
+  waiting, the fact is reported (only if the shell is
+  <a href="interact.html">interactive</a> and not in the
+  <a href="posix.html">POSIXly-correct mode</a>).
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>When job control is inactive, processes executed by the shell have the same
+process group ID as the shell.
+The shell treats <a href="syntax.html#async">asynchronous commands</a> as an
+uncontrolled job.</p></div>
+<div class="paragraph"><p>You can use the following built-ins to manipulate jobs:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_jobs.html">jobs</a>
+</dt>
+<dd>
+<p>
+prints existing jobs
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_fg.html">fg</a> and <a href="_bg.html">bg</a>
+</dt>
+<dd>
+<p>
+run jobs in the foreground or background
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_wait.html">wait</a>
+</dt>
+<dd>
+<p>
+waits for jobs to be finished (or suspended)
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_disown.html">disown</a>
+</dt>
+<dd>
+<p>
+forgets jobs
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_kill.html">kill</a>
+</dt>
+<dd>
+<p>
+sends a signal to jobs
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>An interactive job-controlling shell reports jobs status before every prompt
+by default.
+You can set the following options to make the shell report status at other
+timings:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-notify">notify</a>
+</dt>
+<dd>
+<p>
+the shell reports immediately whenever job status changes.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-notifyle">notify-le</a>
+</dt>
+<dd>
+<p>
+the shell reports immediately when job status changes while
+<a href="lineedit.html">line-editing</a>.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>A job is removed from the shell&#8217;s job list when:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+it has finished and the <a href="_jobs.html">jobs built-in</a> reported it,
+</p>
+</li>
+<li>
+<p>
+the <a href="_wait.html">wait built-in</a> successfully waited for the job to
+  finish, or
+</p>
+</li>
+<li>
+<p>
+the <a href="_disown.html">disown built-in</a> removed the job.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Jobs are not removed from the list when an interactive shell automatically
+reports the status of jobs.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The word &#8220;stop&#8221; is synonymous to &#8220;suspend&#8221; in the context of job control.</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="jobid">Job ID</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Some <a href="builtin.html">built-in</a>s use the following notation, which is called
+<dfn>job ID</dfn>, to specify a job to operate on:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>%</code>
+</dt>
+<dt class="hdlist1">
+<code>%%</code>
+</dt>
+<dt class="hdlist1">
+<code>%&#43;</code>
+</dt>
+<dd>
+<p>
+the current job
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%-</code>
+</dt>
+<dd>
+<p>
+the previous job
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>n</var></code>
+</dt>
+<dd>
+<p>
+the job that has job number <var>n</var>, where <var>n</var> is a positive integer
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>string</var></code>
+</dt>
+<dd>
+<p>
+the job whose name begins with <var>string</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%?<var>string</var></code>
+</dt>
+<dd>
+<p>
+the job whose name contains <var>string</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <dfn>current job</dfn> and <dfn>previous job</dfn> are jobs selected by the shell
+according to the following rules:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+When there is one or more suspended jobs, the current job is selected from
+  them.
+</p>
+</li>
+<li>
+<p>
+When there is one or more suspended jobs other than the current job, the
+  previous job is selected from them.
+</p>
+</li>
+<li>
+<p>
+The current and previous jobs are always different.
+  When the shell has only one job, it is the current job and there is no
+  previous job.
+</p>
+</li>
+<li>
+<p>
+When the current job finished, the previous job becomes the current job.
+</p>
+</li>
+<li>
+<p>
+When the current job is changed, the old current job becomes the previous
+  job except when the old job finished.
+</p>
+</li>
+<li>
+<p>
+When the foreground job is suspended, the job becomes the current job.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash has some options
+to modify the rules of the current/previous job selection.
+(The rules above have priority over the options below.)</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a href="_set.html#so-curasync">cur-async</a>
+</dt>
+<dd>
+<p>
+When a new <a href="syntax.html#async">asynchronous command</a> is started, it becomes
+the current job.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-curbg">cur-bg</a>
+</dt>
+<dd>
+<p>
+When a job is resumed by the <a href="_bg.html">bg built-in</a>, the job becomes the
+current job.
+</p>
+</dd>
+<dt class="hdlist1">
+<a href="_set.html#so-curstop">cur-stop</a>
+</dt>
+<dd>
+<p>
+When a job is suspended, it becomes the current job.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The current and previous jobs are not changed as long as the rules above are
+met.</p></div>
+<div class="paragraph"><p>The rules of the current/previous job selection defined in the POSIX standard
+are looser than yash&#8217;s rules above.
+Other POSIX-compliant shells may select the current and previous jobs
+differently.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

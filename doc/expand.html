@@ -1,0 +1,990 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes word expansions supported by yash." />
+<title>Word expansions</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Word expansions</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Word expansion</dfn> is substitution of part of a word with another particular
+string.
+There are seven types of word expansions:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<a href="#tilde">Tilde expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#params">Parameter expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#cmdsub">Command substitution</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#arith">Arithmetic expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#brace">Brace expansion</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#split">Field splitting</a>
+</p>
+</li>
+<li>
+<p>
+<a href="#glob">Pathname expansion</a> (globbing)
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>These types of expansions are performed in the order specified above.</p></div>
+<div class="paragraph"><p>Tilde expansion, parameter expansion, command substitution, and arithmetic
+expansion are called the <dfn>four expansions</dfn>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="tilde">Tilde expansion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In <dfn>tilde expansion</dfn>, parts of words that start with a tilde (<code>~</code>) are
+substituted with particular pathnames.
+The part of each word that gets substituted is from the beginning of the word,
+which is a tilde, up to (but not including) the first slash (<code>/</code>) in the word.
+If the word does not contain a slash, the whole word is substituted.
+If any character in the substituted part is <a href="syntax.html#quotes">quoted</a>,
+tilde expansion is not performed on the word.</p></div>
+<div class="paragraph"><p>The results of expansion are determined by the format of the substituted part:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>~</code>
+</dt>
+<dd>
+<p>
+A single tilde is substituted with the value of the
+<a href="params.html#sv-home"><code>HOME</code> variable</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~<var>username</var></code>
+</dt>
+<dd>
+<p>
+A tilde followed by a user name is substituted with the pathname of the user&#8217;s
+home directory.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~&#x2B;</code>
+</dt>
+<dd>
+<p>
+<code>~&#x2B;</code> is substituted with the value of the
+<a href="params.html#sv-pwd"><code>PWD</code> variable</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~-</code>
+</dt>
+<dd>
+<p>
+<code>~-</code> is substituted with the value of the
+<a href="params.html#sv-oldpwd"><code>OLDPWD</code> variable</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>~&#x2B;<var>n</var></code>
+</dt>
+<dt class="hdlist1">
+<code>~-<var>n</var></code>
+</dt>
+<dd>
+<p>
+where <var>n</var> is a non-negative integer.
+This type of tilde expansion yields the pathname of a directory of which
+<code>~&#x2B;<var>n</var></code> or <code>~-<var>n</var></code> is the index in the directory stack.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>When tilde expansion is performed on the value of a variable assignment that
+occurs during execution of a <a href="syntax.html#simple">simple command</a>,
+the value is considered as a colon-separated list of words and those words are
+each subject to tilde expansion.
+For example, the variable assignment</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>VAR=~/a:~/b:~/c</code></pre>
+</div></div>
+<div class="paragraph"><p>is equivalent to</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>VAR=/home/foo/a:/home/foo/b:/home/foo/c</code></pre>
+</div></div>
+<div class="paragraph"><p>if the value of <code>HOME</code> variable is <code>/home/foo</code>.</p></div>
+<div class="paragraph"><p>The POSIX standard does not prescribe how the shell should behave when it
+encounters an error during tilde expansion (e.g., when the <code>HOME</code> variable is
+not defined).
+Yash silently ignores any errors during tilde expansion;
+the part of the word that would be substituted is left intact.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, tilde expansion supports the
+formats of <code>~</code> and <code>~<var>username</var></code> only.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="params">Parameter expansion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Parameter expansion</dfn> expands to the value of a parameter.</p></div>
+<div class="paragraph"><p>The syntax of typical, simple parameter expansion is <code>$&#x7B;<var>parameter</var>}</code>,
+which expands to the value of the parameter whose name is <var>parameter</var>.
+You can omit the braces (e.g., <code>$<var>parameter</var></code>) if</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<var>parameter</var> is a <a href="params.html#special">special parameter</a>,
+</p>
+</li>
+<li>
+<p>
+<var>parameter</var> is a <a href="params.html#positional">positional parameter</a> whose
+  index is a one-digit integer, or
+</p>
+</li>
+<li>
+<p>
+<var>parameter</var> is a variable and the parameter expansion is not followed by a
+  character that can be used as part of a variable name.
+</p>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph"><p>For example, <code>$&#x7B;path}-name</code> is equivalent to <code>$path-name</code>,
+but <code>$&#x7B;path}name</code> and <code>$pathname</code> are different.</p></div>
+</div></div>
+</li>
+</ul></div>
+<div class="paragraph"><p>If <var>parameter</var> is none of a special parameter, positional parameter, and
+variable, it is a syntax error. (Some shells other than yash may treat such a
+case as an expansion error.)</p></div>
+<div class="paragraph"><p>If the <a href="_set.html#so-unset">unset option</a> is disabled and the <var>parameter</var>
+is an undefined variable, it is an expansion error.
+If the unset option is enabled, an undefined variable expands to the empty
+string.</p></div>
+<div class="paragraph"><p>More complex syntax of parameter expansion allows modifying the value of
+a parameter.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Parameter expansion
+</dt>
+<dd>
+<p>
+<code>$&#x7B; <var>prefix</var> <var>parameter</var> <var>index</var> <var>modifier</var> }</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The spaces in the syntax definition above are for readability only and must be
+omitted.
+You can omit <var>prefix</var>, <var>index</var>, and/or <var>modifier</var>.</p></div>
+<div class="sect2">
+<h3 id="param-prefix">Prefix</h3>
+<div class="paragraph"><p>The <var>prefix</var>, if any, must be a hash sign (<code>#</code>).
+If a parameter expansion has the prefix, the result of expansion is the number
+of characters in the value this expansion would be expanded to without the
+prefix.</p></div>
+</div>
+<div class="sect2">
+<h3 id="param-name">Parameter name</h3>
+<div class="paragraph"><p>The parameter name (<var>parameter</var>) must be either</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+a name of a special parameter, positional parameter, or variable; or
+</p>
+</li>
+<li>
+<p>
+another parameter expansion, <a href="#cmdsub">command substitution</a>, or
+  <a href="#arith">arithmetic expansion</a>.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The parameter expansion is expanded to the value of the <var>parameter</var>.
+If <var>parameter</var> is an <a href="params.html#arrays">array</a> variable,
+the values of the array are <a href="#split">field-split</a> like the
+<a href="params.html#sp-at"><code>@</code> special parameter</a>
+unless the index <code>[*]</code> is specified.</p></div>
+<div class="paragraph"><p>If <var>parameter</var> is another expansion, it is called a <dfn>nested expansion</dfn>.
+Nested expansion cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.
+The braces (<code>{ }</code>) of a nested parameter expansion cannot be omitted.</p></div>
+</div>
+<div class="sect2">
+<h3 id="param-index">Index</h3>
+<div class="paragraph"><p>An <var>index</var> allows extracting part of the parameter value (or some of array
+values).</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Index
+</dt>
+<dd>
+<p>
+<code>[<var>word1</var>]</code>
+</p>
+<div class="paragraph"><p><code>[<var>word1</var>,<var>word2</var>]</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>where <var>word1</var> and <var>word2</var> are parsed in the same manner as normal tokens
+except that they are always delimited by <code>,</code> or <code>]</code> and can contain whitespace
+characters.</p></div>
+<div class="paragraph"><p>If there is an <var>index</var> in a parameter expansion,
+it is interpreted as follows:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Words <var>word1</var> and <var>word2</var> are subjected to parameter expansion,
+  <a href="#cmdsub">command substitution</a>, and <a href="#arith">arithmetic expansion</a>.
+</p>
+</li>
+<li>
+<p>
+If there is no <var>word2</var> and if <var>word1</var> expands to one of <code>*</code>, <code>@</code>, and
+  <code>#</code>, then that is the interpretation of <var>index</var> and the next step is not
+  taken.
+</p>
+</li>
+<li>
+<p>
+The results of the previous steps (the expanded <var>word1</var> and <var>word2</var>) are
+  interpreted and evaluated as an arithmetic expression in the same manner as
+  in arithmetic expansion.
+  The resulting integers are the interpretation of <var>index</var>.
+  If the results are not integers, it is an expansion error.
+  If there is no <var>word2</var>, it is assumed that <var>word2</var> is equal to
+  <var>word1</var>.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>If <var>parameter</var> is an <a href="params.html#arrays">array</a> variable,
+the <var>index</var> specifies the part of the array.
+If <var>parameter</var> is either the <a href="params.html#sp-asterisk"><code>*</code></a> or
+<a href="params.html#sp-at"><code>@</code></a> special parameter, the <var>index</var> specifies
+the index range of positional parameters.
+In other cases, the <var>index</var> specifies the index range of a substring of the
+parameter value that is being expanded.
+In all cases, the specified range of the array values, positional
+parameters, or parameter value remains in the results of the expansion and
+other values are dropped.</p></div>
+<div class="paragraph"><p>If the interpretation of <var>index</var> is one or two integers,
+the following rules apply:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If the interpreted index value is negative, it <em>wraps around</em>.
+  For example, the index value of -1 corresponds to the last value/character.
+</p>
+</li>
+<li>
+<p>
+It is not an error when the index value is out of range.
+  Existing values/characters within the range are just selected.
+</p>
+</li>
+<li>
+<p>
+If the interpretation of either <var>word1</var> or <var>word2</var> is 0, the range is
+  assumed empty and the expansion results in nothing.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>If the interpretation of <var>index</var> is one of <code>*</code>, <code>@</code>, and <code>#</code>,
+it is treated as follows:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>*</code>
+</dt>
+<dd>
+<p>
+If <var>parameter</var> is an array, all the array values are
+<a href="expand.html#split">field-split</a> or concatenated in the same manner as
+the <a href="params.html#sp-asterisk"><code>&#x2A;</code> special parameter</a>.
+If <var>parameter</var> is the <code>&#x2A;</code> or <code>@</code> special parameter, the positional
+parameters are likewise field-split or concatenated.
+In other cases, the interpretation of <var>index</var> is treated as if the
+interpretation is the two integers 1 and -1.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>@</code>
+</dt>
+<dd>
+<p>
+The interpretation of <var>index</var> is treated as if the interpretation is the two
+integers 1 and -1.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>#</code>
+</dt>
+<dd>
+<p>
+The interpretation of the <code>#</code> <var>index</var> is special in that it does not simply
+specify a range.
+Instead, the expanded values are substituted with the count.
+</p>
+<div class="paragraph"><p>If <var>parameter</var> is an array, the result of this parameter expansion will be
+the number of values in the array being expanded.
+If <var>parameter</var> is the <code>*</code> or <code>@</code> special parameter, the result will be the
+number of current positional parameters.
+Otherwise, the result will be the number of characters in the value that is
+being expanded.</p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If a parameter expansion does not contain an <var>index</var>,
+it is assumed to be <code>[@]</code>.
+In the <a href="posix.html">POSIXly-correct mode</a>, <var>index</var> cannot be specified.</p></div>
+<div class="exampleblock">
+<div class="title">Example 1. Expansion of a normal variable</div>
+<div class="content">
+<div class="paragraph"><p>The following commands will print the string <code>ABC</code>:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>var='123ABC789'
+echo "${var[4,6]}"</code></pre>
+</div></div>
+</div></div>
+<div class="exampleblock">
+<div class="title">Example 2. Expansion of positional parameters</div>
+<div class="content">
+<div class="paragraph"><p>The following commands will print the string <code>2 3 4</code>:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>set 1 2 3 4 5
+echo "${*[2,-2]}"</code></pre>
+</div></div>
+</div></div>
+<div class="exampleblock">
+<div class="title">Example 3. Expansion of an array</div>
+<div class="content">
+<div class="paragraph"><p>The following commands will print the string <code>2 3 4</code>:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>array=(1 2 3 4 5)
+echo "${array[2,-2]}"</code></pre>
+</div></div>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="param-mod">Modifier</h3>
+<div class="paragraph"><p>You can modify the value to be expanded by using <dfn>modifiers</dfn>:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-<var>word</var></code>
+</dt>
+<dd>
+<p>
+If the parameter name (<var>parameter</var>) is an undefined variable,
+the parameter expansion is expanded to <var>word</var>.
+It is not treated as an error if the <a href="_set.html#so-unset">unset option</a> is
+disabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#x2B;<var>word</var></code>
+</dt>
+<dd>
+<p>
+If the parameter name (<var>parameter</var>) is an existing variable,
+the parameter expansion is expanded to <var>word</var>.
+It is not treated as an error if the <a href="_set.html#so-unset">unset option</a> is
+disabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>=<var>word</var></code>
+</dt>
+<dd>
+<p>
+If the parameter name (<var>parameter</var>) is an undefined variable,
+<var>word</var> is assigned to the variable and
+the parameter expansion is expanded to <var>word</var>.
+It is not treated as an error if the <a href="_set.html#so-unset">unset option</a> is
+disabled.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>?<var>word</var></code>
+</dt>
+<dd>
+<p>
+If the parameter name (<var>parameter</var>) is an undefined variable,
+<var>word</var> is printed as an error message to the standard error.
+If <var>word</var> is empty, the default error message is printed instead.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>:-<var>word</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:&#x2B;<var>word</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:=<var>word</var></code>
+</dt>
+<dt class="hdlist1">
+<code>:?<var>word</var></code>
+</dt>
+<dd>
+<p>
+These are similar to the four types of modifiers above.
+The only difference is that, if <var>parameter</var> exists and has an empty value,
+it is also treated as an undefined variable.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>#<var>word</var></code>
+</dt>
+<dd>
+<p>
+The shell performs <a href="pattern.html">pattern matching</a> against the value that
+is being expanded, using <var>word</var> as a pattern.
+If <var>word</var> matches the beginning of the value, the matching part is removed
+from the value and the other part remains as expansion results.
+The shortest matching is used if more than one matching is possible.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>##<var>word</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>#<var>word</var></code> above.
+The only difference is that
+the longest matching is used if more than one matching is possible.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%<var>word</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>#<var>word</var></code> above.
+The only difference is that
+matching is tried at the end of the value rather than at the beginning:
+if <var>word</var> matches the end of the value, the matching part is removed
+from the value and the other part remains as expansion results.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>%%<var>word</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>%<var>word</var></code> above.
+The only difference is that
+the longest matching is used if more than one matching is possible.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>/<var>word1</var>/<var>word2</var></code>
+</dt>
+<dd>
+<p>
+The shell performs <a href="pattern.html">pattern matching</a> against the value that
+is being expanded, using <var>word1</var> as a pattern.
+If <var>word1</var> matches any part of the value, the matching part is replaced with
+<var>word2</var> and the whole value after the replacement remains as expansion
+results.
+If <var>word1</var> matches more than one part of the value, only the first part is
+replaced.
+The shortest matching is replaced if more than one matching is possible for
+the same starting point in the value.
+</p>
+<div class="paragraph"><p>This modifier cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</dd>
+<dt class="hdlist1">
+<code>/#<var>word1</var>/<var>word2</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>/<var>word1</var>/<var>word2</var></code> above.
+The only difference is that <var>word1</var> matches only at the beginning of the
+value being expanded.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>/%<var>word1</var>/<var>word2</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>/<var>word1</var>/<var>word2</var></code> above.
+The only difference is that <var>word1</var> matches only at the end of the value
+being expanded.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>//<var>word1</var>/<var>word2</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>/<var>word1</var>/<var>word2</var></code> above.
+The only difference is that all matched parts are replaced if <var>word1</var>
+matches more than one part of the value.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>:/<var>word1</var>/<var>word2</var></code>
+</dt>
+<dd>
+<p>
+This is similar to <code>/<var>word1</var>/<var>word2</var></code> above.
+The only difference is that the value is replaced only when <var>word1</var> matches
+the whole value.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>In all types of modifiers above, words are subjected to the four expansions
+when (and only when) they are used.</p></div>
+<div class="paragraph"><p>If <var>parameter</var> is an array variable or the <a href="params.html#sp-at"><code>@</code></a>
+or <a href="params.html#sp-asterisk"><code>*</code></a> special parameter, modifiers affect each
+value of the array or all positional parameters.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="cmdsub">Command substitution</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Command substitution</dfn> expands to output of commands specified.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Command substitution
+</dt>
+<dd>
+<p>
+<code>$(<var>commands</var>)</code>
+</p>
+<div class="paragraph"><p><code>&#x60;<var>commands</var>&#x60;</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>When command substitution is evaluated, <var>commands</var> are executed by a
+<a href="exec.html#subshell">subshell</a> with output pipelined to the shell.
+When the <var>commands</var> finished, command substitution is substituted with the
+output of the <var>commands</var>.
+Any trailing newline characters in the output are ignored.</p></div>
+<div class="paragraph"><p>When command substitution of the form <code>$(<var>commands</var>)</code> is parsed,
+the <var>commands</var> are parsed carefully so that complex commands such as nested
+command substitution are parsed correctly.
+If <var>commands</var> start with <code>(</code>, you should put a space before <var>commands</var> so
+that the whole command substitution is not confused with <a href="#arith">arithmetic expansion</a>.
+If the shell is in the <a href="posix.html">POSIXly-correctly mode</a>,
+the <var>commands</var> are parsed each time the command substitution is expanded;
+otherwise, <var>commands</var> are parsed only when the command substitution is
+parsed.</p></div>
+<div class="paragraph"><p>If command substitution is of the form <code>&#x60;<var>commands</var>&#x60;</code>,
+the <var>commands</var> are not parsed when the command substitution is parsed;
+the <var>commands</var> are parsed each time the command substitution is expanded.
+The end of <var>commands</var> is detected by the first backquote character (<code>`</code>)
+after the beginning of <var>commands</var> that is not
+<a href="syntax.html#quotes">quoted</a> by a backslash.
+Backquotes that are part of <var>commands</var> (typically used for nested command
+substitution) must be quoted by backslashes.
+In <var>commands</var>, backslashes are treated as quotes only when preceding a
+dollar (<code>$</code>), backquote, newline, or another backslash. Additionally, if the
+command substitution occurs inside double quotes, double quotes in
+<var>commands</var> must be quoted with a backslash. Those backslashes are removed
+before <var>commands</var> are parsed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="arith">Arithmetic expansion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Arithmetic expansion</dfn> evaluates an arithmetic expression and expands to
+the value of the expression.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Arithmetic expansion
+</dt>
+<dd>
+<p>
+<code>$&#x28;&#x28;<var>expression</var>&#x29;&#x29;</code>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>When arithmetic expansion is expanded, the <var>expression</var> is subject to
+<a href="#params">parameter expansion</a>, <a href="#cmdsub">command substitution</a>, and (nested)
+arithmetic expansion.
+The <var>expression</var> is parsed in (almost) same manner as an expression of the C
+programming language.</p></div>
+<div class="paragraph"><p>Yash allows an expression to be either an integer (of the long type in C) or
+a floating-point number (of the double type in C).
+An operation on integers yields an integer and an operation involving a
+floating-point number yields a floating-point number.
+In the <a href="posix.html">POSIXly-correct mode</a>, you can use integers only.</p></div>
+<div class="paragraph"><p>The following operators are available (in the order of precedence):</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<code>( )</code>
+</p>
+</li>
+<li>
+<p>
+<code>++</code> <code>--</code> (postfix operators)
+</p>
+</li>
+<li>
+<p>
+<code>++</code> <code>--</code> <code>+</code> <code>-</code> <code>~</code> <code>!</code> (prefix operators)
+</p>
+</li>
+<li>
+<p>
+<code>*</code> <code>/</code> <code>%</code>
+</p>
+</li>
+<li>
+<p>
+<code>+</code> <code>-</code> (binary operators)
+</p>
+</li>
+<li>
+<p>
+<code>&lt;&lt;</code> <code>&gt;&gt;</code>
+</p>
+</li>
+<li>
+<p>
+<code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code>
+</p>
+</li>
+<li>
+<p>
+<code>==</code> <code>!=</code>
+</p>
+</li>
+<li>
+<p>
+<code>&amp;</code>
+</p>
+</li>
+<li>
+<p>
+<code>^</code>
+</p>
+</li>
+<li>
+<p>
+<code>|</code>
+</p>
+</li>
+<li>
+<p>
+<code>&amp;&amp;</code>
+</p>
+</li>
+<li>
+<p>
+<code>||</code>
+</p>
+</li>
+<li>
+<p>
+<code>? :</code>
+</p>
+</li>
+<li>
+<p>
+<code>=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>+=</code> <code>-=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code> <code>&amp;=</code> <code>^=</code> <code>|=</code>
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>The <code>++</code> and <code>--</code> operators cannot be used in the POSIXly-correct mode.</p></div>
+<div class="paragraph"><p>An atomic expression can be one of an integer literal, a floating-point
+number literal, and a variable.
+Literals are parsed in the same manner as in C.
+An octal integer literal starts with <code>0</code>, and hexadecimal with <code>0x</code>.
+A floating-point number literal may have an exponent (i.e. <code>1.23e+6</code>).
+A variable with a non-numeric value will result in an error when parsed as a
+number.
+An unset variable is treated as a value of zero if the <a href="_set.html#so-unset">unset option</a> is enabled.</p></div>
+<div class="paragraph"><p>In the POSIXly-correct mode, variables are always parsed as numbers.
+Otherwise, variables are parsed only when they are used as numbers in
+computation. Unparsed variables are left intact.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>set +o posixly-correct
+foo=bar
+echo $((0 ? foo : foo)) # prints "bar"
+echo $((foo + 0))       # error</code></pre>
+</div></div>
+<div class="paragraph"><p>It is an expansion error if the result of an expression is not defined in C.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="brace">Brace expansion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Brace expansion</dfn> expands to several split words with preceding and
+succeeding portions duplicated to each split words.
+Brace expansion is expanded only when the
+<a href="_set.html#so-braceexpand">brace-expand option</a> is enabled.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Comma-separated brace expansion
+</dt>
+<dd>
+<p>
+<code>&#x7B;<var>word1</var>,<var>word2</var>,&#8230;,<var>wordn</var>&#x7D;</code>
+</p>
+</dd>
+<dt class="hdlist1">
+Range brace expansion
+</dt>
+<dd>
+<p>
+<code>&#x7B;<var>start</var>..<var>end</var>&#x7D;</code>
+</p>
+<div class="paragraph"><p><code>&#x7B;<var>start</var>..<var>end</var>..<var>delta</var>&#x7D;</code></p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>Comma-separated brace expansion is expanded to each comma-separated word.
+For example, <code>a{1,2,3}b</code> is expanded to the three words <code>a1b</code>, <code>a2b</code>, and
+<code>a3b</code>.</p></div>
+<div class="paragraph"><p>Range brace expansion is expanded to integers in the range defined by
+<var>start</var> and <var>end</var>.
+The difference between each integer can be defined by <var>delta</var>.
+If <var>start</var> is larger than <var>end</var>, the results will be in descending order.
+When <code>..<var>delta</var></code> is omitted, it defaults to 1 or -1.
+For example, <code>a{1..3}b</code> is expanded to the three words <code>a1b</code>, <code>a2b</code>, and
+<code>a3b</code>; and <code>a{1..7..2}b</code> to the four words <code>a1b</code>, <code>a3b</code>, <code>a5b</code>, and <code>a7b</code>.</p></div>
+<div class="paragraph"><p>Multiple brace expansions can be used in one word.
+Brace expansions can also be nested.
+You can <a href="syntax.html#quotes">quote</a> braces and/or commas to prevent them
+from being treated as brace expansion.</p></div>
+<div class="paragraph"><p>Any errors in brace expansion are silently ignored.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="split">Field splitting</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In <dfn>field splitting</dfn>, words are split at predefined separators.</p></div>
+<div class="paragraph"><p>Field splitting can occur only within parts of words that resulted from
+<a href="#params">parameter expansion</a>, <a href="#cmdsub">command substitution</a>, and
+<a href="#arith">arithmetic expansion</a> that are not between
+<a href="syntax.html#quotes">double-quotation marks</a>.
+Expansion results of the <a href="params.html#sp-at"><code>@</code> special parameter</a> are
+exceptionally split even between double-quotation marks.</p></div>
+<div class="paragraph"><p>Separators used in field splitting are defined by the value of the
+<a href="params.html#sv-ifs"><code>IFS</code> variable</a>. If the variable does not exist, the
+value is assumed to be the three characters of space, tab, and newline.</p></div>
+<div class="paragraph"><p>Characters included in the value of the <code>IFS</code> variable are called <dfn>IFS
+characters</dfn>.
+IFS characters that are any of space, tab, and newline are called <dfn>IFS
+whitespace</dfn> and other IFS characters are called <dfn>IFS non-whitespace</dfn>.</p></div>
+<div class="paragraph"><p>Field splitting is performed as follows:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+The shell searches words for split points. A split point is one or more
+  adjacent IFS characters within the word portions where field splitting can
+  occur. The following steps are taken for each split point found.
+</p>
+</li>
+<li>
+<p>
+If the split point includes one or more IFS non-whitespaces, all the IFS
+  whitespaces in the split point are ignored and the word is split at each IFS
+  non-whitespace in the split point.
+</p>
+</li>
+<li>
+<p>
+If the split point includes no IFS non-whitespaces, the word is split at the
+  split point unless it is at the beginning or end of the word.
+</p>
+</li>
+<li>
+<p>
+The split points are removed from the results.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Finally, the last word is removed from the results if:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+the <a href="_set.html#so-emptylastfield">empty-last-field option</a> is not
+  enabled;
+</p>
+</li>
+<li>
+<p>
+the result is more than one word; and
+</p>
+</li>
+<li>
+<p>
+the last word is empty.
+</p>
+</li>
+</ul></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Words are not split at all when the value of the <code>IFS</code> variable is empty.</td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="glob">Pathname expansion</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Pathname expansion</dfn> performs pattern matching and expands to pathnames
+matched by the pattern.</p></div>
+<div class="paragraph"><p>A word subjected to pathname expansion is treated as a
+<a href="pattern.html">pattern</a>.
+If one or more pathnames are found that are matched by the pattern, the
+pathnames become the results of the pathname expansion.</p></div>
+<div class="paragraph"><p>Pathname expansion is not performed when the <a href="_set.html#so-glob">glob
+option</a> is disabled.</p></div>
+<div class="paragraph"><p>The shell searches readable directories for matching pathnames.
+Unreadable directories are silently ignored.</p></div>
+<div class="paragraph"><p>The following options affect the behavior of pathname expansion:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="opt-nullglob"></a>null-glob
+</dt>
+<dd>
+<p>
+This option affects the result of pathname expansion when no matching
+pathnames are found.
+If enabled, the result is no word.
+If disabled, the result is the original pattern word.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-caseglob"></a>case-glob
+</dt>
+<dd>
+<p>
+This option specifies case-sensitivity in matching.
+If enabled, pattern matching is done case-sensitively.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-dotglob"></a>dot-glob
+</dt>
+<dd>
+<p>
+This option affects matching of filenames that start with a period (<code>.</code>).
+If disabled, a period at the beginning of a filename does not match wildcard
+patterns (<code>?</code> and <code>*</code>) or bracket expressions.
+If enabled, there is no such special treatment of periods.
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-markdirs"></a>mark-dirs
+</dt>
+<dd>
+<p>
+If enabled, each resulting pathname that is a directory name is suffixed by a
+slash (<code>/</code>).
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="opt-extendedglob"></a>extended-glob
+</dt>
+<dd>
+<p>
+This option enables the <a href="#extendedglob">extension</a>.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>Any errors in pathname expansion are silently ignored.
+If the word is an invalid pattern, it just becomes the result.
+The results depend on the null-glob option when no matching pathnames are
+found.</p></div>
+<div class="paragraph"><p>Pattern matching is done for each filename (or pathname component) of
+pathnames.
+The shell skips matching for literal patterns that contain no wildcards or
+bracket expressions.
+As a result, the patterns <code>/&#x2A;/foo</code> and <code>/&#x2A;/fo[o]</code> may yield
+different expansion results when the <a href="#opt-caseglob">case-glob</a> option is
+disabled; for example, the pattern <code>/&#x2A;/fo[o]</code> matches the pathname
+<code>/bar/FOO</code> but the pattern <code>/&#x2A;/foo</code> does not because matching is skipped
+for <code>foo</code>.</p></div>
+<div class="sect2">
+<h3 id="extendedglob">Extension in pathname expansion</h3>
+<div class="paragraph"><p>The following patterns can be used when the <a href="#opt-extendedglob">extended-glob</a>
+option is enabled.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>**</code>
+</dt>
+<dd>
+<p>
+The directory is searched recursively and the pattern matches any number of
+directory filenames (each separated by a slash).
+Any directory whose name begins with a period is excluded from search.
+For example, the pattern <code>dir/**/file</code> can match the pathnames
+<code>dir/file</code>, <code>dir/foo/file</code>, <code>dir/a/b/c/file</code>, etc.
+</p>
+<div class="paragraph"><p>This pattern is not effective when appearing at the end of the whole pattern
+(i.e. <code>foo/bar/**</code>).</p></div>
+</dd>
+<dt class="hdlist1">
+<code>.**</code>
+</dt>
+<dd>
+<p>
+This pattern is like <code>**</code>, but all directories are searched including ones
+with a name starting with a period.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>&#x2A;&#x2A;&#x2A;</code>
+</dt>
+<dd>
+<p>
+This pattern is like <code>**</code>, but if a symbolic link to a directory is found
+during recursive search, the directory is searched recursively as well.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>.&#x2A;&#x2A;&#x2A;</code>
+</dt>
+<dd>
+<p>
+This pattern is like <code>&#x2A;&#x2A;&#x2A;</code>, but all directories are searched
+including ones with a name starting with a period.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Ulimit built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Ulimit built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>ulimit built-in</dfn> sets or prints a resource limit.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>ulimit -a [-H|-S]</code>
+</p>
+</li>
+<li>
+<p>
+<code>ulimit [-H|-S] [-efilnqrstuvx] [<var>limit</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The ulimit built-in sets or prints a resource limit.</p></div>
+<div class="paragraph"><p>If executed with the <code>-a</code> (<code>--all</code>) option, the built-in prints the current
+limits for all resource types.
+Otherwise, it sets or prints the limit of a single resource type.
+The resource type can be specified by the options listed below.
+The resource limits will affect the current shell process and all commands
+invoked from the shell.</p></div>
+<div class="paragraph"><p>Each resource type has two limit values: the hard and soft limit.
+You can change a soft limit freely as long as it does not exceed the hard
+limit.
+You can decrease a hard limit but cannot increase it without a proper
+permission.</p></div>
+<div class="paragraph"><p>When the <code>-H</code> (<code>--hard</code>) or <code>-S</code> (<code>--soft</code>) option is specified, the built-in
+sets or prints the hard or soft limit, respectively.
+If neither of the options is specified, the built-in sets both the hard and
+soft limit or prints the soft limit.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-H</code>
+</dt>
+<dt class="hdlist1">
+<code>--hard</code>
+</dt>
+<dd>
+<p>
+Set or print a hard limit.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-S</code>
+</dt>
+<dt class="hdlist1">
+<code>--soft</code>
+</dt>
+<dd>
+<p>
+Set or print a soft limit.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--all</code>
+</dt>
+<dd>
+<p>
+Print all current limit settings.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The following options specify the type of resources.
+If none of them is specified, <code>-f</code> is the default.
+The types of resources that can be set depend on the operating system.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-c</code>
+</dt>
+<dt class="hdlist1">
+<code>--core</code>
+</dt>
+<dd>
+<p>
+Maximum size of core files created (in 512-byte blocks)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d</code>
+</dt>
+<dt class="hdlist1">
+<code>--data</code>
+</dt>
+<dd>
+<p>
+Maximum size of a process&#8217;s data segment (in kilobytes)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--nice</code>
+</dt>
+<dd>
+<p>
+Maximum scheduling priority (&#8216;nice&#8217;)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--fsize</code>
+</dt>
+<dd>
+<p>
+Maximum size of files created by a process (in 512-byte blocks)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-i</code>
+</dt>
+<dt class="hdlist1">
+<code>--sigpending</code>
+</dt>
+<dd>
+<p>
+Maximum number of pending signals
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-l</code>
+</dt>
+<dt class="hdlist1">
+<code>--memlock</code>
+</dt>
+<dd>
+<p>
+Maximum memory size that can be locked into RAM (in kilobytes)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-m</code>
+</dt>
+<dt class="hdlist1">
+<code>--rss</code>
+</dt>
+<dd>
+<p>
+Maximum size of a process&#8217;s resident set (in kilobytes)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--nofile</code>
+</dt>
+<dd>
+<p>
+Maximum file descriptor + 1
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-q</code>
+</dt>
+<dt class="hdlist1">
+<code>--msgqueue</code>
+</dt>
+<dd>
+<p>
+Maximum size of POSIX message queues
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--rtprio</code>
+</dt>
+<dd>
+<p>
+Maximum real-time scheduling priority
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s</code>
+</dt>
+<dt class="hdlist1">
+<code>--stack</code>
+</dt>
+<dd>
+<p>
+Maximum size of a process&#8217;s stack (in kilobytes)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-t</code>
+</dt>
+<dt class="hdlist1">
+<code>--cpu</code>
+</dt>
+<dd>
+<p>
+Maximum CPU time that can be used by a process (in seconds)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-u</code>
+</dt>
+<dt class="hdlist1">
+<code>--nproc</code>
+</dt>
+<dd>
+<p>
+Maximum number of processes for a user
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--as</code>
+</dt>
+<dd>
+<p>
+Maximum size of memory used by a process (in kilobytes)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-x</code>
+</dt>
+<dt class="hdlist1">
+<code>--locks</code>
+</dt>
+<dd>
+<p>
+Maximum number of file locks
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>limit</var>
+</dt>
+<dd>
+<p>
+A limit to be set.
+</p>
+<div class="paragraph"><p>The value must be a non-negative integer or one of <code>hard</code>, <code>soft</code>, and
+<code>unlimited</code>.
+If <var>value</var> is <code>hard</code> or <code>soft</code>, the new limit is set to the current hard or
+soft limit.
+If <var>limit</var> is not specified, the current limit is printed.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the ulimit built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The POSIX standard defines no options other than <code>-f</code>.
+It neither defines <code>hard</code>, <code>soft</code>, or <code>unlimited</code> for <var>limit</var> values.</p></div>
+<div class="paragraph"><p>The ulimit built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

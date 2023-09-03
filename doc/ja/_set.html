@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Set 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Set 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Set 組込みコマンド</dfn>はシェルのオプションの設定と&#8203;<a href="params.html#positional">位置パラメータ</a>の変更を行います。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set [<var>オプション</var>&#8230;] [<var>オペランド</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>set -o</code>
+</p>
+</li>
+<li>
+<p>
+<code>set +o</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Set コマンドでは、&#8203;<a href="posix.html">POSIX 準拠モード</a>であるかどうかにかかわらずオプションはオペランドより先に全て指定しなければなりません。最初のオペランドより後にあるコマンドライン引数は全てオペランドとして解釈します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>コマンドライン引数を一切与えずに set コマンドを実行すると、現在シェルに設定されている全ての&#8203;<a href="params.html#variables">変数</a>の一覧をアルファベット順で (コマンドとして解釈可能な形式で) 標準出力に出力します。</p></div>
+<div class="paragraph"><p><code>-o</code> を唯一のコマンドライン引数として与えた場合は現在のシェルのオプション設定を一覧にして標準出力に出力します。<code>+o</code> を唯一のコマンドライン引数として与えた場合も同様ですが、この場合はコマンドとして解釈可能な形式で出力します。</p></div>
+<div class="paragraph"><p>これ以外の場合は、set コマンドは以下のようにシェルのオプションの設定と&#8203;<a href="params.html#positional">位置パラメータ</a>の変更のどちらかまたは両方の動作を行います。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オプションが一つ以上与えられている場合、set コマンドはそれらの有効・無効を切り替えます。通常の形式でオプションを与えると、そのオプションは有効になります。オプションの先頭のハイフン (<code>-</code>) の代わりにプラス (<code>&#x2B;</code>) を付けて指定すると、そのオプションは無効になります。例えば <code>-m</code> や <code>-o monitor</code> や <code>--monitor</code> はシェルのジョブ制御を有効にし、逆に <code>&#x2B;m</code> や <code>&#x2B;o monitor</code> や <code>&#x2B;&#x2B;monitor</code> はジョブ制御を無効にします。</p></div>
+<div class="paragraph"><p><a href="builtin.html#argsyntax">長いオプション</a>の名前に含まれる英数字以外の文字は無視され、大文字と小文字の区別はありません。例えば <code>--Le-Comp-Debug</code> は <code>--lecompdebug</code> に同じです。また長いオプションの名前の先頭に <code>no</code> を付けることで、オプションの有効・無効を逆転することができます。例えば <code>--noallexport</code> は <code>&#x2B;&#x2B;allexport</code> に同じく、また <code>&#x2B;&#x2B;nonotify</code> は <code>--notify</code> に同じです。</p></div>
+<div class="paragraph"><p>オプションは以下に挙げる形式で指定することができます:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+長いオプション (例: <code>--allexport</code>)
+</p>
+</li>
+<li>
+<p>
+引数としてオプション名を指定した <code>-o</code> オプション (例: <code>-o allexport</code>)
+</p>
+</li>
+<li>
+<p>
+一文字のオプション (例: <code>-a</code>)
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>ただし全てのオプションが一文字のオプションで指定できるわけではありません。</p></div>
+<div class="paragraph"><p>利用可能なオプションは以下のとおりです:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<a id="so-allexport"></a>all-export (<code>-a</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="params.html#variables">変数</a>に代入をするとその変数は自動的に&#8203;<a href="params.html#variables">エクスポート</a>対象になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-braceexpand"></a>brace-expand
+</dt>
+<dd>
+<p>
+このオプションは&#8203;<a href="expand.html#brace">ブレース展開</a>を有効にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-caseglob"></a>case-glob
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#glob">パス名展開</a>におけるパターンマッチングは大文字と小文字を区別して行います。このオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-clobber"></a>clobber (<code>+C</code>)
+</dt>
+<dd>
+<p>
+このオプションを無効にすると、 <code>&gt;</code> 演算子による&#8203;<a href="redir.html">リダイレクト</a>で既存のファイルを上書きすることはできなくなります。このオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-curasync"></a>cur-async
+</dt>
+<dt class="hdlist1">
+<a id="so-curbg"></a>cur-bg
+</dt>
+<dt class="hdlist1">
+<a id="so-curstop"></a>cur-stop
+</dt>
+<dd>
+<p>
+これらのオプションは現在のジョブの選択の仕方に影響します。(<a href="job.html#jobid">ジョブ ID</a> 参照)。これらのオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-dotglob"></a>dot-glob
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#glob">パス名展開</a>においてファイル名の先頭のピリオドを特別に扱いません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-emacs"></a>emacs
+</dt>
+<dd>
+<p>
+このオプションは emacs 風&#8203;<a href="lineedit.html">行編集</a>を有効にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-emptylastfield"></a>empty-last-field
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#split">単語分割</a>で最後の単語が空になっても削除しません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-errexit"></a>err-exit (<code>-e</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時、実行した&#8203;<a href="syntax.html#pipelines">パイプライン</a>の終了ステータスが 0 でなければ、シェルは直ちに終了します。ただし、以下の抑止条件に当てはまる場合を除きます。
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+そのコマンドが <a href="syntax.html#if">if 文</a>の分岐や
+  <a href="syntax.html#while-until">while/until 文</a>のループ条件の判定に使われる場合
+</p>
+</li>
+<li>
+<p>
+パイプラインの先頭に <code>!</code> が付いている場合
+</p>
+</li>
+<li>
+<p>
+パイプラインがサブシェル&#8203;<a href="syntax.html#grouping">グルーピング</a>以外の単独の&#8203;<a href="syntax.html#compound">複合コマンド</a>から構成される場合
+</p>
+</li>
+</ul></div>
+</dd>
+<dt class="hdlist1">
+<a id="so-errreturn"></a>err-return
+</dt>
+<dd>
+<p>
+このオプションは err-exit オプションと同様ですが、終了ステータスが 0 でないときにシェルが終了する代わりに <a href="_return.html">return 組込みコマンド</a>が発動します。
+Err-exit オプションと異なり、抑止条件は&#8203;<a href="exec.html#function">関数</a>・サブシェル&#8203;<a href="syntax.html#grouping">グルーピング</a>・&#8203;<a href="_dot.html">スクリプトファイル</a>の中では無視されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-exec"></a>exec (<code>+n</code>)
+</dt>
+<dd>
+<p>
+このオプションが無効な時、シェルはコマンドの解釈だけを行い、実際にはコマンドを実行しません。このオプションはシェルスクリプトの文法チェックをするのに便利です。このオプションはシェルの起動時に最初から有効になっています。&#8203;<a href="interact.html">対話モード</a>では、このオプションに関わらずコマンドは常に実行されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-extendedglob"></a>extended-glob
+</dt>
+<dd>
+<p>
+このオプションは&#8203;<a href="expand.html#glob">パス名展開</a>における拡張機能を有効にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-forlocal"></a>for-local
+</dt>
+<dd>
+<p>
+<a href="syntax.html#for">For ループ</a>が&#8203;<a href="exec.html#function">関数</a>の中で実行されるとき、このオプションが有効ならばループの変数は&#8203;<a href="exec.html#localvar">ローカル変数</a>として代入されます。このオプションはシェルの起動時に最初から有効になっています。&#8203;<a href="posix.html">POSIX 準拠モード</a>ではこのオプションに関係なく for ループの変数は通常の変数として代入されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-glob"></a>glob (<code>+f</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効なときはシェルは&#8203;<a href="expand.html#glob">パス名展開</a>を行います。このオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-hashondef"></a>hash-on-def (<code>-h</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効なとき&#8203;<a href="exec.html#function">関数</a>を定義すると、直ちにその関数内で使われる各コマンドの <a href="exec.html#search">PATH 検索</a>を行いコマンドのパス名を記憶します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-histspace"></a>hist-space
+</dt>
+<dd>
+<p>
+このオプションが有効な時は空白で始まる行は&#8203;<a href="interact.html#history">コマンド履歴</a>に自動的に追加しません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-ignoreeof"></a>ignore-eof
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="interact.html">対話モード</a>のシェルに EOF (入力の終わり) が入力されてもシェルはそれを無視してコマンドの読み込みを続けます。これにより、誤って Ctrl-D を押してしまってもシェルは終了しなくなります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-lealwaysrp"></a>le-always-rp
+</dt>
+<dt class="hdlist1">
+<a id="so-lecompdebug"></a>le-comp-debug
+</dt>
+<dt class="hdlist1">
+<a id="so-leconvmeta"></a>le-conv-meta
+</dt>
+<dt class="hdlist1">
+<a id="so-lenoconvmeta"></a>le-no-conv-meta
+</dt>
+<dt class="hdlist1">
+<a id="so-lepredict"></a>le-predict
+</dt>
+<dt class="hdlist1">
+<a id="so-lepredictempty"></a>le-predict-empty
+</dt>
+<dt class="hdlist1">
+<a id="so-lepromptsp"></a>le-prompt-sp
+</dt>
+<dt class="hdlist1">
+<a id="so-levisiblebell"></a>le-visible-bell
+</dt>
+<dt class="hdlist1">
+<a id="so-letrimright"></a>le-trim-right
+</dt>
+<dd>
+<p>
+これらのオプションは&#8203;<a href="lineedit.html">行編集</a>の動作に影響します。&#8203;<a href="lineedit.html#options">行編集のオプション</a>を参照してください。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-markdirs"></a>mark-dirs
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#glob">パス名展開</a>の展開結果においてディレクトリを表すものの末尾にスラッシュを付けます。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-monitor"></a>monitor (<code>-m</code>)
+</dt>
+<dd>
+<p>
+このオプションは&#8203;<a href="job.html">ジョブ制御</a>を有効にします。シェルを&#8203;<a href="interact.html">対話モード</a>で起動したときこのオプションは自動的に有効になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-notify"></a>notify (<code>-b</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時は、バックグラウンドの&#8203;<a href="job.html">ジョブ</a>の実行状態が変化するとシェルは直ちにそれを標準エラーに報告します。このオプションは notifyle オプションより優先します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-notifyle"></a>notify-le
+</dt>
+<dd>
+<p>
+このオプションは notify オプションとほぼ同じですが、&#8203;<a href="lineedit.html">行編集</a>を行っている最中のみジョブの状態変化を報告します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-nullglob"></a>null-glob
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#glob">パス名展開</a>でマッチするパス名がないとき元のパターンは残りません。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-pipefail"></a>pipe-fail
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="syntax.html#pipelines">パイプライン</a>の全てのコマンドの終了ステータスが 0 の時のみパイプラインの終了ステータスが 0 になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-posixlycorrect"></a>posixly-correct
+</dt>
+<dd>
+<p>
+このオプションは <a href="posix.html">POSIX 準拠モード</a>を有効にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-traceall"></a>trace-all
+</dt>
+<dd>
+<p>
+このオプションは、補助コマンド実行中も <a href="#so-xtrace">x-trace オプション</a>を機能させるかどうかを指定します。補助コマンドとは、
+<a href="params.html#sv-command_not_found_handler"><code>COMMAND_NOT_FOUND_HANDLER</code></a>、
+<a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code></a>、および
+<a href="params.html#sv-yash_after_cd"><code>YASH_AFTER_CD</code></a>
+変数の値として定義され、特定のタイミングで解釈・実行されるコマンドです。
+このオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-unset"></a>unset (<code>+u</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時、&#8203;<a href="expand.html#params">パラメータ展開</a>で存在しない変数を展開すると空文字列に展開され、<a href="expand.html#arith">数式展開</a>で存在しない変数を使用すると 0 とみなされます。オプションが無効な時、存在しない変数を使用するとエラーになります。このオプションはシェルの起動時に最初から有効になっています。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-verbose"></a>verbose (<code>-v</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時、シェルは読み込んだコマンドをそのまま標準エラーに出力します。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-vi"></a>vi
+</dt>
+<dd>
+<p>
+このオプションは vi 風&#8203;<a href="lineedit.html">行編集</a>を有効にします。&#8203;<a href="interact.html">対話モード</a>が有効で標準入力と標準エラーがともに端末ならばこのオプションはシェルの起動時に自動的に有効になります。
+</p>
+</dd>
+<dt class="hdlist1">
+<a id="so-xtrace"></a>x-trace (<code>-x</code>)
+</dt>
+<dd>
+<p>
+このオプションが有効な時、コマンドを実行する前に&#8203;<a href="expand.html">展開</a>の結果を標準エラーに出力します。この出力は、各行頭に <a href="params.html#sv-ps4"><code>PS4</code> 変数</a>の値を&#8203;<a href="expand.html">展開</a>した結果を付けて示されます。
+<a href="#so-traceall">Trace-all オプション</a>も参照してください。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Set コマンドにオペランドが与えられている場合またはオプションとオペランドを区切るハイフン二つ (<code>--</code>, <a href="builtin.html#argsyntax">コマンドの引数の構文</a>参照) がコマンドライン引数に入っている場合は、現在の&#8203;<a href="params.html#positional">位置パラメータ</a>は削除され、与えられたオペランドがそれぞれ新しく位置パラメータになります。ハイフン二つが与えられていてかつオペランドがない場合は位置パラメータはなくなります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>オプションの指定が間違っている場合を除き、set コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Set コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX 規格に定義されているオプションは限られています。規格の定義では、</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>--allexport</code> などの長いオプションは使えません。
+</p>
+</li>
+<li>
+<p>
+オプション名に <code>no</code> を付けてオプションを無効にすることはできません。
+</p>
+</li>
+<li>
+<p>
+オプション名に大文字や英字でない記号は使えません。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>規格に定義されているオプションは以下のとおりです:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>-a</code>, <code>-o allexport</code>
+</p>
+</li>
+<li>
+<p>
+<code>-e</code>, <code>-o errexit</code>
+</p>
+</li>
+<li>
+<p>
+<code>-m</code>, <code>-o monitor</code>
+</p>
+</li>
+<li>
+<p>
+<code>-C</code>, <code>-o noclobber</code>
+</p>
+</li>
+<li>
+<p>
+<code>-n</code>, <code>-o noexec</code>
+</p>
+</li>
+<li>
+<p>
+<code>-f</code>, <code>-o noglob</code>
+</p>
+</li>
+<li>
+<p>
+<code>-b</code>, <code>-o notify</code>
+</p>
+</li>
+<li>
+<p>
+<code>-u</code>, <code>-o nounset</code>
+</p>
+</li>
+<li>
+<p>
+<code>-v</code>, <code>-o verbose</code>
+</p>
+</li>
+<li>
+<p>
+<code>-x</code>, <code>-o xtrace</code>
+</p>
+</li>
+<li>
+<p>
+<code>-h</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o ignoreeof</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o nolog</code>
+</p>
+</li>
+<li>
+<p>
+<code>-o vi</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>POSIX ではこのほかに、&#8203;<a href="syntax.html#funcdef">関数定義</a>を&#8203;<a href="interact.html#history">コマンド履歴</a>に登録しないようにする <code>-o nolog</code> オプションを規定していますが、yash はこれをサポートしていません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

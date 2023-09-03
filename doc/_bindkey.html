@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Bindkey built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Bindkey built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>bindkey built-in</dfn> prints or modifies key bindings used in
+<a href="lineedit.html">line-editing</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>bindkey -aev [<var>key</var> [<var>command</var>]]</code>
+</p>
+</li>
+<li>
+<p>
+<code>bindkey -l</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed with the <code>-l</code> (<code>--list</code>) option, the built-in lists all
+available <a href="lineedit.html#commands">line-editing commands</a> to the standard
+output.</p></div>
+<div class="paragraph"><p>When executed with one of the other options, the built-in prints or modifies
+key bindings for the <a href="lineedit.html#modes">editing mode</a> specified by the
+option:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Without <var>key</var> or <var>command</var>, all currently defined bindings are printed
+  to the standard output in a form that can be parsed as commands that
+  restore the current bindings when executed.
+</p>
+</li>
+<li>
+<p>
+With <var>key</var> but without <var>command</var>, only the binding for the given <var>key</var>
+  is printed.
+</p>
+</li>
+<li>
+<p>
+With <var>key</var> and <var>command</var>, <var>key</var> is bound to <var>command</var>.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--vi-command</code>
+</dt>
+<dd>
+<p>
+Print or modify bindings for the vi command mode.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--emacs</code>
+</dt>
+<dd>
+<p>
+Print or modify bindings for the emacs mode.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--vi-insert</code>
+</dt>
+<dd>
+<p>
+Print or modify bindings for the vi insert mode.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>key</var>
+</dt>
+<dd>
+<p>
+A character sequence of one or more keys that is bound to an editing command.
+The sequence may include <a href="lineedit.html#escape">escape sequences</a>.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>command</var>
+</dt>
+<dd>
+<p>
+A <a href="lineedit.html#commands">line-editing command</a> to which <var>key</var> is bound.
+If <var>command</var> is a single hyphen (<code>-</code>), <var>key</var> is unbound.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the bindkey built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The bindkey built-in is an <a href="builtin.html#types">elective built-in</a>.
+It cannot be used in the <a href="posix.html">POSIXly-correct mode</a>
+because POSIX does not define its behavior.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

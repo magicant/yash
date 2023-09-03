@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash の組込みコマンドに関する共通の事柄について" />
+<title>組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>組込みコマンド</dfn>とはシェルに内蔵されたコマンドです。組込みコマンドは外部のプログラムを起動することなくシェル自身によって実行されます。</p></div>
+<div class="paragraph"><p>組込みコマンドの一覧は&#8203;<a href="index.html#builtins">目次</a>を参照してください。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="types">組込みコマンドの種類</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Yash の組込みコマンドは以下の種類に分けられます。</p></div>
+<div class="paragraph"><p><dfn>特殊組込みコマンド</dfn>は最も重要な種類の組込みコマンドで、他の組込みコマンドとは異なる性質をいくつか持っています。まず、特殊組込みコマンドは対応する外部コマンドの存在に関係なく常に実行されます。また特殊組込みコマンドにおける変数代入の結果はコマンドの実行が終わった後も残ります。さらに <a href="posix.html">POSIX 準拠モード</a>では、特殊組込みコマンドを実行する単純コマンド内でエラーが起きた場合、シェルが&#8203;<a href="interact.html">対話モード</a>でなければシェルは直ちに非 0 の終了ステータスで終了します。</p></div>
+<div class="paragraph"><p><dfn>必須組込みコマンド</dfn>と&#8203;<dfn>任意組込みコマンド</dfn>は外部コマンドの存在に関係なく実行される点では特殊組込みコマンドと同様ですが、&#8203;<a href="exec.html#function">関数</a>で上書き可能な点が異なります。
+必須組込みコマンドは常に利用可能ですが、任意組込みコマンドは POSIX では名前しか定義されていないため <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p><dfn>拡張組込みコマンド</dfn>は POSIX で言及されていないコマンドです。任意組込みコマンドと同様に、&#8203;<a href="posix.html">POSIX 準拠モード</a>が無効の時は外部コマンドに関係なく使用できますが、POSIX 準拠モードが有効な時は拡張組込みコマンドは存在しないものとして扱われます。</p></div>
+<div class="paragraph"><p><dfn>代替組込みコマンド</dfn>は <a href="exec.html#search"><code>PATH</code> 変数の検索</a>で見つかった外部コマンドの代わりに実行される組込みコマンドです。外部コマンドを起動するオーバーヘッドを回避して実行速度を向上します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="argsyntax">コマンドの引数の構文</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>ここでは組込みコマンドの引数に関する一般的な規則について説明します。Yash の組込みコマンドの引数の指定・解釈の仕方は、他に断りがない限りこの規則に従います。</p></div>
+<div class="paragraph"><p>コマンドの引数は、オプションとオペランドの二種類に分けられます。<dfn>オプション</dfn>はハイフン (<code>-</code>) で始まる引数で、主にコマンドの動作を変更するのに使われます。オプションの中にはそれに対応する引数をとるものもあります。<dfn>オペランド</dfn>はオプション以外の引数で、主にコマンドが処理を行う対象を指定するのに使われます。</p></div>
+<div class="paragraph"><p>一つのコマンドに複数のオプションを与える場合、原則としてそれらのオプションの順序はコマンドの動作に影響しません。しかしオペランドの順序には意味があります。</p></div>
+<div class="paragraph"><p>オプションには一文字のオプションと長いオプションとがあります。<dfn>一文字のオプション</dfn>は英数字一文字によって識別されるオプションです。<dfn>長いオプション</dfn>はもっと長い文字列によって識別されるオプションです。POSIX 規格は一文字のオプションについてしか規定していないため、&#8203;<a href="posix.html">POSIX 準拠モード</a>では長いオプションは使えません。</p></div>
+<div class="paragraph"><p>一文字のオプションは、一つのハイフンと一文字の英数字からなります。例えば <code>-a</code> は一文字のオプションです。引数をとるオプションでは、コマンドに与えられた引数の並びの中でそのオプションの直後に位置している引数がそのオプションに対する引数とみなされます。</p></div>
+<div class="exampleblock">
+<div class="title">例 1. Set 組込みコマンドと一文字のオプション</div>
+<div class="content">
+<div class="paragraph"><p>Set 組込みコマンドにおいて、<code>-m</code> は引数をとらない一文字のオプション、<code>-o</code> は引数をとる一文字のオプションです。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set -o errexit -m</code>
+</p>
+</li>
+<li>
+<p>
+<code>set -oerrexit -m</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>この二つの例では、<code>errexit</code> が <code>-o</code> オプションに対する引数となります。</p></div>
+</div></div>
+<div class="paragraph"><p>上の二つ目の例では、<code>-o</code> オプションとそれに対する引数が一つのコマンドライン引数になっています。POSIX はこのような書き方は避けなければならないと定めており、POSIX に従うアプリケーションは必ず一つ目の例のようにオプションとそれに対する引数を別々のコマンドライン引数として与えなければなりません。しかし yash はどちらの指定の仕方も受け付けるようになっています。</p></div>
+<div class="paragraph"><p>引数をとらない複数の一文字のオプションは、一つにまとめて書くことができます。例えば <code>-a</code>, <code>-b</code>, <code>-c</code> という三つのオプションは <code>-abc</code> と書けます。</p></div>
+<div class="paragraph"><p>長いオプションは、二つのハイフンとオプション名を表す文字列からなります。例えば <code>--long-option</code> は長いオプションです。オプション名は他と紛らわしくない限り末尾を省略できます。例えば他に <code>--long</code> で始まる長いオプションがなければ、<code>--long-option</code> は <code>--long</code> と省略できます。引数をとるオプションでは、一文字のオプションの場合と同様に、オプションの直後にあるコマンドライン引数がそのオプションに対する引数とみなされます。あるいは、オプション名の後に等号 (<code>=</code>) で区切って直接引数を与えることもできます。</p></div>
+<div class="exampleblock">
+<div class="title">例 2. Fc 組込みコマンドと長いオプション</div>
+<div class="content">
+<div class="paragraph"><p>Fc 組込みコマンドにおいて、<code>--quiet</code> は引数をとらない長いオプション、<code>--editor</code> は引数をとる長いオプションです。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fc --editor vi --quiet</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc --editor=vi --quiet</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>この二つの例では、<code>vi</code> が <code>--editor</code> オプションに対する引数となります。</p></div>
+</div></div>
+<div class="paragraph"><p>オプション (およびオプションに対する引数) 以外の引数は、全てオペランドとみなされます。POSIX は、オペランドは全てオプションより後に書かなければならないと定めています。そのため <a href="posix.html">POSIX 準拠モード</a>では、最初のオペランドより後にある引数は (たとえそれがオプションであるように見えても) 全てオペランドとして解釈します。POSIX 準拠モードでないときは、オペランドの後にオプションを書いても構いません。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードであるかどうかにかかわらず、ハイフン二つからなる引数 (<code>--</code>) はオプションとオペランドとの区切りとして使えます。この区切り以降の全てのコマンドライン引数はオペランドとして解釈されるため、ハイフンで始まるオペランドを正しく指定できます。</p></div>
+<div class="exampleblock">
+<div class="title">例 3. Set 組込みコマンドのオプションとオペランド</div>
+<div class="content">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>set -a -b -- -c -d</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>この例では、<code>-a</code> と <code>-b</code> がオプションで、<code>-c</code> と <code>-d</code> がオペランドとなります。区切り (<code>--</code>) 自体はオプションでもオペランドでもありません。</p></div>
+</div></div>
+<div class="paragraph"><p>POSIX 準拠モードであるかどうかにかかわらず、ハイフン一つからなる引数 (<code>-</code>) は常にオペランドとみなされます。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash の POSIX 準拠モードの動作について" />
+<title>POSIX 準拠モード</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>POSIX 準拠モード</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>Yash は基本的に POSIX.1-2008 のシェルの規定に従って動作しますが、利便性や分かりやすさのために POSIX の規定とは異なる動作をする点もあります。そのため標準状態の yash は POSIX の規定するシェルとして供するには向きません。<dfn>POSIX 準拠モード</dfn>を有効にすると、yash はできる限り POSIX の規定通りに動作するようになります。POSIX 準拠シェルとしての互換性が必要な場面では、POSIX 準拠モードを有効にしてください。</p></div>
+<div class="paragraph"><p><a href="invoke.html">シェルの起動</a>時の起動時の名前が <code>sh</code> ならばシェルは自動的に POSIX 準拠モードになります。また起動時に <code>-o posixlycorrect</code> オプションが指定されている場合も POSIX 準拠モードになります。また起動後は、<code><a href="_set.html">set</a> -o posixlycorrect</code> を実行することで POSIX 準拠モードを有効にできます。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードを有効にすると、yash は POSIX の規定にできるだけ従うようになるだけでなく、POSIX が<em>未定義</em>や<em>未規定</em>と定めている場合のほとんどをエラーにするようになります。すなわち、yash 独自の拡張機能の多くは使えなくなります。具体的には、POSIX 準拠モードを有効にすると以下のような挙動の変化があります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+シェルの起動時の&#8203;<a href="invoke.html#init">初期化</a>で読み込むスクリプトファイルが異なります。
+</p>
+</li>
+<li>
+<p>
+シェルが <a href="invoke.html#arguments"><code>-c</code> オプション</a>で起動された場合、構文エラー時に <code>yash -c</code> の代わりに <code>sh -c</code> をファイル名として表示します。
+</p>
+</li>
+<li>
+<p>
+グローバル&#8203;<a href="syntax.html#aliases">エイリアス</a>の置換を行いません。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#compound">複合コマンド</a>の&#8203;<a href="syntax.html#grouping">グルーピング</a>や <a href="syntax.html#if">if 文</a>の内容が空の場合エラーになります。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#for">For ループ</a>で展開した単語は <a href="_set.html#so-forlocal">for-local オプション</a>に関係なくグローバル変数として代入します。変数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#case">Case 文</a>の最初のパターンを <code>esac</code> にすることはできません。
+</p>
+</li>
+<li>
+<p>
+予約語 <code>!</code> の直後に空白を置かずに <code>(</code> を置くことはできません。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#double-bracket">二重ブラケットコマンド</a>は使えません。
+</p>
+</li>
+<li>
+<p>
+予約語 <code>function</code> を用いる形式の&#8203;<a href="syntax.html#funcdef">関数定義</a>構文は使えません。関数名はポータブルな (すなわち ASCII の範囲内の) 文字しか使えません。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#simple">単純コマンド</a>での&#8203;<a href="params.html#arrays">配列</a>の代入はできません。
+</p>
+</li>
+<li>
+<p>
+シェル実行中に <a href="params.html#sv-lc_ctype"><code>LC_CTYPE</code> 変数</a>の値が変わっても、それをシェルのロケール情報に反映しません。
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#sv-random"><code>RANDOM</code> 変数</a>は使えません。
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#tilde">チルダ展開</a>で <code>~</code> と <code>~<var>ユーザ名</var></code> 以外の形式の展開が使えません。
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#params">パラメータ展開</a>の&#8203;<a href="expand.html#param-name">入れ子</a>はできません。また&#8203;<a href="expand.html#param-index">インデックス</a>および<var>単語2</var>のある&#8203;<a href="expand.html#param-mod">加工指定</a>は使用できません。
+</p>
+</li>
+<li>
+<p>
+<code>$(</code> と <code>)</code> で囲んだ&#8203;<a href="expand.html#cmdsub">コマンド置換</a>に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。
+</p>
+</li>
+<li>
+<p>
+<a href="expand.html#arith">数式展開</a>で小数ならびに <code>++</code> および <code>--</code> 演算子が使えません。数値でない変数は常にエラーになります。
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html">リダイレクト</a>の対象を示すトークンは次のリダイレクトのファイル記述子を示す整数と紛らわしくないようにしなければなりません。
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html">リダイレクト</a>を伴う&#8203;<a href="syntax.html#compound">複合コマンド</a>の直後に <code>}</code> や <code>fi</code> などの予約語を置くことはできません。
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#file">ファイルのリダイレクト</a>で、&#8203;<a href="expand.html#glob">パス名展開</a>の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
+</p>
+</li>
+<li>
+<p>
+<code>&lt;&amp;</code> および <code>&gt;&amp;</code> <a href="redir.html#dup">リダイレクト</a>演算子の対象となるファイル記述子はそれぞれ読み込み可能および書き込み可能でなければなりません。
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#socket">ソケットリダイレクト</a>・&#8203;<a href="redir.html#here">ヒアストリング</a>・&#8203;<a href="redir.html#pipe">パイプリダイレクト</a>・&#8203;<a href="redir.html#process">プロセスリダイレクト</a>は使用できません。
+</p>
+</li>
+<li>
+<p>
+<a href="exec.html#simple">単純コマンドの実行</a>時、コマンドが見つからなくても <a href="params.html#sv-command_not_found_handler"><code>COMMAND_NOT_FOUND_HANDLER</code> 変数</a>の値は実行しません。
+</p>
+</li>
+<li>
+<p>
+<a href="builtin.html#types">任意組込みコマンドおよび拡張組込みコマンド</a>は実行できません。
+</p>
+</li>
+<li>
+<p>
+いくつかの&#8203;<a href="builtin.html">組込みコマンド</a>で特定のオプションが使えなくなるなど挙動が変わります。特に、長いオプションは使えなくなります。
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html">対話モード</a>でないとき、&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>のオプションやオペランドの使い方が間違っているとシェルは直ちに終了します。また特殊組込みコマンドで代入エラーやリダイレクトエラーが発生したときも直ちに終了します。
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html">対話モード</a>のプロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値を実行しません。&#8203;<a href="params.html#sv-ps1"><code>PS1</code> 変数</a>・&#8203;<a href="params.html#sv-ps2"><code>PS2</code> 変数</a>・&#8203;<a href="params.html#sv-ps4"><code>PS4</code> 変数</a>の値の解釈の仕方が違います。&#8203;<a href="params.html#sv-yash_ps1"><code>YASH_PS1</code></a> など <code>YASH_</code> で始まる名前のプロンプト変数は使用されません。
+</p>
+</li>
+<li>
+<p>
+<a href="interact.html#mailcheck">メールチェック</a>において、ファイルが更新されている場合はファイルが空でも新着メールメッセージを出力します。
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

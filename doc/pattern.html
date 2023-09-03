@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="This page describes pattern matching notation supported by yash." />
+<title>Pattern matching notation</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Pattern matching notation</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Pattern matching notation</dfn> is a syntax of <dfn>patterns</dfn> that represent
+particular sets of strings.
+When a string is included in the set of strings a pattern represents,
+the pattern is said to <dfn>match</dfn> the string.
+Whether a pattern matches a string or not is defined as follows.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="normal">Normal characters</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A character that is not <a href="syntax.html#quotes">quoted</a> or any of special
+characters defined below is a normal character, which matches the character
+itself.</p></div>
+<div class="paragraph"><p>For example, the pattern <code>abc</code> matches the string <code>abc</code>, and not any other
+strings.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="single">Single-character wildcard</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The character <code>?</code> matches any single character.</p></div>
+<div class="paragraph"><p>For example, the pattern <code>a?c</code> matches any three-character strings that starts
+with <code>a</code> and ends with <code>c</code>, such as <code>aac</code>, <code>abc</code>, and <code>a;c</code>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="multiple">Multi-character wildcard</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The character <code>*</code> matches any strings (of any length, including the empty
+string).</p></div>
+<div class="paragraph"><p>For example, the pattern <code>a*c</code> matches any string that starts with <code>a</code>
+and ends with <code>c</code>, such as <code>ac</code>, <code>abc</code>, and <code>a;xyz;c</code>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bracket">Bracket expression</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A pattern that is enclosed by brackets (<code>[</code> and <code>]</code>) is a <dfn>bracket
+expression</dfn>.
+A bracket expression must have at least one character between the brackets.
+The characters between the brackets are interpreted as a <dfn>bracket
+expression pattern</dfn>, which is a below-defined special notation for bracket
+expression.
+A bracket expression pattern represents a set of characters.
+The bracket expression matches any one of the characters in the set the
+bracket expression pattern represents.</p></div>
+<div class="paragraph"><p>If the opening bracket (<code>[</code>) is followed by an exclamation mark (<code>!</code>), the
+exclamation is not treated as part of the bracket expression pattern and the
+whole bracket expression instead matches a character that is <em>not</em> included in
+the set the bracket expression pattern represents.
+If the opening bracket is followed by a caret (<code>^</code>), it is treated like an
+exclamation mark as above (but shells other than yash may treat the caret
+differently).</p></div>
+<div class="paragraph"><p>If the opening bracket (or the following exclamation or caret, if any) is
+followed by a closing bracket (<code>]</code>), it is treated as part of the bracket
+expression pattern rather than the end of the bracket expression.
+You cannot <a href="syntax.html#quotes">quote</a> characters in the bracket expression
+pattern because quotation is treated before bracket expression.</p></div>
+<div class="paragraph"><p>An opening bracket in a pattern is treated as a normal character if it is not
+the beginning of a valid bracket expression.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bra-normal">Normal characters (in bracket expression pattern)</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A character that is not any of special characters defined below is a normal
+character, which represents the character itself.</p></div>
+<div class="paragraph"><p>For example, the bracket expression pattern <code>abc</code> represents the set of the
+three characters <code>a</code>, <code>b</code>, and <code>c</code>. The bracket expression <code>[abc]</code> therefore
+matches any of the three characters.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bra-range">Range expressions</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A hyphen preceded and followed by a character (or <a href="#bra-colsym">collating symbol</a>) is a <dfn>range expression</dfn>, which represents the set of the two
+characters and all characters between the two in the collation order.
+A <dfn>collation order</dfn> is an order of characters that is defined in the
+locale data.</p></div>
+<div class="paragraph"><p>If a hyphen is followed by a closing bracket (<code>]</code>), the bracket is treated as
+the end of the bracket expression and the hyphen as a normal character.</p></div>
+<div class="paragraph"><p>For example, the range expression <code>3-5</code> represents the set of the three
+characters <code>3</code>, <code>4</code>, and <code>5</code>. The bracket expression <code>[3-5-]</code> therefore
+matches one of the four characters <code>3</code>, <code>4</code>, <code>5</code>, and <code>-</code>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bra-colsym">Collating symbols</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A <dfn>collating symbol</dfn> allows more than one character to be treated as a
+single character in matching.
+A collating symbol is made up of one or more characters enclosed by the
+special brackets <code>[.</code> and <code>.]</code>.</p></div>
+<div class="paragraph"><p>One or more characters that are treated as a single character in matching are
+called a <dfn>collating element</dfn>.
+Precisely, a bracket expression pattern represents a set of collating elements
+and a bracket expression matches a collating element rather than a character,
+but we do not differentiate them for brevity here.</p></div>
+<div class="paragraph"><p>For example, the character combination &#8220;ch&#8221; was treated as a single
+character in the traditional Spanish language.
+If this character combination is registered as a collating element in the
+locale data, the bracket expression <code>[[.ch.]df]</code> matches one of <code>ch</code>, <code>d</code>, and
+<code>f</code>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bra-eqclass">Equivalence classes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>An <dfn>equivalence class</dfn> represents a set of characters that are considered
+<em>equivalent</em>.
+A equivalence class is made up of a character (or more precisely, a collating
+element) enclosed by the special brackets <code>[=</code> and <code>=]</code>.</p></div>
+<div class="paragraph"><p>An equivalence class represents the set of characters that consists of the
+character enclosed by the brackets and the characters that are in the same
+primary equivalence class as the enclosed character.
+The shell consults the locale data for the definition of equivalence classes
+in the current locale.</p></div>
+<div class="paragraph"><p>For example, if the six characters <code>a</code>, <code>&#224;</code>, <code>&#225;</code>, <code>&#226;</code>,
+<code>&#227;</code>, <code>&#228;</code> are defined to be in the same primary equivalence class,
+the bracket expressions <code>[[=a=]]</code>, <code>[[=&#224;=]]</code>, and <code>[[=&#225;=]]</code> match
+one of the six.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="bra-chclass">Character classes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A <dfn>character class</dfn> represents a predefined set of characters.
+A character class is made up of a class name enclosed by the special brackets
+<code>[:</code> and <code>:]</code>.
+The shell consults the locale data for which class a character belongs to.</p></div>
+<div class="paragraph"><p>The following character classes can be used in all locales:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>[:lower:]</code>
+</dt>
+<dd>
+<p>
+set of lowercase letters
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:upper:]</code>
+</dt>
+<dd>
+<p>
+set of uppercase letters
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:alpha:]</code>
+</dt>
+<dd>
+<p>
+set of letters, including the <code>[:lower:]</code> and <code>[:upper:]</code> classes.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:digit:]</code>
+</dt>
+<dd>
+<p>
+set of decimal digits
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:xdigit:]</code>
+</dt>
+<dd>
+<p>
+set of hexadecimal digits
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:alnum:]</code>
+</dt>
+<dd>
+<p>
+set of letters and digits, including the <code>[:alpha:]</code> and <code>[:digit:]</code> classes.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:blank:]</code>
+</dt>
+<dd>
+<p>
+set of blank characters, not including the newline character
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:space:]</code>
+</dt>
+<dd>
+<p>
+set of space characters, including the newline character
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:punct:]</code>
+</dt>
+<dd>
+<p>
+set of punctuations
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:print:]</code>
+</dt>
+<dd>
+<p>
+set of printable characters
+</p>
+</dd>
+<dt class="hdlist1">
+<code>[:cntrl:]</code>
+</dt>
+<dd>
+<p>
+set of control characters
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>For example, the bracket expression <code>[[:lower:][:upper:]]</code> matches a lower or
+upper case character.
+In addition to the classes listed above, other classes may be used depending
+on the definition of the current locale.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

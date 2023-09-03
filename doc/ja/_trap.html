@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Trap 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Trap 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Trap 組込みコマンド</dfn>はシェルがシグナルを受信したときの動作を設定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>trap</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap <var>動作</var> <var>シグナル</var>&#8230;</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap <var>シグナル番号</var> [<var>シグナル</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>trap -p [<var>シグナル</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Trap コマンドはシェルプロセスがシグナルを受信したときの動作 (<dfn>トラップ</dfn>) を表示または設定します。</p></div>
+<div class="paragraph"><p>オペランドに<var>動作</var>と<var>シグナル</var>を指定して trap コマンドを実行すると、シェルが<var>シグナル</var>を受信した際に指定した<var>動作</var>を行うようになります。最初のオペランドが<var>シグナル番号</var>の場合、それと残りの<var>シグナル</var>に対する動作は、動作として <code>-</code> が指定されたときと同様に標準の動作に設定されます。</p></div>
+<div class="paragraph"><p><code>-p</code> (<code>--print</code>) オプションを指定した場合またはオペランドを一つも指定していない場合は、trap コマンドは現在のトラップの設定状況をコマンドとして解釈可能な形式で標準出力に出力します。<var>シグナル</var>が与えられているときはそのシグナルに関する設定を、与えられていないときは全ての設定を出力します。ただし、特定の状況では trap コマンドは現在の設定ではなく以前の設定を表示します (下記補足参照)。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--print</code>
+</dt>
+<dd>
+<p>
+現在のトラップの設定を表示します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>動作</var>
+</dt>
+<dd>
+<p>
+シグナルを受信した際の動作を指定します。<var>動作</var>がハイフン一つ (<code>-</code>) ならば、シェルはシステムで規定された標準の動作を行います。<var>動作</var>が空文字列ならば、シェルはシグナルを無視します。それ以外の値を指定すると、シェルはこのオペランドをコマンドとみなして、シグナル受信時にこれを解釈・実行します (コマンドの実行中にシグナルを受信したときは、コマンドが終了した後にトラップを実行します)。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>シグナル</var>
+</dt>
+<dd>
+<p>
+動作の対象となるシグナルです。シグナルはシグナル番号とシグナル名のどちらかで指定します。
+</p>
+<div class="paragraph"><p><var>シグナル</var>として <code>0</code> または <code>EXIT</code> を指定すると、これはシェルの終了時に発生する仮想のシグナルを指定しているとみなします。この仮想のシグナルに対して設定された<var>動作</var>は、シェルが正常終了する直前に実行されます。</p></div>
+</dd>
+<dt class="hdlist1">
+<var>シグナル番号</var>
+</dt>
+<dd>
+<p>
+<var>シグナル</var>と同様ですが、シグナルを番号で指定します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>トラップが正しく設定または表示されたときは終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Trap コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX には <code>-p</code> (<code>--print</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>POSIX は、シグナル名は <code>INT</code> や <code>QUIT</code> のように最初の SIG を除いた形で指定しなければならないと規定しています。Yash では、拡張として SIG を付けた形でも指定できますし、シグナル名の大文字と小文字を区別しません (このような拡張は POSIX でも認められています)。</p></div>
+<div class="sect2">
+<h3 id="_出力の再利用">出力の再利用</h3>
+<div class="paragraph"><p>Trap コマンドが出力したトラップの設定を変数に保存しておき、後で <a href="_eval.html">eval コマンド</a>でそれを実行することで元のトラップの設定を復活させることができます。</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>saved_trap=$(trap)
+trap '...' INT
+eval "$saved_trap"</code></pre>
+</div></div>
+<div class="paragraph"><p>ただし、このテクニックの挙動には裏があります。Trap コマンドの出力を変数に保存するために&#8203;<a href="expand.html#cmdsub">コマンド置換</a>を使用しますが、コマンド置換は&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。サブシェルの開始時にトラップの設定は解除されるため、本来ならばサブシェル内の trap コマンドは何も出力せず、結果として変数にはトラップが保存されないことになります。</p></div>
+<div class="paragraph"><p>この問題を回避するため、POSIX は以下のうちどちらかの挙動を執ることをシェルに求めています。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+コマンド置換の中身がただ一つの trap コマンドである場合は、そのコマンド置換を実行するサブシェルの開始時にトラップ設定を解除しない。
+</p>
+</li>
+<li>
+<p>
+サブシェルの開始時にトラップ設定を解除する際に、以前の設定を憶えておく。サブシェル内で trap コマンドがトラップ設定を出力する際、まだそのサブシェル内で別の trap コマンドがトラップ設定を変更していなければ、憶えておいた以前の設定を出力する。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Yash は二つ目の選択肢に従います。</p></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Test built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Test built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>test built-in</dfn> evaluates an expression.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>test <var>expression</var></code>
+</p>
+</li>
+<li>
+<p>
+<code>[ <var>expression</var> ]</code>
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The test built-in does not distinguish options and operands;
+all command line arguments are interpreted as <var>expression</var>.
+If the built-in is executed with the name <code>[</code>, <var>expression</var> must be
+followed by <code>]</code>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The test built-in evaluates <var>expression</var> as a conditional expression that is
+made up of operators and operands described below.
+The exit status is 0 if the condition is true and 1 otherwise.</p></div>
+<div class="paragraph"><p>The unary operators below test a file.
+If the operand <var>file</var> is a symbolic link, the file referred to by the link is
+tested (except for the <code>-h</code> and <code>-L</code> operators).</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-b <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a block special file
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-c <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a character special file
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a directory
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> exists
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a regular file
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-G <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var>'s group ID is same as the shell&#8217;s effective group ID
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-g <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var>'s set-group-ID flag is set
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-h <var>file</var></code>
+</dt>
+<dd>
+<p>
+same as -L
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var>'s sticky bit is set
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-L <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a symbolic link
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-N <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> has not been accessed since last modified
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-O <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var>'s user ID is same as the shell&#8217;s effective user ID
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a FIFO (named pipe)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is readable
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-S <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is a socket
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is not empty
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-u <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var>'s set-user-ID flag is set
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-w <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is writable
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-x <var>file</var></code>
+</dt>
+<dd>
+<p>
+<var>file</var> is executable
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The unary operator below tests a file descriptor:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-t <var>fd</var></code>
+</dt>
+<dd>
+<p>
+<var>fd</var> is associated with a terminal
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The unary operators below test a string:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-n <var>string</var></code>
+</dt>
+<dd>
+<p>
+<var>string</var> is not empty
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-z <var>string</var></code>
+</dt>
+<dd>
+<p>
+<var>string</var> is empty
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The unary operator below tests a <a href="_set.html">shell option</a>:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-o ?<var>option</var></code>
+</dt>
+<dd>
+<p>
+<var>option</var> is a valid shell option name
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-o <var>option</var></code>
+</dt>
+<dd>
+<p>
+<var>option</var> is a valid shell option name that is enabled
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operators below compare files.
+Non-existing files are considered older than any existing files.</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>file1</var> -nt <var>file2</var></code>
+</dt>
+<dd>
+<p>
+<var>file1</var> is newer than <var>file2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>file1</var> -ot <var>file2</var></code>
+</dt>
+<dd>
+<p>
+<var>file1</var> is older than <var>file2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>file1</var> -ef <var>file2</var></code>
+</dt>
+<dd>
+<p>
+<var>file1</var> is a hard link to <var>file2</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operators below compare strings:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>string1</var> = <var>string2</var></code>
+</dt>
+<dt class="hdlist1">
+<code><var>string1</var> == <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is the same string as <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> != <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is not the same string as <var>string2</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operators below compare strings according to the alphabetic order
+in the current locale:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>string1</var> === <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is equal to <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> !== <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is not equal to <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> &lt; <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is less than <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> &lt;= <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is less than or equal to <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> &gt; <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is greater than <var>string2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>string1</var> &gt;= <var>string2</var></code>
+</dt>
+<dd>
+<p>
+<var>string1</var> is greater than or equal to <var>string2</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operator below performs pattern matching:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>string</var> =~ <var>pattern</var></code>
+</dt>
+<dd>
+<p>
+extended regular expression <var>pattern</var> matches (part of) <var>string</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operators below compare integers:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>v1</var> -eq <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -ne <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is not equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -gt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is greater than <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -ge <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is greater than or equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -lt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is less than <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -le <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is less than or equal to <var>v2</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The binary operators below compare version numbers:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code><var>v1</var> -veq <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vne <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is not equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vgt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is greater than <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vge <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is greater than or equal to <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vlt <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is less than <var>v2</var>
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>v1</var> -vle <var>v2</var></code>
+</dt>
+<dd>
+<p>
+<var>v1</var> is less than or equal to <var>v2</var>
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The operators below can be used to make complex expressions:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>! <var>expression</var></code>
+</dt>
+<dd>
+<p>
+negate (reverse) the result
+</p>
+</dd>
+<dt class="hdlist1">
+<code>( <var>expression</var> )</code>
+</dt>
+<dd>
+<p>
+change operator precedence
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>expression1</var> -a <var>expression2</var></code>
+</dt>
+<dd>
+<p>
+logical conjunction (and)
+</p>
+</dd>
+<dt class="hdlist1">
+<code><var>expression1</var> -o <var>expression2</var></code>
+</dt>
+<dd>
+<p>
+logical disjunction (or)
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If the expression is a single word without operators, the <code>-n</code> operator is
+assumed. An empty expression evaluates to false.</p></div>
+<div class="sect2">
+<h3 id="version-compare">Comparison of version numbers</h3>
+<div class="paragraph"><p>Comparison of version numbers is similar to comparison of strings in
+alphabetic order.
+The differences are:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+Adjacent digits are treated as an integer.
+  Integers are compared in mathematical order rather than alphabetic order.
+</p>
+</li>
+<li>
+<p>
+Digits are considered larger than any non-digit characters.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>For example, version numbers <code>0.1.2-3</code> and <code>00.001.02-3</code> are equal and <code>0.2.1</code>
+is smaller than <code>0.10.0</code>.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the test built-in is 0 if <var>expression</var> is true and 1
+otherwise.
+The exit status is 2 if <var>expression</var> cannot be evaluated because of a syntax
+error or any other reasons.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Complex expressions may cause confusion and should be avoided.
+Use the shell&#8217;s <a href="syntax.html#compound">compound commands</a>.
+For example, <code>[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] &amp;&amp; ! [ foo ]</code> is preferred over
+<code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code>.</p></div>
+<div class="paragraph"><p>The POSIX standard provides that the exit status should be larger than 1 on
+error.
+The POSIX standard does not define the following operators:
+<code>-G</code>, <code>-k</code>, <code>-N</code>, <code>-O</code>,
+<code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>=~</code>,
+<code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, and <code>-vle</code>.
+POSIX neither specifies <code>-o</code> as a unary operator.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

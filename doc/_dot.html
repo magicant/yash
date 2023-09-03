@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Dot built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Dot built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>dot built-in</dfn> reads a file and executes commands in it.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>. [-AL] <var>file</var> [<var>argument</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The dot built-in reads the specified <var>file</var>, parses its contents as
+commands, and executes them in the current <a href="exec.html#environment">command
+execution environment</a>.</p></div>
+<div class="paragraph"><p>If <var>argument</var>s are specified, <a href="params.html#positional">positional
+parameters</a> are temporarily set to them.
+The positional parameters will be restored when the dot built-in finishes.
+If no <var>argument</var>s are specified, the positional parameters are not changed.</p></div>
+<div class="paragraph"><p>If <var>file</var> does not contain any slashes, the shell searches
+<a href="params.html#sv-path"><code>$PATH</code></a> for a readable (but not necessarily
+executable) shell script file whose name is <var>file</var> in the same manner as
+<a href="exec.html#search">command search</a>.
+If no such file was found, the shell searches the current working directory
+for a file unless in the <a href="posix.html">POSIXly-correct mode</a>.
+To ensure that the file in the current working directory is used, start
+<var>file</var> with &#8216;./&#8217;.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-alias</code>
+</dt>
+<dd>
+<p>
+Disable alias substitution while parsing.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-L</code>
+</dt>
+<dt class="hdlist1">
+<code>--autoload</code>
+</dt>
+<dd>
+<p>
+Search <a href="params.html#sv-yash_loadpath"><code>$YASH_LOADPATH</code></a>
+instead of <a href="params.html#sv-path"><code>$PATH</code></a>,
+regardless of whether <var>file</var> contains slashes.
+The <var>file</var> value is not considered relative to the current working
+directory.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The dot built-in treats as operands any command line arguments after the first
+operand.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>file</var>
+</dt>
+<dd>
+<p>
+The pathname of a file to be read.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>arguments</var>&#8230;
+</dt>
+<dd>
+<p>
+Strings to which positional parameters are set while execution.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the dot built-in is that of the last command executed.
+The exit status is zero if the file contains no commands to execute and
+non-zero if a file was not found or could not be opened.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The dot built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>A <a href="interact.html">non-interactive</a> shell immediately exits with a non-zero
+exit status if the dot built-in fails to find or open a file to execute.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the dot built-in;
+the built-in accepts no options in the POSIXly-correct mode.</p></div>
+<div class="paragraph"><p>The POSIX standard does not define the <var>arguments</var>&#8230; operands.
+It is an error to specify the <var>arguments</var>&#8230; operands in the POSIXly-correct
+mode.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

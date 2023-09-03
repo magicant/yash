@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Pushd built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Pushd built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>pushd built-in</dfn> pushes a directory into the directory stack.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>pushd [-L|-P] [<var>directory</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The pushd built-in changes the working directory to <var>directory</var> in the same
+manner as the <a href="_cd.html">cd built-in</a> and adds it to the directory stack.
+If the working directory could not be changed successfully, the stack is not
+modified.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The pushd built-in accepts the following option as well as the
+<a href="_cd.html#options">options that can be used for the cd built-in</a>:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>--remove-duplicates</code>
+</dt>
+<dd>
+<p>
+If the new working directory has already been in the directory stack, the
+existing entry is removed from the stack before the new directory is pushed
+into the stack.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>directory</var>
+</dt>
+<dd>
+<p>
+The pathname of the new working directory.
+</p>
+<div class="paragraph"><p>If <var>directory</var> is a single hyphen (&#8216;-&#8217;), the value of the
+<a href="params.html#sv-oldpwd"><code>OLDPWD</code> variable</a> is assumed for the new directory
+pathname, which is printed to the standard output.</p></div>
+<div class="paragraph"><p>If <var>directory</var> is an integer with a plus or minus sign, it is considered as
+an entry index of the directory stack.
+The entry is removed from the stack and then pushed to the stack again.</p></div>
+<div class="paragraph"><p>If <var>directory</var> is omitted, the working directory is changed to the directory
+specified by the <code>--default-directory=&#8230;</code> option. If that option is not
+specified either, the default is index <code>+1</code>.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the pushd built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The pushd built-in is an <a href="builtin.html#types">elective built-in</a>.
+It cannot be used in the <a href="posix.html">POSIXly-correct mode</a>
+because POSIX does not define its behavior.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

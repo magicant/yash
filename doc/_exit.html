@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Exit built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Exit built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>exit built-in</dfn> causes the shell process to exit.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>exit [-f] [<var>exit_status</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit built-in causes the current shell (or
+<a href="exec.html#subshell">subshell</a>) process to exit.</p></div>
+<div class="paragraph"><p>If an interactive shell has a stopped <a href="job.html">job</a>, the shell prints a
+warning message and refuses to exit.
+To force the shell to exit regardless, specify the <code>-f</code> (<code>--force</code>) option or
+execute the built-in twice in a row.</p></div>
+<div class="paragraph"><p>If an EXIT <a href="_trap.html">trap</a> has been set, the shell executes the trap
+before exiting.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--force</code>
+</dt>
+<dd>
+<p>
+Suppress warnings that would prevent the shell from exiting.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>exit_status</var>
+</dt>
+<dd>
+<p>
+A non-negative integer that will be the exit status of the exiting shell.
+</p>
+<div class="paragraph"><p>If this operand is omitted, the exit status of the shell will be that of the
+last command executed before the exit built-in (but, if the built-in is
+executed during a <a href="_trap.html">trap</a>, the exit status will be that of the
+last command before the trap is entered).</p></div>
+<div class="paragraph"><p>If <var>exit_status</var> is 256 or larger, the actual exit status will be
+the remainder of <var>exit_status</var> divided by 256.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Because the built-in causes the shell to exit, there is no exit status of the
+built-in.</p></div>
+<div class="paragraph"><p>As an exception, if the shell refused to exit, the exit status of the built-in
+is non-zero.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines no options for the exit built-in;
+the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard provides that the <var>exit_status</var> operand should be between
+0 and 255 (inclusive).
+Yash accepts integers larger than 255 as an extension.</p></div>
+<div class="paragraph"><p>If the built-in is executed during an EXIT <a href="_trap.html">trap</a>, the shell
+just exits without executing the trap again.
+If <var>exit_status</var> was not specified, the exit status of the shell is what the
+exit status would be if the trap had not been set.
+See also <a href="exec.html#exit">Termination of the shell</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Fc built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Fc built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>fc built-in</dfn> re-executes or prints commands from
+<a href="interact.html#history">command history</a>.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>fc [-qr] [-e <var>editor</var>] [<var>start</var> [<var>end</var>]]</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc -s[q] [<var>old</var>=<var>new</var>] [<var>start</var>]</code>
+</p>
+</li>
+<li>
+<p>
+<code>fc -l[nrv] [<var>start</var> [<var>end</var>]]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>When executed without the <code>-l</code> (<code>--list</code>) option, the built-in executes the
+commands in the <a href="interact.html#history">command history</a> range specified by
+the operands.
+If the <code>-s</code> (<code>--silent</code>) option is not specified, the shell invokes an editor
+which allows you to edit the commands before they are executed.
+The commands are executed when you quit the editor.
+If the <code>-s</code> (<code>--silent</code>) option is specified, the commands are immediately
+executed.
+In either case, the executed commands are printed to the standard output and
+added to the history.</p></div>
+<div class="paragraph"><p>When executed with the <code>-l</code> (<code>--list</code>) option, the built-in prints the
+commands in the command history range specified by the operands.
+By default, commands are printed with their history entry numbers, but output
+format can be changed using the <code>-n</code> (<code>--no-numbers)</code>) and <code>-v</code> (<code>--verbose</code>)
+options.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-e <var>editor</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--editor=<var>editor</var></code>
+</dt>
+<dd>
+<p>
+Specify an editor that is used to edit commands.
+</p>
+<div class="paragraph"><p>If this option is not specified, the value of the
+<a href="params.html#sv-fcedit"><code>FCEDIT</code> variable</a> is used.
+If the variable is not set either, <code>ed</code> is used.</p></div>
+</dd>
+<dt class="hdlist1">
+<code>-l</code>
+</dt>
+<dt class="hdlist1">
+<code>--list</code>
+</dt>
+<dd>
+<p>
+Print command history entries.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--no-numbers</code>
+</dt>
+<dd>
+<p>
+Don&#8217;t print entry numbers when printing history entries.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-q</code>
+</dt>
+<dt class="hdlist1">
+<code>--quiet</code>
+</dt>
+<dd>
+<p>
+Don&#8217;t print commands before executing.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--reverse</code>
+</dt>
+<dd>
+<p>
+Reverse the order of command entries in the range.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s</code>
+</dt>
+<dt class="hdlist1">
+<code>--silent</code>
+</dt>
+<dd>
+<p>
+Execute commands without editing them.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose</code>
+</dt>
+<dd>
+<p>
+Print execution time before each history entry when printing.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>start</var> and <var>end</var>
+</dt>
+<dd>
+<p>
+The <var>start</var> and <var>end</var> operands specify a range of command history entries
+that are executed or printed.
+If one of the operands is an integer, it is treated as a history entry number.
+A negative integer means the <var>n</var>th most recent entry where <var>n</var> is the
+absolute value of the integer.
+If one of the operands is not an integer, it is treated as part of a command
+string: the most recent entry that starts with the string is selected as the
+start or end of the range.
+</p>
+<div class="paragraph"><p>If the first entry of the range that is specified by <var>start</var> is newer than
+the last entry of the range that is specified by <var>end</var>, the range is
+reversed as if the <code>-r</code> (<code>--reverse</code>) option was specified.
+(If the option is already specified, it is cancelled.)</p></div>
+<div class="paragraph"><p>The default values for <var>start</var> and <var>end</var> are:</p></div>
+<div class="tableblock">
+<table rules="all"
+width="50%"
+frame="border"
+cellspacing="0" cellpadding="4">
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+<thead>
+<tr>
+<th align="left" valign="top">          </th>
+<th align="left" valign="top">with <code>-l</code> </th>
+<th align="left" valign="top">without <code>-l</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left" valign="top"><p class="table"><var>start</var></p></td>
+<td align="left" valign="top"><p class="table">-16</p></td>
+<td align="left" valign="top"><p class="table">-1</p></td>
+</tr>
+<tr>
+<td align="left" valign="top"><p class="table"><var>end</var></p></td>
+<td align="left" valign="top"><p class="table">-16</p></td>
+<td align="left" valign="top"><p class="table">same as <var>start</var></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</dd>
+<dt class="hdlist1">
+<var>old</var>=<var>new</var>
+</dt>
+<dd>
+<p>
+An operand of this format replaces part of the command string.
+If the command string contains <var>old</var>, it is replaced with <var>new</var> and the
+new string is executed.
+Only the first occurrence of <var>old</var> is replaced.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If commands was executed, the exit status of the fc built-in is that of the
+last executed command.
+Otherwise, the exit status is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The fc built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard does not define the <code>-q</code> (<code>--quiet</code>) or <code>-v</code> (<code>--verbose</code>)
+options, so they cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>Command history cannot be modified during <a href="lineedit.html">line-editing</a>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

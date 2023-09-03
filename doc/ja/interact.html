@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Yash の対話モードについて" />
+<title>対話モード</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>対話モード</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>対話モード</dfn>は、利用者が直接シェルを操作することを意図したモードです。&#8203;<a href="invoke.html">シェルの起動</a>時に <code>-i</code> オプションを指定した場合 (その他対話モードが有効になる条件が満たされている場合)、シェルは対話モードになります。シェルが起動した後は、そのシェルの対話モードのオン・オフを切り替えることはできません。</p></div>
+<div class="paragraph"><p>対話モードが有効な時……</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="invoke.html#init">シェルの初期化</a>時に初期化スクリプトを読み込んで実行します。
+</p>
+</li>
+<li>
+<p>
+コマンドを読み込む際に<a href="#mailcheck">メールチェック</a>を行い、<a href="#prompt">プロンプト</a>を表示します。&#8203;<a href="job.html">ジョブ制御</a>が有効ならジョブの状態変化も表示します。端末の種類によっては&#8203;<a href="lineedit.html">行編集</a>が使えます。
+</p>
+</li>
+<li>
+<p>
+実行したコマンドは自動的に<a href="#history">コマンド履歴</a>に登録されます。
+</p>
+</li>
+<li>
+<p>
+実行したコマンドが SIGINT/SIGPIPE 以外のシグナルによって中断されたとき、シェルはそのことを示す警告メッセージを標準エラーに出力します。
+</p>
+</li>
+<li>
+<p>
+<a href="redir.html#file">ファイルのリダイレクト</a>の対象ファイルを指示するトークンに対して&#8203;<a href="expand.html#glob">パス名展開</a>を行います。
+</p>
+</li>
+<li>
+<p>
+コマンド解釈・実行時に文法エラーや展開エラーが発生してもシェルは終了しません。(<a href="exec.html#exit">シェルの終了</a>を参照)
+</p>
+</li>
+<li>
+<p>
+SIGINT, SIGTERM, SIGQUIT シグナルを受けても、シェルは終了しません。
+</p>
+</li>
+<li>
+<p>
+シグナル受信時の挙動がシェルの起動時に最初から 『無視』 に設定されていても <a href="_trap.html">trap 組込みコマンド</a>でシグナル受信時の挙動を変更できます。
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#special">特殊パラメータ</a> <code>-</code> の値に <code>i</code> が含まれます。
+</p>
+</li>
+<li>
+<p>
+シェル実行中に <a href="params.html#sv-lc_ctype"><code>LC_CTYPE</code> 変数</a>の値が変わった時、それを直ちにシェルのロケール情報に反映します。(<a href="posix.html">POSIX 準拠モード</a>を除く)
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html#so-exec">Exec オプション</a>が無効な時でもコマンドを実行します。
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html#so-ignoreeof">Ignore-eof オプション</a>が効果を発揮します。
+</p>
+</li>
+<li>
+<p>
+<a href="_exit.html">Exit 組込みコマンド</a>でシェルを終了しようとした時、停止している&#8203;<a href="job.html">ジョブ</a>があれば、シェルは警告を表示してすぐには終了しません。このときは続けざまにもう一度 exit コマンドを実行すると本当にシェルを終了させることができます。シェルへの入力が終わりに達した場合も同様です。
+</p>
+</li>
+<li>
+<p>
+<a href="_suspend.html">Suspend 組込みコマンド</a>でシェルを停止させようとした時、シェルがセッションリーダーならエラーを出力して停止しません。
+</p>
+</li>
+<li>
+<p>
+<a href="_dot.html">ドット組込みコマンド</a>で読み込むスクリプトファイルが見つからなくても、シェルは終了しません。
+</p>
+</li>
+<li>
+<p>
+<a href="_exec.html">Exec 組込みコマンド</a>でコマンドの実行に失敗したときでもシェルは終了しません。(<a href="posix.html">POSIX 準拠モード</a>のときを除く)
+</p>
+</li>
+<li>
+<p>
+<a href="_wait.html">Wait 組込みコマンド</a>で待っているジョブが終了したとき、そのことを示すメッセージを出力します。(<a href="job.html">ジョブ制御</a>が有効な時のみ。&#8203;<a href="posix.html">POSIX 準拠モード</a>を除く)
+</p>
+</li>
+<li>
+<p>
+<a href="_read.html">Read 組込みコマンド</a>が二行目以降を読むときプロンプトを出します。
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="prompt">プロンプト</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>対話モードでは、シェルはコマンドの入力を読み取る直前に<dfn>プロンプト</dfn>を標準エラーに出力します。プロンプトの内容は <a href="params.html#sv-ps1"><code>PS1</code> 変数</a>で指定します。ただし、複数行にわたるコマンドを読み取る際、二行目以降の読み取りには <code>PS1</code> ではなく <a href="params.html#sv-ps2"><code>PS2</code> 変数</a>の値がプロンプトとして表示されます。</p></div>
+<div class="paragraph"><p>プロンプトの表示の際には、まず <code>PS1</code> (または <code>PS2</code>) 変数の値が&#8203;<a href="expand.html#params">パラメータ展開</a>・&#8203;<a href="expand.html#cmdsub">コマンド置換</a>・&#8203;<a href="expand.html#arith">数式展開</a>で展開されます (ただし POSIX によればパラメータ展開だけが行われることになっています)。この展開後の値は以下の通り解釈され、その結果がプロンプトとして標準エラーに出力されます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では、値に含まれる <code>!</code> はこれから入力しようとしているコマンドの<a href="#history">履歴</a>番号に変換されます。感嘆符そのものをプロンプトに表示させるには <code>!!</code> と二つ続けて書きます。これ以外の文字はプロンプトにそのまま表示されます。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードでないときは、バックスラッシュで始まる以下の記法が解釈されます。これらの記法以外の文字はそのままプロンプトに表示されます。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\a</code>
+</dt>
+<dd>
+<p>
+ベル文字 (ASCII コード番号 7)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\e</code>
+</dt>
+<dd>
+<p>
+エスケープ文字 (ASCII コード番号 27)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\j</code>
+</dt>
+<dd>
+<p>
+現在シェルが抱えている&#8203;<a href="job.html">ジョブ</a>の数
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\n</code>
+</dt>
+<dd>
+<p>
+改行文字 (ASCII コード番号 10)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\r</code>
+</dt>
+<dd>
+<p>
+復帰文字 (ASCII コード番号 13)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\!</code>
+</dt>
+<dd>
+<p>
+これから入力しようとしているコマンドの<a href="#history">履歴</a>番号
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\$</code>
+</dt>
+<dd>
+<p>
+シェルの実効ユーザ ID が 0 のときは <code>&#x23;</code>、それ以外の時は <code>$</code>。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\\</code>
+</dt>
+<dd>
+<p>
+バックスラッシュ (<code>\</code>)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\[</code>
+</dt>
+<dt class="hdlist1">
+<code>\]</code>
+</dt>
+<dd>
+<p>
+この二つの記法は、実際には端末に表示されないプロンプトの一部分を指示するのに使います。<code>\[</code> と <code>\]</code> で囲んだ部分は、&#8203;<a href="lineedit.html">行編集</a>がプロンプトの文字数を計算する際に、文字数に数えられません。端末に表示されないエスケープシーケンスなどをプロンプトに含める際は、その部分を <code>\[</code> と <code>\]</code> で囲んでください。この指定を怠ると、行編集の表示が乱れることがあります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\f<var>フォント指定</var>.</code>
+</dt>
+<dd>
+<p>
+<a href="lineedit.html">行編集</a>を使用している場合、この記法は端末のフォントの表示を変更するための特殊な文字の羅列に変換されます (端末が対応している場合のみ)。行編集を使用していない場合や端末が対応していない場合は、この記法は単に無視されます。<var>フォント指定</var>の部分にはフォントの種類を指定するための以下の文字を指定します。
+</p>
+<div class="openblock">
+<div class="content">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>k</code>
+</dt>
+<dd>
+<p>
+文字の色を黒にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>r</code>
+</dt>
+<dd>
+<p>
+文字の色を赤にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>g</code>
+</dt>
+<dd>
+<p>
+文字の色を緑にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>y</code>
+</dt>
+<dd>
+<p>
+文字の色を黄にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>b</code>
+</dt>
+<dd>
+<p>
+文字の色を青にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>m</code>
+</dt>
+<dd>
+<p>
+文字の色をマゼンタにする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>c</code>
+</dt>
+<dd>
+<p>
+文字の色をシアンにする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>w</code>
+</dt>
+<dd>
+<p>
+文字の色を白にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>K</code>
+</dt>
+<dd>
+<p>
+背景の色を黒にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>R</code>
+</dt>
+<dd>
+<p>
+背景の色を赤にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>G</code>
+</dt>
+<dd>
+<p>
+背景の色を緑にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>Y</code>
+</dt>
+<dd>
+<p>
+背景の色を黄にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>B</code>
+</dt>
+<dd>
+<p>
+背景の色を青にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>M</code>
+</dt>
+<dd>
+<p>
+背景の色をマゼンタにする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>C</code>
+</dt>
+<dd>
+<p>
+背景の色をシアンにする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>W</code>
+</dt>
+<dd>
+<p>
+背景の色を白にする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>t</code>
+</dt>
+<dd>
+<p>
+文字または背景の色を明るくする (上記の文字・背景の色を変更する文字の直後でのみ有効)
+</p>
+</dd>
+<dt class="hdlist1">
+<code>d</code>
+</dt>
+<dd>
+<p>
+文字と背景の色を標準状態に戻す
+</p>
+</dd>
+<dt class="hdlist1">
+<code>s</code>
+</dt>
+<dd>
+<p>
+文字を目立たせる
+</p>
+</dd>
+<dt class="hdlist1">
+<code>u</code>
+</dt>
+<dd>
+<p>
+文字に下線を引く
+</p>
+</dd>
+<dt class="hdlist1">
+<code>v</code>
+</dt>
+<dd>
+<p>
+文字の色を反転させる
+</p>
+</dd>
+<dt class="hdlist1">
+<code>b</code>
+</dt>
+<dd>
+<p>
+文字を点滅させる
+</p>
+</dd>
+<dt class="hdlist1">
+<code>i</code>
+</dt>
+<dd>
+<p>
+文字の色を暗くする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>o</code>
+</dt>
+<dd>
+<p>
+文字を太く目立たせる
+</p>
+</dd>
+<dt class="hdlist1">
+<code>x</code>
+</dt>
+<dd>
+<p>
+文字を見えなくする
+</p>
+</dd>
+<dt class="hdlist1">
+<code>D</code>
+</dt>
+<dd>
+<p>
+色と装飾を標準状態に戻す
+</p>
+</dd>
+</dl></div>
+</div></div>
+<div class="paragraph"><p>文字と背景の色は最終的に端末によって決まるため、実際にはここで指定した色と異なる色で表示されることがあります。</p></div>
+</dd>
+</dl></div>
+<div class="paragraph"><p>入力するコマンドの右側に表示されるプロンプトを指定することもできます (<dfn>右プロンプト</dfn>)。<code>PS1</code>/<code>PS2</code> 変数に対応する右プロンプトは <a href="params.html#sv-ps1r"><code>PS1R</code></a>/<a href="params.html#sv-ps2r"><code>PS2R</code></a> 変数で指定します。</p></div>
+<div class="paragraph"><p>また、プロンプトのフォントだけでなく、入力するコマンドのフォントを変えることもできます。&#8203;<a href="params.html#sv-ps1s"><code>PS1S</code></a> (または <a href="params.html#sv-ps2s"><code>PS2S</code></a>) 変数に上述のフォントを指定するシーケンスを指定することで、コマンド入力時のコマンドのフォントが変わります。
+<a href="lineedit.html#prediction">コマンドライン推定</a>を使用している場合は、推定された部分のフォントを <a href="params.html#sv-ps1p"><code>PS1P</code></a> (または <a href="params.html#sv-ps2p"><code>PS2P</code></a>) 変数で変えられます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>でないときは、上記の変数は名前に <code>YASH_</code> を付けた名前 (例えば <a href="params.html#sv-yash_ps1"><code>YASH_PS1</code></a>) で定義することもできます。これにより、POSIX 準拠モードとは異なるプロンプトを使い分けることができます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>でないときは、プロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値がコマンドとして実行されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="history">コマンド履歴</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>コマンド履歴</dfn>は実行したコマンドを記録し後で再び実行することのできる機能です。対話モードでシェルが読み込んだコマンドは自動的にコマンド履歴に記録されます。履歴に記録したコマンドは&#8203;<a href="lineedit.html">行編集</a>で呼び出して再実行することができます。また <a href="_fc.html">fc</a>・&#8203;<a href="_history.html">history</a> 組込みコマンドで履歴のコマンドを再実行したり編集したりすることもできます。</p></div>
+<div class="paragraph"><p>コマンドは行単位で履歴に記録されます。空白以外の文字を一切含まない行は履歴には記録されません。また <a href="_set.html#so-histspace">hist-space オプション</a>が有効なときは空白で始まる行は履歴に記録されません。</p></div>
+<div class="paragraph"><p>コマンド履歴の内容は <a href="params.html#sv-histfile"><code>HISTFILE</code> 変数</a>で指定されるファイルに保存されます。対話モードのシェルの起動後に履歴関連の機能が初めて使用されるとき、<code>HISTFILE</code> 変数の値をファイル名とみなしてファイルを開きます。既にファイルに履歴データが保存されている場合は、それが読み込まれます。ファイルが存在しないか内容が履歴データではない場合は、新しい履歴ファイルに初期化されます。<code>HISTFILE</code> 変数が存在しない場合やファイルを開くことができない場合は履歴はファイルに保存されませんが、履歴機能自体は使用できます。</p></div>
+<div class="paragraph"><p>シェルが記録するコマンドの数は <a href="params.html#sv-histsize"><code>HISTSIZE</code> 変数</a>で指定します。履歴の件数がこの変数の値を超えると順次古いデータから削除されます。この変数が存在しない場合または値が自然数でない場合は、履歴は 500 件まで記録されます。</p></div>
+<div class="paragraph"><p><code>HISTFILE</code> および <code>HISTSIZE</code> 変数は履歴機能が初めて使用されるときにのみ参照され、それ以降は変数を再設定しても履歴機能の動作に影響しません。履歴機能が利用されるときというのは、具体的には以下のタイミングです。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="_fc.html">Fc</a> または <a href="_history.html">history</a> 組込みコマンドを実行したとき
+</p>
+</li>
+<li>
+<p>
+<a href="lineedit.html">行編集</a>を使用してコマンドを入力するとき (履歴データを行編集の中で使わなくても履歴機能は使われます)
+</p>
+</li>
+<li>
+<p>
+入力したコマンドが履歴に登録されるとき
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>このため <code>HISTFILE</code> および <code>HISTSIZE</code> 変数は原則として&#8203;<a href="invoke.html#init">シェルの起動時</a>に読み込まれる初期化スクリプトの中で設定する必要があります。</p></div>
+<div class="paragraph"><p>複数のシェルプロセスが同じ履歴ファイルを使用している場合、これらのシェルは一つの履歴データを共有します。このとき例えばあるシェルプロセスで実行したコマンドを別のシェルプロセスで実行することができます。同じ履歴を使用しているシェルの間で <code>HISTSIZE</code> が異なっていると履歴が正しく共有されないので、<code>HISTSIZE</code> の値は統一するようにしてください。</p></div>
+<div class="paragraph"><p>Yash は独自の形式の履歴ファイルを使用しているため、履歴ファイルを他の種類のシェルと共用することはできません。</p></div>
+<div class="paragraph"><p>履歴に同じコマンドを記録する無駄を解消するため、&#8203;<a href="params.html#sv-histrmdup"><code>HISTRMDUP</code> 変数</a>を使用することができます。新しくコマンドを履歴に記録しようとする際、すでに同じコマンドが最近の <var>$HISTRMDUP</var> 件の履歴データの中に記録されていれば、その既に記録されているコマンドは履歴から削除されます。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="mailcheck">メールチェック</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>対話モードのシェルには、電子メールが届いたらそれを知らせる機能があります。これは所定のファイルの更新日時を調べて、更新日時が変わっていたらメッセージを表示するというものです。受信したメールのデータが保存されるファイルをチェック対象として指定しておくことで、メールを受信したときにメッセージが表示されるようになります。</p></div>
+<div class="paragraph"><p>ファイル更新のチェックはシェルがプロンプトを出す直前に行います。チェックを行う間隔を <a href="params.html#sv-mailcheck"><code>MAILCHECK</code> 変数</a>で指定することができます。この変数で指定した秒数が経過するごとに、シェルはプロンプトを出す直前にチェックを行います。この変数の値が 0 になっている場合は、プロンプトを出す直前に毎回チェックを行います。また変数の値が 0 以上の整数でない場合は、チェックは一切行いません。</p></div>
+<div class="paragraph"><p>更新日時をチェックする対象のファイルは <a href="params.html#sv-mail"><code>MAIL</code> 変数</a>で指定します。この変数にチェックしたいファイルのパス名を指定しておくと、シェルはそのファイルの更新日時をチェックします。ファイルの更新日時が前回チェックしたときと変わっていたら、新着メールを知らせるメッセージを標準エラーに出力します。(ただしファイルが空のときはメッセージは出ません (<a href="posix.html">POSIX 準拠モード</a>のときを除く))</p></div>
+<div class="paragraph"><p>複数のファイルをチェックの対象にしたい場合やメッセージを自分で指定したい場合は、<code>MAIL</code> 変数の代わりに <a href="params.html#sv-mailpath"><code>MAILPATH</code> 変数</a>を使うことができます。<code>MAILPATH</code> 変数が設定されている場合は、<code>MAIL</code> 変数の設定は無視されます。<code>MAILPATH</code> 変数の値には、一つ以上のファイルのパス名をコロン (<code>:</code>) で区切って指定することができます。シェルは毎回のチェックでそれぞれのファイルの更新日時を調べ、ファイルが更新されていたらメッセージを表示します。メッセージを自分で指定するには、パス名の直後にパーセント (<code>%</code>) を置き、続けて表示させたいメッセージを置きます。それぞれのファイルごとに異なるメッセージを指定することができます。(パーセントをパス名とメッセージとの区切りではなくパス名の一部としたい場合はパーセントをバックスラッシュで&#8203;<a href="syntax.html#quotes">クォート</a>してください) パーセントの後に指定されたメッセージは、表示の前に&#8203;<a href="expand.html#params">パラメータ展開</a>されます。</p></div>
+<div class="paragraph"><p>例えば <code>MAILPATH</code> 変数の値が
+<code>/foo/mail%New mail!:/bar/mailbox%You've got mail:/baz/mail\%data</code>
+だとすると、ファイル /foo/mail が更新されたときは <code>New mail!</code> が、/bar/mailbox が更新されたときは <code>You've got mail</code> が、/baz/mail%data が更新されたときはデフォルトのメッセージが表示されます。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

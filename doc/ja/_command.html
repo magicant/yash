@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Command 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Command 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Command 組込みコマンド</dfn>はコマンドを実行します。またコマンドの種類を特定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>command [-befp] <var>コマンド</var> [<var>引数</var>&#8230;]</code>
+</p>
+</li>
+<li>
+<p>
+<code>command -v|-V [-abefkp] <var>コマンド</var>&#8230;</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><code>-v</code> (<code>--identify</code>) オプションならびに <code>-V</code> (<code>--verbose-identify</code>) オプションを付けずに実行すると、command コマンドは与えられた<var>コマンド</var>を与えられた<var>引数</var>で実行します。コマンドの実行の仕方は&#8203;<a href="exec.html#simple">単純コマンドの実行</a>の最後のステップに準じますが、&#8203;<a href="exec.html#search">コマンドの検索</a>では外部コマンド・組込みコマンド・関数の内オプションで指定したものしか検索しません。またコマンドが&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>の場合、コマンドのオプションやオペランドの使い方が間違っていたりリダイレクトエラーや代入エラーが起きたりしてもシェルは終了しません。</p></div>
+<div class="paragraph"><p><code>-v</code> (<code>--identify</code>) オプションまたは <code>-V</code> (<code>--verbose-identify</code>) オプションを付けて実行すると、command コマンドは与えられた<var>コマンド</var>の種類とパスを特定しそれを標準出力に出力します。<var>コマンド</var>は&#8203;<a href="syntax.html#aliases">エイリアス</a>や&#8203;<a href="exec.html#function">関数</a>であっても構いません。</p></div>
+<div class="paragraph"><p><code>-v</code> (<code>--identify</code>) オプションを付けて実行したときの出力は以下のようになります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="exec.html#search">コマンドの検索</a>の結果見つかったコマンドおよびその他の外部コマンドは、その絶対パスを出力します。
+</p>
+</li>
+<li>
+<p>
+コマンドの検索によらず実行される組込みコマンドや関数は、単にその名前を出力します。
+</p>
+</li>
+<li>
+<p>
+<a href="syntax.html#tokens">予約語</a>は、単にその名前を出力します。
+</p>
+</li>
+<li>
+<p>
+エイリアスは、コマンドとして実行可能な形式でその名前と値を出力します。
+</p>
+</li>
+<li>
+<p>
+コマンドが見つからなかった場合は、何も出力しません。(終了ステータスが非 0 になります)
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p><code>-V</code> (<code>--verbose-identify</code>) オプション使用時は、出力の形式が人間にとってより読みやすくなります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-a</code>
+</dt>
+<dt class="hdlist1">
+<code>--alias</code>
+</dt>
+<dd>
+<p>
+<var>コマンド</var>として&#8203;<a href="syntax.html#aliases">エイリアス</a>を検索の対象にします。 <code>-v</code> (<code>--identify</code>) または <code>-V</code> (<code>--verbose-identify</code>) オプションと一緒に使う必要があります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-b</code>
+</dt>
+<dt class="hdlist1">
+<code>--builtin-command</code>
+</dt>
+<dd>
+<p>
+<var>コマンド</var>として組込みコマンドを検索の対象にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--external-command</code>
+</dt>
+<dd>
+<p>
+<var>コマンド</var>として外部コマンドを検索の対象にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--function</code>
+</dt>
+<dd>
+<p>
+<var>コマンド</var>として関数を検索の対象にします。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-k</code>
+</dt>
+<dt class="hdlist1">
+<code>--keyword</code>
+</dt>
+<dd>
+<p>
+<var>コマンド</var>として予約語を検索の対象にします。 <code>-v</code> (<code>--identify</code>) または <code>-V</code> (<code>--verbose-identify</code>) オプションと一緒に使う必要があります。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--standard-path</code>
+</dt>
+<dd>
+<p>
+<a href="exec.html#search">コマンドの検索</a>において、&#8203;<a href="params.html#sv-path"><code>PATH</code> 変数</a>の代わりに、標準のコマンドをすべて含むようなシステム固有のデフォルトパスを用いて外部コマンドを検索します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code>
+</dt>
+<dt class="hdlist1">
+<code>--identify</code>
+</dt>
+<dd>
+<p>
+与えられた<var>コマンド</var>の種類とパスを特定し、簡単な形式で標準出力に出力します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-V</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose-identify</code>
+</dt>
+<dd>
+<p>
+与えられた<var>コマンド</var>の種類とパスを特定し、人間にとって読みやすい形式で標準出力に出力します。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p><code>-a</code> (<code>--alias</code>), <code>-b</code> (<code>--builtin-command</code>), <code>-e</code> (<code>--external-command</code>), <code>-f</code> (<code>--function</code>), <code>-k</code> (<code>--keyword</code>) オプションのどれも指定しなかった場合は、以下のオプションを指定したものとみなします。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-v</code> (<code>--identify</code>) あるいは <code>-V</code> (<code>--verbose-identify</code>) オプションを指定していないとき
+</dt>
+<dd>
+<p>
+<code>-b -e</code>
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code> (<code>--identify</code>) または <code>-V</code> (<code>--verbose-identify</code>) オプションを指定しているとき
+</dt>
+<dd>
+<p>
+<code>-a -b -e -f -k</code>
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>コマンド</var>
+</dt>
+<dd>
+<p>
+実行するまたは種類を特定するコマンドの名前です。
+</p>
+</dd>
+<dt class="hdlist1">
+<var>引数</var>&#8230;
+</dt>
+<dd>
+<p>
+実行するコマンドに渡すコマンドライン引数です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-v</code> (<code>--identify</code>) あるいは <code>-V</code> (<code>--verbose-identify</code>) オプションを指定していないとき
+</dt>
+<dd>
+<p>
+実行したコマンドの終了ステータス
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-v</code> (<code>--identify</code>) または <code>-V</code> (<code>--verbose-identify</code>) オプションを指定しているとき
+</dt>
+<dd>
+<p>
+エラーがない限り 0
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Command コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX に規定のあるオプションは <code>-p</code>, <code>-v</code>, <code>-V</code> だけです。これ以外のオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。また POSIX 準拠モードでは <code>-v</code> または <code>-V</code> オプションを使用するとき<var>コマンド</var>はちょうど一つしか指定できません。</p></div>
+<div class="paragraph"><p>POSIX は <code>-v</code> オプションと <code>-V</code> オプションを同時に指定することを認めていません。Yash ではこれら二つのオプションを両方指定すると最後に指定したものが有効になります。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

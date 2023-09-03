@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Jobs built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Jobs built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>jobs built-in</dfn> reports job status.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>jobs [-lnprs] [<var>job</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The jobs built-in prints information of <a href="job.html">jobs</a> the shell is
+currently controlling.</p></div>
+<div class="paragraph"><p>By default, the following information is printed for each job, line by line:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+the job number,
+</p>
+</li>
+<li>
+<p>
+the <code>&#43;</code> or <code>-</code> symbol if the job is the current or previous job,
+  respectively,
+</p>
+</li>
+<li>
+<p>
+the status, and
+</p>
+</li>
+<li>
+<p>
+the command string.
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-l</code>
+</dt>
+<dt class="hdlist1">
+<code>--verbose</code>
+</dt>
+<dd>
+<p>
+Print the process ID, status, and command string for each process in the jobs.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-n</code>
+</dt>
+<dt class="hdlist1">
+<code>--new</code>
+</dt>
+<dd>
+<p>
+Print new jobs only: jobs whose status has never been reported since the
+status changed.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p</code>
+</dt>
+<dt class="hdlist1">
+<code>--pgid-only</code>
+</dt>
+<dd>
+<p>
+Print process group IDs of jobs only.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--running-only</code>
+</dt>
+<dd>
+<p>
+Print running jobs only.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-s</code>
+</dt>
+<dt class="hdlist1">
+<code>--stopped-only</code>
+</dt>
+<dd>
+<p>
+Print stopped jobs only.
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>job</var>s
+</dt>
+<dd>
+<p>
+The <a href="job.html#jobid">job IDs</a> of jobs to be reported.
+When no <var>job</var> is specified, all jobs under the shell&#8217;s control are reported.
+</p>
+<div class="paragraph"><p>The percent sign (<code>%</code>) at the beginning of a job ID can be omitted if the
+shell is not in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the jobs built-in is zero unless there is any error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The jobs built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines the <code>-l</code> and <code>-p</code> options only:
+other options cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.
+In the POSIXly-correct mode, the effect of the <code>-l</code> option is different in
+that status is reported for each job rather than for each process.</p></div>
+<div class="paragraph"><p>The process group ID of a job executed by yash is equal to the process ID of
+the first command of the <a href="syntax.html#pipelines">pipeline</a> that forms the
+job.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

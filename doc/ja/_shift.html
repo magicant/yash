@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Shift 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Shift 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Shift 組込みコマンド</dfn>は&#8203;<a href="params.html#positional">位置パラメータ</a>または&#8203;<a href="params.html#arrays">配列</a>の要素のいくつかを削除します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>shift [-A <var>配列名</var>] [<var>個数</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Shift コマンドは&#8203;<a href="params.html#positional">位置パラメータ</a>または&#8203;<a href="params.html#arrays">配列</a>の要素のうち最初のいくつかを削除します。削除するパラメータ・要素の数はオペランドで指定します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A <var>配列</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--array=<var>配列</var></code>
+</dt>
+<dd>
+<p>
+位置パラメータではなく<var>配列</var>の最初の要素を削除します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>個数</var>
+</dt>
+<dd>
+<p>
+削除する位置パラメータまたは配列の要素の個数を指示する整数です。
+</p>
+<div class="paragraph"><p>実際の位置パラメータ・要素の個数より大きい数を指定するとエラーになります。省略すると 1 を指定したものとみなします。負数を指定すると最初ではなく最後の位置パラメータまたは配列要素を削除します。</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り shift コマンドの終了ステータスは 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Shift コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>位置パラメータの個数は&#8203;<a href="params.html#special">特殊パラメータ <code>&#35;</code></a> によって知ることができます。配列の要素の個数は <code>$&#123;<var>配列</var>[&#35;]}</code> によって知ることができます。</p></div>
+<div class="paragraph"><p>POSIX には <code>-A</code> (<code>--array</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>POSIX 準拠モードでは負の<var>個数</var>は指定できません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

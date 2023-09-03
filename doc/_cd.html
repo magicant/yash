@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Cd built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Cd built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>cd built-in</dfn> changes the working directory.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>cd [-L|-P] [<var>directory</var>]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The cd built-in changes the working directory to the directory specified by
+the operand.</p></div>
+<div class="paragraph"><p>The pathname of the new working directory is assigned to the
+<a href="params.html#sv-pwd"><code>PWD</code> variable</a>, whose previous value is again
+assigned to the <a href="params.html#sv-oldpwd"><code>OLDPWD</code> variable</a>.
+The new <code>PWD</code> value will not contain any <code>.</code> or <code>..</code> components except when
+the shell is in the <a href="posix.html">POSIXly-correct mode</a> and the new pathname
+begins with <code>/..</code>.</p></div>
+<div class="paragraph"><p>If <var>directory</var> is a relative path that does not start with &#8216;.&#8217; or &#8216;..&#8217;,
+paths in the <a href="params.html#sv-cdpath"><code>CDPATH</code> variable</a> are searched to
+find a new working directory.
+The search is done in a manner similar to the last step of
+<a href="exec.html#search">command search</a>, but a directory is sought instead of an
+executable regular file.
+If a new working directory was found from <code>CDPATH</code>, its pathname is printed to
+the standard output.
+If no applicable directory was found in the search, <var>directory</var> is simply
+treated as a pathname relative to the current working directory.</p></div>
+<div class="paragraph"><p>If the working directory was successfully changed, the value of the
+<a href="params.html#sv-yash_after_cd"><code>YASH_AFTER_CD</code> variable</a> is executed as a
+command unless the shell is in the <a href="posix.html">POSIXly-correct mode</a>.
+If the variable is an <a href="params.html#arrays">array</a>, its values are executed
+iteratively (cf. <a href="_eval.html#iter">eval built-in</a>).</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">Options</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-L</code>
+</dt>
+<dt class="hdlist1">
+<code>--logical</code>
+</dt>
+<dd>
+<p>
+Symbolic links in the pathname of the new working directory are not resolved.
+The new value of the <code>PWD</code> may include pathname components that are symbolic
+links.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-P</code>
+</dt>
+<dt class="hdlist1">
+<code>--physical</code>
+</dt>
+<dd>
+<p>
+Symbolic links in the pathname of the new working directory are resolved.
+The new value of the <code>PWD</code> variable never includes pathname components that
+are symbolic links.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>--default-directory=<var>directory</var></code>
+</dt>
+<dd>
+<p>
+If this option is specified and the <var>directory</var> operand is omitted, the
+argument to this option is used for the <var>directory</var> operand.
+If the <var>directory</var> operand is specified, this option is ignored.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>The <code>-L</code> (<code>--logical</code>) and <code>-P</code> (<code>--physical</code>) options are mutually exclusive:
+only the last specified one is effective.
+If neither is specified, <code>-L</code> is assumed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>directory</var>
+</dt>
+<dd>
+<p>
+The pathname of the new working directory.
+</p>
+<div class="paragraph"><p>If <var>directory</var> is a single hyphen (&#8216;-&#8217;), the value of the
+<a href="params.html#sv-oldpwd"><code>OLDPWD</code> variable</a> is assumed for the new directory
+pathname, which is printed to the standard output.</p></div>
+<div class="paragraph"><p>If <var>directory</var> is omitted, the working directory is changed to the directory
+specified by the <code>--default-directory=&#8230;</code> option. If that option is not
+specified either, the default is the <a href="params.html#sv-home">home directory</a>.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The exit status of the cd built-in is zero if the working directory was
+successfully changed and non-zero if there was an error.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The cd built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard does not define the use of the <code>YASH_AFTER_CD</code> variable or
+the <code>--default-directory=&#8230;</code> option.
+The standard does not allow using an option with a single hyphen operand.</p></div>
+<div class="paragraph"><p>The exit status of the commands in the <code>YASH_AFTER_CD</code> variable does not
+affect that of the cd built-in.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

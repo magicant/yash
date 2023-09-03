@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Suspend 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Suspend 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Suspend 組込みコマンド</dfn>はシェルを停止 (サスペンド) します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>suspend [-f]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Suspend コマンドはシェルプロセスが属するプロセスグループ内のすべてのプロセスに対して SIGSTOP シグナルを送信します。これにより、シグナルを送られた各プロセス (シェル自身を含む) は停止 (サスペンド) 状態になります。停止状態になったプロセスは SIGCONT シグナルを受信すると実行を再開します。</p></div>
+<div class="paragraph"><p>シェルが&#8203;<a href="interact.html">対話モード</a>で、さらにシェルプロセスのプロセスグループ ID がセッションリーダーのプロセス ID に等しいときは、<code>-f</code> (<code>--force</code>) オプションを付けない限りシェルは警告を表示し、シグナルを送信しません。これはシェルが停止した後実行を再開させることができなくなってしまうのを未然に防ぐためです。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-f</code>
+</dt>
+<dt class="hdlist1">
+<code>--force</code>
+</dt>
+<dd>
+<p>
+警告を無視してシェルを停止します。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Suspend コマンドの終了ステータスは、SIGSTOP シグナルをシェルに正しく送信できたときは 0、それ以外なら非 0 です。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Suspend コマンドは&#8203;<a href="builtin.html#types">任意組込みコマンド</a>です。
+POSIX では suspend コマンドの動作は規定されていません。
+このコマンドは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-04-22 01:39:14 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

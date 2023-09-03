@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="description" content="Frequently asked questions and troubleshooting for yash." />
+<title>Frequently asked questions and troubleshooting</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Frequently asked questions and troubleshooting</h1>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="unicode">How can I use Unicode (non-ASCII) characters?</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>You need to set locale environment variables to enable Unicode character
+support.</p></div>
+<div class="paragraph"><p>If the variables have already been configured for your preference, you
+probably don&#8217;t have to do anything. To check the current locale
+configurations, you can use the <code>locale</code> command:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>$ locale
+LANG=
+LC_CTYPE="en_US.utf8"
+LC_NUMERIC="en_US.utf8"
+LC_TIME="en_US.utf8"
+LC_COLLATE="en_US.utf8"
+LC_MONETARY="en_US.utf8"
+LC_MESSAGES="en_US.utf8"
+LC_PAPER="en_US.utf8"
+LC_NAME="en_US.utf8"
+LC_ADDRESS="en_US.utf8"
+LC_TELEPHONE="en_US.utf8"
+LC_MEASUREMENT="en_US.utf8"
+LC_IDENTIFICATION="en_US.utf8"
+LC_ALL=en_US.utf8</code></pre>
+</div></div>
+<div class="paragraph"><p>In this example, the <code>locale</code> command shows that all the locale setting
+categories are configured for the English language, the United States region,
+and the UTF-8 encoding.</p></div>
+<div class="paragraph"><p>If the current configuration does not seem to match your preference, set the
+<code>LC_ALL</code> variable like this:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>export LC_ALL=en_US.utf8</code></pre>
+</div></div>
+<div class="paragraph"><p>If you want to use other languages, regions, or encodings, you have to set the
+variable to a different value. Please consult your OS&#8217;s documentation to learn
+how to configure these variables in detail.</p></div>
+<div class="paragraph"><p>If you want to apply the same configuration every time you start yash, write
+the command in ~/.yashrc or ~/.yash_profile.</p></div>
+<div class="paragraph"><p>If yash still rejects Unicode characters being entered, see the section below
+regarding line-editing.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="lineediting">Line-editing does not work</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>First, type <code>echo $TERM</code> and see if it prints a <em>sane</em> value. <code>xterm</code> is the
+safest value that should work on any existing environment. Colored versions
+like <code>xterm-16color</code> and other terminal types like <code>rxvt</code> and <code>vt100</code> may also
+work. All possible values can be listed by the <code>toe</code> command. It&#8217;s most
+desirable to choose a value that matches the actual terminal type you are
+using, but it might not work if the terminal type you chose is not supported
+on the system on which yash is running. If so, try changing the <code>TERM</code> value
+by <code>export TERM=xterm</code>, for example, to find a value that works.</p></div>
+<div class="paragraph"><p>If line-editing works but you have trouble entering Unicode (non-ASCII)
+characters, try enabling the <a href="lineedit.html#options">le-no-conv-meta</a>
+option by <code>set -o le-no-conv-meta</code>.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

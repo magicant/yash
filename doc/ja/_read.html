@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Read 組込みコマンド</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Read 組込みコマンド</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><dfn>Read 組込みコマンド</dfn>は標準入力から行を読み込み変数に代入します。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">構文</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>read [-Aer] [-P|-p] <var>変数名</var>&#8230;</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">説明</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Read コマンドは標準入力から一行の文字列を読み込み、それを&#8203;<a href="params.html#variables">変数</a>に代入します。</p></div>
+<div class="paragraph"><p><code>-r</code> (<code>--raw-mode</code>) オプションを付けると、行内のバックスラッシュは通常の文字と同様に扱われます。</p></div>
+<div class="paragraph"><p><code>-r</code> (<code>--raw-mode</code>) オプションを付けない場合、読み込んだ文字列の中のバックスラッシュ (<code>\</code>) は&#8203;<a href="syntax.html#quotes">引用符</a>として働きます。バックスラッシュが行末にあるときは行の連結を行います。&#8203;<a href="interact.html">対話モード</a>のシェルが 2 行目以降を読み込むとき、標準入力が端末ならば <a href="params.html#sv-ps2"><code>PS2</code> 変数</a>の値がプロンプトとして出力されます。</p></div>
+<div class="paragraph"><p>読み込んだ文字列は、&#8203;<a href="expand.html#split">単語分割</a>によって分割します。分割後の各文字列が、それぞれオペランドで指定された変数の値に順に設定されます。指定された変数の数より分割結果のほうが多い場合は、最後の変数に残りの分割結果の全てが入ります。分割結果の数より指定された変数のほうが多い場合は、余った変数には空文字列が入ります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="options">オプション</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>-A</code>
+</dt>
+<dt class="hdlist1">
+<code>--array</code>
+</dt>
+<dd>
+<p>
+最後に指定した変数を&#8203;<a href="params.html#arrays">配列</a>にします。分割後の各文字列が配列の要素として設定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--line-editing</code>
+</dt>
+<dd>
+<p>
+読み込みに&#8203;<a href="lineedit.html">行編集</a>を使用します。
+</p>
+<div class="paragraph"><p>行編集が有効になるには以下の条件が全て満たされている必要があります:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+シェルが&#8203;<a href="interact.html">対話モード</a>である。
+</p>
+</li>
+<li>
+<p>
+<a href="_set.html#so-vi">vi</a> または <a href="_set.html#so-emacs">emacs</a> オプションが有効になっている。
+</p>
+</li>
+<li>
+<p>
+標準入力と標準エラーが端末である。
+</p>
+</li>
+</ul></div>
+</dd>
+<dt class="hdlist1">
+<code>-P</code>
+</dt>
+<dt class="hdlist1">
+<code>--ps1</code>
+</dt>
+<dd>
+<p>
+シェルが対話モードで標準入力が端末ならば、(最初の) 行を読み込む前に <a href="params.html#sv-ps1"><code>PS1</code> 変数</a>をプロンプトとしてを表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-p <var>プロンプト</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--prompt=<var>プロンプト</var></code>
+</dt>
+<dd>
+<p>
+シェルが対話モードで標準入力が端末ならば、(最初の) 行を読み込む前に<var>プロンプト</var>を表示します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-r</code>
+</dt>
+<dt class="hdlist1">
+<code>--raw-mode</code>
+</dt>
+<dd>
+<p>
+読み込んだ文字列の中のバックスラッシュを引用符として扱わないようにします。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">オペランド</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>変数名</var>
+</dt>
+<dd>
+<p>
+読み込んだ文字列を格納する変数の名前です。
+</p>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">終了ステータス</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>エラーがない限り read コマンドの終了ステータスは 0 です。</p></div>
+<div class="paragraph"><p>なお、行を完全に読み込む前に入力が終端に達した時は終了ステータスは非 0 になります。</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">補足</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Read コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
+<div class="paragraph"><p>POSIX では <code>-r</code> オプションのみが規定されています。他のオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p><code>PS1</code> 変数をプロンプトとして表示する際、&#8203;<a href="params.html#sv-ps1r"><code>PS1R</code></a> および <a href="params.html#sv-ps1s"><code>PS1S</code></a> 変数も使用されます。 <code>PS2</code> についても同様です。</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+ 2023-05-28 12:39:12 JST
+ 更新
+</div>
+</div>
+</body>
+</html>

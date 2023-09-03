@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Wait built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Wait built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>wait built-in</dfn> waits for jobs to terminate.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>wait [<var>job</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The wait built-in waits for background jobs to terminate.
+If <a href="job.html">job</a> control is enabled, stopped jobs are considered as
+terminated.</p></div>
+<div class="paragraph"><p>The built-in can be used to wait for <a href="syntax.html#async">asynchronous
+commands</a> if job control is disabled.</p></div>
+<div class="paragraph"><p>If the shell receives a signal while the built-in is waiting and if a
+<a href="_trap.html">trap</a> has been set for the signal, then the trap is executed
+and the built-in immediately finishes (without waiting for the jobs).
+If the shell receives a SIGINT signal when job control is enabled, the
+built-in aborts waiting.</p></div>
+<div class="paragraph"><p>If the shell is <a href="interact.html">interactive</a>,
+<a href="job.html">job-controlling</a>, and not in the <a href="posix.html">POSIXly-correct
+mode</a>, the job status is printed when the job is terminated or stopped.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>job</var>
+</dt>
+<dd>
+<p>
+The <a href="job.html#jobid">job ID</a> of the job or the process ID of a process in
+the job.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>If no <var>job</var>s are specified, the built-in waits for all existing jobs.</p></div>
+<div class="paragraph"><p>If the specified job does not exist, the job is considered to have terminated
+with the exit status of 127.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If no <var>job</var>s were specified and the built-in successfully waited for all the
+jobs, the exit status is zero.
+If one or more <var>job</var>s were specified, the exit status is that of the last
+<var>job</var>.</p></div>
+<div class="paragraph"><p>If the built-in was aborted by a signal, the exit status is an integer (&gt;
+128) that denotes the signal.
+If there was any other error, the exit status is between 1 and 126
+(inclusive).</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The wait built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The process ID of the last process of a job can be obtained by the
+<a href="params.html#sp-exclamation"><code>!</code> special parameter</a>.
+You can use the <a href="_jobs.html">jobs built-in</a> as well to obtain process IDs
+of job processes.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>

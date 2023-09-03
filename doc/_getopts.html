@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 9.1.0" />
+<title>Getopts built-in</title>
+<link rel="stylesheet" href="./asciidoc.css" type="text/css" />
+
+
+</head>
+<body class="article">
+<div id="header">
+<h1>Getopts built-in</h1>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p>The <dfn>getopts built-in</dfn> parses command options.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="ulist"><ul>
+<li>
+<p>
+<code>getopts <var>optionlist</var> <var>variable</var> [<var>argument</var>&#8230;]</code>
+</p>
+</li>
+</ul></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="description">Description</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>The getopts built-in parses <a href="builtin.html#argsyntax">single-character
+options</a> that appear in <var>argument</var>s.
+Each time the built-in is invoked, it parses one option and assigns the option
+character to <var>variable</var>.</p></div>
+<div class="paragraph"><p>The <var>optionlist</var> operand is a list of option characters that should be
+accepted by the parser.
+In <var>optionlist</var>, an option that takes an argument should be specified as the
+option character followed by a colon.
+For example, if you want the <code>-a</code>, <code>-b</code> and <code>-c</code> options to be parsed and the
+<code>-b</code> option to take an argument, then <var>optionlist</var> should be <code>ab:c</code>.</p></div>
+<div class="paragraph"><p>When an option that takes an argument is parsed, the argument is assigned to
+the <a href="params.html#sv-optarg"><code>OPTARG</code> variable</a>.</p></div>
+<div class="paragraph"><p>When an option that is not specified in <var>optionlist</var> is found or when an
+option argument is missing, the result depends on the first character of
+<var>optionlist</var>:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If <var>optionlist</var> starts with a colon, the option character is assigned to
+  the <code>OPTARG</code> variable and <var>variable</var> is set to either <code>?</code> (when the option
+  is not in <var>optionlist</var>) or <code>:</code> (when the option argument is missing).
+</p>
+</li>
+<li>
+<p>
+Otherwise, <var>variable</var> is set to <code>?</code>, the <code>OPTARG</code> variable is unset, and
+  an error message is printed.
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The built-in parses one option for each execution.
+For all options in a set of command line arguments to be parsed, the built-in
+has to be executed repeatedly with the same arguments.
+The built-in uses the <a href="params.html#sv-optind"><code>OPTIND</code> variable</a> to
+remember which <var>argument</var> should be parsed next.
+When the built-in is invoked for the first time, the variable value must be
+<code>1</code>, which is the default value.
+You must not modify the variable until all the options have been parsed, when
+the built-in sets the variable to the index of the first operand in
+<var>argument</var>s.
+(If there are no operands, it will be set to the number of <var>argument</var>s plus
+one.)</p></div>
+<div class="paragraph"><p>When you want to start parsing a new set of <var>argument</var>s, you have to reset
+the <code>OPTIND</code> variable to <code>1</code> beforehand.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="operands">Operands</h2>
+<div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<var>optionlist</var>
+</dt>
+<dd>
+<p>
+A list of options that should be accepted as valid options in parsing.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>variable</var>
+</dt>
+<dd>
+<p>
+The name of a variable the result is to be assigned to.
+</p>
+</dd>
+<dt class="hdlist1">
+<var>argument</var>s
+</dt>
+<dd>
+<p>
+Command line arguments that are to be parsed.
+</p>
+<div class="paragraph"><p>When no <var>argument</var>s are given, the <a href="params.html#positional">positional
+parameters</a> are parsed.</p></div>
+</dd>
+</dl></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="exitstatus">Exit status</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>If an option is found, whether or not it is specified in <var>optionlist</var>, the
+exit status is zero.
+If there is no more option to be parsed, the exit status is non-zero.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="example">Example</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre><code>aopt=false bopt= copt=false
+while getopts ab:c opt
+do
+  case $opt in
+  a) aopt=true ;;
+  b) bopt=$OPTARG ;;
+  c) copt=true ;;
+  \?) return 2 ;;
+  esac
+done
+if $aopt;          then echo Option -a specified;       fi
+if [ -n "$bopt" ]; then echo Option -b $bopt specified; fi
+if $copt;          then echo Option -c specified;       fi
+shift $((OPTIND - 1))
+echo Operands are: $*</code></pre>
+</div></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="notes">Notes</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>In <var>argument</var>s that are parsed, options must precede operands.
+The built-in ends parsing when it encounters the first operand.</p></div>
+<div class="paragraph"><p>The getopts built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard does not specify what will happen when the <code>OPTIND</code>
+variable is assigned a value other than <code>1</code>.</p></div>
+<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, option characters in
+<var>optionlist</var> must be alphanumeric.</p></div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2023-04-22 01:39:14 JST
+</div>
+</div>
+</body>
+</html>
