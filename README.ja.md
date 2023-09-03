@@ -26,8 +26,9 @@ This README is also available in [English](README.md).
 対して一切責任を取りません。ライセンスの本文については [COPYING](COPYING)
 ファイルを参照してください。
 
-このプログラムは OSDN のプロジェクトの一つとして開発されています。
-プロジェクト概要ページは <https://osdn.jp/projects/yash/> にあります。
+このプログラムの開発は [GitHub](https://github.com/magicant/yash) で
+管理されています。
+以前は [OSDN](https://osdn.jp/projects/yash/) で管理されていました。
 
 
 ## 開発状況
@@ -149,12 +150,12 @@ share/initialization/sample) ファイルを参考に自分用の `~/.yashrc`
 感想・提案・バグ報告等を歓迎します。ただし、全ての提案やバグ報告に
 応じることを約束するものではありません。
 
- * [課題管理システム](https://osdn.net/projects/yash/ticket/)
- * [掲示板](https://osdn.net/projects/yash/forums/)
+ * [課題管理システム](https://github.com/magicant/yash/issues)
+ * [掲示板](https://github.com/magicant/yash/discussions)
 
 翻訳に興味がおありの場合は以下のページをご覧ください
 [HowToTranslate](https://osdn.net/projects/yash/wiki/HowToTranslate)
 
 
 ----------------------
-渡邊裕貴 <magicant@users.osdn.me>
+渡邊裕貴 <magicant@wonderwand.net>

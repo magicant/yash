@@ -24,8 +24,8 @@ Yash can be modified/redistributed under the terms of the GNU General
 Public License (Version 2) but the use of this program is without any
 warranty. See the [COPYING](COPYING) file for the full text of GPL.
 
-Yash is an OSDN-hosted project. See also the project summary page at
-<https://osdn.net/projects/yash/>.
+Yash is a [GitHub-hosted project](https://github.com/magicant/yash), and
+used to be an [OSDN-hosted project](https://osdn.jp/projects/yash/).
 
 
 ## Current Development Status
@@ -144,12 +144,12 @@ system.
 
 Comments, suggestions, and bug reports are welcome at:
 
- * [Issue tracking system](https://osdn.net/projects/yash/ticket/)
- * [Discussion forum](https://osdn.net/projects/yash/forums/)
+ * [Issue tracking system](https://github.com/magicant/yash/issues)
+ * [Discussion forum](https://github.com/magicant/yash/discussions)
 
 If you are interested in translation, please refer to
 [HowToTranslate](https://osdn.net/projects/yash/wiki/HowToTranslate).
 
 
 ----------------------
-Watanabe, Yuki <magicant@users.osdn.me>
+Watanabe, Yuki <magicant@wonderwand.net>
