@@ -20,8 +20,8 @@ http://creativecommons.org/licenses/by-sa/2.1/jp/[Creative Commons
 Attribution-ShareAlike 2.1 Japan].
 
 Yash is developed and maintained by 渡邊裕貴 (WATANABE Yuki) aka Magicant.
-http://osdn.jp/projects/yash/[Yash development project] and
-http://yash.osdn.jp/[Yash's homepage] are hosted by
-http://osdn.jp/[OSDN].
+The https://github.com/magicant/yash[source code repository] and
+https://magicant.github.io/yash/[website] are hosted by
+https://github.com/[GitHub].
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

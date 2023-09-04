@@ -1,7 +1,7 @@
 Yash: yet another shell
 =======================
 
-http://yash.osdn.jp/
+https://magicant.github.io/yash/ja/
 This README is also available in [English](README.md).
 
 
@@ -59,8 +59,8 @@ Yash をビルドしインストールする方法については [INSTALL.ja](I
 
     $ man yash
 
-で参照できます。また <https://yash.osdn.jp/doc/ja/> でオンラインで読む
-こともできます。
+で参照できます。また <https://magicant.github.io/yash/doc/ja/> で
+オンラインで読むこともできます。
 
 
 ## 基本設定

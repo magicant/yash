@@ -2,15 +2,15 @@
 # yash パッケージのメッセージの和訳
 # Copyright (C) 2010-2023 Magicant
 # This file is distributed under the same license as the yash package.
-# WATANABE Yuki <magicant@users.osdn.me>, 2010-2023.
+# WATANABE Yuki <magicant@wonderwand.net>, 2010-2023.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.54\n"
-"Report-Msgid-Bugs-To: http://osdn.jp/projects/yash/forums/\n"
+"Report-Msgid-Bugs-To: https://github.com/magicant/yash/issues\n"
 "POT-Creation-Date: 2022-09-27 00:48+0900\n"
 "PO-Revision-Date: 2023-08-17 01:20+0900\n"
-"Last-Translator: WATANABE Yuki <magicant@users.osdn.me>\n"
+"Last-Translator: WATANABE Yuki <magicant@wonderwand.net>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"

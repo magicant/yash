@@ -8,7 +8,7 @@ dfn:[Yet another shell] (yash) は Unix 系 OS 用コマンドラインシェル
 
 このプログラムは http://www.gnu.org/licenses/gpl.html[GNU General Public License] (Version 2) の元で自由に再配布・変更などができます。**ただし、プログラムの利用は全て各自の自己責任の下で行っていただくことになります。**作者はプログラムの瑕疵に対して一切責任を取りません。また、このマニュアルは{zwsp}http://creativecommons.org/licenses/by-sa/2.1/jp/[クリエイティブ・コモンズの表示-継承 2.1 日本ライセンス]の下で自由に再配布・変更などができます。
 
-Yash は渡邊裕貴 (通称まじかんと) という一人の開発者によって開発されています。Yash の{zwsp}http://osdn.jp/projects/yash/[開発プロジェクト]および
-{zwsp}http://yash.osdn.jp/[ホームページ]は http://osdn.jp/[OSDN] がホストしています。
+Yash は渡邊裕貴 (通称まじかんと) という一人の開発者によって開発されています。Yash の{zwsp}https://github.com/magicant/yash[ソースコードレポジトリ]および
+{zwsp}https://magicant.github.io/yash/[ウェブサイト]は https://github.com/[GitHub] がホストしています。
 
 // vim: set filetype=asciidoc expandtab:

@@ -1,7 +1,7 @@
 Yash: yet another shell
 =======================
 
-http://yash.osdn.jp/
+https://magicant.github.io/yash/
 This README is also available in [日本語](README.ja.md).
 
 
@@ -54,7 +54,8 @@ After installation, the manual can be viewed by
 
     $ man yash
 
-The manual is also available online at <https://yash.osdn.jp/doc/>.
+The manual is also available online at
+<https://magicant.github.io/yash/doc/>.
 
 
 ## Basic Configuration

@@ -17,7 +17,7 @@ to ~/.yashrc and make any customization in it if you want. For bare default
 settings, put an empty file at ~/.yashrc. Without ~/.yashrc, you will see this
 message again next time you start yash.
 
-For more instructions, see the manual at <https://yash.osdn.jp/doc/>.
+For more instructions, see the manual at: https://magicant.github.io/yash/doc/
 
 __END__
 )
