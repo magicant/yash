@@ -7,8 +7,9 @@
    tested by Jenkins:
     - [Full test]
     - [Valgrind test]
-    - Background test (TBD)
-    - Extra warning test / Clang test (TBD)
+    - [Extra test]
+    - Note that these tests are run no more than once a day.
+      You may have to wait for the tests to complete.
 1. Update the version number in [configure].
     - See commit [b83905d] for an example of what to change.
     - Also update the year in the copyright notice if releasing for the first
@@ -28,6 +29,7 @@
 [Distribution build]: https://jenkins.wonderwand.net/job/yash/job/yash_dist/
 [doc]: https://github.com/magicant/yash/tree/gh-pages/doc
 [Documentation build]: https://jenkins.wonderwand.net/job/yash/job/yash_doc/
+[Extra test]: https://jenkins.wonderwand.net/job/yash/job/yash_extra/
 [Full test]: https://jenkins.wonderwand.net/job/yash/job/yash_fulltest/
 [NEWS]: NEWS
 [NEWS.ja]: NEWS.ja
