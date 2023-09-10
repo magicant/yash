@@ -149,7 +149,7 @@ Comments, suggestions, and bug reports are welcome at:
  * [Discussion forum](https://github.com/magicant/yash/discussions)
 
 If you are interested in translation, please refer to
-[HowToTranslate](https://osdn.net/projects/yash/wiki/HowToTranslate).
+[TRANSLATING.md](TRANSLATING.md).
 
 
 ----------------------
