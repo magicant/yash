@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* common.h: defines symbols common to all sources. */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2023 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@
 
 #ifdef __CYGWIN__
 # undef __STRICT_ANSI__
-# define FD_SETSIZE 256
 #endif
 
 #if HAVE_GETTEXT

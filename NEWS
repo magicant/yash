@@ -1,4 +1,12 @@
 History of Yash
+======================================================================
+
+## Yash 2.56 (Unreleased)
+
+  - The shell can now open more file descriptors on Cygwin.
+
+
+======================================================================
 
  Legend:
    +: new feature
