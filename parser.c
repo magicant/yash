@@ -3950,7 +3950,9 @@ void print_parameter(struct print *restrict pr, const paramexp_T *restrict pe,
 	    break;
 	case PT_SUBST:
 	    wb_wccat(&pr->buffer, L'/');
-	    if (pe->pe_type & PT_SUBSTALL)
+	    if (pe->pe_type & PT_COLON)
+		;
+	    else if (pe->pe_type & PT_SUBSTALL)
 		wb_wccat(&pr->buffer, L'/');
 	    else if (pe->pe_type & PT_MATCHHEAD)
 		wb_wccat(&pr->buffer, L'#');

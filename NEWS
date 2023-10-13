@@ -4,6 +4,9 @@ History of Yash
 ## Yash 2.56 (Unreleased)
 
   - The shell can now open more file descriptors on Cygwin.
+  - Fixed the bug where the "typeset -fp" built-in prints parameter
+    expansions of the form `${foo:/bar/baz}` with a redundant `#` flag
+    like `${foo:/#bar/baz}`.
 
 
 ======================================================================

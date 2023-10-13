@@ -665,10 +665,10 @@ __IN__
 __OUT__
 
 test_multi 'parameter expansion, w/ substitution'
-{ echo "${a/x}${b//y}${c/#z/Z}${d/%0/0}"; }
+{ echo "${a/x}${b//y}${c/#z/Z}${d/%0/0}${e:/1/2}"; }
 __IN__
 {
-   echo "${a/x/}${b//y/}${c/#z/Z}${d/%0/0}"
+   echo "${a/x/}${b//y/}${c/#z/Z}${d/%0/0}${e:/1/2}"
 }
 __OUT__
 
