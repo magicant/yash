@@ -3199,8 +3199,10 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
 	do {
 	    while (*s != L'\0' && !iswalnum(*s))
 		s++;
-	    *s = towupper(*s);
-	    s++;
+	    if (*s != L'\0') {
+		*s = towupper(*s);
+		s++;
+	    }
 	    while (*s != L'\0' && iswalnum(*s))
 		s++;
 	} while (*s != L'\0' && --count > 0);

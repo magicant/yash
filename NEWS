@@ -7,6 +7,9 @@ History of Yash
   - Fixed the bug where the "typeset -fp" built-in prints parameter
     expansions of the form `${foo:/bar/baz}` with a redundant `#` flag
     like `${foo:/#bar/baz}`.
+  - Fixed the bug where the `emacs-capitalize-word` line-editing
+    command misbehaves and possibly crashes the shell if there is no
+    word following the cursor to be capitalized.
 
 
 ======================================================================
