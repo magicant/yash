@@ -39,13 +39,13 @@ interrupted=""
 
 cleanup() {
     if "$created_queue_dir"; then
-	until ! [ -d "$queue_dir" ] || rm -fr "$queue_dir"; do sleep 1; done
+        until ! [ -d "$queue_dir" ] || rm -fr "$queue_dir"; do sleep 1; done
     fi
     rm -fr "$tmp_file"
     if [ "$interrupted" ]; then
-	trap - "$interrupted"
-	kill -s "$interrupted" $$
-	exit 1
+        trap - "$interrupted"
+        kill -s "$interrupted" $$
+        exit 1
     fi
 }
 trap cleanup EXIT
@@ -63,18 +63,18 @@ printf '%s\n' "$@" >|"$tmp_file"
 trial=0 n=0
 until cmd_file="$queue_dir/$$.$n"; ln "$tmp_file" "$cmd_file" 2>/dev/null; do
     if [ -e "$cmd_file" ]; then
-	n=$((n+1))
-	continue
+        n=$((n+1))
+        continue
     fi
 
     if mkdir "$queue_dir" 2>/dev/null; then
-	created_queue_dir="true"
+        created_queue_dir="true"
     elif ! [ -d "$queue_dir" ]; then
-	trial=$((trial+1))
-	if [ "$trial" -gt 10 ]; then
-	    printf '%s: cannot create the queue directory.\n' "$0" >&2
-	    exit 69 # sysexits.h EX_UNAVAILABLE
-	fi
+        trial=$((trial+1))
+        if [ "$trial" -gt 10 ]; then
+            printf '%s: cannot create the queue directory.\n' "$0" >&2
+            exit 69 # sysexits.h EX_UNAVAILABLE
+        fi
     fi
 done
 
@@ -89,14 +89,14 @@ IFS='
 '
 until [ "$interrupted" ] || rmdir "$queue_dir" 2>/dev/null; do
     if ! [ -d "$queue_dir" ]; then
-	printf '%s: the queue directory was unexpectedly removed.\n' "$0" >&2
-	exit 69 # sysexits.h EX_UNAVAILABLE
+        printf '%s: the queue directory was unexpectedly removed.\n' "$0" >&2
+        exit 69 # sysexits.h EX_UNAVAILABLE
     fi
 
     for file in "$queue_dir"/*; do
-	$(cat "$file")
-	rm "$file"
+        $(cat "$file")
+        rm "$file"
     done
 done
 
-# vim: set ts=8 sts=4 sw=4 noet:
+# vim: set ts=8 sts=4 sw=4 et:

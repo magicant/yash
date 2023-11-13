@@ -92,19 +92,19 @@ typedef enum scope_T {
     SCOPE_GLOBAL, SCOPE_LOCAL, SCOPE_TEMP,
 } scope_T;
 extern _Bool set_variable(
-	const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
+        const wchar_t *name, wchar_t *value, scope_T scope, _Bool export)
     __attribute__((nonnull(1)));
 extern struct variable_T *set_array(
-	const wchar_t *name, size_t count, void **values,
-	scope_T scope, _Bool export)
+        const wchar_t *name, size_t count, void **values,
+        scope_T scope, _Bool export)
     __attribute__((nonnull));
 extern _Bool set_array_element(
-	const wchar_t *name, size_t index, wchar_t *value)
+        const wchar_t *name, size_t index, wchar_t *value)
     __attribute__((nonnull));
 extern void set_positional_parameters(void *const *values)
     __attribute__((nonnull));
 extern _Bool do_assignments(
-	const struct assign_T *assigns, _Bool temp, _Bool export);
+        const struct assign_T *assigns, _Bool temp, _Bool export);
 
 struct get_variable_T {
     enum { GV_NOTFOUND, GV_SCALAR, GV_ARRAY, GV_ARRAY_CONCAT, } type;
@@ -135,8 +135,8 @@ extern struct command_T *get_function(const wchar_t *name)
 
 #if YASH_ENABLE_DIRSTACK
 extern _Bool parse_dirstack_index(
-	const wchar_t *restrict indexstr, size_t *restrict indexp,
-	const wchar_t **restrict entryp, _Bool printerror)
+        const wchar_t *restrict indexstr, size_t *restrict indexp,
+        const wchar_t **restrict entryp, _Bool printerror)
     __attribute__((nonnull));
 #endif
 
@@ -215,4 +215,4 @@ extern const struct xgetopt_T dirs_options[];
 #endif /* YASH_VARIABLE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

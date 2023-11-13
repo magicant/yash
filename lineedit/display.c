@@ -124,13 +124,13 @@ void lebuf_update_position(int width)
 
     int new_column = lebuf.pos.column + width;
     if (lebuf.maxcolumn < 0
-	    || new_column < lebuf.maxcolumn
-	    || (le_ti_xenl && new_column == lebuf.maxcolumn))
-	lebuf.pos.column = new_column;
+            || new_column < lebuf.maxcolumn
+            || (le_ti_xenl && new_column == lebuf.maxcolumn))
+        lebuf.pos.column = new_column;
     else if (new_column == lebuf.maxcolumn)
-	lebuf.pos.line++, lebuf.pos.column = 0;
+        lebuf.pos.line++, lebuf.pos.column = 0;
     else
-	lebuf.pos.line++, lebuf.pos.column = width;
+        lebuf.pos.line++, lebuf.pos.column = width;
 }
 
 /* Appends the specified wide character to the print buffer without updating the
@@ -148,37 +148,37 @@ void lebuf_putwchar(wchar_t c, bool convert_cntrl)
 {
     int width = wcwidth(c);
     if (width > 0) {
-	/* printable character */
-	lebuf_update_position(width);
-	lebuf_putwchar_raw(c);
+        /* printable character */
+        lebuf_update_position(width);
+        lebuf_putwchar_raw(c);
     } else {
-	/* non-printable character */
-	if (!convert_cntrl) {
-	    switch (c) {
-		case L'\a':
-		    lebuf_print_alert(false);
-		    return;
-		case L'\n':
-		    lebuf_print_nel();
-		    return;
-		case L'\r':
-		    lebuf_print_cr();
-		    return;
-		default:
-		    lebuf_putwchar_raw(c);
-		    return;
-	    }
-	} else {
-	    if (c < L'\040') {
-		lebuf_putwchar(L'^',        false);
-		lebuf_putwchar(c + L'\100', true);
-	    } else if (c == L'\177') {
-		lebuf_putwchar(L'^',        false);
-		lebuf_putwchar(L'?',        false);
-	    } else {
-		lebuf_wprintf(false, L"<%jX>", (uintmax_t) c);
-	    }
-	}
+        /* non-printable character */
+        if (!convert_cntrl) {
+            switch (c) {
+                case L'\a':
+                    lebuf_print_alert(false);
+                    return;
+                case L'\n':
+                    lebuf_print_nel();
+                    return;
+                case L'\r':
+                    lebuf_print_cr();
+                    return;
+                default:
+                    lebuf_putwchar_raw(c);
+                    return;
+            }
+        } else {
+            if (c < L'\040') {
+                lebuf_putwchar(L'^',        false);
+                lebuf_putwchar(c + L'\100', true);
+            } else if (c == L'\177') {
+                lebuf_putwchar(L'^',        false);
+                lebuf_putwchar(L'?',        false);
+            } else {
+                lebuf_wprintf(false, L"<%jX>", (uintmax_t) c);
+            }
+        }
     }
 }
 
@@ -186,7 +186,7 @@ void lebuf_putwchar(wchar_t c, bool convert_cntrl)
 void lebuf_putws(const wchar_t *s, bool convert_cntrl)
 {
     for (size_t i = 0; s[i] != L'\0'; i++)
-	lebuf_putwchar(s[i], convert_cntrl);
+        lebuf_putwchar(s[i], convert_cntrl);
 }
 
 /* Appends the formatted string to the print buffer. */
@@ -211,30 +211,30 @@ void lebuf_print_prompt(const wchar_t *s)
     le_pos_T save_pos = lebuf.pos;
 
     while (*s != L'\0') {
-	if (*s != L'\\') {
-	    lebuf_putwchar(*s, false);
-	} else switch (*++s) {
-	    default:     lebuf_putwchar(*s,      false);  break;
-	    case L'\0':  lebuf_putwchar(L'\\',   false);  goto done;
-//	    case L'\\':  lebuf_putwchar(L'\\',   false);  break;
-	    case L'a':   lebuf_putwchar(L'\a',   false);  break;
-	    case L'e':   lebuf_putwchar(L'\033', false);  break;
-	    case L'n':   lebuf_putwchar(L'\n',   false);  break;
-	    case L'r':   lebuf_putwchar(L'\r',   false);  break;
-	    case L'$':
-		lebuf_putwchar(geteuid() != 0 ? L'$' : L'#', false);
-		break;
-	    case L'j':
-		lebuf_wprintf(false, L"%zu", job_count());
-		break;
-	    case L'!':
-		lebuf_wprintf(false, L"%u", next_history_number());
-		break;
-	    case L'[':   save_pos = lebuf.pos;    break;
-	    case L']':   lebuf.pos = save_pos;    break;
-	    case L'f':   s = print_color_seq(s);  continue;
-	}
-	s++;
+        if (*s != L'\\') {
+            lebuf_putwchar(*s, false);
+        } else switch (*++s) {
+            default:     lebuf_putwchar(*s,      false);  break;
+            case L'\0':  lebuf_putwchar(L'\\',   false);  goto done;
+//          case L'\\':  lebuf_putwchar(L'\\',   false);  break;
+            case L'a':   lebuf_putwchar(L'\a',   false);  break;
+            case L'e':   lebuf_putwchar(L'\033', false);  break;
+            case L'n':   lebuf_putwchar(L'\n',   false);  break;
+            case L'r':   lebuf_putwchar(L'\r',   false);  break;
+            case L'$':
+                lebuf_putwchar(geteuid() != 0 ? L'$' : L'#', false);
+                break;
+            case L'j':
+                lebuf_wprintf(false, L"%zu", job_count());
+                break;
+            case L'!':
+                lebuf_wprintf(false, L"%u", next_history_number());
+                break;
+            case L'[':   save_pos = lebuf.pos;    break;
+            case L']':   lebuf.pos = save_pos;    break;
+            case L'f':   s = print_color_seq(s);  continue;
+        }
+        s++;
     }
 done:;
 }
@@ -249,41 +249,41 @@ const wchar_t *print_color_seq(const wchar_t *s)
     assert(s[ 0] == L'f');
 
 #define SETFG(color) \
-	lebuf_print_setfg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
+        lebuf_print_setfg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
 #define SETBG(color) \
-	lebuf_print_setbg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
+        lebuf_print_setbg(LE_COLOR_##color + (s[1] == L't' ? 8 : 0))
 
     for (;;) switch (*++s) {
-	case L'k':  SETFG(BLACK);    break;
-	case L'r':  SETFG(RED);      break;
-	case L'g':  SETFG(GREEN);    break;
-	case L'y':  SETFG(YELLOW);   break;
-	case L'b':  SETFG(BLUE);     break;
-	case L'm':  SETFG(MAGENTA);  break;
-	case L'c':  SETFG(CYAN);     break;
-	case L'w':  SETFG(WHITE);    break;
-	case L'K':  SETBG(BLACK);    break;
-	case L'R':  SETBG(RED);      break;
-	case L'G':  SETBG(GREEN);    break;
-	case L'Y':  SETBG(YELLOW);   break;
-	case L'B':  SETBG(BLUE);     break;
-	case L'M':  SETBG(MAGENTA);  break;
-	case L'C':  SETBG(CYAN);     break;
-	case L'W':  SETBG(WHITE);    break;
-	case L'd':  lebuf_print_op();     break;
-	case L'D':  lebuf_print_sgr0();   break;
-	case L's':  lebuf_print_smso();   break;
-	case L'u':  lebuf_print_smul();   break;
-	case L'v':  lebuf_print_rev();    break;
-	case L'n':  lebuf_print_blink();  break;
-	case L'i':  lebuf_print_dim();    break;
-	case L'o':  lebuf_print_bold();   break;
-	case L'x':  lebuf_print_invis();  break;
-	default:    if (!iswalnum(*s)) goto done;
+        case L'k':  SETFG(BLACK);    break;
+        case L'r':  SETFG(RED);      break;
+        case L'g':  SETFG(GREEN);    break;
+        case L'y':  SETFG(YELLOW);   break;
+        case L'b':  SETFG(BLUE);     break;
+        case L'm':  SETFG(MAGENTA);  break;
+        case L'c':  SETFG(CYAN);     break;
+        case L'w':  SETFG(WHITE);    break;
+        case L'K':  SETBG(BLACK);    break;
+        case L'R':  SETBG(RED);      break;
+        case L'G':  SETBG(GREEN);    break;
+        case L'Y':  SETBG(YELLOW);   break;
+        case L'B':  SETBG(BLUE);     break;
+        case L'M':  SETBG(MAGENTA);  break;
+        case L'C':  SETBG(CYAN);     break;
+        case L'W':  SETBG(WHITE);    break;
+        case L'd':  lebuf_print_op();     break;
+        case L'D':  lebuf_print_sgr0();   break;
+        case L's':  lebuf_print_smso();   break;
+        case L'u':  lebuf_print_smul();   break;
+        case L'v':  lebuf_print_rev();    break;
+        case L'n':  lebuf_print_blink();  break;
+        case L'i':  lebuf_print_dim();    break;
+        case L'o':  lebuf_print_bold();   break;
+        case L'x':  lebuf_print_invis();  break;
+        default:    if (!iswalnum(*s)) goto done;
     }
 done:
     if (*s == L'.')
-	s++;
+        s++;
     return s;
 
 #undef SETFG
@@ -298,11 +298,11 @@ bool lebuf_putwchar_trunc(wchar_t c)
 {
     int width = wcwidth(c);
     if (width <= 0)
-	return true;
+        return true;
 
     int new_column = lebuf.pos.column + width;
     if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= new_column)
-	return false;
+        return false;
     lebuf.pos.column = new_column;
     lebuf_putwchar_raw(c);
     return true;
@@ -313,7 +313,7 @@ bool lebuf_putwchar_trunc(wchar_t c)
 void lebuf_putws_trunc(const wchar_t *s)
 {
     while (*s != L'\0' && lebuf_putwchar_trunc(*s))
-	s++;
+        s++;
 }
 
 /* Like `lebuf_putwchar_trunc', but prints a byte instead of a wide character.
@@ -321,7 +321,7 @@ void lebuf_putws_trunc(const wchar_t *s)
 bool lebuf_putchar1_trunc(int c)
 {
     if (0 < lebuf.maxcolumn && lebuf.maxcolumn <= lebuf.pos.column + 1)
-	return false;
+        return false;
 
     lebuf.pos.column += 1;
     sb_ccat(&lebuf.buf, TO_CHAR(c));
@@ -364,7 +364,7 @@ static void free_candcol(void *candcol)
 static void print_candidates_all(void);
 static void update_highlighted_candidate(void);
 static void print_candidate(const le_candidate_T *cand, const candcol_T *col,
-	bool highlight, bool printdesc)
+        bool highlight, bool printdesc)
     __attribute__((nonnull));
 static void print_candidate_count(size_t pageindex);
 static void print_candidate_count_0(void);
@@ -486,13 +486,13 @@ void le_display_finalize(void)
 void le_display_clear(bool clear)
 {
     if (display_active) {
-	lebuf_init(current_position);
-	lebuf_print_sgr0();
-	if (clear)
-	    lebuf_print_clear();
-	else
-	    go_to((le_pos_T) { 0, 0 });
-	finish();
+        lebuf_init(current_position);
+        lebuf_print_sgr0();
+        if (clear)
+            lebuf_print_clear();
+        else
+            go_to((le_pos_T) { 0, 0 });
+        finish();
     }
 }
 
@@ -535,14 +535,14 @@ void clear_to_end_of_screen(void)
     reset_style_before_moving();
 
     if (lebuf_print_ed()) /* if the terminal has "ed" capability, just use it */
-	return;
+        return;
 
     int saveline = lebuf.pos.line;
     for (;;) {
-	lebuf_print_el();
-	if (lebuf.pos.line >= line_max)
-	    break;
-	lebuf_print_nel();
+        lebuf_print_el();
+        if (lebuf.pos.line >= line_max)
+            break;
+        lebuf_print_nel();
     }
     go_to((le_pos_T) { saveline, 0 });
 }
@@ -556,17 +556,17 @@ void clear_to_end_of_screen(void)
 void clear_editline(void)
 {
     assert(lebuf.pos.line > editbasepos.line ||
-	    (lebuf.pos.line == editbasepos.line &&
-	     lebuf.pos.column >= editbasepos.column));
+            (lebuf.pos.line == editbasepos.line &&
+             lebuf.pos.column >= editbasepos.column));
 
     le_pos_T save_pos = lebuf.pos;
 
     reset_style_before_moving();
     for (;;) {
-	lebuf_print_el();
-	if (lebuf.pos.line >= last_edit_line)
-	    break;
-	lebuf_print_nel();
+        lebuf_print_el();
+        if (lebuf.pos.line >= last_edit_line)
+            break;
+        lebuf_print_nel();
     }
     rprompt_line = -1;
 
@@ -581,53 +581,53 @@ void clear_editline(void)
 void le_display_update(bool cursor)
 {
     if (display_active) {
-	lebuf_init(current_position);
+        lebuf_init(current_position);
     } else {
-	display_active = true;
-	last_edit_line = line_max = 0;
-	candhighlight = NOHIGHLIGHT, candbaseline = -1, candoverwritten = false;
+        display_active = true;
+        last_edit_line = line_max = 0;
+        candhighlight = NOHIGHLIGHT, candbaseline = -1, candoverwritten = false;
 
-	/* prepare the right prompt */
-	lebuf_init((le_pos_T) { 0, 0 });
-	lebuf_print_sgr0();
-	lebuf_print_prompt(prompt.right);
-	if (lebuf.pos.line != 0) {  /* right prompt must be one line */
-	    sb_clear(&lebuf.buf);
-	    /* lebuf.pos.line = */ lebuf.pos.column = 0;
-	}
-	rprompt.value = lebuf.buf.contents;
-	rprompt.length = lebuf.buf.length;
-	rprompt.width = lebuf.pos.column;
-	rprompt_line = -1;
+        /* prepare the right prompt */
+        lebuf_init((le_pos_T) { 0, 0 });
+        lebuf_print_sgr0();
+        lebuf_print_prompt(prompt.right);
+        if (lebuf.pos.line != 0) {  /* right prompt must be one line */
+            sb_clear(&lebuf.buf);
+            /* lebuf.pos.line = */ lebuf.pos.column = 0;
+        }
+        rprompt.value = lebuf.buf.contents;
+        rprompt.length = lebuf.buf.length;
+        rprompt.width = lebuf.pos.column;
+        rprompt_line = -1;
 
-	/* prepare the styler prompt */
-	lebuf_init((le_pos_T) { 0, 0 });
-	lebuf_print_sgr0();
-	lebuf_print_prompt(prompt.styler);
-	if (lebuf.pos.line != 0 || lebuf.pos.column != 0) {
-	    /* styler prompt must have no width */
-	    sb_clear(&lebuf.buf);
-	    /* lebuf.pos.line = lebuf.pos.column = 0; */
-	}
-	sprompt.value = lebuf.buf.contents;
-	sprompt.length = lebuf.buf.length;
-	styler_active = false;
+        /* prepare the styler prompt */
+        lebuf_init((le_pos_T) { 0, 0 });
+        lebuf_print_sgr0();
+        lebuf_print_prompt(prompt.styler);
+        if (lebuf.pos.line != 0 || lebuf.pos.column != 0) {
+            /* styler prompt must have no width */
+            sb_clear(&lebuf.buf);
+            /* lebuf.pos.line = lebuf.pos.column = 0; */
+        }
+        sprompt.value = lebuf.buf.contents;
+        sprompt.length = lebuf.buf.length;
+        styler_active = false;
 
-	/* print main prompt */
-	lebuf_init((le_pos_T) { 0, 0 });
-	maybe_print_promptsp();
-	lebuf_print_prompt(prompt.main);
-	fillip_cursor();
-	editbasepos = lebuf.pos;
+        /* print main prompt */
+        lebuf_init((le_pos_T) { 0, 0 });
+        maybe_print_promptsp();
+        lebuf_print_prompt(prompt.main);
+        fillip_cursor();
+        editbasepos = lebuf.pos;
     }
 
     if (le_search_buffer.contents == NULL) {
-	/* print edit line */
-	update_editline();
+        /* print edit line */
+        update_editline();
     } else {
-	/* print search line */
-	print_search();
-	return;
+        /* print search line */
+        print_search();
+        return;
     }
 
     /* print right prompt */
@@ -639,8 +639,8 @@ void le_display_update(bool cursor)
     /* set cursor position */
     assert(le_main_index <= le_main_buffer.length);
     if (cursor) {
-	go_to_index(le_main_index);
-	update_styler();
+        go_to_index(le_main_index);
+        update_styler();
     }
 }
 
@@ -650,13 +650,13 @@ void le_display_update(bool cursor)
 void maybe_print_promptsp(void)
 {
     if (shopt_le_promptsp) {
-	lebuf_print_smso();
-	lebuf_putchar('$');
-	lebuf_print_sgr0();
-	for (int count = le_columns - (le_ti_xenl ? 1 : 2); --count >= 0; )
-	    lebuf_putchar(' ');
-	lebuf_print_cr();
-	lebuf_print_ed();
+        lebuf_print_smso();
+        lebuf_putchar('$');
+        lebuf_print_sgr0();
+        for (int count = le_columns - (le_ti_xenl ? 1 : 2); --count >= 0; )
+            lebuf_putchar(' ');
+        lebuf_print_cr();
+        lebuf_print_ed();
     }
 }
 
@@ -668,26 +668,26 @@ void update_editline(void)
     size_t index = 0;
 
     if (current_editline != NULL) {
-	/* We only reprint what have been changed from the last update:
-	 * skip the unchanged part at the beginning of the line. */
-	assert(cursor_positions != NULL);
+        /* We only reprint what have been changed from the last update:
+         * skip the unchanged part at the beginning of the line. */
+        assert(cursor_positions != NULL);
 
-	while (current_editline[index] != L'\0' &&
-		current_display_is_uptodate(index))
-	    index++;
+        while (current_editline[index] != L'\0' &&
+                current_display_is_uptodate(index))
+            index++;
 
-	/* return if nothing has changed */
-	if (current_editline[index] == L'\0'
-		&& le_main_buffer.contents[index] == L'\0')
-	    return;
+        /* return if nothing has changed */
+        if (current_editline[index] == L'\0'
+                && le_main_buffer.contents[index] == L'\0')
+            return;
 
-	go_to_index(index);
-	if (current_editline[index] != L'\0')
-	    clear_editline();
+        go_to_index(index);
+        if (current_editline[index] != L'\0')
+            clear_editline();
     } else {
-	/* print the whole edit line */
-	go_to(editbasepos);
-	clear_editline();
+        /* print the whole edit line */
+        go_to(editbasepos);
+        clear_editline();
     }
 
     update_styler();
@@ -695,22 +695,22 @@ void update_editline(void)
     // No need to check for overflow in `le_main_buffer.length + 1' here. Should
     // overflow occur, the buffer would not have been allocated successfully.
     current_editline = xreallocn(current_editline,
-	    le_main_buffer.length + 1, sizeof *current_editline);
+            le_main_buffer.length + 1, sizeof *current_editline);
     cursor_positions = xreallocn(cursor_positions,
-	    le_main_buffer.length + 1, sizeof *cursor_positions);
+            le_main_buffer.length + 1, sizeof *cursor_positions);
     for (;;) {
-	wchar_t c = le_main_buffer.contents[index];
-	current_editline[index] = c;
-	cursor_positions[index]
-	    = lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
-	if (index == le_main_buffer.length)
-	    break;
-	if (styler_active && index >= le_main_length) {
-	    lebuf_print_sgr0(), styler_active = false;
-	    lebuf_print_prompt(prompt.predict);
-	}
-	lebuf_putwchar(c, true);
-	index++;
+        wchar_t c = le_main_buffer.contents[index];
+        current_editline[index] = c;
+        cursor_positions[index]
+            = lebuf.pos.line * lebuf.maxcolumn + lebuf.pos.column;
+        if (index == le_main_buffer.length)
+            break;
+        if (styler_active && index >= le_main_length) {
+            lebuf_print_sgr0(), styler_active = false;
+            lebuf_print_prompt(prompt.predict);
+        }
+        lebuf_putwchar(c, true);
+        index++;
     }
     lebuf_print_sgr0(), styler_active = false;
 
@@ -719,15 +719,15 @@ void update_editline(void)
     fillip_cursor();
 
     last_edit_line =
-	(lebuf.pos.line >= rprompt_line) ? lebuf.pos.line : rprompt_line;
+        (lebuf.pos.line >= rprompt_line) ? lebuf.pos.line : rprompt_line;
 
     /* clear the right prompt if the edit line reaches it. */
     if (rprompt_line == lebuf.pos.line
-	    && lebuf.pos.column > lebuf.maxcolumn - rprompt.width - 2) {
-	lebuf_print_el();
-	rprompt_line = -1;
+            && lebuf.pos.column > lebuf.maxcolumn - rprompt.width - 2) {
+        lebuf_print_el();
+        rprompt_line = -1;
     } else if (rprompt_line < lebuf.pos.line) {
-	rprompt_line = -1;
+        rprompt_line = -1;
     }
 
     /* clear the remaining of the current line if we're overwriting the
@@ -738,10 +738,10 @@ void update_editline(void)
 bool current_display_is_uptodate(size_t index)
 {
     if (current_editline[index] != le_main_buffer.contents[index])
-	return false;
+        return false;
     if ((index == current_length || index == le_main_length) &&
-	    current_length != le_main_length)
-	return false;
+            current_length != le_main_length)
+        return false;
     return true;
 }
 
@@ -750,9 +750,9 @@ bool current_display_is_uptodate(size_t index)
 void check_cand_overwritten(void)
 {
     if (0 <= candbaseline && candbaseline <= lebuf.pos.line) {
-	lebuf_print_el();
-	candbaseline = lebuf.pos.line + 1;
-	candoverwritten = true;
+        lebuf_print_el();
+        candbaseline = lebuf.pos.line + 1;
+        candoverwritten = true;
     }
 }
 
@@ -760,8 +760,8 @@ void check_cand_overwritten(void)
 void update_styler(void)
 {
     if (!styler_active) {
-	sb_ncat_force(&lebuf.buf, sprompt.value, sprompt.length);
-	styler_active = true;
+        sb_ncat_force(&lebuf.buf, sprompt.value, sprompt.length);
+        styler_active = true;
     }
 }
 
@@ -772,8 +772,8 @@ void update_styler(void)
 void reset_style_before_moving(void)
 {
     if (!le_ti_msgr) {
-	lebuf_print_sgr0();
-	styler_active = false;
+        lebuf_print_sgr0();
+        styler_active = false;
     }
 }
 
@@ -784,20 +784,20 @@ void update_right_prompt(void)
 {
     int trim = (int)shopt_le_trimright;
     if (rprompt_line >= 0)
-	return;
+        return;
     if (rprompt.width == 0)
-	return;
+        return;
     if (lebuf.maxcolumn - rprompt.width - 2 + trim < 0)
-	return;
+        return;
     int c = cursor_positions[le_main_buffer.length] % lebuf.maxcolumn;
     bool has_enough_room = (c <= lebuf.maxcolumn - rprompt.width - 2 + trim);
     if (!has_enough_room && !shopt_le_alwaysrp)
-	return;
+        return;
 
     go_to_index(le_main_buffer.length);
     if (!has_enough_room) {
-	lebuf_print_nel();
-	check_cand_overwritten();
+        lebuf_print_nel();
+        check_cand_overwritten();
     }
     lebuf_print_cuf(lebuf.maxcolumn - rprompt.width - lebuf.pos.column - 1 + trim);
     sb_ncat_force(&lebuf.buf, rprompt.value, rprompt.length);
@@ -823,7 +823,7 @@ void print_search(void)
     update_styler();
 
     if (le_search_result != Histlist)
-	lebuf_wprintf(true, L"%s", ashistentry(le_search_result)->value);
+        lebuf_wprintf(true, L"%s", ashistentry(le_search_result)->value);
     reset_style_before_moving();
     lebuf_print_nel();
     clear_to_end_of_screen(), candbaseline = -1;
@@ -831,24 +831,24 @@ void print_search(void)
     update_styler();
 
     switch (le_search_type) {
-	const char *text;
-	case SEARCH_PREFIX:
-	    assert(false);
-	case SEARCH_VI:
-	    switch (le_search_direction) {
-		case FORWARD:   lebuf_putwchar(L'?', false);  break;
-		case BACKWARD:  lebuf_putwchar(L'/', false);  break;
-		default:        assert(false);
-	    }
-	    break;
-	case SEARCH_EMACS:
-	    switch (le_search_direction) {
-		case FORWARD:   text = "Forward search: ";   break;
-		case BACKWARD:  text = "Backward search: ";  break;
-		default:        assert(false);
-	    }
-	    lebuf_wprintf(false, L"%s", gt(text));
-	    break;
+        const char *text;
+        case SEARCH_PREFIX:
+            assert(false);
+        case SEARCH_VI:
+            switch (le_search_direction) {
+                case FORWARD:   lebuf_putwchar(L'?', false);  break;
+                case BACKWARD:  lebuf_putwchar(L'/', false);  break;
+                default:        assert(false);
+            }
+            break;
+        case SEARCH_EMACS:
+            switch (le_search_direction) {
+                case FORWARD:   text = "Forward search: ";   break;
+                case BACKWARD:  text = "Backward search: ";  break;
+                default:        assert(false);
+            }
+            lebuf_wprintf(false, L"%s", gt(text));
+            break;
     }
     lebuf_putws(le_search_buffer.contents, true);
 
@@ -861,30 +861,30 @@ void print_search(void)
 void go_to(le_pos_T p)
 {
     if (line_max < lebuf.pos.line)
-	line_max = lebuf.pos.line;
+        line_max = lebuf.pos.line;
 
     assert(p.line <= line_max);
     assert(p.column < lebuf.maxcolumn);
 
     if (p.line == lebuf.pos.line) {
-	if (lebuf.pos.column == p.column)
-	    return;
-	reset_style_before_moving();
-	if (lebuf.pos.column < p.column)
-	    lebuf_print_cuf(p.column - lebuf.pos.column);
-	else
-	    lebuf_print_cub(lebuf.pos.column - p.column);
-	return;
+        if (lebuf.pos.column == p.column)
+            return;
+        reset_style_before_moving();
+        if (lebuf.pos.column < p.column)
+            lebuf_print_cuf(p.column - lebuf.pos.column);
+        else
+            lebuf_print_cub(lebuf.pos.column - p.column);
+        return;
     }
 
     reset_style_before_moving();
     lebuf_print_cr();
     if (lebuf.pos.line < p.line)
-	lebuf_print_cud(p.line - lebuf.pos.line);
+        lebuf_print_cud(p.line - lebuf.pos.line);
     else if (lebuf.pos.line > p.line)
-	lebuf_print_cuu(lebuf.pos.line - p.line);
+        lebuf_print_cuu(lebuf.pos.line - p.line);
     if (p.column > 0)
-	lebuf_print_cuf(p.column);
+        lebuf_print_cuf(p.column);
 }
 
 /* Moves the cursor to the character of the specified index in the main buffer.
@@ -902,12 +902,12 @@ void go_to_index(size_t index)
 void go_to_after_editline(void)
 {
     if (rprompt_line >= 0) {
-	go_to((le_pos_T) { rprompt_line, lebuf.maxcolumn - 1 });
-	lebuf_print_nel();
+        go_to((le_pos_T) { rprompt_line, lebuf.maxcolumn - 1 });
+        lebuf_print_nel();
     } else {
-	go_to_index(le_main_buffer.length);
-	if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
-	    lebuf_print_nel();
+        go_to_index(le_main_buffer.length);
+        if (lebuf.pos.column != 0 || lebuf.pos.line == 0)
+            lebuf_print_nel();
     }
 }
 
@@ -915,11 +915,11 @@ void go_to_after_editline(void)
 void fillip_cursor(void)
 {
     if (0 <= lebuf.maxcolumn && lebuf.maxcolumn <= lebuf.pos.column) {
-	lebuf_putwchar(L' ',  false);
-	lebuf_putwchar(L'\r', false);
-	lebuf_print_el();
-	if (rprompt_line == lebuf.pos.line)
-	    rprompt_line = -1;
+        lebuf_putwchar(L' ',  false);
+        lebuf_putwchar(L'\r', false);
+        lebuf_print_el();
+        if (rprompt_line == lebuf.pos.line)
+            rprompt_line = -1;
     }
 }
 
@@ -931,25 +931,25 @@ void le_display_make_rawvalues(void)
     assert(le_candidates.contents != NULL);
 
     for (size_t i = 0; i < le_candidates.length; i++) {
-	le_candidate_T *cand = le_candidates.contents[i];
+        le_candidate_T *cand = le_candidates.contents[i];
 
-	assert(cand->rawvalue.raw == NULL);
-	lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+        assert(cand->rawvalue.raw == NULL);
+        lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	print_candidate_rawvalue(cand);
+        print_candidate_rawvalue(cand);
 
-	cand->rawvalue.raw = sb_tostr(&lebuf.buf);
-	cand->rawvalue.width = lebuf.pos.column;
+        cand->rawvalue.raw = sb_tostr(&lebuf.buf);
+        cand->rawvalue.width = lebuf.pos.column;
 
-	assert(cand->rawdesc.raw == NULL);
-	if (cand->desc != NULL) {
-	    lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
+        assert(cand->rawdesc.raw == NULL);
+        if (cand->desc != NULL) {
+            lebuf_init_with_max((le_pos_T) { 0, 0 }, -1);
 
-	    lebuf_putws_trunc(cand->desc);
+            lebuf_putws_trunc(cand->desc);
 
-	    cand->rawdesc.raw = sb_tostr(&lebuf.buf);
-	    cand->rawdesc.width = lebuf.pos.column;
-	}
+            cand->rawdesc.raw = sb_tostr(&lebuf.buf);
+            cand->rawdesc.width = lebuf.pos.column;
+        }
     }
 }
 
@@ -960,17 +960,17 @@ void print_candidate_rawvalue(const le_candidate_T *cand)
     const wchar_t *s = cand->value;
 
     if (cand->type == CT_FILE) {
-	/* skip directory components for a file candidate */
-	for (;;) {
-	    const wchar_t *ss = wcschr(s, L'/');
-	    if (ss == NULL || *++ss == L'\0')
-		break;
-	    s = ss;
-	}
+        /* skip directory components for a file candidate */
+        for (;;) {
+            const wchar_t *ss = wcschr(s, L'/');
+            if (ss == NULL || *++ss == L'\0')
+                break;
+            s = ss;
+        }
     } else if (cand->type == CT_OPTION) {
-	/* prepend a hyphen if none */
-	if (cand->value[0] != L'-')
-	    lebuf_putwchar_trunc(L'-');
+        /* prepend a hyphen if none */
+        if (cand->value[0] != L'-')
+            lebuf_putwchar_trunc(L'-');
     }
 
     lebuf_putws_trunc(s);
@@ -984,17 +984,17 @@ void print_candidate_rawvalue(const le_candidate_T *cand)
 void update_candidates(void)
 {
     if (le_candidates.contents != NULL || candbaseline >= 0) {
-	if (candoverwritten)
-	    le_display_complete_cleanup();
-	if (candpages.contents == NULL) {
-	    make_pages_and_columns();
-	    print_candidates_all();
-	} else if (le_candidates.contents == NULL
-		|| candbaseline < 0 || candoverwritten) {
-	    print_candidates_all();
-	} else {
-	    update_highlighted_candidate();
-	}
+        if (candoverwritten)
+            le_display_complete_cleanup();
+        if (candpages.contents == NULL) {
+            make_pages_and_columns();
+            print_candidates_all();
+        } else if (le_candidates.contents == NULL
+                || candbaseline < 0 || candoverwritten) {
+            print_candidates_all();
+        } else {
+            update_highlighted_candidate();
+        }
     }
 }
 
@@ -1012,11 +1012,11 @@ void make_pages_and_columns(void)
     assert(candcols.contents == NULL);
 
     if (le_candidates.contents == NULL || le_candidates.length == 0)
-	return;
+        return;
 
     int maxrowi = le_lines - last_edit_line - 1;
     if (maxrowi < 2 || le_columns < 4)
-	return;  /* we need at least 2 lines & 4 columns */
+        return;  /* we need at least 2 lines & 4 columns */
 
     pl_init(&candpages);
     pl_init(&candcols);
@@ -1029,13 +1029,13 @@ void make_pages_and_columns(void)
 
     /* first check if the candidates fit into one page */
     for (size_t cand_per_col = 1; cand_per_col <= maxrow; cand_per_col++) {
-	if (arrange_candidates(cand_per_col, le_columns)) {
-	    candpage_T *page = xmalloc(sizeof *page);
-	    page->colindex = 0;
-	    page->colcount = candcols.length;
-	    pl_add(&candpages, page);
-	    return;
-	}
+        if (arrange_candidates(cand_per_col, le_columns)) {
+            candpage_T *page = xmalloc(sizeof *page);
+            page->colindex = 0;
+            page->colcount = candcols.length;
+            pl_add(&candpages, page);
+            return;
+        }
     }
 
     /* divide the candidate list into pages */
@@ -1060,36 +1060,36 @@ bool arrange_candidates(size_t cand_per_col, int totalwidthlimit)
     assert(cand_per_col > 0);
     assert(candcols.contents[0] == NULL);
     do {
-	candcol_T *col = xmalloc(sizeof *col);
-	col->candindex = candindex;
-	if (le_candidates.length - candindex < cand_per_col)
-	    col->candcount = le_candidates.length - candindex;
-	else
-	    col->candcount = cand_per_col;
-	col->valuewidth = col->descwidth = col->width = 0;
-	
-	for (size_t nextcandindex = candindex + col->candcount;
-		candindex < nextcandindex;
-		candindex++) {
-	    le_candidate_T *cand = le_candidates.contents[candindex];
+        candcol_T *col = xmalloc(sizeof *col);
+        col->candindex = candindex;
+        if (le_candidates.length - candindex < cand_per_col)
+            col->candcount = le_candidates.length - candindex;
+        else
+            col->candcount = cand_per_col;
+        col->valuewidth = col->descwidth = col->width = 0;
+        
+        for (size_t nextcandindex = candindex + col->candcount;
+                candindex < nextcandindex;
+                candindex++) {
+            le_candidate_T *cand = le_candidates.contents[candindex];
 
-	    if (col->valuewidth < cand->rawvalue.width)
-		col->valuewidth = cand->rawvalue.width;
-	    if (col->descwidth < cand->rawdesc.width)
-		col->descwidth = cand->rawdesc.width;
-	}
+            if (col->valuewidth < cand->rawvalue.width)
+                col->valuewidth = cand->rawvalue.width;
+            if (col->descwidth < cand->rawdesc.width)
+                col->descwidth = cand->rawdesc.width;
+        }
 
-	col->valuewidth += 2;
-	if (col->descwidth > 0)
-	    col->descwidth += 4;
-	col->width = col->valuewidth + col->descwidth;
-	totalwidth += col->width;
-	pl_add(&candcols, col);
+        col->valuewidth += 2;
+        if (col->descwidth > 0)
+            col->descwidth += 4;
+        col->width = col->valuewidth + col->descwidth;
+        totalwidth += col->width;
+        pl_add(&candcols, col);
 
-	if (totalwidthlimit >= 0 && totalwidth >= totalwidthlimit) {
-	    pl_clear(&candcols, free_candcol);
-	    return false;
-	}
+        if (totalwidthlimit >= 0 && totalwidth >= totalwidthlimit) {
+            pl_clear(&candcols, free_candcol);
+            return false;
+        }
     } while (candindex < le_candidates.length);
 
     return true;
@@ -1112,21 +1112,21 @@ void divide_candidates_pages(size_t cand_per_col)
     size_t colindex = 0;
     assert(candpages.contents[0] == NULL);
     do {
-	candpage_T *page = xmalloc(sizeof *page);
-	int pagewidth;
-	candcol_T *col;
+        candpage_T *page = xmalloc(sizeof *page);
+        int pagewidth;
+        candcol_T *col;
 
-	page->colindex = colindex;
-	col = candcols.contents[colindex];
-	pagewidth = col->width;
-	while ((col = candcols.contents[++colindex]) != NULL &&
-		pagewidth + col->width < le_columns)
-	    pagewidth += col->width;
-	page->colcount = colindex - page->colindex;
-	/* Each page contains at least one column: The page width may not
-	 * necessarily be less than the screen width. */
+        page->colindex = colindex;
+        col = candcols.contents[colindex];
+        pagewidth = col->width;
+        while ((col = candcols.contents[++colindex]) != NULL &&
+                pagewidth + col->width < le_columns)
+            pagewidth += col->width;
+        page->colcount = colindex - page->colindex;
+        /* Each page contains at least one column: The page width may not
+         * necessarily be less than the screen width. */
 
-	pl_add(&candpages, page);
+        pl_add(&candpages, page);
     } while (colindex < candcols.length);  /* col != NULL */
 }
 
@@ -1135,12 +1135,12 @@ void divide_candidates_pages(size_t cand_per_col)
 void le_display_complete_cleanup(void)
 {
     if (candpages.contents != NULL) {
-	plfree(pl_toary(&candpages), free_candpage);
-	candpages.contents = NULL;
+        plfree(pl_toary(&candpages), free_candpage);
+        candpages.contents = NULL;
 
-	assert(candcols.contents != NULL);
-	plfree(pl_toary(&candcols), free_candcol);
-	candcols.contents = NULL;
+        assert(candcols.contents != NULL);
+        plfree(pl_toary(&candcols), free_candcol);
+        candcols.contents = NULL;
     }
     candhighlight = NOHIGHLIGHT;
 }
@@ -1178,50 +1178,50 @@ void print_candidates_all(void)
     candoverwritten = false;
 
     if (le_candidates.contents == NULL)
-	return;
+        return;
     if (le_candidates.length == 0) {
-	candbaseline = lebuf.pos.line;
-	print_candidate_count_0();
-	return;
+        candbaseline = lebuf.pos.line;
+        print_candidate_count_0();
+        return;
     }
     if (candpages.contents == NULL)
-	return;
+        return;
 
     candbaseline = lebuf.pos.line;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
-	? page_of_col(col_of_cand(le_selected_candidate_index))
-	: 0;
+        ? page_of_col(col_of_cand(le_selected_candidate_index))
+        : 0;
     const candpage_T *page = candpages.contents[pageindex];
     const candcol_T *firstcol = candcols.contents[page->colindex];
 
     for (size_t rowi = 0, rowcount = firstcol->candcount; ; ) {
-	int scrcol = 0;
+        int scrcol = 0;
 
-	for (size_t coli = 0; coli < page->colcount; coli++) {
-	    const candcol_T *col = candcols.contents[page->colindex + coli];
-	    if (rowi >= col->candcount)
-		break;
+        for (size_t coli = 0; coli < page->colcount; coli++) {
+            const candcol_T *col = candcols.contents[page->colindex + coli];
+            if (rowi >= col->candcount)
+                break;
 
-	    while (lebuf.pos.column < scrcol)
-		lebuf_putchar1_trunc(' ');
+            while (lebuf.pos.column < scrcol)
+                lebuf_putchar1_trunc(' ');
 
-	    size_t candindex = col->candindex + rowi;
-	    print_candidate(le_candidates.contents[candindex], col,
-		    le_selected_candidate_index == candindex, true);
+            size_t candindex = col->candindex + rowi;
+            print_candidate(le_candidates.contents[candindex], col,
+                    le_selected_candidate_index == candindex, true);
 
-	    scrcol += col->width;
-	}
+            scrcol += col->width;
+        }
 
-	rowi++;
-	if (rowi >= rowcount)
-	    break;
-	lebuf_print_nel();
+        rowi++;
+        if (rowi >= rowcount)
+            break;
+        lebuf_print_nel();
     }
 
     if (candpages.length > 1) {  /* print status line */
-	lebuf_print_nel();
-	print_candidate_count(pageindex);
+        lebuf_print_nel();
+        print_candidate_count(pageindex);
     }
 
     candhighlight = le_selected_candidate_index;
@@ -1238,29 +1238,29 @@ void update_highlighted_candidate(void)
 {
     assert(candbaseline >= 0);
     if (le_candidates.length == 0)
-	return;
+        return;
     if (candhighlight == le_selected_candidate_index)
-	return;
+        return;
 
     size_t oldpageindex, oldcolindex, newpageindex, newcolindex;
 
     if (candhighlight < le_candidates.length) {
-	oldcolindex = col_of_cand(candhighlight);
-	oldpageindex = page_of_col(oldcolindex);
+        oldcolindex = col_of_cand(candhighlight);
+        oldpageindex = page_of_col(oldcolindex);
     } else {
-	oldcolindex = 0;
-	oldpageindex = 0;
+        oldcolindex = 0;
+        oldpageindex = 0;
     }
     if (le_selected_candidate_index < le_candidates.length) {
-	newcolindex = col_of_cand(le_selected_candidate_index);
-	newpageindex = page_of_col(newcolindex);
+        newcolindex = col_of_cand(le_selected_candidate_index);
+        newpageindex = page_of_col(newcolindex);
     } else {
-	newcolindex = 0;
-	newpageindex = 0;
+        newcolindex = 0;
+        newpageindex = 0;
     }
     if (oldpageindex != newpageindex) {
-	print_candidates_all();
-	return;
+        print_candidates_all();
+        return;
     }
 
     lebuf_print_sgr0(), styler_active = false;
@@ -1272,42 +1272,42 @@ void update_highlighted_candidate(void)
 
     /* de-highlight the previous selected candidate */
     if (candhighlight < le_candidates.length) {
-	column = 0;
-	for (size_t i = page->colindex; i < oldcolindex; i++) {
-	    col = candcols.contents[i];
-	    column += col->width;
-	}
-	col = candcols.contents[oldcolindex];
-	rowindex = candhighlight - col->candindex;
-	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
-			   .column = column });
-	print_candidate(
-		le_candidates.contents[candhighlight], col, false, false);
+        column = 0;
+        for (size_t i = page->colindex; i < oldcolindex; i++) {
+            col = candcols.contents[i];
+            column += col->width;
+        }
+        col = candcols.contents[oldcolindex];
+        rowindex = candhighlight - col->candindex;
+        go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
+                           .column = column });
+        print_candidate(
+                le_candidates.contents[candhighlight], col, false, false);
     }
 
     /* highlight the current selected candidate */
     candhighlight = le_selected_candidate_index;
     if (candhighlight < le_candidates.length) {
-	column = 0;
-	for (size_t i = page->colindex; i < newcolindex; i++) {
-	    col = candcols.contents[i];
-	    column += col->width;
-	}
-	col = candcols.contents[newcolindex];
-	rowindex = candhighlight - col->candindex;
-	go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
-			   .column = column });
-	print_candidate(
-		le_candidates.contents[candhighlight], col, true, false);
+        column = 0;
+        for (size_t i = page->colindex; i < newcolindex; i++) {
+            col = candcols.contents[i];
+            column += col->width;
+        }
+        col = candcols.contents[newcolindex];
+        rowindex = candhighlight - col->candindex;
+        go_to((le_pos_T) { .line = candbaseline + (int) rowindex,
+                           .column = column });
+        print_candidate(
+                le_candidates.contents[candhighlight], col, true, false);
     }
 
     /* print status line */
     if (candpages.length > 1) {
-	col = candcols.contents[page->colindex];
-	go_to((le_pos_T) { .line = candbaseline + col->candcount,
-	                   .column = 0 });
-	lebuf_print_el();
-	print_candidate_count(newpageindex);
+        col = candcols.contents[page->colindex];
+        go_to((le_pos_T) { .line = candbaseline + col->candcount,
+                           .column = 0 });
+        lebuf_print_el();
+        print_candidate_count(newpageindex);
     }
 }
 
@@ -1316,43 +1316,43 @@ void update_highlighted_candidate(void)
  * Iff `printdesc' is true, the candidate's description is printed.
  * The cursor is left just after the printed candidate. */
 void print_candidate(const le_candidate_T *cand, const candcol_T *col,
-	bool highlight, bool printdesc)
+        bool highlight, bool printdesc)
 {
     int line = lebuf.pos.line;
 
     /* print value */
     if (true /* cand->value != NULL */) {
-	int base = lebuf.pos.column;
-	if (highlight)
-	    lebuf_print_bold();
-	lebuf_putchar1_trunc(highlight ? '[' : ' ');
-	if (lebuf.pos.column + cand->rawvalue.width < lebuf.maxcolumn) {
-	    lebuf.pos.column += cand->rawvalue.width;
-	    sb_cat(&lebuf.buf, cand->rawvalue.raw);
-	} else {
-	    print_candidate_rawvalue(cand);
-	}
-	while (lebuf.pos.column + 2 < lebuf.maxcolumn
-		&& lebuf.pos.column - base < col->valuewidth - 1)
-	    lebuf_putchar1_trunc(' ');
-	if (highlight)
-	    lebuf_print_sgr0(), lebuf_print_bold();
-	lebuf_putchar1_trunc(highlight ? ']' : ' ');
-	if (highlight)
-	    lebuf_print_sgr0();
+        int base = lebuf.pos.column;
+        if (highlight)
+            lebuf_print_bold();
+        lebuf_putchar1_trunc(highlight ? '[' : ' ');
+        if (lebuf.pos.column + cand->rawvalue.width < lebuf.maxcolumn) {
+            lebuf.pos.column += cand->rawvalue.width;
+            sb_cat(&lebuf.buf, cand->rawvalue.raw);
+        } else {
+            print_candidate_rawvalue(cand);
+        }
+        while (lebuf.pos.column + 2 < lebuf.maxcolumn
+                && lebuf.pos.column - base < col->valuewidth - 1)
+            lebuf_putchar1_trunc(' ');
+        if (highlight)
+            lebuf_print_sgr0(), lebuf_print_bold();
+        lebuf_putchar1_trunc(highlight ? ']' : ' ');
+        if (highlight)
+            lebuf_print_sgr0();
     }
 
     /* print description */
     if (printdesc && cand->desc != NULL) {
-	lebuf_putchar1_trunc(' ');
-	lebuf_putchar1_trunc('(');
-	if (lebuf.pos.column + cand->rawdesc.width < lebuf.maxcolumn) {
-	    lebuf.pos.column += cand->rawdesc.width;
-	    sb_cat(&lebuf.buf, cand->rawdesc.raw);
-	} else {
-	    lebuf_putws_trunc(cand->desc);
-	}
-	lebuf_putchar1_trunc(')');
+        lebuf_putchar1_trunc(' ');
+        lebuf_putchar1_trunc('(');
+        if (lebuf.pos.column + cand->rawdesc.width < lebuf.maxcolumn) {
+            lebuf.pos.column += cand->rawdesc.width;
+            sb_cat(&lebuf.buf, cand->rawdesc.raw);
+        } else {
+            lebuf_putws_trunc(cand->desc);
+        }
+        lebuf_putchar1_trunc(')');
     }
 
     assert(lebuf.pos.line == line);
@@ -1366,18 +1366,18 @@ void print_candidate(const le_candidate_T *cand, const candcol_T *col,
 void print_candidate_count(size_t pageindex)
 {
     size_t sindex = (le_selected_candidate_index < le_candidates.length)
-	? le_selected_candidate_index + 1
-	: 0;
+        ? le_selected_candidate_index + 1
+        : 0;
     char *s1 = malloc_printf(gt("Candidate %zu of %zu; Page %zu of %zu"),
-	    sindex, le_candidates.length, pageindex + 1, candpages.length);
+            sindex, le_candidates.length, pageindex + 1, candpages.length);
 
     if (s1 != NULL) {
-	wchar_t *s2 = realloc_mbstowcs(s1);
+        wchar_t *s2 = realloc_mbstowcs(s1);
 
-	if (s2 != NULL) {
-	    lebuf_putws_trunc(s2);
-	    free(s2);
-	}
+        if (s2 != NULL) {
+            lebuf_putws_trunc(s2);
+            free(s2);
+        }
     }
 }
 
@@ -1387,8 +1387,8 @@ void print_candidate_count_0(void)
     wchar_t *s = malloc_mbstowcs(gt("No candidates"));
 
     if (s != NULL) {
-	lebuf_putws_trunc(s);
-	free(s);
+        lebuf_putws_trunc(s);
+        free(s);
     }
 }
 
@@ -1399,8 +1399,8 @@ size_t col_of_cand(size_t candindex)
     assert(candcols.length > 0);
 
     void **colp = bsearch(&candindex,
-	    candcols.contents, candcols.length, sizeof *candcols.contents,
-	    col_of_cand_cmp);
+            candcols.contents, candcols.length, sizeof *candcols.contents,
+            col_of_cand_cmp);
     assert(colp != NULL);
     return colp - candcols.contents;
 }
@@ -1410,11 +1410,11 @@ int col_of_cand_cmp(const void *candindexp, const void *colp)
     size_t candindex = *(const size_t *) candindexp;
     const candcol_T *col = *(void **) colp;
     if (candindex < col->candindex)
-	return -1;
+        return -1;
     else if (candindex < col->candindex + col->candcount)
-	return 0;
+        return 0;
     else
-	return 1;
+        return 1;
 }
 
 /* Returns the index of the page to which the column of index `colindex'
@@ -1424,8 +1424,8 @@ size_t page_of_col(size_t colindex)
     assert(candpages.length > 0);
 
     void **pagep = bsearch(&colindex,
-	    candpages.contents, candpages.length, sizeof *candpages.contents,
-	    page_of_col_cmp);
+            candpages.contents, candpages.length, sizeof *candpages.contents,
+            page_of_col_cmp);
     assert(pagep != NULL);
     return pagep - candpages.contents;
 }
@@ -1435,11 +1435,11 @@ int page_of_col_cmp(const void *colindexp, const void *pagep)
     size_t colindex = *(const size_t *) colindexp;
     const candpage_T *page = *(void **) pagep;
     if (colindex < page->colindex)
-	return -1;
+        return -1;
     else if (colindex < page->colindex + page->colcount)
-	return 0;
+        return 0;
     else
-	return 1;
+        return 1;
 }
 
 /* Sets `le_selected_candidate_index' to the index of the first candidate of
@@ -1449,11 +1449,11 @@ int page_of_col_cmp(const void *colindexp, const void *pagep)
 void le_display_select_column(int offset)
 {
     if (candcols.contents == NULL)
-	return;
+        return;
 
     size_t colindex = le_selected_candidate_index < le_candidates.length
-	? col_of_cand(le_selected_candidate_index)
-	: 0;
+        ? col_of_cand(le_selected_candidate_index)
+        : 0;
 
     colindex = select_list_item(colindex, offset, candcols.length);
 
@@ -1468,11 +1468,11 @@ void le_display_select_column(int offset)
 void le_display_select_page(int offset)
 {
     if (candpages.contents == NULL)
-	return;
+        return;
 
     size_t pageindex = le_selected_candidate_index < le_candidates.length
-	? page_of_col(col_of_cand(le_selected_candidate_index))
-	: 0;
+        ? page_of_col(col_of_cand(le_selected_candidate_index))
+        : 0;
 
     pageindex = select_list_item(pageindex, offset, candpages.length);
 
@@ -1485,15 +1485,15 @@ void le_display_select_page(int offset)
 size_t select_list_item(size_t index, int offset, size_t listsize)
 {
     if (offset >= 0) {
-	offset %= listsize;
-	index += offset;
-	index %= listsize;
+        offset %= listsize;
+        index += offset;
+        index %= listsize;
     } else {
-	offset = -offset % listsize;
-	if ((size_t) offset <= index)
-	    index -= offset;
-	else
-	    index += listsize - offset;
+        offset = -offset % listsize;
+        if ((size_t) offset <= index)
+            index -= offset;
+        else
+            index += listsize - offset;
     }
     assert(index < listsize);
     return index;
@@ -1507,14 +1507,14 @@ size_t select_list_item(size_t index, int offset, size_t listsize)
 bool le_try_print_prompt(const wchar_t *s)
 {
     if (isatty(STDERR_FILENO) && le_setupterm(true)) {
-	lebuf_init((le_pos_T) { 0, 0 });
-	lebuf_print_prompt(s);
-	le_display_flush();
-	return true;
+        lebuf_init((le_pos_T) { 0, 0 });
+        lebuf_print_prompt(s);
+        le_display_flush();
+        return true;
     } else {
-	return false;
+        return false;
     }
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

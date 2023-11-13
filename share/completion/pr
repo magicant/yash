@@ -6,96 +6,96 @@
 
 function completion/pr {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"a ${long:+--across}; arrange lines across columns"
-	"d ${long:+--double-space}; double space"
-	"e:: ${long:+--expand-tabs::}; expand tabs into spaces"
-	"F f ${long:+--form-feed}; use form feeds to separate pages"
-	"h: ${long:+--header:}; specify the header string"
-	"i:: ${long:+--output-tabs::}; replace adjacent spaces with tabs"
-	"l: ${long:+--length:}; specify the number of lines per page"
-	"m ${long:+--merge}; print all files in parallel, each in one column"
-	"n:: ${long:+--number-lines::}; print line numbers"
-	"o: ${long:+--indent:}; specify the width of offset preceding each line"
-	"p; pause before printing each page to the terminal"
-	"r ${long:+--no-file-warnings}; don't warn about missing/unreadable files"
-	"s:: ${long:+--separator::}; specify the column separator"
-	"t ${long:+--omit-header}; omit page headers and footers"
-	"w: ${long:+--width:}; specify the line width for multi-column layout"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "a ${long:+--across}; arrange lines across columns"
+        "d ${long:+--double-space}; double space"
+        "e:: ${long:+--expand-tabs::}; expand tabs into spaces"
+        "F f ${long:+--form-feed}; use form feeds to separate pages"
+        "h: ${long:+--header:}; specify the header string"
+        "i:: ${long:+--output-tabs::}; replace adjacent spaces with tabs"
+        "l: ${long:+--length:}; specify the number of lines per page"
+        "m ${long:+--merge}; print all files in parallel, each in one column"
+        "n:: ${long:+--number-lines::}; print line numbers"
+        "o: ${long:+--indent:}; specify the width of offset preceding each line"
+        "p; pause before printing each page to the terminal"
+        "r ${long:+--no-file-warnings}; don't warn about missing/unreadable files"
+        "s:: ${long:+--separator::}; specify the column separator"
+        "t ${long:+--omit-header}; omit page headers and footers"
+        "w: ${long:+--width:}; specify the line width for multi-column layout"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c --show-control-chars; make unprintable characters visible by caret notation and backslashed octal notation"
-		"D: --date-format:; specify the date format in the header"
-		"J --join-lines; merge full lines"
-		"N: --first-line-number:; specify the number to start counting line numbers from"
-		"S:: --sep-string::; specify a string to separate columns"
-		"T --omit-pagination; like -t, and eliminate form feeds in the input"
-		"v --show-nonprinting; make unprintable characters visible by backslashed octal notation"
-		"W: --page-width:; specify the line width"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(FreeBSD|Darwin)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"L:; specify the locale"
-		) #<#
-		;;
-	(NetBSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"T:; specify the date format in the header"
-		) #<#
-		;;
-	(HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c:; specify the number of columns"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "c --show-control-chars; make unprintable characters visible by caret notation and backslashed octal notation"
+                "D: --date-format:; specify the date format in the header"
+                "J --join-lines; merge full lines"
+                "N: --first-line-number:; specify the number to start counting line numbers from"
+                "S:: --sep-string::; specify a string to separate columns"
+                "T --omit-pagination; like -t, and eliminate form feeds in the input"
+                "v --show-nonprinting; make unprintable characters visible by backslashed octal notation"
+                "W: --page-width:; specify the line width"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (FreeBSD|Darwin)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "L:; specify the locale"
+                ) #<#
+                ;;
+        (NetBSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "T:; specify the date format in the header"
+                ) #<#
+                ;;
+        (HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "c:; specify the number of columns"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	WORDS=("${WORDS/#+/-}")
+        WORDS=("${WORDS/#+/-}")
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([DT]|--date-format)
-		if command -vf completion//completestrftime >/dev/null 2>&1 ||
-				. -AL completion/date; then
-			command -f completion//completestrftime
-		fi
-		;;
-	(L)
-		IFS="
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([DT]|--date-format)
+                if command -vf completion//completestrftime >/dev/null 2>&1 ||
+                                . -AL completion/date; then
+                        command -f completion//completestrftime
+                fi
+                ;;
+        (L)
+                IFS="
 "
-		complete -P "$PREFIX" -- $(locale -a 2>/dev/null)
-		;;
-	([ceilNnosWw]|--expand-tabs|--output-tabs|--first-line-number|--length|--number-lines|--indent|--separator|--width|--page-width)
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+                complete -P "$PREFIX" -- $(locale -a 2>/dev/null)
+                ;;
+        ([ceilNnosWw]|--expand-tabs|--output-tabs|--first-line-number|--length|--number-lines|--indent|--separator|--width|--page-width)
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

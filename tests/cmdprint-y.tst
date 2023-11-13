@@ -692,30 +692,30 @@ test_multi 'complex indentation of compound commands'
 {
     (
     if :; foo; then
-	for i in 1 2 3; do
-	    while :; foo& do
-		case i in
-		    (i)
-			[[ foo ]]
-			f() {
-			    cat - /dev/null <<-END
+        for i in 1 2 3; do
+            while :; foo& do
+                case i in
+                    (i)
+                        [[ foo ]]
+                        f() {
+                            cat - /dev/null <<-END
 			$(here; document)
 			END
-			    echo ${foo-$((1 + $(bar; baz)))}
-			    cat <(foo; bar <<-END
+                            echo ${foo-$((1 + $(bar; baz)))}
+                            cat <(foo; bar <<-END
 			END
-			    ) >/dev/null
-			}
-		esac
-	    done
-	    until :; bar& do
-		:
-	    done
-	done
+                            ) >/dev/null
+                        }
+                esac
+            done
+            until :; bar& do
+                :
+            done
+        done
     elif :; bar& then
-	:
+        :
     else
-	baz
+        baz
     fi
     )
 }
@@ -826,4 +826,4 @@ END2
 }
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

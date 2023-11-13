@@ -54,7 +54,7 @@
 
 static bool is_seekable_file(int fd);
 static inputresult_T optimized_read_input(
-	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
     __attribute__((nonnull));
 static wchar_t *expand_prompt_variable(wchar_t num, wchar_t suffix)
     __attribute__((malloc,warn_unused_result));
@@ -75,14 +75,14 @@ inputresult_T input_wcs(struct xwcsbuf_T *buf, void *inputinfo)
     const wchar_t *src = info->src;
 
     if (src == NULL)
-	return INPUT_EOF;
+        return INPUT_EOF;
 
     const wchar_t *newlinep = wcschr(src, L'\n');
     if (newlinep != NULL) {
-	const wchar_t *nextlinep = &newlinep[1];
-	wb_ncat_force(buf, src, nextlinep - src);
-	info->src = nextlinep;
-	return INPUT_OK;
+        const wchar_t *nextlinep = &newlinep[1];
+        wb_ncat_force(buf, src, nextlinep - src);
+        info->src = nextlinep;
+        return INPUT_OK;
     }
 
     bool isempty = (src[0] == L'\0');
@@ -107,71 +107,71 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
  *   INPUT_EOF   if reached the end of file without reading any characters
  *   INPUT_ERROR if an error occurred before reading any characters */
 inputresult_T read_input(
-	xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
+        xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
 {
     if (info->bufsize == 1 && is_seekable_file(info->fd))
-	return optimized_read_input(buf, info, trap);
+        return optimized_read_input(buf, info, trap);
 
     size_t initlen = buf->length;
     inputresult_T status = INPUT_EOF;
 
     for (;;) {
-	if (info->bufpos >= info->bufmax) {
+        if (info->bufpos >= info->bufmax) {
 read_input:  /* if there's nothing in the buffer, read the next input */
-	    switch (wait_for_input(info->fd, trap, -1)) {
-		case W_READY:
-		    break;
-		case W_TIMED_OUT:
-		    assert(false);
-		case W_INTERRUPTED:
-		    // Ignore interruption and continue reading, because:
-		    //  1) POSIX does not require to handle interruption, and
-		    //  2) the buffer for canonical-mode editing cannot be
-		    //     controlled from the shell.
-		    goto read_input;
-		case W_ERROR:
-		    status = INPUT_ERROR;
-		    goto end;
-	    }
+            switch (wait_for_input(info->fd, trap, -1)) {
+                case W_READY:
+                    break;
+                case W_TIMED_OUT:
+                    assert(false);
+                case W_INTERRUPTED:
+                    // Ignore interruption and continue reading, because:
+                    //  1) POSIX does not require to handle interruption, and
+                    //  2) the buffer for canonical-mode editing cannot be
+                    //     controlled from the shell.
+                    goto read_input;
+                case W_ERROR:
+                    status = INPUT_ERROR;
+                    goto end;
+            }
 
-	    ssize_t readcount = read(info->fd, info->buf, info->bufsize);
-	    if (readcount < 0) switch (errno) {
-		case EINTR:
-		case EAGAIN:
+            ssize_t readcount = read(info->fd, info->buf, info->bufsize);
+            if (readcount < 0) switch (errno) {
+                case EINTR:
+                case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
-		case EWOULDBLOCK:
+                case EWOULDBLOCK:
 #endif
-		    goto read_input;  /* try again */
-		default:
-		    goto error;
-	    } else if (readcount == 0) {
-		goto end;
-	    }
-	    info->bufpos = 0;
-	    info->bufmax = readcount;
-	}
+                    goto read_input;  /* try again */
+                default:
+                    goto error;
+            } else if (readcount == 0) {
+                goto end;
+            }
+            info->bufpos = 0;
+            info->bufmax = readcount;
+        }
 
-	/* convert bytes in `info->buf' into a wide character and
-	 * append it to `buf' */
-	wb_ensuremax(buf, add(buf->length, 1));
-	assert(info->bufpos < info->bufmax);
-	size_t convcount = mbrtowc(&buf->contents[buf->length],
-		&info->buf[info->bufpos], info->bufmax - info->bufpos,
-		&info->state);
-	switch (convcount) {
-	    case 0:            /* read null character */
-		goto end;
-	    case (size_t) -1:  /* not a valid character */
-		goto error;
-	    case (size_t) -2:  /* needs more input */
-		goto read_input;
-	    default:
-		info->bufpos += convcount;
-		buf->contents[++buf->length] = L'\0';
-		if (buf->contents[buf->length - 1] == L'\n')
-		    goto end;
-		break;
-	}
+        /* convert bytes in `info->buf' into a wide character and
+         * append it to `buf' */
+        wb_ensuremax(buf, add(buf->length, 1));
+        assert(info->bufpos < info->bufmax);
+        size_t convcount = mbrtowc(&buf->contents[buf->length],
+                &info->buf[info->bufpos], info->bufmax - info->bufpos,
+                &info->state);
+        switch (convcount) {
+            case 0:            /* read null character */
+                goto end;
+            case (size_t) -1:  /* not a valid character */
+                goto error;
+            case (size_t) -2:  /* needs more input */
+                goto read_input;
+            default:
+                info->bufpos += convcount;
+                buf->contents[++buf->length] = L'\0';
+                if (buf->contents[buf->length - 1] == L'\n')
+                    goto end;
+                break;
+        }
     }
 
 error:
@@ -179,9 +179,9 @@ error:
     status = INPUT_ERROR;
 end:
     if (initlen != buf->length)
-	return INPUT_OK;
+        return INPUT_OK;
     else
-	return status;
+        return status;
 }
 
 /* Checks if the file descriptor is seekable. */
@@ -198,29 +198,29 @@ bool is_seekable_file(int fd)
  * once even if `info->bufsize' is 1. The input file descriptor must be
  * seekable. */
 inputresult_T optimized_read_input(
-	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
 {
     struct input_file_info_T *tmpinfo =
-	xmallocs(sizeof *tmpinfo, BUFSIZ, sizeof *tmpinfo->buf);
+        xmallocs(sizeof *tmpinfo, BUFSIZ, sizeof *tmpinfo->buf);
     tmpinfo->fd = info->fd;
     tmpinfo->state = info->state;
     tmpinfo->bufpos = tmpinfo->bufmax = 0;
     tmpinfo->bufsize = BUFSIZ;
 
     while (info->bufpos < info->bufmax)
-	tmpinfo->buf[tmpinfo->bufmax++] = info->buf[info->bufpos++];
+        tmpinfo->buf[tmpinfo->bufmax++] = info->buf[info->bufpos++];
 
     inputresult_T result = read_input(buf, tmpinfo, trap);
 
     if (tmpinfo->bufpos < tmpinfo->bufmax) {
-	/* rewind the FD to pretend we're not buffering */
-	off_t diff = tmpinfo->bufmax - tmpinfo->bufpos;
-	if (lseek(tmpinfo->fd, -diff, SEEK_CUR) == (off_t) -1) {
-	    xerror(errno,
-		    Ngt("cannot rewind file descriptor %d after reading. "
-			"Subsequent reads may lack some text"),
-		    tmpinfo->fd);
-	}
+        /* rewind the FD to pretend we're not buffering */
+        off_t diff = tmpinfo->bufmax - tmpinfo->bufpos;
+        if (lseek(tmpinfo->fd, -diff, SEEK_CUR) == (off_t) -1) {
+            xerror(errno,
+                    Ngt("cannot rewind file descriptor %d after reading. "
+                        "Subsequent reads may lack some text"),
+                    tmpinfo->fd);
+        }
     }
 
     info->state = tmpinfo->state;
@@ -241,13 +241,13 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     struct promptset_T prompt;
 
     if (info->prompttype == 1) {
-	if (!posixly_correct)
-	    exec_variable_as_auxiliary_(VAR_PROMPT_COMMAND);
-	check_mail();
+        if (!posixly_correct)
+            exec_variable_as_auxiliary_(VAR_PROMPT_COMMAND);
+        check_mail();
     }
     prompt = get_prompt(info->prompttype);
     if (do_job_control)
-	print_job_status_all();
+        print_job_status_all();
     /* Note: no commands must be executed between `print_job_status_all' here
      * and `le_readline', or the "notifyle" option won't work. More precisely,
      * `handle_sigchld' must not be called from any other function until it is
@@ -256,23 +256,23 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line editing */
     if (info->fileinfo->fd == STDIN_FILENO
-	    && shopt_lineedit != SHOPT_NOLINEEDIT) {
-	wchar_t *line;
-	inputresult_T result;
+            && shopt_lineedit != SHOPT_NOLINEEDIT) {
+        wchar_t *line;
+        inputresult_T result;
 
-	result = le_readline(prompt, true, &line);
-	if (result != INPUT_ERROR) {
-	    free_prompt(prompt);
-	    if (result == INPUT_OK) {
-		if (info->prompttype == 1)
-		    info->prompttype = 2;
+        result = le_readline(prompt, true, &line);
+        if (result != INPUT_ERROR) {
+            free_prompt(prompt);
+            if (result == INPUT_OK) {
+                if (info->prompttype == 1)
+                    info->prompttype = 2;
 #if YASH_ENABLE_HISTORY
-		add_history(line);
+                add_history(line);
 #endif
-		wb_catfree(buf, line);
-	    }
-	    return result;
-	}
+                wb_catfree(buf, line);
+            }
+            return result;
+        }
     }
 #endif /* YASH_ENABLE_LINEEDIT */
 
@@ -280,7 +280,7 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     print_prompt(prompt.main);
     print_prompt(prompt.styler);
     if (info->prompttype == 1)
-	info->prompttype = 2;
+        info->prompttype = 2;
 
     int result;
 #if YASH_ENABLE_HISTORY
@@ -306,27 +306,27 @@ struct promptset_T get_prompt(int type)
 
     wchar_t num;
     switch (type) {
-	case 1:   num = L'1';  break;
-	case 2:   num = L'2';  break;
-	case 4:   num = L'4';  break;
-	default:  assert(false);
+        case 1:   num = L'1';  break;
+        case 2:   num = L'2';  break;
+        case 4:   num = L'4';  break;
+        default:  assert(false);
     }
 
     wchar_t *prompt = expand_prompt_variable(num, L'\0');
     if (posixly_correct) {
-	if (type == 1)
-	    result.main = expand_ps1_posix(prompt);
-	else
-	    result.main = escapefree(prompt, L"\\");
+        if (type == 1)
+            result.main = expand_ps1_posix(prompt);
+        else
+            result.main = escapefree(prompt, L"\\");
 
-	result.right  = xwcsdup(L"");
-	result.styler = xwcsdup(L"");
-	result.predict = xwcsdup(L"");
+        result.right  = xwcsdup(L"");
+        result.styler = xwcsdup(L"");
+        result.predict = xwcsdup(L"");
     } else {
-	result.main = prompt;
-	result.right = expand_prompt_variable(num, L'R');
-	result.styler = expand_prompt_variable(num, L'S');
-	result.predict = expand_prompt_variable(num, L'P');
+        result.main = prompt;
+        result.right = expand_prompt_variable(num, L'R');
+        result.styler = expand_prompt_variable(num, L'S');
+        result.predict = expand_prompt_variable(num, L'P');
     }
 
     return result;
@@ -352,14 +352,14 @@ const wchar_t *get_prompt_variable(wchar_t num, wchar_t suffix)
 
     const wchar_t *value;
     if (!posixly_correct) {
-	value = getvar(name);
-	if (value != NULL)
-	    return value;
+        value = getvar(name);
+        if (value != NULL)
+            return value;
     }
 
     value = getvar(&name[5]);
     if (value != NULL)
-	return value;
+        return value;
 
     return L"";
 }
@@ -375,20 +375,20 @@ wchar_t *expand_ps1_posix(wchar_t *s)
 
     wb_init(&buf);
     for (size_t i = 0; s[i] != L'\0'; i++) {
-	if (s[i] == L'\\') {
-	    wb_wccat(&buf, L'\\');
-	    wb_wccat(&buf, L'\\');
-	} else if (s[i] == L'!') {
-	    if (s[i + 1] == L'!') {
-		wb_wccat(&buf, L'!');
-		i++;
-	    } else {
-		wb_wccat(&buf, L'\\');
-		wb_wccat(&buf, L'!');
-	    }
-	} else {
-	    wb_wccat(&buf, s[i]);
-	}
+        if (s[i] == L'\\') {
+            wb_wccat(&buf, L'\\');
+            wb_wccat(&buf, L'\\');
+        } else if (s[i] == L'!') {
+            if (s[i + 1] == L'!') {
+                wb_wccat(&buf, L'!');
+                i++;
+            } else {
+                wb_wccat(&buf, L'\\');
+                wb_wccat(&buf, L'!');
+            }
+        } else {
+            wb_wccat(&buf, s[i]);
+        }
     }
 
     free(s);
@@ -435,38 +435,38 @@ void print_prompt(const wchar_t *s)
 {
 #if YASH_ENABLE_LINEEDIT
     if (le_try_print_prompt(s))
-	return;
+        return;
 #endif
 
     xwcsbuf_T buf;
 
     wb_init(&buf);
     while (*s != L'\0') {
-	if (*s != L'\\') {
-	    wb_wccat(&buf, *s);
-	} else switch (*++s) {
-	    default:     wb_wccat(&buf, *s);       break;
-	    case L'\0':  wb_wccat(&buf, L'\\');    goto done;
-//	    case L'\\':  wb_wccat(&buf, L'\\');    break;
-	    case L'a':   wb_wccat(&buf, L'\a');    break;
-	    case L'e':   wb_wccat(&buf, L'\033');  break;
-	    case L'n':   wb_wccat(&buf, L'\n');    break;
-	    case L'r':   wb_wccat(&buf, L'\r');    break;
-	    case L'$':   wb_wccat(&buf, get_euid_marker());      break;
-	    case L'j':   wb_wprintf(&buf, L"%zu", job_count());  break;
+        if (*s != L'\\') {
+            wb_wccat(&buf, *s);
+        } else switch (*++s) {
+            default:     wb_wccat(&buf, *s);       break;
+            case L'\0':  wb_wccat(&buf, L'\\');    goto done;
+//          case L'\\':  wb_wccat(&buf, L'\\');    break;
+            case L'a':   wb_wccat(&buf, L'\a');    break;
+            case L'e':   wb_wccat(&buf, L'\033');  break;
+            case L'n':   wb_wccat(&buf, L'\n');    break;
+            case L'r':   wb_wccat(&buf, L'\r');    break;
+            case L'$':   wb_wccat(&buf, get_euid_marker());      break;
+            case L'j':   wb_wprintf(&buf, L"%zu", job_count());  break;
 #if YASH_ENABLE_HISTORY
-	    case L'!':   wb_wprintf(&buf, L"%u", next_history_number());  break;
+            case L'!':   wb_wprintf(&buf, L"%u", next_history_number());  break;
 #endif
-	    case L'[':
-	    case L']':
-		break;
-	    case L'f':
-		while (iswalnum(*++s));
-		if (*s == L'.')
-		    s++;
-		continue;
-	}
-	s++;
+            case L'[':
+            case L']':
+                break;
+            case L'f':
+                while (iswalnum(*++s));
+                if (*s == L'.')
+                    s++;
+                continue;
+        }
+        s++;
     }
 done:
     fprintf(stderr, "%ls", buf.contents);
@@ -485,14 +485,14 @@ wchar_t get_euid_marker(void)
 bool unset_nonblocking(int fd)
 {
     if (fd >= 0) {
-	int flags = fcntl(fd, F_GETFL);
-	if (flags < 0)
-	    return false;
-	if (flags & O_NONBLOCK)
-	    return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != -1;
+        int flags = fcntl(fd, F_GETFL);
+        if (flags < 0)
+            return false;
+        if (flags & O_NONBLOCK)
+            return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != -1;
     }
     return true;
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

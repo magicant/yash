@@ -4,276 +4,276 @@
 # Supports Git 1.7.7.
 
 function completion/git-svn {
-	WORDS=(git svn "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git svn "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::svn:arg
-	if [ ${WORDS[#]} -le 1 ]; then #>>#
-		complete -P "$PREFIX" -D "commit a diff to a Subversion repository" commit-diff
-		complete -P "$PREFIX" -D "commit local commits to the Subversion repository" dcommit
-		complete -P "$PREFIX" -D "commit to the Subversion repository without checking for conflicts" set-tree
-		complete -P "$PREFIX" -D "convert commit IDs and revision numbers" find-rev
-		complete -P "$PREFIX" -D "create a branch" branch
-		complete -P "$PREFIX" -D "create a gitignore file" create-ignore
-		complete -P "$PREFIX" -D "create a tag" tag
-		complete -P "$PREFIX" -D "fetch and rebase local commits" rebase
-		complete -P "$PREFIX" -D "fetch revisions from a remote Subversion repository" fetch
-		complete -P "$PREFIX" -D "init and fetch" clone
-		complete -P "$PREFIX" -D "initialize a Git repository associated with a Subversion repository" init
-		complete -P "$PREFIX" -D "print a property of a file" propget
-		complete -P "$PREFIX" -D "print candidates for the info/exclude file" show-ignore
-		complete -P "$PREFIX" -D "print external repositories" show-externals
-		complete -P "$PREFIX" -D "print info about files" info
-		complete -P "$PREFIX" -D "print properties of a file" proplist
-		complete -P "$PREFIX" -D "print revision log" log
-		complete -P "$PREFIX" -D "recreate empty directories" mkdirs
-		complete -P "$PREFIX" -D "reduce local repository size" gc
-		complete -P "$PREFIX" -D "show a file with commit info" blame
-		complete -P "$PREFIX" -D "undo fetch" reset
-	else #<<#
-		WORDS=("${WORDS[2,-1]}")
-		if command -vf "completion/git::svn:${WORDS[1]}:arg" >/dev/null 2>&1; then
-			command -f "completion/git::svn:${WORDS[1]}:arg"
-		fi
-	fi
+        if [ ${WORDS[#]} -le 1 ]; then #>>#
+                complete -P "$PREFIX" -D "commit a diff to a Subversion repository" commit-diff
+                complete -P "$PREFIX" -D "commit local commits to the Subversion repository" dcommit
+                complete -P "$PREFIX" -D "commit to the Subversion repository without checking for conflicts" set-tree
+                complete -P "$PREFIX" -D "convert commit IDs and revision numbers" find-rev
+                complete -P "$PREFIX" -D "create a branch" branch
+                complete -P "$PREFIX" -D "create a gitignore file" create-ignore
+                complete -P "$PREFIX" -D "create a tag" tag
+                complete -P "$PREFIX" -D "fetch and rebase local commits" rebase
+                complete -P "$PREFIX" -D "fetch revisions from a remote Subversion repository" fetch
+                complete -P "$PREFIX" -D "init and fetch" clone
+                complete -P "$PREFIX" -D "initialize a Git repository associated with a Subversion repository" init
+                complete -P "$PREFIX" -D "print a property of a file" propget
+                complete -P "$PREFIX" -D "print candidates for the info/exclude file" show-ignore
+                complete -P "$PREFIX" -D "print external repositories" show-externals
+                complete -P "$PREFIX" -D "print info about files" info
+                complete -P "$PREFIX" -D "print properties of a file" proplist
+                complete -P "$PREFIX" -D "print revision log" log
+                complete -P "$PREFIX" -D "recreate empty directories" mkdirs
+                complete -P "$PREFIX" -D "reduce local repository size" gc
+                complete -P "$PREFIX" -D "show a file with commit info" blame
+                complete -P "$PREFIX" -D "undo fetch" reset
+        else #<<#
+                WORDS=("${WORDS[2,-1]}")
+                if command -vf "completion/git::svn:${WORDS[1]}:arg" >/dev/null 2>&1; then
+                        command -f "completion/git::svn:${WORDS[1]}:arg"
+                fi
+        fi
 
 function completion/git::svn:blame:arg {
 
-	OPTIONS=( #>#
-	"--git-format; print in the git blame format"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "--git-format; print in the git blame format"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completepath -a
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completepath -a
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:branch:arg {
 
-	OPTIONS=( #>#
-	"--commit-url:; specify a repository URL to commit to"
-	"d: --destination:; specify a branch/tag path to operate on"
-	"n --dry-run; don't actually make a branch/tag"
-	"m: --message:; specify the commit message"
-	"t --tag; create a tag rather than a branch"
-	"--username:; specify a user name for authentication"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "--commit-url:; specify a repository URL to commit to"
+        "d: --destination:; specify a branch/tag path to operate on"
+        "n --dry-run; don't actually make a branch/tag"
+        "m: --message:; specify the commit message"
+        "t --tag; create a tag rather than a branch"
+        "--username:; specify a user name for authentication"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--destination)
-			# TODO
-			;;
-#		(m|--message)
-#			;;
-		('')
-			command -f completion/git::completeref --branches
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--destination)
+                        # TODO
+                        ;;
+#               (m|--message)
+#                       ;;
+                ('')
+                        command -f completion/git::completeref --branches
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:clone:arg {
 
-	OPTIONS=( #>#
-	"--preserve-empty-dirs; create empty directories with dummy files"
-	"--placeholder-filename:; specify the name of dummy files in empty directories"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:fetch:getopt
-	command -f completion/git::svn:init:getopt
+        OPTIONS=( #>#
+        "--preserve-empty-dirs; create empty directories with dummy files"
+        "--placeholder-filename:; specify the name of dummy files in empty directories"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:fetch:getopt
+        command -f completion/git::svn:init:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--placeholder-filename)
-			complete -P "$PREFIX" -f
-			;;
-#		('')
-#			# Hmm... How can we complete a URL?
-#			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--placeholder-filename)
+                        complete -P "$PREFIX" -f
+                        ;;
+#               ('')
+#                       # Hmm... How can we complete a URL?
+#                       ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:commit-diff:arg {
 
-	OPTIONS=()
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:commit-diff:getopt
+        OPTIONS=()
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:commit-diff:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(l)
-#			#TODO
-#			;;
-		('')
-			command -f completion//getoperands
-			case ${WORDS[#]} in
-			([01])
-				command -f completion/git::completeref
-				;;
-#			(2)
-#			# Hmm... How can we complete a URL?
-#				;;
-			esac
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (l)
+#                       #TODO
+#                       ;;
+                ('')
+                        command -f completion//getoperands
+                        case ${WORDS[#]} in
+                        ([01])
+                                command -f completion/git::completeref
+                                ;;
+#                       (2)
+#                       # Hmm... How can we complete a URL?
+#                               ;;
+                        esac
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:commit-diff:getopt {
-	OPTIONS=("$OPTIONS" #>#
-	"--add-author-from; add an author name to each log message"
-	"e --edit; reedit the message"
-	"--find-copies-harder" #TODO
-	"l:" #TODO
-	"--rmdir; remove empty directories from the Subversion tree"
-	) #<#
-	command -f completion/git::svn:getauthoropt
+        OPTIONS=("$OPTIONS" #>#
+        "--add-author-from; add an author name to each log message"
+        "e --edit; reedit the message"
+        "--find-copies-harder" #TODO
+        "l:" #TODO
+        "--rmdir; remove empty directories from the Subversion tree"
+        ) #<#
+        command -f completion/git::svn:getauthoropt
 }
 
 function completion/git::svn:create-ignore:arg {
 
-	OPTIONS=( #>#
-	"r: --revision:; specify a revision to show"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "r: --revision:; specify a revision to show"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(r|--revision)
-#			;;
-#		('')
-#			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (r|--revision)
+#                       ;;
+#               ('')
+#                       ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:dcommit:arg {
 
-	OPTIONS=( #>#
-	"--commit-url:; specify a repository URL to commit to"
-	"n --dry-run; don't actually commit anything"
-	"m --merge; use merging strategies to rebase"
-	"--mergeinfo:; specify mergeinfo to add"
-	"--no-rebase; don't rebase after committing"
-	"s: --strategy:; specify the merge strategy"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:commit-diff:getopt
+        OPTIONS=( #>#
+        "--commit-url:; specify a repository URL to commit to"
+        "n --dry-run; don't actually commit anything"
+        "m --merge; use merging strategies to rebase"
+        "--mergeinfo:; specify mergeinfo to add"
+        "--no-rebase; don't rebase after committing"
+        "s: --strategy:; specify the merge strategy"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:commit-diff:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(l)
-#			#TODO
-#			;;
-		(s|--strategy)
-			if command -vf completion/git::rebase:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-rebase; then
-				command -f completion/git::rebase:compopt
-			fi
-			;;
-		('')
-			command -f completion/git::completeref
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (l)
+#                       #TODO
+#                       ;;
+                (s|--strategy)
+                        if command -vf completion/git::rebase:compopt >/dev/null 2>&1 ||
+                                        . -AL completion/git-rebase; then
+                                command -f completion/git::rebase:compopt
+                        fi
+                        ;;
+                ('')
+                        command -f completion/git::completeref
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:fetch:arg {
 
-	OPTIONS=( #>#
-	"--parent; fetch only from the Subversion parent of the current HEAD"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:fetch:getopt
+        OPTIONS=( #>#
+        "--parent; fetch only from the Subversion parent of the current HEAD"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:fetch:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::svn:completesvnremotes
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::svn:completesvnremotes
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:fetch:getopt {
-	OPTIONS=("$OPTIONS" #>#
-	"--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
-	"--localtime; store Git commit dates in the local timezone"
-	#"--repack::" obsolete option
-	#"--repack-flags:" obsolete option
-	"--use-log-author; find author names out of log messages"
-	) #<#
-	command -f completion/git::svn:getauthoropt
+        OPTIONS=("$OPTIONS" #>#
+        "--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
+        "--localtime; store Git commit dates in the local timezone"
+        #"--repack::" obsolete option
+        #"--repack-flags:" obsolete option
+        "--use-log-author; find author names out of log messages"
+        ) #<#
+        command -f completion/git::svn:getauthoropt
 }
 
 function completion/git::svn:find-rev:arg {
 
-	OPTIONS=()
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=()
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completeref
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completeref
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
@@ -282,99 +282,99 @@ function completion/git::svn:find-rev:arg {
 
 function completion/git::svn:info:arg {
 
-	OPTIONS=( #>#
-	"--url; only print the URL of the remote Subversion repository"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "--url; only print the URL of the remote Subversion repository"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completepath -a
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completepath -a
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:init:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--shared::; share the repository with other users"
-	"--template:; specify a directory that contains templates"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:init:getopt
+        OPTIONS=("$OPTIONS" #>#
+        "--shared::; share the repository with other users"
+        "--template:; specify a directory that contains templates"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:init:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		('')
-#			# Hmm... How can we complete a URL?
-#			;;
-		(*)
-			{ { command -vf completion/git::init:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-init; } &&
-				command -f completion/git::init:compopt; } ||
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               ('')
+#                       # Hmm... How can we complete a URL?
+#                       ;;
+                (*)
+                        { { command -vf completion/git::init:compopt >/dev/null 2>&1 ||
+                                        . -AL completion/git-init; } &&
+                                command -f completion/git::init:compopt; } ||
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:init:getopt {
-	OPTIONS=("$OPTIONS" #>#
-	"b: --branches:; specify the branches subdirectory name"
-	"--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
-	"--no-metadata; set the noMetadata option"
-	"--no-minimize-url; don't normalize URL to the repository root"
-	"--prefix:; specify the prefix for trunk/branches/tags"
-	"--rewrite-root:; specify the rewriteRoot option value"
-	"--rewrite-uuid:; specify the rewriteUUID option value"
-	"s --stdlayout; follow the standard trunk/branches/tags directory layout"
-	"t: --tags:; specify the tags subdirectory name"
-	"T: --trunk:; specify the trunk subdirectory name"
-	"--username:; specify a user name for authentication"
-	"--use-svm-props; set the useSvmProps option"
-	"--use-svnsync-props; set the useSvnsyncProps option"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "b: --branches:; specify the branches subdirectory name"
+        "--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
+        "--no-metadata; set the noMetadata option"
+        "--no-minimize-url; don't normalize URL to the repository root"
+        "--prefix:; specify the prefix for trunk/branches/tags"
+        "--rewrite-root:; specify the rewriteRoot option value"
+        "--rewrite-uuid:; specify the rewriteUUID option value"
+        "s --stdlayout; follow the standard trunk/branches/tags directory layout"
+        "t: --tags:; specify the tags subdirectory name"
+        "T: --trunk:; specify the trunk subdirectory name"
+        "--username:; specify a user name for authentication"
+        "--use-svm-props; set the useSvmProps option"
+        "--use-svnsync-props; set the useSvnsyncProps option"
+        ) #<#
 }
 
 function completion/git::svn:log:arg {
 
-	OPTIONS=( #>#
-	"--incremental; print output in a format suitable for concatenation"
-	"--limit:; specify the number of revisions to show at most"
-	"--oneline; use only one line for each revision"
-	"r: --revision:; specify a revision (range) to show"
-	"--show-commit; show git commit IDs as well"
-	"v --verbose; print additional info"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "--incremental; print output in a format suitable for concatenation"
+        "--limit:; specify the number of revisions to show at most"
+        "--oneline; use only one line for each revision"
+        "r: --revision:; specify a revision (range) to show"
+        "--show-commit; show git commit IDs as well"
+        "v --verbose; print additional info"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(--limit)
-#			;;
-#		(r|--revision)
-#			;;
-		('')
-			command -f completion/git::completepath -a
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (--limit)
+#                       ;;
+#               (r|--revision)
+#                       ;;
+                ('')
+                        command -f completion/git::completepath -a
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
@@ -383,160 +383,160 @@ function completion/git::svn:log:arg {
 
 function completion/git::svn:propget:arg {
 
-	OPTIONS=( #>#
-	"r: --revision:; specify a revision to show"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "r: --revision:; specify a revision to show"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(r|--revision)
-#			;;
-		('')
-			command -f completion//getoperands
-			if [ ${WORDS[#]} -eq 0 ]; then
-				if command -vf completion/svn::completepropname >/dev/null 2>&1 ||
-						. -AL completion/svn; then
-					command -f completion/svn::completepropname
-				fi
-			else
-				command -f completion/git::completepath -r
-			fi
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (r|--revision)
+#                       ;;
+                ('')
+                        command -f completion//getoperands
+                        if [ ${WORDS[#]} -eq 0 ]; then
+                                if command -vf completion/svn::completepropname >/dev/null 2>&1 ||
+                                                . -AL completion/svn; then
+                                        command -f completion/svn::completepropname
+                                fi
+                        else
+                                command -f completion/git::completepath -r
+                        fi
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:proplist:arg {
 
-	OPTIONS=( #>#
-	"r: --revision:; specify a revision to show"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "r: --revision:; specify a revision to show"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(r|--revision)
-#			;;
-		('')
-			command -f completion/git::completepath -r
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (r|--revision)
+#                       ;;
+                ('')
+                        command -f completion/git::completepath -r
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:rebase:arg {
 
-	OPTIONS=( #>#
-	"n --dry-run; just print the remote branch name and URL"
-	"l --local; don't fetch remotely; just rebase to already-fetched revision"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:fetch:getopt
-	if command -vf completion/git::rebase:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-rebase; then
-		command -f completion/git::rebase:getopt
-	fi
+        OPTIONS=( #>#
+        "n --dry-run; just print the remote branch name and URL"
+        "l --local; don't fetch remotely; just rebase to already-fetched revision"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:fetch:getopt
+        if command -vf completion/git::rebase:getopt >/dev/null 2>&1 ||
+                        . -AL completion/git-rebase; then
+                command -f completion/git::rebase:getopt
+        fi
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			;;
-		(*)
-			{ { command -vf completion/git::rebase:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-rebase; } &&
-				command -f completion/git::rebase:compopt; } ||
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        ;;
+                (*)
+                        { { command -vf completion/git::rebase:compopt >/dev/null 2>&1 ||
+                                        . -AL completion/git-rebase; } &&
+                                command -f completion/git::rebase:compopt; } ||
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:reset:arg {
 
-	OPTIONS=( #>#
-	"p --parent; discard the specified revision as well"
-	"r: --revision:; specify the most recent revision to keep"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "p --parent; discard the specified revision as well"
+        "r: --revision:; specify the most recent revision to keep"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(r|--revision)
-#			;;
-#		('')
-#			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (r|--revision)
+#                       ;;
+#               ('')
+#                       ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:set-tree:arg {
 
-	OPTIONS=( #>#
-	"--stdin; read a list of commits from the standard input and commit them"
-	) #<#
-	command -f completion/git::svn:getcommonopt
-	command -f completion/git::svn:commit-diff:getopt
+        OPTIONS=( #>#
+        "--stdin; read a list of commits from the standard input and commit them"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:commit-diff:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(l)
-#			#TODO
-#			;;
-		('')
-			command -f completion/git::completeref
-			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (l)
+#                       #TODO
+#                       ;;
+                ('')
+                        command -f completion/git::completeref
+                        ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::svn:show-externals:arg {
 
-	OPTIONS=( #>#
-	"r: --revision:; specify a revision to show"
-	) #<#
-	command -f completion/git::svn:getcommonopt
+        OPTIONS=( #>#
+        "r: --revision:; specify a revision to show"
+        ) #<#
+        command -f completion/git::svn:getcommonopt
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(r|--revision)
-#			;;
-#		('')
-#			;;
-		(*)
-			command -f completion/git::svn:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (r|--revision)
+#                       ;;
+#               ('')
+#                       ;;
+                (*)
+                        command -f completion/git::svn:compopt
+                        ;;
+        esac
 
 }
 
@@ -544,54 +544,54 @@ function completion/git::svn:show-externals:arg {
 #}
 
 function completion/git::svn:tag:arg {
-	command -f completion/git::svn:branch:arg
+        command -f completion/git::svn:branch:arg
 }
 
 function completion/git::svn:getcommonopt {
-	OPTIONS=("$OPTIONS" #>#
-	"q --quiet; print less messages"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "q --quiet; print less messages"
+        ) #<#
 }
 
 function completion/git::svn:getauthoropt {
-	OPTIONS=("$OPTIONS" #>#
-	"A: --authors-file:; specify a file containing author names"
-	"--authors-prog:; specify a program that returns an author name and email"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "A: --authors-file:; specify a file containing author names"
+        "--authors-prog:; specify a program that returns an author name and email"
+        ) #<#
 }
 
 function completion/git::svn:compopt
-	case $ARGOPT in
-		(A|--authors-file|--ignore-paths|--placeholder-filename)
-			complete -P "$PREFIX" -f
-			;;
-		(--authors-prog)
-			WORDS=()
-			command -f completion//reexecute -e
-			;;
-#		(b|--branches)
-#			#TODO
-#			;;
-#		(--commit-url)
-#			# Hmm... How can we complete a URL?
-#			;;
-#		(l)
-#			#TODO
-#			;;
-		(--username)
-			complete -P "$PREFIX" -u
-			;;
-		(*)
-			return 1
-			;;
-	esac
+        case $ARGOPT in
+                (A|--authors-file|--ignore-paths|--placeholder-filename)
+                        complete -P "$PREFIX" -f
+                        ;;
+                (--authors-prog)
+                        WORDS=()
+                        command -f completion//reexecute -e
+                        ;;
+#               (b|--branches)
+#                       #TODO
+#                       ;;
+#               (--commit-url)
+#                       # Hmm... How can we complete a URL?
+#                       ;;
+#               (l)
+#                       #TODO
+#                       ;;
+                (--username)
+                        complete -P "$PREFIX" -u
+                        ;;
+                (*)
+                        return 1
+                        ;;
+        esac
 
 function completion/git::svn:completesvnremotes {
-	typeset name url
-	while read -r name url; do
-		complete -P "$PREFIX" -D "$url" -- "${{name#*.}%.*}"
-	done 2>/dev/null <(git config --get-regexp 'svn-remote\..*\.url')
+        typeset name url
+        while read -r name url; do
+                complete -P "$PREFIX" -D "$url" -- "${{name#*.}%.*}"
+        done 2>/dev/null <(git config --get-regexp 'svn-remote\..*\.url')
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

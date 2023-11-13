@@ -6,100 +6,100 @@
 
 function completion/command {
 
-	typeset OPTIONS ARGOPT PREFIX
-	typeset COMMONOPTIONS VOPTIONS NOVOPTIONS
-	COMMONOPTIONS=( #>#
-	"b --builtin-command; execute or find a built-in command"
-	"e --external-command; execute or find an external command"
-	"f --function; execute or find a function"
-	"p --standard-path; use the standard path in searching for a command"
-	"--help"
-	) #<#
-	VOPTIONS=( #>#
-	"a --alias; find an alias"
-	"k --keyword; find a shell keyword"
-	) #<#
-	NOVOPTIONS=( #>#
-	"v --identify; print the full path of a command"
-	"V --verbose-identify; describe how a command is interpreted"
-	) #<#
-	OPTIONS=("$COMMONOPTIONS" "$VOPTIONS" "$NOVOPTIONS")
+        typeset OPTIONS ARGOPT PREFIX
+        typeset COMMONOPTIONS VOPTIONS NOVOPTIONS
+        COMMONOPTIONS=( #>#
+        "b --builtin-command; execute or find a built-in command"
+        "e --external-command; execute or find an external command"
+        "f --function; execute or find a function"
+        "p --standard-path; use the standard path in searching for a command"
+        "--help"
+        ) #<#
+        VOPTIONS=( #>#
+        "a --alias; find an alias"
+        "k --keyword; find a shell keyword"
+        ) #<#
+        NOVOPTIONS=( #>#
+        "v --identify; print the full path of a command"
+        "V --verbose-identify; describe how a command is interpreted"
+        ) #<#
+        OPTIONS=("$COMMONOPTIONS" "$VOPTIONS" "$NOVOPTIONS")
 
-	command -f completion//parseoptions
+        command -f completion//parseoptions
 
-	typeset i=2 options=
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i++]} in
-			(--)                    break ;;
-			(--help)                return ;;
-			(-a|--alias)            options=${options}a ;;
-			(-b|--builtin-command)  options=${options}b ;;
-			(-e|--external-command) options=${options}e ;;
-			(-f|--function)         options=${options}f ;;
-			(-k|--keyword)          options=${options}k ;;
-			(-p|--standard-path)    options=${options}p ;;
-			(-v|--identify)         options=${options}v ;;
-			(-V|--verbose-identify) options=${options}V ;;
-		esac
-	done
-	WORDS=("${WORDS[i,-1]}")
-	case $ARGOPT in
-	(-)
-		case $options in
-		(*[vV]*)
-			OPTIONS=("$COMMONOPTIONS" "$VOPTIONS")
-			;;
-		(*)
-			OPTIONS=("$COMMONOPTIONS" "$NOVOPTIONS")
-			;;
-		esac
-		command -f completion//completeoptions
-		;;
-	(*)
-		if
-			case $options in
-			(*[vV]*)
-				if [ -z "${options//[pvV]}" ]; then
-					options=${options}abefk
-				fi
-				true
-				;;
-			(*)
-				if [ -z "${options//p}" ]; then
-					options=${options}be
-				fi
-				[ ${WORDS[#]} -eq 0 ]
-				;;
-			esac
-		then
-			# complete command name
-			case $options in (*a*)
-				complete --alias
-			esac
-			case $options in (*b*)
-				complete --builtin-command
-			esac
-			case $options in (*e*)
-				complete -T -S / -d
-				case $TARGETWORD in
-					(*/*) complete --executable-file ;;
-					(*  ) complete --external-command ;;
-				esac
-			esac
-			case $options in (*f*)
-				complete --function
-			esac
-			case $options in (*k*)
-				complete --keyword
-			esac
-		else
-			# complete command argument
-			command -f completion//reexecute
-		fi
-		;;
-	esac
+        typeset i=2 options=
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i++]} in
+                        (--)                    break ;;
+                        (--help)                return ;;
+                        (-a|--alias)            options=${options}a ;;
+                        (-b|--builtin-command)  options=${options}b ;;
+                        (-e|--external-command) options=${options}e ;;
+                        (-f|--function)         options=${options}f ;;
+                        (-k|--keyword)          options=${options}k ;;
+                        (-p|--standard-path)    options=${options}p ;;
+                        (-v|--identify)         options=${options}v ;;
+                        (-V|--verbose-identify) options=${options}V ;;
+                esac
+        done
+        WORDS=("${WORDS[i,-1]}")
+        case $ARGOPT in
+        (-)
+                case $options in
+                (*[vV]*)
+                        OPTIONS=("$COMMONOPTIONS" "$VOPTIONS")
+                        ;;
+                (*)
+                        OPTIONS=("$COMMONOPTIONS" "$NOVOPTIONS")
+                        ;;
+                esac
+                command -f completion//completeoptions
+                ;;
+        (*)
+                if
+                        case $options in
+                        (*[vV]*)
+                                if [ -z "${options//[pvV]}" ]; then
+                                        options=${options}abefk
+                                fi
+                                true
+                                ;;
+                        (*)
+                                if [ -z "${options//p}" ]; then
+                                        options=${options}be
+                                fi
+                                [ ${WORDS[#]} -eq 0 ]
+                                ;;
+                        esac
+                then
+                        # complete command name
+                        case $options in (*a*)
+                                complete --alias
+                        esac
+                        case $options in (*b*)
+                                complete --builtin-command
+                        esac
+                        case $options in (*e*)
+                                complete -T -S / -d
+                                case $TARGETWORD in
+                                        (*/*) complete --executable-file ;;
+                                        (*  ) complete --external-command ;;
+                                esac
+                        esac
+                        case $options in (*f*)
+                                complete --function
+                        esac
+                        case $options in (*k*)
+                                complete --keyword
+                        esac
+                else
+                        # complete command argument
+                        command -f completion//reexecute
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

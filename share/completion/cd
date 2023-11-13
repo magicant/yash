@@ -6,128 +6,128 @@
 
 function completion/cd {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"--help"
-	) #<#
-	case ${WORDS[1]} in
-	(cd|pushd)
-		OPTIONS=("$OPTIONS" #>#
-		"L --logical; keep symbolic links in the \$PWD variable as is"
-		"P --physical; resolve symbolic links in the \$PWD variable"
-		"--default-directory:; specify the default directory to change to"
-		) #<#
-		if [ "${WORDS[1]}" = "pushd" ]; then
-			OPTIONS=("$OPTIONS" #>#
-			"--remove-duplicates; remove duplicates in the directory stack"
-			) #<#
-		fi
-		;;
-	(dirs)
-		OPTIONS=("$OPTIONS" #>#
-		"c --clear; clear the directory stack completely"
-		"v --verbose; print stack entries with their indices"
-		) #<#
-		;;
-	esac
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "--help"
+        ) #<#
+        case ${WORDS[1]} in
+        (cd|pushd)
+                OPTIONS=("$OPTIONS" #>#
+                "L --logical; keep symbolic links in the \$PWD variable as is"
+                "P --physical; resolve symbolic links in the \$PWD variable"
+                "--default-directory:; specify the default directory to change to"
+                ) #<#
+                if [ "${WORDS[1]}" = "pushd" ]; then
+                        OPTIONS=("$OPTIONS" #>#
+                        "--remove-duplicates; remove duplicates in the directory stack"
+                        ) #<#
+                fi
+                ;;
+        (dirs)
+                OPTIONS=("$OPTIONS" #>#
+                "c --clear; clear the directory stack completely"
+                "v --verbose; print stack entries with their indices"
+                ) #<#
+                ;;
+        esac
 
-	typeset dirstack=false
-	command -f completion//parseoptions -es
-	case $ARGOPT in
-	(-)
-		case $TARGETWORD in
-		(-*[[:digit:]]*)
-			;;
-		(*)
-			command -f completion//completeoptions
-			;;
-		esac
-		dirstack=true
-		;;
-	(--default-directory)
-		command -f completion/cd::completedir
-		;;
-	(*)
-		case ${WORDS[1]} in (cd|pushd)
-			command -f completion/cd::completedir
-		esac
-		dirstack=true
-		;;
-	esac
+        typeset dirstack=false
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                case $TARGETWORD in
+                (-*[[:digit:]]*)
+                        ;;
+                (*)
+                        command -f completion//completeoptions
+                        ;;
+                esac
+                dirstack=true
+                ;;
+        (--default-directory)
+                command -f completion/cd::completedir
+                ;;
+        (*)
+                case ${WORDS[1]} in (cd|pushd)
+                        command -f completion/cd::completedir
+                esac
+                dirstack=true
+                ;;
+        esac
 
-	if $dirstack; then
-		case ${WORDS[1]} in (dirs|pushd|popd)
-			complete -P "$PREFIX" --dirstack-index
-		esac
-	fi
+        if $dirstack; then
+                case ${WORDS[1]} in (dirs|pushd|popd)
+                        complete -P "$PREFIX" --dirstack-index
+                esac
+        fi
 
 }
 
 function completion/cd::completedir {
 
-	# Part 1: complete directories relative to $PWD
+        # Part 1: complete directories relative to $PWD
 
-	# -L or -P?
-	typeset logical=true option
-	for option in "${WORDS[2,-1]}"; do
-		case $option in
-			(-L|--logical)  logical=true ;;
-			(-P|--physical) logical=false ;;
-			(--)            break ;;
-		esac
-	done
+        # -L or -P?
+        typeset logical=true option
+        for option in "${WORDS[2,-1]}"; do
+                case $option in
+                        (-L|--logical)  logical=true ;;
+                        (-P|--physical) logical=false ;;
+                        (--)            break ;;
+                esac
+        done
 
-	typeset saveopts="$(set +o)"
-	set +o glob
+        typeset saveopts="$(set +o)"
+        set +o glob
 
-	typeset word="${TARGETWORD#"$PREFIX"}"
-	typeset basename="${word##*/}"
-	typeset dirname="${word%"$basename"}"
-	if $logical; then
-		typeset IFS=/
-		complete -T -P "$PREFIX$dirname" -S / -- $(
-			set -o errreturn -o glob -o nullglob
-			typeset CDPATH=
-			if [ "$dirname" ]; then
-				command cd -L -- "$dirname" >/dev/null 2>&1
-			fi
-			candidates=("$basename"*/)
-			candidates=("${candidates%/}")
-			printf %s "${candidates[*]}"
-		)
-	else
-		complete -T -P "$PREFIX" -S / -d
-	fi
+        typeset word="${TARGETWORD#"$PREFIX"}"
+        typeset basename="${word##*/}"
+        typeset dirname="${word%"$basename"}"
+        if $logical; then
+                typeset IFS=/
+                complete -T -P "$PREFIX$dirname" -S / -- $(
+                        set -o errreturn -o glob -o nullglob
+                        typeset CDPATH=
+                        if [ "$dirname" ]; then
+                                command cd -L -- "$dirname" >/dev/null 2>&1
+                        fi
+                        candidates=("$basename"*/)
+                        candidates=("${candidates%/}")
+                        printf %s "${candidates[*]}"
+                )
+        else
+                complete -T -P "$PREFIX" -S / -d
+        fi
 
-	# Part 2: complete directories relative to $CDPATH
+        # Part 2: complete directories relative to $CDPATH
 
-	case $word in (/*|./*|../*)
-		eval "$saveopts"
-		return
-	esac
+        case $word in (/*|./*|../*)
+                eval "$saveopts"
+                return
+        esac
 
-	set -o glob -o nullglob
+        set -o glob -o nullglob
 
-	typeset IFS=: cdpath candidates
-	for cdpath in ${CDPATH-}; do
-		if [ "$cdpath" = "" ]; then
-			cdpath=.
-		fi
+        typeset IFS=: cdpath candidates
+        for cdpath in ${CDPATH-}; do
+                if [ "$cdpath" = "" ]; then
+                        cdpath=.
+                fi
 
-		# list candidates by globbing
-		candidates=("${cdpath%/}/$word"*/)
+                # list candidates by globbing
+                candidates=("${cdpath%/}/$word"*/)
 
-		# remove $cdpath and trailing slash
-		candidates=("${candidates%/}")
-		candidates=("${candidates##"${cdpath%/}/"}")
+                # remove $cdpath and trailing slash
+                candidates=("${candidates%/}")
+                candidates=("${candidates##"${cdpath%/}/"}")
 
-		complete -T -P "$PREFIX$dirname" -S / \
-			-- "${candidates#"$dirname"}"
-	done
+                complete -T -P "$PREFIX$dirname" -S / \
+                        -- "${candidates#"$dirname"}"
+        done
 
-	eval "$saveopts"
+        eval "$saveopts"
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

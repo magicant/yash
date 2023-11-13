@@ -6,74 +6,74 @@
 
 function completion/rm {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"f ${long:+--force}; remove files without confirmation"
-	"i; confirm before removing each file"
-	"R r ${long:+--recursive}; recursively remove directories"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "f ${long:+--force}; remove files without confirmation"
+        "i; confirm before removing each file"
+        "R r ${long:+--recursive}; recursively remove directories"
+        ) #<#
 
-	case $type in (GNU|*BSD|Darwin)
-		OPTIONS=("$OPTIONS" #>#
-		"d; try to remove directories like other files"
-		) #<#
-		case $type in (GNU|FreeBSD)
-			OPTIONS=("$OPTIONS" #>#
-			"I; confirm before removing many files"
-			) #<#
-		esac
-		case $type in (*BSD|Darwin)
-			OPTIONS=("$OPTIONS" #>#
-			"P; clear file contents before removing"
-			) #<#
-			case $type in (FreeBSD|NetBSD|Darwin)
-				OPTIONS=("$OPTIONS" #>#
-				"W; undelete files"
-				) #<#
-			esac
-		esac
-		case $type in (GNU|FreeBSD|NetBSD|Darwin)
-			OPTIONS=("$OPTIONS" #>#
-			"v ${long:+--verbose}; print a message for each file processed"
-			) #<#
-		esac
-	esac
-	case $type in (GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"--interactive::; specify when to confirm removal"
-		"--one-file-system; skip subdirectories on different file systems"
-		"--no-preserve-root; don't treat the root directory specially"
-		"--preserve-root; don't remove the root directory"
-		"--help"
-		"--version"
-		) #<#
-	esac
+        case $type in (GNU|*BSD|Darwin)
+                OPTIONS=("$OPTIONS" #>#
+                "d; try to remove directories like other files"
+                ) #<#
+                case $type in (GNU|FreeBSD)
+                        OPTIONS=("$OPTIONS" #>#
+                        "I; confirm before removing many files"
+                        ) #<#
+                esac
+                case $type in (*BSD|Darwin)
+                        OPTIONS=("$OPTIONS" #>#
+                        "P; clear file contents before removing"
+                        ) #<#
+                        case $type in (FreeBSD|NetBSD|Darwin)
+                                OPTIONS=("$OPTIONS" #>#
+                                "W; undelete files"
+                                ) #<#
+                        esac
+                esac
+                case $type in (GNU|FreeBSD|NetBSD|Darwin)
+                        OPTIONS=("$OPTIONS" #>#
+                        "v ${long:+--verbose}; print a message for each file processed"
+                        ) #<#
+                esac
+        esac
+        case $type in (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "--interactive::; specify when to confirm removal"
+                "--one-file-system; skip subdirectories on different file systems"
+                "--no-preserve-root; don't treat the root directory specially"
+                "--preserve-root; don't remove the root directory"
+                "--help"
+                "--version"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(--interactive) #>>#
-		complete -P "$PREFIX" -D "don't confirm removal" never
-		complete -P "$PREFIX" -D "confirm before removing many files" once
-		complete -P "$PREFIX" -D "confirm before removing each file" always
-		;; #<<#
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--interactive) #>>#
+                complete -P "$PREFIX" -D "don't confirm removal" never
+                complete -P "$PREFIX" -D "confirm before removing many files" once
+                complete -P "$PREFIX" -D "confirm before removing each file" always
+                ;; #<<#
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

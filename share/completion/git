@@ -5,475 +5,475 @@
 
 function completion/git {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"C:; specify a directory to operate in"
-	"c:; specify a configuration parameter"
-	"--bare; treat the repository as a bare repository"
-	"--exec-path::; specify or print the directory containing core git executables"
-	"--git-dir:; specify the repository directory"
-	"--glob-pathspecs; enable globbing on all path-specs"
-	"--html-path; print the directory where HTML documentation is installed"
-	"--icase-pathspecs; treat path-specs case-insensitively"
-	"--info-path; print the directory where info manuals are installed"
-	"--literal-pathspecs; treat path-specs literally"
-	"--man-path; print the directory where manual pages are installed"
-	"--namespace:; specify a namespace"
-	"--noglob-pathspecs; disable globbing on all path-specs"
-	"p --paginate; run a pager to view Git's output"
-	"--no-pager; don't run a pager to view Git's output"
-	"--no-replace-objects; don't use replacement refs"
-	"--work-tree:; specify the working tree directory"
-	"--help"
-	"--version"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "C:; specify a directory to operate in"
+        "c:; specify a configuration parameter"
+        "--bare; treat the repository as a bare repository"
+        "--exec-path::; specify or print the directory containing core git executables"
+        "--git-dir:; specify the repository directory"
+        "--glob-pathspecs; enable globbing on all path-specs"
+        "--html-path; print the directory where HTML documentation is installed"
+        "--icase-pathspecs; treat path-specs case-insensitively"
+        "--info-path; print the directory where info manuals are installed"
+        "--literal-pathspecs; treat path-specs literally"
+        "--man-path; print the directory where manual pages are installed"
+        "--namespace:; specify a namespace"
+        "--noglob-pathspecs; disable globbing on all path-specs"
+        "p --paginate; run a pager to view Git's output"
+        "--no-pager; don't run a pager to view Git's output"
+        "--no-replace-objects; don't use replacement refs"
+        "--work-tree:; specify the working tree directory"
+        "--help"
+        "--version"
+        ) #<#
 
-	# convert "--help" to "help"
-	typeset i=2
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i]} in
-		(-c|--git-dir|--work-tree)
-			i=$((i+1))
-			;;
-		(--help)
-			WORDS=("${WORDS[1,i-1]}" "help" "${WORDS[i+1,-1]}")
-			;;
-		(-?*)
-			;;
-		(*)
-			break
-			;;
-		esac
-		i=$((i+1))
-	done
+        # convert "--help" to "help"
+        typeset i=2
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i]} in
+                (-c|--git-dir|--work-tree)
+                        i=$((i+1))
+                        ;;
+                (--help)
+                        WORDS=("${WORDS[1,i-1]}" "help" "${WORDS[i+1,-1]}")
+                        ;;
+                (-?*)
+                        ;;
+                (*)
+                        break
+                        ;;
+                esac
+                i=$((i+1))
+        done
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(c)
-			if command -vf completion//git::completeoptionname >/dev/null 2>&1 ||
-					. -AL completion/git-config; then
-				command -f completion//git::completeoptionname =
-			fi
-			;;
-		(C|--exec-path|--git-dir|--work-tree)
-			complete -P "$PREFIX" -S / -T -d
-			;;
-		('')
-			# find first non-option argument and
-			# parse some global options
-			typeset OPTIND=2 gitcmd=
-			while [ $OPTIND -le ${WORDS[#]} ]; do
-				case ${WORDS[OPTIND]} in
-					(-[Cc])
-						OPTIND=$((OPTIND+1))
-						;;
-					(--exec-path=*)
-						typeset -x GIT_EXEC_PATH="${WORDS[OPTIND]#*=}"
-						;;
-					(--git-dir)
-						OPTIND=$((OPTIND+1))
-						typeset -x GIT_DIR="${WORDS[OPTIND]}"
-						;;
-					(--git-dir=*)
-						typeset -x GIT_DIR="${WORDS[OPTIND]#*=}"
-						;;
-					(--namespace)
-						OPTIND=$((OPTIND+1))
-						typeset -x GIT_NAMESPACE="${WORDS[OPTIND]}"
-						;;
-					(--namespace=*)
-						typeset -x GIT_NAMESPACE="${WORDS[OPTIND]#*=}"
-						;;
-					(--work-tree)
-						OPTIND=$((OPTIND+1))
-						typeset -x GIT_WORK_TREE="${WORDS[OPTIND]}"
-						;;
-					(--work-tree=*)
-						typeset -x GIT_WORK_TREE="${WORDS[OPTIND]#*=}"
-						;;
-					(-?*)
-						;;
-					(*)
-						gitcmd=${WORDS[OPTIND]}
-						break
-						;;
-				esac
-				OPTIND=$((OPTIND+1))
-			done
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (c)
+                        if command -vf completion//git::completeoptionname >/dev/null 2>&1 ||
+                                        . -AL completion/git-config; then
+                                command -f completion//git::completeoptionname =
+                        fi
+                        ;;
+                (C|--exec-path|--git-dir|--work-tree)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        # find first non-option argument and
+                        # parse some global options
+                        typeset OPTIND=2 gitcmd=
+                        while [ $OPTIND -le ${WORDS[#]} ]; do
+                                case ${WORDS[OPTIND]} in
+                                        (-[Cc])
+                                                OPTIND=$((OPTIND+1))
+                                                ;;
+                                        (--exec-path=*)
+                                                typeset -x GIT_EXEC_PATH="${WORDS[OPTIND]#*=}"
+                                                ;;
+                                        (--git-dir)
+                                                OPTIND=$((OPTIND+1))
+                                                typeset -x GIT_DIR="${WORDS[OPTIND]}"
+                                                ;;
+                                        (--git-dir=*)
+                                                typeset -x GIT_DIR="${WORDS[OPTIND]#*=}"
+                                                ;;
+                                        (--namespace)
+                                                OPTIND=$((OPTIND+1))
+                                                typeset -x GIT_NAMESPACE="${WORDS[OPTIND]}"
+                                                ;;
+                                        (--namespace=*)
+                                                typeset -x GIT_NAMESPACE="${WORDS[OPTIND]#*=}"
+                                                ;;
+                                        (--work-tree)
+                                                OPTIND=$((OPTIND+1))
+                                                typeset -x GIT_WORK_TREE="${WORDS[OPTIND]}"
+                                                ;;
+                                        (--work-tree=*)
+                                                typeset -x GIT_WORK_TREE="${WORDS[OPTIND]#*=}"
+                                                ;;
+                                        (-?*)
+                                                ;;
+                                        (*)
+                                                gitcmd=${WORDS[OPTIND]}
+                                                break
+                                                ;;
+                                esac
+                                OPTIND=$((OPTIND+1))
+                        done
 
-			if [ $OPTIND -le ${WORDS[#]} ]; then
-				# resolve command alias
-				typeset alias
-				if alias="$(git config --get alias."$gitcmd")" 2>/dev/null; then
-					case $alias in
-					(!*)
-						WORDS=(${alias#!} "${WORDS[OPTIND+1,-1]}")
-						command -f completion//reexecute
-						return
-						;;
-					(?*)
-						WORDS=("${WORDS[1,OPTIND-1]}" \
-							$alias "${WORDS[OPTIND+1,-1]}")
-						gitcmd=${alias%%[[:space:]]*}
-						;;
-					esac
-				fi
-				OPTIND=$((OPTIND+1))
+                        if [ $OPTIND -le ${WORDS[#]} ]; then
+                                # resolve command alias
+                                typeset alias
+                                if alias="$(git config --get alias."$gitcmd")" 2>/dev/null; then
+                                        case $alias in
+                                        (!*)
+                                                WORDS=(${alias#!} "${WORDS[OPTIND+1,-1]}")
+                                                command -f completion//reexecute
+                                                return
+                                                ;;
+                                        (?*)
+                                                WORDS=("${WORDS[1,OPTIND-1]}" \
+                                                        $alias "${WORDS[OPTIND+1,-1]}")
+                                                gitcmd=${alias%%[[:space:]]*}
+                                                ;;
+                                        esac
+                                fi
+                                OPTIND=$((OPTIND+1))
 
-				# complete command argument
-				typeset OLDWORDS
-				OLDWORDS=("$WORDS")
-				WORDS=("${WORDS[1]}" "${WORDS[OPTIND,-1]}")
-				if [ ${WORDS[#]} -le 1 ]; then
-					case $TARGETWORD in (-*)
-						complete -- --help
-					esac
-				fi
-				if { command -vf "completion/git::$gitcmd:arg" ||
-						. -AL "completion/git-$gitcmd"; } >/dev/null 2>&1; then
-					command -f "completion/git::$gitcmd:arg" 
-				else
-					complete -P "$PREFIX" -f
-				fi
-			else
-				# complete command name
-				command -f completion/git::completecmd
-				command -f completion/git::completealias
-			fi
-			;;
-	esac
+                                # complete command argument
+                                typeset OLDWORDS
+                                OLDWORDS=("$WORDS")
+                                WORDS=("${WORDS[1]}" "${WORDS[OPTIND,-1]}")
+                                if [ ${WORDS[#]} -le 1 ]; then
+                                        case $TARGETWORD in (-*)
+                                                complete -- --help
+                                        esac
+                                fi
+                                if { command -vf "completion/git::$gitcmd:arg" ||
+                                                . -AL "completion/git-$gitcmd"; } >/dev/null 2>&1; then
+                                        command -f "completion/git::$gitcmd:arg" 
+                                else
+                                        complete -P "$PREFIX" -f
+                                fi
+                        else
+                                # complete command name
+                                command -f completion/git::completecmd
+                                command -f completion/git::completealias
+                        fi
+                        ;;
+        esac
 
 }
 
 function completion/git::completecmd { #>>#
-	complete -P "$PREFIX" -D "add files to the index" add
-	complete -P "$PREFIX" -D "apply patches from a mailbox" am
-	complete -P "$PREFIX" -D "show a file with commit info" annotate blame
-	complete -P "$PREFIX" -D "apply patches" apply
-	complete -P "$PREFIX" -D "import an Arch repository" archimport
-	complete -P "$PREFIX" -D "create an archive of file tree" archive
-	complete -P "$PREFIX" -D "binary-search for a change that introduced a bug" bisect
-	complete -P "$PREFIX" -D "list, create, or remove branches" branch
-	complete -P "$PREFIX" -D "move objects and refs by archive" bundle
-	complete -P "$PREFIX" -D "print info about object or files" cat-file
-	# discouraged: complete -P "$PREFIX" -D "" check-attr
-	# discouraged: complete -P "$PREFIX" -D "" check-ref-format
-	complete -P "$PREFIX" -D "check out a branch to the working tree" checkout
-	complete -P "$PREFIX" -D "copy files from the index to the working tree" checkout-index
-	complete -P "$PREFIX" -D "list common commits between branches" cherry
-	complete -P "$PREFIX" -D "apply the changes in existing commits" cherry-pick
-	complete -P "$PREFIX" -D "commit using a GUI tool" citool
-	complete -P "$PREFIX" -D "remove untracked files from the working tree" clean
-	complete -P "$PREFIX" -D "copy a repository into a new directory" clone
-	complete -P "$PREFIX" -D "record changes to the repository" commit
-	complete -P "$PREFIX" -D "create a new commit object" commit-tree
-	complete -P "$PREFIX" -D "show or set options" config
-	complete -P "$PREFIX" -D "count unpacked objects and its disk consumption" count-objects
-	complete -P "$PREFIX" -D "export a commit to a CVS checkout" cvsexportcommit
-	complete -P "$PREFIX" -D "import a CVS repository" cvsimport
-	complete -P "$PREFIX" -D "emulate a CVS server" cvsserver
-	complete -P "$PREFIX" -D "simple TCP server" daemon
-	complete -P "$PREFIX" -D "show the most recent tag reachable from a commit" describe
-	complete -P "$PREFIX" -D "show differences between commits and files" diff
-	complete -P "$PREFIX" -D "compare files in the index and working tree" diff-files
-	complete -P "$PREFIX" -D "compare files in the index and a commit" diff-index
-	complete -P "$PREFIX" -D "compare files in two tree object" diff-tree
-	complete -P "$PREFIX" -D "run tools to view commit diff" difftool
-	complete -P "$PREFIX" -D "dump objects in a text format" fast-export
-	complete -P "$PREFIX" -D "import objects" fast-import
-	complete -P "$PREFIX" -D "obtain objects and refs from another repository" fetch
-	complete -P "$PREFIX" -D "fetch missing objects from another repository" fetch-pack
-	complete -P "$PREFIX" -D "rewrite branches using shell commands" filter-branch
-	# discouraged: complete -P "$PREFIX" -D "" fmt-merge-msg
-	complete -P "$PREFIX" -D "run a command for each ref" for-each-ref
-	complete -P "$PREFIX" -D "prepare patches for email submission" format-patch
-	complete -P "$PREFIX" -D "verify integrity of the repository database" fsck
-	complete -P "$PREFIX" -D "clean up and optimize the repository" gc
-	complete -P "$PREFIX" -D "show the commit ID of a tar archive" get-tar-commit-id
-	complete -P "$PREFIX" -D "search files using regular expressions" grep
-	complete -P "$PREFIX" -D "GUI front end" gui
-	complete -P "$PREFIX" -D "compute object IDs for files" hash-object
-	complete -P "$PREFIX" -D "show help" help
-	complete -P "$PREFIX" -D "server-side program for Git over HTTP" http-backend
-	# discouraged: complete -P "$PREFIX" -D "" http-fetch
-	# discouraged: complete -P "$PREFIX" -D "" http-push
-	complete -P "$PREFIX" -D "send patches to an IMAP folder" imap-send
-	complete -P "$PREFIX" -D "build a pack index file" index-pack
-	complete -P "$PREFIX" -D "make a new empty repository" init
-	complete -P "$PREFIX" -D "set up gitweb for browsing the repository" instaweb
-	complete -P "$PREFIX" -D "show commit logs" log
-	# deprecated: complete -P "$PREFIX" -D "recover lost refs" lost-found
-	complete -P "$PREFIX" -D "show info on files in the index and working tree" ls-files
-	complete -P "$PREFIX" -D "list remote refs" ls-remote
-	complete -P "$PREFIX" -D "list files in a tree object" ls-tree
-	# discouraged: complete -P "$PREFIX" -D "" mailinfo
-	# discouraged: complete -P "$PREFIX" -D "" mailsplit
-	complete -P "$PREFIX" -D "merge branches" merge
-	complete -P "$PREFIX" -D "find a good common ancestor for a merge" merge-base
-	complete -P "$PREFIX" -D "perform 3-way merge" merge-file
-	complete -P "$PREFIX" -D "run a merge program" merge-index
-	# discouraged: complete -P "$PREFIX" -D "" merge-one-file
-	complete -P "$PREFIX" -D "show results of a 3-way merge" merge-tree
-	complete -P "$PREFIX" -D "run tools to resolve merge conflicts" mergetool
-	complete -P "$PREFIX" -D "create a tag object" mktag
-	complete -P "$PREFIX" -D "create a tree object" mktree
-	complete -P "$PREFIX" -D "move files" mv
-	complete -P "$PREFIX" -D "show a symbolic name for a commit" name-rev
-	complete -P "$PREFIX" -D "manipulate object notes" notes
-	complete -P "$PREFIX" -D "pack objects into an archive" pack-objects
-	complete -P "$PREFIX" -D "find redundant packs" pack-redundant
-	complete -P "$PREFIX" -D "pack refs into a single file for performance" pack-refs
-	# discouraged: complete -P "$PREFIX" -D "" parse-remote
-	# discouraged: complete -P "$PREFIX" -D "" patch-id
-	# deprecated: complete -P "$PREFIX" -D "" peek-remote
-	# discouraged: complete -P "$PREFIX" -D "" prune
-	complete -P "$PREFIX" -D "remove redundant objects that are already packed" prune-packed
-	complete -P "$PREFIX" -D "fetch and merge remote branches" pull
-	complete -P "$PREFIX" -D "send objects and update remote refs" push
-	complete -P "$PREFIX" -D "apply a quilt patch set" quiltimport
-	complete -P "$PREFIX" -D "read a tree into the index" read-tree
-	complete -P "$PREFIX" -D "change the branching point of a branch" rebase
-	# discouraged: complete -P "$PREFIX" -D "" receive-pack
-	complete -P "$PREFIX" -D "manipulate logs of revs" reflog
-	complete -P "$PREFIX" -D "hard-link common objects in local repositories" relink
-	complete -P "$PREFIX" -D "manage remote repository settings" remote
-	complete -P "$PREFIX" -D "pack unpacked objects" repack
-	complete -P "$PREFIX" -D "manipulate object replacements" replace
-	# deprecated: complete -P "$PREFIX" -D "" repo-config
-	complete -P "$PREFIX" -D "print a message that helps a pull request" request-pull
-	# discouraged: complete -P "$PREFIX" -D "" rerere
-	complete -P "$PREFIX" -D "restore the index and working tree" reset
-	complete -P "$PREFIX" -D "list commit objects" rev-list
-	complete -P "$PREFIX" -D "parse git command arguments" rev-parse
-	complete -P "$PREFIX" -D "undo some commits" revert
-	complete -P "$PREFIX" -D "remove files" rm
-	complete -P "$PREFIX" -D "send patches as emails" send-email
-	complete -P "$PREFIX" -D "send objects to another repository" send-pack
-	# discouraged: complete -P "$PREFIX" -D "" sh-setup
-	# discouraged: complete -P "$PREFIX" -D "" shell
-	complete -P "$PREFIX" -D "print a summary of commit logs" shortlog
-	complete -P "$PREFIX" -D "show objects" show
-	complete -P "$PREFIX" -D "list branches and their commits" show-branch
-	complete -P "$PREFIX" -D "show packed archive index" show-index
-	complete -P "$PREFIX" -D "list refs in the repository" show-ref
-	complete -P "$PREFIX" -D "manipulate stashes" stash
-	complete -P "$PREFIX" -D "show the status of the working tree" status
-	# discouraged: complete -P "$PREFIX" -D "" stripspace
-	complete -P "$PREFIX" -D "manipulate submodules" submodule
-	complete -P "$PREFIX" -D "operate with a Subversion repository" svn
-	complete -P "$PREFIX" -D "switch a branch" switch
-	complete -P "$PREFIX" -D "make or resolve a symbolic ref" symbolic-ref
-	complete -P "$PREFIX" -D "manipulate tags" tag
-	# deprecated: complete -P "$PREFIX" -D "" tar-tree
-	complete -P "$PREFIX" -D "create a temporary file for a blob" unpack-file
-	complete -P "$PREFIX" -D "unpack objects from an archive" unpack-objects
-	complete -P "$PREFIX" -D "register file contents in the working tree to the index" update-index
-	complete -P "$PREFIX" -D "modify a ref's target safely" update-ref
-	complete -P "$PREFIX" -D "update auxiliary files for dumb servers" update-server-info
-	# discouraged: complete -P "$PREFIX" -D "" upload-archive
-	# discouraged: complete -P "$PREFIX" -D "" upload-pack
-	complete -P "$PREFIX" -D "show a git logical variable" var
-	complete -P "$PREFIX" -D "check integrity of packed objects" verify-pack
-	complete -P "$PREFIX" -D "check the GPG signature of tags" verify-tag
-	complete -P "$PREFIX" -D "show logs and differences between commits" whatchanged
-	complete -P "$PREFIX" -D "manage additional working trees" worktree
-	complete -P "$PREFIX" -D "create a tree object from the index" write-tree
-	#<<#
-	typeset cmd
-	while read -r cmd; do
-		cmd=${cmd##*/}
-		complete -P "$PREFIX" -- "${cmd#git-}"
-	done 2>/dev/null <(command -f completion//allcommands 'git-*')
+        complete -P "$PREFIX" -D "add files to the index" add
+        complete -P "$PREFIX" -D "apply patches from a mailbox" am
+        complete -P "$PREFIX" -D "show a file with commit info" annotate blame
+        complete -P "$PREFIX" -D "apply patches" apply
+        complete -P "$PREFIX" -D "import an Arch repository" archimport
+        complete -P "$PREFIX" -D "create an archive of file tree" archive
+        complete -P "$PREFIX" -D "binary-search for a change that introduced a bug" bisect
+        complete -P "$PREFIX" -D "list, create, or remove branches" branch
+        complete -P "$PREFIX" -D "move objects and refs by archive" bundle
+        complete -P "$PREFIX" -D "print info about object or files" cat-file
+        # discouraged: complete -P "$PREFIX" -D "" check-attr
+        # discouraged: complete -P "$PREFIX" -D "" check-ref-format
+        complete -P "$PREFIX" -D "check out a branch to the working tree" checkout
+        complete -P "$PREFIX" -D "copy files from the index to the working tree" checkout-index
+        complete -P "$PREFIX" -D "list common commits between branches" cherry
+        complete -P "$PREFIX" -D "apply the changes in existing commits" cherry-pick
+        complete -P "$PREFIX" -D "commit using a GUI tool" citool
+        complete -P "$PREFIX" -D "remove untracked files from the working tree" clean
+        complete -P "$PREFIX" -D "copy a repository into a new directory" clone
+        complete -P "$PREFIX" -D "record changes to the repository" commit
+        complete -P "$PREFIX" -D "create a new commit object" commit-tree
+        complete -P "$PREFIX" -D "show or set options" config
+        complete -P "$PREFIX" -D "count unpacked objects and its disk consumption" count-objects
+        complete -P "$PREFIX" -D "export a commit to a CVS checkout" cvsexportcommit
+        complete -P "$PREFIX" -D "import a CVS repository" cvsimport
+        complete -P "$PREFIX" -D "emulate a CVS server" cvsserver
+        complete -P "$PREFIX" -D "simple TCP server" daemon
+        complete -P "$PREFIX" -D "show the most recent tag reachable from a commit" describe
+        complete -P "$PREFIX" -D "show differences between commits and files" diff
+        complete -P "$PREFIX" -D "compare files in the index and working tree" diff-files
+        complete -P "$PREFIX" -D "compare files in the index and a commit" diff-index
+        complete -P "$PREFIX" -D "compare files in two tree object" diff-tree
+        complete -P "$PREFIX" -D "run tools to view commit diff" difftool
+        complete -P "$PREFIX" -D "dump objects in a text format" fast-export
+        complete -P "$PREFIX" -D "import objects" fast-import
+        complete -P "$PREFIX" -D "obtain objects and refs from another repository" fetch
+        complete -P "$PREFIX" -D "fetch missing objects from another repository" fetch-pack
+        complete -P "$PREFIX" -D "rewrite branches using shell commands" filter-branch
+        # discouraged: complete -P "$PREFIX" -D "" fmt-merge-msg
+        complete -P "$PREFIX" -D "run a command for each ref" for-each-ref
+        complete -P "$PREFIX" -D "prepare patches for email submission" format-patch
+        complete -P "$PREFIX" -D "verify integrity of the repository database" fsck
+        complete -P "$PREFIX" -D "clean up and optimize the repository" gc
+        complete -P "$PREFIX" -D "show the commit ID of a tar archive" get-tar-commit-id
+        complete -P "$PREFIX" -D "search files using regular expressions" grep
+        complete -P "$PREFIX" -D "GUI front end" gui
+        complete -P "$PREFIX" -D "compute object IDs for files" hash-object
+        complete -P "$PREFIX" -D "show help" help
+        complete -P "$PREFIX" -D "server-side program for Git over HTTP" http-backend
+        # discouraged: complete -P "$PREFIX" -D "" http-fetch
+        # discouraged: complete -P "$PREFIX" -D "" http-push
+        complete -P "$PREFIX" -D "send patches to an IMAP folder" imap-send
+        complete -P "$PREFIX" -D "build a pack index file" index-pack
+        complete -P "$PREFIX" -D "make a new empty repository" init
+        complete -P "$PREFIX" -D "set up gitweb for browsing the repository" instaweb
+        complete -P "$PREFIX" -D "show commit logs" log
+        # deprecated: complete -P "$PREFIX" -D "recover lost refs" lost-found
+        complete -P "$PREFIX" -D "show info on files in the index and working tree" ls-files
+        complete -P "$PREFIX" -D "list remote refs" ls-remote
+        complete -P "$PREFIX" -D "list files in a tree object" ls-tree
+        # discouraged: complete -P "$PREFIX" -D "" mailinfo
+        # discouraged: complete -P "$PREFIX" -D "" mailsplit
+        complete -P "$PREFIX" -D "merge branches" merge
+        complete -P "$PREFIX" -D "find a good common ancestor for a merge" merge-base
+        complete -P "$PREFIX" -D "perform 3-way merge" merge-file
+        complete -P "$PREFIX" -D "run a merge program" merge-index
+        # discouraged: complete -P "$PREFIX" -D "" merge-one-file
+        complete -P "$PREFIX" -D "show results of a 3-way merge" merge-tree
+        complete -P "$PREFIX" -D "run tools to resolve merge conflicts" mergetool
+        complete -P "$PREFIX" -D "create a tag object" mktag
+        complete -P "$PREFIX" -D "create a tree object" mktree
+        complete -P "$PREFIX" -D "move files" mv
+        complete -P "$PREFIX" -D "show a symbolic name for a commit" name-rev
+        complete -P "$PREFIX" -D "manipulate object notes" notes
+        complete -P "$PREFIX" -D "pack objects into an archive" pack-objects
+        complete -P "$PREFIX" -D "find redundant packs" pack-redundant
+        complete -P "$PREFIX" -D "pack refs into a single file for performance" pack-refs
+        # discouraged: complete -P "$PREFIX" -D "" parse-remote
+        # discouraged: complete -P "$PREFIX" -D "" patch-id
+        # deprecated: complete -P "$PREFIX" -D "" peek-remote
+        # discouraged: complete -P "$PREFIX" -D "" prune
+        complete -P "$PREFIX" -D "remove redundant objects that are already packed" prune-packed
+        complete -P "$PREFIX" -D "fetch and merge remote branches" pull
+        complete -P "$PREFIX" -D "send objects and update remote refs" push
+        complete -P "$PREFIX" -D "apply a quilt patch set" quiltimport
+        complete -P "$PREFIX" -D "read a tree into the index" read-tree
+        complete -P "$PREFIX" -D "change the branching point of a branch" rebase
+        # discouraged: complete -P "$PREFIX" -D "" receive-pack
+        complete -P "$PREFIX" -D "manipulate logs of revs" reflog
+        complete -P "$PREFIX" -D "hard-link common objects in local repositories" relink
+        complete -P "$PREFIX" -D "manage remote repository settings" remote
+        complete -P "$PREFIX" -D "pack unpacked objects" repack
+        complete -P "$PREFIX" -D "manipulate object replacements" replace
+        # deprecated: complete -P "$PREFIX" -D "" repo-config
+        complete -P "$PREFIX" -D "print a message that helps a pull request" request-pull
+        # discouraged: complete -P "$PREFIX" -D "" rerere
+        complete -P "$PREFIX" -D "restore the index and working tree" reset
+        complete -P "$PREFIX" -D "list commit objects" rev-list
+        complete -P "$PREFIX" -D "parse git command arguments" rev-parse
+        complete -P "$PREFIX" -D "undo some commits" revert
+        complete -P "$PREFIX" -D "remove files" rm
+        complete -P "$PREFIX" -D "send patches as emails" send-email
+        complete -P "$PREFIX" -D "send objects to another repository" send-pack
+        # discouraged: complete -P "$PREFIX" -D "" sh-setup
+        # discouraged: complete -P "$PREFIX" -D "" shell
+        complete -P "$PREFIX" -D "print a summary of commit logs" shortlog
+        complete -P "$PREFIX" -D "show objects" show
+        complete -P "$PREFIX" -D "list branches and their commits" show-branch
+        complete -P "$PREFIX" -D "show packed archive index" show-index
+        complete -P "$PREFIX" -D "list refs in the repository" show-ref
+        complete -P "$PREFIX" -D "manipulate stashes" stash
+        complete -P "$PREFIX" -D "show the status of the working tree" status
+        # discouraged: complete -P "$PREFIX" -D "" stripspace
+        complete -P "$PREFIX" -D "manipulate submodules" submodule
+        complete -P "$PREFIX" -D "operate with a Subversion repository" svn
+        complete -P "$PREFIX" -D "switch a branch" switch
+        complete -P "$PREFIX" -D "make or resolve a symbolic ref" symbolic-ref
+        complete -P "$PREFIX" -D "manipulate tags" tag
+        # deprecated: complete -P "$PREFIX" -D "" tar-tree
+        complete -P "$PREFIX" -D "create a temporary file for a blob" unpack-file
+        complete -P "$PREFIX" -D "unpack objects from an archive" unpack-objects
+        complete -P "$PREFIX" -D "register file contents in the working tree to the index" update-index
+        complete -P "$PREFIX" -D "modify a ref's target safely" update-ref
+        complete -P "$PREFIX" -D "update auxiliary files for dumb servers" update-server-info
+        # discouraged: complete -P "$PREFIX" -D "" upload-archive
+        # discouraged: complete -P "$PREFIX" -D "" upload-pack
+        complete -P "$PREFIX" -D "show a git logical variable" var
+        complete -P "$PREFIX" -D "check integrity of packed objects" verify-pack
+        complete -P "$PREFIX" -D "check the GPG signature of tags" verify-tag
+        complete -P "$PREFIX" -D "show logs and differences between commits" whatchanged
+        complete -P "$PREFIX" -D "manage additional working trees" worktree
+        complete -P "$PREFIX" -D "create a tree object from the index" write-tree
+        #<<#
+        typeset cmd
+        while read -r cmd; do
+                cmd=${cmd##*/}
+                complete -P "$PREFIX" -- "${cmd#git-}"
+        done 2>/dev/null <(command -f completion//allcommands 'git-*')
 }
 
 function completion/git::completealias {
-	typeset usesuffix= suffix
-	if [ $# -gt 0 ]; then
-		usesuffix=true suffix=$1
-	fi
+        typeset usesuffix= suffix
+        if [ $# -gt 0 ]; then
+                usesuffix=true suffix=$1
+        fi
 
-	typeset name value
-	while read -r name value; do
-		complete -P "$PREFIX" -D "= $value" ${usesuffix:+-S "$suffix" -T} \
-			-- "${name#alias.}"
-	done 2>/dev/null <(git config --get-regexp 'alias\..*')
+        typeset name value
+        while read -r name value; do
+                complete -P "$PREFIX" -D "= $value" ${usesuffix:+-S "$suffix" -T} \
+                        -- "${name#alias.}"
+        done 2>/dev/null <(git config --get-regexp 'alias\..*')
 }
 
 function completion/git::completeref {
 
-	typeset abbrprefixes completefull=true range usesuffix= suffix
-	abbrprefixes=(refs/ refs/tags/ refs/heads/ refs/remotes/)
-	while [ $# -gt 0 ]; do
-		case $1 in
-		(abbrprefixes=*)
-			abbrprefixes=(${1#abbrprefixes=})
-			;;
-		(dontcompletefull=*)
-			completefull=
-			;;
-		(suffix=*)
-			usesuffix=true suffix=${1#suffix=}
-			;;
-		(range=*)
-			typeset word="${TARGETWORD#"$PREFIX"}"
-			case $word in (-*)
-				complete -P "$PREFIX" -D "exclude following commits" -- --not
-			esac
-			word=${word##*..}
-			typeset PREFIX="${TARGETWORD%"$word"}"
-			;;
-		(*)
-			break
-			;;
-		esac
-		shift
-	done
+        typeset abbrprefixes completefull=true range usesuffix= suffix
+        abbrprefixes=(refs/ refs/tags/ refs/heads/ refs/remotes/)
+        while [ $# -gt 0 ]; do
+                case $1 in
+                (abbrprefixes=*)
+                        abbrprefixes=(${1#abbrprefixes=})
+                        ;;
+                (dontcompletefull=*)
+                        completefull=
+                        ;;
+                (suffix=*)
+                        usesuffix=true suffix=${1#suffix=}
+                        ;;
+                (range=*)
+                        typeset word="${TARGETWORD#"$PREFIX"}"
+                        case $word in (-*)
+                                complete -P "$PREFIX" -D "exclude following commits" -- --not
+                        esac
+                        word=${word##*..}
+                        typeset PREFIX="${TARGETWORD%"$word"}"
+                        ;;
+                (*)
+                        break
+                        ;;
+                esac
+                shift
+        done
 
-	typeset targetword="${TARGETWORD#"$PREFIX"}"
-	if [ $# -eq 0 ]; then
-		complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -A '*HEAD' \
-			-- $( (ls -- "$(git rev-parse --git-dir)") 2>/dev/null)
-		set -- --all
+        typeset targetword="${TARGETWORD#"$PREFIX"}"
+        if [ $# -eq 0 ]; then
+                complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -A '*HEAD' \
+                        -- $( (ls -- "$(git rev-parse --git-dir)") 2>/dev/null)
+                set -- --all
 
-		# complete commit ID
-		if grep -Eq '^[[:xdigit:]]*$' <<<"$targetword" 2>/dev/null; then
-			typeset id message
-			while read -r id message; do
-				complete -P "$PREFIX" -D "$message" \
-					${usesuffix:+-S "$suffix" -T} -- "$id"
-			done 2>/dev/null \
-				<(git rev-list --all --oneline --date-order |
-				grep "^$targetword" | head)
-		fi
-	fi
+                # complete commit ID
+                if grep -Eq '^[[:xdigit:]]*$' <<<"$targetword" 2>/dev/null; then
+                        typeset id message
+                        while read -r id message; do
+                                complete -P "$PREFIX" -D "$message" \
+                                        ${usesuffix:+-S "$suffix" -T} -- "$id"
+                        done 2>/dev/null \
+                                <(git rev-list --all --oneline --date-order |
+                                grep "^$targetword" | head)
+                fi
+        fi
 
-	# complete symbolic ref
-	typeset fullref ref abbr
-	typeset word="${targetword##*/}"
-	typeset prefix="${targetword%"$word"}"
-	while read -r fullref; do
-		for abbr in ${completefull:+""} "$abbrprefixes"; do
-			ref=${fullref#"$abbr"}
-			case $ref in ("$targetword"*)
-				ref="${ref#"$prefix"}"
-				case $ref in
-				(*/*)
-					complete -P "$PREFIX$prefix" -S / -T -- "${ref%%/*}"
-					;;
-				(*)
-					complete -P "$PREFIX$prefix" \
-						${usesuffix:+-S "$suffix" -T} -- "$ref"
-					;;
-				esac
-			esac
-		done
-	done 2>/dev/null <(git rev-parse --symbolic "$@")
+        # complete symbolic ref
+        typeset fullref ref abbr
+        typeset word="${targetword##*/}"
+        typeset prefix="${targetword%"$word"}"
+        while read -r fullref; do
+                for abbr in ${completefull:+""} "$abbrprefixes"; do
+                        ref=${fullref#"$abbr"}
+                        case $ref in ("$targetword"*)
+                                ref="${ref#"$prefix"}"
+                                case $ref in
+                                (*/*)
+                                        complete -P "$PREFIX$prefix" -S / -T -- "${ref%%/*}"
+                                        ;;
+                                (*)
+                                        complete -P "$PREFIX$prefix" \
+                                                ${usesuffix:+-S "$suffix" -T} -- "$ref"
+                                        ;;
+                                esac
+                        esac
+                done
+        done 2>/dev/null <(git rev-parse --symbolic "$@")
 
 }
 
 # $1 = remote name
 function completion/git::completeremoteref {
-	typeset word="${TARGETWORD#"$PREFIX"}"
-	case $word in
-		(refs/heads/*)
-			word=${word#refs/heads/}
-			PREFIX=${TARGETWORD%"$word"}
-			;;
-		(*)
-			# We don't have info about remote non-branch refs,
-			# so complete local refs for tags. "--branches" is
-			# specified so that "refs/heads/" can be a candidate.
-			command -f completion/git::completeref \
-				abbrprefixes= --symbolic-full-name \
-				--branches --tags
-			;;
-	esac
-	# complete remote tracking branches
-	command -f completion/git::completeref \
-		dontcompletefull=true abbrprefixes="refs/remotes/$1/" \
-		--symbolic-full-name --remotes="$1"
+        typeset word="${TARGETWORD#"$PREFIX"}"
+        case $word in
+                (refs/heads/*)
+                        word=${word#refs/heads/}
+                        PREFIX=${TARGETWORD%"$word"}
+                        ;;
+                (*)
+                        # We don't have info about remote non-branch refs,
+                        # so complete local refs for tags. "--branches" is
+                        # specified so that "refs/heads/" can be a candidate.
+                        command -f completion/git::completeref \
+                                abbrprefixes= --symbolic-full-name \
+                                --branches --tags
+                        ;;
+        esac
+        # complete remote tracking branches
+        command -f completion/git::completeref \
+                dontcompletefull=true abbrprefixes="refs/remotes/$1/" \
+                --symbolic-full-name --remotes="$1"
 }
 
 function completion/git::completepath {
 
-	if ! git rev-parse --git-dir >/dev/null 2>&1; then
-		return 1
-	fi
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+                return 1
+        fi
 
-	typeset opt OPTIND=1 type=auto
-	while getopts ar opt; do
-		case $opt in
-			(a) type=abs ;;
-			(r) type=rel ;;
-		esac
-	done
-	shift $((OPTIND-1))
+        typeset opt OPTIND=1 type=auto
+        while getopts ar opt; do
+                case $opt in
+                        (a) type=abs ;;
+                        (r) type=rel ;;
+                esac
+        done
+        shift $((OPTIND-1))
 
-	typeset tree="${1-HEAD}" targetpath="${TARGETWORD#"$PREFIX"}" lspath prefixpath
-	if [ "$type" = auto ]; then
-		case $targetpath in
-			(./*|../*) type=rel ;;
-			(*)        type=abs ;;
-		esac
-	fi
-	case $type in
-		(abs)
-			lspath=${targetpath}
-			;;
-		(rel)
-			lspath=$(git rev-parse --show-prefix)${targetpath}
-			;;
-	esac
-	case $lspath in
-		(*/*) lspath=${lspath%/*}/ ;;
-		(*)   lspath= ;;
-	esac
-	case $targetpath in
-		(*/*) prefixpath=${targetpath%/*}/ ;;
-		(*)   prefixpath= ;;
-	esac
+        typeset tree="${1-HEAD}" targetpath="${TARGETWORD#"$PREFIX"}" lspath prefixpath
+        if [ "$type" = auto ]; then
+                case $targetpath in
+                        (./*|../*) type=rel ;;
+                        (*)        type=abs ;;
+                esac
+        fi
+        case $type in
+                (abs)
+                        lspath=${targetpath}
+                        ;;
+                (rel)
+                        lspath=$(git rev-parse --show-prefix)${targetpath}
+                        ;;
+        esac
+        case $lspath in
+                (*/*) lspath=${lspath%/*}/ ;;
+                (*)   lspath= ;;
+        esac
+        case $targetpath in
+                (*/*) prefixpath=${targetpath%/*}/ ;;
+                (*)   prefixpath= ;;
+        esac
 
-	typeset PREFIX="$PREFIX$prefixpath"
-	typeset mode type id path
-	while read -r mode type id path; do
-		case $type in
-			(tree) opt='-S / -T' ;;
-			(*)    opt= ;;
-		esac
-		complete -P "$PREFIX" $opt -- "${path##*/}"
-	done 2>/dev/null <(git ls-tree --full-tree "$tree" -- "${lspath:-.}")
+        typeset PREFIX="$PREFIX$prefixpath"
+        typeset mode type id path
+        while read -r mode type id path; do
+                case $type in
+                        (tree) opt='-S / -T' ;;
+                        (*)    opt= ;;
+                esac
+                complete -P "$PREFIX" $opt -- "${path##*/}"
+        done 2>/dev/null <(git ls-tree --full-tree "$tree" -- "${lspath:-.}")
 
 }
 
 function completion/git::completerefpath {
 
-	typeset i=2 hyphenhyphen=false treeish=HEAD
-	while [ $i -le ${WORDS[#]} ]; do
-		case "${WORDS[i]}" in
-			(--)
-				hyphenhyphen=true
-				break
-				;;
-			(-*)
-				;;
-			(*)
-				treeish=${WORDS[i]}
-				;;
-		esac
-		i=$((i+1))
-	done
+        typeset i=2 hyphenhyphen=false treeish=HEAD
+        while [ $i -le ${WORDS[#]} ]; do
+                case "${WORDS[i]}" in
+                        (--)
+                                hyphenhyphen=true
+                                break
+                                ;;
+                        (-*)
+                                ;;
+                        (*)
+                                treeish=${WORDS[i]}
+                                ;;
+                esac
+                i=$((i+1))
+        done
 
-	if ! $hyphenhyphen; then
-		command -f completion/git::completeref "$@"
-	fi
+        if ! $hyphenhyphen; then
+                command -f completion/git::completeref "$@"
+        fi
 
-	if ! git show "$treeish^{tree}" >/dev/null 2>&1; then
-		treeish=HEAD
-	fi
-	command -f completion/git::completepath -r "$treeish"
+        if ! git show "$treeish^{tree}" >/dev/null 2>&1; then
+                treeish=HEAD
+        fi
+        command -f completion/git::completepath -r "$treeish"
 
 }
 
@@ -482,288 +482,288 @@ function completion/git::completerefpath {
 # not supporting $PREFIX
 function completion/git::completefilteredpath {
 
-	typeset dir="$(dirname -- "${TARGETWORD}X")"
+        typeset dir="$(dirname -- "${TARGETWORD}X")"
 
-	if ! (  typeset CDPATH= &&
-		d1=$(                   git rev-parse --show-toplevel) &&
-		d2=$(cd -P -- "$dir" && git rev-parse --show-toplevel) &&
-		test "$d1" = "$d2") 2>/dev/null
-	then
-		# don't complete paths in submodule
-		return
-	fi
+        if ! (  typeset CDPATH= &&
+                d1=$(                   git rev-parse --show-toplevel) &&
+                d2=$(cd -P -- "$dir" && git rev-parse --show-toplevel) &&
+                test "$d1" = "$d2") 2>/dev/null
+        then
+                # don't complete paths in submodule
+                return
+        fi
 
-	typeset pathprefix="$({
-		typeset CDPATH= && cd -P -- "$dir" &&
-		git rev-parse --show-prefix
-	} 2>/dev/null)"
+        typeset pathprefix="$({
+                typeset CDPATH= && cd -P -- "$dir" &&
+                git rev-parse --show-prefix
+        } 2>/dev/null)"
 
-	typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
+        typeset prefix="${TARGETWORD%"${TARGETWORD##*/}"}"
 
-	typeset file
-	while read -r file; do
-		file=${file#"$pathprefix"}
-		case $file in
-			(*/*)
-				complete -P "$prefix" -S / -T -- "${file%%/*}"
-				;;
-			(*)
-				complete -P "$prefix" -- "$file"
-				;;
-		esac
-	done 2>/dev/null <(
-		if [ "$#" -eq 0 ]; then
-			git diff --name-only HEAD \
-				${pathprefix:+-- "$pathprefix"}
-		else
-			git status --porcelain "${@[2,-1]}" -- "$dir/" |
-			grep "${1-}" |
-			cut -c 4- |
-			sed 's/^.* -> //'
-		fi
-	)
+        typeset file
+        while read -r file; do
+                file=${file#"$pathprefix"}
+                case $file in
+                        (*/*)
+                                complete -P "$prefix" -S / -T -- "${file%%/*}"
+                                ;;
+                        (*)
+                                complete -P "$prefix" -- "$file"
+                                ;;
+                esac
+        done 2>/dev/null <(
+                if [ "$#" -eq 0 ]; then
+                        git diff --name-only HEAD \
+                                ${pathprefix:+-- "$pathprefix"}
+                else
+                        git status --porcelain "${@[2,-1]}" -- "$dir/" |
+                        grep "${1-}" |
+                        cut -c 4- |
+                        sed 's/^.* -> //'
+                fi
+        )
 
 }
 
 function completion/git::completeobject {
 
-	typeset targetword="${TARGETWORD#"$PREFIX"}"
-	typeset t="$(sed 's;[@^]{[^}]*};;g' <<<"$targetword")"
-	case $t in
-		(*:*)
-			typeset path="${t#*:}"
-			typeset treeish="${targetword%":$path"}"
-			typeset PREFIX="$PREFIX$treeish:"
-			command -f completion/git::completepath "${treeish:-HEAD}"
-			# XXX empty treeish should fall back to the current index rather than HEAD
-			;;
-		(*)
-			command -f completion/git::completeref
-			;;
-	esac
+        typeset targetword="${TARGETWORD#"$PREFIX"}"
+        typeset t="$(sed 's;[@^]{[^}]*};;g' <<<"$targetword")"
+        case $t in
+                (*:*)
+                        typeset path="${t#*:}"
+                        typeset treeish="${targetword%":$path"}"
+                        typeset PREFIX="$PREFIX$treeish:"
+                        command -f completion/git::completepath "${treeish:-HEAD}"
+                        # XXX empty treeish should fall back to the current index rather than HEAD
+                        ;;
+                (*)
+                        command -f completion/git::completeref
+                        ;;
+        esac
 
 }
 
 function completion/git::completeremote {
-	# XXX should complete on the basis of git-config
-	typeset remote
-	while read -r remote; do
-		complete -P "$PREFIX" -- "$remote" # XXX description
-	done 2>/dev/null <(
-		gitdir=$(git rev-parse --git-dir) || exit
-		git remote
-		typeset CDPATH=
-		(cd -P -- "$gitdir/remotes" && ls -A)
-		(cd -P -- "$gitdir/branches" && ls -A)
-	)
+        # XXX should complete on the basis of git-config
+        typeset remote
+        while read -r remote; do
+                complete -P "$PREFIX" -- "$remote" # XXX description
+        done 2>/dev/null <(
+                gitdir=$(git rev-parse --git-dir) || exit
+                git remote
+                typeset CDPATH=
+                (cd -P -- "$gitdir/remotes" && ls -A)
+                (cd -P -- "$gitdir/branches" && ls -A)
+        )
 }
 
 function completion/git::getorderopts {
-	OPTIONS=("$OPTIONS" #>#
-	"--author-date-order; sort commits by author date while keeping children before parent"
-	"--date-order; sort commits by commit date while keeping children before parent"
-	"--topo-order; show in topological order"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--author-date-order; sort commits by author date while keeping children before parent"
+        "--date-order; sort commits by commit date while keeping children before parent"
+        "--topo-order; show in topological order"
+        ) #<#
 }
 
 function completion/git::getprettyopts {
-	OPTIONS=("$OPTIONS" #>#
-	"--abbrev-commit; abbreviate commit IDs"
-	"--encoding::; specify an output encoding"
-	"--format:; specify an output format"
-	"--no-abbrev-commit; print full commit IDs"
-	"--no-notes --no-standard-notes; don't print notes"
-	"--notes:: --standard-notes --show-notes::; print notes"
-	"--oneline; like --format=oneline --abbrev-commit"
-	"--pretty::; print in a human-friendly format"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--abbrev-commit; abbreviate commit IDs"
+        "--encoding::; specify an output encoding"
+        "--format:; specify an output format"
+        "--no-abbrev-commit; print full commit IDs"
+        "--no-notes --no-standard-notes; don't print notes"
+        "--notes:: --standard-notes --show-notes::; print notes"
+        "--oneline; like --format=oneline --abbrev-commit"
+        "--pretty::; print in a human-friendly format"
+        ) #<#
 }
 
 function completion/git::completeprettyopts {
-	case $ARGOPT in
-		(--encoding)
-			#TODO
-			;;
-		(--format|--pretty)
-			command -f completion/git::--format:arg
-			;;
-		(--notes|--standard-notes|--show-notes)
-			command -f completion/git::completeref abbrprefixes=refs/notes/ --glob=refs/notes
-			;;
-		(*)
-			return 1
-			;;
-	esac
+        case $ARGOPT in
+                (--encoding)
+                        #TODO
+                        ;;
+                (--format|--pretty)
+                        command -f completion/git::--format:arg
+                        ;;
+                (--notes|--standard-notes|--show-notes)
+                        command -f completion/git::completeref abbrprefixes=refs/notes/ --glob=refs/notes
+                        ;;
+                (*)
+                        return 1
+                        ;;
+        esac
 }
 
 function completion/git::getrefselectopts {
-	OPTIONS=("$OPTIONS" #>#
-	"--all; print all commits reachable from any refs"
-	"--branches::; print all (or specified) branches"
-	"--exclude:; ignore refs that match the specified pattern"
-	"--glob:; show refs that match the specified pattern"
-	"--remotes::; print all (or specified) remote refs"
-	"--tags::; print all (or specified) tags"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--all; print all commits reachable from any refs"
+        "--branches::; print all (or specified) branches"
+        "--exclude:; ignore refs that match the specified pattern"
+        "--glob:; show refs that match the specified pattern"
+        "--remotes::; print all (or specified) remote refs"
+        "--tags::; print all (or specified) tags"
+        ) #<#
 }
 
 function completion/git::completerefselectopts
-	case $ARGOPT in
-		(--branches)
-			command -f completion/git::completeref --branches
-			;;
-		(--exclude|--glob)
-			command -f completion/git::completeref
-			;;
-		(--remotes)
-			command -f completion/git::completeref --remotes
-			;;
-		(--tags)
-			command -f completion/git::completeref --tags
-			;;
-		(*)
-			return 1
-			;;
-	esac
+        case $ARGOPT in
+                (--branches)
+                        command -f completion/git::completeref --branches
+                        ;;
+                (--exclude|--glob)
+                        command -f completion/git::completeref
+                        ;;
+                (--remotes)
+                        command -f completion/git::completeref --remotes
+                        ;;
+                (--tags)
+                        command -f completion/git::completeref --tags
+                        ;;
+                (*)
+                        return 1
+                        ;;
+        esac
 
 function completion/git::--author:arg {
-	typeset author
-	while read -r author; do
-		complete -P "$PREFIX" -- "$author"
-	done 2>/dev/null <(git log --all --format=format:%an | uniq)
+        typeset author
+        while read -r author; do
+                complete -P "$PREFIX" -- "$author"
+        done 2>/dev/null <(git log --all --format=format:%an | uniq)
 }
 
 function completion/git::--color:arg { #>>#
-	complete -P "$PREFIX" -D "always print in color" always
-	complete -P "$PREFIX" -D "print in color if output is terminal" auto
-	complete -P "$PREFIX" -D "don't print in color" never
+        complete -P "$PREFIX" -D "always print in color" always
+        complete -P "$PREFIX" -D "print in color if output is terminal" auto
+        complete -P "$PREFIX" -D "don't print in color" never
 } #<<#
 
 function completion/git::--column:arg { #>>#
-	complete -P "$PREFIX" -D "always print in columns" always
-	complete -P "$PREFIX" -D "print in columns if output is terminal" auto
-	complete -P "$PREFIX" -D "fill columns before rows" column
-	complete -P "$PREFIX" -D "make columns as narrow as possible" dense
-	complete -P "$PREFIX" -D "don't print in columns" never
-	complete -P "$PREFIX" -D "keep all columns same-sized" nodense
-	complete -P "$PREFIX" -D "print in one column" plain
-	complete -P "$PREFIX" -D "fill rows before columns" row
+        complete -P "$PREFIX" -D "always print in columns" always
+        complete -P "$PREFIX" -D "print in columns if output is terminal" auto
+        complete -P "$PREFIX" -D "fill columns before rows" column
+        complete -P "$PREFIX" -D "make columns as narrow as possible" dense
+        complete -P "$PREFIX" -D "don't print in columns" never
+        complete -P "$PREFIX" -D "keep all columns same-sized" nodense
+        complete -P "$PREFIX" -D "print in one column" plain
+        complete -P "$PREFIX" -D "fill rows before columns" row
 } #<<#
 
 function completion/git::--date:arg { #>>#
-	complete -P "$PREFIX" -D "print relative time like \"2 hours ago\"" relative
-	complete -P "$PREFIX" -D "print in original timezone" default
-	complete -P "$PREFIX" -D "print in customized ISO 8601 format" iso8601
-	complete -P "$PREFIX" -D "print in strict ISO 8601 format" iso8601-strict
-	complete -P "$PREFIX" -D "print in RFC 2822 format" rfc2822
-	complete -P "$PREFIX" -D "print in YYYY-MM-DD format" short
-	complete -P "$PREFIX" -D "print the raw timestamp value" raw
-	complete -P "$PREFIX" local relative-local default-local iso8601-local \
-		iso8601-strict-local rfc2822-local short-local raw-local
-	complete -P "$PREFIX" -D "specify a format" -T format:
+        complete -P "$PREFIX" -D "print relative time like \"2 hours ago\"" relative
+        complete -P "$PREFIX" -D "print in original timezone" default
+        complete -P "$PREFIX" -D "print in customized ISO 8601 format" iso8601
+        complete -P "$PREFIX" -D "print in strict ISO 8601 format" iso8601-strict
+        complete -P "$PREFIX" -D "print in RFC 2822 format" rfc2822
+        complete -P "$PREFIX" -D "print in YYYY-MM-DD format" short
+        complete -P "$PREFIX" -D "print the raw timestamp value" raw
+        complete -P "$PREFIX" local relative-local default-local iso8601-local \
+                iso8601-strict-local rfc2822-local short-local raw-local
+        complete -P "$PREFIX" -D "specify a format" -T format:
 } #<<#
 # TODO --date=format:...%
 
 function completion/git::--format:arg {
-	typeset word="${TARGETWORD#"$PREFIX"}"
-	word=${word//%%}
-	case $word in
-	(format:*%*|tformat:*%*)
-		word=%${word##*%}
-		typeset PREFIX="${TARGETWORD%"$word"}" #>>#
-		complete -T -P "$PREFIX" -D "full commit ID" '%H'
-		complete -T -P "$PREFIX" -D "abbreviated commit ID" '%h'
-		complete -T -P "$PREFIX" -D "full tree ID" '%T'
-		complete -T -P "$PREFIX" -D "abbreviated tree ID" '%t'
-		complete -T -P "$PREFIX" -D "full parent IDs" '%P'
-		complete -T -P "$PREFIX" -D "abbreviated parent IDs" '%p'
-		complete -T -P "$PREFIX" -D "author name respecting .mailmap" '%aN'
-		complete -T -P "$PREFIX" -D "author name" '%an'
-		complete -T -P "$PREFIX" -D "author email respecting .mailmap" '%aE'
-		complete -T -P "$PREFIX" -D "author email" '%ae'
-		complete -T -P "$PREFIX" -D "author date in the RFC 2822 format" '%aD'
-		complete -T -P "$PREFIX" -D "author date (relative)" '%ar'
-		complete -T -P "$PREFIX" -D "author timestamp" '%at'
-		complete -T -P "$PREFIX" -D "author date in the ISO 8601 format" '%ai'
-		complete -T -P "$PREFIX" -D "committer name respecting .mailmap" '%cN'
-		complete -T -P "$PREFIX" -D "committer name" '%cn'
-		complete -T -P "$PREFIX" -D "committer email respecting .mailmap" '%cE'
-		complete -T -P "$PREFIX" -D "committer email" '%ce'
-		complete -T -P "$PREFIX" -D "committer date in the RFC 2822 format" '%cD'
-		complete -T -P "$PREFIX" -D "committer date (relative)" '%cr'
-		complete -T -P "$PREFIX" -D "committer timestamp" '%ct'
-		complete -T -P "$PREFIX" -D "committer date in the ISO 8601 format" '%ci'
-		complete -T -P "$PREFIX" -D "encoding" '%e'
-		complete -T -P "$PREFIX" -D "subject" '%s'
-		complete -T -P "$PREFIX" -D "subject (suitable for a filename)" '%f'
-		complete -T -P "$PREFIX" -D "body" '%b'
-		complete -T -P "$PREFIX" -D "raw body" '%B'
-		complete -T -P "$PREFIX" -D "commit notes" '%N'
-		complete -T -P "$PREFIX" -D "full reflog selector" '%gD'
-		complete -T -P "$PREFIX" -D "abbreviated reflog selector" '%gd'
-		complete -T -P "$PREFIX" -D "reflog subject" '%gs'
-		complete -T -P "$PREFIX" -D "switch color to red" '%Cred'
-		complete -T -P "$PREFIX" -D "switch color to green" '%Cgreen'
-		complete -T -P "$PREFIX" -D "switch color to blue" '%Cblue'
-		complete -T -P "$PREFIX" -D "reset color" '%Creset'
-		complete -T -P "$PREFIX" -D "left, right, or boundary mark" '%m'
-		complete -T -P "$PREFIX" -D "newline" '%n'
-		# complete -T -P "$PREFIX" -D "" '%x'
-		complete -T -P "$PREFIX" -D "enable line wrapping" '%w'
-		complete -T -P "$PREFIX" -D "%" '%%'
-		;; #<<#
-	(*:*)
-		;;
-	(*) #>>#
-		complete -P "$PREFIX" -D "commit ID and title" oneline
-		complete -P "$PREFIX" -D "commit ID, author, and title" short
-		complete -P "$PREFIX" -D "commit ID, author, date, and full log message" medium
-		complete -P "$PREFIX" -D "commit ID, author, committer, and full log message" full
-		complete -P "$PREFIX" -D "commit ID, author, date, committer, date, and full log message" fuller
-		complete -P "$PREFIX" -D "imitate email" email
-		complete -P "$PREFIX" -D "raw commit object" raw
-		complete -P "$PREFIX" -D "specify a format (newline-separated)" -T format:
-		complete -P "$PREFIX" -D "specify a format (newline-terminated)" -T tformat:
-		#<<#
-		typeset name value
-		while read -r name value; do
-			complete -P "$PREFIX" -D "= $value" -- "${name#pretty.}"
-		done 2>/dev/null <(git config --get-regexp 'pretty\..*')
-	esac
+        typeset word="${TARGETWORD#"$PREFIX"}"
+        word=${word//%%}
+        case $word in
+        (format:*%*|tformat:*%*)
+                word=%${word##*%}
+                typeset PREFIX="${TARGETWORD%"$word"}" #>>#
+                complete -T -P "$PREFIX" -D "full commit ID" '%H'
+                complete -T -P "$PREFIX" -D "abbreviated commit ID" '%h'
+                complete -T -P "$PREFIX" -D "full tree ID" '%T'
+                complete -T -P "$PREFIX" -D "abbreviated tree ID" '%t'
+                complete -T -P "$PREFIX" -D "full parent IDs" '%P'
+                complete -T -P "$PREFIX" -D "abbreviated parent IDs" '%p'
+                complete -T -P "$PREFIX" -D "author name respecting .mailmap" '%aN'
+                complete -T -P "$PREFIX" -D "author name" '%an'
+                complete -T -P "$PREFIX" -D "author email respecting .mailmap" '%aE'
+                complete -T -P "$PREFIX" -D "author email" '%ae'
+                complete -T -P "$PREFIX" -D "author date in the RFC 2822 format" '%aD'
+                complete -T -P "$PREFIX" -D "author date (relative)" '%ar'
+                complete -T -P "$PREFIX" -D "author timestamp" '%at'
+                complete -T -P "$PREFIX" -D "author date in the ISO 8601 format" '%ai'
+                complete -T -P "$PREFIX" -D "committer name respecting .mailmap" '%cN'
+                complete -T -P "$PREFIX" -D "committer name" '%cn'
+                complete -T -P "$PREFIX" -D "committer email respecting .mailmap" '%cE'
+                complete -T -P "$PREFIX" -D "committer email" '%ce'
+                complete -T -P "$PREFIX" -D "committer date in the RFC 2822 format" '%cD'
+                complete -T -P "$PREFIX" -D "committer date (relative)" '%cr'
+                complete -T -P "$PREFIX" -D "committer timestamp" '%ct'
+                complete -T -P "$PREFIX" -D "committer date in the ISO 8601 format" '%ci'
+                complete -T -P "$PREFIX" -D "encoding" '%e'
+                complete -T -P "$PREFIX" -D "subject" '%s'
+                complete -T -P "$PREFIX" -D "subject (suitable for a filename)" '%f'
+                complete -T -P "$PREFIX" -D "body" '%b'
+                complete -T -P "$PREFIX" -D "raw body" '%B'
+                complete -T -P "$PREFIX" -D "commit notes" '%N'
+                complete -T -P "$PREFIX" -D "full reflog selector" '%gD'
+                complete -T -P "$PREFIX" -D "abbreviated reflog selector" '%gd'
+                complete -T -P "$PREFIX" -D "reflog subject" '%gs'
+                complete -T -P "$PREFIX" -D "switch color to red" '%Cred'
+                complete -T -P "$PREFIX" -D "switch color to green" '%Cgreen'
+                complete -T -P "$PREFIX" -D "switch color to blue" '%Cblue'
+                complete -T -P "$PREFIX" -D "reset color" '%Creset'
+                complete -T -P "$PREFIX" -D "left, right, or boundary mark" '%m'
+                complete -T -P "$PREFIX" -D "newline" '%n'
+                # complete -T -P "$PREFIX" -D "" '%x'
+                complete -T -P "$PREFIX" -D "enable line wrapping" '%w'
+                complete -T -P "$PREFIX" -D "%" '%%'
+                ;; #<<#
+        (*:*)
+                ;;
+        (*) #>>#
+                complete -P "$PREFIX" -D "commit ID and title" oneline
+                complete -P "$PREFIX" -D "commit ID, author, and title" short
+                complete -P "$PREFIX" -D "commit ID, author, date, and full log message" medium
+                complete -P "$PREFIX" -D "commit ID, author, committer, and full log message" full
+                complete -P "$PREFIX" -D "commit ID, author, date, committer, date, and full log message" fuller
+                complete -P "$PREFIX" -D "imitate email" email
+                complete -P "$PREFIX" -D "raw commit object" raw
+                complete -P "$PREFIX" -D "specify a format (newline-separated)" -T format:
+                complete -P "$PREFIX" -D "specify a format (newline-terminated)" -T tformat:
+                #<<#
+                typeset name value
+                while read -r name value; do
+                        complete -P "$PREFIX" -D "= $value" -- "${name#pretty.}"
+                done 2>/dev/null <(git config --get-regexp 'pretty\..*')
+        esac
 }
 
 function completion/git::--ignore-submodules:arg { #>>#
-	complete -P "$PREFIX" -D "ignore all changes in submodules" all
-	complete -P "$PREFIX" -D "ignore uncommitted changes in submodules" dirty
-	complete -P "$PREFIX" -D "show all changes in submodules" none
-	complete -P "$PREFIX" -D "ignore untracked files in submodules" untracked
+        complete -P "$PREFIX" -D "ignore all changes in submodules" all
+        complete -P "$PREFIX" -D "ignore uncommitted changes in submodules" dirty
+        complete -P "$PREFIX" -D "show all changes in submodules" none
+        complete -P "$PREFIX" -D "ignore untracked files in submodules" untracked
 } #<<#
 
 function completion/git::--pretty:arg {
-	command -f completion/git::--format:arg "$@"
+        command -f completion/git::--format:arg "$@"
 }
 
 function completion/git::--receive-pack:arg {
-	complete -P "$PREFIX" -S / -T -d
-	# XXX should complete available remote commands
+        complete -P "$PREFIX" -S / -T -d
+        # XXX should complete available remote commands
 }
 
 function completion/git::--recurse-submodules:arg { #>>#
-	complete -P "$PREFIX" no
-	complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
-	complete -P "$PREFIX" yes
+        complete -P "$PREFIX" no
+        complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
+        complete -P "$PREFIX" yes
 } #<<#
 
 function completion/git::--untracked-files:arg { #>>#
-	complete -P "$PREFIX" -D "print all individual files in untracked directories" all
-	complete -P "$PREFIX" -D "print untracked files and directories" normal
-	complete -P "$PREFIX" -D "don't print untracked files" no
+        complete -P "$PREFIX" -D "print all individual files in untracked directories" all
+        complete -P "$PREFIX" -D "print untracked files and directories" normal
+        complete -P "$PREFIX" -D "don't print untracked files" no
 } #<<#
 
 function completion/git::--upload-pack:arg {
-	complete -P "$PREFIX" -S / -T -d
-	# XXX should complete available remote commands
+        complete -P "$PREFIX" -S / -T -d
+        # XXX should complete available remote commands
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

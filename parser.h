@@ -76,31 +76,31 @@ typedef struct command_T {
     unsigned long     c_lineno;   /* line number */
     struct redir_T   *c_redirs;   /* redirections */
     union {
-	struct {
-	    struct assign_T *assigns;  /* assignments */
-	    void           **words;    /* command name and arguments */
-	} simplecommand;
-	struct and_or_T     *subcmds;  /* contents of command group */
-	struct ifcommand_T  *ifcmds;   /* contents of if command */
-	struct {
-	    wchar_t         *forname;  /* loop variable of for loop */
-	    void           **forwords; /* words assigned to loop variable */
-	    struct and_or_T *forcmds;  /* commands executed in for loop */
-	} forloop;
-	struct {
-	    _Bool            whltype;  /* 1 for while loop, 0 for until */
-	    struct and_or_T *whlcond;  /* loop condition of while/until loop */
-	    struct and_or_T *whlcmds;  /* commands executed in loop */
-	} whileloop;
-	struct {
-	    struct wordunit_T *casword;   /* word compared to case patterns */
-	    struct caseitem_T *casitems;  /* pairs of patterns and commands */
-	} casecommand;
-	struct dbexp_T      *dbexp;    /* double-bracket command expression */
-	struct {
-	    struct wordunit_T *funcname;  /* name of function */
-	    struct command_T  *funcbody;  /* body of function */
-	} funcdef;
+        struct {
+            struct assign_T *assigns;  /* assignments */
+            void           **words;    /* command name and arguments */
+        } simplecommand;
+        struct and_or_T     *subcmds;  /* contents of command group */
+        struct ifcommand_T  *ifcmds;   /* contents of if command */
+        struct {
+            wchar_t         *forname;  /* loop variable of for loop */
+            void           **forwords; /* words assigned to loop variable */
+            struct and_or_T *forcmds;  /* commands executed in for loop */
+        } forloop;
+        struct {
+            _Bool            whltype;  /* 1 for while loop, 0 for until */
+            struct and_or_T *whlcond;  /* loop condition of while/until loop */
+            struct and_or_T *whlcmds;  /* commands executed in loop */
+        } whileloop;
+        struct {
+            struct wordunit_T *casword;   /* word compared to case patterns */
+            struct caseitem_T *casitems;  /* pairs of patterns and commands */
+        } casecommand;
+        struct dbexp_T      *dbexp;    /* double-bracket command expression */
+        struct {
+            struct wordunit_T *funcname;  /* name of function */
+            struct command_T  *funcbody;  /* body of function */
+        } funcdef;
     } c_content;
 } command_T;
 #define c_assigns  c_content.simplecommand.assigns
@@ -169,8 +169,8 @@ typedef struct dbexp_T {
 typedef struct embedcmd_T {
     _Bool is_preparsed;
     union {
-	wchar_t         *unparsed;
-	struct and_or_T *preparsed;
+        wchar_t         *unparsed;
+        struct and_or_T *preparsed;
     } value;
 } embedcmd_T;
 
@@ -187,10 +187,10 @@ typedef struct wordunit_T {
     struct wordunit_T *next;
     wordunittype_T     wu_type;
     union {
-	wchar_t           *string;  /* string (including quotes) */
-	struct paramexp_T *param;   /* parameter expansion */
-	struct embedcmd_T  cmdsub;  /* command substitution */
-	struct wordunit_T *arith;   /* expression for arithmetic expansion */
+        wchar_t           *string;  /* string (including quotes) */
+        struct paramexp_T *param;   /* parameter expansion */
+        struct embedcmd_T  cmdsub;  /* command substitution */
+        struct wordunit_T *arith;   /* expression for arithmetic expansion */
     } wu_value;
 } wordunit_T;
 #define wu_string wu_value.string
@@ -243,8 +243,8 @@ typedef enum {
 typedef struct paramexp_T {
     paramexptype_T pe_type;
     union {
-	wchar_t           *name;
-	struct wordunit_T *nest;
+        wchar_t           *name;
+        struct wordunit_T *nest;
     } pe_value;
     struct wordunit_T *pe_start, *pe_end;
     struct wordunit_T *pe_match, *pe_subst;
@@ -271,8 +271,8 @@ typedef struct assign_T {
     assigntype_T a_type;
     wchar_t *a_name;
     union {
-	struct wordunit_T *scalar;
-	void **array;          
+        struct wordunit_T *scalar;
+        void **array;          
     } a_value;  /* value to assign */
 } assign_T;
 #define a_scalar a_value.scalar
@@ -303,12 +303,12 @@ typedef struct redir_T {
     redirtype_T rd_type;
     int rd_fd;  /* file descriptor to redirect */
     union {
-	struct wordunit_T *filename;
-	struct {
-	    wchar_t *hereend;  /* token indicating end of here-document */
-	    struct wordunit_T *herecontent;  /* contents of here-document */
-	} heredoc;
-	struct embedcmd_T command;
+        struct wordunit_T *filename;
+        struct {
+            wchar_t *hereend;  /* token indicating end of here-document */
+            struct wordunit_T *herecontent;  /* contents of here-document */
+        } heredoc;
+        struct embedcmd_T command;
     } rd_value;
 } redir_T;
 #define rd_filename    rd_value.filename
@@ -348,7 +348,7 @@ typedef enum parseresult_T {
 
 
 extern parseresult_T read_and_parse(
-	parseparam_T *info, and_or_T **restrict resultp)
+        parseparam_T *info, and_or_T **restrict resultp)
     __attribute__((nonnull,warn_unused_result));
 
 extern _Bool parse_string(parseparam_T *info, wordunit_T **restrict resultp)
@@ -397,4 +397,4 @@ command_T *comsdup(command_T *c)
 #endif /* YASH_PARSER_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

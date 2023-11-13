@@ -4,48 +4,48 @@
 # Supports Git 2.1.2.
 
 function completion/git-checkout {
-	WORDS=(git checkout "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git checkout "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::checkout:arg {
 
-	OPTIONS=( #>#
-	"B:; create or reset a new branch and check it out"
-	"b:; create a new branch and check it out"
-	"--conflict:; like --merge, but specify format of unmerged files"
-	"--detach; leave HEAD in detached head state"
-	"f --force; overwrite local changes or ignore unmerged files"
-	"--ignore-skip-worktree-bits; ignore sparse patterns"
-	"l; enable reflog for the new branch"
-	"m --merge; do 3-way merge for destination branch"
-	"--no-track; create a non-tracking branch"
-	"--orphan:; create a new branch with no parent"
-	"--ours; checkout local version for unmerged files"
-	"p --patch; interactively choose hunks to check out"
-	"q --quiet; print error and warning messages only"
-	"--theirs; checkout remote version for unmerged files"
-	"t --track; create a tracking branch"
-	) #<#
+        OPTIONS=( #>#
+        "B:; create or reset a new branch and check it out"
+        "b:; create a new branch and check it out"
+        "--conflict:; like --merge, but specify format of unmerged files"
+        "--detach; leave HEAD in detached head state"
+        "f --force; overwrite local changes or ignore unmerged files"
+        "--ignore-skip-worktree-bits; ignore sparse patterns"
+        "l; enable reflog for the new branch"
+        "m --merge; do 3-way merge for destination branch"
+        "--no-track; create a non-tracking branch"
+        "--orphan:; create a new branch with no parent"
+        "--ours; checkout local version for unmerged files"
+        "p --patch; interactively choose hunks to check out"
+        "q --quiet; print error and warning messages only"
+        "--theirs; checkout remote version for unmerged files"
+        "t --track; create a tracking branch"
+        ) #<#
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		([Bb]|--orphan)
-			command -f completion/git::completeref --branches
-			;;
-		(--conflict) #>>#
-			complete -P "$PREFIX" -D "ours and theirs" merge
-			complete -P "$PREFIX" -D "ours, theirs, and original" diff3
-			;; #<<#
-		('')
-			command -f completion/git::completerefpath
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ([Bb]|--orphan)
+                        command -f completion/git::completeref --branches
+                        ;;
+                (--conflict) #>>#
+                        complete -P "$PREFIX" -D "ours and theirs" merge
+                        complete -P "$PREFIX" -D "ours, theirs, and original" diff3
+                        ;; #<<#
+                ('')
+                        command -f completion/git::completerefpath
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -6,123 +6,123 @@
 
 function completion/su {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'util-linux'*)
-			typeset type=util-linux gnu=true ul=true ;;
-		(*'GNU coreutils'*)
-			typeset type=GNU gnu=true ul= ;;
-		(*)
-			typeset type="$(uname 2>/dev/null)" gnu= ul= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'util-linux'*)
+                        typeset type=util-linux gnu=true ul=true ;;
+                (*'GNU coreutils'*)
+                        typeset type=GNU gnu=true ul= ;;
+                (*)
+                        typeset type="$(uname 2>/dev/null)" gnu= ul= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=()
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=()
 
-	case $type in (util-linux|GNU|Darwin|*BSD)
-		OPTIONS=("$OPTIONS" #>#
-		"f ${gnu:+--fast}; pass the -f option to the shell"
-		"l ${gnu:+--login}; invoke the command as a login shell"
-		"m ${gnu:+p --preserve-environment}; preserve all environment variables"
-		) #<#
-		case $type in (util-linux|GNU|OpenBSD)
-			OPTIONS=("$OPTIONS" #>#
-			"s: ${gnu:+--shell:}; specify the shell to be run"
-			) #<#
-			case $type in (util-linux|GNU)
-				OPTIONS=("$OPTIONS" #>#
-				"c: --command:; specify the command run instead of the shell"
-				"${ul:+h} --help; print help"
-				"${ul:+V} --version; print version info"
-				) #<#
-				;;
-			esac
-		esac
-	esac
-	case $type in (*BSD)
-		if [ "$(id -u 2>/dev/null)" -eq 0 ] 2>/dev/null; then
-			OPTIONS=("$OPTIONS" #>#
-			"c:; specify the login class"
-			) #<#
-		fi
-	esac
-	case $type in
-	(util-linux)
-		OPTIONS=("$OPTIONS" #>#
-		"g: --group:; specify the primary group to change to"
-		"G: --supp-group:; specify supplemental group to change to"
-		"--session-command:; like -c, but run in the same session"
-		) #<#
-		;;
-	(FreeBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"s; set the MAC label to the default"
-		) #<#
-		;;
-	(OpenBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"a:; specify the authentication method"
-		"L; loop till a successful authentication"
-		) #<#
-		;;
-	(NetBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"d; like -l, but preserve the working directory"
-		"K; don't use Kerberos"
-		) #<#
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"d; use distributed computing environment (DCE)"
-		) #<#
-		;;
-	esac
+        case $type in (util-linux|GNU|Darwin|*BSD)
+                OPTIONS=("$OPTIONS" #>#
+                "f ${gnu:+--fast}; pass the -f option to the shell"
+                "l ${gnu:+--login}; invoke the command as a login shell"
+                "m ${gnu:+p --preserve-environment}; preserve all environment variables"
+                ) #<#
+                case $type in (util-linux|GNU|OpenBSD)
+                        OPTIONS=("$OPTIONS" #>#
+                        "s: ${gnu:+--shell:}; specify the shell to be run"
+                        ) #<#
+                        case $type in (util-linux|GNU)
+                                OPTIONS=("$OPTIONS" #>#
+                                "c: --command:; specify the command run instead of the shell"
+                                "${ul:+h} --help; print help"
+                                "${ul:+V} --version; print version info"
+                                ) #<#
+                                ;;
+                        esac
+                esac
+        esac
+        case $type in (*BSD)
+                if [ "$(id -u 2>/dev/null)" -eq 0 ] 2>/dev/null; then
+                        OPTIONS=("$OPTIONS" #>#
+                        "c:; specify the login class"
+                        ) #<#
+                fi
+        esac
+        case $type in
+        (util-linux)
+                OPTIONS=("$OPTIONS" #>#
+                "g: --group:; specify the primary group to change to"
+                "G: --supp-group:; specify supplemental group to change to"
+                "--session-command:; like -c, but run in the same session"
+                ) #<#
+                ;;
+        (FreeBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "s; set the MAC label to the default"
+                ) #<#
+                ;;
+        (OpenBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "a:; specify the authentication method"
+                "L; loop till a successful authentication"
+                ) #<#
+                ;;
+        (NetBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "d; like -l, but preserve the working directory"
+                "K; don't use Kerberos"
+                ) #<#
+                ;;
+        (HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "d; use distributed computing environment (DCE)"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(a)
-		if command -vf completion//bsd::completeauthmethod >/dev/null 2>&1 ||
-				. -AL completion/_bsd; then
-			command -f completion//bsd::completeauthmethod
-		fi
-		;;
-	(c|--command)
-		case $type in
-			(util-linux|GNU)
-				complete -P "$PREFIX" -c
-				;;
-			(*BSD)
-				if command -vf completion//bsd::completeauthclass >/dev/null 2>&1 ||
-						. -AL completion/_bsd; then
-					command -f completion//bsd::completeauthclass
-				fi
-				;;
-		esac
-		;;
-	([gG]|--*group)
-		complete -P "$PREFIX" -g
-		;;
-	(s|--shell|--session-command)
-		WORDS=()
-		command -f completion//reexecute -e
-		;;
-	(*)
-		command -f completion//getoperands
-		if [ "${WORDS[1]:-}" = - ]; then
-			WORDS=("${WORDS[2,-1]}")
-		fi
-		if [ "${WORDS[#]}" -le 0 ]; then
-			complete -P "$PREFIX" -u
-		else
-			WORDS=(sh "${WORDS[2,-1]}") #XXX assume POSIX shell
-			command -f completion//reexecute
-		fi
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (a)
+                if command -vf completion//bsd::completeauthmethod >/dev/null 2>&1 ||
+                                . -AL completion/_bsd; then
+                        command -f completion//bsd::completeauthmethod
+                fi
+                ;;
+        (c|--command)
+                case $type in
+                        (util-linux|GNU)
+                                complete -P "$PREFIX" -c
+                                ;;
+                        (*BSD)
+                                if command -vf completion//bsd::completeauthclass >/dev/null 2>&1 ||
+                                                . -AL completion/_bsd; then
+                                        command -f completion//bsd::completeauthclass
+                                fi
+                                ;;
+                esac
+                ;;
+        ([gG]|--*group)
+                complete -P "$PREFIX" -g
+                ;;
+        (s|--shell|--session-command)
+                WORDS=()
+                command -f completion//reexecute -e
+                ;;
+        (*)
+                command -f completion//getoperands
+                if [ "${WORDS[1]:-}" = - ]; then
+                        WORDS=("${WORDS[2,-1]}")
+                fi
+                if [ "${WORDS[#]}" -le 0 ]; then
+                        complete -P "$PREFIX" -u
+                else
+                        WORDS=(sh "${WORDS[2,-1]}") #XXX assume POSIX shell
+                        command -f completion//reexecute
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

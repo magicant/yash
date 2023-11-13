@@ -41,13 +41,13 @@ struct xgetopt_T {
 };
 
 extern struct xgetopt_T *xgetopt(
-	void **restrict argv_,
-	const struct xgetopt_T *restrict opts_,
-	enum xgetoptopt_T getoptopt_)
+        void **restrict argv_,
+        const struct xgetopt_T *restrict opts_,
+        enum xgetoptopt_T getoptopt_)
     __attribute__((nonnull));
 
 
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

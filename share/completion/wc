@@ -6,54 +6,54 @@
 
 function completion/wc {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"c ${long:+--bytes}; print byte counts"
-	"l ${long:+--lines}; print line counts"
-	"m ${long:+--chars}; print character counts"
-	"w ${long:+--words}; print word counts"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "c ${long:+--bytes}; print byte counts"
+        "l ${long:+--lines}; print line counts"
+        "m ${long:+--chars}; print character counts"
+        "w ${long:+--words}; print word counts"
+        ) #<#
 
-	case $type in
-	(GNU|FreeBSD|NetBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"L ${long:+--max-line-length}; print longest line lengths"
-		) #<#
-		case $type in (GNU)
-			OPTIONS=("$OPTIONS" #>#
-			"--files0-from:; specify a file containing null-separated file names to count size"
-			"--help"
-			"--version"
-			) #<#
-		esac
-		;;
-	(OpenBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"h; print size using K, M, etc. for 1024^n"
-		) #<#
-		;;
-	esac
+        case $type in
+        (GNU|FreeBSD|NetBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "L ${long:+--max-line-length}; print longest line lengths"
+                ) #<#
+                case $type in (GNU)
+                        OPTIONS=("$OPTIONS" #>#
+                        "--files0-from:; specify a file containing null-separated file names to count size"
+                        "--help"
+                        "--version"
+                        ) #<#
+                esac
+                ;;
+        (OpenBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "h; print size using K, M, etc. for 1024^n"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

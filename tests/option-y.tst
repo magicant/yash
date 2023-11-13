@@ -117,4 +117,4 @@ test_x -e 0 'concatenation of option and -o and argument' -aoerrexit
 echo $- | grep a | grep -q e
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

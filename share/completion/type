@@ -3,9 +3,9 @@
 # Completion script for the "type" built-in command.
 
 function completion/type {
-	WORDS=(command -V "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(command -V "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

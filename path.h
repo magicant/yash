@@ -46,7 +46,7 @@ extern _Bool is_directory(const char *path)
     __attribute__((nonnull));
 
 extern _Bool stat_result_same_file(
-	const struct stat *stat1, const struct stat *stat2)
+        const struct stat *stat1, const struct stat *stat2)
     __attribute__((nonnull,pure));
 extern _Bool is_same_file(const char *path1, const char *path2)
     __attribute__((nonnull));
@@ -58,13 +58,13 @@ extern char *xgetcwd(void)
     __attribute__((malloc,warn_unused_result));
 
 extern char *which(
-	const char *restrict name,
-	char *const *restrict dirs,
-	_Bool cond(const char *path))
+        const char *restrict name,
+        char *const *restrict dirs,
+        _Bool cond(const char *path))
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 extern int create_temporary_file(
-	char **restrict filename, const char *restrict suffix, mode_t mode)
+        char **restrict filename, const char *restrict suffix, mode_t mode)
     __attribute__((nonnull));
 
 
@@ -83,7 +83,7 @@ extern const char *get_command_path_default(const char *name)
 
 extern void init_homedirhash(void);
 extern const wchar_t *get_home_directory(
-	const wchar_t *username, _Bool forcelookup)
+        const wchar_t *username, _Bool forcelookup)
     __attribute__((nonnull));
 
 
@@ -100,7 +100,7 @@ enum wglobflags_T {
 struct plist_T;
 
 extern _Bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
-	struct plist_T *restrict list)
+        struct plist_T *restrict list)
     __attribute__((nonnull));
 
 
@@ -133,11 +133,11 @@ extern const char umask_help[], umask_syntax[];
 extern const struct xgetopt_T umask_options[];
 
 extern int change_directory(
-	const wchar_t *newpwd, _Bool printnewdir, _Bool logical)
+        const wchar_t *newpwd, _Bool printnewdir, _Bool logical)
     __attribute__((nonnull,warn_unused_result));
 
 
 #endif /* YASH_PATH_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

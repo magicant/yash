@@ -31,8 +31,8 @@
 struct xfnmatch_T {
     xfnmflags_T flags;
     union {
-	regex_t regex;
-	xwcsbuf_T literal;
+        regex_t regex;
+        xwcsbuf_T literal;
     } value;
 };
 /* The flags are logical OR of the followings:
@@ -58,31 +58,31 @@ static xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
 static void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
     __attribute__((nonnull));
 static const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
     __attribute__((nonnull));
 static const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
     __attribute__((nonnull));
 static void append_as_collating_symbol(wchar_t c,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_literal(
-	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+        const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
     __attribute__((nonnull));
 static wchar_t *last_wcsstr(
-	const wchar_t *restrict s, const wchar_t *restrict sub)
+        const wchar_t *restrict s, const wchar_t *restrict sub)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_headtail(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_shortest_head(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_shortest_tail(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
 static xfnmresult_T wmatch_longest(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
     __attribute__((nonnull));
 
 
@@ -92,25 +92,25 @@ static xfnmresult_T wmatch_longest(
 bool is_matching_pattern(const wchar_t *pat)
 {
     for (;;) {
-	switch (*pat) {
-	    case L'\0':
-		return false;
-	    case L'\\':
-		pat++;
-		if (*pat == L'\0')
-		    return false;
-		pat++;
-		break;
-	    case L'*':  case L'?':
-		return true;
-	    case L'[':
-		if (is_matching_pattern_bracket(pat))
-		    return true;
-		/* falls thru! */
-	    default:
-		pat++;
-		break;
-	}
+        switch (*pat) {
+            case L'\0':
+                return false;
+            case L'\\':
+                pat++;
+                if (*pat == L'\0')
+                    return false;
+                pat++;
+                break;
+            case L'*':  case L'?':
+                return true;
+            case L'[':
+                if (is_matching_pattern_bracket(pat))
+                    return true;
+                /* falls thru! */
+            default:
+                pat++;
+                break;
+        }
     }
 }
 
@@ -125,33 +125,33 @@ bool is_matching_pattern_bracket(const wchar_t *pat)
     const wchar_t *const savepat = pat;
 
     for (;;) {
-	switch (*pat) {
-	    case L'\0':
-		return false;
-	    case L'[':
-		pat++;
-		const wchar_t *p;
-		switch (*pat) {
-		    case L'.':  p = wcsstr(&pat[1], L".]");  break;
-		    case L':':  p = wcsstr(&pat[1], L":]");  break;
-		    case L'=':  p = wcsstr(&pat[1], L"=]");  break;
-		    default:    continue;
-		}
-		if (p == NULL)
-		    return false;
-		pat = &p[2];
-		continue;
-	    case L']':
-		if (pat > savepat)
-		    return true;
-		break;
-	    case L'\\':
-		pat++;
-		if (*pat == L'\0')
-		    return false;
-		break;
-	}
-	pat++;
+        switch (*pat) {
+            case L'\0':
+                return false;
+            case L'[':
+                pat++;
+                const wchar_t *p;
+                switch (*pat) {
+                    case L'.':  p = wcsstr(&pat[1], L".]");  break;
+                    case L':':  p = wcsstr(&pat[1], L":]");  break;
+                    case L'=':  p = wcsstr(&pat[1], L"=]");  break;
+                    default:    continue;
+                }
+                if (p == NULL)
+                    return false;
+                pat = &p[2];
+                continue;
+            case L']':
+                if (pat > savepat)
+                    return true;
+                break;
+            case L'\\':
+                pat++;
+                if (*pat == L'\0')
+                    return false;
+                break;
+        }
+        pat++;
     }
 }
 
@@ -164,12 +164,12 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
     const wchar_t *p;
 
     while ((p = wcschr(pat, L'/')) != NULL) {
-	wchar_t buf[p - pat + 1];
-	wmemcpy(buf, pat, p - pat);
-	buf[p - pat] = L'\0';
-	if (is_matching_pattern(buf))
-	    return true;
-	pat = &p[1];
+        wchar_t buf[p - pat + 1];
+        wmemcpy(buf, pat, p - pat);
+        buf[p - pat] = L'\0';
+        if (is_matching_pattern(buf))
+            return true;
+        pat = &p[1];
     }
     return is_matching_pattern(pat);
 }
@@ -190,21 +190,21 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
 xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
 {
     if (flags & XFNM_SHORTEST) {
-	if (flags & XFNM_HEADONLY)
-	    assert(!(flags & XFNM_TAILONLY));
-	else
-	    assert(flags & XFNM_TAILONLY);
+        if (flags & XFNM_HEADONLY)
+            assert(!(flags & XFNM_TAILONLY));
+        else
+            assert(flags & XFNM_TAILONLY);
     }
     if (flags & XFNM_PERIOD) {
-	assert(flags & XFNM_HEADONLY);
-	if (pat[0] == L'.' || pat[0] == L'\\')
-	    flags &= ~XFNM_PERIOD;
+        assert(flags & XFNM_HEADONLY);
+        if (pat[0] == L'.' || pat[0] == L'\\')
+            flags &= ~XFNM_PERIOD;
     }
 
     if (!(flags & XFNM_CASEFOLD)) {
-	xfnmatch_T *result = try_compile_literal(pat, flags);
-	if (result != NULL)
-	    return result;
+        xfnmatch_T *result = try_compile_literal(pat, flags);
+        if (result != NULL)
+            return result;
     }
 
     return try_compile_regex(pat, flags);
@@ -219,49 +219,49 @@ xfnmatch_T *try_compile_literal(const wchar_t *pat, xfnmflags_T flags)
 
     wb_init(&xfnm->value.literal);
     while (*pat == L'*') {
-	flags &= ~XFNM_HEADONLY;
-	flags |= XFNM_headstar;
-	pat++;
+        flags &= ~XFNM_HEADONLY;
+        flags |= XFNM_headstar;
+        pat++;
     }
     for (;;) {
-	switch (*pat) {
-	    case L'\0':
-		goto success;
-	    case L'?':
-		goto fail;
-	    case L'*':
-		flags &= ~XFNM_TAILONLY;
-		flags |= XFNM_tailstar;
-		do
-		    pat++;
-		while (*pat == L'*');
-		if (*pat == L'\0')
-		    goto success;
-		else
-		    goto fail;
-	    case L'[':
-		if (wcschr(pat + 1, L']'))
-		    goto fail;
-		else
-		    goto ordinary;
-	    case L'\\':
-		pat++;
-		if (*pat == L'\0')
-		    goto success;
-		/* falls thru */
-	    default:  ordinary:
-		wb_wccat(&xfnm->value.literal, *pat);
-		break;
-	}
-	pat++;
+        switch (*pat) {
+            case L'\0':
+                goto success;
+            case L'?':
+                goto fail;
+            case L'*':
+                flags &= ~XFNM_TAILONLY;
+                flags |= XFNM_tailstar;
+                do
+                    pat++;
+                while (*pat == L'*');
+                if (*pat == L'\0')
+                    goto success;
+                else
+                    goto fail;
+            case L'[':
+                if (wcschr(pat + 1, L']'))
+                    goto fail;
+                else
+                    goto ordinary;
+            case L'\\':
+                pat++;
+                if (*pat == L'\0')
+                    goto success;
+                /* falls thru */
+            default:  ordinary:
+                wb_wccat(&xfnm->value.literal, *pat);
+                break;
+        }
+        pat++;
     }
 
 success:
     if (oldflags & XFNM_SHORTEST) {
-	if (oldflags & XFNM_HEADONLY)
-	    flags &= ~XFNM_tailstar;
-	else
-	    flags &= ~XFNM_headstar;
+        if (oldflags & XFNM_HEADONLY)
+            flags &= ~XFNM_tailstar;
+        else
+            flags &= ~XFNM_headstar;
     }
     xfnm->flags = flags;
     return xfnm;
@@ -279,26 +279,26 @@ xfnmatch_T *try_compile_regex(const wchar_t *pat, xfnmflags_T flags)
 
     sb_init(&buf);
     if (flags & XFNM_HEADONLY)
-	sb_ccat(&buf, '^');
+        sb_ccat(&buf, '^');
     encode_pattern(pat, &buf);
     if (flags & XFNM_TAILONLY)
-	sb_ccat(&buf, '$');
+        sb_ccat(&buf, '$');
 
     xfnmatch_T *xfnm = xmalloc(sizeof *xfnm);
     xfnm->flags = flags | XFNM_compiled;
 
     int regexflags = 0;
     if (flags & XFNM_CASEFOLD)
-	regexflags |= REG_ICASE;
+        regexflags |= REG_ICASE;
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL)
-	regexflags |= REG_NOSUB;
+        regexflags |= REG_NOSUB;
 
     int err = regcomp(&xfnm->value.regex, buf.contents, regexflags);
 
     sb_destroy(&buf);
     if (err != 0) {
-	free(xfnm);
-	xfnm = NULL;
+        free(xfnm);
+        xfnm = NULL;
     }
     return xfnm;
 }
@@ -316,35 +316,35 @@ void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
 
     memset(&state, 0, sizeof state);  /* initial shift state */
     for (;;) {
-	switch (*pat) {
-	    case L'?':
-		sb_wccat(buf, L'.', &state);
-		break;
-	    case L'*':
-		sb_wccat(buf, L'.', &state);
-		sb_wccat(buf, L'*', &state);
-		break;
-	    case L'[':
-		pat = encode_pattern_bracket(pat, buf, &state);
-		break;
-	    case L'\\':
-		switch (*++pat) {
-		    case L'.':  case L'*':  case L'[':
-		    case L'^':  case L'$':  case L'\\':
-			goto escape;
-		    default:
-			goto ordinary;
-		}
-	    case L'.':  case L'^':  case L'$':  escape:
-		sb_wccat(buf, L'\\', &state);
-		/* falls thru */
-	    default:  ordinary:
-		sb_wccat(buf, *pat, &state);
-		if (*pat == L'\0')
-		    return;
-		break;
-	}
-	pat++;
+        switch (*pat) {
+            case L'?':
+                sb_wccat(buf, L'.', &state);
+                break;
+            case L'*':
+                sb_wccat(buf, L'.', &state);
+                sb_wccat(buf, L'*', &state);
+                break;
+            case L'[':
+                pat = encode_pattern_bracket(pat, buf, &state);
+                break;
+            case L'\\':
+                switch (*++pat) {
+                    case L'.':  case L'*':  case L'[':
+                    case L'^':  case L'$':  case L'\\':
+                        goto escape;
+                    default:
+                        goto ordinary;
+                }
+            case L'.':  case L'^':  case L'$':  escape:
+                sb_wccat(buf, L'\\', &state);
+                /* falls thru */
+            default:  ordinary:
+                sb_wccat(buf, *pat, &state);
+                if (*pat == L'\0')
+                    return;
+                break;
+        }
+        pat++;
     }
 }
 
@@ -356,7 +356,7 @@ void encode_pattern(const wchar_t *restrict pat, xstrbuf_T *restrict buf)
  * bracket ']' is returned. Otherwise, an escaped bracket character '\[' is
  * appended to `buf' and `pat' is returned. */
 const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
 {
     const wchar_t *const savepat = pat;
     size_t const savelength = buf->length;
@@ -366,42 +366,42 @@ const wchar_t *encode_pattern_bracket(const wchar_t *restrict pat,
     sb_wccat(buf, L'[', state);
     pat++;
     if (*pat == L'!' || *pat == L'^') {
-	sb_wccat(buf, L'^', state);
-	pat++;
+        sb_wccat(buf, L'^', state);
+        pat++;
     }
     if (*pat == L']') {
-	sb_wccat(buf, L']', state);
-	pat++;
+        sb_wccat(buf, L']', state);
+        pat++;
     }
     for (;;) {
-	switch (*pat) {
-	    case L'\0':
-		goto fail;
-	    case L'[':
-		pat = encode_pattern_bracket2(pat, buf, state);
-		if (pat == NULL)
-		    goto fail;
-		break;
-	    case L'\\':
-		pat++;
-		switch (*pat) {
-		    case L'\0':
-			goto fail;
-		    case L'[':  case L'^':  case L'-':  case L']':
-			append_as_collating_symbol(*pat, buf, state);
-			break;
-		    default:
-			sb_wccat(buf, *pat, state);
-			break;
-		}
-		break;
-	    default:
-		sb_wccat(buf, *pat, state);
-		if (*pat == L']')
-		    return pat;
-		break;
-	}
-	pat++;
+        switch (*pat) {
+            case L'\0':
+                goto fail;
+            case L'[':
+                pat = encode_pattern_bracket2(pat, buf, state);
+                if (pat == NULL)
+                    goto fail;
+                break;
+            case L'\\':
+                pat++;
+                switch (*pat) {
+                    case L'\0':
+                        goto fail;
+                    case L'[':  case L'^':  case L'-':  case L']':
+                        append_as_collating_symbol(*pat, buf, state);
+                        break;
+                    default:
+                        sb_wccat(buf, *pat, state);
+                        break;
+                }
+                break;
+            default:
+                sb_wccat(buf, *pat, state);
+                if (*pat == L']')
+                    return pat;
+                break;
+        }
+        pat++;
     }
 
 fail:
@@ -419,35 +419,35 @@ fail:
  * and '=', then a single bracket character is appended to `buf' and `pat' is
  * returned. If no corresponding closing bracket is found, NULL is returned. */
 const wchar_t *encode_pattern_bracket2(const wchar_t *restrict pat,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
 {
     const wchar_t *p;
 
     assert(*pat == L'[');
     switch (pat[1]) {
-	case L'.':  p = wcsstr(&pat[2], L".]");  break;
-	case L':':  p = wcsstr(&pat[2], L":]");  break;
-	case L'=':  p = wcsstr(&pat[2], L"=]");  break;
-	default:  /* not a valid bracket pattern */
-	    sb_wccat(buf, L'[', state);
-	    return pat;
+        case L'.':  p = wcsstr(&pat[2], L".]");  break;
+        case L':':  p = wcsstr(&pat[2], L":]");  break;
+        case L'=':  p = wcsstr(&pat[2], L"=]");  break;
+        default:  /* not a valid bracket pattern */
+            sb_wccat(buf, L'[', state);
+            return pat;
     }
     if (p == NULL)
-	return NULL;
+        return NULL;
     for (;;) {
-	if (*pat == L'\\')
-	    pat++;
-	sb_wccat(buf, *pat, state);
-	if (pat > p)
-	    break;
-	pat++;
+        if (*pat == L'\\')
+            pat++;
+        sb_wccat(buf, *pat, state);
+        if (pat > p)
+            break;
+        pat++;
     }
     assert(*pat == L']');
     return pat;
 }
 
 void append_as_collating_symbol(wchar_t c,
-	xstrbuf_T *restrict buf, mbstate_t *restrict state)
+        xstrbuf_T *restrict buf, mbstate_t *restrict state)
 {
     sb_wccat(buf, L'[', state);
     sb_wccat(buf, L'.', state);
@@ -466,20 +466,20 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
     assert(!(xfnm->flags & XFNM_SHORTEST));
 
     if (xfnm->flags & XFNM_PERIOD)
-	if (s[0] == '.')
-	    return REG_NOMATCH;
+        if (s[0] == '.')
+            return REG_NOMATCH;
 
     if (xfnm->flags & XFNM_compiled) {
-	return regexec(&xfnm->value.regex, s, 0, NULL, 0);
+        return regexec(&xfnm->value.regex, s, 0, NULL, 0);
     } else {
-	wchar_t *ws = malloc_mbstowcs(s);
-	if (ws != NULL) {
-	    xfnmresult_T result = xfnm_wmatch(xfnm, ws);
-	    free(ws);
-	    if (result.start != (size_t) -1)
-		return 0;
-	}
-	return REG_NOMATCH;
+        wchar_t *ws = malloc_mbstowcs(s);
+        if (ws != NULL) {
+            xfnmresult_T result = xfnm_wmatch(xfnm, ws);
+            free(ws);
+            if (result.start != (size_t) -1)
+                return 0;
+        }
+        return REG_NOMATCH;
     }
 }
 
@@ -490,81 +490,81 @@ int xfnm_match(const xfnmatch_T *restrict xfnm, const char *restrict s)
  * specified, only the `start' member of the returned structure is meaningful
  * and the `end' member's value is unspecified. */
 xfnmresult_T xfnm_wmatch(
-	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+        const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
     xfnmflags_T flags = xfnm->flags;
     if (flags & XFNM_PERIOD) {
-	if (s[0] == L'.')
-	    return MISMATCH;
+        if (s[0] == L'.')
+            return MISMATCH;
     }
     if (!(flags & XFNM_compiled)) {
-	return wmatch_literal(xfnm, s);
+        return wmatch_literal(xfnm, s);
     }
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
-	return wmatch_headtail(&xfnm->value.regex, s);
+        return wmatch_headtail(&xfnm->value.regex, s);
     }
     if (flags & XFNM_SHORTEST) {
-	if (flags & XFNM_HEADONLY) {
-	    assert(!(flags & XFNM_TAILONLY));
-	    return wmatch_shortest_head(&xfnm->value.regex, s);
-	} else {
-	    assert(flags & XFNM_TAILONLY);
-	    return wmatch_shortest_tail(&xfnm->value.regex, s);
-	}
+        if (flags & XFNM_HEADONLY) {
+            assert(!(flags & XFNM_TAILONLY));
+            return wmatch_shortest_head(&xfnm->value.regex, s);
+        } else {
+            assert(flags & XFNM_TAILONLY);
+            return wmatch_shortest_tail(&xfnm->value.regex, s);
+        }
     } else {
-	return wmatch_longest(&xfnm->value.regex, s);
+        return wmatch_longest(&xfnm->value.regex, s);
     }
 }
 
 /* Performs matching on string `s' using pre-compiled literal pattern `xfnm'.
  * See the `xfnm_wmatch' function. */
 xfnmresult_T wmatch_literal(
-	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+        const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
 {
     if (xfnm->flags & XFNM_HEADONLY) {
-	s = matchwcsprefix(s, xfnm->value.literal.contents);
-	if (s == NULL)
-	    return MISMATCH;
-	if ((xfnm->flags & XFNM_TAILONLY) && (*s != L'\0'))
-	    return MISMATCH;
-	size_t slen = xfnm->value.literal.length;
-	if ((xfnm->flags & (XFNM_SHORTEST | XFNM_tailstar)) == XFNM_tailstar)
-	    slen += wcslen(s);
-	return (xfnmresult_T) { .start = 0, .end = slen };
+        s = matchwcsprefix(s, xfnm->value.literal.contents);
+        if (s == NULL)
+            return MISMATCH;
+        if ((xfnm->flags & XFNM_TAILONLY) && (*s != L'\0'))
+            return MISMATCH;
+        size_t slen = xfnm->value.literal.length;
+        if ((xfnm->flags & (XFNM_SHORTEST | XFNM_tailstar)) == XFNM_tailstar)
+            slen += wcslen(s);
+        return (xfnmresult_T) { .start = 0, .end = slen };
     } else if (xfnm->flags & XFNM_TAILONLY) {
-	size_t slen = wcslen(s);
-	if (slen < xfnm->value.literal.length)
-	    return MISMATCH;
-	size_t index = slen - xfnm->value.literal.length;
-	if (wcscmp(&s[index], xfnm->value.literal.contents) != 0)
-	    return MISMATCH;
-	if ((xfnm->flags & (XFNM_SHORTEST | XFNM_headstar)) == XFNM_headstar)
-	    index = 0;
-	return (xfnmresult_T) { .start = index, .end = slen };
+        size_t slen = wcslen(s);
+        if (slen < xfnm->value.literal.length)
+            return MISMATCH;
+        size_t index = slen - xfnm->value.literal.length;
+        if (wcscmp(&s[index], xfnm->value.literal.contents) != 0)
+            return MISMATCH;
+        if ((xfnm->flags & (XFNM_SHORTEST | XFNM_headstar)) == XFNM_headstar)
+            index = 0;
+        return (xfnmresult_T) { .start = index, .end = slen };
     } else {
-	const wchar_t *ss;
-	switch (xfnm->flags & (XFNM_SHORTEST | XFNM_headstar | XFNM_tailstar)) {
-	    case XFNM_headstar:
-	    case XFNM_SHORTEST | XFNM_tailstar:
-		ss = last_wcsstr(s, xfnm->value.literal.contents);
-		break;
-	    default:
-		ss = wcsstr(s, xfnm->value.literal.contents);
-		break;
-	}
-	if (ss == NULL)
-	    return MISMATCH;
+        const wchar_t *ss;
+        switch (xfnm->flags & (XFNM_SHORTEST | XFNM_headstar | XFNM_tailstar)) {
+            case XFNM_headstar:
+            case XFNM_SHORTEST | XFNM_tailstar:
+                ss = last_wcsstr(s, xfnm->value.literal.contents);
+                break;
+            default:
+                ss = wcsstr(s, xfnm->value.literal.contents);
+                break;
+        }
+        if (ss == NULL)
+            return MISMATCH;
 
-	xfnmresult_T result;
-	if (xfnm->flags & XFNM_headstar)
-	    result.start = 0;
-	else
-	    result.start = ss - s;
-	if (xfnm->flags & XFNM_tailstar)
-	    result.end = wcslen(s);
-	else
-	    result.end = (size_t) (ss - s) + xfnm->value.literal.length;
-	return result;
+        xfnmresult_T result;
+        if (xfnm->flags & XFNM_headstar)
+            result.start = 0;
+        else
+            result.start = ss - s;
+        if (xfnm->flags & XFNM_tailstar)
+            result.end = wcslen(s);
+        else
+            result.end = (size_t) (ss - s) + xfnm->value.literal.length;
+        return result;
     }
 }
 
@@ -572,32 +572,32 @@ xfnmresult_T wmatch_literal(
 wchar_t *last_wcsstr(const wchar_t *restrict s, const wchar_t *restrict sub)
 {
     if (sub[0] == L'\0')
-	return (wchar_t *) s + wcslen(s);
+        return (wchar_t *) s + wcslen(s);
 
     wchar_t *lastresult = NULL;
     for (;;) {
-	wchar_t *result = wcsstr(s, sub);
-	if (result == NULL)
-	    break;
-	lastresult = result;
-	s = &result[1];
+        wchar_t *result = wcsstr(s, sub);
+        if (result == NULL)
+            break;
+        lastresult = result;
+        s = &result[1];
     }
     return lastresult;
 }
 
 xfnmresult_T wmatch_headtail(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
 {
     char *mbs = malloc_wcstombs(s);
     if (mbs == NULL)
-	return MISMATCH;
+        return MISMATCH;
     int r = regexec(regex, mbs, 0, NULL, 0);
     free(mbs);
     return (r == 0) ? ((xfnmresult_T) { .start = 0 }) : MISMATCH;
 }
 
 xfnmresult_T wmatch_shortest_head(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
 {
     xstrbuf_T buf;
     mbstate_t state;
@@ -607,61 +607,61 @@ xfnmresult_T wmatch_shortest_head(
     memset(&state, 0, sizeof state);  /* initial shift state */
     i = 0;
     for (;;) {
-	if (regexec(regex, buf.contents, 0, NULL, 0) == 0) {
-	    /* successful match */
-	    break;
-	}
-	if (s[i] == L'\0') {
-	    /* mismatch */
-	    i = (size_t) -1;
-	    break;
-	}
-	if (!sb_wccat(&buf, s[i], &state)) {
-	    /* error */
-	    i = (size_t) -1;
-	    break;
-	}
-	i++;
+        if (regexec(regex, buf.contents, 0, NULL, 0) == 0) {
+            /* successful match */
+            break;
+        }
+        if (s[i] == L'\0') {
+            /* mismatch */
+            i = (size_t) -1;
+            break;
+        }
+        if (!sb_wccat(&buf, s[i], &state)) {
+            /* error */
+            i = (size_t) -1;
+            break;
+        }
+        i++;
     }
     sb_destroy(&buf);
     return (xfnmresult_T) {
-	.start = (i == (size_t) -1) ? -1 : 0,
-	.end = i,
+        .start = (i == (size_t) -1) ? -1 : 0,
+        .end = i,
     };
 }
 
 xfnmresult_T wmatch_shortest_tail(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
 {
     size_t i = 0;
     xfnmresult_T result = MISMATCH;
 
     for (;;) {
-	xfnmresult_T newresult = wmatch_longest(regex, &s[i]);
-	if (newresult.start == (size_t) -1)
-	    break;
-	newresult.start += i;
-	newresult.end += i;
-	result = newresult;
-	if (s[newresult.start] == L'\0')
-	    break;
-	i = newresult.start + 1;
+        xfnmresult_T newresult = wmatch_longest(regex, &s[i]);
+        if (newresult.start == (size_t) -1)
+            break;
+        newresult.start += i;
+        newresult.end += i;
+        result = newresult;
+        if (s[newresult.start] == L'\0')
+            break;
+        i = newresult.start + 1;
     }
     return result;
 }
 
 xfnmresult_T wmatch_longest(
-	const regex_t *restrict regex, const wchar_t *restrict s)
+        const regex_t *restrict regex, const wchar_t *restrict s)
 {
     char *mbs = malloc_wcstombs(s);
     if (mbs == NULL)
-	return MISMATCH;
+        return MISMATCH;
 
     regmatch_t match[1];
     int r = regexec(regex, mbs, 1, match, 0);
     if (r != 0) {
-	free(mbs);
-	return MISMATCH;
+        free(mbs);
+        return MISMATCH;
     }
 
     /* Now convert the byte offsets into the character offsets */
@@ -680,7 +680,7 @@ xfnmresult_T wmatch_longest(
     result.start = mbsrtowcs(NULL, &mbs2, 0, &state);
 
     if (result.start == (size_t) -1 || result.end == (size_t) -1)
-	result = MISMATCH;
+        result = MISMATCH;
     free(mbs);
     return result;
 }
@@ -690,32 +690,32 @@ xfnmresult_T wmatch_longest(
  * substituted. Otherwise, only the first match is substituted. The resulting
  * string is returned as a newly-malloced string. */
 wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
-	const wchar_t *restrict repl, bool substall)
+        const wchar_t *restrict repl, bool substall)
 {
     xfnmflags_T flags = xfnm->flags;
 
     if ((flags & XFNM_HEADTAIL) == XFNM_HEADTAIL) {
-	xfnmresult_T result;
-	if (flags & XFNM_compiled)
-	    result = wmatch_headtail(&xfnm->value.regex, s);
-	else
-	    result = wmatch_literal(xfnm, s);
-	return xwcsdup((result.start != (size_t) -1) ? repl : s);
+        xfnmresult_T result;
+        if (flags & XFNM_compiled)
+            result = wmatch_headtail(&xfnm->value.regex, s);
+        else
+            result = wmatch_literal(xfnm, s);
+        return xwcsdup((result.start != (size_t) -1) ? repl : s);
     }
     if (flags & XFNM_HEADONLY)
-	substall = false;
+        substall = false;
 
     xwcsbuf_T buf;
     size_t i = 0;
 
     wb_init(&buf);
     do {
-	xfnmresult_T result = xfnm_wmatch(xfnm, &s[i]);
-	if (result.start == (size_t) -1 || result.start >= result.end)
-	    break;
-	wb_ncat(&buf, &s[i], result.start);
-	wb_cat(&buf, repl);
-	i += result.end;
+        xfnmresult_T result = xfnm_wmatch(xfnm, &s[i]);
+        if (result.start == (size_t) -1 || result.start >= result.end)
+            break;
+        wb_ncat(&buf, &s[i], result.start);
+        wb_cat(&buf, repl);
+        i += result.end;
     } while (substall);
     return wb_towcs(wb_cat(&buf, &s[i]));
 }
@@ -724,11 +724,11 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
 void xfnm_free(xfnmatch_T *xfnm)
 {
     if (xfnm != NULL) {
-	if (xfnm->flags & XFNM_compiled)
-	    regfree(&xfnm->value.regex);
-	else
-	    wb_destroy(&xfnm->value.literal);
-	free(xfnm);
+        if (xfnm->flags & XFNM_compiled)
+            regfree(&xfnm->value.regex);
+        else
+            wb_destroy(&xfnm->value.literal);
+        free(xfnm);
     }
 }
 
@@ -737,7 +737,7 @@ bool match_pattern(const wchar_t *s, const wchar_t *pattern)
 {
     xfnmatch_T *xfnm = xfnm_compile(pattern, XFNM_HEADONLY | XFNM_TAILONLY);
     if (xfnm == NULL)
-	return false;
+        return false;
     bool match = (xfnm_wmatch(xfnm, s).start != (size_t) -1);
     xfnm_free(xfnm);
     return match;
@@ -754,7 +754,7 @@ bool match_regex(const wchar_t *s, const wchar_t *regex)
     free(mbs_regex);
 
     if (err != 0)
-	return false;
+        return false;
 
     char *mbs_s = malloc_wcstombs(s);
     err = regexec(&compiled_regex, mbs_s, 0, NULL, 0);
@@ -768,4 +768,4 @@ bool match_regex(const wchar_t *s, const wchar_t *regex)
 #endif /* YASH_ENABLE_TEST */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

@@ -65,17 +65,17 @@ extern pid_t fork_and_reset(pid_t pgid, _Bool fg, sigtype_T sigtype);
 extern wchar_t *exec_command_substitution(const struct embedcmd_T *cmdsub)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern int exec_variable_as_commands(
-	const wchar_t *varname, const char *codename)
+        const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
 extern int exec_variable_as_auxiliary(
-	const wchar_t *varname, const char *codename)
+        const wchar_t *varname, const char *codename)
     __attribute__((nonnull));
 #define exec_variable_as_auxiliary_(varname) \
-	exec_variable_as_auxiliary(L varname, "$" varname)
+        exec_variable_as_auxiliary(L varname, "$" varname)
 
 #if YASH_ENABLE_LINEEDIT
 extern _Bool autoload_completion_function_file(
-	const wchar_t *filename, const wchar_t *cmdname)
+        const wchar_t *filename, const wchar_t *cmdname)
     __attribute__((nonnull(1)));
 extern _Bool call_completion_function(const wchar_t *funcname)
     __attribute__((nonnull));
@@ -94,7 +94,7 @@ extern int break_builtin(int argc, void **argv)
     __attribute__((nonnull));
 #if YASH_ENABLE_HELP
 extern const char break_help[], break_syntax[], continue_help[],
-	continue_syntax[];
+        continue_syntax[];
 #endif
 
 extern int eval_builtin(int argc, void **argv)
@@ -134,4 +134,4 @@ extern const char times_help[], times_syntax[];
 #endif /* YASH_EXEC_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

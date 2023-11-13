@@ -4,494 +4,494 @@
 # Supports Git 1.7.7.
 
 function completion/git-config {
-	WORDS=(git config "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git config "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::config:arg {
 
-	OPTIONS=( #>#
-	"--add; add a new line to the option value"
-	"--bool; ensure the option value is a boolean"
-	"--bool-or-int; ensure the option value is a boolean or integer"
-	"e --edit; start an editor to edit the config file"
-	"f: --file:; specify the config file path"
-	"--get; print an option value"
-	"--get-all; print one or more option values"
-	"--get-color; print ANSI color escape sequence"
-	"--get-colorbool; check if output should be colored"
-	"--get-regexp; print options whose keys match the specified regular expression"
-	"--global; get or set the global options"
-	"--int; ensure the option value is an integer"
-	"l --list; print all options set"
-	"z --null; print a null byte after each key-value pair"
-	"--path; perform tilde expansion when printing option values"
-	"--remove-section; remove a section"
-	"--rename-section; rename a section"
-	"--replace-all; replace all matching values"
-	"--system; get or set the system-wide options"
-	"--unset; remove (part of) an option"
-	"--unset-all; remove (all matching parts of) an option"
-	) #<#
+        OPTIONS=( #>#
+        "--add; add a new line to the option value"
+        "--bool; ensure the option value is a boolean"
+        "--bool-or-int; ensure the option value is a boolean or integer"
+        "e --edit; start an editor to edit the config file"
+        "f: --file:; specify the config file path"
+        "--get; print an option value"
+        "--get-all; print one or more option values"
+        "--get-color; print ANSI color escape sequence"
+        "--get-colorbool; check if output should be colored"
+        "--get-regexp; print options whose keys match the specified regular expression"
+        "--global; get or set the global options"
+        "--int; ensure the option value is an integer"
+        "l --list; print all options set"
+        "z --null; print a null byte after each key-value pair"
+        "--path; perform tilde expansion when printing option values"
+        "--remove-section; remove a section"
+        "--rename-section; rename a section"
+        "--replace-all; replace all matching values"
+        "--system; get or set the system-wide options"
+        "--unset; remove (part of) an option"
+        "--unset-all; remove (all matching parts of) an option"
+        ) #<#
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(f|--file)
-			complete -P "$PREFIX" -f
-			;;
-		('')
-			command -f completion//git::completeoptionname
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (f|--file)
+                        complete -P "$PREFIX" -f
+                        ;;
+                ('')
+                        command -f completion//git::completeoptionname
+                        ;;
+        esac
 
 }
 
 function completion//git::completeoptionname {
 
-	typeset usesuffix= suffix
-	if [ $# -gt 0 ]; then
-		usesuffix=true suffix=$1
-	fi
+        typeset usesuffix= suffix
+        if [ $# -gt 0 ]; then
+                usesuffix=true suffix=$1
+        fi
 
-	typeset word="${TARGETWORD#"$PREFIX"}"
+        typeset word="${TARGETWORD#"$PREFIX"}"
 
-	# complete existing settings
-	typeset word2 prefix2 name value
-	word2="${word##*.}"
-	prefix2="${TARGETWORD%"$word2"}"
-	while read -r name value; do
-		name=${name#"$prefix2"}
-		case $name in
-			(*.*)
-				name=${name%%.*}
-				complete -P "$prefix2" -S . -T -- "$name"
-				;;
-			(*)
-				complete -P "$prefix2" ${usesuffix:+-S "$suffix" -T} -- \
-					"$name"
-				;;
-		esac
-	done 2>/dev/null <(git config --get-regexp "${word//./'\.'}.*")
+        # complete existing settings
+        typeset word2 prefix2 name value
+        word2="${word##*.}"
+        prefix2="${TARGETWORD%"$word2"}"
+        while read -r name value; do
+                name=${name#"$prefix2"}
+                case $name in
+                        (*.*)
+                                name=${name%%.*}
+                                complete -P "$prefix2" -S . -T -- "$name"
+                                ;;
+                        (*)
+                                complete -P "$prefix2" ${usesuffix:+-S "$suffix" -T} -- \
+                                        "$name"
+                                ;;
+                esac
+        done 2>/dev/null <(git config --get-regexp "${word//./'\.'}.*")
 
-	case $word in
-		(add.*)
-			PREFIX=${PREFIX}add. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				ignoreErrors
-			;; #<<#
-		(advice.*)
-			PREFIX=${PREFIX}advice. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				commitBeforeMerge detachedHead implicitIdentity\
-				pushNonFastForward resolveConflict statusHints 
-			;; #<<#
-		(alias.*)
-			PREFIX=${PREFIX}alias. #>>#
-			command -f completion/git::completealias ${usesuffix+"$suffix"}
-			;;
-		(am.*)
-			PREFIX=${PREFIX}am. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				keepcr
-			;; #<<#
-		(apply.*)
-			PREFIX=${PREFIX}apply. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				ignorewhitespace whitespace
-			;; #<<#
-		(branch.*.*)
-			word=${word#branch.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				merge mergeoptions rebase remote
-			;; #<<#
-		(branch.*)
-			PREFIX=${PREFIX}branch. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autosetupmerge autosetuprebase
-			#<<#
-			command -f completion/git::completeref \
-				abbrprefixes=refs/heads/ dontcompletefull=true \
-				suffix=. --branches
-			;;
-		(browser.*.*|difftool.*.*|man.*.*)
-			word=${word#*.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				cmd path
-			;; #<<#
-		(clean.*)
-			PREFIX=${PREFIX}clean. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				requireForce
-			;; #<<#
-		(color.branch.*)
-			PREFIX=${PREFIX}color.branch. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				current local plain remote
-			;; #<<#
-		(color.diff.*)
-			PREFIX=${PREFIX}color.diff. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				commit frag func meta new old plain whitespace
-			;; #<<#
-		(color.decorate.*)
-			PREFIX=${PREFIX}color.decorate. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				branch HEAD remoteBranch stash tag
-			;; #<<#
-		(color.grep.*)
-			PREFIX=${PREFIX}color.grep. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				context filename function linenumber match \
-				selected separator
-			;; #<<#
-		(color.interactive.*)
-			PREFIX=${PREFIX}color.interactive. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				error header help prompt
-			;; #<<#
-		(color.status.*)
-			PREFIX=${PREFIX}color.status. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				added branch changed header nobranch untracked \
-				updated
-			;; #<<#
-		(color.*)
-			PREFIX=${PREFIX}color. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				branch diff grep interactive pager showbranch \
-				status ui
-			#<<#
-			complete -P "$PREFIX" -S . -T -- \
-				branch diff decorate grep interactive status
-			;;
-		(commit.*)
-			PREFIX=${PREFIX}commit. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				status template
-			;; #<<#
-		(core.*)
-			PREFIX=${PREFIX}core. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				abbrev askpass attributesfile autocrlf bare \
-				bigFileThreshold compression createObject \
-				deltaBaseCacheLimit editor eol excludesfile \
-				fileMode fsyncobjectfiles gitProxy \
-				ignoreCygwinFSTricks ignoreStat ignorecase \
-				logAllRefUpdates loosecompression notesRef \
-				packedGitLimit packedGitWindowSize pager \
-				preferSymlinkRefs preloadindex quotepath \
-				repositoryFormatVersion safecrlf \
-				sharedRepository sparseCheckout symlinks \
-				trustctime warnAmbiguousRefs whitespace \
-				worktree
-			;; #<<#
-		(diff.*.*)
-			word=${word#diff.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				binary cachetextconv command textconv \
-				wordregex xfuncname
-			;; #<<#
-		(diff.*)
-			PREFIX=${PREFIX}diff. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autorefreshindex dirstat external \
-				ignoreSubmodules mnemonicprefix noprefix \
-				renameLimit renames suppressBlankEmpty tool \
-				wordRegex
-			;; #<<#
-#		(difftool.*.*) -> (browser.*.*)
-		(difftool.*)
-			PREFIX=${PREFIX}difftool. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				prompt
-			;; #<<#
-		(fetch.*)
-			PREFIX=${PREFIX}fetch. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				recurseSubmodules unpackLimit
-			;; #<<#
-		(format.*)
-			PREFIX=${PREFIX}format. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				attach cc numbered headers pretty signature \
-				signoff subjectprefix suffix thread to
-			;; #<<#
-		(filter.*.*)
-			word=${word#filter.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				clean smudge
-			;; #<<#
-		(gc.*.*)
-			word=${word#gc.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				reflogexpire reflogexpireunreachable
-			;; #<<#
-		(gc.*)
-			PREFIX=${PREFIX}gc. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				aggressiveWindow auto autopacklimit packrefs \
-				pruneexpire reflogexpire \
-				reflogexpireunreachable \
-				rerereresolved rerereunresolved 
-			;; #<<#
-		(gitcvs.*)
-			PREFIX=${PREFIX}gitcvs. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				allbinary commitmsgannotation \
-				dbTableNamePrefix dbdriver dbname dbpass \
-				dbuser enabled logfile usecrlfattr
-			;; #<<#
-		(grep.*)
-			PREFIX=${PREFIX}grep. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				extendedRegexp lineNumber
-			;; #<<#
-		(gui.*)
-			PREFIX=${PREFIX}gui. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				blamehistoryctx commitmsgwidth \
-				copyblamethreshold diffcontext encoding \
-				fastcopyblame matchtrackingbranch \
-				newbranchtemplate pruneduringfetch \
-				spellingdictionary trustmtime
-			;; #<<#
-		(guitool.*.*)
-			word=${word#guitool.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				argropmpt cmd confirm needsfile noconsole \
-				norescan prompt revprompt revunmerged title
-			;; #<<#
-		(help.*)
-			PREFIX=${PREFIX}help. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autocorrect browser format
-			;; #<<#
-		(http.*)
-			PREFIX=${PREFIX}http. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				cookiefile lowSpeedLimit lowSpeedTime \
-				maxRequests minSessions noEPSV postBuffer \
-				proxy sslCAInfo sslCAPath sslCert \
-				sslCertPasswordProtected sslKey sslVerify \
-				useragent
-			;; #<<#
-		(i18n.*)
-			PREFIX=${PREFIX}i18n. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				commitEncoding logOutputEncoding
-			;; #<<#
-		(imap.*)
-			PREFIX=${PREFIX}imap. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				authMethod folder host pass port \
-				preformattedHTML sslverify tunnel user
-			;; #<<#
-		(init.*)
-			PREFIX=${PREFIX}init. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				templatedir
-			;; #<<#
-		(instaweb.*)
-			PREFIX=${PREFIX}instaweb. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				browser httpd local modulepath port
-			;; #<<#
-		(interactive.*)
-			PREFIX=${PREFIX}interactive. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				singlekey
-			;; #<<#
-		(log.*)
-			PREFIX=${PREFIX}log. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				abbrevCommit date decorate showroot
-			;; #<<#
-		(mailmap.*)
-			PREFIX=${PREFIX}mailmap. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				file
-			;; #<<#
-#		(man.*.*) -> (browser.*.*)
-		(man.*)
-			PREFIX=${PREFIX}man. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				viewer
-			;; #<<#
-		(merge.*.*)
-			word=${word#merge.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				driver name recursive
-			;; #<<#
-		(merge.*)
-			PREFIX=${PREFIX}merge. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				conflictstyle defaultToUpstream ff log \
-				renameLimit renormalize stat tool verbosity
-			;; #<<#
-		(mergetool.*.*)
-			word=${word#mergetool.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				cmd path trustExitCode
-			;; #<<#
-		(mergetool.*)
-			PREFIX=${PREFIX}mergetool. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				keepBackup keepTemporaries prompt
-			;; #<<#
-		(notes.*)
-			PREFIX=${PREFIX}notes. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				displayRef rewriteMode rewriteRef
-			complete -P "$PREFIX" -S . -T -- rewrite
-			;; #<<#
-		(pack.*)
-			PREFIX=${PREFIX}pack. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				compression deltaCacheLimit deltaCacheSize \
-				depth indexVersion packSizeLimit threads \
-				window windowMemory
-			;; #<<#
-		(pull.*)
-			PREFIX=${PREFIX}pull. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				octopus twohead
-			;; #<<#
-		(push.*)
-			PREFIX=${PREFIX}push. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				default
-			;; #<<#
-		(rebase.*)
-			PREFIX=${PREFIX}rebase. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autosquash stat
-			;; #<<#
-		(receive.*)
-			PREFIX=${PREFIX}receive. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autogc denyCurrentBranch denyDeleteCurrent \
-				denyDeletes denyNonFastForwards fsckObjects \
-				unpackLimit updateserverinfo
-			;; #<<#
-		(remote.*.*)
-			word=${word#remote.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				fetch mirror proxy push pushurl receivepack \
-				skipDefaultUpdate skipFetchAll tagopt \
-				uploadpack url vcs
-			;; #<<#
-		(repack.*)
-			PREFIX=${PREFIX}repack. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				usedeltabaseoffset
-			;; #<<#
-		(rerere.*)
-			PREFIX=${PREFIX}rerere. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				autoupdate enabled
-			;; #<<#
-		(sendemail.*.*)
-			word=${word#sendemail.*.}
-			PREFIX=${TARGETWORD%"$word"}
-			command -f completion//git::completesendemailoptionname
-			;;
-		(sendemail.*)
-			PREFIX=${PREFIX}sendemail. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				identity smtpencryption
-			#<<#
-			command -f completion//git::completesendemailoptionname
-			;;
-		(status.*)
-			PREFIX=${PREFIX}status. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				relativePaths showUntrackedFiles \
-				submodulesummary
-			;; #<<#
-		(submodule.*.*)
-			word=${word#submodule.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				fetchRecurseSubmodules ignore path update url
-			;; #<<#
-		(svn-remote.*.*)
-			word=${word#svn-remote.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				automkdirs branches commiturl fetch \
-				ignore-paths noMetadata pushurl rewriteRoot \
-				rewriteUUID tags url useSvmProps useSvnsyncprops
-			;; #<<#
-		(svn.*)
-			PREFIX=${PREFIX}svn. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				automkdirs authorsfile brokenSymlinkWorkaround \
-				commiturl edit findcopiesharder followparent l \
-				noMetadata pathnameencoding pushmergeinfo \
-				repack repackflags rmdir useSvmProps \
-				useSvnsyncprops
-			;; #<<#
-		(tar.*)
-			PREFIX=${PREFIX}tar. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				umask
-			;; #<<#
-		(transfer.*)
-			PREFIX=${PREFIX}transfer. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				unpackLimit
-			;; #<<#
-		(url.*.*)
-			word=${word#url.*.}
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				insteadOf pushInsteadOf
-			;; #<<#
-		(user.*)
-			PREFIX=${PREFIX}user. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				email name signingkey
-			;; #<<#
-		(web.*)
-			PREFIX=${PREFIX}web. #>>#
-			complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-				browser
-			;; #<<#
-		(*) #>>#
-			complete -P "$PREFIX" -S . -T -- \
-				add advice alias am apply branch browser clean \
-				color commit core diff difftool fetch format \
-				filter gc gitcvs grep gui guitool help http \
-				i18n imap init instaweb interactive log \
-				mailmap man merge mergetool notes pack pager \
-				pretty pull push rebase receive remote remotes \
-				repack rerere sendemail showbranch status \
-				submodule svn svn-remote tar transfer url user \
-				web
-			;; #<<#
-	esac
+        case $word in
+                (add.*)
+                        PREFIX=${PREFIX}add. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                ignoreErrors
+                        ;; #<<#
+                (advice.*)
+                        PREFIX=${PREFIX}advice. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                commitBeforeMerge detachedHead implicitIdentity\
+                                pushNonFastForward resolveConflict statusHints 
+                        ;; #<<#
+                (alias.*)
+                        PREFIX=${PREFIX}alias. #>>#
+                        command -f completion/git::completealias ${usesuffix+"$suffix"}
+                        ;;
+                (am.*)
+                        PREFIX=${PREFIX}am. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                keepcr
+                        ;; #<<#
+                (apply.*)
+                        PREFIX=${PREFIX}apply. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                ignorewhitespace whitespace
+                        ;; #<<#
+                (branch.*.*)
+                        word=${word#branch.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                merge mergeoptions rebase remote
+                        ;; #<<#
+                (branch.*)
+                        PREFIX=${PREFIX}branch. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autosetupmerge autosetuprebase
+                        #<<#
+                        command -f completion/git::completeref \
+                                abbrprefixes=refs/heads/ dontcompletefull=true \
+                                suffix=. --branches
+                        ;;
+                (browser.*.*|difftool.*.*|man.*.*)
+                        word=${word#*.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                cmd path
+                        ;; #<<#
+                (clean.*)
+                        PREFIX=${PREFIX}clean. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                requireForce
+                        ;; #<<#
+                (color.branch.*)
+                        PREFIX=${PREFIX}color.branch. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                current local plain remote
+                        ;; #<<#
+                (color.diff.*)
+                        PREFIX=${PREFIX}color.diff. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                commit frag func meta new old plain whitespace
+                        ;; #<<#
+                (color.decorate.*)
+                        PREFIX=${PREFIX}color.decorate. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                branch HEAD remoteBranch stash tag
+                        ;; #<<#
+                (color.grep.*)
+                        PREFIX=${PREFIX}color.grep. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                context filename function linenumber match \
+                                selected separator
+                        ;; #<<#
+                (color.interactive.*)
+                        PREFIX=${PREFIX}color.interactive. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                error header help prompt
+                        ;; #<<#
+                (color.status.*)
+                        PREFIX=${PREFIX}color.status. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                added branch changed header nobranch untracked \
+                                updated
+                        ;; #<<#
+                (color.*)
+                        PREFIX=${PREFIX}color. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                branch diff grep interactive pager showbranch \
+                                status ui
+                        #<<#
+                        complete -P "$PREFIX" -S . -T -- \
+                                branch diff decorate grep interactive status
+                        ;;
+                (commit.*)
+                        PREFIX=${PREFIX}commit. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                status template
+                        ;; #<<#
+                (core.*)
+                        PREFIX=${PREFIX}core. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                abbrev askpass attributesfile autocrlf bare \
+                                bigFileThreshold compression createObject \
+                                deltaBaseCacheLimit editor eol excludesfile \
+                                fileMode fsyncobjectfiles gitProxy \
+                                ignoreCygwinFSTricks ignoreStat ignorecase \
+                                logAllRefUpdates loosecompression notesRef \
+                                packedGitLimit packedGitWindowSize pager \
+                                preferSymlinkRefs preloadindex quotepath \
+                                repositoryFormatVersion safecrlf \
+                                sharedRepository sparseCheckout symlinks \
+                                trustctime warnAmbiguousRefs whitespace \
+                                worktree
+                        ;; #<<#
+                (diff.*.*)
+                        word=${word#diff.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                binary cachetextconv command textconv \
+                                wordregex xfuncname
+                        ;; #<<#
+                (diff.*)
+                        PREFIX=${PREFIX}diff. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autorefreshindex dirstat external \
+                                ignoreSubmodules mnemonicprefix noprefix \
+                                renameLimit renames suppressBlankEmpty tool \
+                                wordRegex
+                        ;; #<<#
+#               (difftool.*.*) -> (browser.*.*)
+                (difftool.*)
+                        PREFIX=${PREFIX}difftool. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                prompt
+                        ;; #<<#
+                (fetch.*)
+                        PREFIX=${PREFIX}fetch. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                recurseSubmodules unpackLimit
+                        ;; #<<#
+                (format.*)
+                        PREFIX=${PREFIX}format. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                attach cc numbered headers pretty signature \
+                                signoff subjectprefix suffix thread to
+                        ;; #<<#
+                (filter.*.*)
+                        word=${word#filter.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                clean smudge
+                        ;; #<<#
+                (gc.*.*)
+                        word=${word#gc.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                reflogexpire reflogexpireunreachable
+                        ;; #<<#
+                (gc.*)
+                        PREFIX=${PREFIX}gc. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                aggressiveWindow auto autopacklimit packrefs \
+                                pruneexpire reflogexpire \
+                                reflogexpireunreachable \
+                                rerereresolved rerereunresolved 
+                        ;; #<<#
+                (gitcvs.*)
+                        PREFIX=${PREFIX}gitcvs. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                allbinary commitmsgannotation \
+                                dbTableNamePrefix dbdriver dbname dbpass \
+                                dbuser enabled logfile usecrlfattr
+                        ;; #<<#
+                (grep.*)
+                        PREFIX=${PREFIX}grep. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                extendedRegexp lineNumber
+                        ;; #<<#
+                (gui.*)
+                        PREFIX=${PREFIX}gui. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                blamehistoryctx commitmsgwidth \
+                                copyblamethreshold diffcontext encoding \
+                                fastcopyblame matchtrackingbranch \
+                                newbranchtemplate pruneduringfetch \
+                                spellingdictionary trustmtime
+                        ;; #<<#
+                (guitool.*.*)
+                        word=${word#guitool.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                argropmpt cmd confirm needsfile noconsole \
+                                norescan prompt revprompt revunmerged title
+                        ;; #<<#
+                (help.*)
+                        PREFIX=${PREFIX}help. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autocorrect browser format
+                        ;; #<<#
+                (http.*)
+                        PREFIX=${PREFIX}http. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                cookiefile lowSpeedLimit lowSpeedTime \
+                                maxRequests minSessions noEPSV postBuffer \
+                                proxy sslCAInfo sslCAPath sslCert \
+                                sslCertPasswordProtected sslKey sslVerify \
+                                useragent
+                        ;; #<<#
+                (i18n.*)
+                        PREFIX=${PREFIX}i18n. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                commitEncoding logOutputEncoding
+                        ;; #<<#
+                (imap.*)
+                        PREFIX=${PREFIX}imap. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                authMethod folder host pass port \
+                                preformattedHTML sslverify tunnel user
+                        ;; #<<#
+                (init.*)
+                        PREFIX=${PREFIX}init. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                templatedir
+                        ;; #<<#
+                (instaweb.*)
+                        PREFIX=${PREFIX}instaweb. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                browser httpd local modulepath port
+                        ;; #<<#
+                (interactive.*)
+                        PREFIX=${PREFIX}interactive. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                singlekey
+                        ;; #<<#
+                (log.*)
+                        PREFIX=${PREFIX}log. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                abbrevCommit date decorate showroot
+                        ;; #<<#
+                (mailmap.*)
+                        PREFIX=${PREFIX}mailmap. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                file
+                        ;; #<<#
+#               (man.*.*) -> (browser.*.*)
+                (man.*)
+                        PREFIX=${PREFIX}man. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                viewer
+                        ;; #<<#
+                (merge.*.*)
+                        word=${word#merge.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                driver name recursive
+                        ;; #<<#
+                (merge.*)
+                        PREFIX=${PREFIX}merge. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                conflictstyle defaultToUpstream ff log \
+                                renameLimit renormalize stat tool verbosity
+                        ;; #<<#
+                (mergetool.*.*)
+                        word=${word#mergetool.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                cmd path trustExitCode
+                        ;; #<<#
+                (mergetool.*)
+                        PREFIX=${PREFIX}mergetool. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                keepBackup keepTemporaries prompt
+                        ;; #<<#
+                (notes.*)
+                        PREFIX=${PREFIX}notes. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                displayRef rewriteMode rewriteRef
+                        complete -P "$PREFIX" -S . -T -- rewrite
+                        ;; #<<#
+                (pack.*)
+                        PREFIX=${PREFIX}pack. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                compression deltaCacheLimit deltaCacheSize \
+                                depth indexVersion packSizeLimit threads \
+                                window windowMemory
+                        ;; #<<#
+                (pull.*)
+                        PREFIX=${PREFIX}pull. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                octopus twohead
+                        ;; #<<#
+                (push.*)
+                        PREFIX=${PREFIX}push. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                default
+                        ;; #<<#
+                (rebase.*)
+                        PREFIX=${PREFIX}rebase. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autosquash stat
+                        ;; #<<#
+                (receive.*)
+                        PREFIX=${PREFIX}receive. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autogc denyCurrentBranch denyDeleteCurrent \
+                                denyDeletes denyNonFastForwards fsckObjects \
+                                unpackLimit updateserverinfo
+                        ;; #<<#
+                (remote.*.*)
+                        word=${word#remote.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                fetch mirror proxy push pushurl receivepack \
+                                skipDefaultUpdate skipFetchAll tagopt \
+                                uploadpack url vcs
+                        ;; #<<#
+                (repack.*)
+                        PREFIX=${PREFIX}repack. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                usedeltabaseoffset
+                        ;; #<<#
+                (rerere.*)
+                        PREFIX=${PREFIX}rerere. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                autoupdate enabled
+                        ;; #<<#
+                (sendemail.*.*)
+                        word=${word#sendemail.*.}
+                        PREFIX=${TARGETWORD%"$word"}
+                        command -f completion//git::completesendemailoptionname
+                        ;;
+                (sendemail.*)
+                        PREFIX=${PREFIX}sendemail. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                identity smtpencryption
+                        #<<#
+                        command -f completion//git::completesendemailoptionname
+                        ;;
+                (status.*)
+                        PREFIX=${PREFIX}status. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                relativePaths showUntrackedFiles \
+                                submodulesummary
+                        ;; #<<#
+                (submodule.*.*)
+                        word=${word#submodule.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                fetchRecurseSubmodules ignore path update url
+                        ;; #<<#
+                (svn-remote.*.*)
+                        word=${word#svn-remote.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                automkdirs branches commiturl fetch \
+                                ignore-paths noMetadata pushurl rewriteRoot \
+                                rewriteUUID tags url useSvmProps useSvnsyncprops
+                        ;; #<<#
+                (svn.*)
+                        PREFIX=${PREFIX}svn. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                automkdirs authorsfile brokenSymlinkWorkaround \
+                                commiturl edit findcopiesharder followparent l \
+                                noMetadata pathnameencoding pushmergeinfo \
+                                repack repackflags rmdir useSvmProps \
+                                useSvnsyncprops
+                        ;; #<<#
+                (tar.*)
+                        PREFIX=${PREFIX}tar. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                umask
+                        ;; #<<#
+                (transfer.*)
+                        PREFIX=${PREFIX}transfer. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                unpackLimit
+                        ;; #<<#
+                (url.*.*)
+                        word=${word#url.*.}
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                insteadOf pushInsteadOf
+                        ;; #<<#
+                (user.*)
+                        PREFIX=${PREFIX}user. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                email name signingkey
+                        ;; #<<#
+                (web.*)
+                        PREFIX=${PREFIX}web. #>>#
+                        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                                browser
+                        ;; #<<#
+                (*) #>>#
+                        complete -P "$PREFIX" -S . -T -- \
+                                add advice alias am apply branch browser clean \
+                                color commit core diff difftool fetch format \
+                                filter gc gitcvs grep gui guitool help http \
+                                i18n imap init instaweb interactive log \
+                                mailmap man merge mergetool notes pack pager \
+                                pretty pull push rebase receive remote remotes \
+                                repack rerere sendemail showbranch status \
+                                submodule svn svn-remote tar transfer url user \
+                                web
+                        ;; #<<#
+        esac
 
 }
 
 function completion//git::completesendemailoptionname {
-	complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
-		aliasesfile aliasfiletype bcc cc cccmd chainreplyto confirm \
-		envelopesender from multiedit signedoffbycc smtpdomain \
-		smtppass smtpserver smtpserveroption smtpserverport smtpuser \
-		suppresscc suppressfrom thread to validate
+        complete -P "$PREFIX" ${usesuffix:+-S "$suffix" -T} -- \
+                aliasesfile aliasfiletype bcc cc cccmd chainreplyto confirm \
+                envelopesender from multiedit signedoffbycc smtpdomain \
+                smtppass smtpserver smtpserveroption smtpserverport smtpuser \
+                suppresscc suppressfrom thread to validate
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

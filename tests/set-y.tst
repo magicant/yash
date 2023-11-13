@@ -249,7 +249,7 @@ __IN__
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_unenablable_short_option() {
     testcase "$1" -e 2 "$3 cannot be enabled by set (short)" \
-	3<<__IN__ 4</dev/null 5<<__ERR__
+        3<<__IN__ 4</dev/null 5<<__ERR__
 set -$2
 __IN__
 set: the $3 option cannot be changed once the shell has been initialized
@@ -259,7 +259,7 @@ __ERR__
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_undisablable_short_option() {
     testcase "$1" -e 2 "$3 cannot be disabled by set (short)" \
-	3<<__IN__ 4</dev/null 5<<__ERR__
+        3<<__IN__ 4</dev/null 5<<__ERR__
 set +$2
 __IN__
 set: the $3 option cannot be changed once the shell has been initialized
@@ -269,7 +269,7 @@ __ERR__
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_unenablable_long_option() {
     testcase "$1" -e 2 "$3 cannot be enabled by set (long)" \
-	3<<__IN__ 4</dev/null 5<<__ERR__
+        3<<__IN__ 4</dev/null 5<<__ERR__
 set --$3
 __IN__
 set: the $3 option cannot be changed once the shell has been initialized
@@ -279,7 +279,7 @@ __ERR__
 # $1 = $LINENO, $2 = short option, $3 = long option
 test_undisablable_long_option() {
     testcase "$1" -e 2 "$3 cannot be disabled by set (long)" \
-	3<<__IN__ 4</dev/null 5<<__ERR__
+        3<<__IN__ 4</dev/null 5<<__ERR__
 set ++$3
 __IN__
 set: the $3 option cannot be changed once the shell has been initialized
@@ -545,4 +545,4 @@ test_O -d -e 1 'printing to closed stream'
 set >&-
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

@@ -6,52 +6,52 @@
 
 function completion/cut {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"b: ${long:+--bytes:}; specify the positions of bytes to print"
-	"c: ${long:+--characters:}; specify the positions of characters to print"
-	"d: ${long:+--delimiter:}; specify a field delimiter (with -f)"
-	"f: ${long:+--fields:}; specify the positions of fields to print"
-	"n; don't split multibyte characters (with -b)"
-	"s ${long:+--only-delimited}; don't print lines containing no delimiters (with -f)"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "b: ${long:+--bytes:}; specify the positions of bytes to print"
+        "c: ${long:+--characters:}; specify the positions of characters to print"
+        "d: ${long:+--delimiter:}; specify a field delimiter (with -f)"
+        "f: ${long:+--fields:}; specify the positions of fields to print"
+        "n; don't split multibyte characters (with -b)"
+        "s ${long:+--only-delimited}; don't print lines containing no delimiters (with -f)"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"--complement; print fields not specified by -b/-c/-f option"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "--complement; print fields not specified by -b/-c/-f option"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(?|--?*)
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (?|--?*)
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

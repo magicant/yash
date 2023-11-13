@@ -107,15 +107,15 @@ then
 elif
     # The current user's name has to be portable.
     printf '%s\n' "$LOGNAME" | \
-	grep -q '[^0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-]'
+        grep -q '[^0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-]'
 then
     skip="true"
 elif
     # Tests of named tilde expansions depend on the home directory of the
     # current user.
     ! { HOME="$(eval printf \'%s\\\n\' \~$LOGNAME)" &&
-	export HOME &&
-	[ "$HOME" ]; }
+        export HOME &&
+        [ "$HOME" ]; }
 then
     skip="true"
 fi
@@ -250,4 +250,4 @@ __IN__
 [*]
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

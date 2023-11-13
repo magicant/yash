@@ -33,14 +33,14 @@ typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
 /* treatment of quotation marks during expansion */
 typedef enum {
     Q_WORD,     /* Single quotations, double quotations, and backslashes are
-		   recognized as in the normal word. */
+                   recognized as in the normal word. */
     Q_DQPARAM,  /* The string is treated as the substitution word of a parameter
-		   expansion inside a pair of double quotations: Double
-		   quotations are recognized, but single quotations are not.
-		   Backslashes are recognized only before $, `, ", \ or }. */
+                   expansion inside a pair of double quotations: Double
+                   quotations are recognized, but single quotations are not.
+                   Backslashes are recognized only before $, `, ", \ or }. */
     Q_INDQ,     /* The string is treated as if it is inside a pair of double
-		   quotations: Single and double quotations are not recognized.
-		   Backslashes are recognized only before a $, `, or \. */
+                   quotations: Single and double quotations are not recognized.
+                   Backslashes are recognized only before a $, `, or \. */
     Q_LITERAL,  /* No quotations are recognized. */
 } quoting_T;
 
@@ -54,10 +54,10 @@ typedef enum {
     CC_LITERAL,         /* from the original word */
     CC_HARD_EXPANSION,  /* from tilde expansion or numeric brace expansion */
     CC_SOFT_EXPANSION,  /* from parameter expansion, command substitution or
-			   arithmetic expansion */
+                           arithmetic expansion */
     CC_ORIGIN_MASK = (1 << 2) - 1,
     CC_QUOTED      = 1 << 2, /* The character is quoted by backslash, single- or
-				double-quotes. */
+                                double-quotes. */
     CC_QUOTATION   = 1 << 3, /* The character is a quotation mark */
 } charcategory_T;
 /* A character can be both CC_QUOTED and CC_QUOTATION at a time. This may happen
@@ -68,7 +68,7 @@ typedef enum {
     ES_NONE,         /* No characters are escaped. */
     ES_QUOTED,       /* Quoted characters remain escaped. */
     ES_QUOTED_HARD,  /* Ditto, and characters marked CC_HARD_EXPANSION and
-			backslashes are also escaped. */
+                        backslashes are also escaped. */
 } escaping_T;
 /* ES_QUOTED_HARD is for pathname expansion patterns while ES_QUOTED is for
  * other patterns. With ES_QUOTED_HARD, backslashes that are not quotation
@@ -85,33 +85,33 @@ typedef struct cc_word_T {
 struct wordunit_T;
 struct plist_T;
 extern _Bool expand_line(
-	void *const *restrict args,
-	int *restrict argcp,
-	void ***restrict argvp)
+        void *const *restrict args,
+        int *restrict argcp,
+        void ***restrict argvp)
     __attribute__((nonnull));
 extern _Bool expand_multiple(
-	const struct wordunit_T *restrict w, struct plist_T *restrict list)
+        const struct wordunit_T *restrict w, struct plist_T *restrict list)
     __attribute__((nonnull(2)));
 extern struct cc_word_T expand_single_cc(
-	const struct wordunit_T *w, tildetype_T tilde, quoting_T quoting)
+        const struct wordunit_T *w, tildetype_T tilde, quoting_T quoting)
     __attribute__((warn_unused_result));
 extern wchar_t *expand_single(
-	const struct wordunit_T *w,
-	tildetype_T tilde, quoting_T quoting, escaping_T escaping)
+        const struct wordunit_T *w,
+        tildetype_T tilde, quoting_T quoting, escaping_T escaping)
     __attribute__((malloc,warn_unused_result));
 extern char *expand_single_with_glob(const struct wordunit_T *arg)
     __attribute__((malloc,warn_unused_result));
 
 extern wchar_t *extract_fields(
-	const wchar_t *restrict s, const char *restrict cc,
-	const wchar_t *restrict ifs, struct plist_T *restrict dest)
+        const wchar_t *restrict s, const char *restrict cc,
+        const wchar_t *restrict ifs, struct plist_T *restrict dest)
     __attribute__((nonnull));
 
 struct xwcsbuf_T;
 extern wchar_t *escape(const wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *escapefree(
-	wchar_t *restrict s, const wchar_t *restrict t)
+        wchar_t *restrict s, const wchar_t *restrict t)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 extern wchar_t *unescape(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -120,20 +120,20 @@ extern wchar_t *unescapefree(wchar_t *s)
 extern wchar_t *quote_as_word(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern struct xwcsbuf_T *wb_quote_as_word(
-	struct xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+        struct xwcsbuf_T *restrict buf, const wchar_t *restrict s)
     __attribute__((nonnull));
 extern wchar_t *unquote(const wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 extern wchar_t *quote_removal(
-	const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
+        const wchar_t *restrict s, const char *restrict cc, escaping_T escaping)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 extern wchar_t *parse_and_expand_string(
-	const wchar_t *s, const char *name, _Bool esc)
+        const wchar_t *s, const char *name, _Bool esc)
     __attribute__((nonnull(1),malloc,warn_unused_result));
 
 
 #endif /* YASH_EXPAND_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

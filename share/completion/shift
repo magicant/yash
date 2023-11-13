@@ -4,22 +4,22 @@
 
 function completion/shift {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"A: --array:; specify an array name to remove elements from"
-	"--help"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "A: --array:; specify an array name to remove elements from"
+        "--help"
+        ) #<#
 
-	command -f completion//parseoptions -es
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(A|--array)
-		complete -P "$PREFIX" --array-variable
-		;;
-	esac
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (A|--array)
+                complete -P "$PREFIX" --array-variable
+                ;;
+        esac
 
 }
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

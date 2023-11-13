@@ -44,14 +44,14 @@ extern _Bool is_pathname_matching_pattern(const wchar_t *pat)
 extern xfnmatch_T *xfnm_compile(const wchar_t *pat, xfnmflags_T flags)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern int xfnm_match(
-	const xfnmatch_T *restrict xfnm, const char *restrict s)
+        const xfnmatch_T *restrict xfnm, const char *restrict s)
     __attribute__((nonnull));
 extern xfnmresult_T xfnm_wmatch(
-	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
+        const xfnmatch_T *restrict xfnm, const wchar_t *restrict s)
     __attribute__((nonnull));
 extern wchar_t *xfnm_subst(
-	const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
-	const wchar_t *restrict repl, _Bool substall)
+        const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
+        const wchar_t *restrict repl, _Bool substall)
     __attribute__((malloc,warn_unused_result,nonnull));
 extern void xfnm_free(xfnmatch_T *xfnm);
 
@@ -66,4 +66,4 @@ extern _Bool match_regex(const wchar_t *s, const wchar_t *regex)
 #endif /* YASH_XFNMATCH_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

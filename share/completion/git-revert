@@ -4,43 +4,43 @@
 # Supports Git 2.9.3.
 
 function completion/git-revert {
-	WORDS=(git revert "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git revert "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::revert:arg {
 
-	OPTIONS=( #>#
-	"--abort; end suspended revert and restore the original state"
-	"--continue; resume suspended revert"
-	"e --edit; (re)edit the message"
-	"m: --mainline:; specify the mainline parent by number"
-	"n --no-commit; don't commit the reversion result automatically"
-	"--no-edit; don't reedit the message"
-	"--quit; end suspended quit and keep the current state"
-	"S:: --gpg-sign::; sign commits with GPG"
-	"s --signoff; add a \"signed-off-by\" line to the message"
-	"--strategy:; specify the merge strategy"
-	"X: --strategy-option:; specify a strategy-specific option"
-	) #<#
+        OPTIONS=( #>#
+        "--abort; end suspended revert and restore the original state"
+        "--continue; resume suspended revert"
+        "e --edit; (re)edit the message"
+        "m: --mainline:; specify the mainline parent by number"
+        "n --no-commit; don't commit the reversion result automatically"
+        "--no-edit; don't reedit the message"
+        "--quit; end suspended quit and keep the current state"
+        "S:: --gpg-sign::; sign commits with GPG"
+        "s --signoff; add a \"signed-off-by\" line to the message"
+        "--strategy:; specify the merge strategy"
+        "X: --strategy-option:; specify a strategy-specific option"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completeref range=true
-			;;
-		(*)
-			if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-merge; then
-				command -f completion/git::merge:compopt
-			fi
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completeref range=true
+                        ;;
+                (*)
+                        if command -vf completion/git::merge:compopt >/dev/null 2>&1 ||
+                                        . -AL completion/git-merge; then
+                                command -f completion/git::merge:compopt
+                        fi
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

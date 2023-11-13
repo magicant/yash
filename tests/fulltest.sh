@@ -2,12 +2,12 @@
 # (C) 2010-2018 magicant
 
 do_test () {
-	if [ -r Makefile ]; then
-		$MAKE clean
-	fi
-	printf '\n========== ./configure %s\n' "$*"
-	./configure "$@"
-	$MAKE test
+    if [ -r Makefile ]; then
+        $MAKE clean
+    fi
+    printf '\n========== ./configure %s\n' "$*"
+    ./configure "$@"
+    $MAKE test
 }
 
 set -o errexit

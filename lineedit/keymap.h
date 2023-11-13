@@ -77,4 +77,4 @@ le_mode_T *le_id_to_mode(le_mode_id_T modeid)
 #endif /* YASH_KEYMAP_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

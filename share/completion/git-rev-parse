@@ -4,70 +4,70 @@
 # Supports Git 2.9.2.
 
 function completion/git-rev-parse {
-	WORDS=(git rev-parse "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git rev-parse "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::rev-parse:arg {
 
-	OPTIONS=( #>#
-	"--abbrev-ref::; print in short object names"
-	"--after: --since:; convert the specified date to --max-age timestamp"
-	"--before: --until:; convert the specified date to --mim-age timestamp"
-	"--default; specify a default argument"
-	"--disambiguate:; show all SHA-1 values that start with the specified prefix"
-	"--flags; print options only"
-	"--git-common-dir; print the main repository path"
-	"--git-dir; print the repository path"
-	"--git-path; resolve a path inside the repository"
-	"--is-bare-repository; test if the repository is bare"
-	"--is-inside-git-dir; test if the current directory is inside a repository"
-	"--is-inside-work-tree; test if the current directory is inside a working tree"
-	"--keep-dashdash"
-	"--local-env-vars; print repository-local environment variables"
-	"--no-flags; print operands only"
-	"--no-revs; ignore arguments meant for rev-list"
-	"--not; negate printed object names"
-	"--parseopt; enable option parsing mode"
-	"--prefix; specify a directory to operate in"
-	"q --quiet; don't print any error message (with --verify)"
-	"--resolve-git-dir; test if the operand is a repository path"
-	"--revs-only; ignore arguments not meant for rev-list"
-	"--shared-index-path; print the shared index file path"
-	"--short::; abbreviate printed SHA-1 values"
-	"--show-cdup; print a relative path to the top-level directory"
-	"--show-prefix; print a relative path from the top-level directory"
-	"--show-toplevel; print the absolute path of the top-level directory"
-	"--sq; print with shell-friendly quotation"
-	"--sq-quote; enable shell quoting mode"
-	"--stop-at-non-option"
-	"--stuck-long"
-	"--symbolic; keep operands symbolic"
-	"--symbolic-full-name; convert refs into full names"
-	"--verify; verify if the operand names a valid object"
-	) #<#
-	command -f completion/git::getrefselectopts
+        OPTIONS=( #>#
+        "--abbrev-ref::; print in short object names"
+        "--after: --since:; convert the specified date to --max-age timestamp"
+        "--before: --until:; convert the specified date to --mim-age timestamp"
+        "--default; specify a default argument"
+        "--disambiguate:; show all SHA-1 values that start with the specified prefix"
+        "--flags; print options only"
+        "--git-common-dir; print the main repository path"
+        "--git-dir; print the repository path"
+        "--git-path; resolve a path inside the repository"
+        "--is-bare-repository; test if the repository is bare"
+        "--is-inside-git-dir; test if the current directory is inside a repository"
+        "--is-inside-work-tree; test if the current directory is inside a working tree"
+        "--keep-dashdash"
+        "--local-env-vars; print repository-local environment variables"
+        "--no-flags; print operands only"
+        "--no-revs; ignore arguments meant for rev-list"
+        "--not; negate printed object names"
+        "--parseopt; enable option parsing mode"
+        "--prefix; specify a directory to operate in"
+        "q --quiet; don't print any error message (with --verify)"
+        "--resolve-git-dir; test if the operand is a repository path"
+        "--revs-only; ignore arguments not meant for rev-list"
+        "--shared-index-path; print the shared index file path"
+        "--short::; abbreviate printed SHA-1 values"
+        "--show-cdup; print a relative path to the top-level directory"
+        "--show-prefix; print a relative path from the top-level directory"
+        "--show-toplevel; print the absolute path of the top-level directory"
+        "--sq; print with shell-friendly quotation"
+        "--sq-quote; enable shell quoting mode"
+        "--stop-at-non-option"
+        "--stuck-long"
+        "--symbolic; keep operands symbolic"
+        "--symbolic-full-name; convert refs into full names"
+        "--verify; verify if the operand names a valid object"
+        ) #<#
+        command -f completion/git::getrefselectopts
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--disambiguate)
-			;;
-		(--abbrev-ref) #>>#
-			complete -P "$PREFIX" -D "allow ambiguous names" loose
-			complete -P "$PREFIX" -D "ensure unambiguous names" strict
-			;; #<<#
-		('')
-			command -f completion/git::completerefpath range=true
-			;;
-		(*)
-			command -f completion/git::completerefselectopts
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--disambiguate)
+                        ;;
+                (--abbrev-ref) #>>#
+                        complete -P "$PREFIX" -D "allow ambiguous names" loose
+                        complete -P "$PREFIX" -D "ensure unambiguous names" strict
+                        ;; #<<#
+                ('')
+                        command -f completion/git::completerefpath range=true
+                        ;;
+                (*)
+                        command -f completion/git::completerefselectopts
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -17,10 +17,10 @@
 # skip up to the "//*//" marker
 while read -r line; do
     case $line in
-	//*//)
-	    break;;
-	*)
-	    printf '%s\n' "$line";;
+        //*//)
+            break;;
+        *)
+            printf '%s\n' "$line";;
     esac
 done
 
@@ -30,4 +30,4 @@ printf 'include::%s[]\n\n' "$@"
 # print the rest of the input as is
 exec cat
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet tw=80:
+# vim: set ft=sh ts=8 sts=4 sw=4 et tw=80:

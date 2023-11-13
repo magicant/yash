@@ -4,54 +4,54 @@
 # Supports Git 2.9.2.
 
 function completion/git-bisect {
-	WORDS=(git bisect "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git bisect "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::bisect:arg {
 
-	typeset old new
-	old=$(git bisect terms --term-old 2>/dev/null) || old=good
-	new=$(git bisect terms --term-new 2>/dev/null) || new=bad
+        typeset old new
+        old=$(git bisect terms --term-old 2>/dev/null) || old=good
+        new=$(git bisect terms --term-new 2>/dev/null) || new=bad
 
-	if [ ${WORDS[#]} -le 1 ]; then #>>#
-		complete -P "$PREFIX" -D "mark a commit as $old" "$old"
-		complete -P "$PREFIX" -D "mark a commit as $new" "$new"
-		complete -P "$PREFIX" -D "print help" help
-		complete -P "$PREFIX" -D "show the bisection log" log
-		complete -P "$PREFIX" -D "replay a bisection log" replay
-		complete -P "$PREFIX" -D "end bisection" reset
-		complete -P "$PREFIX" -D "start automated bisection" run
-		complete -P "$PREFIX" -D "mark a commit as untestable" skip
-		complete -P "$PREFIX" -D "start bisection" start
-		complete -P "$PREFIX" -D "show terms used in the current session" terms
-		complete -P "$PREFIX" -D "show remaining suspects with GUI" visualize
-		#<<#
-		case ${TARGETWORD#"$PREFIX"} in (vie*)
-			complete -P "$PREFIX" -D "show remaining suspects with GUI" view
-		esac
-	else
-		WORDS=("${WORDS[2,-1]}")
+        if [ ${WORDS[#]} -le 1 ]; then #>>#
+                complete -P "$PREFIX" -D "mark a commit as $old" "$old"
+                complete -P "$PREFIX" -D "mark a commit as $new" "$new"
+                complete -P "$PREFIX" -D "print help" help
+                complete -P "$PREFIX" -D "show the bisection log" log
+                complete -P "$PREFIX" -D "replay a bisection log" replay
+                complete -P "$PREFIX" -D "end bisection" reset
+                complete -P "$PREFIX" -D "start automated bisection" run
+                complete -P "$PREFIX" -D "mark a commit as untestable" skip
+                complete -P "$PREFIX" -D "start bisection" start
+                complete -P "$PREFIX" -D "show terms used in the current session" terms
+                complete -P "$PREFIX" -D "show remaining suspects with GUI" visualize
+                #<<#
+                case ${TARGETWORD#"$PREFIX"} in (vie*)
+                        complete -P "$PREFIX" -D "show remaining suspects with GUI" view
+                esac
+        else
+                WORDS=("${WORDS[2,-1]}")
 
-		typeset subcmd="${WORDS[1]}"
-		case $subcmd in
-			($old) subcmd=good ;;
-			($new) subcmd=bad  ;;
-		esac
+                typeset subcmd="${WORDS[1]}"
+                case $subcmd in
+                        ($old) subcmd=good ;;
+                        ($new) subcmd=bad  ;;
+                esac
 
-		if command -vf "completion/git::bisect:$subcmd:arg" >/dev/null 2>&1; then
-			command -f "completion/git::bisect:$subcmd:arg"
-		fi
-	fi
+                if command -vf "completion/git::bisect:$subcmd:arg" >/dev/null 2>&1; then
+                        command -f "completion/git::bisect:$subcmd:arg"
+                fi
+        fi
 
 }
 
 function completion/git::bisect:bad:arg {
-	command -f completion/git::completeref
+        command -f completion/git::completeref
 }
 
 function completion/git::bisect:good:arg {
-	command -f completion/git::completeref
+        command -f completion/git::completeref
 }
 
 #function completion/git::bisect:help:arg {
@@ -61,59 +61,59 @@ function completion/git::bisect:good:arg {
 #}
 
 function completion/git::bisect:replay:arg {
-	complete -P "$PREFIX" -f
+        complete -P "$PREFIX" -f
 }
 
 function completion/git::bisect:reset:arg {
-	command -f completion/git::completeref
+        command -f completion/git::completeref
 }
 
 function completion/git::bisect:run:arg {
-	WORDS=("${WORDS[2,-1]}")
-	command -f completion//reexecute -e
+        WORDS=("${WORDS[2,-1]}")
+        command -f completion//reexecute -e
 }
 
 function completion/git::bisect:skip:arg {
-	command -f completion/git::completeref range=true
+        command -f completion/git::completeref range=true
 }
 
 function completion/git::bisect:start:arg {
 
-	OPTIONS=( #>#
-	"--no-checkout; don't automatically check out commits to test"
-	"--term-old: --term-good:; specify a term for the old state"
-	"--term-new: --term-bad:; specify a term for the new state"
-	) #<#
+        OPTIONS=( #>#
+        "--no-checkout; don't automatically check out commits to test"
+        "--term-old: --term-good:; specify a term for the old state"
+        "--term-new: --term-bad:; specify a term for the new state"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--term-*)
-			;;
-		('')
-			command -f completion/git::completerefpath
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--term-*)
+                        ;;
+                ('')
+                        command -f completion/git::completerefpath
+                        ;;
+        esac
 
 }
 
 function completion/git::bisect:terms:arg {
 
-	OPTIONS=( #>#
-	"--term-old --term-good; only show the term for the old state"
-	"--term-new --term-bad; only show the term for the new state"
-	) #<#
+        OPTIONS=( #>#
+        "--term-old --term-good; only show the term for the old state"
+        "--term-new --term-bad; only show the term for the new state"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--term-*)
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--term-*)
+                        ;;
+        esac
 
 }
 
@@ -124,4 +124,4 @@ function completion/git::bisect:terms:arg {
 #}
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

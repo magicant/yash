@@ -57,7 +57,7 @@ typedef enum inputresult_T {
 struct xwcsbuf_T;
 struct input_file_info_T;
 extern inputresult_T read_input(
-	struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
     __attribute__((nonnull));
 
 /* The type of input functions.
@@ -106,4 +106,4 @@ struct input_interactive_info_T {
 #endif /* YASH_INPUT_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

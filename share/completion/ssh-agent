@@ -5,33 +5,33 @@
 
 function completion/ssh-agent {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a:; specify the pathname of the UNIX-domain socket used to communicate with the agent"
-	"c; output shell commands for csh"
-	"d; debug mode"
-	"k; kill the current agent"
-	"s; output shell commands for sh"
-	"t:; specify the default lifetime of identities"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a:; specify the pathname of the UNIX-domain socket used to communicate with the agent"
+        "c; output shell commands for csh"
+        "d; debug mode"
+        "k; kill the current agent"
+        "s; output shell commands for sh"
+        "t:; specify the default lifetime of identities"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(a)
-		complete -P "$PREFIX" -f
-		;;
-	(t)
-		;;
-	(*)
-		command -f completion//getoperands
-		command -f completion//reexecute
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (a)
+                complete -P "$PREFIX" -f
+                ;;
+        (t)
+                ;;
+        (*)
+                command -f completion//getoperands
+                command -f completion//reexecute
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

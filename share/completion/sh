@@ -6,263 +6,263 @@
 
 function completion/sh {
 
-	typeset compoptopts=
-	typeset prog="${WORDS[1]##*/}"
+        typeset compoptopts=
+        typeset prog="${WORDS[1]##*/}"
 
-	typeset OPTIONS FOPTIONS OOPTIONS ARGOPT PREFIX
-	FOPTIONS=( #>#
-	"c; execute the first operand as a shell script"
-	"i; work in the interactive mode"
-	"o:; specify an option"
-	) #<#
-	OOPTIONS=( #>#
-	"a --allexport; export all variables when assigned"
-	"b --notify; print job status immediately when done"
-	"C --noclobber; disallow >-redirection to overwrite an existing file"
-	"e --errexit; exit immediately when a command's exit status is non-zero"
-	"f --noglob; disable pathname expansion (globbing)"
-	"m --monitor; enable job control"
-	"n --noexec; don't execute any commands"
-	"u --nounset; disallow expansion of undefined variables"
-	"v --verbose; echo commands entered to the shell"
-	"x --xtrace; print a command line before executing it"
-	"--ignoreeof; don't exit when an end-of-file is entered"
-	"--vi; vi-like line-editing"
-	) #<#
-	case $prog in
-	(bash)
-		OOPTIONS=("$OOPTIONS" #>#
-		"h --hashall; cache full paths of commands in a function when defined"
-		) #<#
-		;;
-	(mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"h --trackall; cache full paths of commands when entered"
-		) #<#
-		;;
-	(*)
-		OOPTIONS=("$OOPTIONS" #>#
-		"h; cache full paths of commands in a function when defined"
-		) #<#
-		;;
-	esac
+        typeset OPTIONS FOPTIONS OOPTIONS ARGOPT PREFIX
+        FOPTIONS=( #>#
+        "c; execute the first operand as a shell script"
+        "i; work in the interactive mode"
+        "o:; specify an option"
+        ) #<#
+        OOPTIONS=( #>#
+        "a --allexport; export all variables when assigned"
+        "b --notify; print job status immediately when done"
+        "C --noclobber; disallow >-redirection to overwrite an existing file"
+        "e --errexit; exit immediately when a command's exit status is non-zero"
+        "f --noglob; disable pathname expansion (globbing)"
+        "m --monitor; enable job control"
+        "n --noexec; don't execute any commands"
+        "u --nounset; disallow expansion of undefined variables"
+        "v --verbose; echo commands entered to the shell"
+        "x --xtrace; print a command line before executing it"
+        "--ignoreeof; don't exit when an end-of-file is entered"
+        "--vi; vi-like line-editing"
+        ) #<#
+        case $prog in
+        (bash)
+                OOPTIONS=("$OOPTIONS" #>#
+                "h --hashall; cache full paths of commands in a function when defined"
+                ) #<#
+                ;;
+        (mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "h --trackall; cache full paths of commands when entered"
+                ) #<#
+                ;;
+        (*)
+                OOPTIONS=("$OOPTIONS" #>#
+                "h; cache full paths of commands in a function when defined"
+                ) #<#
+                ;;
+        esac
 
-	case $prog in
-	(bash)
-		FOPTIONS=("$FOPTIONS" #>#
-		"l --login; work as a login shell"
-		) #<#
-		;;
-	(dash)
-		FOPTIONS=("$FOPTIONS" #>#
-		"l; work as a login shell"
-		) #<#
-		;;
-	(mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"l --login; work as a login shell"
-		) #<#
-		;;
-	esac
-	case $prog in
-	(mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"s --stdin; read commands from the standard input"
-		) #<#
-		;;
-	(*)
-		FOPTIONS=("$FOPTIONS" #>#
-		"s; read commands from the standard input"
-		) #<#
-		;;
-	esac
-	case $prog in ([bd]ash|mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"--emacs; emacs-like line-editing"
-		) #<#
-	esac
-	case $prog in (bash|mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"--posix; force strict POSIX conformance"
-		"p --privileged; work in the privileged mode"
-		"P --physical; make the -P option the default in the cd commands etc."
-		) #<#
-	esac
-	case $prog in (bash)
-		FOPTIONS=("$FOPTIONS" #>#
-		"--help"
-		"--version"
-		"--noprofile; don't read profile file"
-		"--debugger; enable extended debugging mode"
-		"--dump-po-strings; extract translatable strings in po file format"
-		"D --dump-strings; extract translatable strings"
-		"--noediting; don't use the Readline library"
-		"--norc; don't read rc file"
-		"--rcfile: --init-file:; specify the rc file"
-		"r --restricted; work in the restricted mode"
-		"--rpm-requires; print package names required to run the script"
-		"O:; specify a shopt option"
-		) #<#
-		OOPTIONS=("$OOPTIONS" #>#
-		"H --histexpand; enable !-expansion on the command line"
-		"k --keyword; allow assignments in the middle of command arguments"
-		"--pipefail; return last non-zero exit status of commands in a pipe"
-		"B --braceexpand; enable brace expansion"
-		"E --errtrace; don't reset ERR trap in subshells"
-		"T --functrace; don't reset DEBUG and RETURN traps in subshells"
-		"t --onecmd; execute one command only"
-		"--history; enable command history"
-		) #<#
-		compoptopts="$compoptopts -e"
-	esac
-	case $prog in (mksh)
-		OOPTIONS=("$OOPTIONS" #>#
-		"--braceexpand; enable brace expansion"
-		"r --restricted; work in the restricted mode"
-		"--bgnice; run background jobs at lower priorities"
-		"--gmacs; gmacs-like line-editing"
-		"U --utf8-mode; enable UTF-8 support"
-		"X --markdirs; append a slash to directory names after pathname expansion"
-		"--arc4random; use arc4random for random number generation"
-		"--nohup; don't kill running jobs when exiting"
-		"--sh; force very strict POSIX conformance"
-		"--vi-esccomplete; use the Escape key for completion in the vi mode"
-		"--vi-tabcomplete; use the Tab key for completion in the vi mode"
-		) #<#
-	esac
+        case $prog in
+        (bash)
+                FOPTIONS=("$FOPTIONS" #>#
+                "l --login; work as a login shell"
+                ) #<#
+                ;;
+        (dash)
+                FOPTIONS=("$FOPTIONS" #>#
+                "l; work as a login shell"
+                ) #<#
+                ;;
+        (mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "l --login; work as a login shell"
+                ) #<#
+                ;;
+        esac
+        case $prog in
+        (mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "s --stdin; read commands from the standard input"
+                ) #<#
+                ;;
+        (*)
+                FOPTIONS=("$FOPTIONS" #>#
+                "s; read commands from the standard input"
+                ) #<#
+                ;;
+        esac
+        case $prog in ([bd]ash|mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "--emacs; emacs-like line-editing"
+                ) #<#
+        esac
+        case $prog in (bash|mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "--posix; force strict POSIX conformance"
+                "p --privileged; work in the privileged mode"
+                "P --physical; make the -P option the default in the cd commands etc."
+                ) #<#
+        esac
+        case $prog in (bash)
+                FOPTIONS=("$FOPTIONS" #>#
+                "--help"
+                "--version"
+                "--noprofile; don't read profile file"
+                "--debugger; enable extended debugging mode"
+                "--dump-po-strings; extract translatable strings in po file format"
+                "D --dump-strings; extract translatable strings"
+                "--noediting; don't use the Readline library"
+                "--norc; don't read rc file"
+                "--rcfile: --init-file:; specify the rc file"
+                "r --restricted; work in the restricted mode"
+                "--rpm-requires; print package names required to run the script"
+                "O:; specify a shopt option"
+                ) #<#
+                OOPTIONS=("$OOPTIONS" #>#
+                "H --histexpand; enable !-expansion on the command line"
+                "k --keyword; allow assignments in the middle of command arguments"
+                "--pipefail; return last non-zero exit status of commands in a pipe"
+                "B --braceexpand; enable brace expansion"
+                "E --errtrace; don't reset ERR trap in subshells"
+                "T --functrace; don't reset DEBUG and RETURN traps in subshells"
+                "t --onecmd; execute one command only"
+                "--history; enable command history"
+                ) #<#
+                compoptopts="$compoptopts -e"
+        esac
+        case $prog in (mksh)
+                OOPTIONS=("$OOPTIONS" #>#
+                "--braceexpand; enable brace expansion"
+                "r --restricted; work in the restricted mode"
+                "--bgnice; run background jobs at lower priorities"
+                "--gmacs; gmacs-like line-editing"
+                "U --utf8-mode; enable UTF-8 support"
+                "X --markdirs; append a slash to directory names after pathname expansion"
+                "--arc4random; use arc4random for random number generation"
+                "--nohup; don't kill running jobs when exiting"
+                "--sh; force very strict POSIX conformance"
+                "--vi-esccomplete; use the Escape key for completion in the vi mode"
+                "--vi-tabcomplete; use the Tab key for completion in the vi mode"
+                ) #<#
+        esac
 
-	OPTIONS=("$FOPTIONS" "$OOPTIONS")
+        OPTIONS=("$FOPTIONS" "$OOPTIONS")
 
-	# convert plus-prefixed options into hyphen-prefixed options
-	typeset i=2
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i]} in
-		(-|--)
-			break
-			;;
-		([+-]*o)
-			i=$((i+2))
-			;;
-		([+-]?*)
-			i=$((i+1))
-			;;
-		(*)
-			break
-			;;
-		esac
-	done
-	WORDS=("${WORDS[1]}" "${WORDS[2,i-1]/#+/-}" "${WORDS[i,-1]}")
+        # convert plus-prefixed options into hyphen-prefixed options
+        typeset i=2
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i]} in
+                (-|--)
+                        break
+                        ;;
+                ([+-]*o)
+                        i=$((i+2))
+                        ;;
+                ([+-]?*)
+                        i=$((i+1))
+                        ;;
+                (*)
+                        break
+                        ;;
+                esac
+        done
+        WORDS=("${WORDS[1]}" "${WORDS[2,i-1]/#+/-}" "${WORDS[i,-1]}")
 
-	# the same for $TARGETWORD
-	typeset SAVETARGETWORD="$TARGETWORD"
-	if [ $i -gt ${WORDS[#]} ]; then
-		TARGETWORD=${TARGETWORD/#+/-}
-	fi
+        # the same for $TARGETWORD
+        typeset SAVETARGETWORD="$TARGETWORD"
+        if [ $i -gt ${WORDS[#]} ]; then
+                TARGETWORD=${TARGETWORD/#+/-}
+        fi
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		case $prog in
-		(set|yash|ksh)
-			;;
-		(*)
-			OPTIONS=("$OOPTIONS")
-			command -f completion/set::removelongopts
-			OPTIONS=("$FOPTIONS" "$OPTIONS")
-			;;
-		esac
-		case $SAVETARGETWORD in
-		(-*)
-			command -f completion//completeoptions $compoptopts
-			;;
-		(+*)
-			TARGETWORD=$SAVETARGETWORD
-			command -f completion/set::option short
-			;;
-		esac
-		;;
-	(o)
-		PREFIX=${SAVETARGETWORD%"${TARGETWORD#"$PREFIX"}"}
-		TARGETWORD=$SAVETARGETWORD
-		OPTIONS=("$OOPTIONS")
-		command -f completion/set::option long
-		;;
-	(O)
-		typeset shopt value
-		while read -r shopt value; do
-			complete -P "$PREFIX" -- "$shopt"
-		done 2>/dev/null <(bash -O </dev/null)
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                case $prog in
+                (set|yash|ksh)
+                        ;;
+                (*)
+                        OPTIONS=("$OOPTIONS")
+                        command -f completion/set::removelongopts
+                        OPTIONS=("$FOPTIONS" "$OPTIONS")
+                        ;;
+                esac
+                case $SAVETARGETWORD in
+                (-*)
+                        command -f completion//completeoptions $compoptopts
+                        ;;
+                (+*)
+                        TARGETWORD=$SAVETARGETWORD
+                        command -f completion/set::option short
+                        ;;
+                esac
+                ;;
+        (o)
+                PREFIX=${SAVETARGETWORD%"${TARGETWORD#"$PREFIX"}"}
+                TARGETWORD=$SAVETARGETWORD
+                OPTIONS=("$OOPTIONS")
+                command -f completion/set::option long
+                ;;
+        (O)
+                typeset shopt value
+                while read -r shopt value; do
+                        complete -P "$PREFIX" -- "$shopt"
+                done 2>/dev/null <(bash -O </dev/null)
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 function completion/set::removelongopts {
-	typeset IFS="
+        typeset IFS="
 "
-	OPTIONS=($(printf '%s\n' "$OPTIONS" | sed 's/--[^;[:blank:]]*//g'))
+        OPTIONS=($(printf '%s\n' "$OPTIONS" | sed 's/--[^;[:blank:]]*//g'))
 } 2>/dev/null
 
 function completion/set::option {
 
-	if [ "${1-}" != long ]; then
-		typeset single=true
-	else
-		typeset single=false
-	fi
+        if [ "${1-}" != long ]; then
+                typeset single=true
+        else
+                typeset single=false
+        fi
 
-	typeset opts desc
-	typeset generated=false
-	for opts in "$OPTIONS"; do
+        typeset opts desc
+        typeset generated=false
+        for opts in "$OPTIONS"; do
 
-		# get description
-		case $opts in
-		(*\;*)
-			desc=${opts#*;}
-			while true; do  # trim surrounding spaces
-				case $desc in
-				([[:space:]]*) desc=${desc#[[:space:]]} ;;
-				(*[[:space:]]) desc=${desc%[[:space:]]} ;;
-				(*)            break ;;
-				esac
-			done
-			;;
-		(*)
-			desc=
-			;;
-		esac
+                # get description
+                case $opts in
+                (*\;*)
+                        desc=${opts#*;}
+                        while true; do  # trim surrounding spaces
+                                case $desc in
+                                ([[:space:]]*) desc=${desc#[[:space:]]} ;;
+                                (*[[:space:]]) desc=${desc%[[:space:]]} ;;
+                                (*)            break ;;
+                                esac
+                        done
+                        ;;
+                (*)
+                        desc=
+                        ;;
+                esac
 
-		if $single; then
-			# generate single-character option
-			for opt in ${opts%%;*}; do
-				case $opt in ([[:alnum:]]|[[:alnum:]]:)
-					complete -O -P "$TARGETWORD" \
-					${desc:+-D "$desc"} "${opt%:}" &&
-					generated=true
-					break
-				esac
-			done
-		else
-			# generate candidate for first match
-			for opt in ${opts%%;*}; do
-				case $opt in (--*)
-					complete -P "$PREFIX" \
-						${desc:+-D "$desc"} \
-						-- "${opt#--}" &&
-					generated=true &&
-					break
-				esac
-			done
-		fi
+                if $single; then
+                        # generate single-character option
+                        for opt in ${opts%%;*}; do
+                                case $opt in ([[:alnum:]]|[[:alnum:]]:)
+                                        complete -O -P "$TARGETWORD" \
+                                        ${desc:+-D "$desc"} "${opt%:}" &&
+                                        generated=true
+                                        break
+                                esac
+                        done
+                else
+                        # generate candidate for first match
+                        for opt in ${opts%%;*}; do
+                                case $opt in (--*)
+                                        complete -P "$PREFIX" \
+                                                ${desc:+-D "$desc"} \
+                                                -- "${opt#--}" &&
+                                        generated=true &&
+                                        break
+                                esac
+                        done
+                fi
 
-	done
+        done
 
-	$generated
+        $generated
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

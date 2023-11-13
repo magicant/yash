@@ -5,89 +5,89 @@
 
 function completion/ssh-keygen {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"A; create all types of host keys"
-	"a:; specify the number of primality tests performed (with -T)"
-	"B; print the bubblebabble digest"
-	"b:; specify the number of bits of the key being created"
-	"C:; specify the comment of the key"
-	"c; change the comment of RSA1 private/public keys"
-	"D:; download the RSA public keys from the specified PKCS#11 library"
-	"E:; specify the hash algorithm for fingerprint"
-	"e; print the key in the portable format"
-	"F:; specify the host name to search the known hosts file for"
-	"f:; specify the key file to operate on"
-	"G:; specify the file to save candidate primes"
-	"g; use generic DNS format (with -r)"
-	"H; hash the known hosts file"
-	"h; create a host certificate when signing a key"
-	"I:; specify the key identity used when signing a key"
-	"i; print the key in the non-portable format"
-	"J:; specify a max number of lines processed (with -T)"
-	"j:; specify the start line number (with -T)"
-	"K:; specify the file to print the last line number to (with -T)"
-	"k; generate a KRL file"
-	"L; print the contents of a certificate"
-	"l; print the fingerprint of the public key file"
-	"M:; specify the memory size in megabytes used when generating candidate moduli"
-	"m:; specify the key format (with -e or -i)"
-	"N:; specify the new passphrase"
-	"n:; specify principals included in a certificate when signing a key"
-	"O:; specify a certificate option when signing a key"
-	"o; use the new format to save the private key"
-	"P:; specify the (current) passphrase"
-	"p; change the passphrase of the private key"
-	"Q; test if keys have been revoked in a KRL"
-	"q; make ssh-keygen quiet"
-	"R:; specify the host name to remove from the known hosts file"
-	"r:; print the SSHFP fingerprint resource record of the specified host name"
-	"S:; specify the start point for generating candidate moduli"
-	"s:; specify the CA key file to sign the public key with"
-	"T:; test DH group exchange candidate primes"
-	"t:; specify the key type"
-	"U; use a CA key in ssh-agent (with -s)"
-	"u; update a KRL"
-	"V:; specify the validity interval of the signed certificate"
-	"v; print debugging messages"
-	"W:; specify the DH generator"
-	"y; extract the public key from the private key"
-	"z:; specify the serial number of the certificate"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "A; create all types of host keys"
+        "a:; specify the number of primality tests performed (with -T)"
+        "B; print the bubblebabble digest"
+        "b:; specify the number of bits of the key being created"
+        "C:; specify the comment of the key"
+        "c; change the comment of RSA1 private/public keys"
+        "D:; download the RSA public keys from the specified PKCS#11 library"
+        "E:; specify the hash algorithm for fingerprint"
+        "e; print the key in the portable format"
+        "F:; specify the host name to search the known hosts file for"
+        "f:; specify the key file to operate on"
+        "G:; specify the file to save candidate primes"
+        "g; use generic DNS format (with -r)"
+        "H; hash the known hosts file"
+        "h; create a host certificate when signing a key"
+        "I:; specify the key identity used when signing a key"
+        "i; print the key in the non-portable format"
+        "J:; specify a max number of lines processed (with -T)"
+        "j:; specify the start line number (with -T)"
+        "K:; specify the file to print the last line number to (with -T)"
+        "k; generate a KRL file"
+        "L; print the contents of a certificate"
+        "l; print the fingerprint of the public key file"
+        "M:; specify the memory size in megabytes used when generating candidate moduli"
+        "m:; specify the key format (with -e or -i)"
+        "N:; specify the new passphrase"
+        "n:; specify principals included in a certificate when signing a key"
+        "O:; specify a certificate option when signing a key"
+        "o; use the new format to save the private key"
+        "P:; specify the (current) passphrase"
+        "p; change the passphrase of the private key"
+        "Q; test if keys have been revoked in a KRL"
+        "q; make ssh-keygen quiet"
+        "R:; specify the host name to remove from the known hosts file"
+        "r:; print the SSHFP fingerprint resource record of the specified host name"
+        "S:; specify the start point for generating candidate moduli"
+        "s:; specify the CA key file to sign the public key with"
+        "T:; test DH group exchange candidate primes"
+        "t:; specify the key type"
+        "U; use a CA key in ssh-agent (with -s)"
+        "u; update a KRL"
+        "V:; specify the validity interval of the signed certificate"
+        "v; print debugging messages"
+        "W:; specify the DH generator"
+        "y; extract the public key from the private key"
+        "z:; specify the serial number of the certificate"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([abMSVz])
-		;;
-	(E)
-		complete -P "$PREFIX" md5 sha256
-		;;
-	([FR])
-		complete -P "$PREFIX" -h
-		;;
-	(m) #>>#
-		complete -P "$PREFIX" -D 'SSH2 public or private key' RFC4716
-		complete -P "$PREFIX" -D 'PEM PKCS8 public key' PKCS8
-		complete -P "$PREFIX" -D 'PEM public key' PEM
-		;; #<<#
-	(O)
-		#TODO
-		;;
-	(t)
-		complete -P "$PREFIX" dsa ecdsa ed25519 rsa
-		;;
-	(W)
-		complete 2 3 5
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([abMSVz])
+                ;;
+        (E)
+                complete -P "$PREFIX" md5 sha256
+                ;;
+        ([FR])
+                complete -P "$PREFIX" -h
+                ;;
+        (m) #>>#
+                complete -P "$PREFIX" -D 'SSH2 public or private key' RFC4716
+                complete -P "$PREFIX" -D 'PEM PKCS8 public key' PKCS8
+                complete -P "$PREFIX" -D 'PEM public key' PEM
+                ;; #<<#
+        (O)
+                #TODO
+                ;;
+        (t)
+                complete -P "$PREFIX" dsa ecdsa ed25519 rsa
+                ;;
+        (W)
+                complete 2 3 5
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

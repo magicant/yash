@@ -80,20 +80,20 @@ static int eval_dbexp(const dbexp_T *e)
 static inline cc_word_T expand_double_bracket_operand(const wordunit_T *w)
     __attribute__((nonnull,warn_unused_result));
 static inline wchar_t *expand_double_bracket_operand_unescaped(
-	const wordunit_T *w)
+        const wordunit_T *w)
     __attribute__((nonnull,malloc,warn_unused_result));
 static bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 static bool quote_removal_and_test_triple(
-	const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *op,
+        const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 static bool quote_removal_and_pattern_matching(
-	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 static bool quote_removal_and_regex_matching(
-	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
     __attribute__((nonnull));
 static wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -106,11 +106,11 @@ static const wchar_t *skip_bracket(const wchar_t *s)
 int test_builtin(int argc, void **argv)
 {
     if (wcscmp(ARGV(0), L"[") == 0) {
-	argc--;
-	if (wcscmp(ARGV(argc), L"]") != 0) {
-	    xerror(0, Ngt("`%ls' is missing"), L"]");
-	    return Exit_TESTERROR;
-	}
+        argc--;
+        if (wcscmp(ARGV(argc), L"]") != 0) {
+            xerror(0, Ngt("`%ls' is missing"), L"]");
+            return Exit_TESTERROR;
+        }
     }
     assert(argc > 0);
     argc--, argv++;
@@ -119,33 +119,33 @@ int test_builtin(int argc, void **argv)
     bool result;
 
     switch (argc) {
-	case 0:  result = false;                 break;
-	case 1:  result = test_single(argv);     break;
-	case 2:  result = test_double(argv);     break;
-	case 3:  result = test_triple(argv);     break;
-	case 4:
-	    if (wcscmp(argv[0], L"!") == 0) {
-		result = !test_triple(&argv[1]);
-		break;
-	    }
-	    if (wcscmp(argv[0], L"(") == 0 && wcscmp(argv[3], L")") == 0) {
-		result = test_double(&argv[1]);
-		break;
-	    }
-	    /* falls thru! */
-	default:
-	    state.args = argv;
-	    state.argc = argc;
-	    state.index = 0;
-	    result = test_long_or(&state);
-	    if (yash_error_message_count == 0 && state.index < state.argc)
-		xerror(0, Ngt("`%ls' is not a valid operator"),
-			(const wchar_t *) state.args[state.index]);
-	    break;
+        case 0:  result = false;                 break;
+        case 1:  result = test_single(argv);     break;
+        case 2:  result = test_double(argv);     break;
+        case 3:  result = test_triple(argv);     break;
+        case 4:
+            if (wcscmp(argv[0], L"!") == 0) {
+                result = !test_triple(&argv[1]);
+                break;
+            }
+            if (wcscmp(argv[0], L"(") == 0 && wcscmp(argv[3], L")") == 0) {
+                result = test_double(&argv[1]);
+                break;
+            }
+            /* falls thru! */
+        default:
+            state.args = argv;
+            state.argc = argc;
+            state.index = 0;
+            result = test_long_or(&state);
+            if (yash_error_message_count == 0 && state.index < state.argc)
+                xerror(0, Ngt("`%ls' is not a valid operator"),
+                        (const wchar_t *) state.args[state.index]);
+            break;
     }
 
     if (yash_error_message_count > 0)
-	return Exit_TESTERROR;
+        return Exit_TESTERROR;
     return result ? Exit_TRUE : Exit_FALSE;
 }
 
@@ -162,31 +162,31 @@ bool test_double(void *args[static 2])
     const wchar_t *op = args[0], *arg = args[1];
 
     if (wcscmp(op, L"!") == 0)
-	return !test_single(&args[1]);
+        return !test_single(&args[1]);
     if (!is_unary_primary(op)) {
-	xerror(0, Ngt("`%ls' is not a unary operator"), op);
-	return 0;
+        xerror(0, Ngt("`%ls' is not a unary operator"), op);
+        return 0;
     }
 
     switch (op[1]) {
-	case L'n':  return arg[0] != L'\0';
-	case L'z':  return arg[0] == L'\0';
-	case L't':
-	    {
-		int fd;
-		return xwcstoi(arg, 10, &fd) && isatty(fd);
-	    }
-	case L'o':
-	    if (arg[0] == L'?')
-		return is_valid_option_name(&arg[1]);
-	    else
-		return option_is_enabled(arg);
+        case L'n':  return arg[0] != L'\0';
+        case L'z':  return arg[0] == L'\0';
+        case L't':
+            {
+                int fd;
+                return xwcstoi(arg, 10, &fd) && isatty(fd);
+            }
+        case L'o':
+            if (arg[0] == L'?')
+                return is_valid_option_name(&arg[1]);
+            else
+                return option_is_enabled(arg);
     }
 
     char *mbsarg = malloc_wcstombs(arg);
     if (mbsarg == NULL) {
-	xerror(EILSEQ, Ngt("unexpected error"));
-	return 0;
+        xerror(EILSEQ, Ngt("unexpected error"));
+        return 0;
     }
 
     bool result = test_file(op[1], mbsarg);
@@ -197,66 +197,66 @@ bool test_double(void *args[static 2])
 /* An auxiliary function for file type checking. */
 bool test_file(wchar_t type, const char *file) {
     switch (type) {
-	case L'd':  return is_directory(file);
-	case L'e':  return is_file(file);
-	case L'f':  return is_regular_file(file);
-	case L'r':  return is_readable(file);
-	case L'w':  return is_writable(file);
-	case L'x':  return is_executable(file);
+        case L'd':  return is_directory(file);
+        case L'e':  return is_file(file);
+        case L'f':  return is_regular_file(file);
+        case L'r':  return is_readable(file);
+        case L'w':  return is_writable(file);
+        case L'x':  return is_executable(file);
     }
 
     struct stat st;
     switch (type) {
-	case L'h':
-	case L'L':
-	    return (lstat(file, &st) == 0) && S_ISLNK(st.st_mode);
+        case L'h':
+        case L'L':
+            return (lstat(file, &st) == 0) && S_ISLNK(st.st_mode);
 #if !HAVE_S_ISVTX
-	case L'k':
-	    return false;
+        case L'k':
+            return false;
 #endif
     }
 
     if (stat(file, &st) < 0)
-	return false;
+        return false;
     switch (type) {
-	case L'b':
-	    return S_ISBLK(st.st_mode);
-	case L'c':
-	    return S_ISCHR(st.st_mode);
-	case L'G':
-	    return st.st_gid == getegid();
-	case L'g':
-	    return st.st_mode & S_ISGID;
+        case L'b':
+            return S_ISBLK(st.st_mode);
+        case L'c':
+            return S_ISCHR(st.st_mode);
+        case L'G':
+            return st.st_gid == getegid();
+        case L'g':
+            return st.st_mode & S_ISGID;
 #if HAVE_S_ISVTX
-	case L'k':
-	    return st.st_mode & S_ISVTX;
+        case L'k':
+            return st.st_mode & S_ISVTX;
 #endif
-	case L'N':
-	    return st.st_atime < st.st_mtime
+        case L'N':
+            return st.st_atime < st.st_mtime
 #if HAVE_ST_ATIM && HAVE_ST_MTIM
-		|| (st.st_atime == st.st_mtime
-			&& st.st_atim.tv_nsec < st.st_mtim.tv_nsec)
+                || (st.st_atime == st.st_mtime
+                        && st.st_atim.tv_nsec < st.st_mtim.tv_nsec)
 #elif HAVE_ST_ATIMESPEC && HAVE_ST_MTIMESPEC
-		|| (st.st_atime == st.st_mtime
-			&& st.st_atimespec.tv_nsec < st.st_mtimespec.tv_nsec)
+                || (st.st_atime == st.st_mtime
+                        && st.st_atimespec.tv_nsec < st.st_mtimespec.tv_nsec)
 #elif HAVE_ST_ATIMENSEC && HAVE_ST_MTIMENSEC
-		|| (st.st_atime == st.st_mtime
-			&& st.st_atimensec < st.st_mtimensec)
+                || (st.st_atime == st.st_mtime
+                        && st.st_atimensec < st.st_mtimensec)
 #elif HAVE___ST_ATIMENSEC && HAVE___ST_MTIMENSEC
-		|| (st.st_atime == st.st_mtime
-			&& st.__st_atimensec < st.__st_mtimensec)
+                || (st.st_atime == st.st_mtime
+                        && st.__st_atimensec < st.__st_mtimensec)
 #endif
-		;
-	case L'O':
-	    return st.st_uid == geteuid();
-	case L'p':
-	    return S_ISFIFO(st.st_mode);
-	case L'S':
-	    return S_ISSOCK(st.st_mode);
-	case L's':
-	    return st.st_size > 0;
-	case L'u':
-	    return st.st_mode & S_ISUID;
+                ;
+        case L'O':
+            return st.st_uid == geteuid();
+        case L'p':
+            return S_ISFIFO(st.st_mode);
+        case L'S':
+            return S_ISSOCK(st.st_mode);
+        case L's':
+            return st.st_size > 0;
+        case L'u':
+            return st.st_mode & S_ISUID;
     }
 
     assert(false);
@@ -268,127 +268,127 @@ bool test_triple(void *args[static 3])
     const wchar_t *left = args[0], *op = args[1], *right = args[2];
 
     switch (op[0]) {
-	case L'=':
-	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
-		return wcscmp(left, right) == 0;
-	    if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
-		return wcscoll(left, right) == 0;
-	    if (op[1] == L'~' && op[2] == L'\0')
-		return match_regex(left, right);
-	    goto not_binary;
-	case L'!':
-	    if (op[1] == L'=' && op[2] == L'\0')
-		return wcscmp(left, right) != 0;
-	    if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
-		return wcscoll(left, right) != 0;
-	    goto not_binary;
-	case L'<':
-	    if (op[1] == L'\0')
-		return wcscoll(left, right) < 0;
-	    if (op[1] == L'=' && op[2] == L'\0')
-		return wcscoll(left, right) <= 0;
-	    goto not_binary;
-	case L'>':
-	    if (op[1] == L'\0')
-		return wcscoll(left, right) > 0;
-	    if (op[1] == L'=' && op[2] == L'\0')
-		return wcscoll(left, right) >= 0;
-	    goto not_binary;
-	case L'-':
-	    break;
-	default:
-	    goto not_binary;
+        case L'=':
+            if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
+                return wcscmp(left, right) == 0;
+            if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
+                return wcscoll(left, right) == 0;
+            if (op[1] == L'~' && op[2] == L'\0')
+                return match_regex(left, right);
+            goto not_binary;
+        case L'!':
+            if (op[1] == L'=' && op[2] == L'\0')
+                return wcscmp(left, right) != 0;
+            if (op[1] == L'=' && op[2] == L'=' && op[3] == L'\0')
+                return wcscoll(left, right) != 0;
+            goto not_binary;
+        case L'<':
+            if (op[1] == L'\0')
+                return wcscoll(left, right) < 0;
+            if (op[1] == L'=' && op[2] == L'\0')
+                return wcscoll(left, right) <= 0;
+            goto not_binary;
+        case L'>':
+            if (op[1] == L'\0')
+                return wcscoll(left, right) > 0;
+            if (op[1] == L'=' && op[2] == L'\0')
+                return wcscoll(left, right) >= 0;
+            goto not_binary;
+        case L'-':
+            break;
+        default:
+            goto not_binary;
     }
 
     assert(op[0] == L'-');
     switch (op[1]) {
     case L'a':
-	if (op[2] == L'\0') return test_single(args) && test_single(&args[2]);
-	break;
+        if (op[2] == L'\0') return test_single(args) && test_single(&args[2]);
+        break;
     case L'o':
-	if (op[2] == L'\0') return test_single(args) || test_single(&args[2]);
-	if (op[2] == L't')
-	    if (op[3] == L'\0') return compare_files(left, right) == FC_OLDER;
-	break;
+        if (op[2] == L'\0') return test_single(args) || test_single(&args[2]);
+        if (op[2] == L't')
+            if (op[3] == L'\0') return compare_files(left, right) == FC_OLDER;
+        break;
     case L'e':
-	switch (op[2]) {
-	case L'f':
-	    if (op[3] == L'\0') return compare_files(left, right) == FC_ID;
-	    break;
-	case L'q':
-	    if (op[3] == L'\0') return compare_integers(left, right) == 0;
-	    break;
-	}
-	break;
+        switch (op[2]) {
+        case L'f':
+            if (op[3] == L'\0') return compare_files(left, right) == FC_ID;
+            break;
+        case L'q':
+            if (op[3] == L'\0') return compare_integers(left, right) == 0;
+            break;
+        }
+        break;
     case L'n':
-	switch (op[2]) {
-	case L'e':
-	    if (op[3] == L'\0') return compare_integers(left, right) != 0;
-	    break;
-	case L't':
-	    if (op[3] == L'\0') return compare_files(left, right) == FC_NEWER;
-	    break;
-	}
-	break;
+        switch (op[2]) {
+        case L'e':
+            if (op[3] == L'\0') return compare_integers(left, right) != 0;
+            break;
+        case L't':
+            if (op[3] == L'\0') return compare_files(left, right) == FC_NEWER;
+            break;
+        }
+        break;
     case L'g':
-	switch (op[2]) {
-	case L't':
-	    if (op[3] == L'\0') return compare_integers(left, right) > 0;
-	    break;
-	case L'e':
-	    if (op[3] == L'\0') return compare_integers(left, right) >= 0;
-	    break;
-	}
-	break;
+        switch (op[2]) {
+        case L't':
+            if (op[3] == L'\0') return compare_integers(left, right) > 0;
+            break;
+        case L'e':
+            if (op[3] == L'\0') return compare_integers(left, right) >= 0;
+            break;
+        }
+        break;
     case L'l':
-	switch (op[2]) {
-	case L't':
-	    if (op[3] == L'\0') return compare_integers(left, right) < 0;
-	    break;
-	case L'e':
-	    if (op[3] == L'\0') return compare_integers(left, right) <= 0;
-	    break;
-	}
-	break;
+        switch (op[2]) {
+        case L't':
+            if (op[3] == L'\0') return compare_integers(left, right) < 0;
+            break;
+        case L'e':
+            if (op[3] == L'\0') return compare_integers(left, right) <= 0;
+            break;
+        }
+        break;
     case L'v':
-	switch (op[2]) {
-	case L'e':
-	    if (op[3] == L'q' && op[4] == L'\0')
-		return compare_versions(left, right) == 0;
-	    break;
-	case L'n':
-	    if (op[3] == L'e' && op[4] == L'\0')
-		return compare_versions(left, right) != 0;
-	    break;
-	case L'g':
-	    switch (op[3]) {
-	    case L't':
-		if (op[4] == L'\0') return compare_versions(left, right) > 0;
-		break;
-	    case L'e':
-		if (op[4] == L'\0') return compare_versions(left, right) >= 0;
-		break;
-	    }
-	    break;
-	case L'l':
-	    switch (op[3]) {
-	    case L't':
-		if (op[4] == L'\0') return compare_versions(left, right) < 0;
-		break;
-	    case L'e':
-		if (op[4] == L'\0') return compare_versions(left, right) <= 0;
-		break;
-	    }
-	    break;
-	}
-	break;
+        switch (op[2]) {
+        case L'e':
+            if (op[3] == L'q' && op[4] == L'\0')
+                return compare_versions(left, right) == 0;
+            break;
+        case L'n':
+            if (op[3] == L'e' && op[4] == L'\0')
+                return compare_versions(left, right) != 0;
+            break;
+        case L'g':
+            switch (op[3]) {
+            case L't':
+                if (op[4] == L'\0') return compare_versions(left, right) > 0;
+                break;
+            case L'e':
+                if (op[4] == L'\0') return compare_versions(left, right) >= 0;
+                break;
+            }
+            break;
+        case L'l':
+            switch (op[3]) {
+            case L't':
+                if (op[4] == L'\0') return compare_versions(left, right) < 0;
+                break;
+            case L'e':
+                if (op[4] == L'\0') return compare_versions(left, right) <= 0;
+                break;
+            }
+            break;
+        }
+        break;
     }
 
 not_binary:
     if (wcscmp(left, L"!") == 0)
-	return !test_double(&args[1]);
+        return !test_double(&args[1]);
     if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
-	return test_single(&args[1]);
+        return test_single(&args[1]);
 
     xerror(0, Ngt("`%ls' is not a binary operator"), op);
     return 0;
@@ -406,10 +406,10 @@ bool test_long_or(struct test_state *state)
 
     result = test_long_and(state);
     while (yash_error_message_count == 0
-	    && state->index < state->argc
-	    && wcscmp(state->args[state->index], L"-o") == 0) {
-	state->index++;
-	result |= test_long_and(state);
+            && state->index < state->argc
+            && wcscmp(state->args[state->index], L"-o") == 0) {
+        state->index++;
+        result |= test_long_and(state);
     }
     return result;
 }
@@ -421,10 +421,10 @@ bool test_long_and(struct test_state *state)
 
     result = test_long_term(state);
     while (yash_error_message_count == 0
-	    && state->index < state->argc
-	    && wcscmp(state->args[state->index], L"-a") == 0) {
-	state->index++;
-	result &= test_long_term(state);
+            && state->index < state->argc
+            && wcscmp(state->args[state->index], L"-a") == 0) {
+        state->index++;
+        result &= test_long_term(state);
     }
     return result;
 }
@@ -436,40 +436,40 @@ bool test_long_term(struct test_state *state)
     bool negate = false;
 
     if (state->index < state->argc
-	    && wcscmp(state->args[state->index], L"!") == 0) {
-	state->index++;
-	negate = true;
+            && wcscmp(state->args[state->index], L"!") == 0) {
+        state->index++;
+        negate = true;
     }
     if (state->index >= state->argc) {
-	assert(state->argc > 0);
-	xerror(0, Ngt("an expression is missing after `%ls'"),
-		(const wchar_t *) state->args[state->index - 1]);
-	return 0;
+        assert(state->argc > 0);
+        xerror(0, Ngt("an expression is missing after `%ls'"),
+                (const wchar_t *) state->args[state->index - 1]);
+        return 0;
     }
     if (wcscmp(state->args[state->index], L"(") == 0) {
-	state->index++;
-	result = test_long_or(state);
-	if (state->index >= state->argc
-		|| wcscmp(state->args[state->index], L")") != 0) {
-	    xerror(0, Ngt("`%ls' is missing"), L")");
-	    return 0;
-	}
-	state->index++;
+        state->index++;
+        result = test_long_or(state);
+        if (state->index >= state->argc
+                || wcscmp(state->args[state->index], L")") != 0) {
+            xerror(0, Ngt("`%ls' is missing"), L")");
+            return 0;
+        }
+        state->index++;
     } else if (state->index + 3 <= state->argc
-	    && is_binary_primary(state->args[state->index + 1])
-	    && (state->index + 3 >= state->argc
-		|| is_term_delimiter(state->args[state->index + 3]))) {
-	result = test_triple(&state->args[state->index]);
-	state->index += 3;
+            && is_binary_primary(state->args[state->index + 1])
+            && (state->index + 3 >= state->argc
+                || is_term_delimiter(state->args[state->index + 3]))) {
+        result = test_triple(&state->args[state->index]);
+        state->index += 3;
     } else if (state->index + 2 <= state->argc
-	    && is_unary_primary(state->args[state->index])
-	    && (state->index + 2 >= state->argc
-		|| is_term_delimiter(state->args[state->index + 2]))) {
-	result = test_double(&state->args[state->index]);
-	state->index += 2;
+            && is_unary_primary(state->args[state->index])
+            && (state->index + 2 >= state->argc
+                || is_term_delimiter(state->args[state->index + 2]))) {
+        result = test_double(&state->args[state->index]);
+        state->index += 2;
     } else {
-	result = test_single(&state->args[state->index]);
-	state->index += 1;
+        result = test_single(&state->args[state->index]);
+        state->index += 1;
     }
     return result ^ negate;
 }
@@ -479,15 +479,15 @@ bool test_long_term(struct test_state *state)
 bool is_unary_primary(const wchar_t *word)
 {
     if (word[0] != L'-' || word[1] == L'\0' || word[2] != L'\0')
-	return false;
+        return false;
     switch (word[1]) {
-	case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'G':
-	case L'g':  case L'h':  case L'k':  case L'L':  case L'N':  case L'n':
-	case L'O':  case L'o':  case L'p':  case L'r':  case L'S':  case L's':
-	case L't':  case L'u':  case L'w':  case L'x':  case L'z':
-	    return true;
-	default:
-	    return false;
+        case L'b':  case L'c':  case L'd':  case L'e':  case L'f':  case L'G':
+        case L'g':  case L'h':  case L'k':  case L'L':  case L'N':  case L'n':
+        case L'O':  case L'o':  case L'p':  case L'r':  case L'S':  case L's':
+        case L't':  case L'u':  case L'w':  case L'x':  case L'z':
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -496,59 +496,59 @@ bool is_unary_primary(const wchar_t *word)
 bool is_binary_primary(const wchar_t *word)
 {
     switch (word[0]) {
-	case L'=':
-	    if (word[1] == L'\0' || (word[1] == L'~' && word[2] == L'\0'))
-		return true;
-	    /* falls thru! */
-	case L'!':
-	    if (word[1] != L'=')
-		return false;
-	    return (word[2] == L'\0') || (word[2] == L'=' && word[3] == L'\0');
-	case L'<':
-	case L'>':
-	    return (word[1] == L'\0') || (word[1] == L'=' && word[2] == L'\0');
-	case L'-':
-	    break;
-	default:
-	    return false;
+        case L'=':
+            if (word[1] == L'\0' || (word[1] == L'~' && word[2] == L'\0'))
+                return true;
+            /* falls thru! */
+        case L'!':
+            if (word[1] != L'=')
+                return false;
+            return (word[2] == L'\0') || (word[2] == L'=' && word[3] == L'\0');
+        case L'<':
+        case L'>':
+            return (word[1] == L'\0') || (word[1] == L'=' && word[2] == L'\0');
+        case L'-':
+            break;
+        default:
+            return false;
     }
 
     assert(word[0] == L'-');
     switch (word[1]) {
-	case L'e':
-	    switch (word[2]) {
-		case L'f':
-		case L'q':
-		    return word[3] == L'\0';
-	    }
-	    break;
-	case L'n':
-	case L'g':
-	case L'l':
-	    switch (word[2]) {
-		case L't':
-		case L'e':
-		    return word[3] == L'\0';
-	    }
-	    break;
-	case L'o':
-	    return word[2] == L't' && word[3] == L'\0';
-	case L'v':
-	    switch (word[2]) {
-		case L'e':
-		    return word[3] == L'q' && word[4] == L'\0';
-		case L'n':
-		    return word[3] == L'e' && word[4] == L'\0';
-		case L'g':
-		case L'l':
-		    switch (word[3]) {
-			case L't':
-			case L'e':
-			    return word[4] == L'\0';
-		    }
-		    break;
-	    }
-	    break;
+        case L'e':
+            switch (word[2]) {
+                case L'f':
+                case L'q':
+                    return word[3] == L'\0';
+            }
+            break;
+        case L'n':
+        case L'g':
+        case L'l':
+            switch (word[2]) {
+                case L't':
+                case L'e':
+                    return word[3] == L'\0';
+            }
+            break;
+        case L'o':
+            return word[2] == L't' && word[3] == L'\0';
+        case L'v':
+            switch (word[2]) {
+                case L'e':
+                    return word[3] == L'q' && word[4] == L'\0';
+                case L'n':
+                    return word[3] == L'e' && word[4] == L'\0';
+                case L'g':
+                case L'l':
+                    switch (word[3]) {
+                        case L't':
+                        case L'e':
+                            return word[4] == L'\0';
+                    }
+                    break;
+            }
+            break;
     }
     return false;
 }
@@ -558,15 +558,15 @@ bool is_binary_primary(const wchar_t *word)
 bool is_term_delimiter(const wchar_t *word)
 {
     switch (word[0]) {
-	case L')':
-	    return word[1] == L'\0';
-	case L'-':
-	    switch (word[1]) {
-		case L'a':
-		case L'o':
-		    return word[2] == L'\0';
-	    }
-	    break;
+        case L')':
+            return word[1] == L'\0';
+        case L'-':
+            switch (word[1]) {
+                case L'a':
+                case L'o':
+                    return word[2] == L'\0';
+            }
+            break;
     }
     return false;
 }
@@ -582,21 +582,21 @@ int compare_integers(const wchar_t *left, const wchar_t *right)
     errno = 0;
     il = wcstoimax(left, &end, 10);
     if (errno != 0 || left[0] == L'\0' || *end != L'\0') {
-	xerror(errno, Ngt("`%ls' is not a valid integer"), left);
-	return 0;
+        xerror(errno, Ngt("`%ls' is not a valid integer"), left);
+        return 0;
     }
     errno = 0;
     ir = wcstoimax(right, &end, 10);
     if (errno != 0 || right[0] == L'\0' || *end != L'\0') {
-	xerror(errno, Ngt("`%ls' is not a valid integer"), right);
-	return 0;
+        xerror(errno, Ngt("`%ls' is not a valid integer"), right);
+        return 0;
     }
     if (il < ir)
-	return -1;
+        return -1;
     else if (il > ir)
-	return 1;
+        return 1;
     else
-	return 0;
+        return 0;
 }
 
 /* Compares the specified two strings as version numbers.
@@ -605,34 +605,34 @@ int compare_integers(const wchar_t *left, const wchar_t *right)
 int compare_versions(const wchar_t *left, const wchar_t *right)
 {
     for (;;) {
-	bool leftisdigit = iswdigit(*left), rightisdigit = iswdigit(*right);
-	if (leftisdigit && rightisdigit) {
-	    uintmax_t il, ir;
+        bool leftisdigit = iswdigit(*left), rightisdigit = iswdigit(*right);
+        if (leftisdigit && rightisdigit) {
+            uintmax_t il, ir;
 
-	    il = wcstoumax(left,  (wchar_t **) &left,  10);
-	    ir = wcstoumax(right, (wchar_t **) &right, 10);
-	    if (il > ir)
-		return 1;
-	    if (il < ir)
-		return -1;
-	} else if (leftisdigit) {
-	    return 1;
-	} else if (rightisdigit) {
-	    return -1;
-	}
+            il = wcstoumax(left,  (wchar_t **) &left,  10);
+            ir = wcstoumax(right, (wchar_t **) &right, 10);
+            if (il > ir)
+                return 1;
+            if (il < ir)
+                return -1;
+        } else if (leftisdigit) {
+            return 1;
+        } else if (rightisdigit) {
+            return -1;
+        }
 
-	bool leftisalnum = iswalnum(*left), rightisalnum = iswalnum(*right);
-	if (leftisalnum && !rightisalnum)
-	    return 1;
-	if (!leftisalnum && rightisalnum)
-	    return -1;
+        bool leftisalnum = iswalnum(*left), rightisalnum = iswalnum(*right);
+        if (leftisalnum && !rightisalnum)
+            return 1;
+        if (!leftisalnum && rightisalnum)
+            return -1;
 
-	if (*left != *right)
-	    return wcscoll(left, right);
-	if (*left == L'\0')
-	    return 0;
+        if (*left != *right)
+            return wcscoll(left, right);
+        if (*left == L'\0')
+            return 0;
 
-	left++, right++;
+        left++, right++;
     }
 }
 
@@ -653,57 +653,57 @@ enum filecmp compare_files(const wchar_t *left, const wchar_t *right)
 
     mbsfile = malloc_wcstombs(left);
     if (mbsfile == NULL) {
-	xerror(EILSEQ, Ngt("unexpected error"));
-	return FC_UNKNOWN;
+        xerror(EILSEQ, Ngt("unexpected error"));
+        return FC_UNKNOWN;
     }
     sl_ok = stat(mbsfile, &sl) >= 0;
     free(mbsfile);
 
     mbsfile = malloc_wcstombs(right);
     if (mbsfile == NULL) {
-	xerror(EILSEQ, Ngt("unexpected error"));
-	return FC_UNKNOWN;
+        xerror(EILSEQ, Ngt("unexpected error"));
+        return FC_UNKNOWN;
     }
     sr_ok = stat(mbsfile, &sr) >= 0;
     free(mbsfile);
 
     if (!sl_ok)
-	if (!sr_ok)
-	    return FC_UNKNOWN;
-	else
-	    return FC_OLDER;
+        if (!sr_ok)
+            return FC_UNKNOWN;
+        else
+            return FC_OLDER;
     else if (!sr_ok)
-	return FC_NEWER;
+        return FC_NEWER;
 
     if (stat_result_same_file(&sl, &sr))
-	return FC_ID;
+        return FC_ID;
     else if (sl.st_mtime < sr.st_mtime)
-	return FC_OLDER;
+        return FC_OLDER;
     else if (sl.st_mtime > sr.st_mtime)
-	return FC_NEWER;
+        return FC_NEWER;
 #if HAVE_ST_MTIM
     else if (sl.st_mtim.tv_nsec < sr.st_mtim.tv_nsec)
-	return FC_OLDER;
+        return FC_OLDER;
     else if (sl.st_mtim.tv_nsec > sr.st_mtim.tv_nsec)
-	return FC_NEWER;
+        return FC_NEWER;
 #elif HAVE_ST_MTIMESPEC
     else if (sl.st_mtimespec.tv_nsec < sr.st_mtimespec.tv_nsec)
-	return FC_OLDER;
+        return FC_OLDER;
     else if (sl.st_mtimespec.tv_nsec > sr.st_mtimespec.tv_nsec)
-	return FC_NEWER;
+        return FC_NEWER;
 #elif HAVE_ST_MTIMENSEC
     else if (sl.st_mtimensec < sr.st_mtimensec)
-	return FC_OLDER;
+        return FC_OLDER;
     else if (sl.st_mtimensec > sr.st_mtimensec)
-	return FC_NEWER;
+        return FC_NEWER;
 #elif HAVE___ST_MTIMENSEC
     else if (sl.__st_mtimensec < sr.__st_mtimensec)
-	return FC_OLDER;
+        return FC_OLDER;
     else if (sl.__st_mtimensec > sr.__st_mtimensec)
-	return FC_NEWER;
+        return FC_NEWER;
 #endif
     else
-	return FC_SAME;
+        return FC_SAME;
 }
 
 #if YASH_ENABLE_HELP
@@ -739,56 +739,56 @@ int eval_dbexp(const dbexp_T *e)
     cc_word_T rhs = { NULL, NULL };
 
     switch (e->type) {
-	case DBE_OR:
-	    lhs_result = eval_dbexp(e->lhs.subexp);
-	    if (lhs_result != Exit_FALSE)
-		return lhs_result;
-	    return eval_dbexp(e->rhs.subexp);
-	case DBE_AND:
-	    lhs_result = eval_dbexp(e->lhs.subexp);
-	    if (lhs_result != Exit_TRUE)
-		return lhs_result;
-	    return eval_dbexp(e->rhs.subexp);
-	case DBE_NOT:
-	    switch (eval_dbexp(e->rhs.subexp)) {
-		case Exit_TRUE:   return Exit_FALSE;
-		case Exit_FALSE:  return Exit_TRUE;
-		default:          return Exit_TESTERROR;
-	    }
+        case DBE_OR:
+            lhs_result = eval_dbexp(e->lhs.subexp);
+            if (lhs_result != Exit_FALSE)
+                return lhs_result;
+            return eval_dbexp(e->rhs.subexp);
+        case DBE_AND:
+            lhs_result = eval_dbexp(e->lhs.subexp);
+            if (lhs_result != Exit_TRUE)
+                return lhs_result;
+            return eval_dbexp(e->rhs.subexp);
+        case DBE_NOT:
+            switch (eval_dbexp(e->rhs.subexp)) {
+                case Exit_TRUE:   return Exit_FALSE;
+                case Exit_FALSE:  return Exit_TRUE;
+                default:          return Exit_TESTERROR;
+            }
 
-	case DBE_UNARY:
-	    rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
-	    if (rhs.value == NULL)
-		return Exit_TESTERROR;
-	    result = test_double((void *[]) { e->operator, rhs.value });
-	    break;
-	case DBE_BINARY:
-	    lhs = expand_double_bracket_operand_unescaped(e->lhs.word);
-	    if (lhs == NULL)
-		return Exit_TESTERROR;
-	    rhs = expand_double_bracket_operand(e->rhs.word);
-	    if (rhs.value == NULL) {
-		free(lhs);
-		return Exit_TESTERROR;
-	    }
-	    result = test_triple_db(lhs, e->operator, rhs.value, rhs.cc);
-	    break;
-	case DBE_STRING:
-	    rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
-	    if (rhs.value == NULL)
-		return Exit_TESTERROR;
-	    result = test_single((void *[]) { rhs.value });
-	    break;
+        case DBE_UNARY:
+            rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
+            if (rhs.value == NULL)
+                return Exit_TESTERROR;
+            result = test_double((void *[]) { e->operator, rhs.value });
+            break;
+        case DBE_BINARY:
+            lhs = expand_double_bracket_operand_unescaped(e->lhs.word);
+            if (lhs == NULL)
+                return Exit_TESTERROR;
+            rhs = expand_double_bracket_operand(e->rhs.word);
+            if (rhs.value == NULL) {
+                free(lhs);
+                return Exit_TESTERROR;
+            }
+            result = test_triple_db(lhs, e->operator, rhs.value, rhs.cc);
+            break;
+        case DBE_STRING:
+            rhs.value = expand_double_bracket_operand_unescaped(e->rhs.word);
+            if (rhs.value == NULL)
+                return Exit_TESTERROR;
+            result = test_single((void *[]) { rhs.value });
+            break;
 
-	default:
-	    assert(false);
+        default:
+            assert(false);
     }
 
     free(lhs);
     free(rhs.value);
     free(rhs.cc);
     if (yash_error_message_count > 0)
-	return Exit_TESTERROR;
+        return Exit_TESTERROR;
     return result ? Exit_TRUE : Exit_FALSE;
 }
 
@@ -809,25 +809,25 @@ wchar_t *expand_double_bracket_operand_unescaped(const wordunit_T *w)
  * command. The left-hand-side must be given literal (with quote removal already
  * performed) while the right-hand-side quoted (without quote removal). */
 bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *rhsvalue, const char *rhscc)
 {
     /* Some string comparison primaries in the double-bracket command are
      * different from those in the test built-in. */
     switch (op[0]) {
-	case L'=':
-	    if (op[1] == L'~') {
-		assert(op[2] == L'\0');
-		return quote_removal_and_regex_matching(lhs, rhsvalue, rhscc);
-	    }
-	    if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
-		return quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
-	    break;
-	case L'!':
-	    assert(op[1] == L'=');
-	    if (op[2] == L'\0')
-		return
-		    !quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
-	    break;
+        case L'=':
+            if (op[1] == L'~') {
+                assert(op[2] == L'\0');
+                return quote_removal_and_regex_matching(lhs, rhsvalue, rhscc);
+            }
+            if (op[1] == L'\0' || (op[1] == L'=' && op[2] == L'\0'))
+                return quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
+            break;
+        case L'!':
+            assert(op[1] == L'=');
+            if (op[2] == L'\0')
+                return
+                    !quote_removal_and_pattern_matching(lhs, rhsvalue, rhscc);
+            break;
     }
 
     return quote_removal_and_test_triple(lhs, op, rhsvalue, rhscc);
@@ -836,8 +836,8 @@ bool test_triple_db(const wchar_t *lhs, const wchar_t *op,
 /* Performs quote removal on the right hand side and then applies `test_triple'.
  */
 bool quote_removal_and_test_triple(
-	const wchar_t *lhs, const wchar_t *op,
-	const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *op,
+        const wchar_t *rhsvalue, const char *rhscc)
 {
     wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_NONE);
     void *args[] = { (void *) lhs, (void *) op, (void *) rhs, };
@@ -848,7 +848,7 @@ bool quote_removal_and_test_triple(
 
 /* Performs quote removal on the right hand side and then pattern matching. */
 bool quote_removal_and_pattern_matching(
-	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
 {
     wchar_t *rhs = quote_removal(rhsvalue, rhscc, ES_QUOTED);
     bool result = match_pattern(lhs, rhs);
@@ -859,7 +859,7 @@ bool quote_removal_and_pattern_matching(
 /* Performs quote removal on the right hand side and then regular expression
  * matching. */
 bool quote_removal_and_regex_matching(
-	const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
+        const wchar_t *lhs, const wchar_t *rhsvalue, const char *rhscc)
 {
     wchar_t *rhs = quote_removal_for_regex(rhsvalue, rhscc);
     bool result = match_regex(lhs, rhs);
@@ -880,30 +880,30 @@ wchar_t *quote_removal_for_regex(const wchar_t *s, const char *cc)
     wb_initwithmax(&tmp, sizehint);
     sb_initwithmax(&tmpcc, sizehint);
     for (size_t i = 0; s[i] != L'\0'; i++) {
-	if (cc[i] & CC_QUOTATION)
-	    continue;
-	wb_wccat(&tmp, s[i]);
-	sb_ccat(&tmpcc, cc[i]);
+        if (cc[i] & CC_QUOTATION)
+            continue;
+        wb_wccat(&tmp, s[i]);
+        sb_ccat(&tmpcc, cc[i]);
     }
 
     /* Next, escape unquoted special chars outside brackets */
     xwcsbuf_T result;
     wb_initwithmax(&result, sizehint);
     for (size_t i = 0; tmp.contents[i] != L'\0'; ) {
-	if (tmpcc.contents[i] & CC_QUOTED) {
-	    if (wcschr(L"^.[$()|*+?{\\", tmp.contents[i]) != NULL)
-		wb_wccat(&result, L'\\');
-	    wb_wccat(&result, tmp.contents[i++]);
-	} else {
-	    if (tmp.contents[i] != L'[') {
-		wb_wccat(&result, tmp.contents[i++]);
-	    } else {
-		const wchar_t *s2 = skip_bracket(&tmp.contents[i]);
-		size_t j = s2 - tmp.contents;
-		while (i < j)
-		    wb_wccat(&result, tmp.contents[i++]);
-	    }
-	}
+        if (tmpcc.contents[i] & CC_QUOTED) {
+            if (wcschr(L"^.[$()|*+?{\\", tmp.contents[i]) != NULL)
+                wb_wccat(&result, L'\\');
+            wb_wccat(&result, tmp.contents[i++]);
+        } else {
+            if (tmp.contents[i] != L'[') {
+                wb_wccat(&result, tmp.contents[i++]);
+            } else {
+                const wchar_t *s2 = skip_bracket(&tmp.contents[i]);
+                size_t j = s2 - tmp.contents;
+                while (i < j)
+                    wb_wccat(&result, tmp.contents[i++]);
+            }
+        }
     }
 
     sb_destroy(&tmpcc);
@@ -920,26 +920,26 @@ const wchar_t *skip_bracket(const wchar_t *s)
     s++;
 
     if (*s == L'^')
-	s++;
+        s++;
     if (*s == L']')
-	s++;
+        s++;
 
     while (*s != L'\0') {
-	if (*s == L']')
-	    return s + 1;
-	if (*s++ != L'[')
-	    continue;
+        if (*s == L']')
+            return s + 1;
+        if (*s++ != L'[')
+            continue;
 
-	switch (*s) {
-	    case L':': case L'.': case L'=': ;
-		wchar_t end[] = { *s, L']', L'\0', };
-		s++;
-		const wchar_t *endp = wcsstr(s, end);
-		if (endp == NULL)
-		    return s + wcslen(s);
-		s = endp + 2;
-		break;
-	}
+        switch (*s) {
+            case L':': case L'.': case L'=': ;
+                wchar_t end[] = { *s, L']', L'\0', };
+                s++;
+                const wchar_t *endp = wcsstr(s, end);
+                if (endp == NULL)
+                    return s + wcslen(s);
+                s = endp + 2;
+                break;
+        }
     }
 
     return s;
@@ -948,4 +948,4 @@ const wchar_t *skip_bracket(const wchar_t *s)
 #endif /* YASH_ENABLE_DOUBLE_BRACKET */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

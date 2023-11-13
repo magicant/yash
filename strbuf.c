@@ -33,7 +33,7 @@
 
 #if HAVE_WCSNRTOMBS && !defined(wcsnrtombs)
 size_t wcsnrtombs(char *restrict dst, const wchar_t **restrict src, size_t nwc,
-	size_t len, mbstate_t *restrict ps);
+        size_t len, mbstate_t *restrict ps);
 #endif
 
 
@@ -75,7 +75,7 @@ xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
     buf->maxlength = newmax;
     buf->contents[newmax] = '\0';
     if (newmax < buf->length)
-	buf->length = newmax;
+        buf->length = newmax;
     return buf;
 }
 
@@ -84,13 +84,13 @@ xstrbuf_T *sb_setmax(xstrbuf_T *buf, size_t newmax)
 xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
 {
     if (max <= buf->maxlength)
-	return buf;
+        return buf;
 
     size_t len15 = buf->maxlength + (buf->maxlength >> 1);
     if (max < len15)
-	max = len15;
+        max = len15;
     if (max < buf->maxlength + 10)
-	max = buf->maxlength + 10;
+        max = buf->maxlength + 10;
     return sb_setmax(buf, max);
 }
 
@@ -100,13 +100,13 @@ xstrbuf_T *sb_ensuremax(xstrbuf_T *buf, size_t max)
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_replace_force(
-	xstrbuf_T *restrict buf, size_t i, size_t bn,
-	const char *restrict s, size_t sn)
+        xstrbuf_T *restrict buf, size_t i, size_t bn,
+        const char *restrict s, size_t sn)
 {
     size_t newlength = add(buf->length - bn, sn);
     sb_ensuremax(buf, newlength);
     memmove(buf->contents + i + sn, buf->contents + i + bn,
-	    buf->length - (i + bn) + 1);
+            buf->length - (i + bn) + 1);
     memcpy(buf->contents + i, s, sn);
     buf->length = newlength;
     return buf;
@@ -120,14 +120,14 @@ xstrbuf_T *sb_replace_force(
  * is replaced. Especially, if (buf->length <= i), `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_replace(
-	xstrbuf_T *restrict buf, size_t i, size_t bn,
-	const char *restrict s, size_t sn)
+        xstrbuf_T *restrict buf, size_t i, size_t bn,
+        const char *restrict s, size_t sn)
 {
     sn = xstrnlen(s, sn);
     if (i > buf->length)
-	i = buf->length;
+        i = buf->length;
     if (bn > buf->length - i)
-	bn = buf->length - i;
+        bn = buf->length - i;
     return sb_replace_force(buf, i, bn, s, sn);
 }
 
@@ -165,15 +165,15 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     sb_ensuremax(buf, add(buf->length, MB_CUR_MAX));
     count = wcrtomb(&buf->contents[buf->length], c, ps);
     if (count == (size_t) -1) {
-	buf->contents[buf->length] = '\0';
-	return false;
+        buf->contents[buf->length] = '\0';
+        return false;
     }
     assert(0 < count && count <= buf->maxlength - buf->length);
     buf->length += count;
     if (c == L'\0')
-	buf->length--;
+        buf->length--;
     else
-	buf->contents[buf->length] = '\0';
+        buf->contents[buf->length] = '\0';
     assert(buf->contents[buf->length] == '\0');
     return true;
 }
@@ -186,39 +186,39 @@ bool sb_wccat(xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
  * otherwise a pointer to the character in `s' that caused the error.
  * A partial result may be left in the buffer on error. */
 wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
+        const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
 {
 #if HAVE_WCSNRTOMBS
     for (;;) {
-	const wchar_t *saves = s;
-	size_t count = wcsnrtombs(&buf->contents[buf->length],
-		(const wchar_t **) &s, n,
-		buf->maxlength - buf->length, ps);
-	if (count == (size_t) -1) {
-	    buf->contents[buf->length] = '\0';
-	    break;
-	}
-	buf->length += count;
-	if (s == NULL)
-	    break;
-	assert((size_t) (s - saves) <= n);
-	n -= s - saves;
-	if (n == 0) {
-	    buf->contents[buf->length] = '\0';
-	    s = NULL;
-	    break;
-	}
-	sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
+        const wchar_t *saves = s;
+        size_t count = wcsnrtombs(&buf->contents[buf->length],
+                (const wchar_t **) &s, n,
+                buf->maxlength - buf->length, ps);
+        if (count == (size_t) -1) {
+            buf->contents[buf->length] = '\0';
+            break;
+        }
+        buf->length += count;
+        if (s == NULL)
+            break;
+        assert((size_t) (s - saves) <= n);
+        n -= s - saves;
+        if (n == 0) {
+            buf->contents[buf->length] = '\0';
+            s = NULL;
+            break;
+        }
+        sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
     }
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
 #else
     while (n > 0) {
-	if (!sb_wccat(buf, *s, ps))
-	    return (wchar_t *) s;
-	if (*s == L'\0')
-	    return NULL;
-	s++, n--;
+        if (!sb_wccat(buf, *s, ps))
+            return (wchar_t *) s;
+        if (*s == L'\0')
+            return NULL;
+        s++, n--;
     }
     return NULL;
 #endif
@@ -232,21 +232,21 @@ wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
  * A partial result may be left in the buffer on error. */
 #if !HAVE_WCSNRTOMBS
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, mbstate_t *restrict ps)
+        const wchar_t *restrict s, mbstate_t *restrict ps)
 {
     for (;;) {
-	size_t count = wcsrtombs(&buf->contents[buf->length],
-		(const wchar_t **) &s,
-		buf->maxlength - buf->length,
-		ps);
-	if (count == (size_t) -1) {
-	    buf->contents[buf->length] = '\0';
-	    break;
-	}
-	buf->length += count;
-	if (s == NULL)
-	    break;
-	sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
+        size_t count = wcsrtombs(&buf->contents[buf->length],
+                (const wchar_t **) &s,
+                buf->maxlength - buf->length,
+                ps);
+        if (count == (size_t) -1) {
+            buf->contents[buf->length] = '\0';
+            break;
+        }
+        buf->length += count;
+        if (s == NULL)
+            break;
+        sb_ensuremax(buf, add(buf->maxlength, MB_CUR_MAX));
     }
     assert(buf->contents[buf->length] == '\0');
     return (wchar_t *) s;
@@ -273,13 +273,13 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     if (result >= 0 && (size_t) result >= rest) {
 #else // INT_MAX >= SIZE_MAX
     if (result >= (int) rest) {
-	if (result > (int) SIZE_MAX)
-	    alloc_failed();
+        if (result > (int) SIZE_MAX)
+            alloc_failed();
 #endif
-	// retry with a larger buffer
-	sb_ensuremax(buf, add(buf->length, (size_t) result));
-	rest = buf->maxlength - buf->length + 1;
-	result = vsnprintf(&buf->contents[buf->length], rest, format, copyap);
+        // retry with a larger buffer
+        sb_ensuremax(buf, add(buf->length, (size_t) result));
+        rest = buf->maxlength - buf->length + 1;
+        result = vsnprintf(&buf->contents[buf->length], rest, format, copyap);
     }
 #if INT_MAX < SIZE_MAX
     assert(result < 0 || (size_t) result < rest);
@@ -288,9 +288,9 @@ int sb_vprintf(xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
 #endif
 
     if (result >= 0)
-	buf->length += result;
+        buf->length += result;
     else
-	buf->contents[buf->length] = '\0';
+        buf->contents[buf->length] = '\0';
     assert(buf->contents[buf->length] == '\0');
     va_end(copyap);
     return result;
@@ -344,7 +344,7 @@ xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
     buf->maxlength = newmax;
     buf->contents[newmax] = L'\0';
     if (newmax < buf->length)
-	buf->length = newmax;
+        buf->length = newmax;
     return buf;
 }
 
@@ -353,13 +353,13 @@ xwcsbuf_T *wb_setmax(xwcsbuf_T *buf, size_t newmax)
 xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
 {
     if (max <= buf->maxlength)
-	return buf;
+        return buf;
 
     size_t len15 = buf->maxlength + (buf->maxlength >> 1);
     if (max < len15)
-	max = len15;
+        max = len15;
     if (max < buf->maxlength + 8)
-	max = buf->maxlength + 8;
+        max = buf->maxlength + 8;
     return wb_setmax(buf, max);
 }
 
@@ -369,13 +369,13 @@ xwcsbuf_T *wb_ensuremax(xwcsbuf_T *buf, size_t max)
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_replace_force(
-	xwcsbuf_T *restrict buf, size_t i, size_t bn,
-	const wchar_t *restrict s, size_t sn)
+        xwcsbuf_T *restrict buf, size_t i, size_t bn,
+        const wchar_t *restrict s, size_t sn)
 {
     size_t newlength = add(buf->length - bn, sn);
     wb_ensuremax(buf, newlength);
     wmemmove(buf->contents + i + sn, buf->contents + i + bn,
-	    buf->length - (i + bn) + 1);
+            buf->length - (i + bn) + 1);
     wmemcpy(buf->contents + i, s, sn);
     buf->length = newlength;
     return buf;
@@ -389,14 +389,14 @@ xwcsbuf_T *wb_replace_force(
  * is replaced. Especially, if (buf->length <= i), `s' is appended.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_replace(
-	xwcsbuf_T *restrict buf, size_t i, size_t bn,
-	const wchar_t *restrict s, size_t sn)
+        xwcsbuf_T *restrict buf, size_t i, size_t bn,
+        const wchar_t *restrict s, size_t sn)
 {
     sn = xwcsnlen(s, sn);
     if (i > buf->length)
-	i = buf->length;
+        i = buf->length;
     if (bn > buf->length - i)
-	bn = buf->length - i;
+        bn = buf->length - i;
     return wb_replace_force(buf, i, bn, s, sn);
 }
 
@@ -423,14 +423,14 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
     memset(&state, 0, sizeof state);  // initialize as the initial shift state
 
     for (;;) {
-	count = mbsrtowcs(&buf->contents[buf->length], (const char **) &s,
-		buf->maxlength - buf->length + 1, &state);
-	if (count == (size_t) -1)
-	    break;
-	buf->length += count;
-	if (s == NULL)
-	    break;
-	wb_ensuremax(buf, add(buf->maxlength, 1));
+        count = mbsrtowcs(&buf->contents[buf->length], (const char **) &s,
+                buf->maxlength - buf->length + 1, &state);
+        if (count == (size_t) -1)
+            break;
+        buf->length += count;
+        if (s == NULL)
+            break;
+        wb_ensuremax(buf, add(buf->maxlength, 1));
     }
 
     buf->contents[buf->length] = L'\0';
@@ -442,40 +442,40 @@ char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
  * Returns the number of appended characters if successful.
  * On error, the buffer is not changed and -1 is returned. */
 int wb_vwprintf(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
 {
     va_list copyap;
     size_t rest;
     int result;
 
     for (int i = 0; i < 20; i++) {
-	va_copy(copyap, ap);
-	rest = buf->maxlength - buf->length + 1;
-	result = vswprintf(&buf->contents[buf->length], rest, format, copyap);
-	va_end(copyap);
+        va_copy(copyap, ap);
+        rest = buf->maxlength - buf->length + 1;
+        result = vswprintf(&buf->contents[buf->length], rest, format, copyap);
+        va_end(copyap);
 
-	if (0 <= result &&
+        if (0 <= result &&
 #if INT_MAX < SIZE_MAX
-		(size_t) result < rest)
+                (size_t) result < rest)
 #else // INT_MAX >= SIZE_MAX
-		result < (int) rest)
+                result < (int) rest)
 #endif
-	    break;
+            break;
 #if INT_MAX > SIZE_MAX
-	if (result > (int) SIZE_MAX)
-	    alloc_failed();
+        if (result > (int) SIZE_MAX)
+            alloc_failed();
 #endif
 
-	/* According to POSIX, if the buffer is too short, `vswprintf' returns
-	 * a negative integer. On some systems, however, it returns a desired
-	 * buffer length as `vsprintf' does, which is rather preferable. */
-	wb_ensuremax(buf,
-		add(buf->length, result < 0 ? mul(2, rest) : (size_t) result));
+        /* According to POSIX, if the buffer is too short, `vswprintf' returns
+         * a negative integer. On some systems, however, it returns a desired
+         * buffer length as `vsprintf' does, which is rather preferable. */
+        wb_ensuremax(buf,
+                add(buf->length, result < 0 ? mul(2, rest) : (size_t) result));
     }
     if (result >= 0)
-	buf->length += result;
+        buf->length += result;
     else
-	buf->contents[buf->length] = L'\0';
+        buf->contents[buf->length] = L'\0';
     assert(buf->contents[buf->length] == L'\0');
     return result;
 }
@@ -511,10 +511,10 @@ char *malloc_wcsntombs(const wchar_t *s, size_t n)
     sb_init(&buf);
     memset(&state, 0, sizeof state);  // initialize as the initial shift state
     if (sb_wcsncat(&buf, s, n, &state) == NULL) {
-	return sb_tostr(&buf);
+        return sb_tostr(&buf);
     } else {
-	sb_destroy(&buf);
-	return NULL;
+        sb_destroy(&buf);
+        return NULL;
     }
 }
 
@@ -530,10 +530,10 @@ char *malloc_wcstombs(const wchar_t *s)
     sb_init(&buf);
     memset(&state, 0, sizeof state);  // initialize as the initial shift state
     if (sb_wcscat(&buf, s, &state) == NULL) {
-	return sb_tostr(&buf);
+        return sb_tostr(&buf);
     } else {
-	sb_destroy(&buf);
-	return NULL;
+        sb_destroy(&buf);
+        return NULL;
     }
 }
 #endif
@@ -546,10 +546,10 @@ wchar_t *malloc_mbstowcs(const char *s)
 
     wb_init(&buf);
     if (wb_mbscat(&buf, s) == NULL) {
-	return wb_towcs(&buf);
+        return wb_towcs(&buf);
     } else {
-	wb_destroy(&buf);
-	return NULL;
+        wb_destroy(&buf);
+        return NULL;
     }
 }
 
@@ -563,7 +563,7 @@ char *malloc_vprintf(const char *format, va_list ap)
     xstrbuf_T buf;
     sb_init(&buf);
     if (sb_vprintf(&buf, format, ap) < 0)
-	xerror(errno, Ngt("unexpected error"));
+        xerror(errno, Ngt("unexpected error"));
     return sb_tostr(&buf);
 }
 
@@ -586,7 +586,7 @@ wchar_t *malloc_vwprintf(const wchar_t *format, va_list ap)
     xwcsbuf_T buf;
     wb_init(&buf);
     if (wb_vwprintf(&buf, format, ap) < 0)
-	xerror(errno, Ngt("unexpected error"));
+        xerror(errno, Ngt("unexpected error"));
     return wb_towcs(&buf);
 }
 
@@ -615,22 +615,22 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 
     /* count the full length of the resulting string */
     for (elemcount = 0; array[elemcount] != NULL; elemcount++)
-	ccount = add(ccount, wcslen(array[elemcount]));
+        ccount = add(ccount, wcslen(array[elemcount]));
     if (elemcount > 0)
-	ccount = add(ccount, mul(wcslen(padding), elemcount - 1));
+        ccount = add(ccount, mul(wcslen(padding), elemcount - 1));
 
     /* do copying */
     wchar_t *const result = xmalloce(ccount, 1, sizeof *result);
     wchar_t *s = result;
     for (size_t i = 0; i < elemcount; i++) {
-	wchar_t *elem = array[i];
-	while (*elem != L'\0')
-	    *s++ = *elem++;
-	if (i + 1 < elemcount) {
-	    const wchar_t *pad = padding;
-	    while (*pad != L'\0')
-		*s++ = *pad++;
-	}
+        wchar_t *elem = array[i];
+        while (*elem != L'\0')
+            *s++ = *elem++;
+        if (i + 1 < elemcount) {
+            const wchar_t *pad = padding;
+            while (*pad != L'\0')
+                *s++ = *pad++;
+        }
     }
     *s = L'\0';
 
@@ -638,4 +638,4 @@ wchar_t *joinwcsarray(void *const *array, const wchar_t *padding)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

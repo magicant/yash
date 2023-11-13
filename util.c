@@ -55,7 +55,7 @@ size_t xstrnlen(const char *s, size_t maxlen)
 {
     size_t result = 0;
     while (result < maxlen && s[result] != '\0')
-	result++;
+        result++;
     return result;
 }
 #endif
@@ -79,7 +79,7 @@ size_t xwcsnlen(const wchar_t *s, size_t maxlen)
 {
     size_t result = 0;
     while (result < maxlen && s[result] != L'\0')
-	result++;
+        result++;
     return result;
 }
 #endif
@@ -110,20 +110,20 @@ bool xstrtoi(const char *s, int base, int *resultp)
     long result;
     char *endp;
     if (*s == '\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     errno = 0;
     result = strtol(s, &endp, base);
     if (errno != 0)
-	return false;
+        return false;
     if (*endp != '\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     if (result < INT_MIN || result > INT_MAX) {
-	errno = ERANGE;
-	return false;
+        errno = ERANGE;
+        return false;
     }
     *resultp = (int) result;
     return true;
@@ -141,10 +141,10 @@ bool xwcstoi(const wchar_t *s, int base, int *resultp)
 {
     long result;
     if (!xwcstol(s, base, &result))
-	return false;
+        return false;
     if (result < INT_MIN || result > INT_MAX) {
-	errno = ERANGE;
-	return false;
+        errno = ERANGE;
+        return false;
     }
     *resultp = (int) result;
     return true;
@@ -155,16 +155,16 @@ bool xwcstol(const wchar_t *s, int base, long *resultp)
 {
     wchar_t *endp;
     if (*s == L'\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     errno = 0;
     *resultp = wcstol(s, &endp, base);
     if (errno != 0)
-	return false;
+        return false;
     if (*endp != L'\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     return true;
 }
@@ -174,16 +174,16 @@ bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
 {
     wchar_t *endp;
     if (*s == L'\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     errno = 0;
     *resultp = wcstoul(s, &endp, base);
     if (errno != 0)
-	return false;
+        return false;
     if (*endp != L'\0') {
-	errno = EINVAL;
-	return false;
+        errno = EINVAL;
+        return false;
     }
     return true;
 }
@@ -194,9 +194,9 @@ bool xwcstoul(const wchar_t *s, int base, unsigned long *resultp)
 char *matchstrprefix(const char *s, const char *prefix)
 {
     while (*prefix != '\0') {
-	if (*prefix != *s)
-	    return NULL;
-	prefix++, s++;
+        if (*prefix != *s)
+            return NULL;
+        prefix++, s++;
     }
     return (char *) s;
 }
@@ -207,9 +207,9 @@ char *matchstrprefix(const char *s, const char *prefix)
 wchar_t *matchwcsprefix(const wchar_t *s, const wchar_t *prefix)
 {
     while (*prefix != L'\0') {
-	if (*prefix != *s)
-	    return NULL;
-	prefix++, s++;
+        if (*prefix != *s)
+            return NULL;
+        prefix++, s++;
     }
     return (wchar_t *) s;
 }
@@ -246,21 +246,21 @@ void xerror(int errno_, const char *restrict format, ...)
 {
     yash_error_message_count++;
     fprintf(stderr, "%ls: ",
-	    current_builtin_name != NULL
-	    ? current_builtin_name
-	    : yash_program_invocation_name);
+            current_builtin_name != NULL
+            ? current_builtin_name
+            : yash_program_invocation_name);
     if (format == NULL && errno_ == 0)
-	format = Ngt("unknown error");
+        format = Ngt("unknown error");
     if (format != NULL) {
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stderr, gt(format), ap);
-	va_end(ap);
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stderr, gt(format), ap);
+        va_end(ap);
     }
     if (errno_ != 0) {
-	fprintf(stderr,
-		(format == NULL) ? "%s" : ": %s",
-		strerror(errno_));
+        fprintf(stderr,
+                (format == NULL) ? "%s" : ": %s",
+                strerror(errno_));
     }
     fputc('\n', stderr);
 }
@@ -280,12 +280,12 @@ bool xprintf(const char *restrict format, ...)
     va_end(ap);
 
     if (result >= 0) {
-	return true;
+        return true;
     } else {
-	xerror(errno, Ngt("cannot print to the standard output"));
-	return false;
+        xerror(errno, Ngt("cannot print to the standard output"));
+        return false;
     }
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

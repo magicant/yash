@@ -79,26 +79,26 @@ void init_builtin(void)
 #if YASH_ENABLE_HELP
 # define DEFBUILTIN(name,func,type,help,syntax,options) \
     do {                                                                      \
-	static const builtin_T bi = { func, type, help, syntax, options, };   \
-	ht_set(&builtins, name, &bi);                                         \
+        static const builtin_T bi = { func, type, help, syntax, options, };   \
+        ht_set(&builtins, name, &bi);                                         \
     } while (0)
 #else
 # define DEFBUILTIN(name,func,type,help,syntax,options) \
     do {                                                                      \
-	static const builtin_T bi = { func, type, };                          \
-	ht_set(&builtins, name, &bi);                                         \
+        static const builtin_T bi = { func, type, };                          \
+        ht_set(&builtins, name, &bi);                                         \
     } while (0)
 #endif
 
     /* defined in "builtin.c" */
     DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help, colon_syntax, NULL);
     DEFBUILTIN("true", true_builtin, BI_MANDATORY, true_help, true_syntax,
-	    NULL);
+            NULL);
     DEFBUILTIN("false", false_builtin, BI_MANDATORY, false_help, false_syntax,
-	    NULL);
+            NULL);
 #if YASH_ENABLE_HELP
     DEFBUILTIN("help", help_builtin, BI_ELECTIVE, help_help, help_syntax,
-	    help_option);
+            help_option);
 #endif
 
     /* defined in "option.c" */
@@ -106,133 +106,133 @@ void init_builtin(void)
 
     /* defined in "path.c" */
     DEFBUILTIN("cd", cd_builtin, BI_MANDATORY, cd_help, cd_syntax,
-	    cd_options);
+            cd_options);
     DEFBUILTIN("pwd", pwd_builtin, BI_MANDATORY, pwd_help, pwd_syntax,
-	    pwd_options);
+            pwd_options);
     DEFBUILTIN("hash", hash_builtin, BI_MANDATORY, hash_help, hash_syntax,
-	    hash_options);
+            hash_options);
     DEFBUILTIN("umask", umask_builtin, BI_MANDATORY, umask_help, umask_syntax,
-	    umask_options);
+            umask_options);
 
     /* defined in "alias.c" */
     DEFBUILTIN("alias", alias_builtin, BI_MANDATORY, alias_help, alias_syntax,
-	    alias_options);
+            alias_options);
     DEFBUILTIN("unalias", unalias_builtin, BI_MANDATORY, unalias_help,
-	    unalias_syntax, all_help_options);
+            unalias_syntax, all_help_options);
 
     /* defined in "variable.c" */
     DEFBUILTIN("typeset", typeset_builtin, BI_ELECTIVE, typeset_help,
-	    typeset_syntax, typeset_options);
+            typeset_syntax, typeset_options);
     DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
-	    export_syntax, typeset_options);
+            export_syntax, typeset_options);
     DEFBUILTIN("local", typeset_builtin, BI_ELECTIVE, local_help,
-	    local_syntax, local_options);
+            local_syntax, local_options);
     DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
-	    readonly_syntax, typeset_options);
+            readonly_syntax, typeset_options);
 #if YASH_ENABLE_ARRAY
     DEFBUILTIN("array", array_builtin, BI_EXTENSION, array_help, array_syntax,
-	    array_options);
+            array_options);
 #endif
     DEFBUILTIN("unset", unset_builtin, BI_SPECIAL, unset_help, unset_syntax,
-	    unset_options);
+            unset_options);
     DEFBUILTIN("shift", shift_builtin, BI_SPECIAL, shift_help, shift_syntax,
-	    shift_options);
+            shift_options);
     DEFBUILTIN("getopts", getopts_builtin, BI_MANDATORY, getopts_help,
-	    getopts_syntax, help_option);
+            getopts_syntax, help_option);
     DEFBUILTIN("read", read_builtin, BI_MANDATORY, read_help, read_syntax,
-	    read_options);
+            read_options);
 #if YASH_ENABLE_DIRSTACK
     DEFBUILTIN("pushd", pushd_builtin, BI_ELECTIVE, pushd_help, pushd_syntax,
-	    pushd_options);
+            pushd_options);
     DEFBUILTIN("popd", popd_builtin, BI_ELECTIVE, popd_help, popd_syntax,
-	    help_option);
+            help_option);
     DEFBUILTIN("dirs", dirs_builtin, BI_ELECTIVE, dirs_help, dirs_syntax,
-	    dirs_options);
+            dirs_options);
 #endif
 
     /* defined in "sig.c" */
     DEFBUILTIN("trap", trap_builtin, BI_SPECIAL, trap_help, trap_syntax,
-	    trap_options);
+            trap_options);
     DEFBUILTIN("kill", kill_builtin, BI_MANDATORY, kill_help, kill_syntax,
-	    NULL);
+            NULL);
 
     /* defined in "job.c" */
     DEFBUILTIN("jobs", jobs_builtin, BI_MANDATORY, jobs_help, jobs_syntax,
-	    jobs_options);
+            jobs_options);
     DEFBUILTIN("fg", fg_builtin, BI_MANDATORY, fg_help, fg_syntax,
-	    help_option);
+            help_option);
     DEFBUILTIN("bg", fg_builtin, BI_MANDATORY, bg_help, bg_syntax,
-	    help_option);
+            help_option);
     DEFBUILTIN("wait", wait_builtin, BI_MANDATORY, wait_help, wait_syntax,
-	    help_option);
+            help_option);
     DEFBUILTIN("disown", disown_builtin, BI_ELECTIVE, disown_help,
-	    disown_syntax, all_help_options);
+            disown_syntax, all_help_options);
 
     /* defined in "history.c" */
 #if YASH_ENABLE_HISTORY
     DEFBUILTIN("fc", fc_builtin, BI_MANDATORY, fc_help, fc_syntax,
-	    fc_options);
+            fc_options);
     DEFBUILTIN("history", history_builtin, BI_ELECTIVE, history_help,
-	    history_syntax, history_options);
+            history_syntax, history_options);
 #endif
 
     /* defined in "exec.c" */
     DEFBUILTIN("return", return_builtin, BI_SPECIAL, return_help, return_syntax,
-	    return_options);
+            return_options);
     DEFBUILTIN("break", break_builtin, BI_SPECIAL, break_help, break_syntax,
-	    iter_options);
+            iter_options);
     DEFBUILTIN("continue", break_builtin, BI_SPECIAL, continue_help,
-	    continue_syntax, iter_options);
+            continue_syntax, iter_options);
     DEFBUILTIN("eval", eval_builtin, BI_SPECIAL, eval_help, eval_syntax,
-	    iter_options);
+            iter_options);
     DEFBUILTIN(".", dot_builtin, BI_SPECIAL, dot_help, dot_syntax, dot_options);
     DEFBUILTIN("exec", exec_builtin, BI_SPECIAL, exec_help, exec_syntax,
-	    exec_options);
+            exec_options);
     DEFBUILTIN("command", command_builtin, BI_MANDATORY, command_help,
-	    command_syntax, command_options);
+            command_syntax, command_options);
     DEFBUILTIN("type", command_builtin, BI_MANDATORY, type_help, type_syntax,
-	    command_options);
+            command_options);
     DEFBUILTIN("times", times_builtin, BI_SPECIAL, times_help, times_syntax,
-	    help_option);
+            help_option);
 
     /* defined in "yash.c" */
     DEFBUILTIN("exit", exit_builtin, BI_SPECIAL, exit_help, exit_syntax,
-	    force_help_options);
+            force_help_options);
     DEFBUILTIN("suspend", suspend_builtin, BI_ELECTIVE, suspend_help,
-	    suspend_syntax, force_help_options);
+            suspend_syntax, force_help_options);
 
     /* defined in "builtins/ulimit.c" */
 #if YASH_ENABLE_ULIMIT
     DEFBUILTIN("ulimit", ulimit_builtin, BI_MANDATORY, ulimit_help,
-	    ulimit_syntax, ulimit_options);
+            ulimit_syntax, ulimit_options);
 #endif
 
     /* defined in "builtins/printf.c" */
 #if YASH_ENABLE_PRINTF
     DEFBUILTIN("echo", echo_builtin, BI_SUBSTITUTIVE, echo_help, echo_syntax,
-	    NULL);
+            NULL);
     DEFBUILTIN("printf", printf_builtin, BI_SUBSTITUTIVE, printf_help,
-	    printf_syntax, help_option);
+            printf_syntax, help_option);
 #endif
 
     /* defined in "builtins/test.c" */
 #if YASH_ENABLE_TEST
     DEFBUILTIN("test", test_builtin, BI_SUBSTITUTIVE, test_help, test_syntax,
-	    NULL);
+            NULL);
     DEFBUILTIN("[", test_builtin, BI_SUBSTITUTIVE, test_help, test_syntax,
-	    NULL);
+            NULL);
 #endif
 
     /* defined in "lineedit/complete.c" */
 #if YASH_ENABLE_LINEEDIT
     DEFBUILTIN("complete", complete_builtin, BI_ELECTIVE, complete_help,
-	    complete_syntax, complete_options);
+            complete_syntax, complete_options);
 #endif
 
     /* defined in "lineedit/keymap.c" */
 #if YASH_ENABLE_LINEEDIT
     DEFBUILTIN("bindkey", bindkey_builtin, BI_ELECTIVE, bindkey_help,
-	    bindkey_syntax, bindkey_options);
+            bindkey_syntax, bindkey_options);
 #endif
 
 #undef DEFBUILTIN
@@ -250,7 +250,7 @@ const builtin_T *get_builtin(const char *name)
 int mutually_exclusive_option_error(wchar_t opt1, wchar_t opt2)
 {
     xerror(0, Ngt("the -%lc option cannot be used with the -%lc option"),
-	    (wint_t) opt1, (wint_t) opt2);
+            (wint_t) opt1, (wint_t) opt2);
     return Exit_ERROR;
 }
 
@@ -262,11 +262,11 @@ bool validate_operand_count(size_t count, size_t min, size_t max)
 {
     assert(min <= max);
     if (count < min) {
-	insufficient_operands_error(min);
-	return false;
+        insufficient_operands_error(min);
+        return false;
     } else if (count > max) {
-	too_many_operands_error(max);
-	return false;
+        too_many_operands_error(max);
+        return false;
     }
     return true;
 }
@@ -276,9 +276,9 @@ bool validate_operand_count(size_t count, size_t min, size_t max)
 int insufficient_operands_error(size_t min_required_operand_count)
 {
     xerror(0, ngt("this command requires an operand",
-		"this command requires %zu operands",
-		min_required_operand_count),
-	    min_required_operand_count);
+                "this command requires %zu operands",
+                min_required_operand_count),
+            min_required_operand_count);
     return Exit_ERROR;
 }
 
@@ -286,13 +286,13 @@ int insufficient_operands_error(size_t min_required_operand_count)
 int too_many_operands_error(size_t max_accepted_operand_count)
 {
     if (max_accepted_operand_count == 0)
-	/* TRANSLATORS: This message is printed when a command that takes no
-	 * operand was invoked with some operands. */
-	xerror(0, Ngt("no operand is expected"));
+        /* TRANSLATORS: This message is printed when a command that takes no
+         * operand was invoked with some operands. */
+        xerror(0, Ngt("no operand is expected"));
     else
-	/* TRANSLATORS: This message is printed when a command was invoked with
-	 * the wrong number of operands. */
-	xerror(0, Ngt("too many operands are specified"));
+        /* TRANSLATORS: This message is printed when a command was invoked with
+         * the wrong number of operands. */
+        xerror(0, Ngt("too many operands are specified"));
     return Exit_ERROR;
 }
 
@@ -307,7 +307,7 @@ int too_many_operands_error(size_t max_accepted_operand_count)
 int special_builtin_error(int exitstatus)
 {
     if (posixly_correct && special_builtin_executed && !is_interactive_now)
-	exit_shell_with_status(exitstatus);
+        exit_shell_with_status(exitstatus);
     return exitstatus;
 }
 
@@ -321,8 +321,8 @@ static bool print_builtin_options(const struct xgetopt_T *options);
 static bool there_is_any_short_option(const struct xgetopt_T *options)
     __attribute__((nonnull,pure));
 static void format_option_list_entry(
-	const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
-	bool print_short_option)
+        const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
+        bool print_short_option)
     __attribute__((nonnull));
 
 /* Prints description of the specified built-in to the standard output.
@@ -341,11 +341,11 @@ int print_builtin_help(const wchar_t *name)
 int print_builtin_helps(void *const *builtin_names)
 {
     for (; *builtin_names != NULL; builtin_names++)
-	if (print_builtin_help_body(*builtin_names) != Exit_SUCCESS)
-	    return Exit_FAILURE;
+        if (print_builtin_help_body(*builtin_names) != Exit_SUCCESS)
+            return Exit_FAILURE;
 
     if (!xprintf(gt("Try `man yash' for details.\n")))
-	return Exit_FAILURE;
+        return Exit_FAILURE;
 
     return Exit_SUCCESS;
 }
@@ -359,23 +359,23 @@ int print_builtin_help_body(const wchar_t *name)
     const builtin_T *bi = get_builtin(mbsname);
     free(mbsname);
     if (bi == NULL) {
-	xerror(0, Ngt("no such built-in `%ls'"), name);
-	return Exit_FAILURE;
+        xerror(0, Ngt("no such built-in `%ls'"), name);
+        return Exit_FAILURE;
     }
 
     if (!xprintf("%ls: %s\n\n", name, gt(bi->help_text)))
-	return Exit_FAILURE;
+        return Exit_FAILURE;
 
     /* TRANSLATORS: This is printed before syntax info of a built-in. */
     if (!xprintf(gt("Syntax:\n%s\n"), gt(bi->syntax_text)))
-	return Exit_FAILURE;
+        return Exit_FAILURE;
 
     if (wcscmp(name, L"set") == 0) {
-	if (!print_shopts(false))
-	    return Exit_FAILURE;
+        if (!print_shopts(false))
+            return Exit_FAILURE;
     } else {
-	if (!print_builtin_options(bi->options))
-	    return Exit_FAILURE;
+        if (!print_builtin_options(bi->options))
+            return Exit_FAILURE;
     }
 
     return Exit_SUCCESS;
@@ -387,13 +387,13 @@ bool print_shopts(bool include_normal_options)
 {
     /* TRANSLATORS: This text is printed before a list of options. */
     if (!xprintf(gt("Options:\n")))
-	return false;
+        return false;
 
     if (!print_shopts_body(include_normal_options))
-	return false;
+        return false;
 
     if (!xprintf("\n"))
-	return false;
+        return false;
 
     return true;
 }
@@ -403,17 +403,17 @@ bool print_shopts(bool include_normal_options)
 bool print_builtin_options(const struct xgetopt_T *options)
 {
     if (options == NULL || options[0].shortopt == L'\0')
-	return true;
+        return true;
 
     /* TRANSLATORS: This text is printed before a list of options. */
     if (!xprintf(gt("Options:\n")))
-	return false;
+        return false;
 
     if (!print_option_list(options))
-	return false;
+        return false;
 
     if (!xprintf("\n"))
-	return false;
+        return false;
 
     return true;
 }
@@ -428,16 +428,16 @@ bool print_option_list(const struct xgetopt_T *options)
     sb_initwithmax(&line, 127);
 
     for (const struct xgetopt_T *opt = options; opt->shortopt != L'\0'; opt++) {
-	if (posixly_correct && !opt->posix)
-	    continue;
+        if (posixly_correct && !opt->posix)
+            continue;
 
-	sb_clear(&line);
-	format_option_list_entry(opt, &line, print_short_option);
+        sb_clear(&line);
+        format_option_list_entry(opt, &line, print_short_option);
 
-	if (!xprintf("%s\n", line.contents)) {
-	    sb_destroy(&line);
-	    return false;
-	}
+        if (!xprintf("%s\n", line.contents)) {
+            sb_destroy(&line);
+            return false;
+        }
     }
 
     sb_destroy(&line);
@@ -447,8 +447,8 @@ bool print_option_list(const struct xgetopt_T *options)
 bool there_is_any_short_option(const struct xgetopt_T *options)
 {
     for (const struct xgetopt_T *opt = options; opt->shortopt != L'\0'; opt++)
-	if (opt->shortopt != L'-')
-	    return true;
+        if (opt->shortopt != L'-')
+            return true;
     return false;
 }
 
@@ -457,34 +457,34 @@ bool there_is_any_short_option(const struct xgetopt_T *options)
  * before calling this function. `buf' must be destroyed by the caller.
  * If `print_short_option' is false, the single-character option is omitted. */
 void format_option_list_entry(
-	const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
-	bool print_short_option)
+        const struct xgetopt_T *restrict opt, xstrbuf_T *restrict buf,
+        bool print_short_option)
 {
     sb_ccat(buf, '\t');
 
     if (print_short_option && opt->shortopt != L'-') {
-	const char *INIT(optargmark, NULL);
-	switch (opt->optarg) {
-	    case OPTARG_NONE:      optargmark = "";       break;
-	    case OPTARG_REQUIRED:  optargmark = " ...";   break;
-	    case OPTARG_OPTIONAL:  optargmark = "[...]";  break;
-	}
+        const char *INIT(optargmark, NULL);
+        switch (opt->optarg) {
+            case OPTARG_NONE:      optargmark = "";       break;
+            case OPTARG_REQUIRED:  optargmark = " ...";   break;
+            case OPTARG_OPTIONAL:  optargmark = "[...]";  break;
+        }
 
-	sb_printf(buf, "-%lc%s", opt->shortopt, optargmark);
+        sb_printf(buf, "-%lc%s", opt->shortopt, optargmark);
     }
 
     if (opt->longopt != NULL) {
-	if (print_short_option && buf->length < 10)
-	    sb_ccat_repeat(buf, ' ', 10 - buf->length);
+        if (print_short_option && buf->length < 10)
+            sb_ccat_repeat(buf, ' ', 10 - buf->length);
 
-	const char *INIT(optargmark, NULL);
-	switch (opt->optarg) {
-	    case OPTARG_NONE:      optargmark = "";        break;
-	    case OPTARG_REQUIRED:  optargmark = "=...";    break;
-	    case OPTARG_OPTIONAL:  optargmark = "[=...]";  break;
-	}
+        const char *INIT(optargmark, NULL);
+        switch (opt->optarg) {
+            case OPTARG_NONE:      optargmark = "";        break;
+            case OPTARG_REQUIRED:  optargmark = "=...";    break;
+            case OPTARG_OPTIONAL:  optargmark = "[=...]";  break;
+        }
 
-	sb_printf(buf, "--%ls%s", opt->longopt, optargmark);
+        sb_printf(buf, "--%ls%s", opt->longopt, optargmark);
     }
 }
 
@@ -500,30 +500,30 @@ void format_option_list_entry(
 void generate_builtin_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_BUILTIN))
-	return;
+        return;
 
     le_compdebug("adding built-in command name candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     size_t i = 0;
     kvpair_T kv;
     while ((kv = ht_next(&builtins, &i)).key != NULL) {
-	le_candgentype_T type;
-	switch (((const builtin_T *) kv.value)->type) {
-	    case BI_SPECIAL:       type = CGT_SBUILTIN;  break;
-	    case BI_MANDATORY:     type = CGT_MBUILTIN;  break;
-	    case BI_ELECTIVE:      type = CGT_LBUILTIN;  break;
-	    case BI_EXTENSION:     type = CGT_XBUILTIN;  break;
-	    case BI_SUBSTITUTIVE:  type = CGT_UBUILTIN;  break;
-	    default:               assert(false);
-	}
-	if (!(compopt->type & type))
-	    continue;
+        le_candgentype_T type;
+        switch (((const builtin_T *) kv.value)->type) {
+            case BI_SPECIAL:       type = CGT_SBUILTIN;  break;
+            case BI_MANDATORY:     type = CGT_MBUILTIN;  break;
+            case BI_ELECTIVE:      type = CGT_LBUILTIN;  break;
+            case BI_EXTENSION:     type = CGT_XBUILTIN;  break;
+            case BI_SUBSTITUTIVE:  type = CGT_UBUILTIN;  break;
+            default:               assert(false);
+        }
+        if (!(compopt->type & type))
+            continue;
 
-	if (le_match_comppatterns(compopt, kv.key))
-	    le_new_candidate(CT_COMMAND,
-		    malloc_mbstowcs(kv.key), NULL, compopt);
+        if (le_match_comppatterns(compopt, kv.key))
+            le_new_candidate(CT_COMMAND,
+                    malloc_mbstowcs(kv.key), NULL, compopt);
     }
 }
 
@@ -532,14 +532,14 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
 
 /* The ":"/"true" built-in. */
 int true_builtin(
-	int argc __attribute__((unused)), void **argv __attribute__((unused)))
+        int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
     return EXIT_SUCCESS;
 }
 
 /* The "false" built-in. */
 int false_builtin(
-	int argc __attribute__((unused)), void **argv __attribute__((unused)))
+        int argc __attribute__((unused)), void **argv __attribute__((unused)))
 {
     return EXIT_FAILURE;
 }
@@ -573,17 +573,17 @@ int help_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'-':
-		goto print_help;
-	    default:
-		return Exit_ERROR;
-	}
+        switch (opt->shortopt) {
+            case L'-':
+                goto print_help;
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (xoptind == argc)
 print_help:
-	return print_builtin_help(ARGV(0));
+        return print_builtin_help(ARGV(0));
 
     return print_builtin_helps(&argv[xoptind]);
 }
@@ -598,4 +598,4 @@ const char help_syntax[] = Ngt(
 #endif /* YASH_ENABLE_HELP */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

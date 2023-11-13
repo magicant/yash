@@ -36,4 +36,4 @@ extern const char printf_help[], printf_syntax[];
 #endif /* YASH_PRINTF_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

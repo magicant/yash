@@ -133,19 +133,19 @@ __IN__
 test_o -d 'all short options' -abCefsuvx +mn
 case $- in (*a*)
     case $- in (*b*)
-	case $- in (*C*)
-	    case $- in (*e*)
-		case $- in (*f*)
-		    case $- in (*u*)
-			case $- in (*v*)
-			    case $- in (*x*)
-				echo OK
-			    esac
-			esac
-		    esac
-		esac
-	    esac
-	esac
+        case $- in (*C*)
+            case $- in (*e*)
+                case $- in (*f*)
+                    case $- in (*u*)
+                        case $- in (*v*)
+                            case $- in (*x*)
+                                echo OK
+                            esac
+                        esac
+                    esac
+                esac
+            esac
+        esac
     esac
 esac
 __IN__
@@ -174,4 +174,4 @@ __IN__
 OK
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

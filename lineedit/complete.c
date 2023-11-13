@@ -142,8 +142,8 @@ static void generate_group_candidates(const le_compopt_T *compopt)
 static void generate_host_candidates(const le_compopt_T *compopt)
     __attribute__((nonnull));
 static void generate_candidates_from_words(
-	le_candtype_T type, void *const *words, const wchar_t *description,
-	const le_compopt_T *compopt)
+        le_candtype_T type, void *const *words, const wchar_t *description,
+        const le_compopt_T *compopt)
     __attribute__((nonnull(2,4)));
 static void word_completion(size_t count, ...)
     __attribute__((nonnull));
@@ -155,7 +155,7 @@ static void insert_to_main_buffer(wchar_t c);
 static bool need_subst(void);
 static void substitute_source_word_all(void);
 static void quote(xwcsbuf_T *restrict buf,
-	const wchar_t *restrict s, le_quote_T quotetype)
+        const wchar_t *restrict s, le_quote_T quotetype)
     __attribute__((nonnull));
 
 /* The current completion context. */
@@ -181,19 +181,19 @@ static size_t common_prefix_length;
 void le_complete(le_compresult_T lecr)
 {
     if (shopt_le_compdebug) {
-	/* If the `le-compdebug' option is set, the command line is temporarily
-	 * cleared during completion.
-	 * Note that `shopt_le_compdebug' is referenced only here. During the
-	 * completion, we check the value of `le_state' to test if the option
-	 * is set. The value of `shopt_le_compdebug' might be changed by a
-	 * candidate generator code. */
-	le_display_finalize();
-	le_restore_terminal();
-	le_state = LE_STATE_SUSPENDED | LE_STATE_COMPLETING;
-	le_compdebug("completion start");
+        /* If the `le-compdebug' option is set, the command line is temporarily
+         * cleared during completion.
+         * Note that `shopt_le_compdebug' is referenced only here. During the
+         * completion, we check the value of `le_state' to test if the option
+         * is set. The value of `shopt_le_compdebug' might be changed by a
+         * candidate generator code. */
+        le_display_finalize();
+        le_restore_terminal();
+        le_state = LE_STATE_SUSPENDED | LE_STATE_COMPLETING;
+        le_compdebug("completion start");
     } else {
-	le_state |= LE_STATE_COMPLETING;
-	le_allow_terminal_signal(true);
+        le_state |= LE_STATE_COMPLETING;
+        le_allow_terminal_signal(true);
     }
 
     le_complete_cleanup();
@@ -202,7 +202,7 @@ void le_complete(le_compresult_T lecr)
 
     ctxt = le_get_context();
     if (le_state_is_compdebug)
-	print_context_info(ctxt);
+        print_context_info(ctxt);
 
     execute_completion_function();
     sort_candidates();
@@ -212,18 +212,18 @@ void le_complete(le_compresult_T lecr)
     lecr();
 
     if (le_state_is_compdebug) {
-	le_compdebug("completion end");
-	le_setupterm(true);
-	le_set_terminal();
+        le_compdebug("completion end");
+        le_setupterm(true);
+        le_set_terminal();
     } else {
-	assert((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
-			== (LE_STATE_ACTIVE | LE_STATE_COMPLETING));
-	le_allow_terminal_signal(false);
+        assert((le_state & (LE_STATE_ACTIVE | LE_STATE_COMPLETING))
+                        == (LE_STATE_ACTIVE | LE_STATE_COMPLETING));
+        le_allow_terminal_signal(false);
 
-	/* the terminal size may have been changed during completion, so we
-	 * re-check the terminal state here. */
-	le_display_clear(false);
-	le_setupterm(true);
+        /* the terminal size may have been changed during completion, so we
+         * re-check the terminal state here. */
+        le_display_clear(false);
+        le_setupterm(true);
     }
     le_state = LE_STATE_ACTIVE;
 }
@@ -237,19 +237,19 @@ void lecr_nop(void)
 void lecr_normal(void)
 {
     if (le_candidates.length == 0) {
-	le_selected_candidate_index = 0;
+        le_selected_candidate_index = 0;
     } else if (ctxt->substsrc || need_subst()) {
-	le_selected_candidate_index = 0;
-	substitute_source_word_all();
-	le_complete_cleanup();
+        le_selected_candidate_index = 0;
+        substitute_source_word_all();
+        le_complete_cleanup();
     } else if (le_candidates.length == 1) {
-	le_selected_candidate_index = 0;
-	update_main_buffer(false, true);
-	le_complete_cleanup();
+        le_selected_candidate_index = 0;
+        update_main_buffer(false, true);
+        le_complete_cleanup();
     } else {
-	le_selected_candidate_index = le_candidates.length;
-	le_display_make_rawvalues();
-	update_main_buffer(false, false);
+        le_selected_candidate_index = le_candidates.length;
+        le_display_make_rawvalues();
+        update_main_buffer(false, false);
     }
 }
 
@@ -258,9 +258,9 @@ void lecr_substitute_all_candidates(void)
 {
     le_selected_candidate_index = 0;
     if (le_candidates.length == 0) {
-	lebuf_print_alert(true);
+        lebuf_print_alert(true);
     } else {
-	substitute_source_word_all();
+        substitute_source_word_all();
     }
     le_complete_cleanup();
 }
@@ -270,15 +270,15 @@ void lecr_longest_common_prefix(void)
 {
     le_selected_candidate_index = 0;
     if (le_candidates.length == 0) {
-	lebuf_print_alert(true);
+        lebuf_print_alert(true);
     } else {
-	bool subst = ctxt->substsrc || need_subst();
-	if (le_candidates.length > 1) {
-	    le_selected_candidate_index = le_candidates.length;
-	    update_main_buffer(subst, false);
-	} else {
-	    update_main_buffer(subst, true);
-	}
+        bool subst = ctxt->substsrc || need_subst();
+        if (le_candidates.length > 1) {
+            le_selected_candidate_index = le_candidates.length;
+            update_main_buffer(subst, false);
+        } else {
+            update_main_buffer(subst, true);
+        }
     }
     le_complete_cleanup();
 }
@@ -292,10 +292,10 @@ void lecr_longest_common_prefix(void)
 void select_candidate(void selector(int offset), int offset)
 {
     if (le_candidates.contents == NULL) {
-	le_complete(lecr_normal);
-	return;
+        le_complete(lecr_normal);
+        return;
     } else if (le_candidates.length == 0) {
-	return;
+        return;
     }
 
     selector(offset);
@@ -314,15 +314,15 @@ void select_candidate_by_offset(int offset)
 {
     assert(le_selected_candidate_index <= le_candidates.length);
     if (offset >= 0) {
-	offset %= le_candidates.length + 1;
-	le_selected_candidate_index += offset;
-	le_selected_candidate_index %= le_candidates.length + 1;
+        offset %= le_candidates.length + 1;
+        le_selected_candidate_index += offset;
+        le_selected_candidate_index %= le_candidates.length + 1;
     } else {
-	offset = -offset % (le_candidates.length + 1);
-	if ((size_t) offset <= le_selected_candidate_index)
-	    le_selected_candidate_index -= offset;
-	else
-	    le_selected_candidate_index += le_candidates.length - offset + 1;
+        offset = -offset % (le_candidates.length + 1);
+        if ((size_t) offset <= le_selected_candidate_index)
+            le_selected_candidate_index -= offset;
+        else
+            le_selected_candidate_index += le_candidates.length - offset + 1;
     }
     assert(le_selected_candidate_index <= le_candidates.length);
 }
@@ -350,29 +350,29 @@ void le_complete_select_page(int offset)
 bool le_complete_fix_candidate(int index)
 {
     if (le_candidates.contents == NULL) {
-	le_complete(lecr_nop);
-	le_selected_candidate_index = le_candidates.length;
-	le_display_make_rawvalues();
+        le_complete(lecr_nop);
+        le_selected_candidate_index = le_candidates.length;
+        le_display_make_rawvalues();
     }
     if (le_candidates.length == 0) {
-	lebuf_print_alert(true);
-	return false;
+        lebuf_print_alert(true);
+        return false;
     }
     if (index <= 0)
-	return false;
+        return false;
 
     unsigned uindex = (unsigned) index - 1;
     if (uindex >= le_candidates.length) {
-	lebuf_print_alert(true);
-	return false;
+        lebuf_print_alert(true);
+        return false;
     }
     le_selected_candidate_index = uindex;
 
     bool subst = ctxt->substsrc;
     if (!subst) {
-	const le_candidate_T *cand =
-	    le_candidates.contents[le_selected_candidate_index];
-	subst = (matchwcsprefix(cand->origvalue, ctxt->src) == NULL);
+        const le_candidate_T *cand =
+            le_candidates.contents[le_selected_candidate_index];
+        subst = (matchwcsprefix(cand->origvalue, ctxt->src) == NULL);
     }
     update_main_buffer(subst, true);
     le_complete_cleanup();
@@ -384,8 +384,8 @@ void le_complete_cleanup(void)
 {
     le_display_complete_cleanup();
     if (le_candidates.contents != NULL) {
-	plfree(pl_toary(&le_candidates), free_candidate);
-	le_candidates.contents = NULL;
+        plfree(pl_toary(&le_candidates), free_candidate);
+        le_candidates.contents = NULL;
     }
     free_context(ctxt);
     ctxt = NULL;
@@ -407,10 +407,10 @@ void free_candidate(void *c)
 void free_context(le_context_T *ctxt)
 {
     if (ctxt != NULL) {
-	plfree(ctxt->pwords, free);
-	free(ctxt->src);
-	free(ctxt->pattern);
-	free(ctxt);
+        plfree(ctxt->pwords, free);
+        free(ctxt->src);
+        free(ctxt->pattern);
+        free(ctxt);
     }
 }
 
@@ -418,19 +418,19 @@ void free_context(le_context_T *ctxt)
 void sort_candidates(void)
 {
     qsort(le_candidates.contents,
-	    le_candidates.length, sizeof *le_candidates.contents,
-	    sort_candidates_cmp);
+            le_candidates.length, sizeof *le_candidates.contents,
+            sort_candidates_cmp);
 
     if (le_candidates.length >= 2) {
-	for (size_t i = le_candidates.length - 1; i > 0; i--) {
-	    le_candidate_T *cand1 = le_candidates.contents[i];
-	    le_candidate_T *cand2 = le_candidates.contents[i - 1];
-	    // XXX case-sensitive
-	    if (wcscoll(cand1->origvalue, cand2->origvalue) == 0) {
-		free_candidate(cand1);
-		pl_remove(&le_candidates, i, 1);
-	    }
-	}
+        for (size_t i = le_candidates.length - 1; i > 0; i--) {
+            le_candidate_T *cand1 = le_candidates.contents[i];
+            le_candidate_T *cand2 = le_candidates.contents[i - 1];
+            // XXX case-sensitive
+            if (wcscoll(cand1->origvalue, cand2->origvalue) == 0) {
+                free_candidate(cand1);
+                pl_remove(&le_candidates, i, 1);
+            }
+        }
     }
 }
 
@@ -445,16 +445,16 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
      * short options come before long options. Such candidates are sorted case-
      * insensitively. */
     if (v1[0] == L'-' || v2[0] == L'-') {
-	while (*v1 == L'-' && *v2 == L'-')
-	    v1++, v2++;
-	if (*v1 == L'-')
-	    return 1;
-	if (*v2 == L'-')
-	    return -1;
+        while (*v1 == L'-' && *v2 == L'-')
+            v1++, v2++;
+        if (*v1 == L'-')
+            return 1;
+        if (*v2 == L'-')
+            return -1;
 #if HAVE_WCSCASECMP
-	int cmp = wcscasecmp(v1, v2);
-	if (cmp != 0)
-	    return cmp;
+        int cmp = wcscasecmp(v1, v2);
+        if (cmp != 0)
+            return cmp;
 #endif
     }
 
@@ -468,7 +468,7 @@ int sort_candidates_cmp(const void *cp1, const void *cp2)
 void le_compdebug(const char *format, ...)
 {
     if (!le_state_is_compdebug)
-	return;
+        return;
 
     fputs("[compdebug] ", stderr);
 
@@ -486,34 +486,34 @@ void print_context_info(const le_context_T *ctxt)
 {
     const char *INIT(s, NULL);
     switch (ctxt->quote) {
-	case QUOTE_NONE:    s = "none";    break;
-	case QUOTE_NORMAL:  s = "normal";  break;
-	case QUOTE_SINGLE:  s = "single";  break;
-	case QUOTE_DOUBLE:  s = "double";  break;
+        case QUOTE_NONE:    s = "none";    break;
+        case QUOTE_NORMAL:  s = "normal";  break;
+        case QUOTE_SINGLE:  s = "single";  break;
+        case QUOTE_DOUBLE:  s = "double";  break;
     }
     le_compdebug("quote type: %s", s);
     switch (ctxt->type & CTXT_MASK) {
-	case CTXT_NORMAL:    s = "normal";            break;
-	case CTXT_COMMAND:   s = "command";           break;
-	case CTXT_ARGUMENT:  s = "argument";          break;
-	case CTXT_TILDE:     s = "tilde";             break;
-	case CTXT_VAR:       s = "variable";          break;
-	case CTXT_ARITH:     s = "arithmetic";        break;
-	case CTXT_ASSIGN:    s = "assignment";        break;
-	case CTXT_REDIR:     s = "redirection";       break;
-	case CTXT_REDIR_FD:  s = "redirection (fd)";  break;
-	case CTXT_FOR_IN:    s = "\"in\" or \"do\"";  break;
-	case CTXT_FOR_DO:    s = "\"do\"";            break;
-	case CTXT_CASE_IN:   s = "\"in\"";            break;
-	case CTXT_FUNCTION:  s = "function name";     break;
+        case CTXT_NORMAL:    s = "normal";            break;
+        case CTXT_COMMAND:   s = "command";           break;
+        case CTXT_ARGUMENT:  s = "argument";          break;
+        case CTXT_TILDE:     s = "tilde";             break;
+        case CTXT_VAR:       s = "variable";          break;
+        case CTXT_ARITH:     s = "arithmetic";        break;
+        case CTXT_ASSIGN:    s = "assignment";        break;
+        case CTXT_REDIR:     s = "redirection";       break;
+        case CTXT_REDIR_FD:  s = "redirection (fd)";  break;
+        case CTXT_FOR_IN:    s = "\"in\" or \"do\"";  break;
+        case CTXT_FOR_DO:    s = "\"do\"";            break;
+        case CTXT_CASE_IN:   s = "\"in\"";            break;
+        case CTXT_FUNCTION:  s = "function name";     break;
     }
     le_compdebug("context type: %s%s%s%s", s,
-	    ctxt->type & CTXT_EBRACED ? " (in brace expn)" : "",
-	    ctxt->type & CTXT_VBRACED ? " (in variable)" : "",
-	    ctxt->type & CTXT_QUOTED ? " (quoted)" : "");
+            ctxt->type & CTXT_EBRACED ? " (in brace expn)" : "",
+            ctxt->type & CTXT_VBRACED ? " (in variable)" : "",
+            ctxt->type & CTXT_QUOTED ? " (quoted)" : "");
     for (int i = 0; i < ctxt->pwordc; i++)
-	le_compdebug("preceding word %d: \"%ls\"",
-		i + 1, (const wchar_t *) ctxt->pwords[i]);
+        le_compdebug("preceding word %d: \"%ls\"",
+                i + 1, (const wchar_t *) ctxt->pwords[i]);
     le_compdebug("target word: \"%ls\"", ctxt->src);
     le_compdebug(" as pattern: \"%ls\"", ctxt->pattern);
 }
@@ -523,21 +523,21 @@ void print_context_info(const le_context_T *ctxt)
 void print_compopt_info(const le_compopt_T *compopt)
 {
     if (!le_state_is_compdebug)
-	return;
+        return;
 
     le_compdebug("target word without prefix: \"%ls\"", compopt->src);
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
-	const char *INIT(s, NULL);
-	switch (p->type) {
-	    case CPT_ACCEPT:  s = "accept";  break;
-	    case CPT_REJECT:  s = "reject";  break;
-	}
-	le_compdebug("pattern: \"%ls\" (%s)", p->pattern, s);
+        const char *INIT(s, NULL);
+        switch (p->type) {
+            case CPT_ACCEPT:  s = "accept";  break;
+            case CPT_REJECT:  s = "reject";  break;
+        }
+        le_compdebug("pattern: \"%ls\" (%s)", p->pattern, s);
     }
     if (compopt->suffix != NULL)
-	le_compdebug("suffix: \"%ls\"", compopt->suffix);
+        le_compdebug("suffix: \"%ls\"", compopt->suffix);
     if (!compopt->terminate)
-	le_compdebug("completed word will not be terminated");
+        le_compdebug("completed word will not be terminated");
 }
 
 
@@ -555,47 +555,47 @@ void execute_completion_function(void)
 {
     static bool once = false;
     if (!once) {
-	once = true;
-	autoload_completion_function_file(L"" INIT_COMPFILE, NULL);
+        once = true;
+        autoload_completion_function_file(L"" INIT_COMPFILE, NULL);
     }
 
     switch (ctxt->type & CTXT_MASK) {
-	case CTXT_NORMAL:
-	case CTXT_ASSIGN:
-	case CTXT_REDIR:
-	    simple_completion(CGT_FILE);
-	    break;
-	case CTXT_COMMAND:
-	    if (!call_completion_function(L"" COMMAND_COMPFUNC))
-		complete_command_default();
-	    break;
-	case CTXT_ARGUMENT:
-	    if (!call_completion_function(L"" ARGUMENT_COMPFUNC))
-		simple_completion(CGT_FILE);
-	    break;
-	case CTXT_TILDE:
-	    simple_completion(CGT_LOGNAME | CGT_DIRSTACK);
-	    break;
-	case CTXT_VAR:
-	    simple_completion(CGT_VARIABLE);
-	    break;
-	case CTXT_ARITH:
-	    simple_completion(CGT_SCALAR);
-	    break;
-	case CTXT_REDIR_FD:
-	    break;
-	case CTXT_FOR_IN:
-	    word_completion(2, L"in", L"do");
-	    break;
-	case CTXT_FOR_DO:
-	    word_completion(1, L"do");
-	    break;
-	case CTXT_CASE_IN:
-	    word_completion(1, L"in");
-	    break;
-	case CTXT_FUNCTION:
-	    simple_completion(CGT_FUNCTION);
-	    break;
+        case CTXT_NORMAL:
+        case CTXT_ASSIGN:
+        case CTXT_REDIR:
+            simple_completion(CGT_FILE);
+            break;
+        case CTXT_COMMAND:
+            if (!call_completion_function(L"" COMMAND_COMPFUNC))
+                complete_command_default();
+            break;
+        case CTXT_ARGUMENT:
+            if (!call_completion_function(L"" ARGUMENT_COMPFUNC))
+                simple_completion(CGT_FILE);
+            break;
+        case CTXT_TILDE:
+            simple_completion(CGT_LOGNAME | CGT_DIRSTACK);
+            break;
+        case CTXT_VAR:
+            simple_completion(CGT_VARIABLE);
+            break;
+        case CTXT_ARITH:
+            simple_completion(CGT_SCALAR);
+            break;
+        case CTXT_REDIR_FD:
+            break;
+        case CTXT_FOR_IN:
+            word_completion(2, L"in", L"do");
+            break;
+        case CTXT_FOR_DO:
+            word_completion(1, L"do");
+            break;
+        case CTXT_CASE_IN:
+            word_completion(1, L"in");
+            break;
+        case CTXT_FUNCTION:
+            simple_completion(CGT_FUNCTION);
+            break;
     }
 
 }
@@ -605,7 +605,7 @@ void execute_completion_function(void)
 void set_completion_variables(void)
 {
     set_array(L VAR_WORDS, ctxt->pwordc, pldup(ctxt->pwords, copyaswcs),
-	    SCOPE_LOCAL, false);
+            SCOPE_LOCAL, false);
     set_variable(L VAR_TARGETWORD, xwcsdup(ctxt->src), SCOPE_LOCAL, false);
     set_variable(L VAR_IFS, xwcsdup(DEFAULT_IFS), SCOPE_LOCAL, false);
 }
@@ -637,13 +637,13 @@ void complete_command_default(void)
     compopt.suffix = NULL;
     compopt.terminate = true;
     if (wcschr(ctxt->src, L'/') != NULL) {
-	// pattern1.next = NULL;
-	compopt.type = CGT_EXECUTABLE;
+        // pattern1.next = NULL;
+        compopt.type = CGT_EXECUTABLE;
     } else {
-	pattern1.next = &pattern2;
-	compopt.type = CGT_COMMAND;
-	if (ctxt->quote == QUOTE_NORMAL && wcschr(ctxt->pattern, L'\\') == NULL)
-	    compopt.type |= CGT_KEYWORD | CGT_NALIAS;
+        pattern1.next = &pattern2;
+        compopt.type = CGT_COMMAND;
+        if (ctxt->quote == QUOTE_NORMAL && wcschr(ctxt->pattern, L'\\') == NULL)
+            compopt.type |= CGT_KEYWORD | CGT_NALIAS;
     }
     print_compopt_info(&compopt);
     generate_candidates(&compopt);
@@ -656,16 +656,16 @@ void complete_command_default(void)
 void simple_completion(le_candgentype_T type)
 {
     le_comppattern_T pattern = {
-	.type = CPT_ACCEPT,
-	.pattern = ctxt->pattern,
+        .type = CPT_ACCEPT,
+        .pattern = ctxt->pattern,
     };
     le_compopt_T compopt = {
-	.ctxt = ctxt,
-	.type = type,
-	.src = ctxt->src,
-	.patterns = &pattern,
-	.suffix = NULL,
-	.terminate = true,
+        .ctxt = ctxt,
+        .type = type,
+        .src = ctxt->src,
+        .patterns = &pattern,
+        .suffix = NULL,
+        .terminate = true,
     };
 
     print_compopt_info(&compopt);
@@ -693,7 +693,7 @@ void generate_candidates(const le_compopt_T *compopt)
     generate_dirstack_candidates(compopt);
 
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next)
-	xfnm_free(p->cpattern);
+        xfnm_free(p->cpattern);
 }
 
 /* Adds the specified value as a completion candidate to the candidate list.
@@ -705,16 +705,16 @@ void generate_candidates(const le_compopt_T *compopt)
  * This function must NOT be used for a CT_FILE candidate.
  * If `value' is NULL, this function does nothing (except freeing `desc'). */
 void le_new_candidate(le_candtype_T type, wchar_t *value, wchar_t *desc,
-	const le_compopt_T *compopt)
+        const le_compopt_T *compopt)
 {
     if (value == NULL) {
-	free(desc);
-	return;
+        free(desc);
+        return;
     }
     if (desc != NULL && (desc[0] == L'\0' || wcscmp(value, desc) == 0)) {
-	/* ignore useless description */
-	free(desc);
-	desc = NULL;
+        /* ignore useless description */
+        free(desc);
+        desc = NULL;
     }
 
     le_candidate_T *cand = xmalloc(sizeof *cand);
@@ -743,16 +743,16 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     const wchar_t *origsrc = compopt->ctxt->src;
     size_t prefixlength = compopt->src - origsrc;
     if (prefixlength != 0)
-	wb_ninsert_force(&buf, 0, origsrc, prefixlength);
+        wb_ninsert_force(&buf, 0, origsrc, prefixlength);
 
     /* append suffix */
     bool allowterminate = true;
     if ((cand->type == CT_FILE) && S_ISDIR(cand->appendage.filestat.mode) &&
-	    !(compopt->type & CGT_DIRECTORY)) {
-	wb_wccat(&buf, L'/');
-	allowterminate = false;
+            !(compopt->type & CGT_DIRECTORY)) {
+        wb_wccat(&buf, L'/');
+        allowterminate = false;
     } else if (compopt->suffix != NULL) {
-	wb_cat(&buf, compopt->suffix);
+        wb_cat(&buf, compopt->suffix);
     }
 
     cand->origvalue = wb_towcs(&buf);
@@ -760,26 +760,26 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     cand->terminate = compopt->terminate && allowterminate;
 
     if (le_state_is_compdebug) {
-	const char *typestr = NULL;
-	switch (cand->type) {
-	    case CT_WORD:      typestr = "word";              break;
-	    case CT_FILE:      typestr = "file";              break;
-	    case CT_COMMAND:   typestr = "command";           break;
-	    case CT_ALIAS:     typestr = "alias";             break;
-	    case CT_OPTION:    typestr = "option";            break;
-	    case CT_VAR:       typestr = "variable";          break;
-	    case CT_JOB:       typestr = "job";               break;
-	    case CT_SIG:       typestr = "signal";            break;
-	    case CT_LOGNAME:   typestr = "user name";         break;
-	    case CT_GRP:       typestr = "group name";        break;
-	    case CT_HOSTNAME:  typestr = "host name";         break;
-	    case CT_BINDKEY:   typestr = "lineedit command";  break;
-	}
-	le_compdebug("new %s candidate \"%ls\"", typestr, cand->origvalue);
-	if (cand->desc != NULL)
-	    le_compdebug("  (desc: %ls)", cand->desc);
-	if (!cand->terminate)
-	    le_compdebug("  (no termination)");
+        const char *typestr = NULL;
+        switch (cand->type) {
+            case CT_WORD:      typestr = "word";              break;
+            case CT_FILE:      typestr = "file";              break;
+            case CT_COMMAND:   typestr = "command";           break;
+            case CT_ALIAS:     typestr = "alias";             break;
+            case CT_OPTION:    typestr = "option";            break;
+            case CT_VAR:       typestr = "variable";          break;
+            case CT_JOB:       typestr = "job";               break;
+            case CT_SIG:       typestr = "signal";            break;
+            case CT_LOGNAME:   typestr = "user name";         break;
+            case CT_GRP:       typestr = "group name";        break;
+            case CT_HOSTNAME:  typestr = "host name";         break;
+            case CT_BINDKEY:   typestr = "lineedit command";  break;
+        }
+        le_compdebug("new %s candidate \"%ls\"", typestr, cand->origvalue);
+        if (cand->desc != NULL)
+            le_compdebug("  (desc: %ls)", cand->desc);
+        if (!cand->terminate)
+            le_compdebug("  (no termination)");
     }
 
     pl_add(&le_candidates, cand);
@@ -790,14 +790,14 @@ void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
 bool le_compile_cpatterns(const le_compopt_T *compopt)
 {
     for (le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next) {
-	if (p->cpattern != NULL)
-	    continue;
+        if (p->cpattern != NULL)
+            continue;
 
-	p->cpattern = xfnm_compile(p->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
-	if (p->cpattern == NULL) {
-	    le_compdebug("failed to compile pattern \"%ls\"", p->pattern);
-	    return false;
-	}
+        p->cpattern = xfnm_compile(p->pattern, XFNM_HEADONLY | XFNM_TAILONLY);
+        if (p->cpattern == NULL) {
+            le_compdebug("failed to compile pattern \"%ls\"", p->pattern);
+            return false;
+        }
     }
 
     return true;
@@ -808,17 +808,17 @@ bool le_compile_cpatterns(const le_compopt_T *compopt)
 bool le_match_patterns(const le_comppattern_T *ps, const char *s)
 {
     for (; ps != NULL; ps = ps->next){
-	bool match = (xfnm_match(ps->cpattern, s) == 0);
-	switch (ps->type) {
-	    case CPT_ACCEPT:
-		if (!match)
-		    return false;
-		break;
-	    case CPT_REJECT:
-		if (match)
-		    return false;
-		break;
-	}
+        bool match = (xfnm_match(ps->cpattern, s) == 0);
+        switch (ps->type) {
+            case CPT_ACCEPT:
+                if (!match)
+                    return false;
+                break;
+            case CPT_REJECT:
+                if (match)
+                    return false;
+                break;
+        }
     }
     return true;
 }
@@ -836,17 +836,17 @@ bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
 bool le_wmatch_patterns(const le_comppattern_T *ps, const wchar_t *s)
 {
     for (; ps != NULL; ps = ps->next) {
-	bool match = (xfnm_wmatch(ps->cpattern, s).start != (size_t) -1);
-	switch (ps->type) {
-	    case CPT_ACCEPT:
-		if (!match)
-		    return false;
-		break;
-	    case CPT_REJECT:
-		if (match)
-		    return false;
-		break;
-	}
+        bool match = (xfnm_wmatch(ps->cpattern, s).start != (size_t) -1);
+        switch (ps->type) {
+            case CPT_ACCEPT:
+                if (!match)
+                    return false;
+                break;
+            case CPT_REJECT:
+                if (match)
+                    return false;
+                break;
+        }
     }
     return true;
 }
@@ -865,11 +865,11 @@ bool le_wmatch_comppatterns(const le_compopt_T *compopt, const wchar_t *s)
 void generate_file_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & (CGT_FILE | CGT_DIRECTORY | CGT_EXECUTABLE)))
-	return;
+        return;
 
     le_compdebug("adding filename candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     enum wglobflags_T flags = 0;
     // if (shopt_nocaseglob)   flags |= WGLB_CASEFOLD;  XXX case-sensitive
@@ -886,43 +886,43 @@ void generate_file_candidates(const le_compopt_T *compopt)
 
     /* check pathnames in `list' and add them to the candidate list */
     for (size_t i = 0; i < list.length; i++) {
-	wchar_t *name = list.contents[i];
-	if (p != NULL) {
-	    const wchar_t *basename = wcsrchr(name, L'/');
-	    if (basename == NULL)
-		basename = name;
-	    if (!le_wmatch_patterns(p, basename)) {
-		free(name);
-		continue;
-	    }
-	}
+        wchar_t *name = list.contents[i];
+        if (p != NULL) {
+            const wchar_t *basename = wcsrchr(name, L'/');
+            if (basename == NULL)
+                basename = name;
+            if (!le_wmatch_patterns(p, basename)) {
+                free(name);
+                continue;
+            }
+        }
 
-	char *mbsname = malloc_wcstombs(name);
-	struct stat st;
-	if (mbsname != NULL &&
-		(stat(mbsname, &st) >= 0 || lstat(mbsname, &st) >= 0)) {
-	    bool executable = S_ISREG(st.st_mode) && is_executable(mbsname);
-	    if ((compopt->type & CGT_FILE)
-		    || ((compopt->type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
-		    || ((compopt->type & CGT_EXECUTABLE) && executable)) {
-		le_candidate_T *cand = xmalloc(sizeof *cand);
-		cand->type = CT_FILE;
-		cand->value = name;
-		cand->rawvalue.raw = NULL;
-		cand->rawvalue.width = 0;
-		cand->desc = NULL;
-		cand->rawdesc.raw = NULL;
-		cand->rawdesc.width = 0;
-		cand->appendage.filestat.is_executable = executable;
-		cand->appendage.filestat.mode = st.st_mode;
-		cand->appendage.filestat.nlink = st.st_nlink;
-		cand->appendage.filestat.size = st.st_size;
-		le_add_candidate(cand, compopt);
-		name = NULL;
-	    }
-	}
-	free(name);
-	free(mbsname);
+        char *mbsname = malloc_wcstombs(name);
+        struct stat st;
+        if (mbsname != NULL &&
+                (stat(mbsname, &st) >= 0 || lstat(mbsname, &st) >= 0)) {
+            bool executable = S_ISREG(st.st_mode) && is_executable(mbsname);
+            if ((compopt->type & CGT_FILE)
+                    || ((compopt->type & CGT_DIRECTORY) && S_ISDIR(st.st_mode))
+                    || ((compopt->type & CGT_EXECUTABLE) && executable)) {
+                le_candidate_T *cand = xmalloc(sizeof *cand);
+                cand->type = CT_FILE;
+                cand->value = name;
+                cand->rawvalue.raw = NULL;
+                cand->rawvalue.width = 0;
+                cand->desc = NULL;
+                cand->rawdesc.raw = NULL;
+                cand->rawdesc.width = 0;
+                cand->appendage.filestat.is_executable = executable;
+                cand->appendage.filestat.mode = st.st_mode;
+                cand->appendage.filestat.nlink = st.st_nlink;
+                cand->appendage.filestat.size = st.st_size;
+                le_add_candidate(cand, compopt);
+                name = NULL;
+            }
+        }
+        free(name);
+        free(mbsname);
     }
 
     pl_destroy(&list);
@@ -934,40 +934,40 @@ void generate_file_candidates(const le_compopt_T *compopt)
 void generate_external_command_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_EXTCOMMAND))
-	return;
+        return;
 
     le_compdebug("adding external command name candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     char *const *paths = get_path_array(PA_PATH);
     xstrbuf_T path;
 
     if (paths == NULL)
-	return;
+        return;
     sb_init(&path);
     for (const char *dirpath; (dirpath = *paths) != NULL; paths++) {
-	DIR *dir = opendir(dirpath);
-	struct dirent *de;
-	size_t dirpathlen;
+        DIR *dir = opendir(dirpath);
+        struct dirent *de;
+        size_t dirpathlen;
 
-	if (dir == NULL)
-	    continue;
-	sb_cat(&path, dirpath);
-	if (path.length > 0 && path.contents[path.length - 1] != '/')
-	    sb_ccat(&path, '/');
-	dirpathlen = path.length;
-	while ((de = readdir(dir)) != NULL) {
-	    if (!le_match_comppatterns(compopt, de->d_name))
-		continue;
-	    sb_cat(&path, de->d_name);
-	    if (is_executable_regular(path.contents))
-		le_new_candidate(CT_COMMAND,
-			malloc_mbstowcs(de->d_name), NULL, compopt);
-	    sb_truncate(&path, dirpathlen);
-	}
-	sb_clear(&path);
-	closedir(dir);
+        if (dir == NULL)
+            continue;
+        sb_cat(&path, dirpath);
+        if (path.length > 0 && path.contents[path.length - 1] != '/')
+            sb_ccat(&path, '/');
+        dirpathlen = path.length;
+        while ((de = readdir(dir)) != NULL) {
+            if (!le_match_comppatterns(compopt, de->d_name))
+                continue;
+            sb_cat(&path, de->d_name);
+            if (is_executable_regular(path.contents))
+                le_new_candidate(CT_COMMAND,
+                        malloc_mbstowcs(de->d_name), NULL, compopt);
+            sb_truncate(&path, dirpathlen);
+        }
+        sb_clear(&path);
+        closedir(dir);
     }
     sb_destroy(&path);
 }
@@ -976,45 +976,45 @@ void generate_external_command_candidates(const le_compopt_T *compopt)
 void generate_keyword_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_KEYWORD))
-	return;
+        return;
 
     le_compdebug("adding keyword candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     static const wchar_t *keywords[] = {
-	L"case", L"do", L"done", L"elif", L"else", L"esac", L"fi", L"for",
-	L"function", L"if", L"then", L"until", L"while", NULL,
-	// XXX "select" is not currently supported
+        L"case", L"do", L"done", L"elif", L"else", L"esac", L"fi", L"for",
+        L"function", L"if", L"then", L"until", L"while", NULL,
+        // XXX "select" is not currently supported
     };
 
     for (const wchar_t **k = keywords; *k != NULL; k++)
-	if (le_wmatch_comppatterns(compopt, *k))
-	    le_new_candidate(CT_COMMAND, xwcsdup(*k), NULL, compopt);
+        if (le_wmatch_comppatterns(compopt, *k))
+            le_new_candidate(CT_COMMAND, xwcsdup(*k), NULL, compopt);
 }
 
 /* Generates candidates to complete a user name matching the pattern. */
 void generate_logname_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_LOGNAME))
-	return;
+        return;
 
     le_compdebug("adding user name candidates");
 
 #if HAVE_GETPWENT
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     struct passwd *pwd;
     setpwent();
     while ((pwd = getpwent()) != NULL)
-	if (le_match_comppatterns(compopt, pwd->pw_name))
-	    le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
+        if (le_match_comppatterns(compopt, pwd->pw_name))
+            le_new_candidate(CT_LOGNAME, malloc_mbstowcs(pwd->pw_name),
 # if HAVE_PW_GECOS
-		    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
+                    (pwd->pw_gecos != NULL) ? malloc_mbstowcs(pwd->pw_gecos) :
 # endif
-		    NULL,
-		    compopt);
+                    NULL,
+                    compopt);
     endpwent();
 #else
     le_compdebug("  getpwent not supported on this system");
@@ -1025,20 +1025,20 @@ void generate_logname_candidates(const le_compopt_T *compopt)
 void generate_group_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_GROUP))
-	return;
+        return;
 
     le_compdebug("adding group name candidates");
 
 #if HAVE_GETGRENT
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     struct group *grp;
     setgrent();
     while ((grp = getgrent()) != NULL)
-	if (le_match_comppatterns(compopt, grp->gr_name))
-	    le_new_candidate(
-		    CT_GRP, malloc_mbstowcs(grp->gr_name), NULL, compopt);
+        if (le_match_comppatterns(compopt, grp->gr_name))
+            le_new_candidate(
+                    CT_GRP, malloc_mbstowcs(grp->gr_name), NULL, compopt);
     endgrent();
 #else
     le_compdebug("  getgrent not supported on this system");
@@ -1049,25 +1049,25 @@ void generate_group_candidates(const le_compopt_T *compopt)
 void generate_host_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_HOSTNAME))
-	return;
+        return;
 
     le_compdebug("adding host name candidates");
 
 #if HAVE_GETHOSTENT
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     struct hostent *host;
     sethostent(true);
     while ((host = gethostent()) != NULL) {
-	if (le_match_comppatterns(compopt, host->h_name))
-	    le_new_candidate(
-		    CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL, compopt);
-	if (host->h_aliases != NULL)
-	    for (char *const *a = host->h_aliases; *a != NULL; a++)
-		if (le_match_comppatterns(compopt, *a))
-		    le_new_candidate(
-			    CT_HOSTNAME, malloc_mbstowcs(*a), NULL, compopt);
+        if (le_match_comppatterns(compopt, host->h_name))
+            le_new_candidate(
+                    CT_HOSTNAME, malloc_mbstowcs(host->h_name), NULL, compopt);
+        if (host->h_aliases != NULL)
+            for (char *const *a = host->h_aliases; *a != NULL; a++)
+                if (le_match_comppatterns(compopt, *a))
+                    le_new_candidate(
+                            CT_HOSTNAME, malloc_mbstowcs(*a), NULL, compopt);
     }
     endhostent();
 #else
@@ -1077,22 +1077,22 @@ void generate_host_candidates(const le_compopt_T *compopt)
 
 /* Generates candidates from words that match the pattern. */
 void generate_candidates_from_words(
-	le_candtype_T type, void *const *words, const wchar_t *description,
-	const le_compopt_T *compopt)
+        le_candtype_T type, void *const *words, const wchar_t *description,
+        const le_compopt_T *compopt)
 {
     if (words[0] == NULL)
-	return;
+        return;
 
     le_compdebug("adding specified words");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     const wchar_t *word;
     for (size_t i = 0; (word = words[i]) != NULL; i++) {
-	if (le_wmatch_comppatterns(compopt, word))
-	    le_new_candidate(type, xwcsdup(word),
-		    (description == NULL) ? NULL : xwcsdup(description),
-		    compopt);
+        if (le_wmatch_comppatterns(compopt, word))
+            le_new_candidate(type, xwcsdup(word),
+                    (description == NULL) ? NULL : xwcsdup(description),
+                    compopt);
     }
 }
 
@@ -1103,25 +1103,25 @@ void word_completion(size_t count, ...)
 {
     va_list ap;
     le_comppattern_T pattern = {
-	.type = CPT_ACCEPT,
-	.pattern = ctxt->pattern,
+        .type = CPT_ACCEPT,
+        .pattern = ctxt->pattern,
     };
     le_compopt_T compopt = {
-	.ctxt = ctxt,
-	.type = 0,
-	.src = ctxt->src,
-	.patterns = &pattern,
-	.suffix = NULL,
-	.terminate = true,
+        .ctxt = ctxt,
+        .type = 0,
+        .src = ctxt->src,
+        .patterns = &pattern,
+        .suffix = NULL,
+        .terminate = true,
     };
 
     print_compopt_info(&compopt);
 
     va_start(ap, count);
     for (size_t i = 0; i < count; i++) {
-	const wchar_t *word = va_arg(ap, const wchar_t *);
-	if (matchwcsprefix(word, compopt.src))
-	    le_new_candidate(CT_WORD, xwcsdup(word), NULL, &compopt);
+        const wchar_t *word = va_arg(ap, const wchar_t *);
+        if (matchwcsprefix(word, compopt.src))
+            le_new_candidate(CT_WORD, xwcsdup(word), NULL, &compopt);
     }
     va_end(ap);
 }
@@ -1140,25 +1140,25 @@ size_t get_common_prefix_length(void)
     assert(le_candidates.length > 0);
 
     if (common_prefix_length != (size_t) -1)
-	return common_prefix_length;
+        return common_prefix_length;
 
     const le_candidate_T *cand = le_candidates.contents[0];
     const wchar_t *value = cand->origvalue;
     size_t cpl = wcslen(value);
     for (size_t i = 1; i < le_candidates.length; i++) {
-	cand = le_candidates.contents[i];
-	const wchar_t *value2 = cand->origvalue;
-	for (size_t j = 0; j < cpl; j++)
-	    if (value[j] != value2[j])  // XXX comparison is case-sensitive
-		cpl = j;
+        cand = le_candidates.contents[i];
+        const wchar_t *value2 = cand->origvalue;
+        for (size_t j = 0; j < cpl; j++)
+            if (value[j] != value2[j])  // XXX comparison is case-sensitive
+                cpl = j;
     }
     common_prefix_length = cpl;
 
     if (le_state_is_compdebug) {
-	wchar_t value[common_prefix_length + 1];
-	wmemcpy(value, cand->origvalue, common_prefix_length);
-	value[common_prefix_length] = L'\0';
-	le_compdebug("candidate common prefix: \"%ls\"", value);
+        wchar_t value[common_prefix_length + 1];
+        wmemcpy(value, cand->origvalue, common_prefix_length);
+        value[common_prefix_length] = L'\0';
+        le_compdebug("candidate common prefix: \"%ls\"", value);
     }
 
     return common_prefix_length;
@@ -1185,88 +1185,88 @@ void update_main_buffer(bool subst, bool finish)
 
     wb_init(&buf);
     if (subst) {
-	srclen = 0;
-	substindex = ctxt->srcindex;
-	quotetype = QUOTE_NORMAL;
+        srclen = 0;
+        substindex = ctxt->srcindex;
+        quotetype = QUOTE_NORMAL;
     } else {
-	srclen = wcslen(ctxt->src);
-	substindex = ctxt->origindex;
-	quotetype = ctxt->quote;
+        srclen = wcslen(ctxt->src);
+        substindex = ctxt->origindex;
+        quotetype = ctxt->quote;
     }
     if (le_selected_candidate_index >= le_candidates.length) {
-	size_t cpl = get_common_prefix_length();
-	assert(srclen <= cpl);
-	cand = le_candidates.contents[0];
+        size_t cpl = get_common_prefix_length();
+        assert(srclen <= cpl);
+        cand = le_candidates.contents[0];
 
-	size_t valuelen = cpl - srclen;
-	wchar_t value[valuelen + 1];
-	wcsncpy(value, cand->origvalue + srclen, valuelen);
-	value[valuelen] = L'\0';
-	quote(&buf, value, quotetype);
+        size_t valuelen = cpl - srclen;
+        wchar_t value[valuelen + 1];
+        wcsncpy(value, cand->origvalue + srclen, valuelen);
+        value[valuelen] = L'\0';
+        quote(&buf, value, quotetype);
     } else {
-	cand = le_candidates.contents[le_selected_candidate_index];
-	assert(srclen <= wcslen(cand->origvalue));
-	if (cand->origvalue[0] == L'\0' && quotetype == QUOTE_NORMAL)
-	    wb_cat(&buf, L"\"\"");
-	else
-	    quote(&buf, cand->origvalue + srclen, quotetype);
+        cand = le_candidates.contents[le_selected_candidate_index];
+        assert(srclen <= wcslen(cand->origvalue));
+        if (cand->origvalue[0] == L'\0' && quotetype == QUOTE_NORMAL)
+            wb_cat(&buf, L"\"\"");
+        else
+            quote(&buf, cand->origvalue + srclen, quotetype);
     }
     assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
-	    substindex, le_main_index - substindex,
-	    buf.contents, buf.length);
+            substindex, le_main_index - substindex,
+            buf.contents, buf.length);
     le_main_index = substindex + buf.length;
     wb_destroy(&buf);
 
     if (le_selected_candidate_index >= le_candidates.length)
-	return;
+        return;
 
     if (!cand->terminate)
-	return;
+        return;
 
     switch (quotetype) {
-	case QUOTE_NONE:
-	case QUOTE_NORMAL:
-	    break;
-	case QUOTE_SINGLE:
-	    insert_to_main_buffer(L'\'');
-	    break;
-	case QUOTE_DOUBLE:
-	    insert_to_main_buffer(L'"');
-	    break;
+        case QUOTE_NONE:
+        case QUOTE_NORMAL:
+            break;
+        case QUOTE_SINGLE:
+            insert_to_main_buffer(L'\'');
+            break;
+        case QUOTE_DOUBLE:
+            insert_to_main_buffer(L'"');
+            break;
     }
 
     if (!finish)
-	return;
+        return;
 
     if (ctxt->type & CTXT_VBRACED) {
-	insert_to_main_buffer(L'}');
-	return;
+        insert_to_main_buffer(L'}');
+        return;
     } else if (ctxt->type & CTXT_EBRACED) {
-	insert_to_main_buffer(L',');
-	return;
+        insert_to_main_buffer(L',');
+        return;
     }
     if (ctxt->type & CTXT_QUOTED) {
-	insert_to_main_buffer(L'"');
+        insert_to_main_buffer(L'"');
     }
     switch (ctxt->type & CTXT_MASK) {
-	case CTXT_NORMAL:
-	case CTXT_COMMAND:
-	case CTXT_ARGUMENT:
-	case CTXT_VAR:
-	case CTXT_ARITH:
-	case CTXT_ASSIGN:
-	case CTXT_REDIR:
-	case CTXT_REDIR_FD:
-	case CTXT_FOR_IN:
-	case CTXT_FOR_DO:
-	case CTXT_CASE_IN:
-	case CTXT_FUNCTION:
-	    insert_to_main_buffer(L' ');
-	    break;
-	case CTXT_TILDE:
-	    insert_to_main_buffer(L'/');
-	    break;
+        case CTXT_NORMAL:
+        case CTXT_COMMAND:
+        case CTXT_ARGUMENT:
+        case CTXT_VAR:
+        case CTXT_ARITH:
+        case CTXT_ASSIGN:
+        case CTXT_REDIR:
+        case CTXT_REDIR_FD:
+        case CTXT_FOR_IN:
+        case CTXT_FOR_DO:
+        case CTXT_CASE_IN:
+        case CTXT_FUNCTION:
+            insert_to_main_buffer(L' ');
+            break;
+        case CTXT_TILDE:
+            insert_to_main_buffer(L'/');
+            break;
     }
 }
 
@@ -1285,9 +1285,9 @@ void insert_to_main_buffer(wchar_t c)
 bool need_subst(void)
 {
     for (size_t i = 0; i < le_candidates.length; i++) {
-	const le_candidate_T *cand = le_candidates.contents[i];
-	if (matchwcsprefix(cand->origvalue, ctxt->src) == NULL)
-	    return true;
+        const le_candidate_T *cand = le_candidates.contents[i];
+        if (matchwcsprefix(cand->origvalue, ctxt->src) == NULL)
+            return true;
     }
     return false;
 }
@@ -1306,10 +1306,10 @@ void substitute_source_word_all(void)
     xwcsbuf_T buf;
     wb_init(&buf);
     for (size_t i = 0; i < le_candidates.length; i++) {
-	const le_candidate_T* cand = le_candidates.contents[i];
+        const le_candidate_T* cand = le_candidates.contents[i];
 
-	quote(&buf, cand->origvalue, QUOTE_NORMAL);
-	wb_wccat(&buf, L' ');
+        quote(&buf, cand->origvalue, QUOTE_NORMAL);
+        wb_wccat(&buf, L' ');
     }
     wb_ninsert_force(&le_main_buffer, le_main_index, buf.contents, buf.length);
     le_main_index += buf.length;
@@ -1321,41 +1321,41 @@ void substitute_source_word_all(void)
  * The result is appended to the specified buffer, which must have been
  * initialized by the caller. */
 void quote(xwcsbuf_T *restrict buf,
-	const wchar_t *restrict s, le_quote_T quotetype)
+        const wchar_t *restrict s, le_quote_T quotetype)
 {
     const wchar_t *quotechars = (ctxt->type == CTXT_COMMAND)
-	? L"=|&;<>()$`\\\"'*?[]#~{}" : L"|&;<>()$`\\\"'*?[]#~{}";
+        ? L"=|&;<>()$`\\\"'*?[]#~{}" : L"|&;<>()$`\\\"'*?[]#~{}";
 
     switch (quotetype) {
-	case QUOTE_NONE:
-	    wb_cat(buf, s);
-	    return;
-	case QUOTE_NORMAL:
-	    for (size_t i = 0; s[i] != L'\0'; i++) {
-		if (s[i] == L'\n') {
-		    wb_ncat_force(buf, L"'\n'", 3);
-		} else {
-		    if (wcschr(quotechars, s[i]) != NULL || iswspace(s[i]))
-			wb_wccat(buf, L'\\');
-		    wb_wccat(buf, s[i]);
-		}
-	    }
-	    return;
-	case QUOTE_SINGLE:
-	    for (size_t i = 0; s[i] != L'\0'; i++) {
-		if (s[i] != L'\'')
-		    wb_wccat(buf, s[i]);
-		else
-		    wb_ncat_force(buf, L"'\\''", 4);
-	    }
-	    return;
-	case QUOTE_DOUBLE:
-	    for (size_t i = 0; s[i] != L'\0'; i++) {
-		if (wcschr(CHARS_ESCAPABLE, s[i]) != NULL)
-		    wb_wccat(buf, L'\\');
-		wb_wccat(buf, s[i]);
-	    }
-	    return;
+        case QUOTE_NONE:
+            wb_cat(buf, s);
+            return;
+        case QUOTE_NORMAL:
+            for (size_t i = 0; s[i] != L'\0'; i++) {
+                if (s[i] == L'\n') {
+                    wb_ncat_force(buf, L"'\n'", 3);
+                } else {
+                    if (wcschr(quotechars, s[i]) != NULL || iswspace(s[i]))
+                        wb_wccat(buf, L'\\');
+                    wb_wccat(buf, s[i]);
+                }
+            }
+            return;
+        case QUOTE_SINGLE:
+            for (size_t i = 0; s[i] != L'\0'; i++) {
+                if (s[i] != L'\'')
+                    wb_wccat(buf, s[i]);
+                else
+                    wb_ncat_force(buf, L"'\\''", 4);
+            }
+            return;
+        case QUOTE_DOUBLE:
+            for (size_t i = 0; s[i] != L'\0'; i++) {
+                if (wcschr(CHARS_ESCAPABLE, s[i]) != NULL)
+                    wb_wccat(buf, L'\\');
+                wb_wccat(buf, s[i]);
+            }
+            return;
     }
     assert(false);
 }
@@ -1421,11 +1421,11 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
 
 #define NEWPATTERN(typ) \
     do {                                                            \
-	le_comppattern_T *newpattern = xmalloc(sizeof *newpattern); \
-	*newpattern = (le_comppattern_T) {                          \
-	    .next = patterns, .type = typ, .pattern = xoptarg,      \
-	};                                                          \
-	patterns = newpattern;                                      \
+        le_comppattern_T *newpattern = xmalloc(sizeof *newpattern); \
+        *newpattern = (le_comppattern_T) {                          \
+            .next = patterns, .type = typ, .pattern = xoptarg,      \
+        };                                                          \
+        patterns = newpattern;                                      \
     } while (0)
 
     int exitstatus;
@@ -1433,121 +1433,121 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, complete_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'A':  NEWPATTERN(CPT_ACCEPT);    break;
-	    case L'a':  cgtype |= CGT_ALIAS;       break;
-	    case L'b':  cgtype |= CGT_BUILTIN;     break;
-	    case L'c':  cgtype |= CGT_COMMAND;     break;
-	    case L'D':
-		if (description != NULL)
-		    goto dupopterror;
-		description = xoptarg;
-		break;
-	    case L'd':  cgtype |= CGT_DIRECTORY;   break;
-	    case L'f':  cgtype |= CGT_FILE;        break;
-	    case L'g':  cgtype |= CGT_GROUP;       break;
-	    case L'h':  cgtype |= CGT_HOSTNAME;    break;
-	    case L'j':  cgtype |= CGT_JOB;         break;
-	    case L'k':  cgtype |= CGT_KEYWORD;     break;
-	    case L'O':  candtype = CT_OPTION;      break;
-	    case L'P':
-		if (prefix != NULL)
-		    goto dupopterror;
-		prefix = xoptarg;
-		break;
-	    case L'R':  NEWPATTERN(CPT_REJECT);    break;
-	    case L'S':
-		if (suffix != NULL)
-		    goto dupopterror;
-		suffix = xoptarg;
-		break;
-	    case L'T':  terminate = false;         break;
-	    case L'u':  cgtype |= CGT_LOGNAME;     break;
-	    case L'v':  cgtype |= CGT_VARIABLE;    break;
-	    case L'-':
-		switch (opt->longopt[0]) {
-		    case L'a':  cgtype |= CGT_ARRAY;  break;
-		    case L'b':  cgtype |= CGT_BINDKEY;  break;
-		    case L'd':  cgtype |= CGT_DIRSTACK;  break;
-		    case L'e':
-			switch (opt->longopt[1]) {
-			    case L'l':  cgtype |= CGT_LBUILTIN;  break;
-			    case L'x':
-				switch (opt->longopt[2]) {
-				case L'e':  cgtype |= CGT_EXECUTABLE;  break;
-				case L't':
-				    assert(opt->longopt[3] == L'e');
-				    switch (opt->longopt[4]) {
-					case L'n':
-					    cgtype |= CGT_XBUILTIN;    break;
-					case L'r':
-					    cgtype |= CGT_EXTCOMMAND;  break;
-				    }
-				    break;
-				default:    assert(false);
-				}
-				break;
-			    default:    assert(false);
-			}
-			break;
-		    case L'f':
-			switch (opt->longopt[1]) {
-			    case L'i':  cgtype |= CGT_DONE;      break;
-			    case L'u':  cgtype |= CGT_FUNCTION;  break;
-			    default:    assert(false);
-			}
-			break;
-		    case L'g':  cgtype |= CGT_GALIAS;  break;
+        switch (opt->shortopt) {
+            case L'A':  NEWPATTERN(CPT_ACCEPT);    break;
+            case L'a':  cgtype |= CGT_ALIAS;       break;
+            case L'b':  cgtype |= CGT_BUILTIN;     break;
+            case L'c':  cgtype |= CGT_COMMAND;     break;
+            case L'D':
+                if (description != NULL)
+                    goto dupopterror;
+                description = xoptarg;
+                break;
+            case L'd':  cgtype |= CGT_DIRECTORY;   break;
+            case L'f':  cgtype |= CGT_FILE;        break;
+            case L'g':  cgtype |= CGT_GROUP;       break;
+            case L'h':  cgtype |= CGT_HOSTNAME;    break;
+            case L'j':  cgtype |= CGT_JOB;         break;
+            case L'k':  cgtype |= CGT_KEYWORD;     break;
+            case L'O':  candtype = CT_OPTION;      break;
+            case L'P':
+                if (prefix != NULL)
+                    goto dupopterror;
+                prefix = xoptarg;
+                break;
+            case L'R':  NEWPATTERN(CPT_REJECT);    break;
+            case L'S':
+                if (suffix != NULL)
+                    goto dupopterror;
+                suffix = xoptarg;
+                break;
+            case L'T':  terminate = false;         break;
+            case L'u':  cgtype |= CGT_LOGNAME;     break;
+            case L'v':  cgtype |= CGT_VARIABLE;    break;
+            case L'-':
+                switch (opt->longopt[0]) {
+                    case L'a':  cgtype |= CGT_ARRAY;  break;
+                    case L'b':  cgtype |= CGT_BINDKEY;  break;
+                    case L'd':  cgtype |= CGT_DIRSTACK;  break;
+                    case L'e':
+                        switch (opt->longopt[1]) {
+                            case L'l':  cgtype |= CGT_LBUILTIN;  break;
+                            case L'x':
+                                switch (opt->longopt[2]) {
+                                case L'e':  cgtype |= CGT_EXECUTABLE;  break;
+                                case L't':
+                                    assert(opt->longopt[3] == L'e');
+                                    switch (opt->longopt[4]) {
+                                        case L'n':
+                                            cgtype |= CGT_XBUILTIN;    break;
+                                        case L'r':
+                                            cgtype |= CGT_EXTCOMMAND;  break;
+                                    }
+                                    break;
+                                default:    assert(false);
+                                }
+                                break;
+                            default:    assert(false);
+                        }
+                        break;
+                    case L'f':
+                        switch (opt->longopt[1]) {
+                            case L'i':  cgtype |= CGT_DONE;      break;
+                            case L'u':  cgtype |= CGT_FUNCTION;  break;
+                            default:    assert(false);
+                        }
+                        break;
+                    case L'g':  cgtype |= CGT_GALIAS;  break;
 #if YASH_ENABLE_HELP
-		    case L'h':
-			exitstatus = print_builtin_help(ARGV(0));
-			goto finish;
+                    case L'h':
+                        exitstatus = print_builtin_help(ARGV(0));
+                        goto finish;
 #endif
-		    case L'm':  cgtype |= CGT_MBUILTIN;  break;
-		    case L'n':  cgtype |= CGT_NALIAS;    break;
-		    case L'r':
-			switch (opt->longopt[1]) {
-			    case L'e':
-				cgtype |= CGT_XBUILTIN | CGT_UBUILTIN;
-				break;
-			    case L'u':  cgtype |= CGT_RUNNING;   break;
-			    default:    assert(false);
-			}
-			break;
-		    case L's':
-			switch (opt->longopt[1]) {
-			    case L'c':  cgtype |= CGT_SCALAR;    break;
-			    case L'e':
-				cgtype |= CGT_MBUILTIN | CGT_LBUILTIN;
-				break;
-			    case L'i':  cgtype |= CGT_SIGNAL;    break;
-			    case L'p':  cgtype |= CGT_SBUILTIN;  break;
-			    case L't':  cgtype |= CGT_STOPPED;   break;
-			    case L'u':  cgtype |= CGT_UBUILTIN;  break;
-			    default:    assert(false);
-			}
-			break;
-		    default:
-			assert(false);
-		}
-		break;
+                    case L'm':  cgtype |= CGT_MBUILTIN;  break;
+                    case L'n':  cgtype |= CGT_NALIAS;    break;
+                    case L'r':
+                        switch (opt->longopt[1]) {
+                            case L'e':
+                                cgtype |= CGT_XBUILTIN | CGT_UBUILTIN;
+                                break;
+                            case L'u':  cgtype |= CGT_RUNNING;   break;
+                            default:    assert(false);
+                        }
+                        break;
+                    case L's':
+                        switch (opt->longopt[1]) {
+                            case L'c':  cgtype |= CGT_SCALAR;    break;
+                            case L'e':
+                                cgtype |= CGT_MBUILTIN | CGT_LBUILTIN;
+                                break;
+                            case L'i':  cgtype |= CGT_SIGNAL;    break;
+                            case L'p':  cgtype |= CGT_SBUILTIN;  break;
+                            case L't':  cgtype |= CGT_STOPPED;   break;
+                            case L'u':  cgtype |= CGT_UBUILTIN;  break;
+                            default:    assert(false);
+                        }
+                        break;
+                    default:
+                        assert(false);
+                }
+                break;
 dupopterror:
-		xerror(0, Ngt("more than one -%lc option is specified"),
-			(wint_t) opt->shortopt);
-		/* falls thru */
-	    default:
-		exitstatus = Exit_ERROR;
-		goto finish;
-	}
+                xerror(0, Ngt("more than one -%lc option is specified"),
+                        (wint_t) opt->shortopt);
+                /* falls thru */
+            default:
+                exitstatus = Exit_ERROR;
+                goto finish;
+        }
     }
 
 #undef NEWPATTERN
 
     if (ctxt == NULL) {
-	xerror(0, Ngt("the complete built-in can be used "
-		    "during command line completion only"));
-	exitstatus = Exit_ERROR;
-	goto finish;
+        xerror(0, Ngt("the complete built-in can be used "
+                    "during command line completion only"));
+        exitstatus = Exit_ERROR;
+        goto finish;
     }
 
     void *const *words = &argv[xoptind];
@@ -1555,34 +1555,34 @@ dupopterror:
     /* treat `prefix' */
     const wchar_t *src = ctxt->src, *pattern = ctxt->pattern;
     if (prefix != NULL) {
-	src = matchwcsprefix(src, prefix);
-	if (src == NULL) {
-	    xerror(0, Ngt("the specified prefix `%ls' does not match "
-			"the target word `%ls'"), prefix, ctxt->src);
-	    exitstatus = Exit_ERROR;
-	    goto finish;
-	}
-	while (*prefix != L'\0') {
-	    if (*pattern == L'\\')
-		pattern++;
-	    assert(*pattern != L'\0');
-	    pattern++;
-	    prefix++;
-	}
+        src = matchwcsprefix(src, prefix);
+        if (src == NULL) {
+            xerror(0, Ngt("the specified prefix `%ls' does not match "
+                        "the target word `%ls'"), prefix, ctxt->src);
+            exitstatus = Exit_ERROR;
+            goto finish;
+        }
+        while (*prefix != L'\0') {
+            if (*pattern == L'\\')
+                pattern++;
+            assert(*pattern != L'\0');
+            pattern++;
+            prefix++;
+        }
     }
 
     le_comppattern_T comppatterns = {
-	.next = patterns,
-	.type = CPT_ACCEPT,
-	.pattern = pattern,
+        .next = patterns,
+        .type = CPT_ACCEPT,
+        .pattern = pattern,
     };
     le_compopt_T compopt = {
-	.ctxt = ctxt,
-	.type = cgtype,
-	.src = src,
-	.patterns = &comppatterns,
-	.suffix = suffix,
-	.terminate = terminate,
+        .ctxt = ctxt,
+        .type = cgtype,
+        .src = src,
+        .patterns = &comppatterns,
+        .suffix = suffix,
+        .terminate = terminate,
     };
 
     print_compopt_info(&compopt);
@@ -1596,9 +1596,9 @@ dupopterror:
 
 finish:
     while (patterns != NULL) {
-	le_comppattern_T *next = patterns->next;
-	free(patterns);
-	patterns = next;
+        le_comppattern_T *next = patterns->next;
+        free(patterns);
+        patterns = next;
     }
     return exitstatus;
 }
@@ -1614,4 +1614,4 @@ const char complete_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

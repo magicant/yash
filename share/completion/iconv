@@ -6,75 +6,75 @@
 
 function completion/iconv {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'GNU libc'*)     typeset type=glibc ;;
-		(*'GNU libiconv'*) typeset type=glibiconv ;;
-		(*)                typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(glibc|glibiconv) typeset long=true ;;
-		(*)               typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'GNU libc'*)     typeset type=glibc ;;
+                (*'GNU libiconv'*) typeset type=glibiconv ;;
+                (*)                typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (glibc|glibiconv) typeset long=true ;;
+                (*)               typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"c; discard unconvertible characters"
-	"f: ${long:+--from-code:}; specify the input encoding"
-	"l ${long:+--list}; print all supported encodings"
-	"s ${long:+--silent}; suppress warnings about unconvertible characters"
-	"t: ${long:+--to-code:}; specify the output encoding"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "c; discard unconvertible characters"
+        "f: ${long:+--from-code:}; specify the input encoding"
+        "l ${long:+--list}; print all supported encodings"
+        "s ${long:+--silent}; suppress warnings about unconvertible characters"
+        "t: ${long:+--to-code:}; specify the output encoding"
+        ) #<#
 
-	case $type in
-	(glibc)
-		OPTIONS=("$OPTIONS" #>#
-		"o: --output:; specify the file to output"
-		"? --help; print help"
-		"--verbose; print progress info"
-		"V --version; print version info"
-		) #<#
-		;;
-	(glibiconv)
-		OPTIONS=("$OPTIONS" #>#
-		"--unicode-subst:; specify a format to substitute unconvertible Unicode characters with"
-		"--byte-subst:; specify a format to substitute unconvertible bytes with"
-		"--widechar-subst:; specify a format to substitute invalid wide characters with"
-		) #<#
-		;;
-	esac
+        case $type in
+        (glibc)
+                OPTIONS=("$OPTIONS" #>#
+                "o: --output:; specify the file to output"
+                "? --help; print help"
+                "--verbose; print progress info"
+                "V --version; print version info"
+                ) #<#
+                ;;
+        (glibiconv)
+                OPTIONS=("$OPTIONS" #>#
+                "--unicode-subst:; specify a format to substitute unconvertible Unicode characters with"
+                "--byte-subst:; specify a format to substitute unconvertible bytes with"
+                "--widechar-subst:; specify a format to substitute invalid wide characters with"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([ft]|--from-code|--to-code)
-		command -f completion/iconv::compenc "${WORDS[1]}"
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([ft]|--from-code|--to-code)
+                command -f completion/iconv::compenc "${WORDS[1]}"
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 function completion/iconv::compenc {
 
-	typeset iconv="${1-iconv}"
+        typeset iconv="${1-iconv}"
 
-	case $("$iconv" --version 2>/dev/null) in
-		(*'GNU libc'*)     typeset type=glibc ;;
-		(*'GNU libiconv'*) typeset type=glibiconv ;;
-		(*)                typeset type="$(uname 2>/dev/null)" ;;
-	esac
+        case $("$iconv" --version 2>/dev/null) in
+                (*'GNU libc'*)     typeset type=glibc ;;
+                (*'GNU libiconv'*) typeset type=glibiconv ;;
+                (*)                typeset type="$(uname 2>/dev/null)" ;;
+        esac
 
-	# POSIX does not specify the format of `iconv -l' output.
-	# We support GNU libc and libiconv for now.
-	case $type in (glibc|glibiconv)
-		complete -P "$PREFIX" -- $("$iconv" -l 2>/dev/null)
-	esac
+        # POSIX does not specify the format of `iconv -l' output.
+        # We support GNU libc and libiconv for now.
+        case $type in (glibc|glibiconv)
+                complete -P "$PREFIX" -- $("$iconv" -l 2>/dev/null)
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

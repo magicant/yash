@@ -485,7 +485,7 @@ for i in -6 -5 -2 -1 0 1 2 5 6; do
 done
 for i in -6 -5 -1 0 1 5 6; do
     for j in -6 -5 -1 0 1 5 6; do
-	bracket $i,$j "${a[i,j]}"
+        bracket $i,$j "${a[i,j]}"
     done
 done
 __IN__
@@ -562,7 +562,7 @@ for i in -6 -5 -2 -1 0 1 2 5 6; do
 done
 for i in -6 -5 -1 0 1 5 6; do
     for j in -6 -5 -1 0 1 5 6; do
-	bracket $i,$j "${a[i,j]}"
+        bracket $i,$j "${a[i,j]}"
     done
 done
 __IN__
@@ -639,7 +639,7 @@ for i in -6 -5 -2 -1 0 1 2 5 6; do
 done
 for i in -6 -5 -1 0 1 5 6; do
     for j in -6 -5 -1 0 1 5 6; do
-	bracket $i,$j "${*[i,j]}"
+        bracket $i,$j "${*[i,j]}"
     done
 done
 __IN__
@@ -716,7 +716,7 @@ for i in -6 -5 -2 -1 0 1 2 5 6; do
 done
 for i in -6 -5 -1 0 1 5 6; do
     for j in -6 -5 -1 0 1 5 6; do
-	bracket $i,$j "${@[i,j]}"
+        bracket $i,$j "${@[i,j]}"
     done
 done
 __IN__
@@ -882,4 +882,4 @@ __ERR__
 
 )
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

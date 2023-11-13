@@ -55,11 +55,11 @@ typedef struct kvpair_T {
 } kvpair_T;
 
 static inline hashtable_T *ht_init(
-	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
+        hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
     __attribute__((nonnull));
 extern hashtable_T *ht_initwithcapacity(
-	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
-	size_t capacity)
+        hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
+        size_t capacity)
     __attribute__((nonnull));
 static inline void ht_destroy(hashtable_T *ht)
     __attribute__((nonnull));
@@ -105,7 +105,7 @@ extern void kvfree(kvpair_T kv);
 hashtable_T *ht_init(hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp)
 {
     return ht_initwithcapacity(
-	    ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
+            ht, hashfunc, keycmp, HASHTABLE_DEFAULT_INIT_CAPACITY);
 }
 
 /* Destroys the specified hashtable.
@@ -120,4 +120,4 @@ void ht_destroy(hashtable_T *ht)
 #endif /* YASH_HASHTABLE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

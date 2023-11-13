@@ -33,17 +33,17 @@
 static struct xgetopt_T *search_argv(void);
 static struct xgetopt_T *parse_short_option(void);
 static struct xgetopt_T *found_short_option(
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static struct xgetopt_T *parse_long_option(void);
 static struct xgetopt_T *found_long_option(const wchar_t *eq,
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static struct xgetopt_T *finish_parsing_current_argument(
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static struct xgetopt_T *parse_separate_option_argument(bool shortopt,
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
     __attribute__((nonnull));
 static void argshift(void);
 static struct xgetopt_T *done(void);
@@ -52,10 +52,10 @@ static struct xgetopt_T *no_such_option(const wchar_t *s)
 static struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
     __attribute__((nonnull));
 static struct xgetopt_T *option_argument_is_missing(
-	bool shortopt, const struct xgetopt_T *opt)
+        bool shortopt, const struct xgetopt_T *opt)
     __attribute__((nonnull));
 static struct xgetopt_T *unwanted_long_option_argument(
-	const wchar_t *s, const struct xgetopt_T *opt)
+        const wchar_t *s, const struct xgetopt_T *opt)
     __attribute__((nonnull));
 static struct xgetopt_T *sentinel(void)
     __attribute__((pure));
@@ -135,15 +135,15 @@ static enum xgetoptopt_T getoptopt;
  *              option to be accepted.
  *    ptr:      Not used in the `xgetopt' function. */
 struct xgetopt_T *xgetopt(
-	void **restrict argv_,
-	const struct xgetopt_T *restrict opts_,
-	enum xgetoptopt_T getoptopt_)
+        void **restrict argv_,
+        const struct xgetopt_T *restrict opts_,
+        enum xgetoptopt_T getoptopt_)
 {
     if (xoptind == 0) {
-	argv = argv_;
-	opts = opts_;
-	getoptopt = getoptopt_;
-	xoptind = argvindex = charindex = 1;  /* reset the state */
+        argv = argv_;
+        opts = opts_;
+        getoptopt = getoptopt_;
+        xoptind = argvindex = charindex = 1;  /* reset the state */
     }
 
     /* sanity check */
@@ -162,17 +162,17 @@ struct xgetopt_T *search_argv(void)
 
     const wchar_t *arg;
     for (; (arg = argv[argvindex]) != NULL; argvindex++) {
-	if (arg[0] == L'-') {
-	    if (arg[1] == L'-')  /* `arg' starts with "--" */
-		return parse_long_option();
-	    if (arg[1] != L'\0')
-		if (!(opt & XGETOPT_DIGIT) || !iswdigit(arg[1]))
-		    return parse_short_option();
-	}
+        if (arg[0] == L'-') {
+            if (arg[1] == L'-')  /* `arg' starts with "--" */
+                return parse_long_option();
+            if (arg[1] != L'\0')
+                if (!(opt & XGETOPT_DIGIT) || !iswdigit(arg[1]))
+                    return parse_short_option();
+        }
 
-	/* `arg' is not a option */
-	if (opt & XGETOPT_POSIX)
-	    break;
+        /* `arg' is not a option */
+        if (opt & XGETOPT_POSIX)
+            break;
     }
 
     /* no more options! */
@@ -190,12 +190,12 @@ struct xgetopt_T *parse_short_option(void)
      * is used as a sentinel in the xgetopt_T structure to indicate that a
      * single-character option is not available. */
     if (arg[charindex] == L'-')
-	return no_such_option(arg);
+        return no_such_option(arg);
 
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
-	if (opt->posix || !posixly_correct)
-	    if (opt->shortopt == arg[charindex])
-		return found_short_option(opt);
+        if (opt->posix || !posixly_correct)
+            if (opt->shortopt == arg[charindex])
+                return found_short_option(opt);
 
     return no_such_option(arg);
 }
@@ -208,25 +208,25 @@ struct xgetopt_T *found_short_option(const struct xgetopt_T *restrict opt)
     const wchar_t *arg = argv[argvindex];
 
     if (opt->optarg == OPTARG_NONE) {
-	/* the option doesn't take an argument */
-	if (arg[charindex + 1] != L'\0') {
-	    /* we have a next option in the same argument string */
-	    charindex++;
-	    return (struct xgetopt_T *) opt;
-	} else {
-	    /* no options are remaining in this argument string */
-	    return finish_parsing_current_argument(opt);
-	}
+        /* the option doesn't take an argument */
+        if (arg[charindex + 1] != L'\0') {
+            /* we have a next option in the same argument string */
+            charindex++;
+            return (struct xgetopt_T *) opt;
+        } else {
+            /* no options are remaining in this argument string */
+            return finish_parsing_current_argument(opt);
+        }
     } else {
-	/* the option takes an argument */
-	xoptarg = (wchar_t *) &arg[charindex + 1];
-	if (*xoptarg == L'\0' && opt->optarg == OPTARG_REQUIRED) {
-	    /* the option argument is split from the option like "-x arg" */
-	    return parse_separate_option_argument(true, opt);
-	} else {
-	    /* the option argument is in the same string like "-xarg" */
-	    return finish_parsing_current_argument(opt);
-	}
+        /* the option takes an argument */
+        xoptarg = (wchar_t *) &arg[charindex + 1];
+        if (*xoptarg == L'\0' && opt->optarg == OPTARG_REQUIRED) {
+            /* the option argument is split from the option like "-x arg" */
+            return parse_separate_option_argument(true, opt);
+        } else {
+            /* the option argument is in the same string like "-xarg" */
+            return finish_parsing_current_argument(opt);
+        }
     }
 }
 
@@ -236,40 +236,40 @@ struct xgetopt_T *parse_long_option(void)
     const wchar_t *arg = argv[argvindex];
 
     if (arg[2] == L'\0') {  /* `arg' is "--" */
-	argshift();
-	return done();
+        argshift();
+        return done();
     }
 
     if (posixly_correct)
-	return no_such_option(arg);
+        return no_such_option(arg);
 
     /* identify the long option */
     const struct xgetopt_T *match = NULL;
     size_t namelen = wcscspn(&arg[2], L"=");
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++) {
-	if (!opt->posix && posixly_correct)
-	    continue;
-	if (opt->longopt == NULL)
-	    continue;
-	if (wcsncmp(opt->longopt, &arg[2], namelen) != 0)
-	    continue;
+        if (!opt->posix && posixly_correct)
+            continue;
+        if (opt->longopt == NULL)
+            continue;
+        if (wcsncmp(opt->longopt, &arg[2], namelen) != 0)
+            continue;
 
-	if (opt->longopt[namelen] == L'\0') {
-	    /* exact match */
-	    match = opt;
-	    break;
-	}
+        if (opt->longopt[namelen] == L'\0') {
+            /* exact match */
+            match = opt;
+            break;
+        }
 
-	/* partial match: `&arg[2]' starts with `opt->longopt' */
-	if (match == NULL)
-	    /* first partial match */
-	    match = opt;
-	else
-	    /* more than one partial match */
-	    return ambiguous_long_option(arg, namelen);
+        /* partial match: `&arg[2]' starts with `opt->longopt' */
+        if (match == NULL)
+            /* first partial match */
+            match = opt;
+        else
+            /* more than one partial match */
+            return ambiguous_long_option(arg, namelen);
     }
     if (match == NULL)
-	return no_such_option(arg);
+        return no_such_option(arg);
 
     return found_long_option(&arg[namelen + 2], match);
 }
@@ -280,32 +280,32 @@ struct xgetopt_T *parse_long_option(void)
  * `opt' is a pointer to the option in the xgetopt_T array, which is returned by
  * this function unless an option argument is expected but missing. */
 struct xgetopt_T *found_long_option(const wchar_t *eq,
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
 {
     if (opt->optarg == OPTARG_NONE) {
-	/* the option doesn't take an argument */
-	if (*eq != L'\0')
-	    return unwanted_long_option_argument(argv[argvindex], opt);
-	return finish_parsing_current_argument(opt);
+        /* the option doesn't take an argument */
+        if (*eq != L'\0')
+            return unwanted_long_option_argument(argv[argvindex], opt);
+        return finish_parsing_current_argument(opt);
     }
 
     /* the option takes an argument */
     if (*eq != L'\0') {
-	/* the argument is specified after L'=' like "--option=argument" */
-	xoptarg = (wchar_t *) &eq[1];
-	return finish_parsing_current_argument(opt);
+        /* the argument is specified after L'=' like "--option=argument" */
+        xoptarg = (wchar_t *) &eq[1];
+        return finish_parsing_current_argument(opt);
     }
 
     /* no option argument in `argv[argvindex]' */
     switch (opt->optarg) {
-	case OPTARG_OPTIONAL:
-	    /* the optional argument is not given */
-	    return finish_parsing_current_argument(opt);
-	case OPTARG_REQUIRED:
-	    /* the argument is split from the option like "--option argument" */
-	    return parse_separate_option_argument(false, opt);
-	case OPTARG_NONE:
-	    assert(false);
+        case OPTARG_OPTIONAL:
+            /* the optional argument is not given */
+            return finish_parsing_current_argument(opt);
+        case OPTARG_REQUIRED:
+            /* the argument is split from the option like "--option argument" */
+            return parse_separate_option_argument(false, opt);
+        case OPTARG_NONE:
+            assert(false);
     }
     assert(false);
 }
@@ -319,7 +319,7 @@ struct xgetopt_T *found_long_option(const wchar_t *eq,
  * `charindex' is reset to 1.
  * `opt' is the option that was parsed, which is returned by this function. */
 struct xgetopt_T *finish_parsing_current_argument(
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
 {
     argshift();
     charindex = 1;
@@ -336,11 +336,11 @@ struct xgetopt_T *finish_parsing_current_argument(
  * `opt' is the option that was parsed, which is returned by this function
  * unless the argument is missing. */
 struct xgetopt_T *parse_separate_option_argument(bool shortopt,
-	const struct xgetopt_T *restrict opt)
+        const struct xgetopt_T *restrict opt)
 {
     xoptarg = argv[argvindex + 1];
     if (xoptarg == NULL)
-	return option_argument_is_missing(shortopt, opt);
+        return option_argument_is_missing(shortopt, opt);
     argshift();
     argshift();
     charindex = 1;
@@ -358,7 +358,7 @@ void argshift(void)
 
     assert(argvindex >= xoptind);
     for (int i = argvindex; i > xoptind; i--)
-	argv[i] = argv[i - 1];
+        argv[i] = argv[i - 1];
     argv[xoptind] = s;
 
     argvindex++, xoptind++;
@@ -392,9 +392,9 @@ struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
     xerror(0, Ngt("option `%ls' is ambiguous"), s);
 #if LIST_AMBIGUOUS_OPTIONS
     for (const struct xgetopt_T *opt = opts; opt->shortopt != L'\0'; opt++)
-	if (opt->longopt != NULL
-		&& wcsncmp(opt->longopt, &s[2], namelen) == 0)
-	    fprintf(stderr, "\t--%ls\n", opt->longopt);
+        if (opt->longopt != NULL
+                && wcsncmp(opt->longopt, &s[2], namelen) == 0)
+            fprintf(stderr, "\t--%ls\n", opt->longopt);
 #else
     (void) namelen;
 #endif
@@ -408,14 +408,14 @@ struct xgetopt_T *ambiguous_long_option(const wchar_t *s, size_t namelen)
  * `xgetopt' function.
  * Returns the sentinel value that indicates an error. */
 struct xgetopt_T *option_argument_is_missing(
-	bool shortopt, const struct xgetopt_T *opt)
+        bool shortopt, const struct xgetopt_T *opt)
 {
     if (shortopt)
-	xerror(0, Ngt("the -%lc option requires an argument"),
-		(wint_t) opt->shortopt);
+        xerror(0, Ngt("the -%lc option requires an argument"),
+                (wint_t) opt->shortopt);
     else
-	xerror(0, Ngt("the --%ls option requires an argument"),
-		opt->longopt);
+        xerror(0, Ngt("the --%ls option requires an argument"),
+                opt->longopt);
     return sentinel();
 }
 
@@ -426,10 +426,10 @@ struct xgetopt_T *option_argument_is_missing(
  * `xgetopt' function.
  * Returns the sentinel value that indicates an error. */
 struct xgetopt_T *unwanted_long_option_argument(
-	const wchar_t *s, const struct xgetopt_T *opt)
+        const wchar_t *s, const struct xgetopt_T *opt)
 {
     xerror(0, Ngt("%ls: the --%ls option does not take an argument"),
-	    s, opt->longopt);
+            s, opt->longopt);
     return sentinel();
 }
 
@@ -441,9 +441,9 @@ struct xgetopt_T *sentinel(void)
     const struct xgetopt_T *opt = opts;
 
     while (opt->shortopt != L'\0')
-	opt++;
+        opt++;
     return (struct xgetopt_T *) opt;
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

@@ -404,7 +404,7 @@ __OUT__
 test_oE 'printing function with command substitution with subshell (-fp)' -e
 eval "$(
     print_foo() {
-	echo "$((echo foo) )"
+        echo "$((echo foo) )"
     }
     typeset -fp print_foo
 )"
@@ -522,4 +522,4 @@ PATH=$PWD:$PATH
 typeset --help
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

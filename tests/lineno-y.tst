@@ -183,7 +183,7 @@ test_o -e 0 'LINENO in interactive shell is reset for each command line' -i +m
 echo a $LINENO
 for i in 1 2; do
     echo $i \
-	$LINENO
+        $LINENO
 done
 
 echo b $LINENO
@@ -229,4 +229,4 @@ __IN__
 10
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

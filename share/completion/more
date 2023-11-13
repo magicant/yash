@@ -7,69 +7,69 @@
 
 function completion/more {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in (*'less'*)
-		command -f completion//reexecute less
-		return
-		;;
-	esac
-	typeset type="$(uname 2>/dev/null)"
+        case $("${WORDS[1]}" --version 2>/dev/null) in (*'less'*)
+                command -f completion//reexecute less
+                return
+                ;;
+        esac
+        typeset type="$(uname 2>/dev/null)"
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"c; don't scroll the screen"
-	"e; exit immediately after printing the last line of the last file"
-	"i; case-insensitive search"
-	"n:; specify the number of lines in the screen"
-	"p:; specify a command executed after loading each file"
-	"s; squeeze adjacent empty lines into one"
-	"t:; specify an identifier to jump"
-	"u; disable special treatment of backspace"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "c; don't scroll the screen"
+        "e; exit immediately after printing the last line of the last file"
+        "i; case-insensitive search"
+        "n:; specify the number of lines in the screen"
+        "p:; specify a command executed after loading each file"
+        "s; squeeze adjacent empty lines into one"
+        "t:; specify an identifier to jump"
+        "u; disable special treatment of backspace"
+        ) #<#
 
-	case $type in (SunOS|HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"d; display more user-friendly prompt"
-		"f; don't wrap long lines"
-		) #<#
-	esac
-	case $type in
-	(SunOS)
-		OPTIONS=("$OPTIONS" #>#
-		"l; don't pause at form feeds"
-		"w; don't exit immediately after printing the last line of the file"
-		) #<#
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"v; don't print unprintable characters like ^I or M-C"
-		"W:; specify an additional option"
-		"x:; specify the width of a tab"
-		"z; print backspace, tab, line feed as ^H, ^I, ^M"
-		) #<#
-		;;
-	esac
+        case $type in (SunOS|HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "d; display more user-friendly prompt"
+                "f; don't wrap long lines"
+                ) #<#
+        esac
+        case $type in
+        (SunOS)
+                OPTIONS=("$OPTIONS" #>#
+                "l; don't pause at form feeds"
+                "w; don't exit immediately after printing the last line of the file"
+                ) #<#
+                ;;
+        (HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "v; don't print unprintable characters like ^I or M-C"
+                "W:; specify an additional option"
+                "x:; specify the width of a tab"
+                "z; print backspace, tab, line feed as ^H, ^I, ^M"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(t)
-		if [ -r tags ]; then
-			complete -P "$PREFIX" -R "!_TAG_*" -- \
-				$(cut -f 1 tags 2>/dev/null)
-		fi
-		;;
-	(W) #>>#
-		complete -P "$PREFIX" -D "don't initialize the screen" notite
-		complete -P "$PREFIX" -D "initialize the screen" tite
-		;; #<<#
-	('')
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (t)
+                if [ -r tags ]; then
+                        complete -P "$PREFIX" -R "!_TAG_*" -- \
+                                $(cut -f 1 tags 2>/dev/null)
+                fi
+                ;;
+        (W) #>>#
+                complete -P "$PREFIX" -D "don't initialize the screen" notite
+                complete -P "$PREFIX" -D "initialize the screen" tite
+                ;; #<<#
+        ('')
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

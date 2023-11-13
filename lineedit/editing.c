@@ -129,12 +129,12 @@ enum motion_expect_command_T {
 /* The state in which a command is executed. */
 struct state_T {
     struct {
-	/* When count is not specified, `sign' and `abs' are 0.
-	 * Otherwise, `sign' is 1 or -1.
-	 * When the negative sign is specified but digits are not, `abs' is 0.*/
-	int sign;
-	unsigned abs;
-	int multiplier;
+        /* When count is not specified, `sign' and `abs' are 0.
+         * Otherwise, `sign' is 1 or -1.
+         * When the negative sign is specified but digits are not, `abs' is 0.*/
+        int sign;
+        unsigned abs;
+        int multiplier;
     } count;
     enum motion_expect_command_T pending_command_motion;
     le_command_func_T *pending_command_char;
@@ -219,7 +219,7 @@ static void maybe_save_undo_history(void);
 static void exec_motion_command(size_t new_index, bool inclusive);
 static void set_motion_expect_command(enum motion_expect_command_T cmd);
 static void exec_motion_expect_command(
-	enum motion_expect_command_T cmd, le_command_func_T motion);
+        enum motion_expect_command_T cmd, le_command_func_T motion);
 static void exec_motion_expect_command_line(enum motion_expect_command_T cmd);
 static void exec_motion_expect_command_all(void);
 static void add_to_kill_ring(const wchar_t *s, size_t n)
@@ -230,7 +230,7 @@ static void set_overwriting(bool overwriting);
 static inline bool is_overwriting(void)
     __attribute__((pure));
 static void restore_overwritten_buffer_contents(
-	size_t start_index, size_t end_index);
+        size_t start_index, size_t end_index);
 static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir);
 static void to_upper_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
@@ -251,7 +251,7 @@ static void move_cursor_backward_bigword(int count);
 static size_t next_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_bigword_index(
-	const wchar_t *s, size_t i, bool progress)
+        const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_bigword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
@@ -260,7 +260,7 @@ static void move_cursor_backward_semiword(int count);
 static size_t next_semiword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_semiword_index(
-	const wchar_t *s, size_t i, bool progress)
+        const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_semiword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
@@ -271,7 +271,7 @@ static void move_cursor_backward_viword(int count);
 static size_t next_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
 static size_t next_end_of_viword_index(
-	const wchar_t *s, size_t i, bool progress)
+        const wchar_t *s, size_t i, bool progress)
     __attribute__((nonnull));
 static size_t previous_viword_index(const wchar_t *s, size_t i)
     __attribute__((nonnull));
@@ -290,7 +290,7 @@ static size_t find_nth_occurence(wchar_t c, int n);
 
 static void put_killed_string(bool after_cursor, bool cursor_on_last_char);
 static void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index);
+        bool after_cursor, bool cursor_on_last_char, size_t index);
 static void cancel_undo(int offset);
 
 static void check_reset_completion(void);
@@ -307,14 +307,14 @@ struct xwcsrange { const wchar_t *start, *end; };
 static struct xwcsrange get_next_bigword(const wchar_t *s)
     __attribute__((nonnull));
 static struct xwcsrange get_prev_bigword(
-	const wchar_t *beginning, const wchar_t *s)
+        const wchar_t *beginning, const wchar_t *s)
     __attribute__((nonnull));
 
 static void replace_horizontal_space(bool deleteafter, const wchar_t *s)
     __attribute__((nonnull));
 
 static void go_to_history_absolute(
-	const histlink_T *l, enum le_search_type_T curpos)
+        const histlink_T *l, enum le_search_type_T curpos)
     __attribute__((nonnull));
 static void go_to_history_relative(int offset, enum le_search_type_T curpos);
 static void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
@@ -324,7 +324,7 @@ static bool need_update_last_search_value(void)
     __attribute__((pure));
 static void update_search(void);
 static void perform_search(const wchar_t *pattern,
-	enum le_search_direction_T dir, enum le_search_type_T type)
+        enum le_search_direction_T dir, enum le_search_type_T type)
     __attribute__((nonnull));
 static void search_again(enum le_search_direction_T dir);
 static void beginning_search(enum le_search_direction_T dir);
@@ -333,7 +333,7 @@ static inline bool beginning_search_check_go_to_history(const wchar_t *prefix)
 
 #define ALERT_AND_RETURN_IF_PENDING                     \
     do if (state.pending_command_motion != MEC_MOVE)    \
-	{ cmd_alert(L'\0'); return; }                   \
+        { cmd_alert(L'\0'); return; }                   \
     while (0)
 
 
@@ -346,9 +346,9 @@ void le_editing_init(void)
     main_history_value = xwcsdup(L"");
 
     switch (shopt_lineedit) {
-	case SHOPT_VI:     le_set_mode(LE_MODE_VI_INSERT);  break;
-	case SHOPT_EMACS:  le_set_mode(LE_MODE_EMACS);      break;
-	default:           assert(false);
+        case SHOPT_VI:     le_set_mode(LE_MODE_VI_INSERT);  break;
+        case SHOPT_EMACS:  le_set_mode(LE_MODE_EMACS);      break;
+        default:           assert(false);
     }
 
     last_command.func = 0;
@@ -367,8 +367,8 @@ void le_editing_init(void)
     set_overwriting(false);
 
     if (shopt_le_predict) {
-	create_prediction_tree();
-	update_buffer_with_prediction();
+        create_prediction_tree();
+        update_buffer_with_prediction();
     }
 }
 
@@ -406,23 +406,23 @@ void le_invoke_command(le_command_func_T *cmd, wchar_t arg)
     reset_completion |= next_reset_completion;
 
     if (le_main_length < le_main_index)
-	le_main_length = le_main_index;
+        le_main_length = le_main_index;
     switch (le_editstate) {
-	case LE_EDITSTATE_EDITING:
-	    if (shopt_le_predict)
-		update_buffer_with_prediction();
-	    break;
-	case LE_EDITSTATE_DONE:
-	case LE_EDITSTATE_ERROR:
-	    clear_prediction();
-	    break;
-	case LE_EDITSTATE_INTERRUPTED:
-	    break;
+        case LE_EDITSTATE_EDITING:
+            if (shopt_le_predict)
+                update_buffer_with_prediction();
+            break;
+        case LE_EDITSTATE_DONE:
+        case LE_EDITSTATE_ERROR:
+            clear_prediction();
+            break;
+        case LE_EDITSTATE_INTERRUPTED:
+            break;
     }
 
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND)
-	if (le_main_index > 0 && le_main_index == le_main_buffer.length)
-	    le_main_index--;
+        if (le_main_index > 0 && le_main_index == le_main_buffer.length)
+            le_main_index--;
 }
 
 /* Resets `state'. */
@@ -448,17 +448,17 @@ int get_count(int default_value)
     long long result;
 
     if (state.count.sign == 0)
-	result = (long long) default_value * state.count.multiplier;
+        result = (long long) default_value * state.count.multiplier;
     else if (state.count.sign < 0 && state.count.abs == 0)
-	result = (long long) -state.count.multiplier;
+        result = (long long) -state.count.multiplier;
     else
-	result = (long long) state.count.abs * state.count.sign *
-	    state.count.multiplier;
+        result = (long long) state.count.abs * state.count.sign *
+            state.count.multiplier;
 
     if (result < -COUNT_ABS_MAX)
-	result = -COUNT_ABS_MAX;
+        result = -COUNT_ABS_MAX;
     else if (result > COUNT_ABS_MAX)
-	result = COUNT_ABS_MAX;
+        result = COUNT_ABS_MAX;
     return result;
 }
 
@@ -466,9 +466,9 @@ int get_count(int default_value)
 size_t active_length(void)
 {
     if (le_main_length > le_main_buffer.length)
-	return le_main_buffer.length;
+        return le_main_buffer.length;
     if (le_main_length < le_main_index)
-	return le_main_index;
+        return le_main_index;
     return le_main_length;
 }
 
@@ -477,9 +477,9 @@ size_t active_length(void)
 void save_current_edit_command(void)
 {
     if (current_command.func != cmd_redo
-	    && LE_CURRENT_MODE != LE_MODE_VI_INSERT) {
-	last_edit_command.command = current_command;
-	last_edit_command.state = state;
+            && LE_CURRENT_MODE != LE_MODE_VI_INSERT) {
+        last_edit_command.command = current_command;
+        last_edit_command.state = state;
     }
 }
 
@@ -488,9 +488,9 @@ void save_current_edit_command(void)
 void save_current_find_command(void)
 {
     if (current_command.func != cmd_refind_char
-	    && current_command.func != cmd_refind_char_rev
-	    && current_command.func != cmd_redo)
-	last_find_command = current_command;
+            && current_command.func != cmd_refind_char_rev
+            && current_command.func != cmd_redo)
+        last_find_command = current_command;
 }
 
 /* Saves the current contents of the edit line to the undo history.
@@ -500,7 +500,7 @@ void save_current_find_command(void)
 void save_undo_history(void)
 {
     for (size_t i = undo_index; i < undo_history.length; i++)
-	free(undo_history.contents[i]);
+        free(undo_history.contents[i]);
     pl_truncate(&undo_history, undo_index);
 
     // No need to check for overflow in `len + 1' here. Should overflow occur,
@@ -526,35 +526,35 @@ void maybe_save_undo_history(void)
 
     size_t len = active_length();
     if (undo_history_entry == main_history_entry) {
-	if (undo_index < undo_history.length) {
-	    struct undo_history *h = undo_history.contents[undo_index];
-	    if (wcsncmp(le_main_buffer.contents, h->contents, len) == 0 &&
-		    h->contents[len] == L'\0') {
-		/* The contents of the main buffer is the same as saved in the
-		 * history. Just save the index. */
-		h->index = le_main_index;
-		return;
-	    }
-	    undo_index++;
-	}
+        if (undo_index < undo_history.length) {
+            struct undo_history *h = undo_history.contents[undo_index];
+            if (wcsncmp(le_main_buffer.contents, h->contents, len) == 0 &&
+                    h->contents[len] == L'\0') {
+                /* The contents of the main buffer is the same as saved in the
+                 * history. Just save the index. */
+                h->index = le_main_index;
+                return;
+            }
+            undo_index++;
+        }
     } else {
-	if (wcsncmp(le_main_buffer.contents, main_history_value, len) == 0 &&
-		main_history_value[len] == L'\0')
-	    return;
+        if (wcsncmp(le_main_buffer.contents, main_history_value, len) == 0 &&
+                main_history_value[len] == L'\0')
+            return;
 
-	/* The contents of the buffer has been changed from the value of the
-	 * history entry, but it's not yet saved in the undo history. We first
-	 * save the original history value and then save the current buffer
-	 * contents. */
-	struct undo_history *h;
-	pl_clear(&undo_history, free);
-	h = xmallocs(sizeof *h,
-		add(wcslen(main_history_value), 1), sizeof *h->contents);
-	assert(save_undo_save_index <= wcslen(main_history_value));
-	h->index = save_undo_save_index;
-	wcscpy(h->contents, main_history_value);
-	pl_add(&undo_history, h);
-	undo_index = 1;
+        /* The contents of the buffer has been changed from the value of the
+         * history entry, but it's not yet saved in the undo history. We first
+         * save the original history value and then save the current buffer
+         * contents. */
+        struct undo_history *h;
+        pl_clear(&undo_history, free);
+        h = xmallocs(sizeof *h,
+                add(wcslen(main_history_value), 1), sizeof *h->contents);
+        assert(save_undo_save_index <= wcslen(main_history_value));
+        h->index = save_undo_save_index;
+        wcscpy(h->contents, main_history_value);
+        pl_add(&undo_history, h);
+        undo_index = 1;
     }
     save_undo_history();
 }
@@ -572,62 +572,62 @@ void exec_motion_command(size_t new_index, bool inclusive)
     size_t old_index = le_main_index;
     size_t start_index, end_index;
     if (old_index <= new_index)
-	start_index = old_index, end_index = new_index;
+        start_index = old_index, end_index = new_index;
     else
-	start_index = new_index, end_index = old_index;
+        start_index = new_index, end_index = old_index;
     if (inclusive && end_index < le_main_buffer.length)
-	end_index++;
+        end_index++;
 
     enum motion_expect_command_T mec = state.pending_command_motion;
 
     /* don't save undo history when repeating backspace */
     bool repeated_backspace = (mec & MEC_DELETE)
-	&& (new_index + 1 == old_index)
-	&& current_command.func == cmd_backward_delete_char
-	&& last_command.func == cmd_backward_delete_char;
+        && (new_index + 1 == old_index)
+        && current_command.func == cmd_backward_delete_char
+        && last_command.func == cmd_backward_delete_char;
     if (!repeated_backspace)
-	maybe_save_undo_history();
+        maybe_save_undo_history();
 
     if (mec & MEC_COPY) {
-	add_to_kill_ring(&le_main_buffer.contents[start_index],
-		end_index - start_index);
+        add_to_kill_ring(&le_main_buffer.contents[start_index],
+                end_index - start_index);
     }
     if (mec & MEC_CASEMASK) {
-	void (*case_func)(wchar_t *, size_t);
-	INIT(case_func, 0);
-	switch (mec & MEC_CASEMASK) {
-	    case MEC_UPPERCASE:
-		case_func = to_upper_case;
-		break;
-	    case MEC_LOWERCASE:
-		case_func = to_lower_case;
-		break;
-	    case MEC_SWITCHCASE:
-		case_func = switch_case;
-		break;
-	}
-	case_func(&le_main_buffer.contents[start_index],
-		end_index - start_index);
-	if (le_main_length < end_index)
-	    le_main_length = end_index;
+        void (*case_func)(wchar_t *, size_t);
+        INIT(case_func, 0);
+        switch (mec & MEC_CASEMASK) {
+            case MEC_UPPERCASE:
+                case_func = to_upper_case;
+                break;
+            case MEC_LOWERCASE:
+                case_func = to_lower_case;
+                break;
+            case MEC_SWITCHCASE:
+                case_func = switch_case;
+                break;
+        }
+        case_func(&le_main_buffer.contents[start_index],
+                end_index - start_index);
+        if (le_main_length < end_index)
+            le_main_length = end_index;
     }
     switch (mec & MEC_CURSORMASK) {
-	case MEC_TOSTART:  le_main_index = start_index;  break;
-	case MEC_TOEND:    le_main_index = end_index;    break;
-	case MEC_MOVE:     le_main_index = new_index;    break;
+        case MEC_TOSTART:  le_main_index = start_index;  break;
+        case MEC_TOEND:    le_main_index = end_index;    break;
+        case MEC_MOVE:     le_main_index = new_index;    break;
     }
     if (mec & MEC_DELETE) {
-	save_current_edit_command();
-	clear_prediction();
-	if (!is_overwriting() || old_index <= new_index)
-	    wb_remove(&le_main_buffer, start_index, end_index - start_index);
-	else
-	    restore_overwritten_buffer_contents(start_index, end_index);
-	le_main_index = start_index;
+        save_current_edit_command();
+        clear_prediction();
+        if (!is_overwriting() || old_index <= new_index)
+            wb_remove(&le_main_buffer, start_index, end_index - start_index);
+        else
+            restore_overwritten_buffer_contents(start_index, end_index);
+        le_main_index = start_index;
     }
     if (mec & MEC_INSERT) {
-	le_set_mode(LE_MODE_VI_INSERT);
-	set_overwriting(false);
+        le_set_mode(LE_MODE_VI_INSERT);
+        set_overwriting(false);
     }
     reset_state();
 }
@@ -638,25 +638,25 @@ void exec_motion_command(size_t new_index, bool inclusive)
 void set_motion_expect_command(enum motion_expect_command_T cmd)
 {
     if (state.pending_command_motion == MEC_MOVE) {
-	state.count.multiplier = get_count(1);
-	state.count.sign = 0;
-	state.count.abs = 0;
-	state.pending_command_motion = cmd;
+        state.count.multiplier = get_count(1);
+        state.count.sign = 0;
+        state.count.abs = 0;
+        state.pending_command_motion = cmd;
     } else {
-	if (state.pending_command_motion == cmd)
-	    exec_motion_expect_command_all();
-	else
-	    cmd_alert(L'\0');
+        if (state.pending_command_motion == cmd)
+            exec_motion_expect_command_all();
+        else
+            cmd_alert(L'\0');
     }
 }
 
 /* Executes the specified motion expecting command with the specified motion
  * command. */
 void exec_motion_expect_command(
-	enum motion_expect_command_T cmd, le_command_func_T motion)
+        enum motion_expect_command_T cmd, le_command_func_T motion)
 {
     if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
+        ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = cmd;
     motion(L'\0');
 }
@@ -666,7 +666,7 @@ void exec_motion_expect_command(
 void exec_motion_expect_command_line(enum motion_expect_command_T cmd)
 {
     if (current_command.func != cmd_redo)
-	ALERT_AND_RETURN_IF_PENDING;
+        ALERT_AND_RETURN_IF_PENDING;
     state.pending_command_motion = cmd;
     exec_motion_expect_command_all();
 }
@@ -681,7 +681,7 @@ void exec_motion_expect_command_all(void)
     le_main_index = 0;
     cmd_end_of_line(L'\0');
     if (!(save_pending & (MEC_DELETE | MEC_CURSORMASK)))
-	le_main_index = save_index;
+        le_main_index = save_index;
 }
 
 /* Adds the specified string to the kill ring.
@@ -689,9 +689,9 @@ void exec_motion_expect_command_all(void)
 void add_to_kill_ring(const wchar_t *s, size_t n)
 {
     if (n > 0 && s[0] != L'\0') {
-	free(kill_ring[next_kill_index]);
-	kill_ring[next_kill_index] = xwcsndup(s, n);
-	next_kill_index = (next_kill_index + 1) % KILL_RING_SIZE;
+        free(kill_ring[next_kill_index]);
+        kill_ring[next_kill_index] = xwcsndup(s, n);
+        next_kill_index = (next_kill_index + 1) % KILL_RING_SIZE;
     }
 }
 
@@ -709,11 +709,11 @@ void set_overwriting(bool overwrite)
 {
     free(overwrite_save_buffer.contents);
     if (overwrite) {
-	size_t len = active_length();
-	overwrite_save_buffer.contents = xwcsndup(le_main_buffer.contents, len);
-	overwrite_save_buffer.length = len;
+        size_t len = active_length();
+        overwrite_save_buffer.contents = xwcsndup(le_main_buffer.contents, len);
+        overwrite_save_buffer.length = len;
     } else {
-	overwrite_save_buffer.contents = NULL;
+        overwrite_save_buffer.contents = NULL;
     }
 }
 
@@ -731,16 +731,16 @@ void restore_overwritten_buffer_contents(size_t start_index, size_t end_index)
 {
     size_t mid_index;
     if (overwrite_save_buffer.length < start_index)
-	mid_index = start_index;
+        mid_index = start_index;
     else if (overwrite_save_buffer.length > end_index)
-	mid_index = end_index;
+        mid_index = end_index;
     else
-	mid_index = overwrite_save_buffer.length;
+        mid_index = overwrite_save_buffer.length;
 
     /* Restore contents from `start_index' to `mid_index' */
     wmemcpy(&le_main_buffer.contents[start_index],
-	    &overwrite_save_buffer.contents[start_index],
-	    mid_index - start_index);
+            &overwrite_save_buffer.contents[start_index],
+            mid_index - start_index);
 
     /* Contents from `mid_index' to `end_index' were actually not overwritten
      * but appended, so they should be removed. */
@@ -759,9 +759,9 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir)
     le_set_mode(mode);
     le_search_direction = dir;
     switch (mode) {
-	case LE_MODE_VI_SEARCH:     le_search_type = SEARCH_VI;     break;
-	case LE_MODE_EMACS_SEARCH:  le_search_type = SEARCH_EMACS;  break;
-	default:                    assert(false);
+        case LE_MODE_VI_SEARCH:     le_search_type = SEARCH_VI;     break;
+        case LE_MODE_EMACS_SEARCH:  le_search_type = SEARCH_EMACS;  break;
+        default:                    assert(false);
     }
     wb_init(&le_search_buffer);
     update_search();
@@ -772,7 +772,7 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir)
 void to_upper_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++)
-	s[i] = towupper(s[i]);
+        s[i] = towupper(s[i]);
 }
 
 /* Converts the first `n' characters of string `s' to lower case.
@@ -780,7 +780,7 @@ void to_upper_case(wchar_t *s, size_t n)
 void to_lower_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++)
-	s[i] = towlower(s[i]);
+        s[i] = towlower(s[i]);
 }
 
 /* Switches case of the first `n' characters of string `s'.
@@ -788,8 +788,8 @@ void to_lower_case(wchar_t *s, size_t n)
 void switch_case(wchar_t *s, size_t n)
 {
     for (size_t i = 0; i < n; i++) {
-	wchar_t c = s[i];
-	s[i] = iswlower(c) ? towupper(c) : towlower(c);
+        wchar_t c = s[i];
+        s[i] = iswlower(c) ? towupper(c) : towlower(c);
     }
 }
 
@@ -818,17 +818,17 @@ void cmd_self_insert(wchar_t c)
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (c == L'\0') {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
     clear_prediction();
 
     int count = get_count(1);
     while (--count >= 0)
-	if (is_overwriting() && le_main_index < le_main_buffer.length)
-	    le_main_buffer.contents[le_main_index++] = c;
-	else
-	    wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
+        if (is_overwriting() && le_main_index < le_main_buffer.length)
+            le_main_buffer.contents[le_main_index++] = c;
+        else
+            wb_ninsert_force(&le_main_buffer, le_main_index++, &c, 1);
     reset_state();
 }
 
@@ -851,18 +851,18 @@ void cmd_expect_verbatim(wchar_t c __attribute__((unused)))
 void cmd_digit_argument(wchar_t c)
 {
     if (L'0' <= c && c <= L'9') {
-	if (state.count.abs > COUNT_ABS_MAX / 10) {
-	    cmd_alert(L'\0');  // argument too large
-	    return;
-	}
-	if (state.count.sign == 0)
-	    state.count.sign = 1;
-	state.count.abs = state.count.abs * 10 + (unsigned) (c - L'0');
+        if (state.count.abs > COUNT_ABS_MAX / 10) {
+            cmd_alert(L'\0');  // argument too large
+            return;
+        }
+        if (state.count.sign == 0)
+            state.count.sign = 1;
+        state.count.abs = state.count.abs * 10 + (unsigned) (c - L'0');
     } else if (c == L'-') {
-	if (state.count.sign == 0)
-	    state.count.sign = -1;
-	else
-	    state.count.sign = -state.count.sign;
+        if (state.count.sign == 0)
+            state.count.sign = -1;
+        else
+            state.count.sign = -state.count.sign;
     }
 
     next_reset_completion = false;
@@ -873,9 +873,9 @@ void cmd_digit_argument(wchar_t c)
 void cmd_bol_or_digit(wchar_t c)
 {
     if (state.count.sign == 0)
-	cmd_beginning_of_line(c);
+        cmd_beginning_of_line(c);
     else
-	cmd_digit_argument(c);
+        cmd_digit_argument(c);
 }
 
 /* Accepts the current line.
@@ -888,12 +888,12 @@ void cmd_accept_line(wchar_t c __attribute__((unused)))
     ALERT_AND_RETURN_IF_PENDING;
 
     if (le_search_buffer.contents == NULL) {
-	le_editstate = LE_EDITSTATE_DONE;
-	reset_state();
+        le_editstate = LE_EDITSTATE_DONE;
+        reset_state();
     } else {
-	if (le_search_result != Histlist)
-	    le_editstate = LE_EDITSTATE_DONE;
-	cmd_srch_accept_search(L'\0');
+        if (le_search_result != Histlist)
+            le_editstate = LE_EDITSTATE_DONE;
+        cmd_srch_accept_search(L'\0');
     }
 }
 
@@ -923,9 +923,9 @@ void cmd_eof(wchar_t c __attribute__((unused)))
 void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 {
     if (active_length() == 0)
-	cmd_eof(L'\0');
+        cmd_eof(L'\0');
     else
-	cmd_alert(L'\0');
+        cmd_alert(L'\0');
 }
 
 /* If the edit line is empty, sets `le_editstate' to LE_EDITSTATE_ERROR (return
@@ -933,9 +933,9 @@ void cmd_eof_if_empty(wchar_t c __attribute__((unused)))
 void cmd_eof_or_delete(wchar_t c __attribute__((unused)))
 {
     if (active_length() == 0)
-	cmd_eof(L'\0');
+        cmd_eof(L'\0');
     else
-	cmd_delete_char(L'\0');
+        cmd_delete_char(L'\0');
 }
 
 /* Inserts a hash sign ('#') at the beginning of the line and accepts the line.
@@ -947,9 +947,9 @@ void cmd_accept_with_hash(wchar_t c __attribute__((unused)))
     clear_prediction();
 
     if (state.count.sign == 0 || le_main_buffer.contents[0] != L'#')
-	wb_insert(&le_main_buffer, 0, L"#");
+        wb_insert(&le_main_buffer, 0, L"#");
     else
-	wb_remove(&le_main_buffer, 0, 1);
+        wb_remove(&le_main_buffer, 0, 1);
     le_main_index = 0;
     cmd_accept_line(L'\0');
 }
@@ -959,7 +959,7 @@ void cmd_accept_prediction(wchar_t c)
 {
     cmd_accept_line(c);
     if (le_editstate == LE_EDITSTATE_DONE)
-	le_main_length = SIZE_MAX;
+        le_main_length = SIZE_MAX;
 }
 
 /* Changes the editing mode to "vi insert". */
@@ -987,8 +987,8 @@ void set_mode(le_mode_id_T newmode, bool overwrite)
     maybe_save_undo_history();
 
     if (LE_CURRENT_MODE == LE_MODE_VI_INSERT && newmode == LE_MODE_VI_COMMAND)
-	if (le_main_index > 0)
-	    le_main_index--;
+        if (le_main_index > 0)
+            le_main_index--;
 
     le_set_mode(newmode);
     set_overwriting(overwrite);
@@ -999,8 +999,8 @@ void set_mode(le_mode_id_T newmode, bool overwrite)
 void cmd_expect_char(wchar_t c)
 {
     if (!state.pending_command_char) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     current_command.func = state.pending_command_char;
@@ -1012,8 +1012,8 @@ void cmd_expect_char(wchar_t c)
 void cmd_abort_expect_char(wchar_t c __attribute__((unused)))
 {
     if (!state.pending_command_char) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     le_set_mode(savemode);
@@ -1054,7 +1054,7 @@ void redraw_all(bool clear)
 bool alert_if_first(void)
 {
     if (le_main_index > 0)
-	return false;
+        return false;
 
     cmd_alert(L'\0');
     return true;
@@ -1065,14 +1065,14 @@ bool alert_if_first(void)
 bool alert_if_last(void)
 {
     if (LE_CURRENT_MODE == LE_MODE_VI_COMMAND) {
-	if (state.pending_command_motion != MEC_MOVE)
-	    return false;
-	if (le_main_buffer.length > 0
-		&& le_main_index < le_main_buffer.length - 1)
-	    return false;
+        if (state.pending_command_motion != MEC_MOVE)
+            return false;
+        if (le_main_buffer.length > 0
+                && le_main_index < le_main_buffer.length - 1)
+            return false;
     } else {
-	if (le_main_index < le_main_buffer.length)
-	    return false;
+        if (le_main_index < le_main_buffer.length)
+            return false;
     }
 
     cmd_alert(L'\0');
@@ -1085,9 +1085,9 @@ void cmd_forward_char(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_char(count);
+        move_cursor_forward_char(count);
     else
-	move_cursor_backward_char(-count);
+        move_cursor_backward_char(-count);
 }
 
 /* Moves backward one character (or `count' characters if the count is set). */
@@ -1096,9 +1096,9 @@ void cmd_backward_char(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_char(count);
+        move_cursor_backward_char(count);
     else
-	move_cursor_forward_char(-count);
+        move_cursor_forward_char(-count);
 }
 
 /* Moves the cursor forward by `offset'. The `offset' must not be negative. */
@@ -1106,18 +1106,18 @@ void move_cursor_forward_char(int offset)
 {
     assert(offset >= 0);
     if (alert_if_last())
-	return;
+        return;
 
 #if COUNT_ABS_MAX > SIZE_MAX
     if (offset > SIZE_MAX)
-	offset = SIZE_MAX;
+        offset = SIZE_MAX;
 #endif
 
     size_t new_index;
     if (le_main_buffer.length - le_main_index < (size_t) offset)
-	new_index = le_main_buffer.length;
+        new_index = le_main_buffer.length;
     else
-	new_index = le_main_index + offset;
+        new_index = le_main_index + offset;
     exec_motion_command(new_index, false);
 }
 
@@ -1126,7 +1126,7 @@ void move_cursor_backward_char(int offset)
 {
     assert(offset >= 0);
     if (alert_if_first())
-	return;
+        return;
 
     size_t new_index;
 #if COUNT_ABS_MAX > SIZE_MAX
@@ -1134,9 +1134,9 @@ void move_cursor_backward_char(int offset)
 #else
     if (le_main_index <= (size_t) offset)
 #endif
-	new_index = 0;
+        new_index = 0;
     else
-	new_index = le_main_index - offset;
+        new_index = le_main_index - offset;
     exec_motion_command(new_index, false);
 }
 
@@ -1146,9 +1146,9 @@ void cmd_forward_bigword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_bigword(count);
+        move_cursor_forward_bigword(count);
     else
-	move_cursor_backward_bigword(-count);
+        move_cursor_backward_bigword(-count);
 }
 
 /* Moves the cursor to the end of the current bigword (or the next bigword if
@@ -1158,13 +1158,13 @@ void cmd_forward_bigword(wchar_t c __attribute__((unused)))
 void cmd_end_of_bigword(wchar_t c __attribute__((unused)))
 {
     if (alert_if_last())
-	return;
+        return;
 
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_bigword_index(
-		le_main_buffer.contents, new_index, true);
+        new_index = next_end_of_bigword_index(
+                le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
@@ -1174,9 +1174,9 @@ void cmd_backward_bigword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_bigword(count);
+        move_cursor_backward_bigword(count);
     else
-	move_cursor_forward_bigword(-count);
+        move_cursor_forward_bigword(-count);
 }
 
 /* Moves the cursor forward `count' bigwords.
@@ -1184,23 +1184,23 @@ void cmd_backward_bigword(wchar_t c __attribute__((unused)))
 void move_cursor_forward_bigword(int count)
 {
     if (alert_if_last())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
-	while (count-- > 0 && new_index < le_main_buffer.length)
-	    new_index = next_bigword_index(le_main_buffer.contents, new_index);
-	exec_motion_command(new_index, false);
+        while (count-- > 0 && new_index < le_main_buffer.length)
+            new_index = next_bigword_index(le_main_buffer.contents, new_index);
+        exec_motion_command(new_index, false);
     } else {
-	while (count > 1 && new_index < le_main_buffer.length) {
-	    new_index = next_bigword_index(le_main_buffer.contents, new_index);
-	    count--;
-	}
-	if (count > 0 && new_index < le_main_buffer.length) {
-	    new_index = next_end_of_bigword_index(
-		    le_main_buffer.contents, new_index, false);
-	}
-	exec_motion_command(new_index, true);
+        while (count > 1 && new_index < le_main_buffer.length) {
+            new_index = next_bigword_index(le_main_buffer.contents, new_index);
+            count--;
+        }
+        if (count > 0 && new_index < le_main_buffer.length) {
+            new_index = next_end_of_bigword_index(
+                    le_main_buffer.contents, new_index, false);
+        }
+        exec_motion_command(new_index, true);
     }
 }
 
@@ -1209,11 +1209,11 @@ void move_cursor_forward_bigword(int count)
 void move_cursor_backward_bigword(int count)
 {
     if (alert_if_first())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index > 0)
-	new_index = previous_bigword_index(le_main_buffer.contents, new_index);
+        new_index = previous_bigword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -1223,9 +1223,9 @@ void move_cursor_backward_bigword(int count)
 size_t next_bigword_index(const wchar_t *s, size_t i)
 {
     while (s[i] != L'\0' && !iswblank(s[i]))
-	i++;
+        i++;
     while (s[i] != L'\0' && iswblank(s[i]))
-	i++;
+        i++;
     return i;
 }
 
@@ -1238,17 +1238,17 @@ size_t next_end_of_bigword_index(const wchar_t *s, size_t i, bool progress)
     const size_t init = i;
 start:
     if (s[i] == L'\0')
-	return i;
+        return i;
     while (s[i] != L'\0' && iswblank(s[i]))
-	i++;
+        i++;
     while (s[i] != L'\0' && !iswblank(s[i]))
-	i++;
+        i++;
     i--;
     if (i > init || !progress) {
-	return i;
+        return i;
     } else {
-	i++;
-	goto start;
+        i++;
+        goto start;
     }
 }
 
@@ -1259,17 +1259,17 @@ size_t previous_bigword_index(const wchar_t *s, size_t i)
     const size_t init = i;
 start:
     while (i > 0 && iswblank(s[i]))
-	i--;
+        i--;
     while (i > 0 && !iswblank(s[i]))
-	i--;
+        i--;
     if (i == 0)
-	return i;
+        return i;
     i++;
     if (i < init) {
-	return i;
+        return i;
     } else {
-	i--;
-	goto start;
+        i--;
+        goto start;
     }
 }
 
@@ -1279,9 +1279,9 @@ void cmd_forward_semiword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_semiword(count);
+        move_cursor_forward_semiword(count);
     else
-	move_cursor_backward_semiword(-count);
+        move_cursor_backward_semiword(-count);
 }
 
 /* Moves the cursor to the end of the current semiword (or the next semiword if
@@ -1291,13 +1291,13 @@ void cmd_forward_semiword(wchar_t c __attribute__((unused)))
 void cmd_end_of_semiword(wchar_t c __attribute__((unused)))
 {
     if (alert_if_last())
-	return;
+        return;
 
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_semiword_index(
-		le_main_buffer.contents, new_index, true);
+        new_index = next_end_of_semiword_index(
+                le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
@@ -1307,9 +1307,9 @@ void cmd_backward_semiword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_semiword(count);
+        move_cursor_backward_semiword(count);
     else
-	move_cursor_forward_semiword(-count);
+        move_cursor_forward_semiword(-count);
 }
 
 /* Moves the cursor forward `count' semiwords.
@@ -1317,23 +1317,23 @@ void cmd_backward_semiword(wchar_t c __attribute__((unused)))
 void move_cursor_forward_semiword(int count)
 {
     if (alert_if_last())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
-	while (count-- > 0 && new_index < le_main_buffer.length)
-	    new_index = next_semiword_index(le_main_buffer.contents, new_index);
-	exec_motion_command(new_index, false);
+        while (count-- > 0 && new_index < le_main_buffer.length)
+            new_index = next_semiword_index(le_main_buffer.contents, new_index);
+        exec_motion_command(new_index, false);
     } else {
-	while (count > 1 && new_index < le_main_buffer.length) {
-	    new_index = next_semiword_index(le_main_buffer.contents, new_index);
-	    count--;
-	}
-	if (count > 0 && new_index < le_main_buffer.length) {
-	    new_index = next_end_of_semiword_index(
-		    le_main_buffer.contents, new_index, false);
-	}
-	exec_motion_command(new_index, true);
+        while (count > 1 && new_index < le_main_buffer.length) {
+            new_index = next_semiword_index(le_main_buffer.contents, new_index);
+            count--;
+        }
+        if (count > 0 && new_index < le_main_buffer.length) {
+            new_index = next_end_of_semiword_index(
+                    le_main_buffer.contents, new_index, false);
+        }
+        exec_motion_command(new_index, true);
     }
 }
 
@@ -1342,11 +1342,11 @@ void move_cursor_forward_semiword(int count)
 void move_cursor_backward_semiword(int count)
 {
     if (alert_if_first())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index > 0)
-	new_index = previous_semiword_index(le_main_buffer.contents, new_index);
+        new_index = previous_semiword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -1356,9 +1356,9 @@ void move_cursor_backward_semiword(int count)
 size_t next_semiword_index(const wchar_t *s, size_t i)
 {
     while (s[i] != L'\0' && !iswblank(s[i]) && !iswpunct(s[i]))
-	i++;
+        i++;
     while (s[i] != L'\0' && (iswblank(s[i]) || iswpunct(s[i])))
-	i++;
+        i++;
     return i;
 }
 
@@ -1371,17 +1371,17 @@ size_t next_end_of_semiword_index(const wchar_t *s, size_t i, bool progress)
     const size_t init = i;
 start:
     if (s[i] == L'\0')
-	return i;
+        return i;
     while (s[i] != L'\0' && (iswblank(s[i]) || iswpunct(s[i])))
-	i++;
+        i++;
     while (s[i] != L'\0' && !iswblank(s[i]) && !iswpunct(s[i]))
-	i++;
+        i++;
     i--;
     if (i > init || !progress) {
-	return i;
+        return i;
     } else {
-	i++;
-	goto start;
+        i++;
+        goto start;
     }
 }
 
@@ -1392,17 +1392,17 @@ size_t previous_semiword_index(const wchar_t *s, size_t i)
     const size_t init = i;
 start:
     while (i > 0 && (iswblank(s[i]) || iswpunct(s[i])))
-	i--;
+        i--;
     while (i > 0 && !iswblank(s[i]) && !iswpunct(s[i]))
-	i--;
+        i--;
     if (i == 0)
-	return i;
+        return i;
     i++;
     if (i < init) {
-	return i;
+        return i;
     } else {
-	i--;
-	goto start;
+        i--;
+        goto start;
     }
 }
 
@@ -1412,9 +1412,9 @@ void cmd_forward_viword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_viword(count);
+        move_cursor_forward_viword(count);
     else
-	move_cursor_backward_viword(-count);
+        move_cursor_backward_viword(-count);
 }
 
 /* Moves the cursor to the end of the current viword (or the next viword if
@@ -1424,13 +1424,13 @@ void cmd_forward_viword(wchar_t c __attribute__((unused)))
 void cmd_end_of_viword(wchar_t c __attribute__((unused)))
 {
     if (alert_if_last())
-	return;
+        return;
 
     int count = get_count(1);
     size_t new_index = le_main_index;
     while (--count >= 0 && new_index < le_main_buffer.length)
-	new_index = next_end_of_viword_index(
-		le_main_buffer.contents, new_index, true);
+        new_index = next_end_of_viword_index(
+                le_main_buffer.contents, new_index, true);
     exec_motion_command(new_index, true);
 }
 
@@ -1440,9 +1440,9 @@ void cmd_backward_viword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_viword(count);
+        move_cursor_backward_viword(count);
     else
-	move_cursor_forward_viword(-count);
+        move_cursor_forward_viword(-count);
 }
 
 /* Moves the cursor forward `count' viwords.
@@ -1450,23 +1450,23 @@ void cmd_backward_viword(wchar_t c __attribute__((unused)))
 void move_cursor_forward_viword(int count)
 {
     if (alert_if_last())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     if (!need_cw_treatment()) {
-	while (count-- > 0 && new_index < le_main_buffer.length)
-	    new_index = next_viword_index(le_main_buffer.contents, new_index);
-	exec_motion_command(new_index, false);
+        while (count-- > 0 && new_index < le_main_buffer.length)
+            new_index = next_viword_index(le_main_buffer.contents, new_index);
+        exec_motion_command(new_index, false);
     } else {
-	while (count > 1 && new_index < le_main_buffer.length) {
-	    new_index = next_viword_index(le_main_buffer.contents, new_index);
-	    count--;
-	}
-	if (count > 0 && new_index < le_main_buffer.length) {
-	    new_index = next_end_of_viword_index(
-		    le_main_buffer.contents, new_index, false);
-	}
-	exec_motion_command(new_index, true);
+        while (count > 1 && new_index < le_main_buffer.length) {
+            new_index = next_viword_index(le_main_buffer.contents, new_index);
+            count--;
+        }
+        if (count > 0 && new_index < le_main_buffer.length) {
+            new_index = next_end_of_viword_index(
+                    le_main_buffer.contents, new_index, false);
+        }
+        exec_motion_command(new_index, true);
     }
 }
 
@@ -1474,7 +1474,7 @@ void move_cursor_forward_viword(int count)
 bool need_cw_treatment(void)
 {
     return (state.pending_command_motion & MEC_INSERT)
-	&& !iswblank(le_main_buffer.contents[le_main_index]);
+        && !iswblank(le_main_buffer.contents[le_main_index]);
 }
 
 /* Moves the cursor backward `count' viwords.
@@ -1482,11 +1482,11 @@ bool need_cw_treatment(void)
 void move_cursor_backward_viword(int count)
 {
     if (alert_if_first())
-	return;
+        return;
 
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index > 0)
-	new_index = previous_viword_index(le_main_buffer.contents, new_index);
+        new_index = previous_viword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -1497,23 +1497,23 @@ void move_cursor_backward_viword(int count)
 size_t next_viword_index(const wchar_t *s, size_t i)
 {
     if (s[i] == L'_' || iswalnum(s[i])) {
-	do
-	    i++;
-	while (s[i] == L'_' || iswalnum(s[i]));
-	if (!iswblank(s[i]))
-	    return i;
+        do
+            i++;
+        while (s[i] == L'_' || iswalnum(s[i]));
+        if (!iswblank(s[i]))
+            return i;
     } else {
-	while (!iswblank(s[i])) {
-	    if (s[i] == L'\0')
-		return i;
-	    i++;
-	    if (s[i] == L'_' || iswalnum(s[i]))
-		return i;
-	}
+        while (!iswblank(s[i])) {
+            if (s[i] == L'\0')
+                return i;
+            i++;
+            if (s[i] == L'_' || iswalnum(s[i]))
+                return i;
+        }
     }
 
     do
-	i++;
+        i++;
     while (iswblank(s[i]));
 
     return i;
@@ -1531,25 +1531,25 @@ size_t next_end_of_viword_index(const wchar_t *s, size_t i, bool progress)
     const size_t init = i;
 start:
     while (iswblank(s[i]))
-	i++;
+        i++;
     if (s[i] == L'\0')
-	return i;
+        return i;
     if (s[i] == L'_' || iswalnum(s[i])) {
-	do
-	    i++;
-	while (s[i] == L'_' || iswalnum(s[i]));
+        do
+            i++;
+        while (s[i] == L'_' || iswalnum(s[i]));
     } else {
-	do
-	    i++;
-	while (s[i] != L'\0' && s[i] != L'_'
-		&& !iswblank(s[i]) && !iswalnum(s[i]));
+        do
+            i++;
+        while (s[i] != L'\0' && s[i] != L'_'
+                && !iswblank(s[i]) && !iswalnum(s[i]));
     }
     i--;
     if (i > init || !progress) {
-	return i;
+        return i;
     } else {
-	i++;
-	goto start;
+        i++;
+        goto start;
     }
 }
 
@@ -1560,26 +1560,26 @@ size_t previous_viword_index(const wchar_t *s, size_t i)
     const size_t init = i;
 start:
     while (i > 0 && iswblank(s[i]))
-	i--;
+        i--;
     if (s[i] == L'_' || iswalnum(s[i])) {
-	do {
-	    if (i == 0)
-		return 0;
-	    i--;
-	} while (s[i] == L'_' || iswalnum(s[i]));
+        do {
+            if (i == 0)
+                return 0;
+            i--;
+        } while (s[i] == L'_' || iswalnum(s[i]));
     } else {
-	do {
-	    if (i == 0)
-		return 0;
-	    i--;
-	} while (s[i] != L'_' && !iswblank(s[i]) && !iswalnum(s[i]));
+        do {
+            if (i == 0)
+                return 0;
+            i--;
+        } while (s[i] != L'_' && !iswblank(s[i]) && !iswalnum(s[i]));
     }
     i++;
     if (i < init) {
-	return i;
+        return i;
     } else {
-	i--;
-	goto start;
+        i--;
+        goto start;
     }
 }
 
@@ -1590,9 +1590,9 @@ void cmd_forward_emacsword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_forward_emacsword(count);
+        move_cursor_forward_emacsword(count);
     else
-	move_cursor_backward_emacsword(-count);
+        move_cursor_backward_emacsword(-count);
 }
 
 /* Moves backward one emacsword (or `count' emacswords if the count is set). */
@@ -1601,9 +1601,9 @@ void cmd_backward_emacsword(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count >= 0)
-	move_cursor_backward_emacsword(count);
+        move_cursor_backward_emacsword(count);
     else
-	move_cursor_forward_emacsword(-count);
+        move_cursor_forward_emacsword(-count);
 }
 
 /* Moves the cursor to the `count'th emacsword.
@@ -1612,7 +1612,7 @@ void move_cursor_forward_emacsword(int count)
 {
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index < le_main_buffer.length)
-	new_index = next_emacsword_index(le_main_buffer.contents, new_index);
+        new_index = next_emacsword_index(le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -1622,8 +1622,8 @@ void move_cursor_backward_emacsword(int count)
 {
     size_t new_index = le_main_index;
     while (count-- > 0 && new_index > 0)
-	new_index = previous_emacsword_index(
-		le_main_buffer.contents, new_index);
+        new_index = previous_emacsword_index(
+                le_main_buffer.contents, new_index);
     exec_motion_command(new_index, false);
 }
 
@@ -1634,9 +1634,9 @@ void move_cursor_backward_emacsword(int count)
 size_t next_emacsword_index(const wchar_t *s, size_t i)
 {
     while (s[i] != L'\0' && !iswalnum(s[i]))
-	i++;
+        i++;
     while (s[i] != L'\0' && iswalnum(s[i]))
-	i++;
+        i++;
     return i;
 }
 
@@ -1648,17 +1648,17 @@ size_t previous_emacsword_index(const wchar_t *s, size_t i)
     const size_t init = i;
 start:
     while (i > 0 && !iswalnum(s[i]))
-	i--;
+        i--;
     while (i > 0 && iswalnum(s[i]))
-	i--;
+        i--;
     if (i == 0)
-	return i;
+        return i;
     i++;
     if (i < init) {
-	return i;
+        return i;
     } else {
-	i--;
-	goto start;
+        i--;
+        goto start;
     }
 }
 
@@ -1685,23 +1685,23 @@ void cmd_go_to_column(wchar_t c __attribute__((unused)))
     int index = get_count(0);
 
     if (index >= 0) {
-	if (index > 0)
-	    index--;
+        if (index > 0)
+            index--;
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (index > (int) le_main_buffer.length)
+        if (index > (int) le_main_buffer.length)
 #else
-	if ((size_t) index > le_main_buffer.length)
+        if ((size_t) index > le_main_buffer.length)
 #endif
-	    index = le_main_buffer.length;
+            index = le_main_buffer.length;
     } else {
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (-index > (int) le_main_buffer.length)
+        if (-index > (int) le_main_buffer.length)
 #else
-	if ((size_t) -index > le_main_buffer.length)
+        if ((size_t) -index > le_main_buffer.length)
 #endif
-	    index = 0;
-	else
-	    index = (int) le_main_buffer.length + index;
+            index = 0;
+        else
+            index = (int) le_main_buffer.length + index;
     }
     exec_motion_command((size_t) index, false);
 }
@@ -1713,7 +1713,7 @@ void cmd_first_nonblank(wchar_t c __attribute__((unused)))
     size_t i = 0;
 
     while (c = le_main_buffer.contents[i], c != L'\0' && iswblank(c))
-	i++;
+        i++;
     exec_motion_command(i, false);
 }
 
@@ -1789,17 +1789,17 @@ void exec_find(wchar_t c, int count, bool till)
 
     size_t new_index = find_nth_occurence(c, count);
     if (new_index == SIZE_MAX)
-	goto error;
+        goto error;
     if (till) {
-	if (new_index >= le_main_index) {
-	    if (new_index == 0)
-		goto error;
-	    new_index--;
-	} else {
-	    if (new_index == le_main_buffer.length)
-		goto error;
-	    new_index++;
-	}
+        if (new_index >= le_main_index) {
+            if (new_index == 0)
+                goto error;
+            new_index--;
+        } else {
+            if (new_index == le_main_buffer.length)
+                goto error;
+            new_index++;
+        }
     }
     exec_motion_command(new_index, new_index >= le_main_index);
     return;
@@ -1816,34 +1816,34 @@ size_t find_nth_occurence(wchar_t c, int n)
     size_t i = le_main_index;
 
     if (n == 0) {
-	return i;
+        return i;
     } else if (c == L'\0') {
-	return SIZE_MAX;  /* no such occurrence */
+        return SIZE_MAX;  /* no such occurrence */
     } else if (n >= 0) {
-	while (n > 0 && i < le_main_buffer.length) {
-	    i++;
-	    if (le_main_buffer.contents[i] == c)
-		n--;
-	}
+        while (n > 0 && i < le_main_buffer.length) {
+            i++;
+            if (le_main_buffer.contents[i] == c)
+                n--;
+        }
     } else {
-	while (n < 0 && i > 0) {
-	    i--;
-	    if (le_main_buffer.contents[i] == c)
-		n++;
-	}
+        while (n < 0 && i > 0) {
+            i--;
+            if (le_main_buffer.contents[i] == c)
+                n++;
+        }
     }
     if (n != 0)
-	return SIZE_MAX;  /* no such occurrence */
+        return SIZE_MAX;  /* no such occurrence */
     else
-	return i;
+        return i;
 }
 
 /* Redoes the last find/till command. */
 void cmd_refind_char(wchar_t c __attribute__((unused)))
 {
     if (!last_find_command.func) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     last_find_command.func(last_find_command.arg);
@@ -1853,16 +1853,16 @@ void cmd_refind_char(wchar_t c __attribute__((unused)))
 void cmd_refind_char_rev(wchar_t c __attribute__((unused)))
 {
     if (!last_find_command.func) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     if (state.count.sign == 0)
-	state.count.sign = -1, state.count.abs = 1;
+        state.count.sign = -1, state.count.abs = 1;
     else if (state.count.sign >= 0)
-	state.count.sign = -1;
+        state.count.sign = -1;
     else
-	state.count.sign = 1;
+        state.count.sign = 1;
     last_find_command.func(last_find_command.arg);
 }
 
@@ -2129,8 +2129,8 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
 
     size_t index = (next_kill_index - 1) % KILL_RING_SIZE;
     if (kill_ring[index] == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     insert_killed_string(after_cursor, cursor_on_last_char, index);
@@ -2145,28 +2145,28 @@ void put_killed_string(bool after_cursor, bool cursor_on_last_char)
  * does not exist at the specified index in the kill ring, this function does
  * nothing. */
 void insert_killed_string(
-	bool after_cursor, bool cursor_on_last_char, size_t index)
+        bool after_cursor, bool cursor_on_last_char, size_t index)
 {
     clear_prediction();
 
     const wchar_t *s = kill_ring[index];
     if (s == NULL)
-	return;
+        return;
 
     last_put_elem = index;
     if (after_cursor && le_main_index < le_main_buffer.length)
-	le_main_index++;
+        le_main_index++;
 
     size_t offset = le_main_buffer.length - le_main_index;
     for (int count = get_count(1); --count >= 0; )
-	wb_insert(&le_main_buffer, le_main_index, s);
+        wb_insert(&le_main_buffer, le_main_index, s);
     assert(le_main_buffer.length >= offset + 1);
 
     last_put_range_start = le_main_index;
     le_main_index = le_main_buffer.length - offset;
     last_put_range_length = le_main_index - last_put_range_start;
     if (cursor_on_last_char)
-	le_main_index--;
+        le_main_index--;
 
     reset_state();
 }
@@ -2179,13 +2179,13 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
 
     ALERT_AND_RETURN_IF_PENDING;
     if ((last_command.func != cmd_put_left
-	    && last_command.func != cmd_put
-	    && last_command.func != cmd_put_before
-	    && (last_command.func != cmd_put_pop || !last_success))
-	    || kill_ring[last_put_elem] == NULL) {
-	last_success = false;
-	cmd_alert(L'\0');
-	return;
+            && last_command.func != cmd_put
+            && last_command.func != cmd_put_before
+            && (last_command.func != cmd_put_pop || !last_success))
+            || kill_ring[last_put_elem] == NULL) {
+        last_success = false;
+        cmd_alert(L'\0');
+        return;
     }
     last_success = true;
     save_current_edit_command();
@@ -2194,7 +2194,7 @@ void cmd_put_pop(wchar_t c __attribute__((unused)))
 
     size_t index = last_put_elem;
     do
-	index = (index - 1) % KILL_RING_SIZE;
+        index = (index - 1) % KILL_RING_SIZE;
     while (kill_ring[index] == NULL);
 
     /* Remove the just inserted text. */
@@ -2239,29 +2239,29 @@ void cancel_undo(int offset)
     clear_prediction();
 
     if (undo_history_entry != main_history_entry)
-	goto error;
+        goto error;
     if (offset < 0) {
-	if (undo_index == 0)
-	    goto error;
+        if (undo_index == 0)
+            goto error;
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (-offset > (int) undo_index)
+        if (-offset > (int) undo_index)
 #else
-	if ((size_t) -offset > undo_index)
+        if ((size_t) -offset > undo_index)
 #endif
-	    undo_index = 0;
-	else
-	    undo_index += offset;
+            undo_index = 0;
+        else
+            undo_index += offset;
     } else {
-	if (undo_index + 1 >= undo_history.length)
-	    goto error;
+        if (undo_index + 1 >= undo_history.length)
+            goto error;
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (offset >= (int) (undo_history.length - undo_index))
+        if (offset >= (int) (undo_history.length - undo_index))
 #else
-	if ((size_t) offset >= undo_history.length - undo_index)
+        if ((size_t) offset >= undo_history.length - undo_index)
 #endif
-	    undo_index = undo_history.length - 1;
-	else
-	    undo_index += offset;
+            undo_index = undo_history.length - 1;
+        else
+            undo_index += offset;
     }
 
     const struct undo_history *entry = undo_history.contents[undo_index];
@@ -2283,12 +2283,12 @@ void cmd_redo(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
     if (!last_edit_command.command.func) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     if (state.count.sign != 0)
-	last_edit_command.state.count = state.count;
+        last_edit_command.state.count = state.count;
     state = last_edit_command.state;
     last_edit_command.command.func(last_edit_command.command.arg);
 }
@@ -2439,7 +2439,7 @@ void cmd_complete_max_then_list(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     le_complete(last_command.func != cmd_complete_max_then_list
-	    ? lecr_longest_common_prefix : lecr_normal);
+            ? lecr_longest_common_prefix : lecr_normal);
 
     reset_state();
 }
@@ -2453,9 +2453,9 @@ void cmd_complete_max_then_next_candidate(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     if (last_command.func != cmd_complete_max_then_next_candidate)
-	le_complete(lecr_longest_common_prefix);
+        le_complete(lecr_longest_common_prefix);
     else
-	le_complete_select_candidate(get_count(1));
+        le_complete_select_candidate(get_count(1));
 
     reset_state();
 }
@@ -2469,9 +2469,9 @@ void cmd_complete_max_then_prev_candidate(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     if (last_command.func != cmd_complete_max_then_prev_candidate)
-	le_complete(lecr_longest_common_prefix);
+        le_complete(lecr_longest_common_prefix);
     else
-	le_complete_select_candidate(-get_count(1));
+        le_complete_select_candidate(-get_count(1));
 
     reset_state();
 }
@@ -2485,9 +2485,9 @@ void cmd_clear_candidates(wchar_t c __attribute__((unused)))
 void check_reset_completion(void)
 {
     if (reset_completion) {
-	maybe_save_undo_history();
-	le_complete_cleanup();
-	reset_completion = false;
+        maybe_save_undo_history();
+        le_complete_cleanup();
+        reset_completion = false;
     }
     next_reset_completion = false;
 }
@@ -2507,19 +2507,19 @@ void create_prediction_tree(void)
 #define N 4
     size_t hits[N] = {0};
     for (const histlink_T *l = Histlist; (l = l->prev) != Histlist; ) {
-	const histentry_T *e = (const histentry_T *) l;
-	size_t k = count_matching_previous_commands(e);
-	assert(k < N);
-	for (size_t i = 0; i <= k; i++)
-	    hits[i]++;
-	if (hits[0] >= MAX_PREDICTION_SAMPLE)
-	    break;
+        const histentry_T *e = (const histentry_T *) l;
+        size_t k = count_matching_previous_commands(e);
+        assert(k < N);
+        for (size_t i = 0; i <= k; i++)
+            hits[i]++;
+        if (hits[0] >= MAX_PREDICTION_SAMPLE)
+            break;
 
-	wchar_t *cmd = malloc_mbstowcs(e->value);
-	if (cmd == NULL)
-	    continue;
-	t = trie_add_probability(t, cmd, 1.0 / (hits[k] + 1));
-	free(cmd);
+        wchar_t *cmd = malloc_mbstowcs(e->value);
+        if (cmd == NULL)
+            continue;
+        t = trie_add_probability(t, cmd, 1.0 / (hits[k] + 1));
+        free(cmd);
     }
 
     prediction_tree = t;
@@ -2531,15 +2531,15 @@ size_t count_matching_previous_commands(const histentry_T *e)
     size_t count = 0;
     const histlink_T *l1 = &e->link, *l2 = Histlist;
     while ((l1 = l1->prev) != Histlist) {
-	l2 = l2->prev;
+        l2 = l2->prev;
 
-	const histentry_T *e1 = (const histentry_T *) l1;
-	const histentry_T *e2 = (const histentry_T *) l2;
-	if (strcmp(e1->value, e2->value) != 0)
-	    break;
-	count++;
-	if (count >= N - 1)
-	    break;
+        const histentry_T *e1 = (const histentry_T *) l1;
+        const histentry_T *e2 = (const histentry_T *) l2;
+        if (strcmp(e1->value, e2->value) != 0)
+            break;
+        count++;
+        if (count >= N - 1)
+            break;
     }
     return count;
 }
@@ -2553,7 +2553,7 @@ size_t count_matching_previous_commands(const histentry_T *e)
 void clear_prediction(void)
 {
     if (le_main_length < le_main_buffer.length)
-	wb_truncate(&le_main_buffer, le_main_length);
+        wb_truncate(&le_main_buffer, le_main_length);
     le_main_length = SIZE_MAX;
 }
 
@@ -2564,15 +2564,15 @@ void update_buffer_with_prediction(void)
     clear_prediction();
 
     if (!shopt_le_predictempty && active_length() == 0)
-	return;
+        return;
 
     if (le_main_index < active_length())
-	return;
+        return;
 
     le_main_length = le_main_buffer.length;
 
     wchar_t *suffix = trie_probable_key(
-	    prediction_tree, le_main_buffer.contents);
+            prediction_tree, le_main_buffer.contents);
     wb_catfree(&le_main_buffer, suffix);
 }
 
@@ -2595,21 +2595,21 @@ void vi_replace_char(wchar_t c)
     le_set_mode(savemode);
 
     if (c != L'\0') {
-	int count = get_count(1);
+        int count = get_count(1);
 
-	if (count > 0 && le_main_index < le_main_buffer.length) {
-	    do {
-		le_main_buffer.contents[le_main_index] = c;
-		count--, le_main_index++;
-	    } while (count > 0 && le_main_index < le_main_buffer.length);
-	    if (le_main_length < le_main_index)
-		le_main_length = le_main_index;
-	    clear_prediction();
-	    le_main_index--;
-	}
-	reset_state();
+        if (count > 0 && le_main_index < le_main_buffer.length) {
+            do {
+                le_main_buffer.contents[le_main_index] = c;
+                count--, le_main_index++;
+            } while (count > 0 && le_main_index < le_main_buffer.length);
+            if (le_main_length < le_main_index)
+                le_main_length = le_main_index;
+            clear_prediction();
+            le_main_index--;
+        }
+        reset_state();
     } else {
-	cmd_alert(L'\0');
+        cmd_alert(L'\0');
     }
 }
 
@@ -2755,38 +2755,38 @@ void cmd_vi_append_last_bigword(wchar_t c __attribute__((unused)))
     wchar_t *lastcmd = NULL;
     int count = get_count(-1);
     if (count == 0 || histlist.count == 0)
-	goto fail;
+        goto fail;
 
     struct xwcsrange range;
     lastcmd = malloc_mbstowcs(ashistentry(histlist.Newest)->value);
     if (lastcmd == NULL)
-	goto fail;
+        goto fail;
     if (count >= 0) {
-	/* find the count'th word */
-	range.start = range.end = lastcmd;
-	do {
-	    struct xwcsrange r = get_next_bigword(range.end);
-	    if (r.start == r.end)
-		break;
-	    range = r;
-	} while (--count > 0 && *range.end != L'\0');
+        /* find the count'th word */
+        range.start = range.end = lastcmd;
+        do {
+            struct xwcsrange r = get_next_bigword(range.end);
+            if (r.start == r.end)
+                break;
+            range = r;
+        } while (--count > 0 && *range.end != L'\0');
     } else {
-	/* find the count'th last word */
-	range.start = range.end = lastcmd + wcslen(lastcmd);
-	do {
-	    struct xwcsrange r = get_prev_bigword(lastcmd, range.start);
-	    if (r.start == r.end)
-		break;
-	    range = r;
-	} while (++count < 0 && lastcmd < range.start);
+        /* find the count'th last word */
+        range.start = range.end = lastcmd + wcslen(lastcmd);
+        do {
+            struct xwcsrange r = get_prev_bigword(lastcmd, range.start);
+            if (r.start == r.end)
+                break;
+            range = r;
+        } while (++count < 0 && lastcmd < range.start);
     }
     assert(range.start <= range.end);
     if (range.start == range.end)
-	goto fail;
+        goto fail;
 
     clear_prediction();
     if (le_main_index < le_main_buffer.length)
-	le_main_index++;
+        le_main_index++;
     size_t len = range.end - range.start;
     wb_ninsert_force(&le_main_buffer, le_main_index, L" ", 1);
     le_main_index += 1;
@@ -2806,10 +2806,10 @@ struct xwcsrange get_next_bigword(const wchar_t *s)
 {
     struct xwcsrange result;
     while (iswblank(*s))
-	s++;
+        s++;
     result.start = s;
     while (*s != L'\0' && !iswblank(*s))
-	s++;
+        s++;
     result.end = s;
     return result;
     /* result.start == result.end if no bigword found */
@@ -2820,17 +2820,17 @@ struct xwcsrange get_prev_bigword(const wchar_t *beginning, const wchar_t *s)
     struct xwcsrange result;
     assert(beginning <= s);
     do {
-	if (beginning == s) {
-	    result.start = result.end = s;
-	    return result;
-	}
+        if (beginning == s) {
+            result.start = result.end = s;
+            return result;
+        }
     } while (iswblank(*--s));
     result.end = &s[1];
     do {
-	if (beginning == s) {
-	    result.start = s;
-	    return result;
-	}
+        if (beginning == s) {
+            result.start = s;
+            return result;
+        }
     } while (!iswblank(*--s));
     result.start = &s[1];
     return result;
@@ -2856,11 +2856,11 @@ void vi_exec_alias(wchar_t c)
     wchar_t aliasname[3] = { L'_', c, L'\0', };
     const wchar_t *aliasvalue = get_alias_value(aliasname);
     if (aliasvalue != NULL) {
-	char *mbaliasvalue = malloc_wcstombs(aliasvalue);
-	if (mbaliasvalue != NULL) {
-	    le_append_to_prebuffer(mbaliasvalue);
-	    return;
-	}
+        char *mbaliasvalue = malloc_wcstombs(aliasvalue);
+        if (mbaliasvalue != NULL) {
+            le_append_to_prebuffer(mbaliasvalue);
+            return;
+        }
     }
     cmd_alert(L'\0');
 }
@@ -2880,13 +2880,13 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     int savelaststatus;
 
     if (state.count.sign != 0) {
-	int num = get_count(0);
-	if (num < 0)
-	    goto error0;
-	const histlink_T *l = get_history_entry((unsigned) num);
-	if (l == Histlist)
-	    goto error0;
-	go_to_history(l, SEARCH_VI);
+        int num = get_count(0);
+        if (num < 0)
+            goto error0;
+        const histlink_T *l = get_history_entry((unsigned) num);
+        if (l == Histlist)
+            goto error0;
+        go_to_history(l, SEARCH_VI);
     }
     clear_prediction();
     le_complete_cleanup();
@@ -2894,81 +2894,81 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 
     fd = create_temporary_file(&tempfile, ".sh", S_IRUSR | S_IWUSR);
     if (fd < 0) {
-	xerror(errno, Ngt("cannot create a temporary file to edit history"));
-	goto error1;
+        xerror(errno, Ngt("cannot create a temporary file to edit history"));
+        goto error1;
     }
     f = fdopen(fd, "w");
     if (f == NULL) {
-	xerror(errno, Ngt("cannot open temporary file `%s'"), tempfile);
-	xclose(fd);
-	goto error2;
+        xerror(errno, Ngt("cannot open temporary file `%s'"), tempfile);
+        xclose(fd);
+        goto error2;
     }
 
     savelaststatus = laststatus;
     cpid = fork_and_reset(0, true, 0);
     if (cpid < 0) { // fork failed
-	xerror(0, Ngt("cannot invoke the editor to edit history"));
-	fclose(f);
-	if (unlink(tempfile) < 0)
-	    xerror(errno, Ngt("failed to remove temporary file `%s'"),
-		    tempfile);
+        xerror(0, Ngt("cannot invoke the editor to edit history"));
+        fclose(f);
+        if (unlink(tempfile) < 0)
+            xerror(errno, Ngt("failed to remove temporary file `%s'"),
+                    tempfile);
 error2:
-	free(tempfile);
+        free(tempfile);
 error1:
-	le_resume_readline();
+        le_resume_readline();
 error0:
-	cmd_alert(L'\0');
+        cmd_alert(L'\0');
     } else if (cpid > 0) {  // parent process
-	fclose(f);
+        fclose(f);
 
-	wchar_t **namep = wait_for_child(cpid,
-		doing_job_control_now ? cpid : 0,
-		doing_job_control_now);
-	if (namep)
-	    *namep = malloc_wprintf(L"vi %s", tempfile);
-	if (laststatus != Exit_SUCCESS)
-	    goto end;
+        wchar_t **namep = wait_for_child(cpid,
+                doing_job_control_now ? cpid : 0,
+                doing_job_control_now);
+        if (namep)
+            *namep = malloc_wprintf(L"vi %s", tempfile);
+        if (laststatus != Exit_SUCCESS)
+            goto end;
 
-	f = fopen(tempfile, "r");
-	if (f == NULL) {
-	    cmd_alert(L'\0');
-	} else {
-	    wint_t c;
+        f = fopen(tempfile, "r");
+        if (f == NULL) {
+            cmd_alert(L'\0');
+        } else {
+            wint_t c;
 
-	    wb_clear(&le_main_buffer);
-	    while ((c = fgetwc(f)) != WEOF)
-		wb_wccat(&le_main_buffer, (wchar_t) c);
-	    fclose(f);
+            wb_clear(&le_main_buffer);
+            while ((c = fgetwc(f)) != WEOF)
+                wb_wccat(&le_main_buffer, (wchar_t) c);
+            fclose(f);
 
-	    /* remove trailing newline */
-	    while (le_main_buffer.length > 0 &&
-		    le_main_buffer.contents[le_main_buffer.length - 1] == L'\n')
-		wb_remove(&le_main_buffer, le_main_buffer.length - 1, 1);
+            /* remove trailing newline */
+            while (le_main_buffer.length > 0 &&
+                    le_main_buffer.contents[le_main_buffer.length - 1] == L'\n')
+                wb_remove(&le_main_buffer, le_main_buffer.length - 1, 1);
 
-	    le_main_index = le_main_buffer.length;
+            le_main_index = le_main_buffer.length;
 
-	    le_editstate = LE_EDITSTATE_DONE;
+            le_editstate = LE_EDITSTATE_DONE;
 end:
-	    reset_state();
-	}
+            reset_state();
+        }
 
-	laststatus = savelaststatus;
-	unlink(tempfile);
-	free(tempfile);
-	if (shopt_notify || shopt_notifyle)
-	    print_job_status_all();
-	le_resume_readline();
+        laststatus = savelaststatus;
+        unlink(tempfile);
+        free(tempfile);
+        if (shopt_notify || shopt_notifyle)
+            print_job_status_all();
+        le_resume_readline();
     } else {  // child process
-	fwprintf(f, L"%ls\n", le_main_buffer.contents);
-	fclose(f);
+        fwprintf(f, L"%ls\n", le_main_buffer.contents);
+        fclose(f);
 
-	wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
-	free(tempfile);
-	exec_wcs(command, gt("lineedit"), true);
+        wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
+        free(tempfile);
+        exec_wcs(command, gt("lineedit"), true);
 #ifndef NDEBUG
-	free(command);
+        free(command);
 #endif
-	assert(false);
+        assert(false);
     }
 }
 
@@ -2989,13 +2989,13 @@ void cmd_vi_complete_list(wchar_t c __attribute__((unused)))
 
     size_t oldindex = le_main_index;
     if (le_main_index < le_main_buffer.length)
-	le_main_index++;
+        le_main_index++;
 
     if (le_complete_fix_candidate(get_count(0))) {
-	cmd_setmode_viinsert(L'\0');
+        cmd_setmode_viinsert(L'\0');
     } else {
-	le_main_index = oldindex;
-	reset_state();
+        le_main_index = oldindex;
+        reset_state();
     }
 }
 
@@ -3009,7 +3009,7 @@ void cmd_vi_complete_all(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
-	le_main_index++;
+        le_main_index++;
     le_complete(lecr_substitute_all_candidates);
 
     cmd_setmode_viinsert(L'\0');
@@ -3025,7 +3025,7 @@ void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
     check_reset_completion();
 
     if (le_main_index < le_main_buffer.length)
-	le_main_index++;
+        le_main_index++;
     le_complete(lecr_longest_common_prefix);
 
     cmd_setmode_viinsert(L'\0');
@@ -3053,37 +3053,37 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
 {
     //ALERT_AND_RETURN_IF_PENDING;
     if (state.pending_command_motion != MEC_MOVE || le_main_index == 0)
-	goto error;
+        goto error;
     maybe_save_undo_history();
     if (state.count.sign == 0
-	    && le_main_index == le_main_buffer.length && le_main_index >= 2)
-	le_main_index--;
+            && le_main_index == le_main_buffer.length && le_main_index >= 2)
+        le_main_index--;
 
     int count = get_count(1);
     size_t index;
 
     if (count >= 0) {
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (count <= (int) (le_main_buffer.length - le_main_index))
+        if (count <= (int) (le_main_buffer.length - le_main_index))
 #else
-	if ((size_t) count <= le_main_buffer.length - le_main_index)
+        if ((size_t) count <= le_main_buffer.length - le_main_index)
 #endif
-	    index = le_main_index + (size_t) count;
-	else {
-	    le_main_index = le_main_buffer.length;
-	    goto error;
-	}
+            index = le_main_index + (size_t) count;
+        else {
+            le_main_index = le_main_buffer.length;
+            goto error;
+        }
     } else {
 #if COUNT_ABS_MAX > SIZE_MAX
-	if (-count < (int) le_main_index)
+        if (-count < (int) le_main_index)
 #else
-	if ((size_t) -count < le_main_index)
+        if ((size_t) -count < le_main_index)
 #endif
-	    index = le_main_index + (size_t) count;
-	else {
-	    le_main_index = 0;
-	    goto error;
-	}
+            index = le_main_index + (size_t) count;
+        else {
+            le_main_index = 0;
+            goto error;
+        }
     }
 
     size_t old_index = le_main_index;
@@ -3096,9 +3096,9 @@ void cmd_emacs_transpose_chars(wchar_t c __attribute__((unused)))
     le_main_index = index;
 
     if (le_main_length < old_index)
-	le_main_length = old_index;
+        le_main_length = old_index;
     if (le_main_length < index)
-	le_main_length = index;
+        le_main_length = index;
 
     reset_state();
     return;
@@ -3112,7 +3112,7 @@ error:
 void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
 {
     if (state.pending_command_motion != MEC_MOVE || le_main_index == 0)
-	goto error;
+        goto error;
     maybe_save_undo_history();
 
     int count = get_count(1);
@@ -3120,44 +3120,44 @@ void cmd_emacs_transpose_words(wchar_t c __attribute__((unused)))
     xwcsbuf_T buf;
 
     if (count == 0)
-	goto end;
+        goto end;
 
     w1start = previous_emacsword_index(le_main_buffer.contents, le_main_index);
     w1end = next_emacsword_index(le_main_buffer.contents, w1start);
     if (count >= 0) {
-	w2end = next_emacsword_index(le_main_buffer.contents, w1end);
-	w2start = previous_emacsword_index(le_main_buffer.contents, w2end);
-	while (--count > 0) {
-	    if (w2end == le_main_buffer.length)
-		goto error;
-	    w2end = next_emacsword_index(le_main_buffer.contents, w2end);
-	}
-	new_index = w2end;
+        w2end = next_emacsword_index(le_main_buffer.contents, w1end);
+        w2start = previous_emacsword_index(le_main_buffer.contents, w2end);
+        while (--count > 0) {
+            if (w2end == le_main_buffer.length)
+                goto error;
+            w2end = next_emacsword_index(le_main_buffer.contents, w2end);
+        }
+        new_index = w2end;
     } else {
-	w2start = w1start, w2end = w1end;
-	w1start = previous_emacsword_index(le_main_buffer.contents, w2start);
-	w1end = next_emacsword_index(le_main_buffer.contents, w1start);
-	while (++count < 0) {
-	    if (w1start == 0)
-		goto error;
-	    w1start = previous_emacsword_index(
-		    le_main_buffer.contents, w1start);
-	}
-	new_index = w1start + (w2end - w2start);
+        w2start = w1start, w2end = w1end;
+        w1start = previous_emacsword_index(le_main_buffer.contents, w2start);
+        w1end = next_emacsword_index(le_main_buffer.contents, w1start);
+        while (++count < 0) {
+            if (w1start == 0)
+                goto error;
+            w1start = previous_emacsword_index(
+                    le_main_buffer.contents, w1start);
+        }
+        new_index = w1start + (w2end - w2start);
     }
     if (w1end >= w2start)
-	goto error;
+        goto error;
     wb_initwithmax(&buf, w2end - w1start);
     wb_ncat_force(&buf, &le_main_buffer.contents[w2start], w2end - w2start);
     wb_ncat_force(&buf, &le_main_buffer.contents[w1end], w2start - w1end);
     wb_ncat_force(&buf, &le_main_buffer.contents[w1start], w1end - w1start);
     assert(buf.length == w2end - w1start);
     wb_replace_force(&le_main_buffer, w1start, buf.length,
-	    buf.contents, buf.length);
+            buf.contents, buf.length);
     wb_destroy(&buf);
     le_main_index = new_index;
     if (le_main_length < w2end)
-	le_main_length = w2end;
+        le_main_length = w2end;
 end:
     reset_state();
     return;
@@ -3172,7 +3172,7 @@ error:
 void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(
-	    MEC_LOWERCASE | MEC_TOEND, cmd_forward_emacsword);
+            MEC_LOWERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
 /* Converts `count' words after the cursor to upper case.
@@ -3181,7 +3181,7 @@ void cmd_emacs_downcase_word(wchar_t c __attribute__((unused)))
 void cmd_emacs_upcase_word(wchar_t c __attribute__((unused)))
 {
     exec_motion_expect_command(
-	    MEC_UPPERCASE | MEC_TOEND, cmd_forward_emacsword);
+            MEC_UPPERCASE | MEC_TOEND, cmd_forward_emacsword);
 }
 
 /* Capitalizes the word after the cursor.
@@ -3195,29 +3195,29 @@ void cmd_emacs_capitalize_word(wchar_t c __attribute__((unused)))
     int count = get_count(1);
 
     if (count > 0) {
-	wchar_t *s = &le_main_buffer.contents[le_main_index];
-	do {
-	    while (*s != L'\0' && !iswalnum(*s))
-		s++;
-	    if (*s != L'\0') {
-		*s = towupper(*s);
-		s++;
-	    }
-	    while (*s != L'\0' && iswalnum(*s))
-		s++;
-	} while (*s != L'\0' && --count > 0);
-	le_main_index = s - le_main_buffer.contents;
+        wchar_t *s = &le_main_buffer.contents[le_main_index];
+        do {
+            while (*s != L'\0' && !iswalnum(*s))
+                s++;
+            if (*s != L'\0') {
+                *s = towupper(*s);
+                s++;
+            }
+            while (*s != L'\0' && iswalnum(*s))
+                s++;
+        } while (*s != L'\0' && --count > 0);
+        le_main_index = s - le_main_buffer.contents;
     } else if (count < 0) {
-	size_t index = le_main_index;
-	do {
-	    index = previous_emacsword_index(le_main_buffer.contents, index);
-	    le_main_buffer.contents[index] =
-		towupper(le_main_buffer.contents[index]);
-	} while (index > 0 && ++count < 0);
+        size_t index = le_main_index;
+        do {
+            index = previous_emacsword_index(le_main_buffer.contents, index);
+            le_main_buffer.contents[index] =
+                towupper(le_main_buffer.contents[index]);
+        } while (index > 0 && ++count < 0);
     }
 
     if (le_main_length < le_main_index)
-	le_main_length = le_main_index;
+        le_main_length = le_main_index;
 
     reset_state();
 }
@@ -3237,9 +3237,9 @@ void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
 {
     int count = get_count(1);
     if (count < 0)
-	count = 0;
+        count = 0;
     else if (count > 1000)
-	count = 1000;
+        count = 1000;
 
     wchar_t s[count + 1];
     wmemset(s, L' ', count);
@@ -3260,21 +3260,21 @@ void replace_horizontal_space(bool deleteafter, const wchar_t *s)
 
     size_t start_index = le_main_index;
     while (start_index > 0
-	    && iswblank(le_main_buffer.contents[start_index - 1]))
-	start_index--;
+            && iswblank(le_main_buffer.contents[start_index - 1]))
+        start_index--;
 
     size_t end_index = le_main_index;
     if (deleteafter)
-	while (end_index < le_main_buffer.length
-		&& iswblank(le_main_buffer.contents[end_index]))
-	    end_index++;
+        while (end_index < le_main_buffer.length
+                && iswblank(le_main_buffer.contents[end_index]))
+            end_index++;
 
     if (le_main_length < end_index)
-	le_main_length = end_index;
+        le_main_length = end_index;
 
     size_t slen = wcslen(s);
     wb_replace_force(&le_main_buffer, start_index, end_index - start_index,
-	    s, slen);
+            s, slen);
 
     le_main_index = start_index + slen;
     le_main_length += le_main_index - end_index;
@@ -3389,15 +3389,15 @@ void go_to_history_absolute(const histlink_T *l, enum le_search_type_T curpos)
     ALERT_AND_RETURN_IF_PENDING;
 
     if (state.count.sign == 0) {
-	if (histlist.count == 0)
-	    goto alert;
+        if (histlist.count == 0)
+            goto alert;
     } else {
-	int num = get_count(0);
-	if (num <= 0)
-	    goto alert;
-	l = get_history_entry((unsigned) num);
-	if (l == Histlist)
-	    goto alert;
+        int num = get_count(0);
+        if (num <= 0)
+            goto alert;
+        l = get_history_entry((unsigned) num);
+        if (l == Histlist)
+            goto alert;
     }
     go_to_history(l, curpos);
     reset_state();
@@ -3462,17 +3462,17 @@ void go_to_history_relative(int offset, enum le_search_type_T curpos)
 {
     const histlink_T *l = main_history_entry;
     if (offset > 0) {
-	do {
-	    if (l == Histlist)
-		goto alert;
-	    l = l->next;
-	} while (--offset > 0);
+        do {
+            if (l == Histlist)
+                goto alert;
+            l = l->next;
+        } while (--offset > 0);
     } else if (offset < 0) {
-	do {
-	    l = l->prev;
-	    if (l == Histlist)
-		goto alert;
-	} while (++offset < 0);
+        do {
+            l = l->prev;
+            if (l == Histlist)
+                goto alert;
+        } while (++offset < 0);
     }
     go_to_history(l, curpos);
     reset_state();
@@ -3496,25 +3496,25 @@ void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
     free(main_history_value);
     wb_clear(&le_main_buffer);
     if (l == undo_history_entry && undo_index < undo_history.length) {
-	struct undo_history *h = undo_history.contents[undo_index];
-	wb_cat(&le_main_buffer, h->contents);
-	assert(h->index <= le_main_buffer.length);
-	le_main_index = h->index;
+        struct undo_history *h = undo_history.contents[undo_index];
+        wb_cat(&le_main_buffer, h->contents);
+        assert(h->index <= le_main_buffer.length);
+        le_main_index = h->index;
     } else {
-	if (l != Histlist)
-	    wb_mbscat(&le_main_buffer, ashistentry(l)->value);
-	switch (curpos) {
-	    case SEARCH_PREFIX:
-		if (le_main_index > le_main_buffer.length)
-		    le_main_index = le_main_buffer.length;
-		break;
-	    case SEARCH_VI:
-		le_main_index = 0;
-		break;
-	    case SEARCH_EMACS:
-		le_main_index = le_main_buffer.length;
-		break;
-	}
+        if (l != Histlist)
+            wb_mbscat(&le_main_buffer, ashistentry(l)->value);
+        switch (curpos) {
+            case SEARCH_PREFIX:
+                if (le_main_index > le_main_buffer.length)
+                    le_main_index = le_main_buffer.length;
+                break;
+            case SEARCH_VI:
+                le_main_index = 0;
+                break;
+            case SEARCH_EMACS:
+                le_main_index = le_main_buffer.length;
+                break;
+        }
     }
     main_history_entry = l;
     main_history_value = xwcsdup(le_main_buffer.contents);
@@ -3527,8 +3527,8 @@ void go_to_history(const histlink_T *l, enum le_search_type_T curpos)
 void cmd_srch_self_insert(wchar_t c)
 {
     if (le_search_buffer.contents == NULL || c == L'\0') {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     wb_wccat(&le_search_buffer, c);
@@ -3541,21 +3541,21 @@ void cmd_srch_self_insert(wchar_t c)
 void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     if (le_search_buffer.length == 0) {
-	switch (le_search_type) {
-	    case SEARCH_VI:
-		cmd_srch_abort_search(L'\0');
-		return;
-	    case SEARCH_EMACS:
-		cmd_alert(L'\0');
-		return;
-	    case SEARCH_PREFIX:
-		assert(false);
-	}
+        switch (le_search_type) {
+            case SEARCH_VI:
+                cmd_srch_abort_search(L'\0');
+                return;
+            case SEARCH_EMACS:
+                cmd_alert(L'\0');
+                return;
+            case SEARCH_PREFIX:
+                assert(false);
+        }
     }
 
     wb_remove(&le_search_buffer, le_search_buffer.length - 1, 1);
@@ -3566,8 +3566,8 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
 void cmd_srch_backward_delete_line(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     wb_clear(&le_search_buffer);
@@ -3580,13 +3580,13 @@ void cmd_srch_backward_delete_line(wchar_t c __attribute__((unused)))
 void cmd_srch_continue_forward(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     le_search_direction = FORWARD;
     if (le_search_result != Histlist)
-	go_to_history(le_search_result, le_search_type);
+        go_to_history(le_search_result, le_search_type);
     update_search();
 }
 
@@ -3596,13 +3596,13 @@ void cmd_srch_continue_forward(wchar_t c __attribute__((unused)))
 void cmd_srch_continue_backward(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     le_search_direction = BACKWARD;
     if (le_search_result != Histlist)
-	go_to_history(le_search_result, le_search_type);
+        go_to_history(le_search_result, le_search_type);
     update_search();
 }
 
@@ -3611,22 +3611,22 @@ void cmd_srch_continue_backward(wchar_t c __attribute__((unused)))
 void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL)
-	return;
+        return;
 
     last_search.direction = le_search_direction;
     last_search.type = le_search_type;
     if (need_update_last_search_value()) {
-	free(last_search.value);
-	last_search.value = wb_towcs(&le_search_buffer);
+        free(last_search.value);
+        last_search.value = wb_towcs(&le_search_buffer);
     } else {
-	wb_destroy(&le_search_buffer);
+        wb_destroy(&le_search_buffer);
     }
     le_search_buffer.contents = NULL;
     le_set_mode(savemode);
     if (le_search_result == Histlist) {
-	cmd_alert(L'\0');
+        cmd_alert(L'\0');
     } else {
-	go_to_history(le_search_result, le_search_type);
+        go_to_history(le_search_result, le_search_type);
     }
     reset_state();
 }
@@ -3636,17 +3636,17 @@ void cmd_srch_accept_search(wchar_t c __attribute__((unused)))
 bool need_update_last_search_value(void)
 {
     switch (le_search_type) {
-	case SEARCH_PREFIX:
-	    break;
-	case SEARCH_VI:
-	    if (le_search_buffer.contents[0] == L'\0')
-		return false;
-	    if (le_search_buffer.contents[0] == L'^'
-		    && le_search_buffer.contents[1] == L'\0')
-		return false;
-	    return true;
-	case SEARCH_EMACS:
-	    return le_search_buffer.contents[0] != L'\0';
+        case SEARCH_PREFIX:
+            break;
+        case SEARCH_VI:
+            if (le_search_buffer.contents[0] == L'\0')
+                return false;
+            if (le_search_buffer.contents[0] == L'^'
+                    && le_search_buffer.contents[1] == L'\0')
+                return false;
+            return true;
+        case SEARCH_EMACS:
+            return le_search_buffer.contents[0] != L'\0';
     }
     assert(false);
 }
@@ -3656,7 +3656,7 @@ bool need_update_last_search_value(void)
 void cmd_srch_abort_search(wchar_t c __attribute__((unused)))
 {
     if (le_search_buffer.contents == NULL)
-	return;
+        return;
 
     wb_destroy(&le_search_buffer);
     le_search_buffer.contents = NULL;
@@ -3669,20 +3669,20 @@ void update_search(void)
 {
     const wchar_t *pattern = le_search_buffer.contents;
     if (pattern[0] == L'\0') {
-	switch (le_search_type) {
-	    case SEARCH_PREFIX:
-		break;
-	    case SEARCH_VI:
-		pattern = last_search.value;
-		if (pattern == NULL) {
-		    le_search_result = Histlist;
-		    goto done;
-		}
-		break;
-	    case SEARCH_EMACS:
-		le_search_result = Histlist;
-		goto done;
-	}
+        switch (le_search_type) {
+            case SEARCH_PREFIX:
+                break;
+            case SEARCH_VI:
+                pattern = last_search.value;
+                if (pattern == NULL) {
+                    le_search_result = Histlist;
+                    goto done;
+                }
+                break;
+            case SEARCH_EMACS:
+                le_search_result = Histlist;
+                goto done;
+        }
     }
 
     perform_search(pattern, le_search_direction, le_search_type);
@@ -3693,57 +3693,57 @@ done:
 /* Performs history search with the given parameters and updates the result
  * candidate. */
 void perform_search(const wchar_t *pattern,
-	enum le_search_direction_T dir, enum le_search_type_T type)
+        enum le_search_direction_T dir, enum le_search_type_T type)
 {
     const histlink_T *l = main_history_entry;
     xfnmatch_T *xfnm;
 
     if (dir == FORWARD && l == Histlist)
-	goto done;
+        goto done;
 
     switch (type) {
-	case SEARCH_PREFIX: {
-	    wchar_t *p = escape(pattern, NULL);
-	    xfnm = xfnm_compile(p, XFNM_HEADONLY);
-	    free(p);
-	    break;
-	}
-	case SEARCH_VI: {
-	    xfnmflags_T flags = 0;
-	    if (pattern[0] == L'^') {
-		flags |= XFNM_HEADONLY;
-		pattern++;
-		if (pattern[0] == L'\0') {
-		    l = Histlist;
-		    goto done;
-		}
-	    }
-	    xfnm = xfnm_compile(pattern, flags);
-	    break;
-	}
-	case SEARCH_EMACS: {
-	    wchar_t *p = escape(pattern, NULL);
-	    xfnm = xfnm_compile(p, 0);
-	    free(p);
-	    break;
-	}
-	default:
-	    assert(false);
+        case SEARCH_PREFIX: {
+            wchar_t *p = escape(pattern, NULL);
+            xfnm = xfnm_compile(p, XFNM_HEADONLY);
+            free(p);
+            break;
+        }
+        case SEARCH_VI: {
+            xfnmflags_T flags = 0;
+            if (pattern[0] == L'^') {
+                flags |= XFNM_HEADONLY;
+                pattern++;
+                if (pattern[0] == L'\0') {
+                    l = Histlist;
+                    goto done;
+                }
+            }
+            xfnm = xfnm_compile(pattern, flags);
+            break;
+        }
+        case SEARCH_EMACS: {
+            wchar_t *p = escape(pattern, NULL);
+            xfnm = xfnm_compile(p, 0);
+            free(p);
+            break;
+        }
+        default:
+            assert(false);
     }
     if (xfnm == NULL) {
-	l = Histlist;
-	goto done;
+        l = Histlist;
+        goto done;
     }
 
     for (;;) {
-	switch (dir) {
-	    case FORWARD:   l = l->next;  break;
-	    case BACKWARD:  l = l->prev;  break;
-	}
-	if (l == Histlist)
-	    break;
-	if (xfnm_match(xfnm, ashistentry(l)->value) == 0)
-	    break;
+        switch (dir) {
+            case FORWARD:   l = l->next;  break;
+            case BACKWARD:  l = l->prev;  break;
+        }
+        if (l == Histlist)
+            break;
+        if (xfnm_match(xfnm, ashistentry(l)->value) == 0)
+            break;
     }
     xfnm_free(xfnm);
 done:
@@ -3760,8 +3760,8 @@ void cmd_search_again(wchar_t c __attribute__((unused)))
 void cmd_search_again_rev(wchar_t c __attribute__((unused)))
 {
     switch (last_search.direction) {
-	case FORWARD:   search_again(BACKWARD);  break;
-	case BACKWARD:  search_again(FORWARD);   break;
+        case FORWARD:   search_again(BACKWARD);  break;
+        case BACKWARD:  search_again(FORWARD);   break;
     }
 }
 
@@ -3785,27 +3785,27 @@ void search_again(enum le_search_direction_T dir)
     ALERT_AND_RETURN_IF_PENDING;
 
     if (last_search.value == NULL) {
-	cmd_alert(L'\0');
-	return;
+        cmd_alert(L'\0');
+        return;
     }
 
     int count = get_count(1);
     if (count < 0) {
-	count = -count;
-	switch (dir) {
-	    case FORWARD:  dir = BACKWARD; break;
-	    case BACKWARD: dir = FORWARD;  break;
-	}
+        count = -count;
+        switch (dir) {
+            case FORWARD:  dir = BACKWARD; break;
+            case BACKWARD: dir = FORWARD;  break;
+        }
     }
 
     while (--count >= 0) {
-	perform_search(last_search.value, dir, last_search.type);
-	if (le_search_result == Histlist) {
-	    cmd_alert(L'\0');
-	    break;
-	} else {
-	    go_to_history(le_search_result, last_search.type);
-	}
+        perform_search(last_search.value, dir, last_search.type);
+        if (le_search_result == Histlist) {
+            cmd_alert(L'\0');
+            break;
+        } else {
+            go_to_history(le_search_result, last_search.type);
+        }
     }
     reset_state();
 }
@@ -3835,25 +3835,25 @@ void beginning_search(enum le_search_direction_T dir)
 
     int count = get_count(1);
     if (count < 0) {
-	count = -count;
-	switch (dir) {
-	    case FORWARD:  dir = BACKWARD; break;
-	    case BACKWARD: dir = FORWARD;  break;
-	}
+        count = -count;
+        switch (dir) {
+            case FORWARD:  dir = BACKWARD; break;
+            case BACKWARD: dir = FORWARD;  break;
+        }
     }
 
     wchar_t *prefix = xwcsndup(le_main_buffer.contents, le_main_index);
     while (--count >= 0) {
-	perform_search(prefix, dir, SEARCH_PREFIX);
-	if (le_search_result == Histlist) {
-	    if (dir == FORWARD && beginning_search_check_go_to_history(prefix))
-		go_to_history(le_search_result, SEARCH_PREFIX);
-	    else
-		cmd_alert(L'\0');
-	    break;
-	} else {
-	    go_to_history(le_search_result, SEARCH_PREFIX);
-	}
+        perform_search(prefix, dir, SEARCH_PREFIX);
+        if (le_search_result == Histlist) {
+            if (dir == FORWARD && beginning_search_check_go_to_history(prefix))
+                go_to_history(le_search_result, SEARCH_PREFIX);
+            else
+                cmd_alert(L'\0');
+            break;
+        } else {
+            go_to_history(le_search_result, SEARCH_PREFIX);
+        }
     }
     free(prefix);
     reset_state();
@@ -3862,13 +3862,13 @@ void beginning_search(enum le_search_direction_T dir)
 bool beginning_search_check_go_to_history(const wchar_t *prefix)
 {
     if (le_search_result == undo_history_entry
-	    && undo_index < undo_history.length) {
-	const struct undo_history *h = undo_history.contents[undo_index];
-	return matchwcsprefix(h->contents, prefix) != NULL;
+            && undo_index < undo_history.length) {
+        const struct undo_history *h = undo_history.contents[undo_index];
+        return matchwcsprefix(h->contents, prefix) != NULL;
     } else {
-	return false;
+        return false;
     }
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

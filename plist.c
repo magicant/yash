@@ -32,7 +32,7 @@ size_t plcount(void *const *list)
 {
     size_t count = 0;
     while (list[count] != NULL)
-	count++;
+        count++;
     return count;
 }
 
@@ -47,15 +47,15 @@ size_t plcount(void *const *list)
 void **plndup(void *const *array, size_t count, void *copy(const void *p))
 {
     if (array == NULL)
-	return NULL;
+        return NULL;
 
     size_t realcount = 0;
     while (array[realcount] != NULL && realcount < count)
-	realcount++;
+        realcount++;
 
     void **result = xmalloce(realcount, 1, sizeof *result);
     for (size_t i = 0; i < realcount; i++)
-	result[i] = copy(array[i]);
+        result[i] = copy(array[i]);
     result[realcount] = NULL;
     return result;
 }
@@ -66,9 +66,9 @@ void **plndup(void *const *array, size_t count, void *copy(const void *p))
 void plfree(void **ary, void freer(void *elem))
 {
     if (ary != NULL) {
-	for (void **a = ary; *a != NULL; a++)
-	    freer(*a);
-	free(ary);
+        for (void **a = ary; *a != NULL; a++)
+            freer(*a);
+        free(ary);
     }
 }
 
@@ -106,7 +106,7 @@ plist_T *pl_setmax(plist_T *list, size_t newmax)
     list->maxlength = newmax;
     list->contents[newmax] = NULL;
     if (newmax < list->length)
-	list->length = newmax;
+        list->length = newmax;
     return list;
 }
 
@@ -115,13 +115,13 @@ plist_T *pl_setmax(plist_T *list, size_t newmax)
 plist_T *pl_ensuremax(plist_T *list, size_t max)
 {
     if (max <= list->maxlength)
-	return list;
+        return list;
 
     size_t len15 = list->maxlength + (list->maxlength >> 1);
     if (max < len15)
-	max = len15;
+        max = len15;
     if (max < list->maxlength + 6)
-	max = list->maxlength + 6;
+        max = list->maxlength + 6;
     return pl_setmax(list, max);
 }
 
@@ -130,7 +130,7 @@ plist_T *pl_ensuremax(plist_T *list, size_t max)
 plist_T *pl_clear(plist_T *list, void freer(void *elem))
 {
     for (size_t i = 0; i < list->length; i++)
-	freer(list->contents[i]);
+        freer(list->contents[i]);
     list->contents[list->length = 0] = NULL;
     return list;
 }
@@ -144,18 +144,18 @@ plist_T *pl_clear(plist_T *list, void freer(void *elem))
  * replaced. Especially, if (list->length <= i), `a' is appended.
  * `a' must not be part of `list->contents'. */
 plist_T *pl_replace(
-	plist_T *restrict list, size_t i, size_t ln,
-	void *const *restrict a, size_t an)
+        plist_T *restrict list, size_t i, size_t ln,
+        void *const *restrict a, size_t an)
 {
     if (i > list->length)
-	i = list->length;
+        i = list->length;
     if (ln > list->length - i)
-	ln = list->length - i;
+        ln = list->length - i;
 
     size_t newlength = add(list->length - ln, an);
     pl_ensuremax(list, newlength);
     memmove(list->contents + i + an, list->contents + i + ln,
-	    (list->length - (i + ln) + 1) * sizeof (void *));
+            (list->length - (i + ln) + 1) * sizeof (void *));
     memcpy(list->contents + i, a, an * sizeof (void *));
     list->length = newlength;
     return list;
@@ -172,4 +172,4 @@ plist_T *pl_add(plist_T *list, const void *p)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

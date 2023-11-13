@@ -4,216 +4,216 @@
 # Supports Git 1.8.1.4.
 
 function completion/git-submodule {
-	WORDS=(git submodule "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git submodule "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::submodule:arg {
 
-	OPTIONS=( #>#
-	"q --quiet; print error messages only"
-	) #<#
+        OPTIONS=( #>#
+        "q --quiet; print error messages only"
+        ) #<#
 
-	while [ x"${WORDS[2]}" = x"-q" ] || [ x"${WORDS[2]}" = x"--quiet" ]; do
-		WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
-	done
+        while [ x"${WORDS[2]}" = x"-q" ] || [ x"${WORDS[2]}" = x"--quiet" ]; do
+                WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
+        done
 
-	if [ ${WORDS[#]} -le 1 ]; then
-		case ${TARGETWORD#"$PREFIX"} in
-			(-q)  # avoid completing "-q" to "-qq"
-				complete -P "$PREFIX" -- -q
-				;;
-			(-*)
-				command -f completion//parseoptions
-				command -f completion//completeoptions
-				;;
-			(*) #>>#
-				complete -P "$PREFIX" -D "add a submodule" add
-				complete -P "$PREFIX" -D "unregister submodules" deinit
-				complete -P "$PREFIX" -D "execute a shell command in each submodule" foreach
-				complete -P "$PREFIX" -D "configure submodules according to .gitmodules" init
-				complete -P "$PREFIX" -D "show status of submodules" status
-				complete -P "$PREFIX" -D "print summary of changes in submodules" summary
-				complete -P "$PREFIX" -D "reset submodule remote URL" sync
-				complete -P "$PREFIX" -D "clone and check out submodules" update
-				;; #<<#
-		esac
-	else
-		WORDS=("${WORDS[2,-1]}")
-		if command -vf "completion/git::submodule:${WORDS[1]}:arg" >/dev/null 2>&1; then
-			command -f "completion/git::submodule:${WORDS[1]}:arg"
-		fi
-	fi
+        if [ ${WORDS[#]} -le 1 ]; then
+                case ${TARGETWORD#"$PREFIX"} in
+                        (-q)  # avoid completing "-q" to "-qq"
+                                complete -P "$PREFIX" -- -q
+                                ;;
+                        (-*)
+                                command -f completion//parseoptions
+                                command -f completion//completeoptions
+                                ;;
+                        (*) #>>#
+                                complete -P "$PREFIX" -D "add a submodule" add
+                                complete -P "$PREFIX" -D "unregister submodules" deinit
+                                complete -P "$PREFIX" -D "execute a shell command in each submodule" foreach
+                                complete -P "$PREFIX" -D "configure submodules according to .gitmodules" init
+                                complete -P "$PREFIX" -D "show status of submodules" status
+                                complete -P "$PREFIX" -D "print summary of changes in submodules" summary
+                                complete -P "$PREFIX" -D "reset submodule remote URL" sync
+                                complete -P "$PREFIX" -D "clone and check out submodules" update
+                                ;; #<<#
+                esac
+        else
+                WORDS=("${WORDS[2,-1]}")
+                if command -vf "completion/git::submodule:${WORDS[1]}:arg" >/dev/null 2>&1; then
+                        command -f "completion/git::submodule:${WORDS[1]}:arg"
+                fi
+        fi
 
 }
 
 function completion/git::submodule:add:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"b: --branch:; specify a branch of the submodule to clone"
-	"--depth:; specify the max number of history to clone"
-	"f --force; add an ignored path"
-	"--name:; specify the name of the submodule"
-	"--reference:; specify a reference repository to share objects (possibly dangerous operation)"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "b: --branch:; specify a branch of the submodule to clone"
+        "--depth:; specify the max number of history to clone"
+        "f --force; add an ignored path"
+        "--name:; specify the name of the submodule"
+        "--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions -e
-			;;
-#		(b|--branch)
-#			;;
-#		(--name)
-#			;;
-		(--reference)
-			complete -P "$PREFIX" -S / -T -d
-			;;
-		('')
-			command -f completion//getoperands
-			if command -vf  completion/git::clone:opr >/dev/null 2>&1 ||
-					. -AL completion/git-clone; then
-				command -f completion/git::clone:opr
-			fi
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions -e
+                        ;;
+#               (b|--branch)
+#                       ;;
+#               (--name)
+#                       ;;
+                (--reference)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        command -f completion//getoperands
+                        if command -vf  completion/git::clone:opr >/dev/null 2>&1 ||
+                                        . -AL completion/git-clone; then
+                                command -f completion/git::clone:opr
+                        fi
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:deinit:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"f --force; overwrite local changes or ignore unmerged files"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "f --force; overwrite local changes or ignore unmerged files"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			complete -P "$PREFIX" -S / -T -d
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:foreach:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--recursive; operate on all submodules recursively"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--recursive; operate on all submodules recursively"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion//getoperands
-			command -f completion//reexecute -e
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion//getoperands
+                        command -f completion//reexecute -e
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:init:arg {
 
-	complete -P "$PREFIX" -S / -T -d
+        complete -P "$PREFIX" -S / -T -d
 
 }
 
 function completion/git::submodule:status:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--cached; print status of the supermodule index"
-	"--recursive; operate on all submodules recursively"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--cached; print status of the supermodule index"
+        "--recursive; operate on all submodules recursively"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			complete -P "$PREFIX" -S / -T -d
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:summary:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--cached; compare the supermodule HEAD and index"
-	"--files; compare the supermodule index with the submodule HEAD"
-	"n: --summary-limit:; specify the max number of commits to show"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--cached; compare the supermodule HEAD and index"
+        "--files; compare the supermodule index with the submodule HEAD"
+        "n: --summary-limit:; specify the max number of commits to show"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-#		(n|--summary-limit)
-#			;;
-		('')
-			command -f completion//getoperands
-			if [ ${WORDS[#]} -eq 0 ]; then
-				command -f completion/git::completeref
-			fi
-			complete -P "$PREFIX" -S / -T -d
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+#               (n|--summary-limit)
+#                       ;;
+                ('')
+                        command -f completion//getoperands
+                        if [ ${WORDS[#]} -eq 0 ]; then
+                                command -f completion/git::completeref
+                        fi
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:sync:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--recursive; operate on all submodules recursively"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--recursive; operate on all submodules recursively"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			complete -P "$PREFIX" -S / -T -d
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
 
 }
 
 function completion/git::submodule:update:arg {
 
-	OPTIONS=("$OPTIONS" #>#
-	"--depth:; specify the max number of history to clone"
-	"f --force; overwrite local changes or ignore unmerged files"
-	"--init; do \"git submodule init\" before updating"
-	"--merge; merge in submodules"
-	"N --no-fetch; don't fetch from submodule remotes"
-	"--rebase; rebase in submodules"
-	"--recursive; operate on all submodules recursively"
-	"--reference:; specify a reference repository to share objects (possibly dangerous operation)"
-	"--remote; update submodules to their remote's latest commit"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--depth:; specify the max number of history to clone"
+        "f --force; overwrite local changes or ignore unmerged files"
+        "--init; do \"git submodule init\" before updating"
+        "--merge; merge in submodules"
+        "N --no-fetch; don't fetch from submodule remotes"
+        "--rebase; rebase in submodules"
+        "--recursive; operate on all submodules recursively"
+        "--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+        "--remote; update submodules to their remote's latest commit"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--reference)
-			complete -P "$PREFIX" -S / -T -d
-			;;
-		('')
-			complete -P "$PREFIX" -S / -T -d
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--reference)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

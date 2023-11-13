@@ -4,31 +4,31 @@
 # Supports Git 2.2.2.
 
 function completion/git-rm {
-	WORDS=(git rm "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git rm "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::rm:arg {
 
-	OPTIONS=( #>#
-	"--cached; remove from index and leave files untracked"
-	"n --dry-run; don't actually remove files"
-	"f --force; forcibly remove files with uncommitted changes"
-	"--ignore-unmatch; pretend success even if no files matched"
-	"q --quiet; don't report which files are being removed"
-	"-r; remove directories recursively"
-	) #<#
+        OPTIONS=( #>#
+        "--cached; remove from index and leave files untracked"
+        "n --dry-run; don't actually remove files"
+        "f --force; forcibly remove files with uncommitted changes"
+        "--ignore-unmatch; pretend success even if no files matched"
+        "q --quiet; don't report which files are being removed"
+        "-r; remove directories recursively"
+        ) #<#
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completepath -r
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completepath -r
+                        ;;
+        esac
 
 }
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

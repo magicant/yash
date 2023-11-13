@@ -14,4 +14,4 @@ echo $PPID >main.out
 diff main.out subshell.out
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

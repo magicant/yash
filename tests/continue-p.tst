@@ -52,9 +52,9 @@ test_oE 'continuing one for loop, nested in for loop'
 for i in 1 2 3; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	continue 1
-	echo out $i $j
+        echo in $i $j
+        continue 1
+        echo out $i $j
     done
     echo out $i
 done
@@ -83,9 +83,9 @@ i=1
 while [ $i -le 3 ]; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	continue 1
-	echo out $i $j
+        echo in $i $j
+        continue 1
+        echo out $i $j
     done
     echo out $i
     i=$((i+1))
@@ -116,10 +116,10 @@ while [ $i -le 3 ]; do
     echo in outer $i
     j=1
     while [ $j -le 3 ]; do
-	echo in inner $i $j
-	j=$((j+1))
-	continue 1
-	echo out inner $i $j
+        echo in inner $i $j
+        j=$((j+1))
+        continue 1
+        echo out inner $i $j
     done
     echo out outer $i
     i=$((i+1))
@@ -150,10 +150,10 @@ until [ $i -gt 3 ]; do
     echo in outer $i
     j=1
     while [ $j -le 3 ]; do
-	echo in inner $i $j
-	j=$((j+1))
-	continue 1
-	echo out inner $i $j
+        echo in inner $i $j
+        j=$((j+1))
+        continue 1
+        echo out inner $i $j
     done
     echo out outer $i
     i=$((i+1))
@@ -184,10 +184,10 @@ until [ $i -gt 3 ]; do
     echo in outer $i
     j=1
     until [ $j -gt 3 ]; do
-	echo in inner $i $j
-	j=$((j+1))
-	continue 1
-	echo out inner $i $j
+        echo in inner $i $j
+        j=$((j+1))
+        continue 1
+        echo out inner $i $j
     done
     echo out outer $i
     i=$((i+1))
@@ -216,9 +216,9 @@ test_oE 'continuing two for loops, outermost'
 for i in 1 2 3; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	continue 2
-	echo out $i $j
+        echo in $i $j
+        continue 2
+        echo out $i $j
     done
     echo out $i
 done
@@ -238,10 +238,10 @@ i=1
 while [ $i -le 3 ]; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	i=$((i+1))
-	continue 2
-	echo out $i $j
+        echo in $i $j
+        i=$((i+1))
+        continue 2
+        echo out $i $j
     done
     echo out $i
 done
@@ -261,10 +261,10 @@ i=1
 while [ $i -le 3 ]; do
     echo in outer $i
     while true; do
-	echo in inner $i
-	i=$((i+1))
-	continue 2
-	echo out inner $i
+        echo in inner $i
+        i=$((i+1))
+        continue 2
+        echo out inner $i
     done
     echo out outer $i
 done
@@ -284,10 +284,10 @@ i=1
 until [ $i -gt 3 ]; do
     echo in outer $i
     while true; do
-	echo in inner $i
-	i=$((i+1))
-	continue 2
-	echo out inner $i
+        echo in inner $i
+        i=$((i+1))
+        continue 2
+        echo out inner $i
     done
     echo out outer $i
 done
@@ -306,13 +306,13 @@ test_oE 'continuing two for loops, nested in another for loop'
 for i in 1 2 3; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	for k in + -; do
-	    echo in $i $j $k
-	    continue 2
-	    echo out $i $j $k
-	done
-	echo out $i $j
+        echo in $i $j
+        for k in + -; do
+            echo in $i $j $k
+            continue 2
+            echo out $i $j $k
+        done
+        echo out $i $j
     done
     echo out $i
 done
@@ -349,13 +349,13 @@ test_oE 'continuing three for loops, outermost'
 for i in 1 2 3; do
     echo in $i
     for j in a b c; do
-	echo in $i $j
-	for k in + -; do
-	    echo in $i $j $k
-	    continue 3
-	    echo out $i $j $k
-	done
-	echo out $i $j
+        echo in $i $j
+        for k in + -; do
+            echo in $i $j $k
+            continue 3
+            echo out $i $j $k
+        done
+        echo out $i $j
     done
     echo out $i
 done
@@ -377,13 +377,13 @@ test_oE 'default operand is 1'
 for i in 1; do
     echo in $i
     for j in a; do
-	echo in $i $j
-	for k in + -; do
-	    echo in $i $j $k
-	    continue
-	    echo out $i $j $k
-	done
-	echo out $i $j
+        echo in $i $j
+        for k in + -; do
+            echo in $i $j $k
+            continue
+            echo out $i $j $k
+        done
+        echo out $i $j
     done
     echo out $i
 done
@@ -421,8 +421,8 @@ __IN__
 test_OE 'continuing one more than actual nest level two'
 for i in 1; do
     for j in a; do
-	continue 3
-	echo not reached 1
+        continue 3
+        echo not reached 1
     done
     echo not reached 2
 done
@@ -514,12 +514,12 @@ __IN__
 test_OE 'continuing out of case'
 for i in 1; do
     case x in
-	x)
-	    continue
-	    echo not reached in case
+        x)
+            continue
+            echo not reached in case
     esac
     echo not reached after esac
 done
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

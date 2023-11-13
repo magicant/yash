@@ -6,232 +6,232 @@
 
 function completion/date {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"u ${long:+--utc --universal}; use Coordinated Universal Time (UTC)"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "u ${long:+--utc --universal}; use Coordinated Universal Time (UTC)"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (*BSD|Darwin)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"j; don't change the system time"
-		"n; change the system time on the current host only"
-		"r:; specify seconds since the epoch to print"
-		) #<#
-		case $type in (OpenBSD|NetBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"a; gradually change the system time using the adjtime syscall"
-			) #<#
-		esac
-		case $type in (OpenBSD|FreeBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"d:; specify the new daylight saving time"
-			"t:; specify the new difference from UTC in minutes"
-			) #<#
-			case $type in (FreeBSD|Darwin)
-				ADDOPTIONS=("$ADDOPTIONS" #>#
-				"f:; specify the format of the operand parsed"
-				"v:; specify adjustment for the date and time to print"
-				) #<#
-			esac
-		esac
-	esac
-	case $type in (GNU|NetBSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"d: ${long:+--date:}; specify a date and time to print instead of now"
-		) #<#
-	esac
-	case $type in (SunOS|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"a:; specify adjustment for the system clock"
-		) #<#
-	esac
-	case $type in (GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"f: --file:; specify a file containing date/time data to print"
-		"R --rfc-2822; print in the RFC 2822 format"
-		"r: --reference:; specify a file whose last modified time is printed"
-		"--rfc-3339:; specify the type of the RFC 3339 format to print in"
-		"s: --set:; specify a date and time to set the system time to"
-		"--help"
-		"--version"
-		) #<#
-	esac
+        ADDOPTIONS=()
+        case $type in (*BSD|Darwin)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "j; don't change the system time"
+                "n; change the system time on the current host only"
+                "r:; specify seconds since the epoch to print"
+                ) #<#
+                case $type in (OpenBSD|NetBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "a; gradually change the system time using the adjtime syscall"
+                        ) #<#
+                esac
+                case $type in (OpenBSD|FreeBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "d:; specify the new daylight saving time"
+                        "t:; specify the new difference from UTC in minutes"
+                        ) #<#
+                        case $type in (FreeBSD|Darwin)
+                                ADDOPTIONS=("$ADDOPTIONS" #>#
+                                "f:; specify the format of the operand parsed"
+                                "v:; specify adjustment for the date and time to print"
+                                ) #<#
+                        esac
+                esac
+        esac
+        case $type in (GNU|NetBSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "d: ${long:+--date:}; specify a date and time to print instead of now"
+                ) #<#
+        esac
+        case $type in (SunOS|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "a:; specify adjustment for the system clock"
+                ) #<#
+        esac
+        case $type in (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "f: --file:; specify a file containing date/time data to print"
+                "R --rfc-2822; print in the RFC 2822 format"
+                "r: --reference:; specify a file whose last modified time is printed"
+                "--rfc-3339:; specify the type of the RFC 3339 format to print in"
+                "s: --set:; specify a date and time to set the system time to"
+                "--help"
+                "--version"
+                ) #<#
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(f|--file|r|--reference)
-		case $type in (GNU)
-			complete -P "$PREFIX" -f
-		esac
-		;;
-	(--rfc-3339) #>>#
-		complete -P "$PREFIX" -D "e.g. 1999-12-31" date
-		complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56+05:30" seconds
-		complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56.123456789+05:30" ns
-		;; #<<#
-	(v)
-		typeset word="${TARGETWORD#"$PREFIX"}"
-		word=${word#[+-]}
-		case $word in
-		([[:digit:]]*)
-			while [ "${word#[[:digit:]]}" != "$word" ]; do
-				word=${word#[[:digit:]]}
-			done
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" -D "year"         y
-			complete -P "$PREFIX" -D "month"        m
-			complete -P "$PREFIX" -D "day of week"  w
-			complete -P "$PREFIX" -D "day of month" d
-			complete -P "$PREFIX" -D "hour"         H
-			complete -P "$PREFIX" -D "minute"       M
-			complete -P "$PREFIX" -D "second"       S
-			;; #<<#
-		(*)
-			PREFIX=${TARGETWORD%"$word"} #>>#
-			complete -P "$PREFIX" -D "Sunday"    Sunday
-			complete -P "$PREFIX" -D "Monday"    Monday
-			complete -P "$PREFIX" -D "Tuesday"   Tuesday
-			complete -P "$PREFIX" -D "Wednesday" Wednesday
-			complete -P "$PREFIX" -D "Thursday"  Thursday
-			complete -P "$PREFIX" -D "Friday"    Friday
-			complete -P "$PREFIX" -D "Saturday"  Saturday
-			complete -P "$PREFIX" -D "January"   January
-			complete -P "$PREFIX" -D "February"  February
-			complete -P "$PREFIX" -D "March"     March
-			complete -P "$PREFIX" -D "April"     April
-			complete -P "$PREFIX" -D "May"       May
-			complete -P "$PREFIX" -D "June"      June
-			complete -P "$PREFIX" -D "July"      July
-			complete -P "$PREFIX" -D "August"    August
-			complete -P "$PREFIX" -D "September" September
-			complete -P "$PREFIX" -D "October"   October
-			complete -P "$PREFIX" -D "November"  November
-			complete -P "$PREFIX" -D "December"  December
-			;; #<<#
-		esac
-		;;
-	(?|--?*)
-		;;
-	(*)
-		command -f completion//completestrftime
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (f|--file|r|--reference)
+                case $type in (GNU)
+                        complete -P "$PREFIX" -f
+                esac
+                ;;
+        (--rfc-3339) #>>#
+                complete -P "$PREFIX" -D "e.g. 1999-12-31" date
+                complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56+05:30" seconds
+                complete -P "$PREFIX" -D "e.g. 1999-12-31 13:45:56.123456789+05:30" ns
+                ;; #<<#
+        (v)
+                typeset word="${TARGETWORD#"$PREFIX"}"
+                word=${word#[+-]}
+                case $word in
+                ([[:digit:]]*)
+                        while [ "${word#[[:digit:]]}" != "$word" ]; do
+                                word=${word#[[:digit:]]}
+                        done
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" -D "year"         y
+                        complete -P "$PREFIX" -D "month"        m
+                        complete -P "$PREFIX" -D "day of week"  w
+                        complete -P "$PREFIX" -D "day of month" d
+                        complete -P "$PREFIX" -D "hour"         H
+                        complete -P "$PREFIX" -D "minute"       M
+                        complete -P "$PREFIX" -D "second"       S
+                        ;; #<<#
+                (*)
+                        PREFIX=${TARGETWORD%"$word"} #>>#
+                        complete -P "$PREFIX" -D "Sunday"    Sunday
+                        complete -P "$PREFIX" -D "Monday"    Monday
+                        complete -P "$PREFIX" -D "Tuesday"   Tuesday
+                        complete -P "$PREFIX" -D "Wednesday" Wednesday
+                        complete -P "$PREFIX" -D "Thursday"  Thursday
+                        complete -P "$PREFIX" -D "Friday"    Friday
+                        complete -P "$PREFIX" -D "Saturday"  Saturday
+                        complete -P "$PREFIX" -D "January"   January
+                        complete -P "$PREFIX" -D "February"  February
+                        complete -P "$PREFIX" -D "March"     March
+                        complete -P "$PREFIX" -D "April"     April
+                        complete -P "$PREFIX" -D "May"       May
+                        complete -P "$PREFIX" -D "June"      June
+                        complete -P "$PREFIX" -D "July"      July
+                        complete -P "$PREFIX" -D "August"    August
+                        complete -P "$PREFIX" -D "September" September
+                        complete -P "$PREFIX" -D "October"   October
+                        complete -P "$PREFIX" -D "November"  November
+                        complete -P "$PREFIX" -D "December"  December
+                        ;; #<<#
+                esac
+                ;;
+        (?|--?*)
+                ;;
+        (*)
+                command -f completion//completestrftime
+                ;;
+        esac
 
 }
 
 function completion//completestrftime {
-	typeset word="$TARGETWORD"
-	word=${word#"$PREFIX"}
-	word=${word//%%}
-	case $word in (*%|*%[EO:]|*%::|*%:::)
-		word=%${word##*%}
-		PREFIX=${TARGETWORD%"$word"} #>>#
-		complete -T -P "$PREFIX" -D "day of week, full, localized" '%A'
-		complete -T -P "$PREFIX" -D "day of week, short, localized" '%a'
-		complete -T -P "$PREFIX" -D "month, full, localized" '%B'
-		complete -T -P "$PREFIX" -D "month, short, localized" '%b'
-		complete -T -P "$PREFIX" -D "century in numeral" '%C'
-		complete -T -P "$PREFIX" -D "date and time, localized" '%c'
-		complete -T -P "$PREFIX" -D "like %m/%d/%y (e.g. 12/31/99)" '%D'
-		complete -T -P "$PREFIX" -D "day of month [01-31]" '%d'
-		complete -T -P "$PREFIX" -D "day of month [ 1-31] (space-padded)" '%e'
-		complete -T -P "$PREFIX" -D "hour [00-23]" '%H'
-		complete -T -P "$PREFIX" -D "hour [01-12]" '%I'
-		complete -T -P "$PREFIX" -D "day of year [001-366]" '%j'
-		complete -T -P "$PREFIX" -D "minute [00-59]" '%M'
-		complete -T -P "$PREFIX" -D "month [01-12]" '%m'
-		complete -T -P "$PREFIX" -D "newline" '%n'
-		complete -T -P "$PREFIX" -D "AM or PM, localized" '%p'
-		complete -T -P "$PREFIX" -D "12-hour clock time with AM/PM, localized" '%r'
-		complete -T -P "$PREFIX" -D "second [00-60]" '%S'
-		complete -T -P "$PREFIX" -D "like %H:%M:%S (e.g. 13:45:56)" '%T'
-		complete -T -P "$PREFIX" -D "tab" '%t'
-		complete -T -P "$PREFIX" -D "week of year [00-53] (first Sunday in week 1)" '%U'
-		complete -T -P "$PREFIX" -D "day of week in numeral [1-7]" '%u'
-		complete -T -P "$PREFIX" -D "week of year [01-53] (first Monday in week 1 or 2)" '%V'
-		complete -T -P "$PREFIX" -D "week of year [00-53] (first Monday in week 1)" '%W'
-		complete -T -P "$PREFIX" -D "day of week in numeral [0-6]" '%w'
-		complete -T -P "$PREFIX" -D "time, localized" '%X'
-		complete -T -P "$PREFIX" -D "date, localized" '%x'
-		complete -T -P "$PREFIX" -D "year, full (e.g. 1999)" '%Y'
-		complete -T -P "$PREFIX" -D "year within century [00-99]" '%y'
-		complete -T -P "$PREFIX" -D "timezone name" '%Z'
-		complete -T -P "$PREFIX" -D "name of era, localized, alternative format" '%EC'
-		complete -T -P "$PREFIX" -D "date and time, localized, alternative format" '%Ec'
-		complete -T -P "$PREFIX" -D "time, localized, alternative format" '%EX'
-		complete -T -P "$PREFIX" -D "date, localized, alternative format" '%Ex'
-		complete -T -P "$PREFIX" -D "year, full, alternative format" '%EY'
-		complete -T -P "$PREFIX" -D "year within era in numeral, alternative format" '%Ey'
-		complete -T -P "$PREFIX" -D "day of month in localized alternative numeral" '%Od'
-		complete -T -P "$PREFIX" -D "hour in localized alternative numeral, 24-hour clock" '%OH'
-		complete -T -P "$PREFIX" -D "hour in localized alternative numeral, 12-hour clock" '%OI'
-		complete -T -P "$PREFIX" -D "minute in localized alternative numeral" '%OM'
-		complete -T -P "$PREFIX" -D "month in localized alternative numeral" '%Om'
-		complete -T -P "$PREFIX" -D "second in localized alternative numeral" '%OS'
-		complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OU'
-		complete -T -P "$PREFIX" -D "day of week in localized alternative numeral for 1-7" '%Ou'
-		complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OV'
-		complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OW'
-		complete -T -P "$PREFIX" -D "day of week in localized alternative numeral for 0-6" '%Ow'
-		complete -T -P "$PREFIX" -D "year within century in localized alternative numeral" '%Oy'
-		complete -T -P "$PREFIX" -D "%" '%%'
-		#<<#
-		case $type in (GNU|*BSD|Darwin|SunOS|HP-UX) #>>#
-			complete -T -P "$PREFIX" -D "like %H:%M (e.g. 13:45)" '%R'
-		esac #<<#
-		case $type in (GNU|*BSD|Darwin|SunOS) #>>#
-			complete -T -P "$PREFIX" -D "like %Y-%m-%d (e.g. 1999-12-31)" '%F'
-			complete -T -P "$PREFIX" -D "year within century corresponding to %V [00-99]" '%g'
-			complete -T -P "$PREFIX" -D "year corresponding to %V, full (e.g. 1999)" '%G'
-			complete -T -P "$PREFIX" -D "hour [ 0-23] (space-padded)" '%k'
-			complete -T -P "$PREFIX" -D "hour [ 1-12] (space-padded)" '%l'
-			complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +0530)" '%z'
-		esac #<<#
-		case $type in (GNU|*BSD|Darwin) #>>#
-			complete -T -P "$PREFIX" -D "seconds since epoch in numeral" '%s'
-		esac #<<#
-		case $type in (*BSD|Darwin) #>>#
-			complete -T -P "$PREFIX" -D "like %e-%b-%Y" '%v'
-			complete -T -P "$PREFIX" -D "the default localized format" '%+'
-		esac
-		case $type in (GNU|SunOS) #>>#
-			complete -T -P "$PREFIX" -D "year within century corresponding to %V in localized alternative numeral" '%Og'
-		esac #<<#
-		case $type in
-		(GNU) #>>#
-			complete -T -P "$PREFIX" -D "nanosecond within second [000000000-999999999]" '%N'
-			complete -T -P "$PREFIX" -D "AM or PM, localized, lower case" '%P'
-			complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +05:30)" '%:z'
-			complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +05:30:00)" '%::z'
-			complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone with minimal colons" '%:::z'
-			;; #<<#
-		(SunOS) #>>#
-			complete -T -P "$PREFIX" -D "year corresponding to %V, full, alternative format" '%EG'
-			complete -T -P "$PREFIX" -D "year within era corresponding to %V, in numeral, alternative format" '%Eg'
-			;; #<<#
-		(HP-UX) #>>#
-			complete -T -P "$PREFIX" -D "name of era" '%N'
-			complete -T -P "$PREFIX" -D "year within era" '%o'
-			;; #<<#
-		esac
-	esac
+        typeset word="$TARGETWORD"
+        word=${word#"$PREFIX"}
+        word=${word//%%}
+        case $word in (*%|*%[EO:]|*%::|*%:::)
+                word=%${word##*%}
+                PREFIX=${TARGETWORD%"$word"} #>>#
+                complete -T -P "$PREFIX" -D "day of week, full, localized" '%A'
+                complete -T -P "$PREFIX" -D "day of week, short, localized" '%a'
+                complete -T -P "$PREFIX" -D "month, full, localized" '%B'
+                complete -T -P "$PREFIX" -D "month, short, localized" '%b'
+                complete -T -P "$PREFIX" -D "century in numeral" '%C'
+                complete -T -P "$PREFIX" -D "date and time, localized" '%c'
+                complete -T -P "$PREFIX" -D "like %m/%d/%y (e.g. 12/31/99)" '%D'
+                complete -T -P "$PREFIX" -D "day of month [01-31]" '%d'
+                complete -T -P "$PREFIX" -D "day of month [ 1-31] (space-padded)" '%e'
+                complete -T -P "$PREFIX" -D "hour [00-23]" '%H'
+                complete -T -P "$PREFIX" -D "hour [01-12]" '%I'
+                complete -T -P "$PREFIX" -D "day of year [001-366]" '%j'
+                complete -T -P "$PREFIX" -D "minute [00-59]" '%M'
+                complete -T -P "$PREFIX" -D "month [01-12]" '%m'
+                complete -T -P "$PREFIX" -D "newline" '%n'
+                complete -T -P "$PREFIX" -D "AM or PM, localized" '%p'
+                complete -T -P "$PREFIX" -D "12-hour clock time with AM/PM, localized" '%r'
+                complete -T -P "$PREFIX" -D "second [00-60]" '%S'
+                complete -T -P "$PREFIX" -D "like %H:%M:%S (e.g. 13:45:56)" '%T'
+                complete -T -P "$PREFIX" -D "tab" '%t'
+                complete -T -P "$PREFIX" -D "week of year [00-53] (first Sunday in week 1)" '%U'
+                complete -T -P "$PREFIX" -D "day of week in numeral [1-7]" '%u'
+                complete -T -P "$PREFIX" -D "week of year [01-53] (first Monday in week 1 or 2)" '%V'
+                complete -T -P "$PREFIX" -D "week of year [00-53] (first Monday in week 1)" '%W'
+                complete -T -P "$PREFIX" -D "day of week in numeral [0-6]" '%w'
+                complete -T -P "$PREFIX" -D "time, localized" '%X'
+                complete -T -P "$PREFIX" -D "date, localized" '%x'
+                complete -T -P "$PREFIX" -D "year, full (e.g. 1999)" '%Y'
+                complete -T -P "$PREFIX" -D "year within century [00-99]" '%y'
+                complete -T -P "$PREFIX" -D "timezone name" '%Z'
+                complete -T -P "$PREFIX" -D "name of era, localized, alternative format" '%EC'
+                complete -T -P "$PREFIX" -D "date and time, localized, alternative format" '%Ec'
+                complete -T -P "$PREFIX" -D "time, localized, alternative format" '%EX'
+                complete -T -P "$PREFIX" -D "date, localized, alternative format" '%Ex'
+                complete -T -P "$PREFIX" -D "year, full, alternative format" '%EY'
+                complete -T -P "$PREFIX" -D "year within era in numeral, alternative format" '%Ey'
+                complete -T -P "$PREFIX" -D "day of month in localized alternative numeral" '%Od'
+                complete -T -P "$PREFIX" -D "hour in localized alternative numeral, 24-hour clock" '%OH'
+                complete -T -P "$PREFIX" -D "hour in localized alternative numeral, 12-hour clock" '%OI'
+                complete -T -P "$PREFIX" -D "minute in localized alternative numeral" '%OM'
+                complete -T -P "$PREFIX" -D "month in localized alternative numeral" '%Om'
+                complete -T -P "$PREFIX" -D "second in localized alternative numeral" '%OS'
+                complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OU'
+                complete -T -P "$PREFIX" -D "day of week in localized alternative numeral for 1-7" '%Ou'
+                complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OV'
+                complete -T -P "$PREFIX" -D "week of year in localized alternative numeral" '%OW'
+                complete -T -P "$PREFIX" -D "day of week in localized alternative numeral for 0-6" '%Ow'
+                complete -T -P "$PREFIX" -D "year within century in localized alternative numeral" '%Oy'
+                complete -T -P "$PREFIX" -D "%" '%%'
+                #<<#
+                case $type in (GNU|*BSD|Darwin|SunOS|HP-UX) #>>#
+                        complete -T -P "$PREFIX" -D "like %H:%M (e.g. 13:45)" '%R'
+                esac #<<#
+                case $type in (GNU|*BSD|Darwin|SunOS) #>>#
+                        complete -T -P "$PREFIX" -D "like %Y-%m-%d (e.g. 1999-12-31)" '%F'
+                        complete -T -P "$PREFIX" -D "year within century corresponding to %V [00-99]" '%g'
+                        complete -T -P "$PREFIX" -D "year corresponding to %V, full (e.g. 1999)" '%G'
+                        complete -T -P "$PREFIX" -D "hour [ 0-23] (space-padded)" '%k'
+                        complete -T -P "$PREFIX" -D "hour [ 1-12] (space-padded)" '%l'
+                        complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +0530)" '%z'
+                esac #<<#
+                case $type in (GNU|*BSD|Darwin) #>>#
+                        complete -T -P "$PREFIX" -D "seconds since epoch in numeral" '%s'
+                esac #<<#
+                case $type in (*BSD|Darwin) #>>#
+                        complete -T -P "$PREFIX" -D "like %e-%b-%Y" '%v'
+                        complete -T -P "$PREFIX" -D "the default localized format" '%+'
+                esac
+                case $type in (GNU|SunOS) #>>#
+                        complete -T -P "$PREFIX" -D "year within century corresponding to %V in localized alternative numeral" '%Og'
+                esac #<<#
+                case $type in
+                (GNU) #>>#
+                        complete -T -P "$PREFIX" -D "nanosecond within second [000000000-999999999]" '%N'
+                        complete -T -P "$PREFIX" -D "AM or PM, localized, lower case" '%P'
+                        complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +05:30)" '%:z'
+                        complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone (e.g. +05:30:00)" '%::z'
+                        complete -T -P "$PREFIX" -D "RFC 2822 style numeric timezone with minimal colons" '%:::z'
+                        ;; #<<#
+                (SunOS) #>>#
+                        complete -T -P "$PREFIX" -D "year corresponding to %V, full, alternative format" '%EG'
+                        complete -T -P "$PREFIX" -D "year within era corresponding to %V, in numeral, alternative format" '%Eg'
+                        ;; #<<#
+                (HP-UX) #>>#
+                        complete -T -P "$PREFIX" -D "name of era" '%N'
+                        complete -T -P "$PREFIX" -D "year within era" '%o'
+                        ;; #<<#
+                esac
+        esac
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

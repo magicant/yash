@@ -4,9 +4,9 @@
 # Supports Git 1.7.7.
 
 function completion/gitk {
-	WORDS=(git rev-list "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git rev-list "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

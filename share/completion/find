@@ -6,549 +6,549 @@
 
 function completion/find {
 
-	typeset SAVEWORDS
-	SAVEWORDS=("$WORDS")
+        typeset SAVEWORDS
+        SAVEWORDS=("$WORDS")
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'findutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'findutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"H; follow symbolic links in operands"
-	"L; follow all symbolic links"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "H; follow symbolic links in operands"
+        "L; follow all symbolic links"
+        ) #<#
 
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"D:; specify debug options"
-		"O::; specify optimization level"
-		"P; don't follow symbolic links"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(*BSD|Darwin)
-		OPTIONS=("$OPTIONS" #>#
-		"d; do post-order traversal rather than pre-order"
-		"f:; specify a directory to search"
-		"X; warn about filenames incompatible with xargs"
-		"x; don't search in different file systems"
-		) #<#
-		case $type in (FreeBSD|NetBSD|Darwin)
-			OPTIONS=("$OPTIONS" #>#
-			"E; use extended regular expression"
-			"P; don't follow symbolic links"
-			"s; sort filenames within each directory"
-			) #<#
-		esac
-		;;
-	esac
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "D:; specify debug options"
+                "O::; specify optimization level"
+                "P; don't follow symbolic links"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (*BSD|Darwin)
+                OPTIONS=("$OPTIONS" #>#
+                "d; do post-order traversal rather than pre-order"
+                "f:; specify a directory to search"
+                "X; warn about filenames incompatible with xargs"
+                "x; don't search in different file systems"
+                ) #<#
+                case $type in (FreeBSD|NetBSD|Darwin)
+                        OPTIONS=("$OPTIONS" #>#
+                        "E; use extended regular expression"
+                        "P; don't follow symbolic links"
+                        "s; sort filenames within each directory"
+                        ) #<#
+                esac
+                ;;
+        esac
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		case $TARGETWORD in (-|--*)
-			command -f completion//completeoptions
-		esac
-		if [ "$type" = GNU ]; then
-			typeset i=2
-			command -f completion/find::expr
-		fi
-		;;
-	(D)
-		if [ "$PREFIX" ]; then
-			complete -P "$PREFIX" ""
-		else
-			typeset targetword="${TARGETWORD##*,}"
-			PREFIX=${TARGETWORD%"$targetword"}
-			#>>#
-			complete -P "$PREFIX" -D "print help about the -D option" help
-			complete -P "$PREFIX" -D "print the syntax tree of the expression" tree
-			complete -P "$PREFIX" -D "print info during directory tree search" search
-			complete -P "$PREFIX" -D "trace calls to the stat function" stat
-			complete -P "$PREFIX" -D "print success rate for each predicate" rates
-			complete -P "$PREFIX" -D "print debug info about optimization" opt
-			complete -P "$PREFIX" -D "print debug info about execution of external commands" exec
-			#<<#
-		fi
-		;;
-	(f)
-		complete -P "$PREFIX" -S / -T -d
-		;;
-	(O)
-		;;
-	(*)
-		typeset path=false expr=false i=2
-		WORDS=("$SAVEWORDS")
-		if [ "$type" = GNU ]; then
-			path=true
-		fi
-		while [ $i -le ${WORDS[#]} ]; do
-			if [ "${WORDS[i]}" = -- ]; then
-				i=$((i+1))
-				break
-			fi
-			case $type in
-			(GNU)
-				case ${WORDS[i]} in (-[!DHLOP-]*)
-					break
-				esac
-				;;
-			(*BSD|Darwin)
-				case ${WORDS[i]} in (-f*)
-					path=true
-				esac
-				;;
-			esac
-			case ${WORDS[i]} in
-			(-?*)
-				;;
-			(*)
-				break
-				;;
-			esac
-			i=$((i+1))
-		done
-		while [ $i -le ${WORDS[#]} ]; do
-			case ${WORDS[i]} in
-			(\(|!|-*)
-				expr=true
-				break
-				;;
-			(*)
-				path=true
-				;;
-			esac
-			i=$((i+1))
-		done
-		if ! $expr; then
-			complete -S / -T -d
-		fi
-		if $path; then
-			command -f completion/find::expr
-		fi
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                case $TARGETWORD in (-|--*)
+                        command -f completion//completeoptions
+                esac
+                if [ "$type" = GNU ]; then
+                        typeset i=2
+                        command -f completion/find::expr
+                fi
+                ;;
+        (D)
+                if [ "$PREFIX" ]; then
+                        complete -P "$PREFIX" ""
+                else
+                        typeset targetword="${TARGETWORD##*,}"
+                        PREFIX=${TARGETWORD%"$targetword"}
+                        #>>#
+                        complete -P "$PREFIX" -D "print help about the -D option" help
+                        complete -P "$PREFIX" -D "print the syntax tree of the expression" tree
+                        complete -P "$PREFIX" -D "print info during directory tree search" search
+                        complete -P "$PREFIX" -D "trace calls to the stat function" stat
+                        complete -P "$PREFIX" -D "print success rate for each predicate" rates
+                        complete -P "$PREFIX" -D "print debug info about optimization" opt
+                        complete -P "$PREFIX" -D "print debug info about execution of external commands" exec
+                        #<<#
+                fi
+                ;;
+        (f)
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        (O)
+                ;;
+        (*)
+                typeset path=false expr=false i=2
+                WORDS=("$SAVEWORDS")
+                if [ "$type" = GNU ]; then
+                        path=true
+                fi
+                while [ $i -le ${WORDS[#]} ]; do
+                        if [ "${WORDS[i]}" = -- ]; then
+                                i=$((i+1))
+                                break
+                        fi
+                        case $type in
+                        (GNU)
+                                case ${WORDS[i]} in (-[!DHLOP-]*)
+                                        break
+                                esac
+                                ;;
+                        (*BSD|Darwin)
+                                case ${WORDS[i]} in (-f*)
+                                        path=true
+                                esac
+                                ;;
+                        esac
+                        case ${WORDS[i]} in
+                        (-?*)
+                                ;;
+                        (*)
+                                break
+                                ;;
+                        esac
+                        i=$((i+1))
+                done
+                while [ $i -le ${WORDS[#]} ]; do
+                        case ${WORDS[i]} in
+                        (\(|!|-*)
+                                expr=true
+                                break
+                                ;;
+                        (*)
+                                path=true
+                                ;;
+                        esac
+                        i=$((i+1))
+                done
+                if ! $expr; then
+                        complete -S / -T -d
+                fi
+                if $path; then
+                        command -f completion/find::expr
+                fi
+                ;;
+        esac
 
 }
 
 # This function depends on variables $i, $type.
 function completion/find::expr {
 
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i]} in
-		(-acl|-aclv)
-			case $type in
-			(HP-UX)
-				if [ $i -eq ${WORDS[#]} ]; then #>>#
-					complete -D "optional access control list entries" opt
-				fi #<<#
-				i=$((i+2))
-				;;
-			(*)
-				i=$((i+1))
-				;;
-			esac
-			;;
-		(-[acmB]newer|-fls|-fprint|-fprint0|-ilname|-iname|-ipath|-iwholename|-linkedto|-lname|-name|-newer*|-path|-samefile|-wholename)
-			if [ $i -eq ${WORDS[#]} ]; then
-				complete -f
-			fi
-			i=$((i+2))
-			;;
-		(-[acmB]time)
-			if [ $i -eq ${WORDS[#]} ]; then
-				case $type in (FreeBSD|Darwin)
-					case $TARGETWORD in (*[[:digit:]]*)
-						PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
-						#>>#
-						complete -P "$PREFIX" -D "second" s
-						complete -P "$PREFIX" -D "minute" m
-						complete -P "$PREFIX" -D "hour" h
-						complete -P "$PREFIX" -D "day" d
-						complete -P "$PREFIX" -D "week" w
-						#<<#
-					esac
-				esac
-			fi
-			i=$((i+2))
-			;;
-		(-exec|-execdir|-ok|-okdir)
-			i=$((i+1))
-			typeset j=$i
-			while [ $j -le ${WORDS[#]} ]; do
-				if [ "${WORDS[j]}" = ";" ]; then
-					i=$((j+1)); break
-				elif [ "${WORDS[j]} ${WORDS[j+1]}" = "{} +" ]; then
-					i=$((j+2)); break
-				fi
-				j=$((j+1))
-			done
-			if [ $i -le $j ]; then
-				WORDS=("${WORDS[i,-1]}")
-				command -f completion//reexecute -e
-				return
-			fi
-			;;
-		(-flags)
-			if [ $i -eq ${WORDS[#]} ]; then
-				# TODO
-			fi
-			i=$((i+2))
-			;;
-		(-fprintf)
-			if [ $i -eq ${WORDS[#]} ]; then
-				complete -f
-			elif [ $((i+1)) -eq ${WORDS[#]} ]; then
-				command -f completion/find::printf
-			fi
-			i=$((i+3))
-			;;
-		(-group)
-			if [ $i -eq ${WORDS[#]} ]; then
-				complete -g
-			fi
-			i=$((i+2))
-			;;
-		(-perm)
-			if [ $i -eq ${WORDS[#]} ]; then
-				if command -vf completion/chmod::mode >/dev/null 2>&1 ||
-						. -AL completion/chmod; then
-					command -f completion/chmod::mode find
-				fi
-			fi
-			i=$((i+2))
-			;;
-		(-printf)
-			if [ $i -eq ${WORDS[#]} ]; then
-				command -f completion/find::printf
-			fi
-			i=$((i+2))
-			;;
-		(-regextype)
-			if [ $i -eq ${WORDS[#]} ]; then
-				complete emacs posix-awk posix-basic posix-egrep posix-extended
-			fi
-			i=$((i+2))
-			;;
-		(-size)
-			if [ $i -eq ${WORDS[#]} ]; then
-				case $TARGETWORD in (*[[:digit:]]*)
-					PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
-					#>>#
-					complete -P "$PREFIX" -D "byte" c
-					#<<#
-					case $type in (GNU|FreeBSD|Darwin)
-						#>>#
-						complete -P "$PREFIX" -D "kilobyte (2^10 bytes)" k
-						complete -P "$PREFIX" -D "megabyte (2^20 bytes)" M
-						complete -P "$PREFIX" -D "gigabyte (2^30 bytes)" G
-						#<<#
-						case $type in
-						(GNU) #>>#
-							complete -P "$PREFIX" -D "block (2^9 bytes)" b
-							complete -P "$PREFIX" -D "word (2 bytes)" w
-							;; #<<#
-						(FreeBSD|Darwin) #>>#
-							complete -P "$PREFIX" -D "terabyte (2^40 bytes)" T
-							complete -P "$PREFIX" -D "petabyte (2^50 bytes)" P
-							;; #<<#
-						esac
-					esac
-				esac
-			fi
-			i=$((i+2))
-			;;
-		(-type|-xtype)
-			if [ $i -eq ${WORDS[#]} ]; then #>>#
-				complete -D "block special file" b
-				complete -D "character special file" c
-				complete -D "directory" d
-				complete -D "regular file" f
-				complete -D "symbolic link" l
-				complete -D "FIFO" p
-				complete -D "socket" s
-			fi #<<#
-			case $(uname) in (SunOS) #>>#
-				complete -D "door" D
-			esac #<<#
-			case $type in
-			(NetBSD) #>>#
-				complete -D "whiteout" w
-				;; #<<#
-			(HP-UX) #>>#
-				complete -D "mount point" M
-				complete -D "network special file" n
-				;; #<<#
-			esac
-			i=$((i+2))
-			;;
-		(-user)
-			if [ $i -eq ${WORDS[#]} ]; then
-				complete -u
-			fi
-			i=$((i+2))
-			;;
-		(-[acmB]min|-context|-cpio|-fsonly|-fstype|-[gu]id|-inum|-iregex|-links|-maxdepth|-mindepth|-ncpio|-regex|-used)
-			i=$((i+2))
-			;;
-		(*)
-			i=$((i+1))
-			;;
-		esac
-	done
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i]} in
+                (-acl|-aclv)
+                        case $type in
+                        (HP-UX)
+                                if [ $i -eq ${WORDS[#]} ]; then #>>#
+                                        complete -D "optional access control list entries" opt
+                                fi #<<#
+                                i=$((i+2))
+                                ;;
+                        (*)
+                                i=$((i+1))
+                                ;;
+                        esac
+                        ;;
+                (-[acmB]newer|-fls|-fprint|-fprint0|-ilname|-iname|-ipath|-iwholename|-linkedto|-lname|-name|-newer*|-path|-samefile|-wholename)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                complete -f
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-[acmB]time)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                case $type in (FreeBSD|Darwin)
+                                        case $TARGETWORD in (*[[:digit:]]*)
+                                                PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
+                                                #>>#
+                                                complete -P "$PREFIX" -D "second" s
+                                                complete -P "$PREFIX" -D "minute" m
+                                                complete -P "$PREFIX" -D "hour" h
+                                                complete -P "$PREFIX" -D "day" d
+                                                complete -P "$PREFIX" -D "week" w
+                                                #<<#
+                                        esac
+                                esac
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-exec|-execdir|-ok|-okdir)
+                        i=$((i+1))
+                        typeset j=$i
+                        while [ $j -le ${WORDS[#]} ]; do
+                                if [ "${WORDS[j]}" = ";" ]; then
+                                        i=$((j+1)); break
+                                elif [ "${WORDS[j]} ${WORDS[j+1]}" = "{} +" ]; then
+                                        i=$((j+2)); break
+                                fi
+                                j=$((j+1))
+                        done
+                        if [ $i -le $j ]; then
+                                WORDS=("${WORDS[i,-1]}")
+                                command -f completion//reexecute -e
+                                return
+                        fi
+                        ;;
+                (-flags)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                # TODO
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-fprintf)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                complete -f
+                        elif [ $((i+1)) -eq ${WORDS[#]} ]; then
+                                command -f completion/find::printf
+                        fi
+                        i=$((i+3))
+                        ;;
+                (-group)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                complete -g
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-perm)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                if command -vf completion/chmod::mode >/dev/null 2>&1 ||
+                                                . -AL completion/chmod; then
+                                        command -f completion/chmod::mode find
+                                fi
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-printf)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                command -f completion/find::printf
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-regextype)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                complete emacs posix-awk posix-basic posix-egrep posix-extended
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-size)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                case $TARGETWORD in (*[[:digit:]]*)
+                                        PREFIX=${TARGETWORD%"${TARGETWORD##*[[:digit:]]}"}
+                                        #>>#
+                                        complete -P "$PREFIX" -D "byte" c
+                                        #<<#
+                                        case $type in (GNU|FreeBSD|Darwin)
+                                                #>>#
+                                                complete -P "$PREFIX" -D "kilobyte (2^10 bytes)" k
+                                                complete -P "$PREFIX" -D "megabyte (2^20 bytes)" M
+                                                complete -P "$PREFIX" -D "gigabyte (2^30 bytes)" G
+                                                #<<#
+                                                case $type in
+                                                (GNU) #>>#
+                                                        complete -P "$PREFIX" -D "block (2^9 bytes)" b
+                                                        complete -P "$PREFIX" -D "word (2 bytes)" w
+                                                        ;; #<<#
+                                                (FreeBSD|Darwin) #>>#
+                                                        complete -P "$PREFIX" -D "terabyte (2^40 bytes)" T
+                                                        complete -P "$PREFIX" -D "petabyte (2^50 bytes)" P
+                                                        ;; #<<#
+                                                esac
+                                        esac
+                                esac
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-type|-xtype)
+                        if [ $i -eq ${WORDS[#]} ]; then #>>#
+                                complete -D "block special file" b
+                                complete -D "character special file" c
+                                complete -D "directory" d
+                                complete -D "regular file" f
+                                complete -D "symbolic link" l
+                                complete -D "FIFO" p
+                                complete -D "socket" s
+                        fi #<<#
+                        case $(uname) in (SunOS) #>>#
+                                complete -D "door" D
+                        esac #<<#
+                        case $type in
+                        (NetBSD) #>>#
+                                complete -D "whiteout" w
+                                ;; #<<#
+                        (HP-UX) #>>#
+                                complete -D "mount point" M
+                                complete -D "network special file" n
+                                ;; #<<#
+                        esac
+                        i=$((i+2))
+                        ;;
+                (-user)
+                        if [ $i -eq ${WORDS[#]} ]; then
+                                complete -u
+                        fi
+                        i=$((i+2))
+                        ;;
+                (-[acmB]min|-context|-cpio|-fsonly|-fstype|-[gu]id|-inum|-iregex|-links|-maxdepth|-mindepth|-ncpio|-regex|-used)
+                        i=$((i+2))
+                        ;;
+                (*)
+                        i=$((i+1))
+                        ;;
+                esac
+        done
 
-	if [ $i -eq $((${WORDS[#]}+1)) ]; then case $TARGETWORD in
-	(-newer*)
-		case $type in
-		(GNU|FreeBSD|Darwin|HP-UX)
-			typeset word="${TARGETWORD#-newer}"
-			word=${word#?}
-			PREFIX=${TARGETWORD%"$word"}
-			#>>#
-			complete -P "$PREFIX" -D "last access time" a
-			complete -P "$PREFIX" -D "last status change time" c
-			complete -P "$PREFIX" -D "last modified time" m
-			#<<#
-			case $type in (GNU|FreeBSD|Darwin)
-				#>>#
-				complete -P "$PREFIX" -D "creation time" B
-				#<<#
-				case $TARGETWORD in (-newer?*) #>>#
-					complete -P "$PREFIX" -D "specify time" t
-				esac #<<#
-			esac
-			;;
-		(*)
-			complete -- -newer
-			;;
-		esac
-		;;
-	(-*)
-		#>>#
-		complete -D "logical conjunction (and)" -- -a
-		complete -D "true if the last access time is n days ago" -- -atime
-		complete -D "true if the last status change time is n days ago" -- -ctime
-		complete -D "search directories in post-order rather than pre-order" -- -depth
-		complete -D "execute the specified command line" -- -exec
-		complete -D "true if the group is the specified one" -- -group
-		complete -D "true if the file has the specified hard link count" -- -links
-		complete -D "true if the last modified time is n days ago" -- -mtime
-		complete -D "true if the filename matches the specified pattern" -- -name
-		complete -D "logical disjunction (or)" -- -o
-		complete -D "prompt for execution of the specified command line" -- -ok
-		complete -D "true if the pathname matches the specified pattern" -- -path
-		complete -D "true if the file has the specified permission" -- -perm
-		complete -D "print the pathname" -- -print
-		complete -D "don't search the directory if evaluated" -- -prune
-		complete -D "true if the file has the specified size" -- -size
-		complete -D "true if the file has the specified type" -- -type
-		complete -D "true if the owner is the specified one" -- -user
-		complete -D "don't search different file systems" -- -xdev
-		#<<#
-		case $type in (GNU|*BSD|Darwin|SunOS|HP-UX)
-			#>>#
-			complete -D "true if the file is on the specified file system" -- -fstype
-			complete -D "true if the file has the specified inode number" -- -inum
-			#<<#
-			case $type in (GNU|*BSD|Darwin|SunOS)
-				#>>#
-				complete -D "print the file in ls -dils format" -- -ls
-				#<<#
-				case $type in (GNU|FreeBSD|Darwin|SunOS) #>>#
-					complete -D "don't search different file systems" -- -mount
-				esac #<<#
-			esac
-			case $type in (GNU|*BSD|Darwin|SunOS) #>>#
-				complete -D "print the pathname with a trailing null byte" -- -print0
-			esac #<<#
-		esac
-		case $type in (GNU|*BSD|Darwin)
-			#>>#
-			complete -D "logical conjunction (and)" -- -and
-			complete -D "true if the last access time is n minutes ago" -- -amin
-			complete -D "true if the last access time is later than last modified time of the specified file" -- -anewer
-			complete -D "true if the last status change time is n minutes ago" -- -cmin
-			complete -D "true if the last status change time is later than last modified time of the specified file" -- -cnewer
-			complete -D "true if the file is empty" -- -empty
-			complete -D "execute the specified command line in the directory containing the file" -- -execdir
-			complete -D "true if the filename matches the specified pattern (case-insensitive)" -- -iname
-			complete -D "search directories of at most the specified depth only" -- -maxdepth
-			complete -D "search directories of at least the specified depth only" -- -mindepth
-			complete -D "true if the last modified time is n minutes ago" -- -mmin
-			complete -D "true if the last modified time is later than that of the specified file" -T -- -newer
-			complete -D "true if the file's group ID has no name" -T -- -nogroup
-			complete -D "true if the file owner's user ID has no name" -T -- -nouser
-			complete -D "prompt for execution of the specified command line in the directory containing the file" -- -okdir
-			complete -D "logical disjunction (or)" -- -or
-			#<<#
-			case $type in (GNU|FreeBSD|NetBSD|Darwin)
-				#>>#
-				complete -D "remove the file" -- -delete
-				complete -D "false" -- -false
-				complete -D "true if the pathname matches the specified regular expression (case-insensitive)" -- -iregex
-				complete -D "true if the pathname matches the specified regular expression" -- -regex
-				complete -D "true if the file is a hard link to the specified" -- -samefile
-				#<<#
-				case $type in (GNU|FreeBSD|Darwin) #>>#
-					complete -D "true if the file's group ID is the specified" -- -gid
-					complete -D "true if the symbolic link's target matches the specified pattern (case-insensitive)" -- -ilname
-					complete -D "true if the pathname matches the specified pattern (case-insensitive)" -- -ipath -iwholename
-					complete -D "true if the symbolic link's target matches the specified pattern" -- -lname
-					complete -D "true" -- -true
-					complete -D "true if the file owner's user ID is the specified" -- -uid
-					complete -D "true if the pathname matches the specified pattern" -- -wholename
-				esac #<<#
-			esac
-			case $type in (GNU|NetBSD) #>>#
-				complete -D "print the pathname to the specified file" -- -fprint
-			esac #<<#
-			case $type in (*BSD|Darwin)
-				#>>#
-				complete -D "true if the file has the specified flags" -- -flags
-				#<<#
-				case $type in (FreeBSD|Darwin) #>>#
-					complete -D "true if the creation time is n minutes ago" -- -Bmin
-					complete -D "true if the creation time is later than last modified time of the specified file" -- -Bnewer
-					complete -D "true if the creation time is n days ago" -- -Btime
-					complete -D "true if the last modified time is later than that of the specified file" -- -mnewer
-				esac #<<#
-			esac
-		esac
-		case $type in (FreeBSD|SunOS|HP-UX)
-			#>>#
-			complete -D "true if the file have additional ACLs defined" -- -acl
-			#<<#
-			case $type in (SunOS|HP-UX) #>>#
-				complete -D "write the file in cpio format to the specified device" -- -cpio
-				complete -D "write the file in cpio -c format to the specified device" -- -ncpio
-				complete -D "true if the file is on the same file system" -- -local
-			esac #<<#
-		esac
-		case $type in (GNU) #>>#
-			complete -D "true if the SELinux context matches the specified pattern" -- -context
-			complete -D "measure time from the beginning of today" -- -daystart
-			complete -D "true if the file is executable" -- -executable
-			complete -D "write file info to the specified file" -- -fls
-			complete -D "print the null-terminated pathname to the specified file" -- -fprint0
-			complete -D "print the specified formatted string to the specified file" -- -fprintf
-			complete -D "ignore files removed during traversal" -- -ignore_readdir_race
-			complete -D "disable warning messages" -- -nowarn
-			complete -D "print the specified formatted string" -- -printf
-			complete -D "stop directory traversal" -- -quit
-			complete -D "true if the file is readable" -- -readable
-			complete -D "specify the type of regular expression" -- -regextype
-			complete -D "true if the last access time is n days after the last status change" -- -used
-			complete -D "enable warning messages" -- -warn
-			complete -D "true if the file is writable" -- -writable
-			complete -D "don't search autofs file systems" -- -xautofs
-			complete -D "true if the file has the specified type (do/don't follow symbolic links)" -- -xtype
-		esac #<<#
-		case $type in (NetBSD) #>>#
-			complete -D "stop directory traversal" -- -exit
-			complete -D "print the pathname with escapes for xargs" -- -printx
-			complete -D "remove the file" -- -rm
-		esac #<<#
-		case $type in (SunOS) #>>#
-			complete -D "true if the file has extended attributes" -- -xattr
-		esac #<<#
-		case $type in (HP-UX) #>>#
-			complete -D "true if the file have additional JFS ACLs defined" -- -aclv
-			complete -D "traverse the specified file system only" -- -fsonly
-			complete -D "true if the file is a hard link to the specified" -- -linkedto
-			complete -D "don't search different file systems" -- -mountstop
-			complete -D "don't search the directory unless evaluated" -- -only
-		esac #<<#
-		;;
-	esac fi
+        if [ $i -eq $((${WORDS[#]}+1)) ]; then case $TARGETWORD in
+        (-newer*)
+                case $type in
+                (GNU|FreeBSD|Darwin|HP-UX)
+                        typeset word="${TARGETWORD#-newer}"
+                        word=${word#?}
+                        PREFIX=${TARGETWORD%"$word"}
+                        #>>#
+                        complete -P "$PREFIX" -D "last access time" a
+                        complete -P "$PREFIX" -D "last status change time" c
+                        complete -P "$PREFIX" -D "last modified time" m
+                        #<<#
+                        case $type in (GNU|FreeBSD|Darwin)
+                                #>>#
+                                complete -P "$PREFIX" -D "creation time" B
+                                #<<#
+                                case $TARGETWORD in (-newer?*) #>>#
+                                        complete -P "$PREFIX" -D "specify time" t
+                                esac #<<#
+                        esac
+                        ;;
+                (*)
+                        complete -- -newer
+                        ;;
+                esac
+                ;;
+        (-*)
+                #>>#
+                complete -D "logical conjunction (and)" -- -a
+                complete -D "true if the last access time is n days ago" -- -atime
+                complete -D "true if the last status change time is n days ago" -- -ctime
+                complete -D "search directories in post-order rather than pre-order" -- -depth
+                complete -D "execute the specified command line" -- -exec
+                complete -D "true if the group is the specified one" -- -group
+                complete -D "true if the file has the specified hard link count" -- -links
+                complete -D "true if the last modified time is n days ago" -- -mtime
+                complete -D "true if the filename matches the specified pattern" -- -name
+                complete -D "logical disjunction (or)" -- -o
+                complete -D "prompt for execution of the specified command line" -- -ok
+                complete -D "true if the pathname matches the specified pattern" -- -path
+                complete -D "true if the file has the specified permission" -- -perm
+                complete -D "print the pathname" -- -print
+                complete -D "don't search the directory if evaluated" -- -prune
+                complete -D "true if the file has the specified size" -- -size
+                complete -D "true if the file has the specified type" -- -type
+                complete -D "true if the owner is the specified one" -- -user
+                complete -D "don't search different file systems" -- -xdev
+                #<<#
+                case $type in (GNU|*BSD|Darwin|SunOS|HP-UX)
+                        #>>#
+                        complete -D "true if the file is on the specified file system" -- -fstype
+                        complete -D "true if the file has the specified inode number" -- -inum
+                        #<<#
+                        case $type in (GNU|*BSD|Darwin|SunOS)
+                                #>>#
+                                complete -D "print the file in ls -dils format" -- -ls
+                                #<<#
+                                case $type in (GNU|FreeBSD|Darwin|SunOS) #>>#
+                                        complete -D "don't search different file systems" -- -mount
+                                esac #<<#
+                        esac
+                        case $type in (GNU|*BSD|Darwin|SunOS) #>>#
+                                complete -D "print the pathname with a trailing null byte" -- -print0
+                        esac #<<#
+                esac
+                case $type in (GNU|*BSD|Darwin)
+                        #>>#
+                        complete -D "logical conjunction (and)" -- -and
+                        complete -D "true if the last access time is n minutes ago" -- -amin
+                        complete -D "true if the last access time is later than last modified time of the specified file" -- -anewer
+                        complete -D "true if the last status change time is n minutes ago" -- -cmin
+                        complete -D "true if the last status change time is later than last modified time of the specified file" -- -cnewer
+                        complete -D "true if the file is empty" -- -empty
+                        complete -D "execute the specified command line in the directory containing the file" -- -execdir
+                        complete -D "true if the filename matches the specified pattern (case-insensitive)" -- -iname
+                        complete -D "search directories of at most the specified depth only" -- -maxdepth
+                        complete -D "search directories of at least the specified depth only" -- -mindepth
+                        complete -D "true if the last modified time is n minutes ago" -- -mmin
+                        complete -D "true if the last modified time is later than that of the specified file" -T -- -newer
+                        complete -D "true if the file's group ID has no name" -T -- -nogroup
+                        complete -D "true if the file owner's user ID has no name" -T -- -nouser
+                        complete -D "prompt for execution of the specified command line in the directory containing the file" -- -okdir
+                        complete -D "logical disjunction (or)" -- -or
+                        #<<#
+                        case $type in (GNU|FreeBSD|NetBSD|Darwin)
+                                #>>#
+                                complete -D "remove the file" -- -delete
+                                complete -D "false" -- -false
+                                complete -D "true if the pathname matches the specified regular expression (case-insensitive)" -- -iregex
+                                complete -D "true if the pathname matches the specified regular expression" -- -regex
+                                complete -D "true if the file is a hard link to the specified" -- -samefile
+                                #<<#
+                                case $type in (GNU|FreeBSD|Darwin) #>>#
+                                        complete -D "true if the file's group ID is the specified" -- -gid
+                                        complete -D "true if the symbolic link's target matches the specified pattern (case-insensitive)" -- -ilname
+                                        complete -D "true if the pathname matches the specified pattern (case-insensitive)" -- -ipath -iwholename
+                                        complete -D "true if the symbolic link's target matches the specified pattern" -- -lname
+                                        complete -D "true" -- -true
+                                        complete -D "true if the file owner's user ID is the specified" -- -uid
+                                        complete -D "true if the pathname matches the specified pattern" -- -wholename
+                                esac #<<#
+                        esac
+                        case $type in (GNU|NetBSD) #>>#
+                                complete -D "print the pathname to the specified file" -- -fprint
+                        esac #<<#
+                        case $type in (*BSD|Darwin)
+                                #>>#
+                                complete -D "true if the file has the specified flags" -- -flags
+                                #<<#
+                                case $type in (FreeBSD|Darwin) #>>#
+                                        complete -D "true if the creation time is n minutes ago" -- -Bmin
+                                        complete -D "true if the creation time is later than last modified time of the specified file" -- -Bnewer
+                                        complete -D "true if the creation time is n days ago" -- -Btime
+                                        complete -D "true if the last modified time is later than that of the specified file" -- -mnewer
+                                esac #<<#
+                        esac
+                esac
+                case $type in (FreeBSD|SunOS|HP-UX)
+                        #>>#
+                        complete -D "true if the file have additional ACLs defined" -- -acl
+                        #<<#
+                        case $type in (SunOS|HP-UX) #>>#
+                                complete -D "write the file in cpio format to the specified device" -- -cpio
+                                complete -D "write the file in cpio -c format to the specified device" -- -ncpio
+                                complete -D "true if the file is on the same file system" -- -local
+                        esac #<<#
+                esac
+                case $type in (GNU) #>>#
+                        complete -D "true if the SELinux context matches the specified pattern" -- -context
+                        complete -D "measure time from the beginning of today" -- -daystart
+                        complete -D "true if the file is executable" -- -executable
+                        complete -D "write file info to the specified file" -- -fls
+                        complete -D "print the null-terminated pathname to the specified file" -- -fprint0
+                        complete -D "print the specified formatted string to the specified file" -- -fprintf
+                        complete -D "ignore files removed during traversal" -- -ignore_readdir_race
+                        complete -D "disable warning messages" -- -nowarn
+                        complete -D "print the specified formatted string" -- -printf
+                        complete -D "stop directory traversal" -- -quit
+                        complete -D "true if the file is readable" -- -readable
+                        complete -D "specify the type of regular expression" -- -regextype
+                        complete -D "true if the last access time is n days after the last status change" -- -used
+                        complete -D "enable warning messages" -- -warn
+                        complete -D "true if the file is writable" -- -writable
+                        complete -D "don't search autofs file systems" -- -xautofs
+                        complete -D "true if the file has the specified type (do/don't follow symbolic links)" -- -xtype
+                esac #<<#
+                case $type in (NetBSD) #>>#
+                        complete -D "stop directory traversal" -- -exit
+                        complete -D "print the pathname with escapes for xargs" -- -printx
+                        complete -D "remove the file" -- -rm
+                esac #<<#
+                case $type in (SunOS) #>>#
+                        complete -D "true if the file has extended attributes" -- -xattr
+                esac #<<#
+                case $type in (HP-UX) #>>#
+                        complete -D "true if the file have additional JFS ACLs defined" -- -aclv
+                        complete -D "traverse the specified file system only" -- -fsonly
+                        complete -D "true if the file is a hard link to the specified" -- -linkedto
+                        complete -D "don't search different file systems" -- -mountstop
+                        complete -D "don't search the directory unless evaluated" -- -only
+                esac #<<#
+                ;;
+        esac fi
 
-	return 0
+        return 0
 
 }
 
 function completion/find::printf {
 
-	if command -vf completion/printf::backslash >/dev/null 2>&1 ||
-		. -AL completion/printf; then
-		command -f completion/printf::backslash echo
-	fi
+        if command -vf completion/printf::backslash >/dev/null 2>&1 ||
+                . -AL completion/printf; then
+                command -f completion/printf::backslash echo
+        fi
 
-	typeset word="$TARGETWORD"
-	word=${word//%%}
-	case $word in
-	(*%)
-		PREFIX=${TARGETWORD%\%} #>>#
-		complete -T -P "$PREFIX" -D "last access time, formatted" '%A'
-		complete -T -P "$PREFIX" -D "last access time" '%a'
-		complete -T -P "$PREFIX" -D "disk usage in 512-byte blocks" '%b'
-		complete -T -P "$PREFIX" -D "last status change time, formatted" '%C'
-		complete -T -P "$PREFIX" -D "last status change time" '%c'
-		complete -T -P "$PREFIX" -D "device number" '%D'
-		complete -T -P "$PREFIX" -D "depth in directory traversal" '%d'
-		complete -T -P "$PREFIX" -D "file system type" '%F'
-		complete -T -P "$PREFIX" -D "basename" '%f'
-		complete -T -P "$PREFIX" -D "group ID (numeric)" '%G'
-		complete -T -P "$PREFIX" -D "group" '%g'
-		complete -T -P "$PREFIX" -D "the searched directory under which the file was found" '%H'
-		complete -T -P "$PREFIX" -D "dirname" '%h'
-		complete -T -P "$PREFIX" -D "inode number" '%i'
-		complete -T -P "$PREFIX" -D "disk usage in kilobyte blocks" '%k'
-		complete -T -P "$PREFIX" -D "target of symbolic link" '%l'
-		complete -T -P "$PREFIX" -D "permission mode bits (symbolic)" '%M'
-		complete -T -P "$PREFIX" -D "permission mode bits (octal)" '%m'
-		complete -T -P "$PREFIX" -D "number of hard links" '%n'
-		complete -T -P "$PREFIX" -D "pathname relative to the searched directory" '%P'
-		complete -T -P "$PREFIX" -D "pathname" '%p'
-		complete -T -P "$PREFIX" -D "sparseness" '%S'
-		complete -T -P "$PREFIX" -D "file size in bytes" '%s'
-		complete -T -P "$PREFIX" -D "last modified time, formatted" '%T'
-		complete -T -P "$PREFIX" -D "last modified time" '%t'
-		complete -T -P "$PREFIX" -D "owner's user ID (numeric)" '%U'
-		complete -T -P "$PREFIX" -D "owner's user name" '%u'
-		complete -T -P "$PREFIX" -D "file type (dereference symbolic link)" '%Y'
-		complete -T -P "$PREFIX" -D "file type" '%y'
-		complete -T -P "$PREFIX" -D "SELinux context" '%Z'
-		complete -T -P "$PREFIX" -D "%" '%%'
-		;; #<<#
-	(*%[ACT])
-		PREFIX=${TARGETWORD%\%?}
-		word=${TARGETWORD#"$PREFIX"} #>>#
-		complete -T -P "$PREFIX" -D "day of week, full, localized" "${word}A"
-		complete -T -P "$PREFIX" -D "day of week, short, localized" "${word}a"
-		complete -T -P "$PREFIX" -D "month, full, localized" "${word}B"
-		complete -T -P "$PREFIX" -D "month, short, localized" "${word}b"
-		complete -T -P "$PREFIX" -D "date and time, localized" "${word}c"
-		complete -T -P "$PREFIX" -D "like %m/%d/%y (e.g. 12/31/99)" "${word}D"
-		complete -T -P "$PREFIX" -D "day of month [01-31]" "${word}d"
-		complete -T -P "$PREFIX" -D "hour [00-23]" "${word}H"
-		complete -T -P "$PREFIX" -D "hour [01-12]" "${word}I"
-		complete -T -P "$PREFIX" -D "day of year [001-366]" "${word}j"
-		complete -T -P "$PREFIX" -D "hour [ 0-23] (space-padded)" "${word}k"
-		complete -T -P "$PREFIX" -D "hour [ 1-12] (space-padded)" "${word}l"
-		complete -T -P "$PREFIX" -D "month [01-12]" "${word}m"
-		complete -T -P "$PREFIX" -D "AM or PM, localized" "${word}p"
-		complete -T -P "$PREFIX" -D "12-hour clock time with AM/PM, localized" "${word}r"
-		complete -T -P "$PREFIX" -D "second" "${word}S"
-		complete -T -P "$PREFIX" -D "like %H:%M:%S (e.g. 13:45:56)" "${word}T"
-		complete -T -P "$PREFIX" -D "week of year [00-53] (first Sunday in week 1)" "${word}U"
-		complete -T -P "$PREFIX" -D "week of year [00-53] (first Monday in week 1)" "${word}W"
-		complete -T -P "$PREFIX" -D "day of week in numeral [0-6]" "${word}w"
-		complete -T -P "$PREFIX" -D "time, localized" "${word}X"
-		complete -T -P "$PREFIX" -D "date, localized" "${word}x"
-		complete -T -P "$PREFIX" -D "year, full (e.g. 1999)" "${word}Y"
-		complete -T -P "$PREFIX" -D "year within century [00-99]" "${word}y"
-		complete -T -P "$PREFIX" -D "timezone name" "${word}Z"
-		complete -T -P "$PREFIX" -D "seconds since epoch" "${word}@"
-		complete -T -P "$PREFIX" -D "the default localized format" "${word}+"
-		;; #<<#
-	esac
+        typeset word="$TARGETWORD"
+        word=${word//%%}
+        case $word in
+        (*%)
+                PREFIX=${TARGETWORD%\%} #>>#
+                complete -T -P "$PREFIX" -D "last access time, formatted" '%A'
+                complete -T -P "$PREFIX" -D "last access time" '%a'
+                complete -T -P "$PREFIX" -D "disk usage in 512-byte blocks" '%b'
+                complete -T -P "$PREFIX" -D "last status change time, formatted" '%C'
+                complete -T -P "$PREFIX" -D "last status change time" '%c'
+                complete -T -P "$PREFIX" -D "device number" '%D'
+                complete -T -P "$PREFIX" -D "depth in directory traversal" '%d'
+                complete -T -P "$PREFIX" -D "file system type" '%F'
+                complete -T -P "$PREFIX" -D "basename" '%f'
+                complete -T -P "$PREFIX" -D "group ID (numeric)" '%G'
+                complete -T -P "$PREFIX" -D "group" '%g'
+                complete -T -P "$PREFIX" -D "the searched directory under which the file was found" '%H'
+                complete -T -P "$PREFIX" -D "dirname" '%h'
+                complete -T -P "$PREFIX" -D "inode number" '%i'
+                complete -T -P "$PREFIX" -D "disk usage in kilobyte blocks" '%k'
+                complete -T -P "$PREFIX" -D "target of symbolic link" '%l'
+                complete -T -P "$PREFIX" -D "permission mode bits (symbolic)" '%M'
+                complete -T -P "$PREFIX" -D "permission mode bits (octal)" '%m'
+                complete -T -P "$PREFIX" -D "number of hard links" '%n'
+                complete -T -P "$PREFIX" -D "pathname relative to the searched directory" '%P'
+                complete -T -P "$PREFIX" -D "pathname" '%p'
+                complete -T -P "$PREFIX" -D "sparseness" '%S'
+                complete -T -P "$PREFIX" -D "file size in bytes" '%s'
+                complete -T -P "$PREFIX" -D "last modified time, formatted" '%T'
+                complete -T -P "$PREFIX" -D "last modified time" '%t'
+                complete -T -P "$PREFIX" -D "owner's user ID (numeric)" '%U'
+                complete -T -P "$PREFIX" -D "owner's user name" '%u'
+                complete -T -P "$PREFIX" -D "file type (dereference symbolic link)" '%Y'
+                complete -T -P "$PREFIX" -D "file type" '%y'
+                complete -T -P "$PREFIX" -D "SELinux context" '%Z'
+                complete -T -P "$PREFIX" -D "%" '%%'
+                ;; #<<#
+        (*%[ACT])
+                PREFIX=${TARGETWORD%\%?}
+                word=${TARGETWORD#"$PREFIX"} #>>#
+                complete -T -P "$PREFIX" -D "day of week, full, localized" "${word}A"
+                complete -T -P "$PREFIX" -D "day of week, short, localized" "${word}a"
+                complete -T -P "$PREFIX" -D "month, full, localized" "${word}B"
+                complete -T -P "$PREFIX" -D "month, short, localized" "${word}b"
+                complete -T -P "$PREFIX" -D "date and time, localized" "${word}c"
+                complete -T -P "$PREFIX" -D "like %m/%d/%y (e.g. 12/31/99)" "${word}D"
+                complete -T -P "$PREFIX" -D "day of month [01-31]" "${word}d"
+                complete -T -P "$PREFIX" -D "hour [00-23]" "${word}H"
+                complete -T -P "$PREFIX" -D "hour [01-12]" "${word}I"
+                complete -T -P "$PREFIX" -D "day of year [001-366]" "${word}j"
+                complete -T -P "$PREFIX" -D "hour [ 0-23] (space-padded)" "${word}k"
+                complete -T -P "$PREFIX" -D "hour [ 1-12] (space-padded)" "${word}l"
+                complete -T -P "$PREFIX" -D "month [01-12]" "${word}m"
+                complete -T -P "$PREFIX" -D "AM or PM, localized" "${word}p"
+                complete -T -P "$PREFIX" -D "12-hour clock time with AM/PM, localized" "${word}r"
+                complete -T -P "$PREFIX" -D "second" "${word}S"
+                complete -T -P "$PREFIX" -D "like %H:%M:%S (e.g. 13:45:56)" "${word}T"
+                complete -T -P "$PREFIX" -D "week of year [00-53] (first Sunday in week 1)" "${word}U"
+                complete -T -P "$PREFIX" -D "week of year [00-53] (first Monday in week 1)" "${word}W"
+                complete -T -P "$PREFIX" -D "day of week in numeral [0-6]" "${word}w"
+                complete -T -P "$PREFIX" -D "time, localized" "${word}X"
+                complete -T -P "$PREFIX" -D "date, localized" "${word}x"
+                complete -T -P "$PREFIX" -D "year, full (e.g. 1999)" "${word}Y"
+                complete -T -P "$PREFIX" -D "year within century [00-99]" "${word}y"
+                complete -T -P "$PREFIX" -D "timezone name" "${word}Z"
+                complete -T -P "$PREFIX" -D "seconds since epoch" "${word}@"
+                complete -T -P "$PREFIX" -D "the default localized format" "${word}+"
+                ;; #<<#
+        esac
 
-	return 0
+        return 0
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

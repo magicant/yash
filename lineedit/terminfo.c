@@ -313,41 +313,41 @@ _Bool le_setupterm(_Bool bypass)
     assert(once || le_need_term_update);
 #if HAVE_TIOCGWINSZ
     if (bypass && !le_need_term_update) {
-	struct winsize ws;
-	if (ioctl(STDERR_FILENO, TIOCGWINSZ, &ws) == 0
-		&& ws.ws_row > 0 && ws.ws_col > 0) {
-	    if (getenv(VAR_LINES) == NULL)
-		le_lines = ws.ws_row;
-	    if (getenv(VAR_COLUMNS) == NULL)
-		le_columns = ws.ws_col;
-	    return 1;
-	}
+        struct winsize ws;
+        if (ioctl(STDERR_FILENO, TIOCGWINSZ, &ws) == 0
+                && ws.ws_row > 0 && ws.ws_col > 0) {
+            if (getenv(VAR_LINES) == NULL)
+                le_lines = ws.ws_row;
+            if (getenv(VAR_COLUMNS) == NULL)
+                le_columns = ws.ws_col;
+            return 1;
+        }
     }
 #else
     (void) bypass;
 #endif /* HAVE_TIOCGWINSZ */
 
     if (once)
-	del_curterm(cur_term);
+        del_curterm(cur_term);
     if (setupterm(NULL, STDERR_FILENO, &err) == ERR)
-	return 0;
+        return 0;
     once = 1;
 
     if (tigetflag(TI_am) <= 0)                     return 0;
     if (!is_strcap_valid(tigetstr(TI_cub1))
-	    && !is_strcap_valid(tigetstr(TI_cub))) return 0;
+            && !is_strcap_valid(tigetstr(TI_cub))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuf1))
-	    && !is_strcap_valid(tigetstr(TI_cuf))) return 0;
+            && !is_strcap_valid(tigetstr(TI_cuf))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cud1))
-	    && !is_strcap_valid(tigetstr(TI_cud))) return 0;
+            && !is_strcap_valid(tigetstr(TI_cud))) return 0;
     if (!is_strcap_valid(tigetstr(TI_cuu1))
-	    && !is_strcap_valid(tigetstr(TI_cuu))) return 0;
+            && !is_strcap_valid(tigetstr(TI_cuu))) return 0;
     if (!is_strcap_valid(tigetstr(TI_el)))         return 0;
 
     le_lines = tigetnum(TI_lines);
     le_columns = tigetnum(TI_cols);
     if (le_lines <= 0 || le_columns <= 0)
-	return 0;
+        return 0;
 
     le_colors = tigetnum(TI_colors);
     le_ti_xmc = tigetnum(TI_xmc);
@@ -367,186 +367,186 @@ void set_up_keycodes(void)
     trie_destroy(le_keycodes);
 
     static const struct charmap {
-	char c;  const wchar_t *keyseq;
+        char c;  const wchar_t *keyseq;
     } charmap[] = {
-	{ '\01', Key_c_a,  }, { '\02', Key_c_b,   }, { '\03', Key_c_c,   },
-	{ '\04', Key_c_d,  }, { '\05', Key_c_e,   }, { '\06', Key_c_f,   },
-	{ '\07', Key_c_g,  }, { '\10', Key_c_h,   }, { '\11', Key_c_i,   },
-	{ '\12', Key_c_j,  }, { '\13', Key_c_k,   }, { '\14', Key_c_l,   },
-	{ '\15', Key_c_m,  }, { '\16', Key_c_n,   }, { '\17', Key_c_o,   },
-	{ '\20', Key_c_p,  }, { '\21', Key_c_q,   }, { '\22', Key_c_r,   },
-	{ '\23', Key_c_s,  }, { '\24', Key_c_t,   }, { '\25', Key_c_u,   },
-	{ '\26', Key_c_v,  }, { '\27', Key_c_w,   }, { '\30', Key_c_x,   },
-	{ '\31', Key_c_y,  }, { '\32', Key_c_z,   }, { '\33', Key_c_lb,  },
-	{ '\34', Key_c_bs, }, { '\35', Key_c_rb,  }, { '\36', Key_c_hat, },
-	{ '\37', Key_c_ul, }, { '\77', Key_c_del, },
+        { '\01', Key_c_a,  }, { '\02', Key_c_b,   }, { '\03', Key_c_c,   },
+        { '\04', Key_c_d,  }, { '\05', Key_c_e,   }, { '\06', Key_c_f,   },
+        { '\07', Key_c_g,  }, { '\10', Key_c_h,   }, { '\11', Key_c_i,   },
+        { '\12', Key_c_j,  }, { '\13', Key_c_k,   }, { '\14', Key_c_l,   },
+        { '\15', Key_c_m,  }, { '\16', Key_c_n,   }, { '\17', Key_c_o,   },
+        { '\20', Key_c_p,  }, { '\21', Key_c_q,   }, { '\22', Key_c_r,   },
+        { '\23', Key_c_s,  }, { '\24', Key_c_t,   }, { '\25', Key_c_u,   },
+        { '\26', Key_c_v,  }, { '\27', Key_c_w,   }, { '\30', Key_c_x,   },
+        { '\31', Key_c_y,  }, { '\32', Key_c_z,   }, { '\33', Key_c_lb,  },
+        { '\34', Key_c_bs, }, { '\35', Key_c_rb,  }, { '\36', Key_c_hat, },
+        { '\37', Key_c_ul, }, { '\77', Key_c_del, },
     };
     static const struct keymap {
-	char *capability;  const wchar_t *keyseq;
+        char *capability;  const wchar_t *keyseq;
     } keymap [] = {
-	{ TI_ka1,   Key_a1, },
-	{ TI_ka3,   Key_a3, },
-	{ TI_kb2,   Key_b2, },
-	{ TI_kbs,   Key_backspace, },
-	{ TI_kbeg,  Key_beg, },
-	{ TI_kcbt,  Key_btab, },
-	{ TI_kc1,   Key_c1, },
-	{ TI_kc3,   Key_c3, },
-	{ TI_kcan,  Key_cancel, },
-	{ TI_ktbc,  Key_catab, },
-	{ TI_kclr,  Key_clear, },
-	{ TI_kclo,  Key_close, },
-	{ TI_kcmd,  Key_command, },
-	{ TI_kcpy,  Key_copy, },
-	{ TI_kcrt,  Key_create, },
-	{ TI_kctab, Key_ctab, },
-	{ TI_kdch1, Key_delete, },
-	{ TI_kdl1,  Key_dl, },
-	{ TI_kcud1, Key_down, },
-	{ TI_krmir, Key_eic, },
-	{ TI_kend,  Key_end, },
-	{ TI_kent,  Key_enter, },
-	{ TI_kel,   Key_eol, },
-	{ TI_ked,   Key_eos, },
-	{ TI_kext,  Key_exit, },
-	{ TI_kf0,   Key_f00, },
-	{ TI_kf1,   Key_f01, },
-	{ TI_kf2,   Key_f02, },
-	{ TI_kf3,   Key_f03, },
-	{ TI_kf4,   Key_f04, },
-	{ TI_kf5,   Key_f05, },
-	{ TI_kf6,   Key_f06, },
-	{ TI_kf7,   Key_f07, },
-	{ TI_kf8,   Key_f08, },
-	{ TI_kf9,   Key_f09, },
-	{ TI_kf10,  Key_f10, },
-	{ TI_kf11,  Key_f11, },
-	{ TI_kf12,  Key_f12, },
-	{ TI_kf13,  Key_f13, },
-	{ TI_kf14,  Key_f14, },
-	{ TI_kf15,  Key_f15, },
-	{ TI_kf16,  Key_f16, },
-	{ TI_kf17,  Key_f17, },
-	{ TI_kf18,  Key_f18, },
-	{ TI_kf19,  Key_f19, },
-	{ TI_kf20,  Key_f20, },
-	{ TI_kf21,  Key_f21, },
-	{ TI_kf22,  Key_f22, },
-	{ TI_kf23,  Key_f23, },
-	{ TI_kf24,  Key_f24, },
-	{ TI_kf25,  Key_f25, },
-	{ TI_kf26,  Key_f26, },
-	{ TI_kf27,  Key_f27, },
-	{ TI_kf28,  Key_f28, },
-	{ TI_kf29,  Key_f29, },
-	{ TI_kf30,  Key_f30, },
-	{ TI_kf31,  Key_f31, },
-	{ TI_kf32,  Key_f32, },
-	{ TI_kf33,  Key_f33, },
-	{ TI_kf34,  Key_f34, },
-	{ TI_kf35,  Key_f35, },
-	{ TI_kf36,  Key_f36, },
-	{ TI_kf37,  Key_f37, },
-	{ TI_kf38,  Key_f38, },
-	{ TI_kf39,  Key_f39, },
-	{ TI_kf40,  Key_f40, },
-	{ TI_kf41,  Key_f41, },
-	{ TI_kf42,  Key_f42, },
-	{ TI_kf43,  Key_f43, },
-	{ TI_kf44,  Key_f44, },
-	{ TI_kf45,  Key_f45, },
-	{ TI_kf46,  Key_f46, },
-	{ TI_kf47,  Key_f47, },
-	{ TI_kf48,  Key_f48, },
-	{ TI_kf49,  Key_f49, },
-	{ TI_kf50,  Key_f50, },
-	{ TI_kf51,  Key_f51, },
-	{ TI_kf52,  Key_f52, },
-	{ TI_kf53,  Key_f53, },
-	{ TI_kf54,  Key_f54, },
-	{ TI_kf55,  Key_f55, },
-	{ TI_kf56,  Key_f56, },
-	{ TI_kf57,  Key_f57, },
-	{ TI_kf58,  Key_f58, },
-	{ TI_kf59,  Key_f59, },
-	{ TI_kf60,  Key_f60, },
-	{ TI_kf61,  Key_f61, },
-	{ TI_kf62,  Key_f62, },
-	{ TI_kf63,  Key_f63, },
-	{ TI_kfnd,  Key_find, },
-	{ TI_khlp,  Key_help, },
-	{ TI_khome, Key_home, },
-	{ TI_kich1, Key_insert, },
-	{ TI_kil1,  Key_il, },
-	{ TI_kcub1, Key_left, },
-	{ TI_kll,   Key_ll, },
-	{ TI_kmrk,  Key_mark, },
-	{ TI_kmsg,  Key_message, },
-	{ TI_kmous, Key_mouse, },
-	{ TI_kmov,  Key_move, },
-	{ TI_knxt,  Key_next, },
-	{ TI_knp,   Key_pagedown, },
-	{ TI_kopn,  Key_open, },
-	{ TI_kopt,  Key_options, },
-	{ TI_kpp,   Key_pageup, },
-	{ TI_kprv,  Key_previous, },
-	{ TI_kprt,  Key_print, },
-	{ TI_krdo,  Key_redo, },
-	{ TI_kref,  Key_reference, },
-	{ TI_krfr,  Key_refresh, },
-	{ TI_krpl,  Key_replace, },
-	{ TI_krst,  Key_restart, },
-	{ TI_kres,  Key_resume, },
-	{ TI_kcuf1, Key_right, },
-	{ TI_ksav,  Key_save, },
-	{ TI_kslt,  Key_select, },
-	{ TI_kind,  Key_sf, },
-	{ TI_kri,   Key_sr, },
-	{ TI_khts,  Key_stab, },
-	{ TI_kspd,  Key_suspend, },
-	{ TI_kund,  Key_undo, },
-	{ TI_kcuu1, Key_up, },
-	{ TI_kBEG,  Key_s_beg, },
-	{ TI_kCAN,  Key_s_cancel, },
-	{ TI_kCMD,  Key_s_command, },
-	{ TI_kCPY,  Key_s_copy, },
-	{ TI_kCRT,  Key_s_create, },
-	{ TI_kDC,   Key_s_delete, },
-	{ TI_kDL,   Key_s_dl, },
-	{ TI_kEND,  Key_s_end, },
-	{ TI_kEOL,  Key_s_eol, },
-	{ TI_kEXT,  Key_s_exit, },
-	{ TI_kFND,  Key_s_find, },
-	{ TI_kHLP,  Key_s_help, },
-	{ TI_kHOM,  Key_s_home, },
-	{ TI_kIC,   Key_s_insert, },
-	{ TI_kLFT,  Key_s_left, },
-	{ TI_kMSG,  Key_s_message, },
-	{ TI_kMOV,  Key_s_move, },
-	{ TI_kNXT,  Key_s_next, },
-	{ TI_kOPT,  Key_s_options, },
-	{ TI_kPRV,  Key_s_prev, },
-	{ TI_kPRT,  Key_s_print, },
-	{ TI_kRDO,  Key_s_redo, },
-	{ TI_kRPL,  Key_s_replace, },
-	{ TI_kRIT,  Key_s_right, },
-	{ TI_kRES,  Key_s_resume, },
-	{ TI_kSAV,  Key_s_save, },
-	{ TI_kSPD,  Key_s_suspend, },
-	{ TI_kUND,  Key_s_undo, },
+        { TI_ka1,   Key_a1, },
+        { TI_ka3,   Key_a3, },
+        { TI_kb2,   Key_b2, },
+        { TI_kbs,   Key_backspace, },
+        { TI_kbeg,  Key_beg, },
+        { TI_kcbt,  Key_btab, },
+        { TI_kc1,   Key_c1, },
+        { TI_kc3,   Key_c3, },
+        { TI_kcan,  Key_cancel, },
+        { TI_ktbc,  Key_catab, },
+        { TI_kclr,  Key_clear, },
+        { TI_kclo,  Key_close, },
+        { TI_kcmd,  Key_command, },
+        { TI_kcpy,  Key_copy, },
+        { TI_kcrt,  Key_create, },
+        { TI_kctab, Key_ctab, },
+        { TI_kdch1, Key_delete, },
+        { TI_kdl1,  Key_dl, },
+        { TI_kcud1, Key_down, },
+        { TI_krmir, Key_eic, },
+        { TI_kend,  Key_end, },
+        { TI_kent,  Key_enter, },
+        { TI_kel,   Key_eol, },
+        { TI_ked,   Key_eos, },
+        { TI_kext,  Key_exit, },
+        { TI_kf0,   Key_f00, },
+        { TI_kf1,   Key_f01, },
+        { TI_kf2,   Key_f02, },
+        { TI_kf3,   Key_f03, },
+        { TI_kf4,   Key_f04, },
+        { TI_kf5,   Key_f05, },
+        { TI_kf6,   Key_f06, },
+        { TI_kf7,   Key_f07, },
+        { TI_kf8,   Key_f08, },
+        { TI_kf9,   Key_f09, },
+        { TI_kf10,  Key_f10, },
+        { TI_kf11,  Key_f11, },
+        { TI_kf12,  Key_f12, },
+        { TI_kf13,  Key_f13, },
+        { TI_kf14,  Key_f14, },
+        { TI_kf15,  Key_f15, },
+        { TI_kf16,  Key_f16, },
+        { TI_kf17,  Key_f17, },
+        { TI_kf18,  Key_f18, },
+        { TI_kf19,  Key_f19, },
+        { TI_kf20,  Key_f20, },
+        { TI_kf21,  Key_f21, },
+        { TI_kf22,  Key_f22, },
+        { TI_kf23,  Key_f23, },
+        { TI_kf24,  Key_f24, },
+        { TI_kf25,  Key_f25, },
+        { TI_kf26,  Key_f26, },
+        { TI_kf27,  Key_f27, },
+        { TI_kf28,  Key_f28, },
+        { TI_kf29,  Key_f29, },
+        { TI_kf30,  Key_f30, },
+        { TI_kf31,  Key_f31, },
+        { TI_kf32,  Key_f32, },
+        { TI_kf33,  Key_f33, },
+        { TI_kf34,  Key_f34, },
+        { TI_kf35,  Key_f35, },
+        { TI_kf36,  Key_f36, },
+        { TI_kf37,  Key_f37, },
+        { TI_kf38,  Key_f38, },
+        { TI_kf39,  Key_f39, },
+        { TI_kf40,  Key_f40, },
+        { TI_kf41,  Key_f41, },
+        { TI_kf42,  Key_f42, },
+        { TI_kf43,  Key_f43, },
+        { TI_kf44,  Key_f44, },
+        { TI_kf45,  Key_f45, },
+        { TI_kf46,  Key_f46, },
+        { TI_kf47,  Key_f47, },
+        { TI_kf48,  Key_f48, },
+        { TI_kf49,  Key_f49, },
+        { TI_kf50,  Key_f50, },
+        { TI_kf51,  Key_f51, },
+        { TI_kf52,  Key_f52, },
+        { TI_kf53,  Key_f53, },
+        { TI_kf54,  Key_f54, },
+        { TI_kf55,  Key_f55, },
+        { TI_kf56,  Key_f56, },
+        { TI_kf57,  Key_f57, },
+        { TI_kf58,  Key_f58, },
+        { TI_kf59,  Key_f59, },
+        { TI_kf60,  Key_f60, },
+        { TI_kf61,  Key_f61, },
+        { TI_kf62,  Key_f62, },
+        { TI_kf63,  Key_f63, },
+        { TI_kfnd,  Key_find, },
+        { TI_khlp,  Key_help, },
+        { TI_khome, Key_home, },
+        { TI_kich1, Key_insert, },
+        { TI_kil1,  Key_il, },
+        { TI_kcub1, Key_left, },
+        { TI_kll,   Key_ll, },
+        { TI_kmrk,  Key_mark, },
+        { TI_kmsg,  Key_message, },
+        { TI_kmous, Key_mouse, },
+        { TI_kmov,  Key_move, },
+        { TI_knxt,  Key_next, },
+        { TI_knp,   Key_pagedown, },
+        { TI_kopn,  Key_open, },
+        { TI_kopt,  Key_options, },
+        { TI_kpp,   Key_pageup, },
+        { TI_kprv,  Key_previous, },
+        { TI_kprt,  Key_print, },
+        { TI_krdo,  Key_redo, },
+        { TI_kref,  Key_reference, },
+        { TI_krfr,  Key_refresh, },
+        { TI_krpl,  Key_replace, },
+        { TI_krst,  Key_restart, },
+        { TI_kres,  Key_resume, },
+        { TI_kcuf1, Key_right, },
+        { TI_ksav,  Key_save, },
+        { TI_kslt,  Key_select, },
+        { TI_kind,  Key_sf, },
+        { TI_kri,   Key_sr, },
+        { TI_khts,  Key_stab, },
+        { TI_kspd,  Key_suspend, },
+        { TI_kund,  Key_undo, },
+        { TI_kcuu1, Key_up, },
+        { TI_kBEG,  Key_s_beg, },
+        { TI_kCAN,  Key_s_cancel, },
+        { TI_kCMD,  Key_s_command, },
+        { TI_kCPY,  Key_s_copy, },
+        { TI_kCRT,  Key_s_create, },
+        { TI_kDC,   Key_s_delete, },
+        { TI_kDL,   Key_s_dl, },
+        { TI_kEND,  Key_s_end, },
+        { TI_kEOL,  Key_s_eol, },
+        { TI_kEXT,  Key_s_exit, },
+        { TI_kFND,  Key_s_find, },
+        { TI_kHLP,  Key_s_help, },
+        { TI_kHOM,  Key_s_home, },
+        { TI_kIC,   Key_s_insert, },
+        { TI_kLFT,  Key_s_left, },
+        { TI_kMSG,  Key_s_message, },
+        { TI_kMOV,  Key_s_move, },
+        { TI_kNXT,  Key_s_next, },
+        { TI_kOPT,  Key_s_options, },
+        { TI_kPRV,  Key_s_prev, },
+        { TI_kPRT,  Key_s_print, },
+        { TI_kRDO,  Key_s_redo, },
+        { TI_kRPL,  Key_s_replace, },
+        { TI_kRIT,  Key_s_right, },
+        { TI_kRES,  Key_s_resume, },
+        { TI_kSAV,  Key_s_save, },
+        { TI_kSPD,  Key_s_suspend, },
+        { TI_kUND,  Key_s_undo, },
     };
 
     trie_T *t = trie_create();
     t = trie_set_null(t, (trievalue_T) { .keyseq = Key_c_at });
     for (size_t i = 0; i < sizeof charmap / sizeof *charmap; i++) {
-	if (xiscntrl(charmap[i].c))
-	    t = trie_set(t, (char []) { charmap[i].c, '\0', },
-		    (trievalue_T) { .keyseq = charmap[i].keyseq });
+        if (xiscntrl(charmap[i].c))
+            t = trie_set(t, (char []) { charmap[i].c, '\0', },
+                    (trievalue_T) { .keyseq = charmap[i].keyseq });
     }
     for (size_t i = 0; i < sizeof keymap / sizeof *keymap; i++) {
-	const char *seq = tigetstr(keymap[i].capability);
-	if (is_strcap_valid(seq) && seq[0] != '\0')
-	    t = trie_set(t, seq, (trievalue_T) { .keyseq = keymap[i].keyseq });
+        const char *seq = tigetstr(keymap[i].capability);
+        if (is_strcap_valid(seq) && seq[0] != '\0')
+            t = trie_set(t, seq, (trievalue_T) { .keyseq = keymap[i].keyseq });
     }
 
     le_keycodes = t;
@@ -558,8 +558,8 @@ _Bool try_print_cap(const char *capname)
 {
     char *v = tigetstr((char *) capname);
     if (is_strcap_valid(v) && v[0] != '\0')
-	if (tputs(v, 1, lebuf_putchar) != ERR)
-	    return 1;
+        if (tputs(v, 1, lebuf_putchar) != ERR)
+            return 1;
     return 0;
 }
 
@@ -570,10 +570,10 @@ void lebuf_print_cr(void)
 #if 0
     char *v = tigetstr(TI_cr);
     if (is_strcap_valid(v) && v[0] != '\0')
-	tputs(v, 1, lebuf_putchar);
+        tputs(v, 1, lebuf_putchar);
     else
 #endif
-	lebuf_putchar('\r');
+        lebuf_putchar('\r');
     lebuf.pos.column = 0;
 }
 
@@ -584,10 +584,10 @@ void lebuf_print_nel(void)
 #if 0
     char *v = tigetstr(TI_nel);
     if (is_strcap_valid(v) && v[0] != '\0')
-	tputs(v, 1, lebuf_putchar);
+        tputs(v, 1, lebuf_putchar);
     else
 #endif
-	lebuf_putchar('\r'), lebuf_putchar('\n');
+        lebuf_putchar('\r'), lebuf_putchar('\n');
     lebuf.pos.line++, lebuf.pos.column = 0;
 }
 
@@ -597,13 +597,13 @@ void lebuf_print_nel(void)
 void move_cursor(char *capone, char *capmul, long count, int affcnt)
 {
     if (count > 0) {
-	if (count == 1) {
-	    if (!move_cursor_1(capone, 1))
-		move_cursor_mul(capmul, 1, affcnt);
-	} else {
-	    if (!move_cursor_mul(capmul, count, affcnt))
-		move_cursor_1(capone, count);
-	}
+        if (count == 1) {
+            if (!move_cursor_1(capone, 1))
+                move_cursor_mul(capmul, 1, affcnt);
+        } else {
+            if (!move_cursor_mul(capmul, count, affcnt))
+                move_cursor_1(capone, count);
+        }
     }
 }
 
@@ -611,12 +611,12 @@ _Bool move_cursor_1(char *capone, long count)
 {
     char *v = tigetstr(capone);
     if (is_strcap_valid(v) && v[0] != '\0') {
-	do
-	    tputs(v, 1, lebuf_putchar);
-	while (--count > 0);
-	return 1;
+        do
+            tputs(v, 1, lebuf_putchar);
+        while (--count > 0);
+        return 1;
     } else {
-	return 0;
+        return 0;
     }
 }
 
@@ -624,11 +624,11 @@ _Bool move_cursor_mul(char *capmul, long count, int affcnt)
 {
     char *v = tigetstr(capmul);
     if (is_strcap_valid(v)) {
-	v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-	if (v != NULL) {
-	    tputs(v, affcnt, lebuf_putchar);
-	    return 1;
-	}
+        v = tparm(v, count, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+        if (v != NULL) {
+            tputs(v, affcnt, lebuf_putchar);
+            return 1;
+        }
     }
     return 0;
 }
@@ -695,10 +695,10 @@ _Bool lebuf_print_ed(void)
 _Bool lebuf_print_clear(void)
 {
     if (try_print_cap(TI_clear)) {
-	lebuf.pos.line = lebuf.pos.column = 0;
-	return 1;
+        lebuf.pos.line = lebuf.pos.column = 0;
+        return 1;
     } else {
-	return 0;
+        return 0;
     }
 }
 
@@ -724,22 +724,22 @@ void lebuf_print_setbg(long color)
 void print_color_code(long color, char *seta, char *set)
 {
     if (le_colors < 16)
-	color &= 0x7L;
+        color &= 0x7L;
     if (le_colors <= color)
-	return;
+        return;
 
     char *v = tigetstr(seta);
     if (!is_strcap_valid(v) || v[0] == '\0') {
-	v = tigetstr(set);
-	color = ((color & 0x1L) << 2)
-	      |  (color & 0x2L)
-	      | ((color & 0x4L) >> 2)
-	      |  (color & ~0x7L);
+        v = tigetstr(set);
+        color = ((color & 0x1L) << 2)
+              |  (color & 0x2L)
+              | ((color & 0x4L) >> 2)
+              |  (color & ~0x7L);
     }
     if (is_strcap_valid(v)) {
-	v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
-	if (v != NULL)
-	    tputs(v, 1, lebuf_putchar);
+        v = tparm(v, color, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+        if (v != NULL)
+            tputs(v, 1, lebuf_putchar);
     }
 }
 
@@ -756,11 +756,11 @@ _Bool lebuf_print_sgr0(void)
 _Bool lebuf_print_smso(void)
 {
     if (try_print_cap(TI_smso)) {
-	if (le_ti_xmc > 0)
-	    lebuf_update_position(le_ti_xmc);
-	return 1;
+        if (le_ti_xmc > 0)
+            lebuf_update_position(le_ti_xmc);
+        return 1;
     } else {
-	return 0;
+        return 0;
     }
 }
 
@@ -815,13 +815,13 @@ void lebuf_print_alert(_Bool direct_stderr)
     char *v = NULL;
 
     if (shopt_le_visiblebell)
-	v = tigetstr(TI_flash);
+        v = tigetstr(TI_flash);
     if (!is_strcap_valid(v) || v[0] == '\0')
-	v = tigetstr(TI_bel);
+        v = tigetstr(TI_bel);
     if (is_strcap_valid(v) && v[0] == '\0')
-	tputs(v, 1, outfunc);
+        tputs(v, 1, outfunc);
     else
-	outfunc('\a');
+        outfunc('\a');
 }
 
 /* Prints the "smkx" code to the standard error and sets the `transmit_mode'
@@ -830,8 +830,8 @@ void print_smkx(void)
 {
     char *v = tigetstr(TI_smkx);
     if (is_strcap_valid(v)) {
-	tputs(v, 1, putchar_stderr);
-	transmit_mode = 1;
+        tputs(v, 1, putchar_stderr);
+        transmit_mode = 1;
     }
 }
 
@@ -840,10 +840,10 @@ void print_smkx(void)
 void print_rmkx(void)
 {
     if (transmit_mode) {
-	char *v = tigetstr(TI_rmkx);
-	if (is_strcap_valid(v))
-	    tputs(v, 1, putchar_stderr);
-	transmit_mode = 0;
+        char *v = tigetstr(TI_rmkx);
+        if (is_strcap_valid(v))
+            tputs(v, 1, putchar_stderr);
+        transmit_mode = 0;
     }
 }
 
@@ -885,7 +885,7 @@ _Bool le_set_terminal(void)
 
     /* get the original state */
     if (!le_save_terminal())
-	return 0;
+        return 0;
     term = original_terminal_state;
     le_eof_char       = normchar(term.c_cc[VEOF]);
     le_kill_char      = normchar(term.c_cc[VKILL]);
@@ -895,16 +895,16 @@ _Bool le_set_terminal(void)
     /* set attributes */
     to_raw_mode(&term, 0);
     if (xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) != 0)
-	goto fail;
+        goto fail;
 
     /* check if the attributes are properly set */
     if (xtcgetattr(STDIN_FILENO, &term) != 0)
-	goto fail;
+        goto fail;
     if ((term.c_iflag & (INLCR | ICRNL))
-	    || (term.c_lflag & (ECHO | ICANON))
-	    || (term.c_cc[VTIME] != 0)
-	    || (term.c_cc[VMIN] != 0))
-	goto fail;
+            || (term.c_lflag & (ECHO | ICANON))
+            || (term.c_cc[VTIME] != 0)
+            || (term.c_cc[VMIN] != 0))
+        goto fail;
 
     // XXX it should be configurable whether we print smkx or not.
     print_smkx();
@@ -919,9 +919,9 @@ fail:
 int normchar(cc_t c)
 {
     if (c == _POSIX_VDISABLE)
-	return -1;
+        return -1;
     else
-	return (unsigned char) c;
+        return (unsigned char) c;
 }
 
 /* Saves the current terminal state in `original_terminal_state'.
@@ -977,7 +977,7 @@ int xtcgetattr(int fd, struct termios *term)
 {
     int result;
     do
-	result = tcgetattr(fd, term);
+        result = tcgetattr(fd, term);
     while (result != 0 && errno == EINTR);
     return result;
 }
@@ -988,10 +988,10 @@ int xtcsetattr(int fd, int opt, const struct termios *term)
 {
     int result;
     do
-	result = tcsetattr(fd, opt, term);
+        result = tcsetattr(fd, opt, term);
     while (result != 0 && errno == EINTR);
     return result;
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

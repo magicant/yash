@@ -6,66 +6,66 @@
 
 function completion/head {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"n: ${long:+--lines:}; specify the number of lines to print"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "n: ${long:+--lines:}; specify the number of lines to print"
+        ) #<#
 
-	case $type in
-	(GNU|FreeBSD|NetBSD|Darwin)
-		OPTIONS=("$OPTIONS" #>#
-		"c: ${long:+--bytes:}; specify the number of bytes to print"
-		) #<#
-		case $type in (GNU|NetBSD)
-			OPTIONS=("$OPTIONS" #>#
-			"q ${long:+--quiet --silent}; never print filename headers"
-			"v ${long:+--verbose}; always print filename headers"
-			) #<#
-			case $type in (GNU)
-				OPTIONS=("$OPTIONS" #>#
-				"--help"
-				"--version"
-				) #<#
-			esac
-		esac
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"c; count text in bytes rather than lines"
-		) #<#
-		;;
-	esac
+        case $type in
+        (GNU|FreeBSD|NetBSD|Darwin)
+                OPTIONS=("$OPTIONS" #>#
+                "c: ${long:+--bytes:}; specify the number of bytes to print"
+                ) #<#
+                case $type in (GNU|NetBSD)
+                        OPTIONS=("$OPTIONS" #>#
+                        "q ${long:+--quiet --silent}; never print filename headers"
+                        "v ${long:+--verbose}; always print filename headers"
+                        ) #<#
+                        case $type in (GNU)
+                                OPTIONS=("$OPTIONS" #>#
+                                "--help"
+                                "--version"
+                                ) #<#
+                        esac
+                esac
+                ;;
+        (HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "c; count text in bytes rather than lines"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([cn]|--bytes|--lines)
-		case $type in (GNU)
-			if command -vf completion//prefixdigits >/dev/null 2>&1 ||
-					. -AL completion/_blocksize; then
-				if command -f completion//prefixdigits; then
-					command -f completion//completesizesuffix b GNU
-				fi
-			fi
-		esac
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([cn]|--bytes|--lines)
+                case $type in (GNU)
+                        if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+                                        . -AL completion/_blocksize; then
+                                if command -f completion//prefixdigits; then
+                                        command -f completion//completesizesuffix b GNU
+                                fi
+                        fi
+                esac
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

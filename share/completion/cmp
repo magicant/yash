@@ -6,62 +6,62 @@
 
 function completion/cmp {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'diffutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'diffutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"l ${long:+--verbose}; print all differing byte values"
-	"s ${long:+--silent --quiet}; print nothing"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "l ${long:+--verbose}; print all differing byte values"
+        "s ${long:+--silent --quiet}; print nothing"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"b --print-bytes; print differing byte values in ^-notation"
-		"i: --ignore-initial:; specify number of bytes to skip"
-		"n: --bytes:; specify number of bytes to compare at most"
-		"--help"
-		"v --version; print version info"
-		) #<#
-		;;
-	(FreeBSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"h; don't follow symbolic links"
-		"x; print all differing byte values in hexadecimal"
-		"z; firstly compare by size"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "b --print-bytes; print differing byte values in ^-notation"
+                "i: --ignore-initial:; specify number of bytes to skip"
+                "n: --bytes:; specify number of bytes to compare at most"
+                "--help"
+                "v --version; print version info"
+                ) #<#
+                ;;
+        (FreeBSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "h; don't follow symbolic links"
+                "x; print all differing byte values in hexadecimal"
+                "z; firstly compare by size"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(i|--ignore-initial)
-		;;
-	(n|--bytes)
-		;;
-	(*)
-		command -f completion//getoperands
-		if [ ${WORDS[#]} -lt 2 ]; then
-			complete -f
-		fi
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (i|--ignore-initial)
+                ;;
+        (n|--bytes)
+                ;;
+        (*)
+                command -f completion//getoperands
+                if [ ${WORDS[#]} -lt 2 ]; then
+                        complete -f
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

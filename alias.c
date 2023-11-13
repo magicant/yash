@@ -72,19 +72,19 @@ static bool is_alias_name_char(wchar_t c)
 static void free_alias(alias_T *alias);
 static inline void vfreealias(kvpair_T kv);
 static void define_alias(
-	const wchar_t *nameandvalue, const wchar_t *equal, bool global)
+        const wchar_t *nameandvalue, const wchar_t *equal, bool global)
     __attribute__((nonnull));
 static bool remove_alias(const wchar_t *name)
     __attribute__((nonnull));
 static void remove_all_aliases(void);
 static bool contained_in_list(
-	const aliaslist_T *list, const alias_T *alias, size_t i)
+        const aliaslist_T *list, const alias_T *alias, size_t i)
     __attribute__((pure));
 static void add_to_aliaslist(
-	aliaslist_T **list, alias_T *alias, size_t limitindex)
+        aliaslist_T **list, alias_T *alias, size_t limitindex)
     __attribute__((nonnull));
 static bool remove_expired_aliases(
-	aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
+        aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
     __attribute__((nonnull));
 static bool ends_with_blank(const alias_T *alias)
     __attribute__((nonnull,pure));
@@ -117,8 +117,8 @@ bool is_alias_name_char(wchar_t c)
 void free_alias(alias_T *alias)
 {
     if (alias != NULL)
-	if (refcount_decrement(&alias->refcount))
-	    free(alias);
+        if (refcount_decrement(&alias->refcount))
+            free(alias);
 }
 
 /* Applies `free_alias' to the value of key-value pair `kv'. */
@@ -132,14 +132,14 @@ void vfreealias(kvpair_T kv)
  * must point to the first L'=' in `nameandvalue'.
  * This function doesn't check if the name and the value are valid. */
 void define_alias(
-	const wchar_t *nameandvalue, const wchar_t *equal, bool global)
+        const wchar_t *nameandvalue, const wchar_t *equal, bool global)
 {
     assert(wcschr(nameandvalue, L'=') == equal);
 
     size_t namelen = equal - nameandvalue;
     size_t valuelen = wcslen(equal + 1);
     alias_T *alias = xmallocs(sizeof *alias,
-	    add(add(namelen, valuelen), 2), sizeof *alias->value);
+            add(add(namelen, valuelen), 2), sizeof *alias->value);
 
     alias->isglobal = global;
     alias->refcount = 1;
@@ -160,10 +160,10 @@ bool remove_alias(const wchar_t *name)
     alias_T *alias = ht_remove(&aliases, name).value;
 
     if (alias != NULL) {
-	free_alias(alias);
-	return true;
+        free_alias(alias);
+        return true;
     } else {
-	return false;
+        return false;
     }
 }
 
@@ -179,19 +179,19 @@ const wchar_t *get_alias_value(const wchar_t *aliasname)
     const alias_T *alias = ht_get(&aliases, aliasname).value;
 
     if (alias != NULL)
-	return alias->value;
+        return alias->value;
     else
-	return NULL;
+        return NULL;
 }
 
 /* Frees the specified alias list and its contents. */
 void destroy_aliaslist(aliaslist_T *list)
 {
     while (list != NULL) {
-	aliaslist_T *next = list->next;
-	free_alias(list->alias);
-	free(list);
-	list = next;
+        aliaslist_T *next = list->next;
+        free_alias(list->alias);
+        free(list);
+        list = next;
     }
 }
 
@@ -200,9 +200,9 @@ void destroy_aliaslist(aliaslist_T *list)
 bool contained_in_list(const aliaslist_T *list, const alias_T *alias, size_t i)
 {
     while (list != NULL) {
-	if (list->limitindex >= i && list->alias == alias)
-	    return true;
-	list = list->next;
+        if (list->limitindex >= i && list->alias == alias)
+            return true;
+        list = list->next;
     }
     return false;
 }
@@ -213,7 +213,7 @@ void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
     /* Find where to insert the new item. Remember, the list is sorted in the
      * order of `limitindex'. */
     while (*list != NULL && (*list)->limitindex < limitindex)
-	list = &(*list)->next;
+        list = &(*list)->next;
 
     aliaslist_T *newelem = xmalloc(sizeof *newelem);
     newelem->next = *list;
@@ -232,23 +232,23 @@ void add_to_aliaslist(aliaslist_T **list, alias_T *alias, size_t limitindex)
  * substitution that ends with a blank, in which case the next word should be
  * checked for another substitution. */
 bool remove_expired_aliases(
-	aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
+        aliaslist_T **list, size_t index, const xwcsbuf_T *buf)
 {
     aliaslist_T *item = *list;
     bool afterblank = false;
 
     /* List items are ordered by index; we don't have to check all the items. */
     while (item != NULL && item->limitindex <= index) {
-	if (!item->alias->isglobal && ends_with_blank(item->alias) &&
-		is_blank_range(buf, item->limitindex, index)) {
-	    afterblank = true;
-	    break;
-	}
+        if (!item->alias->isglobal && ends_with_blank(item->alias) &&
+                is_blank_range(buf, item->limitindex, index)) {
+            afterblank = true;
+            break;
+        }
 
-	aliaslist_T *next = item->next;
-	free_alias(item->alias);
-	free(item);
-	item = next;
+        aliaslist_T *next = item->next;
+        free_alias(item->alias);
+        free(item);
+        item = next;
     }
     *list = item;
     return afterblank;
@@ -265,8 +265,8 @@ bool is_blank_range(const xwcsbuf_T *buf, size_t from, size_t to)
 {
     assert(from >= to || to <= buf->length);
     for (size_t i = from; i < to; i++)
-	if (!iswblank(buf->contents[i]))
-	    return false;
+        if (!iswblank(buf->contents[i]))
+            return false;
     return true;
 }
 
@@ -275,27 +275,27 @@ bool is_blank_range(const xwcsbuf_T *buf, size_t from, size_t to)
 void shift_aliaslist_index(aliaslist_T *list, size_t i, ptrdiff_t inc)
 {
     while (list != NULL) {
-	if (list->limitindex > i) {
-	    assert(inc >= 0 || (size_t) -inc <= list->limitindex);
-	    list->limitindex += inc;
-	}
-	list = list->next;
+        if (list->limitindex > i) {
+            assert(inc >= 0 || (size_t) -inc <= list->limitindex);
+            list->limitindex += inc;
+        }
+        list = list->next;
     }
 }
 
 /* Performs alias substitution on the word starting at index `i' in buffer
  * `buf'. */
 bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
-	aliaslist_T **restrict list, substaliasflags_T flags)
+        aliaslist_T **restrict list, substaliasflags_T flags)
 {
     if (is_redir_fd(&buf->contents[i]))
-	return false;
+        return false;
 
     size_t j = i;
     while (is_alias_name_char(buf->contents[j]))
-	j++;
+        j++;
     if (!is_token_delimiter_char(buf->contents[j]))
-	return false;
+        return false;
     return substitute_alias_range(buf, i, j, list, flags);
 }
 
@@ -307,22 +307,22 @@ bool substitute_alias(xwcsbuf_T *restrict buf, size_t i,
  * that should be substituted by calling `substitute_alias' again.
  * Returns true iff any alias was substituted. */
 bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
-	aliaslist_T **restrict list, substaliasflags_T flags)
+        aliaslist_T **restrict list, substaliasflags_T flags)
 {
     if (aliases.count == 0)
-	return false;
+        return false;
 
     if (remove_expired_aliases(list, i, buf))
-	flags |= AF_NONGLOBAL;
+        flags |= AF_NONGLOBAL;
 
     if (!(flags & AF_NONGLOBAL) && posixly_correct)
-	return false;
+        return false;
 
     if (i >= j)
-	return false;
+        return false;
     if (flags & AF_NOEOF)
-	if (j == buf->length)
-	    return false;
+        if (j == buf->length)
+            return false;
 
     alias_T *alias;
 
@@ -334,16 +334,16 @@ bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
 
     /* check if we should do substitution */
     if (alias == NULL)
-	return false;
+        return false;
     if (!(flags & AF_NONGLOBAL) && !alias->isglobal)
-	return false;
+        return false;
     if (contained_in_list(*list, alias, i))
-	return false;
+        return false;
 
     /* do substitution */
     wb_replace_force(buf, i, j - i, alias->value, alias->valuelen);
     shift_aliaslist_index(
-	    *list, i, (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
+            *list, i, (ptrdiff_t) alias->valuelen - (ptrdiff_t) (j - i));
 
     /* add the alias to the list to track recursion */
     add_to_aliaslist(list, alias, i + alias->valuelen);
@@ -359,7 +359,7 @@ bool substitute_alias_range(xwcsbuf_T *restrict buf, size_t i, size_t j,
 bool is_redir_fd(const wchar_t *s)
 {
     while (iswdigit(*s))
-	s++;
+        s++;
     return *s == L'<' || *s == L'>';
 }
 
@@ -373,17 +373,17 @@ bool print_alias(const wchar_t *name, const alias_T *alias, bool prefix)
     bool success;
 
     if (!prefix)
-	format = "%ls=%ls\n";
+        format = "%ls=%ls\n";
     else if (alias->isglobal)
-	if (name[0] == L'-')
-	    format = "alias -g -- %ls=%ls\n";
-	else
-	    format = "alias -g %ls=%ls\n";
+        if (name[0] == L'-')
+            format = "alias -g -- %ls=%ls\n";
+        else
+            format = "alias -g %ls=%ls\n";
     else
-	if (name[0] == L'-')
-	    format = "alias -- %ls=%ls\n";
-	else
-	    format = "alias %ls=%ls\n";
+        if (name[0] == L'-')
+            format = "alias -- %ls=%ls\n";
+        else
+            format = "alias %ls=%ls\n";
 
     success = xprintf(format, name, qvalue);
     free(qvalue);
@@ -399,12 +399,12 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
     const alias_T *alias = ht_get(&aliases, aliasname).value;
 
     if (alias == NULL || alias->isglobal)
-	return false;
+        return false;
 
     if (!user_friendly)
-	print_alias(aliasname, alias, true);
+        print_alias(aliasname, alias, true);
     else
-	xprintf(gt("%ls: an alias for `%ls'\n"), aliasname, alias->value);
+        xprintf(gt("%ls: an alias for `%ls'\n"), aliasname, alias->value);
     return true;
 }
 
@@ -415,22 +415,22 @@ bool print_alias_if_defined(const wchar_t *aliasname, bool user_friendly)
 void generate_alias_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_ALIAS))
-	return;
+        return;
 
     le_compdebug("adding alias name candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     size_t i = 0;
     kvpair_T kv;
 
     while ((kv = ht_next(&aliases, &i)).key != NULL) {
-	const alias_T *alias = kv.value;
-	le_candgentype_T type = alias->isglobal ? CGT_GALIAS : CGT_NALIAS;
+        const alias_T *alias = kv.value;
+        le_candgentype_T type = alias->isglobal ? CGT_GALIAS : CGT_NALIAS;
 
-	if (compopt->type & type)
-	    if (le_wmatch_comppatterns(compopt, kv.key))
-		le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL, compopt);
+        if (compopt->type & type)
+            if (le_wmatch_comppatterns(compopt, kv.key))
+                le_new_candidate(CT_ALIAS, xwcsdup(kv.key), NULL, compopt);
     }
 }
 
@@ -459,53 +459,53 @@ int alias_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, alias_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'g':  global = true;  break;
-	    case L'p':  prefix = true;  break;
+        switch (opt->shortopt) {
+            case L'g':  global = true;  break;
+            case L'p':  prefix = true;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (xoptind == argc) {
-	/* print all aliases */
-	kvpair_T *kvs = ht_tokvarray(&aliases);
-	qsort(kvs, aliases.count, sizeof *kvs, keywcscoll);
-	for (size_t i = 0; i < aliases.count; i++) {
-	    print_alias(kvs[i].key, kvs[i].value, prefix);
-	    if (yash_error_message_count > 0)
-		break;
-	}
-	free(kvs);
+        /* print all aliases */
+        kvpair_T *kvs = ht_tokvarray(&aliases);
+        qsort(kvs, aliases.count, sizeof *kvs, keywcscoll);
+        for (size_t i = 0; i < aliases.count; i++) {
+            print_alias(kvs[i].key, kvs[i].value, prefix);
+            if (yash_error_message_count > 0)
+                break;
+        }
+        free(kvs);
     } else {
-	/* define or print aliases */
-	do {
-	    wchar_t *arg = ARGV(xoptind);
-	    wchar_t *nameend = arg;
+        /* define or print aliases */
+        do {
+            wchar_t *arg = ARGV(xoptind);
+            wchar_t *nameend = arg;
 
-	    while (is_alias_name_char(*nameend))
-		nameend++;
+            while (is_alias_name_char(*nameend))
+                nameend++;
 
-	    if (nameend != arg && *nameend == L'=') {
-		/* define alias */
-		define_alias(arg, nameend, global);
-	    } else if (nameend != arg && *nameend == L'\0') {
-		/* print alias */
-		const alias_T *alias = ht_get(&aliases, arg).value;
-		if (alias != NULL) {
-		    if (!print_alias(arg, alias, prefix))
-			break;
-		} else {
-		    xerror(0, Ngt("no such alias `%ls'"), arg);
-		}
-	    } else {
-		xerror(0, Ngt("`%ls' is not a valid alias name"), arg);
-	    }
-	} while (++xoptind < argc);
+            if (nameend != arg && *nameend == L'=') {
+                /* define alias */
+                define_alias(arg, nameend, global);
+            } else if (nameend != arg && *nameend == L'\0') {
+                /* print alias */
+                const alias_T *alias = ht_get(&aliases, arg).value;
+                if (alias != NULL) {
+                    if (!print_alias(arg, alias, prefix))
+                        break;
+                } else {
+                    xerror(0, Ngt("no such alias `%ls'"), arg);
+                }
+            } else {
+                xerror(0, Ngt("`%ls' is not a valid alias name"), arg);
+            }
+        } while (++xoptind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
@@ -528,31 +528,31 @@ int unalias_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, all_help_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'a':  all = true;  break;
+        switch (opt->shortopt) {
+            case L'a':  all = true;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (all) {
-	if (xoptind != argc)
-	    return too_many_operands_error(0);
+        if (xoptind != argc)
+            return too_many_operands_error(0);
 
-	remove_all_aliases();
+        remove_all_aliases();
     } else {
-	if (xoptind == argc)
-	    return insufficient_operands_error(1);
+        if (xoptind == argc)
+            return insufficient_operands_error(1);
 
-	do {
-	    const wchar_t *arg = ARGV(xoptind);
-	    if (!remove_alias(arg))
-		xerror(0, Ngt("no such alias `%ls'"), arg);
-	} while (++xoptind < argc);
+        do {
+            const wchar_t *arg = ARGV(xoptind);
+            if (!remove_alias(arg))
+                xerror(0, Ngt("no such alias `%ls'"), arg);
+        } while (++xoptind < argc);
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
@@ -568,4 +568,4 @@ const char unalias_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

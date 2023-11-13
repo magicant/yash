@@ -52,12 +52,12 @@ typedef struct le_candidate_T {
     le_rawvalue_T rawdesc;
     _Bool terminate;              // if completed word should be terminated
     union {
-	struct {
-	    _Bool is_executable;
-	    mode_t mode;
-	    nlink_t nlink;
-	    off_t size;
-	} filestat;               // only used for CT_FILE
+        struct {
+            _Bool is_executable;
+            mode_t mode;
+            nlink_t nlink;
+            off_t size;
+        } filestat;               // only used for CT_FILE
     } appendage;
 } le_candidate_T;
 
@@ -137,7 +137,7 @@ typedef enum le_candgentype_T {
     CGT_XBUILTIN   = 1 << 6, // extension builtin
     CGT_UBUILTIN   = 1 << 7, // substitutive builtin
     CGT_BUILTIN    = CGT_SBUILTIN | CGT_MBUILTIN | CGT_LBUILTIN | CGT_XBUILTIN |
-		     CGT_UBUILTIN,
+                     CGT_UBUILTIN,
     CGT_EXTCOMMAND = 1 << 8, // external command
     CGT_FUNCTION   = 1 << 9, // function
     CGT_COMMAND    = CGT_BUILTIN | CGT_EXTCOMMAND | CGT_FUNCTION,
@@ -201,8 +201,8 @@ extern void set_completion_variables(void);
 extern void le_new_command_candidate(wchar_t *cmdname)
     __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type,
-	wchar_t *restrict value, wchar_t *restrict desc,
-	const le_compopt_T *compopt)
+        wchar_t *restrict value, wchar_t *restrict desc,
+        const le_compopt_T *compopt)
     __attribute__((nonnull(4)));
 extern void le_add_candidate(le_candidate_T *cand, const le_compopt_T *compopt)
     __attribute__((nonnull));
@@ -211,7 +211,7 @@ extern _Bool le_compile_cpatterns(const le_compopt_T *compopt)
 extern _Bool le_match_comppatterns(const le_compopt_T *compopt, const char *s)
     __attribute__((nonnull));
 extern _Bool le_wmatch_comppatterns(
-	const le_compopt_T *compopt, const wchar_t *s)
+        const le_compopt_T *compopt, const wchar_t *s)
     __attribute__((nonnull));
 
 extern int complete_builtin(int argc, void **argv)
@@ -254,4 +254,4 @@ extern void generate_bindkey_candidates(const le_compopt_T *compopt)
 #endif /* YASH_COMPLETE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

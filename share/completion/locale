@@ -5,57 +5,57 @@
 
 function completion/locale {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'GNU libc'*) typeset type=glibc ;;
-		(*)            typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(glibc) typeset long=true ;;
-		(*)     typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'GNU libc'*) typeset type=glibc ;;
+                (*)            typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (glibc) typeset long=true ;;
+                (*)     typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a ${long:+--all-locales}; print all available locale names"
-	"c ${long:+--category-name}; print names of the selected categories"
-	"k ${long:+--keyword-name}; print names of the selected keywords"
-	"m ${long:+--charmaps}; print all available charmaps"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a ${long:+--all-locales}; print all available locale names"
+        "c ${long:+--category-name}; print names of the selected categories"
+        "k ${long:+--keyword-name}; print names of the selected keywords"
+        "m ${long:+--charmaps}; print all available charmaps"
+        ) #<#
 
-	case $type in (glibc)
-		OPTIONS=("$OPTIONS" #>#
-		"v --verbose; print more information"
-		"? --help; print help"
-		"--usage"
-		"V --version; print version info"
-		) #<#
-	esac
+        case $type in (glibc)
+                OPTIONS=("$OPTIONS" #>#
+                "v --verbose; print more information"
+                "? --help; print help"
+                "--usage"
+                "V --version; print version info"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		IFS="
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                IFS="
 "
-		typeset category keywords
-		for category in $(locale 2>/dev/null); do
-			category=${category%%=*}
-			case $category in
-			(LANG|LC_ALL)
-				;;
-			(*)
-				keywords=($(locale -k "$category" 2>/dev/null))
-				complete -- "$category" "${keywords%%=*}"
-				;;
-			esac
-		done
-		complete charmap
-		;;
-	esac
+                typeset category keywords
+                for category in $(locale 2>/dev/null); do
+                        category=${category%%=*}
+                        case $category in
+                        (LANG|LC_ALL)
+                                ;;
+                        (*)
+                                keywords=($(locale -k "$category" 2>/dev/null))
+                                complete -- "$category" "${keywords%%=*}"
+                                ;;
+                        esac
+                done
+                complete charmap
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

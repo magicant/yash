@@ -4,29 +4,29 @@
 
 function completion/exec {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a: --as:; specify a name to execute the command as"
-	"c --clear; don't export variables from the shell"
-	"f --force; suppress warning about stopped jobs"
-	"--help"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a: --as:; specify a name to execute the command as"
+        "c --clear; don't export variables from the shell"
+        "f --force; suppress warning about stopped jobs"
+        "--help"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(a|--as)
-		complete -P "$PREFIX" -c
-		;;
-	(*)
-		command -f completion//getoperands
-		command -f completion//reexecute -e
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (a|--as)
+                complete -P "$PREFIX" -c
+                ;;
+        (*)
+                command -f completion//getoperands
+                command -f completion//reexecute -e
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

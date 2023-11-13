@@ -12,7 +12,7 @@ ok
 __OUT__
 
 testcase "$LINENO" -e 2 'missing command with -c' -c \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: the -c option is specified but no command is given
 __ERR__
 
@@ -527,34 +527,34 @@ test_E -e 0 'verbose version, long option' --version --verbose
 __IN__
 
 testcase "$LINENO" -e 2 'version (short option in POSIX mode)' --posix -V \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: \`V' is not a valid option
 __ERR__
 #'
 
 testcase "$LINENO" -e 2 'version (long option in POSIX mode)' --posix --versi \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: \`--versi' is not a valid option
 __ERR__
 #'
 
 testcase "$LINENO" -e 2 'unexpected option argument' --norc=_unexpected_ \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: --norc=_unexpected_: the --norcfile option does not take an argument
 __ERR__
 
 testcase "$LINENO" -e 2 'missing profile option argument' --profile \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: the --profile option requires an argument
 __ERR__
 
 testcase "$LINENO" -e 2 'missing rcfile option argument' --rcfile \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: the --rcfile option requires an argument
 __ERR__
 
 testcase "$LINENO" -e 2 'long option in POSIX mode' --posix --monitor \
-	3</dev/null 4</dev/null 5<<__ERR__
+        3</dev/null 4</dev/null 5<<__ERR__
 $testee: \`--monitor' is not a valid option
 __ERR__
 #'
@@ -562,4 +562,4 @@ __ERR__
 test_O -d -e 2 'ambiguous option' --p
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

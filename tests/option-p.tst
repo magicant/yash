@@ -451,4 +451,4 @@ test_OE -e 0 'ignoreeof is ignored if not interactive' +i -o ignoreeof
 # The shell should exit successfully at EOF
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

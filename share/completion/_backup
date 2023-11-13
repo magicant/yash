@@ -5,11 +5,11 @@
 
 
 function completion//completebackup { #>>#
-	complete -P "$PREFIX" -D "don't make backups" none off
-	complete -P "$PREFIX" -D "make numbered backups" numbered t
-	complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
-	complete -P "$PREFIX" -D "make simple backups" simple never
+        complete -P "$PREFIX" -D "don't make backups" none off
+        complete -P "$PREFIX" -D "make numbered backups" numbered t
+        complete -P "$PREFIX" -D "make backups according to existing ones" existing nil
+        complete -P "$PREFIX" -D "make simple backups" simple never
 } #<<#
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

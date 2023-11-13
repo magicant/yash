@@ -29,7 +29,7 @@ extern size_t plcount(void *const *list)
 static inline void **pldup(void *const *array, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(2)));
 extern void **plndup(
-	void *const *array, size_t count, void *copy(const void *p))
+        void *const *array, size_t count, void *copy(const void *p))
     __attribute__((malloc,warn_unused_result,nonnull(3)));
 extern void plfree(void **ary, void freer(void *elem));
 
@@ -58,20 +58,20 @@ static inline plist_T *pl_truncate(plist_T *list, size_t newlength)
 extern plist_T *pl_clear(plist_T *list, void freer(void *elem))
     __attribute__((nonnull));
 extern plist_T *pl_replace(
-	plist_T *restrict list, size_t i, size_t ln,
-	void *const *restrict a, size_t an)
+        plist_T *restrict list, size_t i, size_t ln,
+        void *const *restrict a, size_t an)
     __attribute__((nonnull));
 static inline plist_T *pl_ninsert(
-	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
+        plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
     __attribute__((nonnull));
 static inline plist_T *pl_insert(
-	plist_T *restrict list, size_t i, void *const *restrict a)
+        plist_T *restrict list, size_t i, void *const *restrict a)
     __attribute__((nonnull));
 static inline plist_T *pl_ncat(
-	plist_T *restrict list, void *const *restrict a, size_t n)
+        plist_T *restrict list, void *const *restrict a, size_t n)
     __attribute__((nonnull));
 static inline plist_T *pl_cat(
-	plist_T *restrict list, void *const *restrict a)
+        plist_T *restrict list, void *const *restrict a)
     __attribute__((nonnull));
 static inline plist_T *pl_remove(plist_T *list, size_t i, size_t n)
     __attribute__((nonnull));
@@ -156,7 +156,7 @@ plist_T *pl_truncate(plist_T *list, size_t newlength)
  * If (list->length <= i), the array elements are appended to the list.
  * Array `a' must not be part of `list->contents'. */
 plist_T *pl_ninsert(
-	plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
+        plist_T *restrict list, size_t i, void *const *restrict a, size_t n)
 {
     return pl_replace(list, i, 0, a, n);
 }
@@ -200,4 +200,4 @@ plist_T *pl_remove(plist_T *list, size_t i, size_t n)
 #endif /* YASH_PLIST_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

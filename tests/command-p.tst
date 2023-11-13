@@ -255,10 +255,10 @@ alias abc=xyz
 d="$(command -V abc)"
 case "$d" in
     (*abc*xyz*|*xyz*abc*) # expected output contains alias name and value
-	;;
+        ;;
     (*)
-	printf '%s\n' "$d" # print non-conforming result
-	;;
+        printf '%s\n' "$d" # print non-conforming result
+        ;;
 esac
 __IN__
 
@@ -288,4 +288,4 @@ test_O -d -e 127 'executing non-existent command'
 command ./_no_such_command_
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

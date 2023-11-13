@@ -39,7 +39,7 @@ __OUT__
 # $1 = $LINENO, $2 = signal number, $3 = signal name w/o SIG-prefix
 test_specifying_signal_by_number() {
     testcase "$1" -e 0 "specifying signal by number ($3)" \
-	3<<__IN__ 4<<__OUT__ 5</dev/null
+        3<<__IN__ 4<<__OUT__ 5</dev/null
 trap 'echo trapped' $2
 kill -s $3 \$\$
 __IN__
@@ -248,4 +248,4 @@ __IN__
 reached
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

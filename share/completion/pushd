@@ -3,8 +3,8 @@
 # Completion script for the "pushd" built-in command.
 
 function completion/pushd {
-	command -f completion//reexecute cd
+        command -f completion//reexecute cd
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

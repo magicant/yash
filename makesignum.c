@@ -35,58 +35,58 @@ int main(void)
     wprintf(L"#include <stddef.h>\n\n");
 
     for (const signal_T *s = signals; s->no; s++)
-	if (min < s->no)
-	    min = s->no;
+        if (min < s->no)
+            min = s->no;
 
     if (min < 100) {
-	wprintf(L"/* an injective function that returns an array index\n");
-	wprintf(L" * corresponding to the given signal number,\n");
-	wprintf(L" * which must be a valid non-realtime signal number\n");
-	wprintf(L" * or zero. */\n");
-	wprintf(L"__attribute__((const))\n");
-	wprintf(L"static inline size_t sigindex(int signum) {\n");
-	wprintf(L"    return (size_t) signum;\n");
-	wprintf(L"}\n\n");
+        wprintf(L"/* an injective function that returns an array index\n");
+        wprintf(L" * corresponding to the given signal number,\n");
+        wprintf(L" * which must be a valid non-realtime signal number\n");
+        wprintf(L" * or zero. */\n");
+        wprintf(L"__attribute__((const))\n");
+        wprintf(L"static inline size_t sigindex(int signum) {\n");
+        wprintf(L"    return (size_t) signum;\n");
+        wprintf(L"}\n\n");
 
-	wprintf(L"/* max index returned by sigindex + 1 */\n");
-	wprintf(L"#define MAXSIGIDX %d\n\n", min + 1);
+        wprintf(L"/* max index returned by sigindex + 1 */\n");
+        wprintf(L"#define MAXSIGIDX %d\n\n", min + 1);
     } else {
-	sigset_t ss;
-	size_t v;
+        sigset_t ss;
+        size_t v;
 
-	wprintf(L"/* an injective function that returns an array index\n");
-	wprintf(L" * corresponding to the given signal number,\n");
-	wprintf(L" * which must be a valid non-realtime signal number\n");
-	wprintf(L" * or zero. */\n");
-	wprintf(L"__attribute__((const))\n");
-	wprintf(L"static inline size_t sigindex(int signum) {\n");
-	wprintf(L"    switch (signum) {\n");
-	wprintf(L"    default        : return 0;\n");
+        wprintf(L"/* an injective function that returns an array index\n");
+        wprintf(L" * corresponding to the given signal number,\n");
+        wprintf(L" * which must be a valid non-realtime signal number\n");
+        wprintf(L" * or zero. */\n");
+        wprintf(L"__attribute__((const))\n");
+        wprintf(L"static inline size_t sigindex(int signum) {\n");
+        wprintf(L"    switch (signum) {\n");
+        wprintf(L"    default        : return 0;\n");
 
-	sigemptyset(&ss);
-	v = 1;
-	for (const signal_T *s = signals; s->no; s++) {
-	    if (!sigismember(&ss, s->no)) {
-		sigaddset(&ss, s->no);
-		wprintf(L"    case SIG%-7ls: return %zu;\n", s->name, v++);
-	    }
-	}
+        sigemptyset(&ss);
+        v = 1;
+        for (const signal_T *s = signals; s->no; s++) {
+            if (!sigismember(&ss, s->no)) {
+                sigaddset(&ss, s->no);
+                wprintf(L"    case SIG%-7ls: return %zu;\n", s->name, v++);
+            }
+        }
 
-	wprintf(L"    }\n");
-	wprintf(L"}\n\n");
+        wprintf(L"    }\n");
+        wprintf(L"}\n\n");
 
-	wprintf(L"/* max index returned by sigindex + 1 */\n");
-	wprintf(L"#define MAXSIGIDX %zu\n\n", v);
+        wprintf(L"/* max index returned by sigindex + 1 */\n");
+        wprintf(L"#define MAXSIGIDX %zu\n\n", v);
     }
 
     wprintf(L"/* number of realtime signals that can be handled by yash */\n");
     wprintf(L"#define RTSIZE %d\n\n",
 #if defined SIGRTMIN && defined SIGRTMAX
-	    SIGRTMAX - SIGRTMIN + 10
+            SIGRTMAX - SIGRTMIN + 10
 #else
-	    0
+            0
 #endif
-	   );
+           );
 
     wprintf(L"#endif\n");
 
@@ -94,4 +94,4 @@ int main(void)
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

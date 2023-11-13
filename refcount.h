@@ -29,15 +29,15 @@ typedef uintmax_t refcount_T;
 #endif
 
 static inline void refcount_increment(refcount_T *r)
-	__attribute__((nonnull));
+        __attribute__((nonnull));
 static inline _Bool refcount_decrement(refcount_T *r)
-	__attribute__((nonnull));
+        __attribute__((nonnull));
 
 void refcount_increment(refcount_T *rc)
 {
     (*rc)++;
     if (*rc == 0)
-	alloc_failed();
+        alloc_failed();
 }
 
 _Bool refcount_decrement(refcount_T *rc)
@@ -49,4 +49,4 @@ _Bool refcount_decrement(refcount_T *rc)
 #endif /* YASH_REFCOUNT_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

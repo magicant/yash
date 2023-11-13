@@ -4,45 +4,45 @@
 # Supports Git 1.8.5.3.
 
 function completion/git-status {
-	WORDS=(git status "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git status "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::status:arg {
 
-	OPTIONS=( #>#
-	"b --branch; print the current branch"
-	"--column::; columnize output"
-	"--ignored; print ignored files as well"
-	"--ignore-submodules::; ignore changes to submodules"
-	"--long --no-short; print in the long format"
-	"--no-column; print files line by line"
-	"--porcelain; print in the machine-friendly format"
-	"s --short; print in the short format"
-	"u:: --untracked-files::; print untracked files"
-	"z; print a null byte after each filename"
-	) #<#
+        OPTIONS=( #>#
+        "b --branch; print the current branch"
+        "--column::; columnize output"
+        "--ignored; print ignored files as well"
+        "--ignore-submodules::; ignore changes to submodules"
+        "--long --no-short; print in the long format"
+        "--no-column; print files line by line"
+        "--porcelain; print in the machine-friendly format"
+        "s --short; print in the short format"
+        "u:: --untracked-files::; print untracked files"
+        "z; print a null byte after each filename"
+        ) #<#
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--column)
-			command -f completion/git::--column:arg
-			;;
-		(--ignore-submodules)
-			command -f completion/git::--ignore-submodules:arg
-			;;
-		(u|--untracked-files)
-			command -f completion/git::--untracked-files:arg
-			;;
-		('')
-			complete -P "$PREFIX" -f
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--column)
+                        command -f completion/git::--column:arg
+                        ;;
+                (--ignore-submodules)
+                        command -f completion/git::--ignore-submodules:arg
+                        ;;
+                (u|--untracked-files)
+                        command -f completion/git::--untracked-files:arg
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -f
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

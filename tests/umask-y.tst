@@ -4,8 +4,8 @@
 test_print_non_symbolic() (
     umask "$2"
     testcase "$1" -e 0 \
-	"without operand, current umask is printed, non-symbolic, $2" \
-	3<<\__IN__ 4<<__OUT__ 5</dev/null
+        "without operand, current umask is printed, non-symbolic, $2" \
+        3<<\__IN__ 4<<__OUT__ 5</dev/null
 umask
 __IN__
 $2
@@ -29,8 +29,8 @@ test_print_non_symbolic "$LINENO" 0017
 test_print_symbolic() (
     umask "$2"
     testcase "$1" -e 0 \
-	"without operand, current umask is printed, symbolic, $2" \
-	3<<\__IN__ 4<<__OUT__ 5</dev/null
+        "without operand, current umask is printed, symbolic, $2" \
+        3<<\__IN__ 4<<__OUT__ 5</dev/null
 umask -S
 umask --symbolic
 __IN__
@@ -78,4 +78,4 @@ test_O -d -e 1 'printing to closed stream'
 umask >&-
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

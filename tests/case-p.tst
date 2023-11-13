@@ -169,7 +169,7 @@ __ERR__
 test_oE 'multiple patterns for single command list'
 case 1 in
     a|b|c) echo not reached;;
-    0	| 1	| 2 ) echo matched;;
+    0   | 1     | 2 ) echo matched;;
 esac
 __IN__
 matched
@@ -350,4 +350,4 @@ bar
 baz
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

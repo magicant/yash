@@ -83,23 +83,23 @@ static time_t lastchecktime = 0;
 void check_mail(void)
 {
     if (is_time_to_check_mail())
-	check_mail_and_print_message();
+        check_mail_and_print_message();
 }
 
 /* Activates `mailfiles'. */
 void activate(void)
 {
     if (mailfiles.capacity == 0)
-	ht_init(&mailfiles, hashstr, htstrcmp);
+        ht_init(&mailfiles, hashstr, htstrcmp);
 }
 
 /* Inactivates `mailfiles'. */
 void inactivate(void)
 {
     if (mailfiles.capacity > 0) {
-	ht_destroy(ht_clear(&mailfiles, vfree));
-	mailfiles.capacity = 0;
-	lastchecktime = 0;
+        ht_destroy(ht_clear(&mailfiles, vfree));
+        mailfiles.capacity = 0;
+        lastchecktime = 0;
     }
 }
 
@@ -111,19 +111,19 @@ bool is_time_to_check_mail(void)
 {
     const wchar_t *mailcheck = getvar(L VAR_MAILCHECK);
     if (mailcheck == NULL || mailcheck[0] == L'\0') {
-	inactivate();
-	return false;
+        inactivate();
+        return false;
     }
 
     long interval;
     if (!xwcstol(mailcheck, 10, &interval) || interval < 0) {
-	inactivate();
-	return false;
+        inactivate();
+        return false;
     }
 
     time_t now = time(NULL);
     if (now == -1 || now - lastchecktime < interval)
-	return false;
+        return false;
 
     lastchecktime = now;
     return true;
@@ -135,35 +135,35 @@ void check_mail_and_print_message(void)
     /* Firstly, check the $MAILPATH variable */
     struct get_variable_T mailpath = get_variable(L VAR_MAILPATH);
     switch (mailpath.type) {
-	case GV_NOTFOUND:
-	    break;
-	case GV_SCALAR:
-	    activate();
-	    handle_mailpath(mailpath.values[0]);
-	    goto mailpath_handled;
-	case GV_ARRAY:
-	case GV_ARRAY_CONCAT:
-	    activate();
-	    for (size_t i = 0; i < mailpath.count; i++)
-		handle_mailpath_element(mailpath.values[i]);
+        case GV_NOTFOUND:
+            break;
+        case GV_SCALAR:
+            activate();
+            handle_mailpath(mailpath.values[0]);
+            goto mailpath_handled;
+        case GV_ARRAY:
+        case GV_ARRAY_CONCAT:
+            activate();
+            for (size_t i = 0; i < mailpath.count; i++)
+                handle_mailpath_element(mailpath.values[i]);
 mailpath_handled:
-	    if (mailpath.freevalues)
-		plfree(mailpath.values, free);
-	    return;
+            if (mailpath.freevalues)
+                plfree(mailpath.values, free);
+            return;
     }
 
     /* Next, check the $MAIL variable */
     const wchar_t *mail = getvar(L VAR_MAIL);
     if (mail != NULL) {
-	activate();
+        activate();
 
-	char *path = malloc_wcstombs(mail);
-	if (path != NULL) {
-	    if (is_update(path))
-		fprintf(stderr, "%s\n", gt("You have new mail."));
-	    free(path);
-	}
-	return;
+        char *path = malloc_wcstombs(mail);
+        if (path != NULL) {
+            if (is_update(path))
+                fprintf(stderr, "%s\n", gt("You have new mail."));
+            free(path);
+        }
+        return;
     }
 
     /* disable mail check since the variables are not set */
@@ -180,26 +180,26 @@ void handle_mailpath(wchar_t *paths)
 next:
     start = paths;
     for (;;) {
-	switch (*paths) {
-	    case L'\0':
-		handle_mailpath_element(start);
-		return;
-	    case L':':
-		*paths = L'\0';
-		handle_mailpath_element(start);
-		paths++;
-		goto next;
-	    case L'\\':
-		paths++;
-		if (*paths == L'\0') {
-		    handle_mailpath_element(start);
-		    return;
-		}
-		/* falls thru! */
-	    default:
-		paths++;
-		continue;
-	}
+        switch (*paths) {
+            case L'\0':
+                handle_mailpath_element(start);
+                return;
+            case L':':
+                *paths = L'\0';
+                handle_mailpath_element(start);
+                paths++;
+                goto next;
+            case L'\\':
+                paths++;
+                if (*paths == L'\0') {
+                    handle_mailpath_element(start);
+                    return;
+                }
+                /* falls thru! */
+            default:
+                paths++;
+                continue;
+        }
     }
 }
 
@@ -212,30 +212,30 @@ void handle_mailpath_element(const wchar_t *s)
     sb_init(&path);
     memset(&state, 0, sizeof state);
     for (;;) {
-	switch (*s) {
-	    case L'\0':
-		goto check;
-	    case L'%':
-		s++;
-		goto check;
-	    case L'\\':
-		s++;
-		if (*s == L'\0')
-		    goto check;
-		/* falls thru! */
-	    default:
-		sb_wccat(&path, *s, &state);
-		s++;
-		continue;
-	}
+        switch (*s) {
+            case L'\0':
+                goto check;
+            case L'%':
+                s++;
+                goto check;
+            case L'\\':
+                s++;
+                if (*s == L'\0')
+                    goto check;
+                /* falls thru! */
+            default:
+                sb_wccat(&path, *s, &state);
+                s++;
+                continue;
+        }
     }
 check:
     sb_wccat(&path, L'\0', &state);
     if (is_update(path.contents)) {
-	if (*s == L'\0')
-	    fprintf(stderr, "%s\n", gt("You have new mail."));
-	else
-	    print_message(s);
+        if (*s == L'\0')
+            fprintf(stderr, "%s\n", gt("You have new mail."));
+        else
+            print_message(s);
     }
     sb_destroy(&path);
 }
@@ -245,16 +245,16 @@ bool is_update(const char *path)
 {
     struct stat st;
     if (stat(path, &st) < 0) {
-	st.st_size = 0;
-	st.st_mtime = 0;
+        st.st_size = 0;
+        st.st_mtime = 0;
 #if HAVE_ST_MTIM
-	st.st_mtim.tv_nsec = 0;
+        st.st_mtim.tv_nsec = 0;
 #elif HAVE_ST_MTIMESPEC
-	st.st_mtimespec.tv_nsec = 0;
+        st.st_mtimespec.tv_nsec = 0;
 #elif HAVE_ST_MTIMENSEC
-	st.st_mtimensec = 0;
+        st.st_mtimensec = 0;
 #elif HAVE___ST_MTIMENSEC
-	st.__st_mtimensec = 0;
+        st.__st_mtimensec = 0;
 #endif
     }
 
@@ -262,24 +262,24 @@ bool is_update(const char *path)
     mailfile_T *mf = ht_get(&mailfiles, path).value;
 
     if (mf != NULL) {
-	result = (st.st_size > 0 || posixly_correct) &&
-	    (st.st_mtime != 0) && (st.st_mtime != mf->mf_mtime
+        result = (st.st_size > 0 || posixly_correct) &&
+            (st.st_mtime != 0) && (st.st_mtime != mf->mf_mtime
 #if HAVE_ST_MTIM
-	    || st.st_mtim.tv_nsec != mf->mf_mtim.tv_nsec
+            || st.st_mtim.tv_nsec != mf->mf_mtim.tv_nsec
 #elif HAVE_ST_MTIMESPEC
-	    || st.st_mtimespec.tv_nsec != mf->mf_mtim.tv_nsec
+            || st.st_mtimespec.tv_nsec != mf->mf_mtim.tv_nsec
 #elif HAVE_ST_MTIMENSEC
-	    || (unsigned long) st.st_mtimensec != mf->mf_mtimensec
+            || (unsigned long) st.st_mtimensec != mf->mf_mtimensec
 #elif HAVE___ST_MTIMENSEC
-	    || (unsigned long) st.__st_mtimensec != mf->mf_mtimensec
+            || (unsigned long) st.__st_mtimensec != mf->mf_mtimensec
 #endif
-	    );
+            );
     } else {
-	mf = xmallocs(sizeof *mf,
-		add(strlen(path), 1), sizeof *mf->mf_filename);
-	strcpy(mf->mf_filename, path);
-	ht_set(&mailfiles, mf->mf_filename, mf);
-	result = false;
+        mf = xmallocs(sizeof *mf,
+                add(strlen(path), 1), sizeof *mf->mf_filename);
+        strcpy(mf->mf_filename, path);
+        ht_set(&mailfiles, mf->mf_filename, mf);
+        result = false;
     }
 
 #if HAVE_ST_MTIM
@@ -303,10 +303,10 @@ void print_message(const wchar_t *message)
     /* assuming the parse state is saved */
     wchar_t *msg = parse_and_expand_string(message, NULL, true);
     if (msg != NULL) {
-	fprintf(stderr, "%ls\n", msg);
-	free(msg);
+        fprintf(stderr, "%ls\n", msg);
+        free(msg);
     }
 }
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

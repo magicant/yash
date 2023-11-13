@@ -45,7 +45,7 @@ extern enum le_state_T le_state;
 extern enum le_editstate_T le_editstate;
 
 extern inputresult_T le_readline(
-	struct promptset_T prompt, _Bool trap, wchar_t **resultp)
+        struct promptset_T prompt, _Bool trap, wchar_t **resultp)
     __attribute__((nonnull,warn_unused_result));
 extern void le_suspend_readline(void);
 extern void le_resume_readline(void);
@@ -60,4 +60,4 @@ extern void le_append_to_prebuffer(char *s)
 #endif /* YASH_LINEEDIT_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

@@ -152,4 +152,4 @@ __ERR__
 
 # `do' and `done' without `while` are tested in for-y.tst.
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

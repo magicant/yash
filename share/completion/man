@@ -5,154 +5,154 @@
 
 function completion/man {
 
-	if "${WORDS[1]}" --where man >/dev/null 2>&1; then
-		typeset type=man-db
-	else
-		typeset type=POSIX
-	fi
-	case $type in
-		(man-db) typeset long=true ;;
-		(*)      typeset long= ;;
-	esac
+        if "${WORDS[1]}" --where man >/dev/null 2>&1; then
+                typeset type=man-db
+        else
+                typeset type=POSIX
+        fi
+        case $type in
+                (man-db) typeset long=true ;;
+                (*)      typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a ${long:+--all}; show all manual pages, not only the first found one"
-	"f ${long:+--whatis}; only print brief description"
-	"k ${long:+--apropos}; search manual database and print brief description"
-	"M: ${long:+--manpath:}; specify directories containing manual pages"
-	"s: ${long:+--sections:}; specify manual sections"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a ${long:+--all}; show all manual pages, not only the first found one"
+        "f ${long:+--whatis}; only print brief description"
+        "k ${long:+--apropos}; search manual database and print brief description"
+        "M: ${long:+--manpath:}; specify directories containing manual pages"
+        "s: ${long:+--sections:}; specify manual sections"
+        ) #<#
 
-	case $type in (man-db)
-		OPTIONS=("$OPTIONS" #>#
-		"7 --ascii; display ASCII translation of certain Latin-1 characters"
-		"C: --config-file:; specify a pathname of the config file"
-		"D --default; reset options (possibly set by \$MANOPT)"
-		"e: --extension:; only search sections with the specified suffix"
-		"H:: --html::; view the manual as HTML with the specified browser"
-		"h --help; print help"
-		"I --match-case; case-sensitive search"
-		"i --ignore-case; case-insensitive search"
-		"K --global-apropos; search for text in all manual pages"
-		"L: --locale:; specify locale"
-		"l --local-file; treat operands as manual page filenames"
-		"m: --systems:; specify system names to show the manual for"
-		"P: --pager:; specify a pager to show the manual"
-		"p: --preprocessor:; specify a preprocessor sequence"
-		"R: --recode:; specify an encoding to convert the manual page to"
-		"r: --prompt:; specify a prompt string used in the less pager"
-		"T:: --troff-device::; use groff with the specified device"
-		"t --troff; use groff -mandoc to format pages"
-		"u --update; check cache consistency"
-		"V --version; print version info"
-		"w --where --location; print the pathname of the manual page"
-		"W --where-cat --location-cat; print the pathname of the cat file"
-		"X:: --gxditview::; view the manual using gxditview with the specified DPI"
-		"Z --ditroff; force groff to produce ditroff"
-		"--names-only; match page names only (with --regex or --wildcard)"
-		"--no-justification --nj; disable justification of text"
-		"--no-hyphenation --nh; disable automatic hyphenation"
-		"--no-subpages; don't try subpages like git-diff for \`git-diff'"
-		"--regex; use regular expression in searching"
-		"--warnings::; specify groff warning types to enable"
-		"--wildcard; use shell-like pattern matching in searching"
-		) #<#
-	esac
+        case $type in (man-db)
+                OPTIONS=("$OPTIONS" #>#
+                "7 --ascii; display ASCII translation of certain Latin-1 characters"
+                "C: --config-file:; specify a pathname of the config file"
+                "D --default; reset options (possibly set by \$MANOPT)"
+                "e: --extension:; only search sections with the specified suffix"
+                "H:: --html::; view the manual as HTML with the specified browser"
+                "h --help; print help"
+                "I --match-case; case-sensitive search"
+                "i --ignore-case; case-insensitive search"
+                "K --global-apropos; search for text in all manual pages"
+                "L: --locale:; specify locale"
+                "l --local-file; treat operands as manual page filenames"
+                "m: --systems:; specify system names to show the manual for"
+                "P: --pager:; specify a pager to show the manual"
+                "p: --preprocessor:; specify a preprocessor sequence"
+                "R: --recode:; specify an encoding to convert the manual page to"
+                "r: --prompt:; specify a prompt string used in the less pager"
+                "T:: --troff-device::; use groff with the specified device"
+                "t --troff; use groff -mandoc to format pages"
+                "u --update; check cache consistency"
+                "V --version; print version info"
+                "w --where --location; print the pathname of the manual page"
+                "W --where-cat --location-cat; print the pathname of the cat file"
+                "X:: --gxditview::; view the manual using gxditview with the specified DPI"
+                "Z --ditroff; force groff to produce ditroff"
+                "--names-only; match page names only (with --regex or --wildcard)"
+                "--no-justification --nj; disable justification of text"
+                "--no-hyphenation --nh; disable automatic hyphenation"
+                "--no-subpages; don't try subpages like git-diff for \`git-diff'"
+                "--regex; use regular expression in searching"
+                "--warnings::; specify groff warning types to enable"
+                "--wildcard; use shell-like pattern matching in searching"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(C|--config-file)
-		complete -P "$PREFIX" -f
-		;;
-	(H|--html)
-		complete -P "$PREFIX" --external-command
-		;;
-	(M|--manpath)
-		typeset targetword="${TARGETWORD#"$PREFIX"}"
-		targetword=${targetword##*:}
-		PREFIX=${TARGETWORD%"$targetword"}
-		complete -P "$PREFIX" -S / -T -d
-		;;
-	('')
-		case $TARGETWORD in
-		(*/*)
-			complete -f
-			;;
-		(*)
-			command -f completion/man::operand
-			;;
-		esac
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (C|--config-file)
+                complete -P "$PREFIX" -f
+                ;;
+        (H|--html)
+                complete -P "$PREFIX" --external-command
+                ;;
+        (M|--manpath)
+                typeset targetword="${TARGETWORD#"$PREFIX"}"
+                targetword=${targetword##*:}
+                PREFIX=${TARGETWORD%"$targetword"}
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        ('')
+                case $TARGETWORD in
+                (*/*)
+                        complete -f
+                        ;;
+                (*)
+                        command -f completion/man::operand
+                        ;;
+                esac
+                ;;
+        esac
 
 }
 
 function completion/man::operand {
 
-	typeset i=1 sections= manpath=
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i]} in
-		(--)
-			if [ $((i+1)) -le ${WORDS[#]} ]; then
-				case ${WORDS[i+1]} in ([[:digit:]]*)
-					sections=${WORDS[i+1]}
-				esac
-			fi
-			break
-			;;
-		(-M*)
-			manpath=${WORDS[i]#-M}
-			;;
-		(-s*)
-			sections=${WORDS[i]#-s}
-			;;
-		esac
-		i=$((i+1))
-	done
-	IFS=':,'
-	sections=($sections)
+        typeset i=1 sections= manpath=
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i]} in
+                (--)
+                        if [ $((i+1)) -le ${WORDS[#]} ]; then
+                                case ${WORDS[i+1]} in ([[:digit:]]*)
+                                        sections=${WORDS[i+1]}
+                                esac
+                        fi
+                        break
+                        ;;
+                (-M*)
+                        manpath=${WORDS[i]#-M}
+                        ;;
+                (-s*)
+                        sections=${WORDS[i]#-s}
+                        ;;
+                esac
+                i=$((i+1))
+        done
+        IFS=':,'
+        sections=($sections)
 
-	[ "$manpath" ] ||
-	manpath=$(manpath 2>/dev/null) ||
-	manpath=${MANPATH:-/usr/man:/usr/share/man:/usr/local/man:/usr/local/share/man}
-	IFS=:
-	manpath=($manpath)
-	IFS=
+        [ "$manpath" ] ||
+        manpath=$(manpath 2>/dev/null) ||
+        manpath=${MANPATH:-/usr/man:/usr/share/man:/usr/local/man:/usr/local/share/man}
+        IFS=:
+        manpath=($manpath)
+        IFS=
 
-	typeset saveopts=$(set +o)
-	set +o noglob -o nullglob +o nocaseglob
+        typeset saveopts=$(set +o)
+        set +o noglob -o nullglob +o nocaseglob
 
-	typeset mandir section
-	for mandir in "$manpath"; do
-		if [ ${sections[#]} -gt 0 ]; then
-			for section in "$sections"; do
-				command -f completion/man::operand::search "${mandir}/man${section}"
-				command -f completion/man::operand::search "${mandir}/sman${section}"
-				command -f completion/man::operand::search "${mandir}/man${section}.Z"
-			done
-		else
-			for mandir in "$mandir"/man* "$mandir"/sman*; do
-				command -f completion/man::operand::search "${mandir}"
-			done
-		fi
-	done
+        typeset mandir section
+        for mandir in "$manpath"; do
+                if [ ${sections[#]} -gt 0 ]; then
+                        for section in "$sections"; do
+                                command -f completion/man::operand::search "${mandir}/man${section}"
+                                command -f completion/man::operand::search "${mandir}/sman${section}"
+                                command -f completion/man::operand::search "${mandir}/man${section}.Z"
+                        done
+                else
+                        for mandir in "$mandir"/man* "$mandir"/sman*; do
+                                command -f completion/man::operand::search "${mandir}"
+                        done
+                fi
+        done
 
-	eval "$saveopts"
+        eval "$saveopts"
 
 }
 
 function completion/man::operand::search {
 
-	typeset files
-	files=("$1"/*)
-	files=("${${${${${${files##*/}%.[gx]z}%.bz2}%.lzma}%.Z}%.*}")
-	complete -R '' -- "$files"
+        typeset files
+        files=("$1"/*)
+        files=("${${${${${${files##*/}%.[gx]z}%.bz2}%.lzma}%.Z}%.*}")
+        complete -R '' -- "$files"
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

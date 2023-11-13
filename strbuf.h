@@ -61,33 +61,33 @@ static inline xstrbuf_T *sb_truncate(xstrbuf_T *buf, size_t newlength)
 static inline xstrbuf_T *sb_clear(xstrbuf_T *buf)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_replace_force(
-	xstrbuf_T *restrict buf, size_t i, size_t bn,
-	const char *restrict s, size_t sn)
+        xstrbuf_T *restrict buf, size_t i, size_t bn,
+        const char *restrict s, size_t sn)
     __attribute__((nonnull));
 extern xstrbuf_T *sb_replace(
-	xstrbuf_T *restrict buf, size_t i, size_t bn,
-	const char *restrict s, size_t sn)
+        xstrbuf_T *restrict buf, size_t i, size_t bn,
+        const char *restrict s, size_t sn)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ninsert_force(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ninsert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_insert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s)
+        xstrbuf_T *restrict buf, size_t i, const char *restrict s)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ncat_force(
-	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_ncat(
-	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, const char *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_cat(
-	xstrbuf_T *restrict buf, const char *restrict s)
+        xstrbuf_T *restrict buf, const char *restrict s)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_catfree(
-	xstrbuf_T *restrict buf, char *restrict s)
+        xstrbuf_T *restrict buf, char *restrict s)
     __attribute__((nonnull));
 static inline xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
@@ -96,10 +96,10 @@ extern xstrbuf_T *sb_ccat(xstrbuf_T *buf, char c)
 extern xstrbuf_T *sb_ccat_repeat(xstrbuf_T *buf, char c, size_t n)
     __attribute__((nonnull));
 extern _Bool sb_wccat(
-	xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
+        xstrbuf_T *restrict buf, wchar_t c, mbstate_t *restrict ps)
     __attribute__((nonnull));
 extern wchar_t *sb_wcsncat(xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
+        const wchar_t *restrict s, size_t n, mbstate_t *restrict ps)
     __attribute__((nonnull));
 #if HAVE_WCSNRTOMBS
 static inline
@@ -107,13 +107,13 @@ static inline
 extern
 #endif
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, mbstate_t *restrict ps)
+        const wchar_t *restrict s, mbstate_t *restrict ps)
     __attribute__((nonnull));
 extern int sb_vprintf(
-	xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
+        xstrbuf_T *restrict buf, const char *restrict format, va_list ap)
     __attribute__((nonnull(1,2),format(printf,2,0)));
 extern int sb_printf(
-	xstrbuf_T *restrict buf, const char *restrict format, ...)
+        xstrbuf_T *restrict buf, const char *restrict format, ...)
     __attribute__((nonnull(1,2),format(printf,2,3)));
 
 static inline xwcsbuf_T *wb_init(xwcsbuf_T *buf)
@@ -135,33 +135,33 @@ static inline xwcsbuf_T *wb_truncate(xwcsbuf_T *buf, size_t newlength)
 static inline xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_replace_force(
-	xwcsbuf_T *restrict buf, size_t i, size_t bn,
-	const wchar_t *restrict s, size_t sn)
+        xwcsbuf_T *restrict buf, size_t i, size_t bn,
+        const wchar_t *restrict s, size_t sn)
     __attribute__((nonnull));
 extern xwcsbuf_T *wb_replace(
-	xwcsbuf_T *restrict buf, size_t i, size_t bn,
-	const wchar_t *restrict s, size_t sn)
+        xwcsbuf_T *restrict buf, size_t i, size_t bn,
+        const wchar_t *restrict s, size_t sn)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ninsert_force(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ninsert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_insert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ncat_force(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_ncat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_cat(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict s)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_catfree(
-	xwcsbuf_T *restrict buf, wchar_t *restrict s)
+        xwcsbuf_T *restrict buf, wchar_t *restrict s)
     __attribute__((nonnull));
 static inline xwcsbuf_T *wb_remove(xwcsbuf_T *buf, size_t i, size_t n)
     __attribute__((nonnull));
@@ -170,10 +170,10 @@ extern xwcsbuf_T *wb_wccat(xwcsbuf_T *buf, wchar_t c)
 extern char *wb_mbscat(xwcsbuf_T *restrict buf, const char *restrict s)
     __attribute__((nonnull));
 extern int wb_vwprintf(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict format, va_list ap)
     __attribute__((nonnull(1,2)));
 extern int wb_wprintf(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict format, ...)
     __attribute__((nonnull(1,2)));
 
 extern char *malloc_wcsntombs(const wchar_t *s, size_t n)
@@ -254,7 +254,7 @@ xstrbuf_T *sb_clear(xstrbuf_T *buf)
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ninsert_force(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
     return sb_replace_force(buf, i, 0, s, n);
 }
@@ -265,7 +265,7 @@ xstrbuf_T *sb_ninsert_force(
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ninsert(
-	xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, size_t i, const char *restrict s, size_t n)
 {
     return sb_replace(buf, i, 0, s, n);
 }
@@ -282,7 +282,7 @@ xstrbuf_T *sb_insert(xstrbuf_T *restrict buf, size_t i, const char *restrict s)
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xstrbuf_T *sb_ncat_force(
-	xstrbuf_T *restrict buf, const char *restrict s, size_t n)
+        xstrbuf_T *restrict buf, const char *restrict s, size_t n)
 {
     return sb_replace_force(buf, buf->length, 0, s, n);
 }
@@ -321,7 +321,7 @@ xstrbuf_T *sb_remove(xstrbuf_T *buf, size_t i, size_t n)
 
 #if HAVE_WCSNRTOMBS
 wchar_t *sb_wcscat(xstrbuf_T *restrict buf,
-	const wchar_t *restrict s, mbstate_t *restrict ps)
+        const wchar_t *restrict s, mbstate_t *restrict ps)
 {
     return sb_wcsncat(buf, s, Size_max, ps);
 }
@@ -376,7 +376,7 @@ xwcsbuf_T *wb_clear(xwcsbuf_T *buf)
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ninsert_force(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
     return wb_replace_force(buf, i, 0, s, n);
 }
@@ -387,7 +387,7 @@ xwcsbuf_T *wb_ninsert_force(
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ninsert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s, size_t n)
 {
     return wb_replace(buf, i, 0, s, n);
 }
@@ -396,7 +396,7 @@ xwcsbuf_T *wb_ninsert(
  * If (buf->length <= i), `s' is appended to the end of the buffer.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_insert(
-	xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
+        xwcsbuf_T *restrict buf, size_t i, const wchar_t *restrict s)
 {
     return wb_replace(buf, i, 0, s, Size_max);
 }
@@ -405,7 +405,7 @@ xwcsbuf_T *wb_insert(
  * No boundary checks are done and null characters are not considered special.
  * `s' must not be part of `buf->contents'. */
 xwcsbuf_T *wb_ncat_force(
-	xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
+        xwcsbuf_T *restrict buf, const wchar_t *restrict s, size_t n)
 {
     return wb_replace_force(buf, buf->length, 0, s, n);
 }
@@ -476,4 +476,4 @@ wchar_t *realloc_mbstowcs(char *s)
 #endif /* YASH_STRBUF_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

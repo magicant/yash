@@ -4,35 +4,35 @@
 
 function completion/trap {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"p --print; print current trap settings"
-	"--help"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "p --print; print current trap settings"
+        "--help"
+        ) #<#
 
-	command -f completion//parseoptions -es
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		typeset i=1 print=false
-		while [ $i -le ${WORDS[#]} ]; do
-			case ${WORDS[i++]} in
-				(-p|--print) print=true ;;
-				(--)         break ;;
-			esac
-		done
-		if $print || [ $i -le ${WORDS[#]} ]; then
-			complete --signal
-			complete -P "$PREFIX" EXIT
-		else
-			complete -T -c
-		fi
-		;;
-	esac
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                typeset i=1 print=false
+                while [ $i -le ${WORDS[#]} ]; do
+                        case ${WORDS[i++]} in
+                                (-p|--print) print=true ;;
+                                (--)         break ;;
+                        esac
+                done
+                if $print || [ $i -le ${WORDS[#]} ]; then
+                        complete --signal
+                        complete -P "$PREFIX" EXIT
+                else
+                        complete -T -c
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

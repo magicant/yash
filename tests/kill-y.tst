@@ -3,7 +3,7 @@
 # $1 = LINENO, $2 = signal name w/o SIG
 test_printing_signal_name_from_name() {
     testcase "$1" -e 0 "printing signal name $2 from name" \
-	3<<__IN__ 4<<__OUT__ 5</dev/null
+        3<<__IN__ 4<<__OUT__ 5</dev/null
 kill -l $2
 __IN__
 $2
@@ -24,7 +24,7 @@ __IN__
 # $1 = LINENO, $2 = signal name w/o SIG, $3 = prefix for $2
 test_sending_signal_kill() {
     testcase "$1" -e "$2" "sending signal: $3$2" \
-	3<<__IN__ 4</dev/null 5</dev/null
+        3<<__IN__ 4</dev/null 5</dev/null
 kill $3$2 \$\$
 __IN__
 }
@@ -35,7 +35,7 @@ test_sending_signal_kill "$LINENO" USR2 '-n '
 # $1 = LINENO, $2 = signal name w/o SIG, $3 = signal option for the built-in
 test_sending_signal_num_kill_self() {
     testcase "$1" -e "$2" "sending signal: $3" \
-	3<<__IN__ 4</dev/null 5</dev/null
+        3<<__IN__ 4</dev/null 5</dev/null
 kill $3 \$\$
 __IN__
 }
@@ -248,4 +248,4 @@ __ERR__
 #'
 #`
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

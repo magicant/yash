@@ -6,154 +6,154 @@
 
 function completion/sort {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"b ${long:+--ignore-leading-blanks}; ignore leading blanks in sort keys"
-	"C; like -c, but don't report disorders"
-	"c; check if the input is well-sorted"
-	"d ${long:+--dictionary-order}; consider blank or alphanumeric characters only"
-	"f ${long:+--ignore-case}; case-insensitive comparison"
-	"i ${long:+--ignore-nonprinting}; consider printable characters only"
-	"k: ${long:+--key:}; specify the sort field"
-	"m ${long:+--merge}; assume all input files are already sorted"
-	"n ${long:+--numeric-sort}; compare numeric values"
-	"o: ${long:+--output:}; specify the output file"
-	"r ${long:+--reverse}; sort in reverse order"
-	"t: ${long:+--field-separator:}; specify the field separator character"
-	"u ${long:+--unique}; make equal lines unique"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "b ${long:+--ignore-leading-blanks}; ignore leading blanks in sort keys"
+        "C; like -c, but don't report disorders"
+        "c; check if the input is well-sorted"
+        "d ${long:+--dictionary-order}; consider blank or alphanumeric characters only"
+        "f ${long:+--ignore-case}; case-insensitive comparison"
+        "i ${long:+--ignore-nonprinting}; consider printable characters only"
+        "k: ${long:+--key:}; specify the sort field"
+        "m ${long:+--merge}; assume all input files are already sorted"
+        "n ${long:+--numeric-sort}; compare numeric values"
+        "o: ${long:+--output:}; specify the output file"
+        "r ${long:+--reverse}; sort in reverse order"
+        "t: ${long:+--field-separator:}; specify the field separator character"
+        "u ${long:+--unique}; make equal lines unique"
+        ) #<#
 
-	case $type in (GNU|*BSD|SunOS|HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"T: ${long:+--temporary-directory:}; specify the directory to put temporary files in"
-		) #<#
-		case $type in (GNU|SunOS|HP-UX)
-			OPTIONS=("$OPTIONS" #>#
-			"M ${long:+--month-sort}; compare month names"
-			) #<#
-			case $type in (GNU|SunOS)
-				OPTIONS=("$OPTIONS" #>#
-				"S: ${long:+--buffer-size:}; specify the initial buffer size in 1024 byte units"
-				) #<#
-			esac
-		esac
-		case $type in (GNU|*BSD)
-			OPTIONS=("$OPTIONS" #>#
-			"s ${long:+--stable}; stable sort"
-			) #<#
-			case $type in (GNU|OpenBSD)
-				OPTIONS=("$OPTIONS" #>#
-				"z ${long:+--zero-terminated}; use null bytes as the line separator"
-				) #<#
-			esac
-			case $type in (*BSD)
-				OPTIONS=("$OPTIONS" #>#
-				"R:; specify the line separator"
-				) #<#
-			esac
-		esac
-	esac
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"--batch-size:; specify the number of inputs to sort at once"
-		"--check::; check if the input is well-sorted"
-		"--compress-program:; specify the program to compress temporary files"
-		"--debug; print debugging messages"
-		"--files0-from:; specify a file containing null-separated filenames to read"
-		"g --general-numeric-sort; compare floating-point numbers"
-		"h --human-numeric-sort; compare numeric values followed by SI suffixes"
-		"--parallel:; specify the number of sort processes to run at a time"
-		"R --random-sort; sort in random order"
-		"--random-source:; specify the random seed file"
-		"--sort:; specify comparison type"
-		"V --version-sort; compare version numbers"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(OpenBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"H; use merge sort rather than radix sort"
-		) #<#
-		;;
-	(NetBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"S; non-stable sort"
-		) #<#
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"A; simple byte-by-byte comparison"
-		"z:; specify the buffer size per line"
-		) #<#
-		;;
-	esac
+        case $type in (GNU|*BSD|SunOS|HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "T: ${long:+--temporary-directory:}; specify the directory to put temporary files in"
+                ) #<#
+                case $type in (GNU|SunOS|HP-UX)
+                        OPTIONS=("$OPTIONS" #>#
+                        "M ${long:+--month-sort}; compare month names"
+                        ) #<#
+                        case $type in (GNU|SunOS)
+                                OPTIONS=("$OPTIONS" #>#
+                                "S: ${long:+--buffer-size:}; specify the initial buffer size in 1024 byte units"
+                                ) #<#
+                        esac
+                esac
+                case $type in (GNU|*BSD)
+                        OPTIONS=("$OPTIONS" #>#
+                        "s ${long:+--stable}; stable sort"
+                        ) #<#
+                        case $type in (GNU|OpenBSD)
+                                OPTIONS=("$OPTIONS" #>#
+                                "z ${long:+--zero-terminated}; use null bytes as the line separator"
+                                ) #<#
+                        esac
+                        case $type in (*BSD)
+                                OPTIONS=("$OPTIONS" #>#
+                                "R:; specify the line separator"
+                                ) #<#
+                        esac
+                esac
+        esac
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "--batch-size:; specify the number of inputs to sort at once"
+                "--check::; check if the input is well-sorted"
+                "--compress-program:; specify the program to compress temporary files"
+                "--debug; print debugging messages"
+                "--files0-from:; specify a file containing null-separated filenames to read"
+                "g --general-numeric-sort; compare floating-point numbers"
+                "h --human-numeric-sort; compare numeric values followed by SI suffixes"
+                "--parallel:; specify the number of sort processes to run at a time"
+                "R --random-sort; sort in random order"
+                "--random-source:; specify the random seed file"
+                "--sort:; specify comparison type"
+                "V --version-sort; compare version numbers"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (OpenBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "H; use merge sort rather than radix sort"
+                ) #<#
+                ;;
+        (NetBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "S; non-stable sort"
+                ) #<#
+                ;;
+        (HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "A; simple byte-by-byte comparison"
+                "z:; specify the buffer size per line"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([RStz]|--batch-size|--buffer-size|--field-separator|--parallel)
-		;;
-	(--check) #>>#
-		complete -P "$PREFIX" -D "don't report disorders" quiet silent
-		complete -P "$PREFIX" -D "report disorders" diagnose-first
-		;; #<<#
-	(--compress-program)
-		WORDS=()
-		command -f completion//reexecute -e
-		;;
-	(k|--key)
-		typeset word="${TARGETWORD#"$PREFIX"}"
-		case $word in (*[[:alnum:]])
-			#>>#
-			complete -T -P "$TARGETWORD" -D "ignore leading blanks in sort keys" b
-			complete -T -P "$TARGETWORD" -D "consider blank or alphanumeric characters only" d
-			complete -T -P "$TARGETWORD" -D "case-insensitive comparison" f
-			complete -T -P "$TARGETWORD" -D "consider printable characters only" i
-			complete -T -P "$TARGETWORD" -D "compare numeric values" n
-			complete -T -P "$TARGETWORD" -D "sort in reverse order" r
-			#<<#
-			case $type in (GNU|SunOS|HP-UX) #>>#
-				complete -T -P "$TARGETWORD" -D "compare month names" M
-			esac #<<#
-			case $type in (GNU|SunOS|HP-UX) #>>#
-				complete -T -P "$TARGETWORD" -D "compare floating-point numbers" g
-				complete -T -P "$TARGETWORD" -D "compare numeric values followed by SI suffixes" h
-				complete -T -P "$TARGETWORD" -D "sort in random order" R
-				complete -T -P "$TARGETWORD" -D "compare version numbers" V
-			esac #<<#
-		esac
-		;;
-	(--sort) #>>#
-		complete -P "$PREFIX" -D "compare floating-point numbers" general-numeric
-		complete -P "$PREFIX" -D "compare numeric values followed by SI suffixes" human-numeric
-		complete -P "$PREFIX" -D "compare month names" month
-		complete -P "$PREFIX" -D "compare numeric values" numeric
-		complete -P "$PREFIX" -D "compare version numbers" version
-		complete -P "$PREFIX" -D "sort in random order" random
-		complete -P "$PREFIX" -D "" 
-		;; #<<#
-	(T|--temporary-directory)
-		complete -P "$PREFIX" -S / -T -d
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([RStz]|--batch-size|--buffer-size|--field-separator|--parallel)
+                ;;
+        (--check) #>>#
+                complete -P "$PREFIX" -D "don't report disorders" quiet silent
+                complete -P "$PREFIX" -D "report disorders" diagnose-first
+                ;; #<<#
+        (--compress-program)
+                WORDS=()
+                command -f completion//reexecute -e
+                ;;
+        (k|--key)
+                typeset word="${TARGETWORD#"$PREFIX"}"
+                case $word in (*[[:alnum:]])
+                        #>>#
+                        complete -T -P "$TARGETWORD" -D "ignore leading blanks in sort keys" b
+                        complete -T -P "$TARGETWORD" -D "consider blank or alphanumeric characters only" d
+                        complete -T -P "$TARGETWORD" -D "case-insensitive comparison" f
+                        complete -T -P "$TARGETWORD" -D "consider printable characters only" i
+                        complete -T -P "$TARGETWORD" -D "compare numeric values" n
+                        complete -T -P "$TARGETWORD" -D "sort in reverse order" r
+                        #<<#
+                        case $type in (GNU|SunOS|HP-UX) #>>#
+                                complete -T -P "$TARGETWORD" -D "compare month names" M
+                        esac #<<#
+                        case $type in (GNU|SunOS|HP-UX) #>>#
+                                complete -T -P "$TARGETWORD" -D "compare floating-point numbers" g
+                                complete -T -P "$TARGETWORD" -D "compare numeric values followed by SI suffixes" h
+                                complete -T -P "$TARGETWORD" -D "sort in random order" R
+                                complete -T -P "$TARGETWORD" -D "compare version numbers" V
+                        esac #<<#
+                esac
+                ;;
+        (--sort) #>>#
+                complete -P "$PREFIX" -D "compare floating-point numbers" general-numeric
+                complete -P "$PREFIX" -D "compare numeric values followed by SI suffixes" human-numeric
+                complete -P "$PREFIX" -D "compare month names" month
+                complete -P "$PREFIX" -D "compare numeric values" numeric
+                complete -P "$PREFIX" -D "compare version numbers" version
+                complete -P "$PREFIX" -D "sort in random order" random
+                complete -P "$PREFIX" -D "" 
+                ;; #<<#
+        (T|--temporary-directory)
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

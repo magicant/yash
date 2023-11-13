@@ -108,4 +108,4 @@ test_O -d -e n 'dot script not found, relative, interactive shell, exit status' 
 . ./_no_such_file_
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

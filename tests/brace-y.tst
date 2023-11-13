@@ -160,4 +160,4 @@ __IN__
 [{{aa,b}{1,22,333}}{1..9}]
 __OUT__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

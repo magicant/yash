@@ -6,91 +6,91 @@
 
 function completion/env {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"i ${long:+--ignore-environment}; ignore variables exported from the shell"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "i ${long:+--ignore-environment}; ignore variables exported from the shell"
+        ) #<#
 
-	case $type in (GNU|FreeBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"u: ${long:+--unset:}; specify a variable to remove from the environment"
-		) #<#
-	esac
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"0 --null; separate variables by null bytes in printing"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(FreeBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"P:; specify directory paths to search for the invoked command"
-		"S:; specify a string to be parsed before processing"
-		"v; describe what is going on during the process"
-		) #<#
-		;;
-	esac
+        case $type in (GNU|FreeBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "u: ${long:+--unset:}; specify a variable to remove from the environment"
+                ) #<#
+        esac
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "0 --null; separate variables by null bytes in printing"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (FreeBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "P:; specify directory paths to search for the invoked command"
+                "S:; specify a string to be parsed before processing"
+                "v; describe what is going on during the process"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(P)
-		typeset targetword="${TARGETWORD#"$PREFIX"}"
-		targetword=${targetword##*:}
-		PREFIX=${TARGETWORD%"$targetword"}
-		complete -T -P "$PREFIX" -S / -d
-		;;
-	(S)
-		;;
-	(u|--unset)
-		complete -P "$PREFIX" -v
-		;;
-	(*)
-		command -f completion//getoperands
-		typeset i=1
-		while [ $i -le ${WORDS[#]} ]; do
-			case ${WORDS[i]} in
-			(*=*)
-				;;
-			(*)
-				WORDS=("${WORDS[i,-1]}")
-				command -f completion//reexecute
-				return
-				;;
-			esac
-			i=$((i+1))
-		done
-		case $TARGETWORD in
-		(*=*)
-			typeset targetword="${TARGETWORD#"$PREFIX"}"
-			targetword=${targetword#*=}
-			targetword=${targetword##*:}
-			PREFIX=${TARGETWORD%"$targetword"}
-			complete -P "$PREFIX" -f
-			;;
-		(*)
-			complete -T -S = -v
-			WORDS=()
-			command -f completion//reexecute -e
-			;;
-		esac
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (P)
+                typeset targetword="${TARGETWORD#"$PREFIX"}"
+                targetword=${targetword##*:}
+                PREFIX=${TARGETWORD%"$targetword"}
+                complete -T -P "$PREFIX" -S / -d
+                ;;
+        (S)
+                ;;
+        (u|--unset)
+                complete -P "$PREFIX" -v
+                ;;
+        (*)
+                command -f completion//getoperands
+                typeset i=1
+                while [ $i -le ${WORDS[#]} ]; do
+                        case ${WORDS[i]} in
+                        (*=*)
+                                ;;
+                        (*)
+                                WORDS=("${WORDS[i,-1]}")
+                                command -f completion//reexecute
+                                return
+                                ;;
+                        esac
+                        i=$((i+1))
+                done
+                case $TARGETWORD in
+                (*=*)
+                        typeset targetword="${TARGETWORD#"$PREFIX"}"
+                        targetword=${targetword#*=}
+                        targetword=${targetword##*:}
+                        PREFIX=${TARGETWORD%"$targetword"}
+                        complete -P "$PREFIX" -f
+                        ;;
+                (*)
+                        complete -T -S = -v
+                        WORDS=()
+                        command -f completion//reexecute -e
+                        ;;
+                esac
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

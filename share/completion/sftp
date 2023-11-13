@@ -3,8 +3,8 @@
 # Completion script for the "sftp" command.
 
 function completion/sftp {
-	command -f completion//reexecute ssh
+        command -f completion//reexecute ssh
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

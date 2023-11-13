@@ -5,177 +5,177 @@
 
 function completion/less {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"? --help; show help"
-	"a --search-skip-screen; don't match in the current screen when searching"
-	"B --auto-buffers; don't increase the buffer size for data from the standard input"
-	"b: --buffers:; specify the buffer size in kilobytes"
-	"c C --clear-screen --CLEAR-SCREEN; don't scroll the screen"
-	"d --dumb; don't print an error message for a dumb terminal"
-	"E --QUIT-AT-EOF; exit immediately after printing the last line of the last file"
-	"e --quit-at-eof; exit when scrolling beyond the last line of the last file"
-	"F --quit-if-one-screen; exit immediately if the entire file fits one screen"
-	"f --force; open non-regular files"
-	"g --hilite-search; highlight matches for the last search only"
-	"G --HILITE-SEARCH; don't highlight any matches for searches"
-	"--old-bot; use the old bottom-of-screen behavior"
-	"h: --max-back-scroll:; specify the max number of lines to scroll backward"
-	"I --IGNORE-CASE; case-insensitive search"
-	"i --ignore-case; case-insensitive search if the pattern is in all lowercase"
-	"J --status-column; show a status column at the left"
-	"j: --jump-target:; specify the line where a jump target is positioned"
-	"K --quit-on-intr; exit when interrupted"
-	"k: --lesskey-file:; specify a lesskey file"
-	"L --no-lessopen; ignore the \$LESSOPEN variable"
-	"M --LONG-PROMPT; use the very long prompt"
-	"m --long-prompt; use the long prompt"
-	"N --LINE-NUMBERS; show line numbers at the left"
-	"n --line-numbers; don't handle line numbers"
-	"O: --LOG-FILE:; copy the standard input to the specified file (always overwrite)"
-	"o: --log-file:; copy the standard input to the specified file"
-	"P: --prompt:; specify the prompt"
-	"p: --pattern:; start at the specified pattern"
-	"Q --QUIET --SILENT; never use the terminal bell"
-	"q --quiet --silent; don't use the terminal bell for minor errors"
-	"R --RAW-CONTROL-CHARS; output terminal control sequence as is"
-	"r --raw-control-chars; output all control characters as is"
-	"S --chop-long-lines; don't wrap long lines"
-	"s --squeeze-blank-lines; squeeze adjacent empty lines into one"
-	"T: --tag-file:; specify the tags file"
-	"t: --tag:; specify an identifier to jump"
-	"U --UNDERLINE-SPECIAL; disable special treatment of backspace, tab and carriage return"
-	"u --underline-special; disable special treatment of backspace and carriage return"
-	"V --version; print version info"
-	"w --HILITE-UNREAD; highlight the new line after any forward movement"
-	"w --hilite-unread; highlight the new line after forward-screen"
-	"X --no-init; don't initialize the screen"
-	"x: --tabs:; specify the width of a tab"
-	"--no-keypad; don't initialize the screen for the keypad"
-	"y: --max-forw-scroll:; specify the forward scroll limit"
-	"z: --window:; specify the vertical scroll amount"
-	"\": --quotes:; specify the shell quote characters"
-	"~ --tilde; don't show tildes after the end of file"
-	"#: --shift:; specify the horizontal scroll amount"
-	"--follow-name; reopen the file when the file is recreated during the F command"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "? --help; show help"
+        "a --search-skip-screen; don't match in the current screen when searching"
+        "B --auto-buffers; don't increase the buffer size for data from the standard input"
+        "b: --buffers:; specify the buffer size in kilobytes"
+        "c C --clear-screen --CLEAR-SCREEN; don't scroll the screen"
+        "d --dumb; don't print an error message for a dumb terminal"
+        "E --QUIT-AT-EOF; exit immediately after printing the last line of the last file"
+        "e --quit-at-eof; exit when scrolling beyond the last line of the last file"
+        "F --quit-if-one-screen; exit immediately if the entire file fits one screen"
+        "f --force; open non-regular files"
+        "g --hilite-search; highlight matches for the last search only"
+        "G --HILITE-SEARCH; don't highlight any matches for searches"
+        "--old-bot; use the old bottom-of-screen behavior"
+        "h: --max-back-scroll:; specify the max number of lines to scroll backward"
+        "I --IGNORE-CASE; case-insensitive search"
+        "i --ignore-case; case-insensitive search if the pattern is in all lowercase"
+        "J --status-column; show a status column at the left"
+        "j: --jump-target:; specify the line where a jump target is positioned"
+        "K --quit-on-intr; exit when interrupted"
+        "k: --lesskey-file:; specify a lesskey file"
+        "L --no-lessopen; ignore the \$LESSOPEN variable"
+        "M --LONG-PROMPT; use the very long prompt"
+        "m --long-prompt; use the long prompt"
+        "N --LINE-NUMBERS; show line numbers at the left"
+        "n --line-numbers; don't handle line numbers"
+        "O: --LOG-FILE:; copy the standard input to the specified file (always overwrite)"
+        "o: --log-file:; copy the standard input to the specified file"
+        "P: --prompt:; specify the prompt"
+        "p: --pattern:; start at the specified pattern"
+        "Q --QUIET --SILENT; never use the terminal bell"
+        "q --quiet --silent; don't use the terminal bell for minor errors"
+        "R --RAW-CONTROL-CHARS; output terminal control sequence as is"
+        "r --raw-control-chars; output all control characters as is"
+        "S --chop-long-lines; don't wrap long lines"
+        "s --squeeze-blank-lines; squeeze adjacent empty lines into one"
+        "T: --tag-file:; specify the tags file"
+        "t: --tag:; specify an identifier to jump"
+        "U --UNDERLINE-SPECIAL; disable special treatment of backspace, tab and carriage return"
+        "u --underline-special; disable special treatment of backspace and carriage return"
+        "V --version; print version info"
+        "w --HILITE-UNREAD; highlight the new line after any forward movement"
+        "w --hilite-unread; highlight the new line after forward-screen"
+        "X --no-init; don't initialize the screen"
+        "x: --tabs:; specify the width of a tab"
+        "--no-keypad; don't initialize the screen for the keypad"
+        "y: --max-forw-scroll:; specify the forward scroll limit"
+        "z: --window:; specify the vertical scroll amount"
+        "\": --quotes:; specify the shell quote characters"
+        "~ --tilde; don't show tildes after the end of file"
+        "#: --shift:; specify the horizontal scroll amount"
+        "--follow-name; reopen the file when the file is recreated during the F command"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([bhjxyz\"#]|--buffers|--max-back-scroll|--jump-target|--tabs\
-	|--max-forw-scroll|--window|--quotes|--shift)
-		;;
-	(P|--prompt)
-		typeset word="${TARGETWORD#"$PREFIX"}"
-		if [ -z "$word" ]; then #>>#
-			complete -T -P "$PREFIX" -D "set the result format of the = command" =
-			complete -T -P "$PREFIX" -D "set the help screen prompt" h
-			complete -T -P "$PREFIX" -D "set the very long prompt" M
-			complete -T -P "$PREFIX" -D "set the long prompt" m
-			complete -T -P "$PREFIX" -D "set the short prompt" s
-			complete -T -P "$PREFIX" -D "set the F command prompt" w
-		else #<<#
-			case $word in (*%*)
-				typeset prefix="${TARGETWORD%\%*}" #>>#
-				complete -T -P "$prefix" -D "byte offset of the top line" '%bt'
-				complete -T -P "$prefix" -D "byte offset of the middle line" '%bm'
-				complete -T -P "$prefix" -D "byte offset of the bottom line" '%bb'
-				complete -T -P "$prefix" -D "byte offset of the line just after the bottom" '%bB'
-				complete -T -P "$prefix" -D "byte offset of the target line" '%bj'
-				complete -T -P "$prefix" -D "file size" '%B' '%s'
-				complete -T -P "$prefix" -D "column number of the leftmost column" '%c'
-				complete -T -P "$prefix" -D "page number of the top line" '%dt'
-				complete -T -P "$prefix" -D "page number of the middle line" '%dm'
-				complete -T -P "$prefix" -D "page number of the bottom line" '%db'
-				complete -T -P "$prefix" -D "page number of the line just after the bottom" '%dB'
-				complete -T -P "$prefix" -D "page number of the target line" '%dj'
-				complete -T -P "$prefix" -D "number of pages" '%D'
-				complete -T -P "$prefix" -D "editor name" '%E'
-				complete -T -P "$prefix" -D "filename" '%f'
-				complete -T -P "$prefix" -D "index of the current file in the operands" '%i'
-				complete -T -P "$prefix" -D "line number of the top line" '%lt'
-				complete -T -P "$prefix" -D "line number of the middle line" '%lm'
-				complete -T -P "$prefix" -D "line number of the bottom line" '%lb'
-				complete -T -P "$prefix" -D "line number of the line just after the bottom" '%lB'
-				complete -T -P "$prefix" -D "line number of the target line" '%lj'
-				complete -T -P "$prefix" -D "number of lines" '%L'
-				complete -T -P "$prefix" -D "number of the operands files" '%m'
-				complete -T -P "$prefix" -D "line number percent of the top line" '%Pt'
-				complete -T -P "$prefix" -D "line number percent of the middle line" '%Pm'
-				complete -T -P "$prefix" -D "line number percent of the bottom line" '%Pb'
-				complete -T -P "$prefix" -D "line number percent of the line just after the bottom" '%PB'
-				complete -T -P "$prefix" -D "line number percent of the target line" '%Pj'
-				complete -T -P "$prefix" -D "byte offset percent of the top line" '%pt'
-				complete -T -P "$prefix" -D "byte offset percent of the middle line" '%pm'
-				complete -T -P "$prefix" -D "byte offset percent of the bottom line" '%pb'
-				complete -T -P "$prefix" -D "byte offset percent of the line just after the bottom" '%pB'
-				complete -T -P "$prefix" -D "byte offset percent of the target line" '%pj'
-				complete -T -P "$prefix" -D "remove trailing spaces" '%t'
-				complete -T -P "$prefix" -D "next filename" '%x'
-			esac #<<#
-			case $word in (*\?*)
-				typeset prefix="${TARGETWORD%\?*}" #>>#
-				complete -T -P "$prefix" -D "true if there is any character before here" '?a'
-				complete -T -P "$prefix" -D "true if the value of %bt is known" '?bt'
-				complete -T -P "$prefix" -D "true if the value of %bm is known" '?bm'
-				complete -T -P "$prefix" -D "true if the value of %bb is known" '?bb'
-				complete -T -P "$prefix" -D "true if the value of %bB is known" '?bB'
-				complete -T -P "$prefix" -D "true if the value of %bj is known" '?bj'
-				complete -T -P "$prefix" -D "true if the file size is known" '?B' '?s'
-				complete -T -P "$prefix" -D "true if the text is horizontally shifted" '?c'
-				complete -T -P "$prefix" -D "true if the value of %dt is known" '?dt'
-				complete -T -P "$prefix" -D "true if the value of %dm is known" '?dm'
-				complete -T -P "$prefix" -D "true if the value of %db is known" '?db'
-				complete -T -P "$prefix" -D "true if the value of %dB is known" '?dB'
-				complete -T -P "$prefix" -D "true if the value of %dj is known" '?dj'
-				complete -T -P "$prefix" -D "true if at the end of the file" '?e'
-				complete -T -P "$prefix" -D "true if the input file is not the standard input" '?f'
-				complete -T -P "$prefix" -D "true if the value of %lt is known" '?lt'
-				complete -T -P "$prefix" -D "true if the value of %lm is known" '?lm'
-				complete -T -P "$prefix" -D "true if the value of %lb is known" '?lb'
-				complete -T -P "$prefix" -D "true if the value of %lB is known" '?lB'
-				complete -T -P "$prefix" -D "true if the value of %lj is known" '?lj'
-				complete -T -P "$prefix" -D "true if the line number of the last line is known" '?L'
-				complete -T -P "$prefix" -D "true if there are more than one input file" '?m'
-				complete -T -P "$prefix" -D "true if is the first prompt" '?n'
-				complete -T -P "$prefix" -D "true if the value of %Pt is known" '?Pt'
-				complete -T -P "$prefix" -D "true if the value of %Pm is known" '?Pm'
-				complete -T -P "$prefix" -D "true if the value of %Pb is known" '?Pb'
-				complete -T -P "$prefix" -D "true if the value of %PB is known" '?PB'
-				complete -T -P "$prefix" -D "true if the value of %Pj is known" '?Pj'
-				complete -T -P "$prefix" -D "true if the value of %pt is known" '?pt'
-				complete -T -P "$prefix" -D "true if the value of %pm is known" '?pm'
-				complete -T -P "$prefix" -D "true if the value of %pb is known" '?pb'
-				complete -T -P "$prefix" -D "true if the value of %pB is known" '?pB'
-				complete -T -P "$prefix" -D "true if the value of %pj is known" '?pj'
-				complete -T -P "$prefix" -D "true if there is a next file" '?x'
-			esac #<<#
-		fi
-		;;
-	(t|--tag)
-		typeset tagfile= word
-		for word in "${WORDS[2,-1]}"; do
-			case $word in
-				(--tag-file=*) tagfile=${word#--tag-file=} ;;
-				(-T*)          tagfile=${word#-T} ;;
-				(-*)           ;;
-				(*)            break ;;
-			esac
-		done
-		if [ -r "${tagfile:-tags}" ]; then
-			complete -P "$PREFIX" -R "!_TAG_*" -- \
-				$(cut -f 1 "${tagfile:-tags}" 2>/dev/null)
-		fi
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([bhjxyz\"#]|--buffers|--max-back-scroll|--jump-target|--tabs\
+        |--max-forw-scroll|--window|--quotes|--shift)
+                ;;
+        (P|--prompt)
+                typeset word="${TARGETWORD#"$PREFIX"}"
+                if [ -z "$word" ]; then #>>#
+                        complete -T -P "$PREFIX" -D "set the result format of the = command" =
+                        complete -T -P "$PREFIX" -D "set the help screen prompt" h
+                        complete -T -P "$PREFIX" -D "set the very long prompt" M
+                        complete -T -P "$PREFIX" -D "set the long prompt" m
+                        complete -T -P "$PREFIX" -D "set the short prompt" s
+                        complete -T -P "$PREFIX" -D "set the F command prompt" w
+                else #<<#
+                        case $word in (*%*)
+                                typeset prefix="${TARGETWORD%\%*}" #>>#
+                                complete -T -P "$prefix" -D "byte offset of the top line" '%bt'
+                                complete -T -P "$prefix" -D "byte offset of the middle line" '%bm'
+                                complete -T -P "$prefix" -D "byte offset of the bottom line" '%bb'
+                                complete -T -P "$prefix" -D "byte offset of the line just after the bottom" '%bB'
+                                complete -T -P "$prefix" -D "byte offset of the target line" '%bj'
+                                complete -T -P "$prefix" -D "file size" '%B' '%s'
+                                complete -T -P "$prefix" -D "column number of the leftmost column" '%c'
+                                complete -T -P "$prefix" -D "page number of the top line" '%dt'
+                                complete -T -P "$prefix" -D "page number of the middle line" '%dm'
+                                complete -T -P "$prefix" -D "page number of the bottom line" '%db'
+                                complete -T -P "$prefix" -D "page number of the line just after the bottom" '%dB'
+                                complete -T -P "$prefix" -D "page number of the target line" '%dj'
+                                complete -T -P "$prefix" -D "number of pages" '%D'
+                                complete -T -P "$prefix" -D "editor name" '%E'
+                                complete -T -P "$prefix" -D "filename" '%f'
+                                complete -T -P "$prefix" -D "index of the current file in the operands" '%i'
+                                complete -T -P "$prefix" -D "line number of the top line" '%lt'
+                                complete -T -P "$prefix" -D "line number of the middle line" '%lm'
+                                complete -T -P "$prefix" -D "line number of the bottom line" '%lb'
+                                complete -T -P "$prefix" -D "line number of the line just after the bottom" '%lB'
+                                complete -T -P "$prefix" -D "line number of the target line" '%lj'
+                                complete -T -P "$prefix" -D "number of lines" '%L'
+                                complete -T -P "$prefix" -D "number of the operands files" '%m'
+                                complete -T -P "$prefix" -D "line number percent of the top line" '%Pt'
+                                complete -T -P "$prefix" -D "line number percent of the middle line" '%Pm'
+                                complete -T -P "$prefix" -D "line number percent of the bottom line" '%Pb'
+                                complete -T -P "$prefix" -D "line number percent of the line just after the bottom" '%PB'
+                                complete -T -P "$prefix" -D "line number percent of the target line" '%Pj'
+                                complete -T -P "$prefix" -D "byte offset percent of the top line" '%pt'
+                                complete -T -P "$prefix" -D "byte offset percent of the middle line" '%pm'
+                                complete -T -P "$prefix" -D "byte offset percent of the bottom line" '%pb'
+                                complete -T -P "$prefix" -D "byte offset percent of the line just after the bottom" '%pB'
+                                complete -T -P "$prefix" -D "byte offset percent of the target line" '%pj'
+                                complete -T -P "$prefix" -D "remove trailing spaces" '%t'
+                                complete -T -P "$prefix" -D "next filename" '%x'
+                        esac #<<#
+                        case $word in (*\?*)
+                                typeset prefix="${TARGETWORD%\?*}" #>>#
+                                complete -T -P "$prefix" -D "true if there is any character before here" '?a'
+                                complete -T -P "$prefix" -D "true if the value of %bt is known" '?bt'
+                                complete -T -P "$prefix" -D "true if the value of %bm is known" '?bm'
+                                complete -T -P "$prefix" -D "true if the value of %bb is known" '?bb'
+                                complete -T -P "$prefix" -D "true if the value of %bB is known" '?bB'
+                                complete -T -P "$prefix" -D "true if the value of %bj is known" '?bj'
+                                complete -T -P "$prefix" -D "true if the file size is known" '?B' '?s'
+                                complete -T -P "$prefix" -D "true if the text is horizontally shifted" '?c'
+                                complete -T -P "$prefix" -D "true if the value of %dt is known" '?dt'
+                                complete -T -P "$prefix" -D "true if the value of %dm is known" '?dm'
+                                complete -T -P "$prefix" -D "true if the value of %db is known" '?db'
+                                complete -T -P "$prefix" -D "true if the value of %dB is known" '?dB'
+                                complete -T -P "$prefix" -D "true if the value of %dj is known" '?dj'
+                                complete -T -P "$prefix" -D "true if at the end of the file" '?e'
+                                complete -T -P "$prefix" -D "true if the input file is not the standard input" '?f'
+                                complete -T -P "$prefix" -D "true if the value of %lt is known" '?lt'
+                                complete -T -P "$prefix" -D "true if the value of %lm is known" '?lm'
+                                complete -T -P "$prefix" -D "true if the value of %lb is known" '?lb'
+                                complete -T -P "$prefix" -D "true if the value of %lB is known" '?lB'
+                                complete -T -P "$prefix" -D "true if the value of %lj is known" '?lj'
+                                complete -T -P "$prefix" -D "true if the line number of the last line is known" '?L'
+                                complete -T -P "$prefix" -D "true if there are more than one input file" '?m'
+                                complete -T -P "$prefix" -D "true if is the first prompt" '?n'
+                                complete -T -P "$prefix" -D "true if the value of %Pt is known" '?Pt'
+                                complete -T -P "$prefix" -D "true if the value of %Pm is known" '?Pm'
+                                complete -T -P "$prefix" -D "true if the value of %Pb is known" '?Pb'
+                                complete -T -P "$prefix" -D "true if the value of %PB is known" '?PB'
+                                complete -T -P "$prefix" -D "true if the value of %Pj is known" '?Pj'
+                                complete -T -P "$prefix" -D "true if the value of %pt is known" '?pt'
+                                complete -T -P "$prefix" -D "true if the value of %pm is known" '?pm'
+                                complete -T -P "$prefix" -D "true if the value of %pb is known" '?pb'
+                                complete -T -P "$prefix" -D "true if the value of %pB is known" '?pB'
+                                complete -T -P "$prefix" -D "true if the value of %pj is known" '?pj'
+                                complete -T -P "$prefix" -D "true if there is a next file" '?x'
+                        esac #<<#
+                fi
+                ;;
+        (t|--tag)
+                typeset tagfile= word
+                for word in "${WORDS[2,-1]}"; do
+                        case $word in
+                                (--tag-file=*) tagfile=${word#--tag-file=} ;;
+                                (-T*)          tagfile=${word#-T} ;;
+                                (-*)           ;;
+                                (*)            break ;;
+                        esac
+                done
+                if [ -r "${tagfile:-tags}" ]; then
+                        complete -P "$PREFIX" -R "!_TAG_*" -- \
+                                $(cut -f 1 "${tagfile:-tags}" 2>/dev/null)
+                fi
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

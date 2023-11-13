@@ -4,46 +4,46 @@
 # Supports Git 2.18.0.
 
 function completion/git-stash {
-	WORDS=(git stash "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git stash "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::stash:arg
-	if [ ${WORDS[#]} -le 1 ]; then #>>#
-		complete -P "$PREFIX" -D "restore stash contents" apply
-		complete -P "$PREFIX" -D "restore stash contents in a new branch" branch
-		complete -P "$PREFIX" -D "remove all stashes" clear
-		complete -P "$PREFIX" -D "create a stash commit without adding it to the stash list" create
-		complete -P "$PREFIX" -D "remove stash contents without restoring it" drop
-		complete -P "$PREFIX" -D "list existing stashes" list
-		complete -P "$PREFIX" -D "restore stash contents and remove it from the stash list" pop
-		complete -P "$PREFIX" -D "save local changes in a new stash and reset to HEAD" push
-		complete -P "$PREFIX" save
-		complete -P "$PREFIX" -D "show stash contents" show
-		complete -P "$PREFIX" -D "add an existing commit to the stash list" store
-		#<<#
-		command -f completion/git::stash:push:arg
-	else
-		WORDS=("${WORDS[2,-1]}")
-		if command -vf "completion/git::stash:${WORDS[1]}:arg" >/dev/null 2>&1; then
-			command -f "completion/git::stash:${WORDS[1]}:arg"
-		else
-			case ${WORDS[1]} in (-*)
-				command -f completion/git::stash:push:arg
-			esac
-		fi
-	fi
+        if [ ${WORDS[#]} -le 1 ]; then #>>#
+                complete -P "$PREFIX" -D "restore stash contents" apply
+                complete -P "$PREFIX" -D "restore stash contents in a new branch" branch
+                complete -P "$PREFIX" -D "remove all stashes" clear
+                complete -P "$PREFIX" -D "create a stash commit without adding it to the stash list" create
+                complete -P "$PREFIX" -D "remove stash contents without restoring it" drop
+                complete -P "$PREFIX" -D "list existing stashes" list
+                complete -P "$PREFIX" -D "restore stash contents and remove it from the stash list" pop
+                complete -P "$PREFIX" -D "save local changes in a new stash and reset to HEAD" push
+                complete -P "$PREFIX" save
+                complete -P "$PREFIX" -D "show stash contents" show
+                complete -P "$PREFIX" -D "add an existing commit to the stash list" store
+                #<<#
+                command -f completion/git::stash:push:arg
+        else
+                WORDS=("${WORDS[2,-1]}")
+                if command -vf "completion/git::stash:${WORDS[1]}:arg" >/dev/null 2>&1; then
+                        command -f "completion/git::stash:${WORDS[1]}:arg"
+                else
+                        case ${WORDS[1]} in (-*)
+                                command -f completion/git::stash:push:arg
+                        esac
+                fi
+        fi
 
 function completion/git::stash:apply:arg {
-	command -f completion/git::stash:pop:arg
+        command -f completion/git::stash:pop:arg
 }
 
 function completion/git::stash:branch:arg {
-	if [ ${WORDS[#]} -le 1 ]; then
-		command -f completion/git::completeref --branches
-	else
-		command -f completion/git::stash:completestash
-	fi
+        if [ ${WORDS[#]} -le 1 ]; then
+                command -f completion/git::completeref --branches
+        else
+                command -f completion/git::stash:completestash
+        fi
 }
 
 #function completion/git::stash:clear:arg {
@@ -53,131 +53,131 @@ function completion/git::stash:branch:arg {
 #}
 
 function completion/git::stash:drop:arg {
-	command -f completion/git::stash:pop:arg
+        command -f completion/git::stash:pop:arg
 }
 
 function completion/git::stash:list:arg {
 
-	OPTIONS=()
-	if command -vf completion/git::log:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-log; then
-		command -f completion/git::log:getopt
-	fi
+        OPTIONS=()
+        if command -vf completion/git::log:getopt >/dev/null 2>&1 ||
+                        . -AL completion/git-log; then
+                command -f completion/git::log:getopt
+        fi
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			;;
-		(*)
-			command -f completion/git::log:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        ;;
+                (*)
+                        command -f completion/git::log:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::stash:pop:arg {
 
-	OPTIONS=( #>#
-	"q --quiet; print error messages only"
-	) #<#
-	case ${WORDS[1]} in (apply|pop)
-		OPTIONS=("$OPTIONS" #>#
-		"--index; restore the index as well as the working copy"
-		) #<#
-	esac
+        OPTIONS=( #>#
+        "q --quiet; print error messages only"
+        ) #<#
+        case ${WORDS[1]} in (apply|pop)
+                OPTIONS=("$OPTIONS" #>#
+                "--index; restore the index as well as the working copy"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::stash:completestash
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::stash:completestash
+                        ;;
+        esac
 
 }
 
 function completion/git::stash:push:arg {
 
-	OPTIONS=( #>#
-	"a --all; stash all files including ignored/untracked files"
-	"k --keep-index; keep the index intact"
-	"p --patch; interactively choose patch hunks to stash"
-	"q --quiet; print error messages only"
-	"--no-keep-index; stash and reset the index"
-	"u --include-untracked; stash untracked files as well as tracked files"
-	) #<#
-	case ${WORDS[1]} in (push|-*)
-		OPTIONS=("$OPTIONS" #>#
-		"m: --message:; specify the stash message"
-		) #<#
-	esac
+        OPTIONS=( #>#
+        "a --all; stash all files including ignored/untracked files"
+        "k --keep-index; keep the index intact"
+        "p --patch; interactively choose patch hunks to stash"
+        "q --quiet; print error messages only"
+        "--no-keep-index; stash and reset the index"
+        "u --include-untracked; stash untracked files as well as tracked files"
+        ) #<#
+        case ${WORDS[1]} in (push|-*)
+                OPTIONS=("$OPTIONS" #>#
+                "m: --message:; specify the stash message"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			if [ "${WORDS[#]}" -le 1 ]; then
-				WORDS=(push "$WORDS")
-			fi
-			command -f completion//completeoptions
-			;;
-		('')
-			case ${WORDS[1]} in (-*)
-				typeset i
-				for i in "${WORDS}"; do
-					if [ "$i" = -- ]; then
-						WORDS=(push "$WORDS")
-						break
-					fi
-				done
-			esac
-			case ${WORDS[1]} in (push)
-				command -f completion/git::completefilteredpath '' \
-					--ignore-submodules=dirty
-			esac
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        if [ "${WORDS[#]}" -le 1 ]; then
+                                WORDS=(push "$WORDS")
+                        fi
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        case ${WORDS[1]} in (-*)
+                                typeset i
+                                for i in "${WORDS}"; do
+                                        if [ "$i" = -- ]; then
+                                                WORDS=(push "$WORDS")
+                                                break
+                                        fi
+                                done
+                        esac
+                        case ${WORDS[1]} in (push)
+                                command -f completion/git::completefilteredpath '' \
+                                        --ignore-submodules=dirty
+                        esac
+                        ;;
+        esac
 
 }
 
 function completion/git::stash:save:arg {
-	command -f completion/git::stash:push:arg
+        command -f completion/git::stash:push:arg
 }
 
 function completion/git::stash:show:arg {
 
-	OPTIONS=()
-	if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-diff; then
-		command -f completion/git::diff:getopt
-	fi
+        OPTIONS=()
+        if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
+                        . -AL completion/git-diff; then
+                command -f completion/git::diff:getopt
+        fi
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::stash:completestash
-			;;
-		(*)
-			command -f completion/git::diff:compopt
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::stash:completestash
+                        ;;
+                (*)
+                        command -f completion/git::diff:compopt
+                        ;;
+        esac
 
 }
 
 function completion/git::stash:completestash {
-	typeset name message
-	while read -r name message; do
-		name=${name%:}
-		complete -P "$PREFIX" -D "$message" -- "$name"
-	done 2>/dev/null <(git stash list)
+        typeset name message
+        while read -r name message; do
+                name=${name%:}
+                complete -P "$PREFIX" -D "$message" -- "$name"
+        done 2>/dev/null <(git stash list)
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

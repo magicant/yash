@@ -87,11 +87,11 @@ struct hash_entry {
  * `hashfunc' is a hash function to hash keys.
  * `keycmp' is a function that compares two keys. */
 hashtable_T *ht_initwithcapacity(
-	hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
-	size_t capacity)
+        hashtable_T *ht, hashfunc_T *hashfunc, keycmp_T *keycmp,
+        size_t capacity)
 {
     if (capacity == 0)
-	capacity = 1;
+        capacity = 1;
 
     ht->capacity = capacity;
     ht->count = 0;
@@ -103,8 +103,8 @@ hashtable_T *ht_initwithcapacity(
     ht->entries = xmallocn(capacity, sizeof *ht->entries);
 
     for (size_t i = 0; i < capacity; i++) {
-	ht->indices[i] = NOTHING;
-	ht->entries[i].kv.key = NULL;
+        ht->indices[i] = NOTHING;
+        ht->entries[i].kv.key = NULL;
     }
 
     return ht;
@@ -119,9 +119,9 @@ hashtable_T *ht_initwithcapacity(
 hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 {
     if (newcapacity == 0)
-	newcapacity = 1;
+        newcapacity = 1;
     if (newcapacity < ht->count)
-	newcapacity = ht->count;
+        newcapacity = ht->count;
 
     size_t oldcapacity = ht->capacity;
     size_t *oldindices = ht->indices;
@@ -131,24 +131,24 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
     size_t tail = 0;
 
     for (size_t i = 0; i < newcapacity; i++) {
-	newindices[i] = NOTHING;
-	newentries[i].kv.key = NULL;
+        newindices[i] = NOTHING;
+        newentries[i].kv.key = NULL;
     }
 
     /* move the data from oldentries to newentries */
     for (size_t i = 0; i < oldcapacity; i++) {
-	void *key = oldentries[i].kv.key;
-	if (key != NULL) {
-	    hashval_T hash = oldentries[i].hash;
-	    size_t newindex = (size_t) hash % newcapacity;
-	    newentries[tail] = (struct hash_entry) {
-		.next = newindices[newindex],
-		.hash = hash,
-		.kv = oldentries[i].kv,
-	    };
-	    newindices[newindex] = tail;
-	    tail++;
-	}
+        void *key = oldentries[i].kv.key;
+        if (key != NULL) {
+            hashval_T hash = oldentries[i].hash;
+            size_t newindex = (size_t) hash % newcapacity;
+            newentries[tail] = (struct hash_entry) {
+                .next = newindices[newindex],
+                .hash = hash,
+                .kv = oldentries[i].kv,
+            };
+            newindices[newindex] = tail;
+            tail++;
+        }
     }
 
     free(oldindices);
@@ -166,13 +166,13 @@ hashtable_T *ht_setcapacity(hashtable_T *ht, size_t newcapacity)
 hashtable_T *ht_ensurecapacity(hashtable_T *ht, size_t capacity)
 {
     if (capacity <= ht->capacity)
-	return ht;
+        return ht;
 
     size_t cap15 = ht->capacity + (ht->capacity >> 1);
     if (capacity < cap15)
-	capacity = cap15;
+        capacity = cap15;
     if (capacity < ht->capacity + 6)
-	capacity = ht->capacity + 6;
+        capacity = ht->capacity + 6;
     return ht_setcapacity(ht, capacity);
 }
 
@@ -186,15 +186,15 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
     struct hash_entry *entries = ht->entries;
 
     if (ht->count == 0)
-	return ht;
+        return ht;
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-	indices[i] = NOTHING;
-	if (entries[i].kv.key != NULL) {
-	    if (freer)
-		freer(entries[i].kv);
-	    entries[i].kv.key = NULL;
-	}
+        indices[i] = NOTHING;
+        if (entries[i].kv.key != NULL) {
+            if (freer)
+                freer(entries[i].kv);
+            entries[i].kv.key = NULL;
+        }
     }
 
     ht->count = 0;
@@ -208,14 +208,14 @@ hashtable_T *ht_clear(hashtable_T *ht, void freer(kvpair_T kv))
 kvpair_T ht_get(const hashtable_T *ht, const void *key)
 {
     if (key != NULL) {
-	hashval_T hash = ht->hashfunc(key);
-	size_t index = ht->indices[(size_t) hash % ht->capacity];
-	while (index != NOTHING) {
-	    struct hash_entry *entry = &ht->entries[index];
-	    if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0)
-		return entry->kv;
-	    index = entry->next;
-	}
+        hashval_T hash = ht->hashfunc(key);
+        size_t index = ht->indices[(size_t) hash % ht->capacity];
+        while (index != NOTHING) {
+            struct hash_entry *entry = &ht->entries[index];
+            if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0)
+                return entry->kv;
+            index = entry->next;
+        }
     }
     return (kvpair_T) { NULL, NULL, };
 }
@@ -234,33 +234,33 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
     size_t index = ht->indices[mhash];
     struct hash_entry *entry;
     while (index != NOTHING) {
-	entry = &ht->entries[index];
-	if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
-	    kvpair_T oldkv = entry->kv;
-	    entry->kv = (kvpair_T) { (void *) key, (void *) value, };
-	    DEBUG_PRINT_STATISTICS(ht);
-	    return oldkv;
-	}
-	index = entry->next;
+        entry = &ht->entries[index];
+        if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
+            kvpair_T oldkv = entry->kv;
+            entry->kv = (kvpair_T) { (void *) key, (void *) value, };
+            DEBUG_PRINT_STATISTICS(ht);
+            return oldkv;
+        }
+        index = entry->next;
     }
 
     /* No entry with the specified key was found; we add a new entry. */
     index = ht->emptyindex;
     if (index != NOTHING) {
-	/* if there is an empty entry, use it */
-	entry = &ht->entries[index];
-	ht->emptyindex = entry->next;
+        /* if there is an empty entry, use it */
+        entry = &ht->entries[index];
+        ht->emptyindex = entry->next;
     } else {
-	/* if there is no empty entry, use a tail entry */
-	ht_ensurecapacity(ht, ht->count + 1);
-	mhash = (size_t) hash % ht->capacity;
-	index = ht->tailindex++;
-	entry = &ht->entries[index];
+        /* if there is no empty entry, use a tail entry */
+        ht_ensurecapacity(ht, ht->count + 1);
+        mhash = (size_t) hash % ht->capacity;
+        index = ht->tailindex++;
+        entry = &ht->entries[index];
     }
     *entry = (struct hash_entry) {
-	.next = ht->indices[mhash],
-	.hash = hash,
-	.kv = (kvpair_T) { (void *) key, (void *) value, },
+        .next = ht->indices[mhash],
+        .hash = hash,
+        .kv = (kvpair_T) { (void *) key, (void *) value, },
     };
     ht->indices[mhash] = index;
     ht->count++;
@@ -273,22 +273,22 @@ kvpair_T ht_set(hashtable_T *ht, const void *key, const void *value)
 kvpair_T ht_remove(hashtable_T *ht, const void *key)
 {
     if (key != NULL) {
-	hashval_T hash = ht->hashfunc(key);
-	size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
-	while (*indexp != NOTHING) {
-	    size_t index = *indexp;
-	    struct hash_entry *entry = &ht->entries[index];
-	    if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
-		kvpair_T oldkv = entry->kv;
-		*indexp = entry->next;
-		entry->next = ht->emptyindex;
-		ht->emptyindex = index;
-		entry->kv.key = NULL;
-		ht->count--;
-		return oldkv;
-	    }
-	    indexp = &entry->next;
-	}
+        hashval_T hash = ht->hashfunc(key);
+        size_t *indexp = &ht->indices[(size_t) hash % ht->capacity];
+        while (*indexp != NOTHING) {
+            size_t index = *indexp;
+            struct hash_entry *entry = &ht->entries[index];
+            if (entry->hash == hash && ht->keycmp(entry->kv.key, key) == 0) {
+                kvpair_T oldkv = entry->kv;
+                *indexp = entry->next;
+                entry->next = ht->emptyindex;
+                ht->emptyindex = index;
+                entry->kv.key = NULL;
+                ht->count--;
+                return oldkv;
+            }
+            indexp = &entry->next;
+        }
     }
     return (kvpair_T) { NULL, NULL, };
 }
@@ -306,12 +306,12 @@ int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
     struct hash_entry *entries = ht->entries;
 
     for (size_t i = 0, cap = ht->capacity; i < cap; i++) {
-	kvpair_T kv = entries[i].kv;
-	if (kv.key != NULL) {
-	    int r = f(kv);
-	    if (r != 0)
-		return r;
-	}
+        kvpair_T kv = entries[i].kv;
+        if (kv.key != NULL) {
+            int r = f(kv);
+            if (r != 0)
+                return r;
+        }
     }
     return 0;
 }
@@ -329,10 +329,10 @@ int ht_each(const hashtable_T *ht, int f(kvpair_T kv))
 kvpair_T ht_next(const hashtable_T *restrict ht, size_t *restrict indexp)
 {
     while (*indexp < ht->capacity) {
-	kvpair_T kv = ht->entries[*indexp].kv;
-	(*indexp)++;
-	if (kv.key != NULL)
-	    return kv;
+        kvpair_T kv = ht->entries[*indexp].kv;
+        (*indexp)++;
+        if (kv.key != NULL)
+            return kv;
     }
     return (kvpair_T) { NULL, NULL, };
 }
@@ -346,8 +346,8 @@ kvpair_T *ht_tokvarray(const hashtable_T *ht)
     size_t index = 0;
 
     for (size_t i = 0; i < ht->capacity; i++) {
-	if (ht->entries[i].kv.key != NULL)
-	    array[index++] = ht->entries[i].kv;
+        if (ht->entries[i].kv.key != NULL)
+            array[index++] = ht->entries[i].kv;
     }
 
     assert(index == ht->count);
@@ -366,7 +366,7 @@ hashval_T hashstr(const void *s)
     const unsigned char *c = s;
     hashval_T h = 0;
     while (*c != '\0')
-	h = (h ^ (hashval_T) *c++) * FNVPRIME;
+        h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
 
@@ -380,7 +380,7 @@ hashval_T hashwcs(const void *s)
     const wchar_t *c = s;
     hashval_T h = 0;
     while (*c != L'\0')
-	h = (h ^ (hashval_T) *c++) * FNVPRIME;
+        h = (h ^ (hashval_T) *c++) * FNVPRIME;
     return h;
 }
 
@@ -437,20 +437,20 @@ void kvfree(kvpair_T kv)
 void print_statistics(const hashtable_T *ht)
 {
     fprintf(stderr, "DEBUG: id=%p hash->count=%zu, capacity=%zu\n",
-	    (void *) ht, ht->count, ht->capacity);
+            (void *) ht, ht->count, ht->capacity);
     fprintf(stderr, "DEBUG: hash->emptyindex=%zu, tailindex=%zu\n",
-	    ht->emptyindex, ht->tailindex);
+            ht->emptyindex, ht->tailindex);
 
     unsigned emptycount = 0, collcount = 0;
     for (size_t i = ht->emptyindex; i != NOTHING; i = ht->entries[i].next)
-	emptycount++;
+        emptycount++;
     for (size_t i = 0; i < ht->capacity; i++)
-	if (ht->entries[i].kv.key && ht->entries[i].next != NOTHING)
-	    collcount++;
+        if (ht->entries[i].kv.key && ht->entries[i].next != NOTHING)
+            collcount++;
     fprintf(stderr, "DEBUG: hash empties=%u collisions=%u\n\n",
-	    emptycount, collcount);
+            emptycount, collcount);
 }
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

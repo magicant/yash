@@ -5,34 +5,34 @@
 
 function completion/ssh-add {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"c; confirm when authenticating with the identities being added"
-	"D; delete all identities"
-	"d; delete identities"
-	"e:; remove keys from the specified PKCS#11 library"
-	"k; don't load certificates"
-	"L; print the public keys of the identities in the agent"
-	"l; print the fingerprints of the identities in the agent"
-	"s:; add keys from the specified PKCS#11 library"
-	"t:; specify the lifetime of identities being added in seconds"
-	"X; unlock the agent"
-	"x; lock the agent"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "c; confirm when authenticating with the identities being added"
+        "D; delete all identities"
+        "d; delete identities"
+        "e:; remove keys from the specified PKCS#11 library"
+        "k; don't load certificates"
+        "L; print the public keys of the identities in the agent"
+        "l; print the fingerprints of the identities in the agent"
+        "s:; add keys from the specified PKCS#11 library"
+        "t:; specify the lifetime of identities being added in seconds"
+        "X; unlock the agent"
+        "x; lock the agent"
+        ) #<#
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([est])
-		;;
-	(*)
-		complete -P "$PREFIX" -f
-		;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([est])
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

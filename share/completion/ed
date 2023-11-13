@@ -6,65 +6,65 @@
 
 function completion/ed {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'GNU'*) typeset type=GNU ;;
-		(*)       typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'GNU'*) typeset type=GNU ;;
+                (*)       typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"p: ${long:+--prompt:}; specify a prompt string"
-	"s ${long:+--silent --quiet}; suppress diagnostic messages"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "p: ${long:+--prompt:}; specify a prompt string"
+        "s ${long:+--silent --quiet}; suppress diagnostic messages"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (*BSD|SunOS|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"x; enable encryption"
-		) #<#
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"G --traditional; enable compatibility mode"
-		"l --loose-exit-status; always exit with 0 status"
-		"v --verbose; print detailed error messages"
-		"h --help; print help"
-		"V --version; print version info"
-		) #<#
-		;;
-	(NetBSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"E; use extended regular expression"
-		) #<#
-		;;
-	(SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"C; enable encryption and assume all text has been encrypted"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (*BSD|SunOS|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "x; enable encryption"
+                ) #<#
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "G --traditional; enable compatibility mode"
+                "l --loose-exit-status; always exit with 0 status"
+                "v --verbose; print detailed error messages"
+                "h --help; print help"
+                "V --version; print version info"
+                ) #<#
+                ;;
+        (NetBSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "E; use extended regular expression"
+                ) #<#
+                ;;
+        (SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "C; enable encryption and assume all text has been encrypted"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(p|--prompt)
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (p|--prompt)
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

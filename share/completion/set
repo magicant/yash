@@ -6,409 +6,409 @@
 
 function completion/set {
 
-	typeset prog="${WORDS[1]##*/}"
+        typeset prog="${WORDS[1]##*/}"
 
-	typeset OPTIONS SOPTIONS LOPTIONS
-	OPTIONS=( #>#
-	"o:; specify an option"
-	"--help"
-	) #<#
-	SOPTIONS=() LOPTIONS=()
+        typeset OPTIONS SOPTIONS LOPTIONS
+        OPTIONS=( #>#
+        "o:; specify an option"
+        "--help"
+        ) #<#
+        SOPTIONS=() LOPTIONS=()
 
-	case $prog in
-	(yash)
-		OPTIONS=("$OPTIONS" #>#
-		"--noprofile; don't read the profile file"
-		"--norcfile; don't read the yashrc file"
-		"--profile:; specify the profile file"
-		"--rcfile:; specify the yashrc file"
-		"V --version; print version info"
-		) #<#
-		;;
-	(ksh)
-		OPTIONS=("$OPTIONS" #>#
-		"D --dump-strings; extract translatable strings"
-		"R:; create a cross reference database in the specified file"
-		"--version"
-		) #<#
-		;;
-	esac
+        case $prog in
+        (yash)
+                OPTIONS=("$OPTIONS" #>#
+                "--noprofile; don't read the profile file"
+                "--norcfile; don't read the yashrc file"
+                "--profile:; specify the profile file"
+                "--rcfile:; specify the yashrc file"
+                "V --version; print version info"
+                ) #<#
+                ;;
+        (ksh)
+                OPTIONS=("$OPTIONS" #>#
+                "D --dump-strings; extract translatable strings"
+                "R:; create a cross reference database in the specified file"
+                "--version"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion/set::getopt "$prog"
+        command -f completion/set::getopt "$prog"
 
-	typeset i=2 ARGOPT PREFIX
-	while [ $i -le ${WORDS[#]} ]; do
-		case ${WORDS[i]} in
-		(--|-|++)
-			complete -f
-			return
-			;;
-		(++*)
-			case $prog in
-			(set|yash)
-				;;
-			(*)
-				complete -f
-				return
-				;;
-			esac
-			;;
-		(-*|+?*)
-			command -f completion/set::checkoption "${WORDS[i]}" false
-			case $ARGOPT in
-			(f)
-				i=$((i+1))
-				if [ $i -gt ${WORDS[#]} ]; then
-					complete -P "$PREFIX" -f
-					return
-				fi
-				;;
-			(o)
-				i=$((i+1))
-				if [ $i -gt ${WORDS[#]} ]; then
-					command -f completion/set::completelongoption
-					return
-				fi
-				;;
-			esac
-			;;
-		(*)
-			complete -f
-			return
-			;;
-		esac
-		i=$((i+1))
-	done
+        typeset i=2 ARGOPT PREFIX
+        while [ $i -le ${WORDS[#]} ]; do
+                case ${WORDS[i]} in
+                (--|-|++)
+                        complete -f
+                        return
+                        ;;
+                (++*)
+                        case $prog in
+                        (set|yash)
+                                ;;
+                        (*)
+                                complete -f
+                                return
+                                ;;
+                        esac
+                        ;;
+                (-*|+?*)
+                        command -f completion/set::checkoption "${WORDS[i]}" false
+                        case $ARGOPT in
+                        (f)
+                                i=$((i+1))
+                                if [ $i -gt ${WORDS[#]} ]; then
+                                        complete -P "$PREFIX" -f
+                                        return
+                                fi
+                                ;;
+                        (o)
+                                i=$((i+1))
+                                if [ $i -gt ${WORDS[#]} ]; then
+                                        command -f completion/set::completelongoption
+                                        return
+                                fi
+                                ;;
+                        esac
+                        ;;
+                (*)
+                        complete -f
+                        return
+                        ;;
+                esac
+                i=$((i+1))
+        done
 
-	case $TARGETWORD in
-	([+-]*)
-		command -f completion/set::checkoption "$TARGETWORD" true
-		case $ARGOPT in
-		(s)
-			command -f completion/set::completeshortoption
-			;;
-		(o)
-			command -f completion/set::completelongoption
-			;;
-		(*)
-			complete -P "$PREFIX" -f
-			;;
-		esac
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        case $TARGETWORD in
+        ([+-]*)
+                command -f completion/set::checkoption "$TARGETWORD" true
+                case $ARGOPT in
+                (s)
+                        command -f completion/set::completeshortoption
+                        ;;
+                (o)
+                        command -f completion/set::completelongoption
+                        ;;
+                (*)
+                        complete -P "$PREFIX" -f
+                        ;;
+                esac
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 function completion/set::checkoption {
 
-	case $1 in
-		(--*|++*)
-			command -f completion/set::checklongoption "$@"
-			;;
-		(*)
-			command -f completion/set::checkshortoption "$@"
-			;;
-	esac
+        case $1 in
+                (--*|++*)
+                        command -f completion/set::checklongoption "$@"
+                        ;;
+                (*)
+                        command -f completion/set::checkshortoption "$@"
+                        ;;
+        esac
 
 }
 
 function completion/set::checkshortoption {
 
-	typeset word="${1#[+-]}"
+        typeset word="${1#[+-]}"
 
-	while [ "$word" ]; do
-		for opt in ${OPTIONS%%;*}; do
-			case $opt in (?:)
-				case ${word[1]} in ("${opt%:}")
-					case $opt in
-						(o:) ARGOPT=o ;;
-						(*)  ARGOPT=f ;;
-					esac
-					if $2; then
-						PREFIX=${1%"${word#?}"}
-					elif [ "${word#?}" ]; then
-						ARGOPT= PREFIX=
-					else
-						PREFIX=
-					fi
-					return
-				esac
-			esac
-		done
-		word=${word#?}
-	done
-	
-	if $2; then
-		ARGOPT=s PREFIX=$1
-	else
-		ARGOPT= PREFIX=
-	fi
+        while [ "$word" ]; do
+                for opt in ${OPTIONS%%;*}; do
+                        case $opt in (?:)
+                                case ${word[1]} in ("${opt%:}")
+                                        case $opt in
+                                                (o:) ARGOPT=o ;;
+                                                (*)  ARGOPT=f ;;
+                                        esac
+                                        if $2; then
+                                                PREFIX=${1%"${word#?}"}
+                                        elif [ "${word#?}" ]; then
+                                                ARGOPT= PREFIX=
+                                        else
+                                                PREFIX=
+                                        fi
+                                        return
+                                esac
+                        esac
+                done
+                word=${word#?}
+        done
+        
+        if $2; then
+                ARGOPT=s PREFIX=$1
+        else
+                ARGOPT= PREFIX=
+        fi
 
 }
 
 function completion/set::checklongoption {
 
-	case $prog in (ksh)
-		case $1 in (++*)
-			ARGOPT= PREFIX=
-			return
-		esac
-	esac
+        case $prog in (ksh)
+                case $1 in (++*)
+                        ARGOPT= PREFIX=
+                        return
+                esac
+        esac
 
-	typeset MATCHES opt word name
-	MATCHES=()
+        typeset MATCHES opt word name
+        MATCHES=()
 
-	word=${1#[+-][+-]}
-	name=${word%%=*}
-	for opt in ${OPTIONS%%;*}; do
-		case $opt in (--*)
-			case ${opt%:} in ("--$name"*)
-				MATCHES=("$MATCHES" "$opt")
-			esac
-		esac
-	done
+        word=${1#[+-][+-]}
+        name=${word%%=*}
+        for opt in ${OPTIONS%%;*}; do
+                case $opt in (--*)
+                        case ${opt%:} in ("--$name"*)
+                                MATCHES=("$MATCHES" "$opt")
+                        esac
+                esac
+        done
 
-	case $prog in
-		(set|yash) name=$(tr -Cd \[:alnum:] <<<$word 2>/dev/null) ;;
-		(ksh)      name=$(tr -d  _-         <<<$word 2>/dev/null) ;;
-		(*)        name=$word ;;
-	esac
+        case $prog in
+                (set|yash) name=$(tr -Cd \[:alnum:] <<<$word 2>/dev/null) ;;
+                (ksh)      name=$(tr -d  _-         <<<$word 2>/dev/null) ;;
+                (*)        name=$word ;;
+        esac
 
-	for opt in ${LOPTIONS%%;*}; do
-		for opt in $opt no$opt; do
-			case $opt in ("$name"*)
-				MATCHES=("$MATCHES" "$opt")
-			esac
-		done
-	done
+        for opt in ${LOPTIONS%%;*}; do
+                for opt in $opt no$opt; do
+                        case $opt in ("$name"*)
+                                MATCHES=("$MATCHES" "$opt")
+                        esac
+                done
+        done
 
-	if [ ${MATCHES[#]} -eq 1 ]; then
-		case ${MATCHES[1]} in (--*:)
-			case $word in
-				(*=*)
-					if $2; then
-						ARGOPT=f PREFIX=${1%"${1#*=}"}
-						return
-					fi
-					;;
-				(*)
-					if $2; then
-						ARGOPT=o PREFIX=
-					else
-						ARGOPT=f PREFIX=
-					fi
-					return
-					;;
-			esac
-		esac
-	fi
-	
-	if $2; then
-		ARGOPT=o PREFIX=${1[1,2]}
-	else
-		ARGOPT= PREFIX=
-	fi
+        if [ ${MATCHES[#]} -eq 1 ]; then
+                case ${MATCHES[1]} in (--*:)
+                        case $word in
+                                (*=*)
+                                        if $2; then
+                                                ARGOPT=f PREFIX=${1%"${1#*=}"}
+                                                return
+                                        fi
+                                        ;;
+                                (*)
+                                        if $2; then
+                                                ARGOPT=o PREFIX=
+                                        else
+                                                ARGOPT=f PREFIX=
+                                        fi
+                                        return
+                                        ;;
+                        esac
+                esac
+        fi
+        
+        if $2; then
+                ARGOPT=o PREFIX=${1[1,2]}
+        else
+                ARGOPT= PREFIX=
+        fi
 
 }
 
 function completion/set::getopt {
 
-	SOPTIONS=( #>#
-	"a; export all variables when assigned"
-	"b; print job status immediately when done"
-	"C; disallow >-redirection to overwrite an existing file"
-	"e; exit immediately when a command's exit status is non-zero"
-	"f; disable pathname expansion (globbing)"
-	"m; enable job control"
-	"n; don't execute any commands"
-	"u; disallow expansion of undefined variables"
-	"v; echo commands entered to the shell"
-	"x; print a command line before executing it"
-	) #<#
-	LOPTIONS=( #>#
-	"allexport; export all variables when assigned"
-	"braceexpand; enable brace expansion"
-	"clobber; allow >-redirection to overwrite an existing file"
-	"emacs; emacs-like line-editing"
-	"errexit; exit immediately when a command's exit status is non-zero"
-	"exec; actually execute commands"
-	"glob; enable pathname expansion (globbing)"
-	"ignoreeof; don't exit when an end-of-file is entered"
-	"markdirs; append a slash to directory names after pathname expansion"
-	"monitor; enable job control"
-	"notify; print job status immediately when done"
-	"unset; allow expansion of undefined variables"
-	"verbose; echo commands entered to the shell"
-	"vi; vi-like line-editing"
-	"xtrace; print a command line before executing it"
-	) #<#
+        SOPTIONS=( #>#
+        "a; export all variables when assigned"
+        "b; print job status immediately when done"
+        "C; disallow >-redirection to overwrite an existing file"
+        "e; exit immediately when a command's exit status is non-zero"
+        "f; disable pathname expansion (globbing)"
+        "m; enable job control"
+        "n; don't execute any commands"
+        "u; disallow expansion of undefined variables"
+        "v; echo commands entered to the shell"
+        "x; print a command line before executing it"
+        ) #<#
+        LOPTIONS=( #>#
+        "allexport; export all variables when assigned"
+        "braceexpand; enable brace expansion"
+        "clobber; allow >-redirection to overwrite an existing file"
+        "emacs; emacs-like line-editing"
+        "errexit; exit immediately when a command's exit status is non-zero"
+        "exec; actually execute commands"
+        "glob; enable pathname expansion (globbing)"
+        "ignoreeof; don't exit when an end-of-file is entered"
+        "markdirs; append a slash to directory names after pathname expansion"
+        "monitor; enable job control"
+        "notify; print job status immediately when done"
+        "unset; allow expansion of undefined variables"
+        "verbose; echo commands entered to the shell"
+        "vi; vi-like line-editing"
+        "xtrace; print a command line before executing it"
+        ) #<#
 
-	case $prog in
-	(set|yash)
-		SOPTIONS=("$SOPTIONS" #>#
-		"h; cache full paths of commands in a function when defined"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"caseglob; make pathname expansion case-sensitive"
-		"curasync; a newly-executed background job becomes the current job"
-		"curbg; a background job becomes the current job when resumed"
-		"curstop; a background job becomes the current job when stopped"
-		"dotglob; don't treat a period at the beginning of a filename specially"
-		"emptylastfield; don't remove empty last field in field splitting"
-		"errreturn; return immediately when a command's exit status is non-zero"
-		"extendedglob; enable recursive pathname expansion"
-		"forlocal; make the iteration variable local in a for loop"
-		"hashondef; cache full paths of commands in a function when defined"
-		"histspace; don't save a command starting with a space in the history"
-		"leconvmeta; always treat meta-key flags in line-editing"
-		"lenoconvmeta; never treat meta-key flags in line-editing"
-		"lepredict; suggest a command fragment while line-editing"
-		"lepredictempty; suggest a command fragment on empty input while line-editing"
-		"levisiblebell; alert with a flash, not a bell"
-		"lepromptsp; ensure the prompt is printed at the beginning of a line"
-		"lealwaysrp; always show the right prompt during line-editing"
-		"letrimright; trim the space to the right of the right prompt"
-		"lecompdebug; print debugging info during command line completion"
-		"notifyle; print job status immediately when done while line-editing"
-		"nullglob; remove words that matched nothing in pathname expansion"
-		"pipefail; return last non-zero exit status of commands in a pipe"
-		"posix; force strict POSIX conformance"
-		"traceall; print trace of auxiliary commands"
-		) #<#
-		;;
-	(ksh)
-		SOPTIONS=("$SOPTIONS" #>#
-		"G; enable recursive pathname expansion"
-		"H; enable !-expansion on the command line"
-		"h; cache full paths of commands when entered"
-		"k; allow assignments in the middle of command arguments"
-		"p; work in the privileged mode"
-		"r; work in the restricted mode"
-		"t; execute one command only"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"bgnice; run background jobs at lower priorities"
-		"gmacs; gmacs-like line-editing"
-		"globstar; enable recursive pathname expansion"
-		"histexpand; enable !-expansion on the command line"
-		"keyword; allow assignments in the middle of command arguments"
-		"multiline; allow multiple line editing"
-		"pipefail; return last non-zero exit status of commands in a pipe"
-		"privileged; work in the privileged mode"
-		"restricted; work in the restricted mode"
-		"showme; trace commands preceded by a semicolon"
-		"trackall; cache full paths of commands when entered"
-		"viraw; vi-like line-editing without canonical input handling"
-		) #<#
-		;;
-	esac
-	case $prog in (yash|ksh)
-		SOPTIONS=("$SOPTIONS" #>#
-		"c; execute the first operand as a shell script"
-		"i; work in the interactive mode"
-		"l; work as a login shell"
-		"s; read commands from the standard input"
-		) #<#
-		LOPTIONS=("$LOPTIONS" #>#
-		"interactive; work in the interactive mode"
-		"login; work as a login shell"
-		) #<#
-		case $prog in
-		(yash)
-			LOPTIONS=("$LOPTIONS" #>#
-			"cmdline; execute the command specified on the command line"
-			"stdin; read commands from the standard input"
-			) #<#
-			;;
-		(ksh)
-			SOPTIONS=("$SOPTIONS" #>#
-			"E; read the \$ENV file on shell invocation"
-			) #<#
-			LOPTIONS=("$LOPTIONS" #>#
-			"rc; read the \$ENV file on shell invocation"
-			) #<#
-			;;
-		esac
-	esac
+        case $prog in
+        (set|yash)
+                SOPTIONS=("$SOPTIONS" #>#
+                "h; cache full paths of commands in a function when defined"
+                ) #<#
+                LOPTIONS=("$LOPTIONS" #>#
+                "caseglob; make pathname expansion case-sensitive"
+                "curasync; a newly-executed background job becomes the current job"
+                "curbg; a background job becomes the current job when resumed"
+                "curstop; a background job becomes the current job when stopped"
+                "dotglob; don't treat a period at the beginning of a filename specially"
+                "emptylastfield; don't remove empty last field in field splitting"
+                "errreturn; return immediately when a command's exit status is non-zero"
+                "extendedglob; enable recursive pathname expansion"
+                "forlocal; make the iteration variable local in a for loop"
+                "hashondef; cache full paths of commands in a function when defined"
+                "histspace; don't save a command starting with a space in the history"
+                "leconvmeta; always treat meta-key flags in line-editing"
+                "lenoconvmeta; never treat meta-key flags in line-editing"
+                "lepredict; suggest a command fragment while line-editing"
+                "lepredictempty; suggest a command fragment on empty input while line-editing"
+                "levisiblebell; alert with a flash, not a bell"
+                "lepromptsp; ensure the prompt is printed at the beginning of a line"
+                "lealwaysrp; always show the right prompt during line-editing"
+                "letrimright; trim the space to the right of the right prompt"
+                "lecompdebug; print debugging info during command line completion"
+                "notifyle; print job status immediately when done while line-editing"
+                "nullglob; remove words that matched nothing in pathname expansion"
+                "pipefail; return last non-zero exit status of commands in a pipe"
+                "posix; force strict POSIX conformance"
+                "traceall; print trace of auxiliary commands"
+                ) #<#
+                ;;
+        (ksh)
+                SOPTIONS=("$SOPTIONS" #>#
+                "G; enable recursive pathname expansion"
+                "H; enable !-expansion on the command line"
+                "h; cache full paths of commands when entered"
+                "k; allow assignments in the middle of command arguments"
+                "p; work in the privileged mode"
+                "r; work in the restricted mode"
+                "t; execute one command only"
+                ) #<#
+                LOPTIONS=("$LOPTIONS" #>#
+                "bgnice; run background jobs at lower priorities"
+                "gmacs; gmacs-like line-editing"
+                "globstar; enable recursive pathname expansion"
+                "histexpand; enable !-expansion on the command line"
+                "keyword; allow assignments in the middle of command arguments"
+                "multiline; allow multiple line editing"
+                "pipefail; return last non-zero exit status of commands in a pipe"
+                "privileged; work in the privileged mode"
+                "restricted; work in the restricted mode"
+                "showme; trace commands preceded by a semicolon"
+                "trackall; cache full paths of commands when entered"
+                "viraw; vi-like line-editing without canonical input handling"
+                ) #<#
+                ;;
+        esac
+        case $prog in (yash|ksh)
+                SOPTIONS=("$SOPTIONS" #>#
+                "c; execute the first operand as a shell script"
+                "i; work in the interactive mode"
+                "l; work as a login shell"
+                "s; read commands from the standard input"
+                ) #<#
+                LOPTIONS=("$LOPTIONS" #>#
+                "interactive; work in the interactive mode"
+                "login; work as a login shell"
+                ) #<#
+                case $prog in
+                (yash)
+                        LOPTIONS=("$LOPTIONS" #>#
+                        "cmdline; execute the command specified on the command line"
+                        "stdin; read commands from the standard input"
+                        ) #<#
+                        ;;
+                (ksh)
+                        SOPTIONS=("$SOPTIONS" #>#
+                        "E; read the \$ENV file on shell invocation"
+                        ) #<#
+                        LOPTIONS=("$LOPTIONS" #>#
+                        "rc; read the \$ENV file on shell invocation"
+                        ) #<#
+                        ;;
+                esac
+        esac
 
 }
 
 function completion/set::completeshortoption {
 
-	typeset opt desc
-	for opt in "$OPTIONS" "$SOPTIONS"; do
-		command -f completion/set::getdesc
-		for opt in ${opt%%;*}; do
-			opt=${opt%:}
-			case $opt in (?)
-				complete -O -P "$PREFIX" ${desc:+-D "$desc"} -- "$opt"
-			esac
-		done
-	done
+        typeset opt desc
+        for opt in "$OPTIONS" "$SOPTIONS"; do
+                command -f completion/set::getdesc
+                for opt in ${opt%%;*}; do
+                        opt=${opt%:}
+                        case $opt in (?)
+                                complete -O -P "$PREFIX" ${desc:+-D "$desc"} -- "$opt"
+                        esac
+                done
+        done
 
 }
 
 function completion/set::completelongoption {
 
-	typeset opt desc part normpart
+        typeset opt desc part normpart
 
-	case $TARGETWORD in (--*)
-		for opt in "$OPTIONS"; do
-			command -f completion/set::getdesc
-			for opt in ${opt%%;*}; do
-				case $opt in
-				(--*:)
-					complete -T -P -- ${desc:+-D "$desc"} -- "${{opt#--}%:}="
-					;;
-				(--*)
-					complete -P -- ${desc:+-D "$desc"} -- "${opt#--}"
-					;;
-				esac
-			done
-		done
-	esac
+        case $TARGETWORD in (--*)
+                for opt in "$OPTIONS"; do
+                        command -f completion/set::getdesc
+                        for opt in ${opt%%;*}; do
+                                case $opt in
+                                (--*:)
+                                        complete -T -P -- ${desc:+-D "$desc"} -- "${{opt#--}%:}="
+                                        ;;
+                                (--*)
+                                        complete -P -- ${desc:+-D "$desc"} -- "${opt#--}"
+                                        ;;
+                                esac
+                        done
+                done
+        esac
 
-	part=${TARGETWORD#"$PREFIX"}
-	case $prog in
-		(set|yash) normpart=$(tr -Cd \[:alnum:] <<<$part 2>/dev/null) ;;
-		(ksh)      normpart=$(tr -d  _-         <<<$part 2>/dev/null) ;;
-		(*)        normpart=$part ;;
-	esac
+        part=${TARGETWORD#"$PREFIX"}
+        case $prog in
+                (set|yash) normpart=$(tr -Cd \[:alnum:] <<<$part 2>/dev/null) ;;
+                (ksh)      normpart=$(tr -d  _-         <<<$part 2>/dev/null) ;;
+                (*)        normpart=$part ;;
+        esac
 
-	for opt in "$LOPTIONS"; do
-		command -f completion/set::getdesc
-		opt=${opt%%;*}
-		for opt in $opt no$opt; do
-			case $opt in ("$normpart"*)
-				complete -P "$PREFIX" ${desc:+-D "$desc"} -- "$part${opt#"$normpart"}"
-			esac
-		done
-	done
+        for opt in "$LOPTIONS"; do
+                command -f completion/set::getdesc
+                opt=${opt%%;*}
+                for opt in $opt no$opt; do
+                        case $opt in ("$normpart"*)
+                                complete -P "$PREFIX" ${desc:+-D "$desc"} -- "$part${opt#"$normpart"}"
+                        esac
+                done
+        done
 
 }
 
 function completion/set::getdesc {
 
-	case $opt in
-	(*\;*)
-		desc=${opt#*;}
-		while true; do  # trim surrounding spaces
-			case $desc in
-			([[:space:]]*) desc=${desc#[[:space:]]} ;;
-			(*[[:space:]]) desc=${desc%[[:space:]]} ;;
-			(*)            break ;;
-			esac
-		done
-		;;
-	(*)
-		desc=
-		;;
-	esac
+        case $opt in
+        (*\;*)
+                desc=${opt#*;}
+                while true; do  # trim surrounding spaces
+                        case $desc in
+                        ([[:space:]]*) desc=${desc#[[:space:]]} ;;
+                        (*[[:space:]]) desc=${desc%[[:space:]]} ;;
+                        (*)            break ;;
+                        esac
+                done
+                ;;
+        (*)
+                desc=
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

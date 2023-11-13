@@ -6,90 +6,90 @@
 
 function completion/ln {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"f ${long:+--force}; remove existing target"
-	"L ${long:+--logical}; make a link to the file referred to by the symbolic link"
-	"P ${long:+--physical}; make a link to the symbolic link itself"
-	"s ${long:+--symbolic}; make a symbolic link rather than a hard link"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "f ${long:+--force}; remove existing target"
+        "L ${long:+--logical}; make a link to the file referred to by the symbolic link"
+        "P ${long:+--physical}; make a link to the symbolic link itself"
+        "s ${long:+--symbolic}; make a symbolic link rather than a hard link"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|FreeBSD|NetBSD|Darwin|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"i ${long:+--interactive}; ask before overwriting existing files"
-		) #<#
-		case $type in (GNU|FreeBSD|NetBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"v ${long:+--verbose}; print a message for each file processed"
-			) #<#
-		esac
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"b; like --backup=existing"
-		"--backup::; specify how to make a backup"
-		"d F --directory; make a hard link to a directory"
-		"n --no-dereference; don't follow symbolic links"
-		"S: --suffix:; specify a suffix to append to backup file names"
-		"T --no-target-directory; always treat the destination as a regular file"
-		"t: --target-directory:; specify a destination directory"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(*BSD|Darwin)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"h n; don't follow symbolic links"
-		) #<#
-		case $type in (FreeBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"F; replace the target directory with a link (with -s)"
-			) #<#
-			case $type in (FreeBSD)
-				ADDOPTIONS=("$ADDOPTIONS" #>#
-				"w; warn when making a symbolic link to a unexisting file"
-				) #<#
-			esac
-		esac
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|FreeBSD|NetBSD|Darwin|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "i ${long:+--interactive}; ask before overwriting existing files"
+                ) #<#
+                case $type in (GNU|FreeBSD|NetBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "v ${long:+--verbose}; print a message for each file processed"
+                        ) #<#
+                esac
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "b; like --backup=existing"
+                "--backup::; specify how to make a backup"
+                "d F --directory; make a hard link to a directory"
+                "n --no-dereference; don't follow symbolic links"
+                "S: --suffix:; specify a suffix to append to backup file names"
+                "T --no-target-directory; always treat the destination as a regular file"
+                "t: --target-directory:; specify a destination directory"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (*BSD|Darwin)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "h n; don't follow symbolic links"
+                ) #<#
+                case $type in (FreeBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "F; replace the target directory with a link (with -s)"
+                        ) #<#
+                        case $type in (FreeBSD)
+                                ADDOPTIONS=("$ADDOPTIONS" #>#
+                                "w; warn when making a symbolic link to a unexisting file"
+                                ) #<#
+                        esac
+                esac
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(--backup)
-		if command -vf completion//completebackup >/dev/null 2>&1 ||
-				. -AL completion/_backup; then
-			command -f completion//completebackup
-		fi
-		;;
-	(S|--suffix)
-		;;
-	(t|--target-directory)
-		complete -T -P "$PREFIX" -S / -d
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--backup)
+                if command -vf completion//completebackup >/dev/null 2>&1 ||
+                                . -AL completion/_backup; then
+                        command -f completion//completebackup
+                fi
+                ;;
+        (S|--suffix)
+                ;;
+        (t|--target-directory)
+                complete -T -P "$PREFIX" -S / -d
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

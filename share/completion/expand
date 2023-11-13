@@ -6,43 +6,43 @@
 
 function completion/expand {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"t: ${long:+--tabs:}; specify a tab width or a list of tab positions"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "t: ${long:+--tabs:}; specify a tab width or a list of tab positions"
+        ) #<#
 
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"i --initial; only expand first tabs on each line"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	esac
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "i --initial; only expand first tabs on each line"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(t|--tabs)
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (t|--tabs)
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -24,21 +24,21 @@ fi
 check () {
     if ! [ -f "$1.d" ] || ! [ -s "$1.d" ] || [ "$1.c" -nt "$1.d" ]
     then
-	return 1
+        return 1
     fi
 
     for dep in $(sed -e '1s/^.*://' -e 's/\\$//' "$1.d")
     do
-	if ! [ -f "$dep" ]
-	then
-	    printf '%s: "%s" depends on non-existent file "%s".\n' \
-		"$0" "$1.d" "$dep" >&2
-	    exit 1
-	fi
-	if [ "$dep" -nt "$1.d" ]
-	then
-	    return 1
-	fi
+        if ! [ -f "$dep" ]
+        then
+            printf '%s: "%s" depends on non-existent file "%s".\n' \
+                "$0" "$1.d" "$dep" >&2
+            exit 1
+        fi
+        if [ "$dep" -nt "$1.d" ]
+        then
+            return 1
+        fi
     done
 
     return 0
@@ -47,32 +47,32 @@ check () {
 for file do
     case $file in
     (*.c)
-	if ! [ -f "$file" ]
-	then
-	    printf '%s: "%s" is not a regular file.\n' "$0" "$file" >&2
-	    exit 1
-	fi
+        if ! [ -f "$file" ]
+        then
+            printf '%s: "%s" is not a regular file.\n' "$0" "$file" >&2
+            exit 1
+        fi
 
-	file=${file%.c}
-	if ! check "$file"
-	then
-	    printf '%s -std=c99 -MM "%s.c" >|"%s.d"\n' "${CC-gcc}" "$file" "$file"
-	    if ${CC-gcc} -std=c99 -MM "${file}.c" >|"${file}.d"
-	    then
-		:
-	    else
-		exitstatus=$?
-		printf '%s: cannot update "%s".\n' "$0" "${file}.d" >&2
-		exit "$exitstatus"
-	    fi
-	fi
-	;;
+        file=${file%.c}
+        if ! check "$file"
+        then
+            printf '%s -std=c99 -MM "%s.c" >|"%s.d"\n' "${CC-gcc}" "$file" "$file"
+            if ${CC-gcc} -std=c99 -MM "${file}.c" >|"${file}.d"
+            then
+                :
+            else
+                exitstatus=$?
+                printf '%s: cannot update "%s".\n' "$0" "${file}.d" >&2
+                exit "$exitstatus"
+            fi
+        fi
+        ;;
     (*)
-	printf '%s: "%s" is not a C source file.\n' "$0" "$file" >&2
-	exit 1
-	;;
+        printf '%s: "%s" is not a C source file.\n' "$0" "$file" >&2
+        exit 1
+        ;;
     esac
 done
 
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet tw=80:
+# vim: set ft=sh ts=8 sts=4 sw=4 et tw=80:

@@ -6,154 +6,154 @@
 
 function completion/cp {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"f ${long:+--force}; remove unwritable destination files before copying"
-	"H; follow symbolic links in source operands"
-	"i ${long:+--interactive}; ask before overwriting existing files"
-	"L ${long:+--dereference}; follow all symbolic links in source files"
-	"P ${long:+--no-dereference}; copy symbolic links as symbolic links"
-	"R ${long:+--recursive}; recursively copy directories"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "f ${long:+--force}; remove unwritable destination files before copying"
+        "H; follow symbolic links in source operands"
+        "i ${long:+--interactive}; ask before overwriting existing files"
+        "L ${long:+--dereference}; follow all symbolic links in source files"
+        "P ${long:+--no-dereference}; copy symbolic links as symbolic links"
+        "R ${long:+--recursive}; recursively copy directories"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|FreeBSD|NetBSD|Darwin)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"v ${long:+--verbose}; print a message for each file processed"
-		) #<#
-		case $type in (GNU|FreeBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"n ${long:+--no-clobber}; don't overwrite existing files"
-			"x ${long:+--one-file-system}; skip subdirectories on different file systems"
-			) #<#
-			case $type in (GNU|FreeBSD)
-				ADDOPTIONS=("$ADDOPTIONS" #>#
-				"l ${long:+--link}; make hard links instead of copying"
-				) #<#
-			esac
-			case $type in (FreeBSD|Darwin)
-				ADDOPTIONS=("$ADDOPTIONS" #>#
-				"a; like -PpR"
-				) #<#
-			esac
-		esac
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"a --archive; like -PR --preserve=all"
-		"b; like --backup=existing"
-		"--backup::; specify how to make a backup"
-		"c; like --preserve=context"
-		"--copy-contents; treat special files as regular files in recursion"
-		"d; like -P --preserve=links"
-		"p; like --preserve=mode,ownership,timestamps"
-		"--preserve::; specify file attributes to preserve"
-		"--no-preserve:; specify file attributes not to preserve"
-		"--parents; mirror parent directories in source to destination"
-		"--reflink::; lightweight (copy-on-write) copy"
-		"--remove-destination; remove existing destination files before copying"
-		"--sparse:; specify when to make sparse copies"
-		"--strip-trailing-slashes; remove trailing slashes from source operands"
-		"s --symbolic-link; make symbolic links instead of copying"
-		"S: --suffix:; specify a suffix to append to backup file names"
-		"t: --target-directory:; specify a destination directory"
-		"T --no-target-directory; always treat the destination as a regular file"
-		"u --update; don't copy if destination is newer than source"
-		"Z: --context:; specify security context of copies"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(*BSD|Darwin|SunOS|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"p; preserve file attributes"
-		) #<#
-		case $type in
-		(NetBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"N; don't copy file flags (with -p)"
-			) #<#
-			;;
-		(SunOS)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"@; preserve extended attributes"
-			) #<#
-			;;
-		(HP-UX)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"e:; specify extent attributes treatment"
-			"S; safe mode"
-			) #<#
-			;;
-		esac
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|FreeBSD|NetBSD|Darwin)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "v ${long:+--verbose}; print a message for each file processed"
+                ) #<#
+                case $type in (GNU|FreeBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "n ${long:+--no-clobber}; don't overwrite existing files"
+                        "x ${long:+--one-file-system}; skip subdirectories on different file systems"
+                        ) #<#
+                        case $type in (GNU|FreeBSD)
+                                ADDOPTIONS=("$ADDOPTIONS" #>#
+                                "l ${long:+--link}; make hard links instead of copying"
+                                ) #<#
+                        esac
+                        case $type in (FreeBSD|Darwin)
+                                ADDOPTIONS=("$ADDOPTIONS" #>#
+                                "a; like -PpR"
+                                ) #<#
+                        esac
+                esac
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "a --archive; like -PR --preserve=all"
+                "b; like --backup=existing"
+                "--backup::; specify how to make a backup"
+                "c; like --preserve=context"
+                "--copy-contents; treat special files as regular files in recursion"
+                "d; like -P --preserve=links"
+                "p; like --preserve=mode,ownership,timestamps"
+                "--preserve::; specify file attributes to preserve"
+                "--no-preserve:; specify file attributes not to preserve"
+                "--parents; mirror parent directories in source to destination"
+                "--reflink::; lightweight (copy-on-write) copy"
+                "--remove-destination; remove existing destination files before copying"
+                "--sparse:; specify when to make sparse copies"
+                "--strip-trailing-slashes; remove trailing slashes from source operands"
+                "s --symbolic-link; make symbolic links instead of copying"
+                "S: --suffix:; specify a suffix to append to backup file names"
+                "t: --target-directory:; specify a destination directory"
+                "T --no-target-directory; always treat the destination as a regular file"
+                "u --update; don't copy if destination is newer than source"
+                "Z: --context:; specify security context of copies"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (*BSD|Darwin|SunOS|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "p; preserve file attributes"
+                ) #<#
+                case $type in
+                (NetBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "N; don't copy file flags (with -p)"
+                        ) #<#
+                        ;;
+                (SunOS)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "@; preserve extended attributes"
+                        ) #<#
+                        ;;
+                (HP-UX)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "e:; specify extent attributes treatment"
+                        "S; safe mode"
+                        ) #<#
+                        ;;
+                esac
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(--backup)
-		if command -vf completion//completebackup >/dev/null 2>&1 ||
-				. -AL completion/_backup; then
-			command -f completion//completebackup
-		fi
-		;;
-	(e) #>>#
-		complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
-		complete -P "$PREFIX" -D "don't copy extent attributes" ignore
-		complete -P "$PREFIX" -D "don't copy a file when cannot copy the extent attribute" force
-		;; #<<#
-	(--preserve|--no-preserve)
-		typeset word
-		word=${TARGETWORD#"$PREFIX"}
-		word=${word##*,}
-		PREFIX=${TARGETWORD%"$word"} #>>#
-		complete -T -P "$PREFIX" -S , -D "file permission bits" mode
-		complete -T -P "$PREFIX" -S , -D "owner and group" ownership
-		complete -T -P "$PREFIX" -S , -D "last access/modification time" timestamps
-		complete -T -P "$PREFIX" -S , -D "hard links" links
-		complete -T -P "$PREFIX" -S , -D "SELinux security context" context
-		complete -T -P "$PREFIX" -S , -D "extended attributes" xattr
-		complete -P "$PREFIX" -D "all attributes" all
-		;; #<<#
-	(--reflink) #>>#
-		complete -P "$PREFIX" -D "print a message when failed to do copy-on-write copy" always
-		complete -P "$PREFIX" -D "fall back to normal copy when failed to do copy-on-write copy" auto
-		;; #<<#
-	(--sparse) #>>#
-		complete -P "$PREFIX" -D "make destination sparse if source is sparse" auto
-		complete -P "$PREFIX" -D "always try to make sparse copies" always
-		complete -P "$PREFIX" -D "never make sparse copies" never
-		;; #<<#
-	(S|--suffix)
-		;;
-	(t|--target-directory)
-		complete -T -P "$PREFIX" -S / -d
-		;;
-	(Z|--context)
-		# TODO
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--backup)
+                if command -vf completion//completebackup >/dev/null 2>&1 ||
+                                . -AL completion/_backup; then
+                        command -f completion//completebackup
+                fi
+                ;;
+        (e) #>>#
+                complete -P "$PREFIX" -D "print a message when failed to copy an extent attribute" warn
+                complete -P "$PREFIX" -D "don't copy extent attributes" ignore
+                complete -P "$PREFIX" -D "don't copy a file when cannot copy the extent attribute" force
+                ;; #<<#
+        (--preserve|--no-preserve)
+                typeset word
+                word=${TARGETWORD#"$PREFIX"}
+                word=${word##*,}
+                PREFIX=${TARGETWORD%"$word"} #>>#
+                complete -T -P "$PREFIX" -S , -D "file permission bits" mode
+                complete -T -P "$PREFIX" -S , -D "owner and group" ownership
+                complete -T -P "$PREFIX" -S , -D "last access/modification time" timestamps
+                complete -T -P "$PREFIX" -S , -D "hard links" links
+                complete -T -P "$PREFIX" -S , -D "SELinux security context" context
+                complete -T -P "$PREFIX" -S , -D "extended attributes" xattr
+                complete -P "$PREFIX" -D "all attributes" all
+                ;; #<<#
+        (--reflink) #>>#
+                complete -P "$PREFIX" -D "print a message when failed to do copy-on-write copy" always
+                complete -P "$PREFIX" -D "fall back to normal copy when failed to do copy-on-write copy" auto
+                ;; #<<#
+        (--sparse) #>>#
+                complete -P "$PREFIX" -D "make destination sparse if source is sparse" auto
+                complete -P "$PREFIX" -D "always try to make sparse copies" always
+                complete -P "$PREFIX" -D "never make sparse copies" never
+                ;; #<<#
+        (S|--suffix)
+                ;;
+        (t|--target-directory)
+                complete -T -P "$PREFIX" -S / -d
+                ;;
+        (Z|--context)
+                # TODO
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

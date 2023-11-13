@@ -5,22 +5,22 @@
 
 function completion/newgrp {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"l; reset environment variables, etc. as if you logged in again"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "l; reset environment variables, etc. as if you logged in again"
+        ) #<#
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		complete -g
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                complete -g
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -6,39 +6,39 @@
 
 function completion/tee {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a ${long:+--append}; append to the output file; don't overwrite the file"
-	"i ${long:+--ignore-interrupts}; ignore the SIGINT signal"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a ${long:+--append}; append to the output file; don't overwrite the file"
+        "i ${long:+--ignore-interrupts}; ignore the SIGINT signal"
+        ) #<#
 
-	case $type in (GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"--help"
-		"--version"
-		) #<#
-	esac
+        case $type in (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "--help"
+                "--version"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

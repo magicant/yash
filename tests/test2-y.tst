@@ -96,4 +96,4 @@ assert_false 0.01.0 -vle 0.1.a0
 assert_true 1.2.3 -vle 1.3.2
 assert_true -2 -vle -3
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

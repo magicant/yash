@@ -65,10 +65,10 @@ static inline void *xrealloc(void *ptr, size_t size)
 static inline void *xreallocn(void *ptr, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 static inline void *xrealloce(void *ptr,
-	size_t count1, size_t count2, size_t elemsize)
+        size_t count1, size_t count2, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 static inline void *xreallocs(void *ptr,
-	size_t mainsize, size_t count, size_t elemsize)
+        size_t mainsize, size_t count, size_t elemsize)
     __attribute__((malloc,warn_unused_result));
 extern void alloc_failed(void)
     __attribute__((noreturn));
@@ -79,7 +79,7 @@ size_t add(size_t a, size_t b)
 {
     size_t sum = a + b;
     if (sum < a)
-	alloc_failed();
+        alloc_failed();
     return sum;
 }
 
@@ -89,7 +89,7 @@ size_t mul(size_t a, size_t b)
 {
     size_t product = a * b;
     if (b != 0 && product / b != a)
-	alloc_failed();
+        alloc_failed();
     return product;
 }
 
@@ -98,7 +98,7 @@ void *xcalloc(size_t nmemb, size_t size)
 {
     void *result = calloc(nmemb, size);
     if (result == NULL && nmemb > 0 && size > 0)
-	alloc_failed();
+        alloc_failed();
     return result;
 }
 
@@ -107,7 +107,7 @@ void *xmalloc(size_t size)
 {
     void *result = malloc(size);
     if (result == NULL && size > 0)
-	alloc_failed();
+        alloc_failed();
     return result;
 }
 
@@ -143,13 +143,13 @@ void *xrealloc(void *ptr, size_t size)
      * returned NULL, we cannot tell if the previous region has been freed or
      * not. */
     if (size == 0) {
-	free(ptr);
-	return NULL;
+        free(ptr);
+        return NULL;
     }
 
     void *result = realloc(ptr, size);
     if (result == NULL)
-	alloc_failed();
+        alloc_failed();
     return result;
 }
 
@@ -287,4 +287,4 @@ extern _Bool xprintf(const char *restrict format, ...)
 #endif /* YASH_UTIL_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

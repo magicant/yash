@@ -348,9 +348,9 @@ __OUT__
 test_o 'errreturn: for loop body' -o errreturn
 ! (
     for i in 1 2 3; do
-	echo a $i
-	test $i -ne 2
-	echo b $i
+        echo a $i
+        test $i -ne 2
+        echo b $i
     done
     echo not reached
 )
@@ -365,9 +365,9 @@ __OUT__
 test_o -e n 'errexit: for loop body' -e
 ! (
     for i in 1 2 3; do
-	echo a $i
-	test $i -ne 2
-	echo b $i
+        echo a $i
+        test $i -ne 2
+        echo b $i
     done
     echo reached
 )
@@ -414,9 +414,9 @@ __OUT__
 test_o 'errreturn: case body' -o errreturn
 ! (
     case a in (a)
-	echo reached 1
-	false
-	echo not reached 2
+        echo reached 1
+        false
+        echo not reached 2
     esac
     echo not reached 3
 )
@@ -429,9 +429,9 @@ __OUT__
 test_o -e n 'errexit: case body' -e
 ! (
     case a in (a)
-	echo reached 1
-	false
-	echo reached 2
+        echo reached 1
+        false
+        echo reached 2
     esac
     echo reached 3
 )
@@ -557,10 +557,10 @@ __OUT__
 test_o 'errreturn: while body' -o errreturn
 ! (
     while true; do
-	echo reached 1
-	false
-	echo not reached 2
-	break
+        echo reached 1
+        false
+        echo not reached 2
+        break
     done
     echo not reached 3
 )
@@ -573,10 +573,10 @@ __OUT__
 test_o -e n 'errexit: while body' -e
 ! (
     while true; do
-	echo reached 1
-	false
-	echo reached 2
-	break
+        echo reached 1
+        false
+        echo reached 2
+        break
     done
     echo reached 3
 )
@@ -598,10 +598,10 @@ __OUT__
 test_o 'errreturn: until body' -o errreturn
 ! (
     until false; do
-	echo reached 1
-	false
-	echo not reached 2
-	break
+        echo reached 1
+        false
+        echo not reached 2
+        break
     done
     echo not reached 3
 )
@@ -614,10 +614,10 @@ __OUT__
 test_o -e n 'errexit: until body' -e
 ! (
     until false; do
-	echo reached 1
-	false
-	echo reached 2
-	break
+        echo reached 1
+        false
+        echo reached 2
+        break
     done
     echo reached 3
 )
@@ -639,4 +639,4 @@ false
 echo not reached
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

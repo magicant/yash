@@ -4,90 +4,90 @@
 # Supports Git 1.9.0.
 
 function completion/git-branch {
-	WORDS=(git branch "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git branch "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::branch:arg {
 
-	OPTIONS=( #>#
-	"--abbrev:; specify the number of commit ID digits to print"
-	"a --all; print local and remote-tracking branches"
-	"--color::; show symbols in color"
-	"--column::; columnize output"
-	"--contains; show branches that contain the specified commit only"
-	"l --create-reflog; enable reflog for the new branch"
-	"D; delete a branch that has not been merged"
-	"d --delete; delete a branch"
-	"--edit; edit the branch explanation with an editor"
-	"f --force; overwrite an existing branch"
-	"--list; list branches matching the operand pattern"
-	"M; rename a branch, overwriting an existing branch"
-	"--merged; show branches that are contained in the specified commit only"
-	"m --move; rename a branch"
-	"--no-abbrev; print full commit IDs"
-	"--no-color; like --color=never"
-	"--no-column; print branches line by line"
-	"--no-merged; show branches that aren't contained in the specified commit only"
-	"--no-track; create a non-tracking branch"
-	"q --quiet; print error messages only"
-	"r --remotes; print or delete remote-tracking branches"
-	"--set-upstream; like --track, but don't move HEAD"
-	"u: --set-upstream-to:; set the upstream to the specified one"
-	"t --track; create a remote-tracking branch"
-	"--unset-upstream; remove the upstream"
-	"v --verbose; print commit ID and summary for each branch"
-	) #<#
+        OPTIONS=( #>#
+        "--abbrev:; specify the number of commit ID digits to print"
+        "a --all; print local and remote-tracking branches"
+        "--color::; show symbols in color"
+        "--column::; columnize output"
+        "--contains; show branches that contain the specified commit only"
+        "l --create-reflog; enable reflog for the new branch"
+        "D; delete a branch that has not been merged"
+        "d --delete; delete a branch"
+        "--edit; edit the branch explanation with an editor"
+        "f --force; overwrite an existing branch"
+        "--list; list branches matching the operand pattern"
+        "M; rename a branch, overwriting an existing branch"
+        "--merged; show branches that are contained in the specified commit only"
+        "m --move; rename a branch"
+        "--no-abbrev; print full commit IDs"
+        "--no-color; like --color=never"
+        "--no-column; print branches line by line"
+        "--no-merged; show branches that aren't contained in the specified commit only"
+        "--no-track; create a non-tracking branch"
+        "q --quiet; print error messages only"
+        "r --remotes; print or delete remote-tracking branches"
+        "--set-upstream; like --track, but don't move HEAD"
+        "u: --set-upstream-to:; set the upstream to the specified one"
+        "t --track; create a remote-tracking branch"
+        "--unset-upstream; remove the upstream"
+        "v --verbose; print commit ID and summary for each branch"
+        ) #<#
 
-	command -f completion//parseoptions -n
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		(--abbrev)
-			;;
-		(--color|--column)
-			command -f completion/git::$ARGOPT:arg
-			;;
-		(u|--set-upstream-to)
-			command -f completion/git::completeref --remotes
-			;;
-		('')
-			typeset i=2 all=false delete=false
-			while [ $i -le ${WORDS[#]} ]; do
-				case ${WORDS[i]} in
-				(--)
-					i=$((i+1))
-					break
-					;;
-				(--merged|--no-merged|--contains)
-					all=true
-					break
-					;;
-				(--*)
-					i=$((i+1))
-					;;
-				(-*[Dd]*)
-					delete=true
-					break
-					;;
-				(-?*)
-					i=$((i+1))
-					;;
-				(*)
-					break
-					;;
-				esac
-			done
-			if ! $all && $delete || [ $i -gt ${WORDS[#]} ]; then
-				command -f completion/git::completeref --branches
-			else
-				command -f completion/git::completeref
-			fi
-			;;
-	esac
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--abbrev)
+                        ;;
+                (--color|--column)
+                        command -f completion/git::$ARGOPT:arg
+                        ;;
+                (u|--set-upstream-to)
+                        command -f completion/git::completeref --remotes
+                        ;;
+                ('')
+                        typeset i=2 all=false delete=false
+                        while [ $i -le ${WORDS[#]} ]; do
+                                case ${WORDS[i]} in
+                                (--)
+                                        i=$((i+1))
+                                        break
+                                        ;;
+                                (--merged|--no-merged|--contains)
+                                        all=true
+                                        break
+                                        ;;
+                                (--*)
+                                        i=$((i+1))
+                                        ;;
+                                (-*[Dd]*)
+                                        delete=true
+                                        break
+                                        ;;
+                                (-?*)
+                                        i=$((i+1))
+                                        ;;
+                                (*)
+                                        break
+                                        ;;
+                                esac
+                        done
+                        if ! $all && $delete || [ $i -gt ${WORDS[#]} ]; then
+                                command -f completion/git::completeref --branches
+                        else
+                                command -f completion/git::completeref
+                        fi
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

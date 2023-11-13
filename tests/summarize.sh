@@ -27,30 +27,30 @@ passed=0 failed=0 skipped=0
 for result_file do
     # The "grep" command is generally faster than repeated "read" built-in.
     if [ "$(grep -cE '^%%% (FAIL|SKIPP)ED:' "$result_file")" -eq 0 ]; then
-	passed="$((passed + $(grep -c '^%%% PASSED:' "$result_file" || true)))"
-	continue
+        passed="$((passed + $(grep -c '^%%% PASSED:' "$result_file" || true)))"
+        continue
     fi
 
     log=''
     while IFS= read -r line; do
-	log="$log
+        log="$log
 $line"
-	case $line in
-	    ('%%% START:'*)
-		log="$line"
-		;;
-	    ('%%% PASSED:'*)
-		passed="$((passed + 1))"
-		;;
-	    ('%%% FAILED:'*)
-		printf '%s\n\n' "$log"
-		failed="$((failed + 1))"
-		;;
-	    ('%%% SKIPPED:'*)
-		printf '%s\n\n' "$line"
-		skipped="$((skipped + 1))"
-		;;
-	esac
+        case $line in
+            ('%%% START:'*)
+                log="$line"
+                ;;
+            ('%%% PASSED:'*)
+                passed="$((passed + 1))"
+                ;;
+            ('%%% FAILED:'*)
+                printf '%s\n\n' "$log"
+                failed="$((failed + 1))"
+                ;;
+            ('%%% SKIPPED:'*)
+                printf '%s\n\n' "$line"
+                skipped="$((skipped + 1))"
+                ;;
+        esac
     done <"$result_file"
 done
 
@@ -61,4 +61,4 @@ printf 'FAILED:  %5d\n' "$failed"
 printf 'SKIPPED: %5d\n' "$skipped"
 printf '==============\n'
 
-# vim: set ts=8 sts=4 sw=4 noet:
+# vim: set ts=8 sts=4 sw=4 et:

@@ -6,71 +6,71 @@
 
 function completion/split {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"a: ${long:+--suffix-length:}; specify the suffix length for output files"
-	"b: ${long:+--bytes:}; specify the output file size in bytes"
-	"l: ${long:+--lines:}; specify the number of lines in each output file"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a: ${long:+--suffix-length:}; specify the suffix length for output files"
+        "b: ${long:+--bytes:}; specify the output file size in bytes"
+        "l: ${long:+--lines:}; specify the number of lines in each output file"
+        ) #<#
 
-	case $type in (GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"C: --line-bytes:; like -b, but split at line breaks"
-		"d --numeric-suffixes; use numeric suffixes rather than lowercase letters"
-		"--verbose; print a message for each output file processed"
-		"--help"
-		"--version"
-		) #<#
-	esac
-	case $type in (FreeBSD|NetBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"n:; specify the number of output files"
-		) #<#
-	esac
-	case $type in (Darwin|FreeBSD|OpenBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"p:; split at lines matching the specified extended regular expression"
-		) #<#
-	esac
+        case $type in (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "C: --line-bytes:; like -b, but split at line breaks"
+                "d --numeric-suffixes; use numeric suffixes rather than lowercase letters"
+                "--verbose; print a message for each output file processed"
+                "--help"
+                "--version"
+                ) #<#
+        esac
+        case $type in (FreeBSD|NetBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "n:; specify the number of output files"
+                ) #<#
+        esac
+        case $type in (Darwin|FreeBSD|OpenBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "p:; split at lines matching the specified extended regular expression"
+                ) #<#
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([alnp]|--suffix-length|--lines)
-		;;
-	([bC]|--bytes|--line-bytes)
-		if command -vf completion//prefixdigits >/dev/null 2>&1 ||
-				. -AL completion/_blocksize; then
-			if command -f completion//prefixdigits; then
-				command -f completion//completesizesuffix k m
-				case $type in
-				(GNU)
-					command -f completion//completesizesuffix GNU b
-					;;
-				(FreeBSD)
-					command -f completion//completesizesuffix g
-					;;
-				esac
-			fi
-		fi
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([alnp]|--suffix-length|--lines)
+                ;;
+        ([bC]|--bytes|--line-bytes)
+                if command -vf completion//prefixdigits >/dev/null 2>&1 ||
+                                . -AL completion/_blocksize; then
+                        if command -f completion//prefixdigits; then
+                                command -f completion//completesizesuffix k m
+                                case $type in
+                                (GNU)
+                                        command -f completion//completesizesuffix GNU b
+                                        ;;
+                                (FreeBSD)
+                                        command -f completion//completesizesuffix g
+                                        ;;
+                                esac
+                        fi
+                fi
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

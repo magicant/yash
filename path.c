@@ -120,14 +120,14 @@ bool check_access(const char *path, mode_t mode, int amode)
      * checking function if faccessat/eaccess was rejected. */
 #if HAVE_FACCESSAT
     if (faccessat(AT_FDCWD, path, amode, AT_EACCESS) == 0)
-	return true;
+        return true;
     if (errno != ENOSYS && errno != EINVAL)
-	return false;
+        return false;
 #elif HAVE_EACCESS
     if (eaccess(path, amode) == 0)
-	return true;
+        return true;
     if (errno != ENOSYS && errno != EINVAL)
-	return false;
+        return false;
 #else
     (void) amode;
 #endif
@@ -138,35 +138,35 @@ bool check_access(const char *path, mode_t mode, int amode)
     gid_t gid;
 
     if (stat(path, &st) < 0)
-	return false;
+        return false;
 
     uid = geteuid();
 #if !YASH_DISABLE_SUPERUSER
     if (uid == 0) {
-	/* the "root" user has special permissions */
-	return (mode & (S_IRUSR | S_IRGRP | S_IROTH
-	              | S_IWUSR | S_IWGRP | S_IWOTH))
-	    || S_ISDIR(st.st_mode)
-	    || (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH));
+        /* the "root" user has special permissions */
+        return (mode & (S_IRUSR | S_IRGRP | S_IROTH
+                      | S_IWUSR | S_IWGRP | S_IWOTH))
+            || S_ISDIR(st.st_mode)
+            || (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH));
     }
 #endif
 
     st.st_mode &= mode;
     if (uid == st.st_uid)
-	return st.st_mode & S_IRWXU;
+        return st.st_mode & S_IRWXU;
     gid = getegid();
     if (gid == st.st_gid)
-	return st.st_mode & S_IRWXG;
+        return st.st_mode & S_IRWXG;
 
     int gcount = getgroups(0, &gid);  /* the second argument is a dummy */
     if (gcount > 0) {
-	gid_t groups[gcount];
-	gcount = getgroups(gcount, groups);
-	if (gcount > 0) {
-	    for (int i = 0; i < gcount; i++)
-		if (gid == groups[i])
-		    return st.st_mode & S_IRWXG;
-	}
+        gid_t groups[gcount];
+        gcount = getgroups(gcount, groups);
+        if (gcount > 0) {
+            for (int i = 0; i < gcount; i++)
+                if (gid == groups[i])
+                    return st.st_mode & S_IRWXG;
+        }
     }
 
     return st.st_mode & S_IRWXO;
@@ -193,10 +193,10 @@ bool is_directory(const char *path)
 
 /* Checks if two stat results name the same file. */
 inline bool stat_result_same_file(
-	const struct stat *stat1, const struct stat *stat2)
+        const struct stat *stat1, const struct stat *stat2)
 {
     return stat1->st_dev == stat2->st_dev
-	&& stat1->st_ino == stat2->st_ino;
+        && stat1->st_ino == stat2->st_ino;
 }
 
 /* Checks if two files are the same file. */
@@ -204,7 +204,7 @@ bool is_same_file(const char *path1, const char *path2)
 {
     struct stat stat1, stat2;
     return stat(path1, &stat1) == 0 && stat(path2, &stat2) == 0
-	&& stat_result_same_file(&stat1, &stat2);
+        && stat_result_same_file(&stat1, &stat2);
 }
 
 /* Checks if the specified `path' is normalized, that is, containing no "."
@@ -213,14 +213,14 @@ bool is_same_file(const char *path1, const char *path2)
 bool is_normalized_path(const wchar_t *path)
 {
     while (path[0] != L'\0') {
-	if (path[0] == L'.' &&
-		(path[1] == L'\0' || path[1] == L'/' ||
-		 (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/'))))
-	    return false;
-	path = wcschr(path, L'/');
-	if (path == NULL)
-	    break;
-	path++;
+        if (path[0] == L'.' &&
+                (path[1] == L'\0' || path[1] == L'/' ||
+                 (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/'))))
+            return false;
+        path = wcschr(path, L'/');
+        if (path == NULL)
+            break;
+        path++;
     }
     return true;
 }
@@ -236,16 +236,16 @@ char *xgetcwd(void)
     size_t pwdlen = 40;
     char *pwd = xmalloc(pwdlen);
     while (getcwd(pwd, pwdlen) == NULL) {
-	if (errno == ERANGE) {
-	    pwdlen = mul(pwdlen, 2);
-	    pwd = xrealloc(pwd, pwdlen);
-	} else {
-	    int saveerrno = errno;
-	    free(pwd);
-	    pwd = NULL;
-	    errno = saveerrno;
-	    break;
-	}
+        if (errno == ERANGE) {
+            pwdlen = mul(pwdlen, 2);
+            pwd = xrealloc(pwd, pwdlen);
+        } else {
+            int saveerrno = errno;
+            free(pwd);
+            pwd = NULL;
+            errno = saveerrno;
+            break;
+        }
     }
     return pwd;
 #endif
@@ -271,33 +271,33 @@ char *xgetcwd(void)
  * `name' and all the directory names in `dirs' must start and end in the
  * initial shift state. */
 char *which(
-	const char *restrict name,
-	char *const *restrict dirs,
-	bool cond(const char *path))
+        const char *restrict name,
+        char *const *restrict dirs,
+        bool cond(const char *path))
 {
     if (name[0] == L'\0')
-	return NULL;
+        return NULL;
     if (name[0] == '/')
-	return xstrdup(name);
+        return xstrdup(name);
     if (dirs == NULL)
-	return NULL;
+        return NULL;
 
     size_t namelen = strlen(name);
     for (const char *dir; (dir = *dirs) != NULL; dirs++) {
-	size_t dirlen = strlen(dir);
-	char path[dirlen + namelen + 3];
-	if (dirlen > 0) {
-	    /* concatenate `dir' and `name' to produce a pathname `path' */
-	    strcpy(path, dir);
-	    if (path[dirlen - 1] != '/')
-		path[dirlen++] = '/';
-	    strcpy(path + dirlen, name);
-	} else {
-	    /* if `dir' is empty, it's considered to be the current directory */
-	    strcpy(path, name);
-	}
-	if (cond(path))
-	    return xstrdup(path);
+        size_t dirlen = strlen(dir);
+        char path[dirlen + namelen + 3];
+        if (dirlen > 0) {
+            /* concatenate `dir' and `name' to produce a pathname `path' */
+            strcpy(path, dir);
+            if (path[dirlen - 1] != '/')
+                path[dirlen++] = '/';
+            strcpy(path + dirlen, name);
+        } else {
+            /* if `dir' is empty, it's considered to be the current directory */
+            strcpy(path, name);
+        }
+        if (cond(path))
+            return xstrdup(path);
     }
     return NULL;
 }
@@ -313,7 +313,7 @@ char *which(
  * On failure, -1 is returned with `**filename' left unchanged and `errno' is
  * set to the error value. */
 int create_temporary_file(
-	char **restrict filename, const char *restrict suffix, mode_t mode)
+        char **restrict filename, const char *restrict suffix, mode_t mode)
 {
     static uintmax_t num = 0;
     uintmax_t n;
@@ -322,28 +322,28 @@ int create_temporary_file(
 
     n = (uintmax_t) shell_pid * 272229637312669;
     if (num == 0)
-	num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
+        num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
     sb_initwithmax(&buf, 31);
     for (int i = 0; i < 100; i++) {
-	num = (num ^ n) * 16777619;
-	sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
+        num = (num ^ n) * 16777619;
+        sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
 
-	size_t maxlen = _POSIX_NAME_MAX + 5 - strlen(suffix);
-	if (buf.length > maxlen)
-	    sb_truncate(&buf, maxlen);
-	sb_cat(&buf, suffix);
+        size_t maxlen = _POSIX_NAME_MAX + 5 - strlen(suffix);
+        if (buf.length > maxlen)
+            sb_truncate(&buf, maxlen);
+        sb_cat(&buf, suffix);
 
-	fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
-	if (fd >= 0) {
-	    *filename = sb_tostr(&buf);
-	    return fd;
-	} else if (errno != EEXIST && errno != EINTR) {
-	    int saveerrno = errno;
-	    sb_destroy(&buf);
-	    errno = saveerrno;
-	    return -1;
-	}
-	sb_clear(&buf);
+        fd = open(buf.contents, O_RDWR | O_CREAT | O_EXCL, mode);
+        if (fd >= 0) {
+            *filename = sb_tostr(&buf);
+            return fd;
+        } else if (errno != EEXIST && errno != EINTR) {
+            int saveerrno = errno;
+            sb_destroy(&buf);
+            errno = saveerrno;
+            return -1;
+        }
+        sb_clear(&buf);
     }
     sb_destroy(&buf);
     errno = EAGAIN;
@@ -391,19 +391,19 @@ const char *get_command_path(const char *name, bool forcelookup)
     const char *path;
 
     if (!forcelookup) {
-	path = ht_get(&cmdhash, name).value;
-	if (path != NULL && path[0] == '/' && is_executable_regular(path))
-	    return path;
+        path = ht_get(&cmdhash, name).value;
+        if (path != NULL && path[0] == '/' && is_executable_regular(path))
+            return path;
     }
 
     path = which(name, get_path_array(PA_PATH), is_executable_regular);
     if (path != NULL) {
-	size_t namelen = strlen(name), pathlen = strlen(path);
-	const char *nameinpath = path + pathlen - namelen;
-	assert(strcmp(name, nameinpath) == 0);
-	vfree(ht_set(&cmdhash, nameinpath, path));
+        size_t namelen = strlen(name), pathlen = strlen(path);
+        const char *nameinpath = path + pathlen - namelen;
+        assert(strcmp(name, nameinpath) == 0);
+        vfree(ht_set(&cmdhash, nameinpath, path));
     } else {
-	forget_command_path(name);
+        forget_command_path(name);
     }
     return path;
 }
@@ -428,13 +428,13 @@ const char *get_command_path_default(const char *name)
     free(gcpd_value);
 
     if (default_path == NULL) {
-	wchar_t *defpath = get_default_path();
-	if (defpath == NULL) {
-	    gcpd_value = NULL;
-	    return gcpd_value;
-	}
-	default_path = decompose_paths(defpath);
-	free(defpath);
+        wchar_t *defpath = get_default_path();
+        if (defpath == NULL) {
+            gcpd_value = NULL;
+            return gcpd_value;
+        }
+        default_path = decompose_paths(defpath);
+        free(defpath);
     }
     gcpd_value = which(name, default_path, is_executable_regular);
     return gcpd_value;
@@ -453,13 +453,13 @@ wchar_t *get_default_path(void)
     size_t s = confstr(_CS_PATH, buf, size);
 
     if (s > size) {
-	size = s;
-	buf = xrealloc(buf, size);
-	s = confstr(_CS_PATH, buf, size);
+        size = s;
+        buf = xrealloc(buf, size);
+        s = confstr(_CS_PATH, buf, size);
     }
     if (s == 0 || s > size) {
-	free(buf);
-	return NULL;
+        free(buf);
+        return NULL;
     }
     return realloc_mbstowcs(buf);
 #endif
@@ -478,8 +478,8 @@ struct passwd *xgetpwnam(const char *name)
 {
     struct passwd *pw;
     do {
-	errno = 0;
-	pw = getpwnam(name);
+        errno = 0;
+        pw = getpwnam(name);
     } while (pw == NULL && errno == EINTR);
     return pw;
 }
@@ -514,25 +514,25 @@ const wchar_t *get_home_directory(const wchar_t *username, bool forcelookup)
     const wchar_t *path;
 
     if (!forcelookup) {
-	path = ht_get(&homedirhash, username).value;
-	if (path != NULL)
-	    return path;
+        path = ht_get(&homedirhash, username).value;
+        if (path != NULL)
+            return path;
     }
 
     char *mbsusername = malloc_wcstombs(username);
     if (mbsusername == NULL)
-	return NULL;
+        return NULL;
 
     struct passwd *pw = xgetpwnam(mbsusername);
     free(mbsusername);
     if (pw == NULL)
-	return NULL;
+        return NULL;
 
     xwcsbuf_T dir;
     wb_init(&dir);
     if (wb_mbscat(&dir, pw->pw_dir) != NULL) {
-	wb_destroy(&dir);
-	return NULL;
+        wb_destroy(&dir);
+        return NULL;
     }
     wb_wccat(&dir, L'\0');
     size_t usernameindex = dir.length;
@@ -554,19 +554,19 @@ void forget_home_directory(const wchar_t *username)
 /* Parsed glob pattern component */
 struct wglob_pattern {
     enum {
-	WGLOB_LITERAL, WGLOB_MATCH, WGLOB_RECSEARCH,
+        WGLOB_LITERAL, WGLOB_MATCH, WGLOB_RECSEARCH,
     } type;
     union {
-	struct {
-	    char *name;
-	    wchar_t *wname;
-	} literal;
-	struct {
-	    xfnmatch_T *pattern;
-	} match;
-	struct {
-	    bool followlink, allowperiod;
-	} recsearch;
+        struct {
+            char *name;
+            wchar_t *wname;
+        } literal;
+        struct {
+            xfnmatch_T *pattern;
+        } match;
+        struct {
+            bool followlink, allowperiod;
+        } recsearch;
     } value;
 };
 
@@ -612,44 +612,44 @@ struct wglob_stack {
  */
 
 static plist_T wglob_parse_pattern(
-	const wchar_t *pattern, enum wglobflags_T flags)
+        const wchar_t *pattern, enum wglobflags_T flags)
     __attribute__((nonnull,warn_unused_result));
 static struct wglob_pattern *wglob_parse_component(
-	const wchar_t *pattern, enum wglobflags_T flags, bool has_next)
+        const wchar_t *pattern, enum wglobflags_T flags, bool has_next)
     __attribute__((nonnull,malloc,warn_unused_result));
 static struct wglob_pattern *wglob_create_recsearch_component(
-	bool followlink, bool allowperiod)
+        bool followlink, bool allowperiod)
     __attribute__((malloc,warn_unused_result));
 static void wglob_free_pattern(struct wglob_pattern *c);
 static void wglob_free_pattern_vp(void *c);
 
 static inline struct wglob_stack *wglob_stack_new(
-	const struct wglob_search *s, const struct wglob_stack *prev)
+        const struct wglob_search *s, const struct wglob_stack *prev)
     __attribute__((nonnull(1)));
 static void wglob_search(
-	struct wglob_search *restrict s, struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, struct wglob_stack *restrict t)
     __attribute__((nonnull));
 static void wglob_search_literal_each(
-	struct wglob_search *restrict s, const struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, const struct wglob_stack *restrict t)
     __attribute__((nonnull));
 static void wglob_add_result(
-	struct wglob_search *s, bool only_if_existing, bool markdir)
+        struct wglob_search *s, bool only_if_existing, bool markdir)
     __attribute__((nonnull));
 static void wglob_search_literal_uniq(
-	struct wglob_search *restrict s, struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, struct wglob_stack *restrict t)
     __attribute__((nonnull));
 static bool wglob_scandir(
-	struct wglob_search *restrict s, const struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, const struct wglob_stack *restrict t)
     __attribute__((nonnull));
 static void wglob_scandir_entry(
-	const char *name, struct wglob_search *restrict s,
-	const struct wglob_stack *restrict t, struct wglob_stack *restrict t2,
-	bool only_if_existing)
+        const char *name, struct wglob_search *restrict s,
+        const struct wglob_stack *restrict t, struct wglob_stack *restrict t2,
+        bool only_if_existing)
     __attribute__((nonnull));
 static bool wglob_should_recurse(
-	const char *restrict name, const char *restrict path,
-	const struct wglob_pattern *restrict c, struct wglob_stack *restrict t,
-	size_t count)
+        const char *restrict name, const char *restrict path,
+        const struct wglob_pattern *restrict c, struct wglob_stack *restrict t,
+        size_t count)
     __attribute__((nonnull));
 static bool wglob_is_reentry(const struct wglob_stack *const t, size_t count)
     __attribute__((nonnull,pure));
@@ -675,15 +675,15 @@ static int wglob_sortcmp(const void *v1, const void *v2)
  * interrupted, in which case false is returned.
  * Minor errors such as permission errors are ignored. */
 bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
-	plist_T *restrict list)
+        plist_T *restrict list)
 {
     struct wglob_search s;
     size_t listbase = list->length;
 
     s.pattern = wglob_parse_pattern(pattern, flags);
     if (s.pattern.length == 0) {
-	pl_destroy(&s.pattern);
-	return false;
+        pl_destroy(&s.pattern);
+        return false;
     }
 
     s.flags = flags;
@@ -703,8 +703,8 @@ bool wglob(const wchar_t *restrict pattern, enum wglobflags_T flags,
     plfree(pl_toary(&s.pattern), wglob_free_pattern_vp);
 
     if (!(flags & WGLB_NOSORT)) {
-	size_t count = list->length - listbase;  /* # of resulting items */
-	qsort(list->contents + listbase, count, sizeof (void *), wglob_sortcmp);
+        size_t count = list->length - listbase;  /* # of resulting items */
+        qsort(list->contents + listbase, count, sizeof (void *), wglob_sortcmp);
     }
     return !is_interrupted();
 }
@@ -718,24 +718,24 @@ plist_T wglob_parse_pattern(const wchar_t *pattern, enum wglobflags_T flags)
     pl_init(&components);
 
     for (;;) {
-	const wchar_t *slash = wcschr(pattern, L'/');
-	size_t componentlength =
-	    (slash != NULL) ? (size_t) (slash - pattern) : wcslen(pattern);
-	wchar_t component[componentlength + 1];
-	wcsncpy(component, pattern, componentlength);
-	component[componentlength] = L'\0';
+        const wchar_t *slash = wcschr(pattern, L'/');
+        size_t componentlength =
+            (slash != NULL) ? (size_t) (slash - pattern) : wcslen(pattern);
+        wchar_t component[componentlength + 1];
+        wcsncpy(component, pattern, componentlength);
+        component[componentlength] = L'\0';
 
-	struct wglob_pattern *c =
-	    wglob_parse_component(component, flags, slash != NULL);
-	if (c == NULL) {
-	    pl_clear(&components, wglob_free_pattern_vp);
-	    break;
-	}
-	pl_add(&components, c);
+        struct wglob_pattern *c =
+            wglob_parse_component(component, flags, slash != NULL);
+        if (c == NULL) {
+            pl_clear(&components, wglob_free_pattern_vp);
+            break;
+        }
+        pl_add(&components, c);
 
-	if (slash == NULL)
-	    break;
-	pattern = &slash[1];
+        if (slash == NULL)
+            break;
+        pattern = &slash[1];
     }
 
     return components;
@@ -744,40 +744,40 @@ plist_T wglob_parse_pattern(const wchar_t *pattern, enum wglobflags_T flags)
 /* Parses one pattern component.
  * `has_next' must be true if the component is not the last one. */
 struct wglob_pattern *wglob_parse_component(
-	const wchar_t *pattern, enum wglobflags_T flags, bool has_next)
+        const wchar_t *pattern, enum wglobflags_T flags, bool has_next)
 {
     assert(!wcschr(pattern, L'/'));
 
     if (has_next && (flags & WGLB_RECDIR)) {
-	if (wcscmp(pattern, L"**") == 0)
-	    return wglob_create_recsearch_component(false, false);
-	if (wcscmp(pattern, L"***") == 0)
-	    return wglob_create_recsearch_component(true, false);
-	if (wcscmp(pattern, L".**") == 0)
-	    return wglob_create_recsearch_component(false, true);
-	if (wcscmp(pattern, L".***") == 0)
-	    return wglob_create_recsearch_component(true, true);
+        if (wcscmp(pattern, L"**") == 0)
+            return wglob_create_recsearch_component(false, false);
+        if (wcscmp(pattern, L"***") == 0)
+            return wglob_create_recsearch_component(true, false);
+        if (wcscmp(pattern, L".**") == 0)
+            return wglob_create_recsearch_component(false, true);
+        if (wcscmp(pattern, L".***") == 0)
+            return wglob_create_recsearch_component(true, true);
     }
 
     struct wglob_pattern *result = xmalloc(sizeof *result);
 
     if (is_matching_pattern(pattern)) {
-	xfnmflags_T xflags = XFNM_HEADONLY | XFNM_TAILONLY;
-	if (flags & WGLB_CASEFOLD)
-	    xflags |= XFNM_CASEFOLD;
-	if (!(flags & WGLB_PERIOD))
-	    xflags |= XFNM_PERIOD;
-	result->type = WGLOB_MATCH;
-	result->value.match.pattern = xfnm_compile(pattern, xflags);
-	if (result->value.match.pattern == NULL)
-	    goto fail;
+        xfnmflags_T xflags = XFNM_HEADONLY | XFNM_TAILONLY;
+        if (flags & WGLB_CASEFOLD)
+            xflags |= XFNM_CASEFOLD;
+        if (!(flags & WGLB_PERIOD))
+            xflags |= XFNM_PERIOD;
+        result->type = WGLOB_MATCH;
+        result->value.match.pattern = xfnm_compile(pattern, xflags);
+        if (result->value.match.pattern == NULL)
+            goto fail;
     } else {
-	wchar_t *value = unescape(pattern);
-	result->type = WGLOB_LITERAL;
-	result->value.literal.wname = value;
-	result->value.literal.name = malloc_wcstombs(value);
-	if (result->value.literal.name == NULL)
-	    goto fail;
+        wchar_t *value = unescape(pattern);
+        result->type = WGLOB_LITERAL;
+        result->value.literal.wname = value;
+        result->value.literal.name = malloc_wcstombs(value);
+        if (result->value.literal.name == NULL)
+            goto fail;
     }
     return result;
 
@@ -787,7 +787,7 @@ fail:
 }
 
 struct wglob_pattern *wglob_create_recsearch_component(
-	bool followlink, bool allowperiod)
+        bool followlink, bool allowperiod)
 {
     struct wglob_pattern *result = xmalloc(sizeof *result);
     result->type = WGLOB_RECSEARCH;
@@ -799,18 +799,18 @@ struct wglob_pattern *wglob_create_recsearch_component(
 void wglob_free_pattern(struct wglob_pattern *c)
 {
     if (c == NULL)
-	return;
+        return;
 
     switch (c->type) {
-	case WGLOB_LITERAL:
-	    free(c->value.literal.name);
-	    free(c->value.literal.wname);
-	    break;
-	case WGLOB_MATCH:
-	    xfnm_free(c->value.match.pattern);
-	    break;
-	case WGLOB_RECSEARCH:
-	    break;
+        case WGLOB_LITERAL:
+            free(c->value.literal.name);
+            free(c->value.literal.wname);
+            break;
+        case WGLOB_MATCH:
+            xfnm_free(c->value.match.pattern);
+            break;
+        case WGLOB_RECSEARCH:
+            break;
     }
     free(c);
 }
@@ -823,10 +823,10 @@ void wglob_free_pattern_vp(void *c)
 /* Allocates a new wglob_stack entry with no active components.
  * Note that `st' is uninitialized. */
 struct wglob_stack *wglob_stack_new(
-	const struct wglob_search *s, const struct wglob_stack *prev)
+        const struct wglob_search *s, const struct wglob_stack *prev)
 {
     struct wglob_stack *t =
-	xmallocs(sizeof *t, sizeof *t->active_components, s->pattern.length);
+        xmallocs(sizeof *t, sizeof *t->active_components, s->pattern.length);
     t->prev = prev;
     memset(t->active_components, 0, s->pattern.length);
     return t;
@@ -839,50 +839,50 @@ struct wglob_stack *wglob_stack_new(
  * the original value.
  * Only the WGLB_MARK flag in `s->flags' affects the results. */
 void wglob_search(
-	struct wglob_search *restrict s, struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, struct wglob_stack *restrict t)
 {
     assert(s->path.length == 0 ||
-	    s->path.contents[s->path.length - 1] == '/');
+            s->path.contents[s->path.length - 1] == '/');
     assert(s->wpath.length == 0 ||
-	    s->wpath.contents[s->wpath.length - 1] == L'/');
+            s->wpath.contents[s->wpath.length - 1] == L'/');
 
     if (is_interrupted())
-	return;
+        return;
 
     /* find active WGLOB_RECSEARCH components and activate their next component
      * to allow the WGLOB_RECSEARCH component to match nothing. */
     for (size_t i = 0; i < s->pattern.length; i++) {
-	if (!t->active_components[i])
-	    continue;
+        if (!t->active_components[i])
+            continue;
 
-	const struct wglob_pattern *c = s->pattern.contents[i];
-	if (c->type == WGLOB_RECSEARCH) {
-	    assert(i + 1 < s->pattern.length);
-	    t->active_components[i + 1] = t->active_components[i];
-	}
+        const struct wglob_pattern *c = s->pattern.contents[i];
+        if (c->type == WGLOB_RECSEARCH) {
+            assert(i + 1 < s->pattern.length);
+            t->active_components[i + 1] = t->active_components[i];
+        }
     }
 
     /* count active components */
     size_t active_literals = 0, active_matchers = 0;
     for (size_t i = 0; i < s->pattern.length; i++) {
-	if (!t->active_components[i])
-	    continue;
+        if (!t->active_components[i])
+            continue;
 
-	const struct wglob_pattern *c = s->pattern.contents[i];
-	if (c->type == WGLOB_LITERAL)
-	    active_literals++;
-	else
-	    active_matchers++;
+        const struct wglob_pattern *c = s->pattern.contents[i];
+        if (c->type == WGLOB_LITERAL)
+            active_literals++;
+        else
+            active_matchers++;
     }
 
     /* perform search depending on the type of active components */
     if (active_matchers > 0)
-	if (wglob_scandir(s, t))
-	    return;
+        if (wglob_scandir(s, t))
+            return;
     if (active_literals == 1)
-	wglob_search_literal_each(s, t);
+        wglob_search_literal_each(s, t);
     else if (active_literals > 0)
-	wglob_search_literal_uniq(s, t);
+        wglob_search_literal_uniq(s, t);
 }
 
 /* Applies active components to the current directory path and continues
@@ -892,58 +892,58 @@ void wglob_search(
  * component. If more than one component are active, duplicate results may be
  * produced for the same pathname. */
 void wglob_search_literal_each(
-	struct wglob_search *restrict s, const struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, const struct wglob_stack *restrict t)
 {
     size_t savepathlen = s->path.length, savewpathlen = s->wpath.length;
 
     for (size_t i = 0; i < s->pattern.length; i++) {
-	if (!t->active_components[i])
-	    continue;
+        if (!t->active_components[i])
+            continue;
 
-	const struct wglob_pattern *c = s->pattern.contents[i];
-	if (c->type != WGLOB_LITERAL)
-	    continue;
+        const struct wglob_pattern *c = s->pattern.contents[i];
+        if (c->type != WGLOB_LITERAL)
+            continue;
 
-	sb_cat(&s->path, c->value.literal.name);
-	wb_cat(&s->wpath, c->value.literal.wname);
+        sb_cat(&s->path, c->value.literal.name);
+        wb_cat(&s->wpath, c->value.literal.wname);
 
-	if (i + 1 < s->pattern.length) {
-	    /* There is a next component. */
-	    struct wglob_stack *t2 = wglob_stack_new(s, t);
-	    t2->active_components[i + 1] = 1;
+        if (i + 1 < s->pattern.length) {
+            /* There is a next component. */
+            struct wglob_stack *t2 = wglob_stack_new(s, t);
+            t2->active_components[i + 1] = 1;
 
-	    sb_ccat(&s->path, '/');
-	    wb_wccat(&s->wpath, L'/');
+            sb_ccat(&s->path, '/');
+            wb_wccat(&s->wpath, L'/');
 
-	    wglob_search(s, t2);
+            wglob_search(s, t2);
 
-	    free(t2);
-	} else {
-	    /* This is the last component. */
-	    wglob_add_result(s, true, false);
-	}
+            free(t2);
+        } else {
+            /* This is the last component. */
+            wglob_add_result(s, true, false);
+        }
 
-	sb_truncate(&s->path, savepathlen);
-	wb_truncate(&s->wpath, savewpathlen);
+        sb_truncate(&s->path, savepathlen);
+        wb_truncate(&s->wpath, savewpathlen);
     }
 }
 
 /* Adds `s->path' to `s->results'. */
 void wglob_add_result(
-	struct wglob_search *s, bool only_if_existing, bool markdir)
+        struct wglob_search *s, bool only_if_existing, bool markdir)
 {
     if (!only_if_existing && !markdir) {
-	pl_add(s->results, xwcsdup(s->wpath.contents));
-	return;
+        pl_add(s->results, xwcsdup(s->wpath.contents));
+        return;
     }
 
     struct stat st;
     bool existing = stat(s->path.contents, &st) >= 0;
     if (only_if_existing && !existing)
-	return;
+        return;
     if (!markdir || !existing || !S_ISDIR(st.st_mode)) {
-	pl_add(s->results, xwcsdup(s->wpath.contents));
-	return;
+        pl_add(s->results, xwcsdup(s->wpath.contents));
+        return;
     }
 
     size_t length = add(wcslen(s->wpath.contents), 1);
@@ -958,20 +958,20 @@ void wglob_add_result(
  * searching subdirectories.
  * This function ignores active components that are not literal. */
 void wglob_search_literal_uniq(
-	struct wglob_search *restrict s, struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, struct wglob_stack *restrict t)
 {
     /* collect names of active literal components */
     hashtable_T ac;
     ht_initwithcapacity(&ac, hashwcs, htwcscmp, s->pattern.length);
     for (size_t i = 0; i < s->pattern.length; i++) {
-	if (!t->active_components[i])
-	    continue;
+        if (!t->active_components[i])
+            continue;
 
-	const struct wglob_pattern *c = s->pattern.contents[i];
-	if (c->type != WGLOB_LITERAL)
-	    continue;
+        const struct wglob_pattern *c = s->pattern.contents[i];
+        if (c->type != WGLOB_LITERAL)
+            continue;
 
-	ht_set(&ac, c->value.literal.wname, c);
+        ht_set(&ac, c->value.literal.wname, c);
     }
 
     kvpair_T *names = ht_tokvarray(&ac);
@@ -980,9 +980,9 @@ void wglob_search_literal_uniq(
     /* descend down for each name */
     struct wglob_stack *t2 = wglob_stack_new(s, t);
     for (const kvpair_T *n = names; n->key != NULL; n++) {
-	const struct wglob_pattern *c = n->value;
-	memset(t2->active_components, 0, s->pattern.length);
-	wglob_scandir_entry(c->value.literal.name, s, t, t2, true);
+        const struct wglob_pattern *c = n->value;
+        memset(t2->active_components, 0, s->pattern.length);
+        wglob_scandir_entry(c->value.literal.name, s, t, t2, true);
     }
 
     free(t2);
@@ -993,11 +993,11 @@ void wglob_search_literal_uniq(
  * searching subdirectories.
  * Returns true if the directory could be searched. */
 bool wglob_scandir(
-	struct wglob_search *restrict s, const struct wglob_stack *restrict t)
+        struct wglob_search *restrict s, const struct wglob_stack *restrict t)
 {
     DIR* dir = opendir((s->path.length == 0) ? "." : s->path.contents);
     if (dir == NULL)
-	return false;
+        return false;
 
     struct wglob_stack *t2 = wglob_stack_new(s, t);
 
@@ -1008,8 +1008,8 @@ bool wglob_scandir(
     /* now try each directory entry */
     struct dirent *de;
     while ((de = readdir(dir)) != NULL) {
-	memset(t2->active_components, 0, s->pattern.length);
-	wglob_scandir_entry(de->d_name, s, t, t2, false);
+        memset(t2->active_components, 0, s->pattern.length);
+        wglob_scandir_entry(de->d_name, s, t, t2, false);
     }
     closedir(dir);
 
@@ -1025,53 +1025,53 @@ bool wglob_scandir(
  * `only_if_existing' is passed to `wglob_add_result' and should be false iff
  * the `name' is known to be an existing file. */
 void wglob_scandir_entry(
-	const char *name, struct wglob_search *restrict s,
-	const struct wglob_stack *restrict t, struct wglob_stack *restrict t2,
-	bool only_if_existing)
+        const char *name, struct wglob_search *restrict s,
+        const struct wglob_stack *restrict t, struct wglob_stack *restrict t2,
+        bool only_if_existing)
 {
     size_t savepathlen = s->path.length, savewpathlen = s->wpath.length;
 
     sb_cat(&s->path, name);
     if (wb_mbscat(&s->wpath, name) != NULL)
-	goto done; // skip on error
+        goto done; // skip on error
 
     /* add new active components to `t2' */
     for (size_t i = 0; i < s->pattern.length; i++) {
-	if (!t->active_components[i])
-	    continue;
+        if (!t->active_components[i])
+            continue;
 
-	const struct wglob_pattern *c = s->pattern.contents[i];
-	switch (c->type) {
-	    case WGLOB_LITERAL:
-		if (strcmp(c->value.literal.name, name) != 0)
-		    continue;
-		if (i + 1 < s->pattern.length) // has a next component?
-		    t2->active_components[i + 1] = 1;
-		else
-		    wglob_add_result(s, only_if_existing, false);
-		break;
-	    case WGLOB_MATCH:
-		if (name[0] == '\0')
-		    continue;
-		if (xfnm_match(c->value.match.pattern, name) != 0)
-		    continue;
-		if (i + 1 < s->pattern.length) // has a next component?
-		    t2->active_components[i + 1] = 1;
-		else
-		    wglob_add_result(s, only_if_existing, s->flags & WGLB_MARK);
-		break;
-	    case WGLOB_RECSEARCH:
-		assert(i + 1 < s->pattern.length);
-		if (name[0] == '\0')
-		    continue;
-		if (t2->active_components[i] == 0) {
-		    const char *path = s->path.contents;
-		    size_t count = t->active_components[i] - 1;
-		    if (wglob_should_recurse(name, path, c, t2, count))
-			t2->active_components[i] = t->active_components[i] + 1;
-		}
-		break;
-	}
+        const struct wglob_pattern *c = s->pattern.contents[i];
+        switch (c->type) {
+            case WGLOB_LITERAL:
+                if (strcmp(c->value.literal.name, name) != 0)
+                    continue;
+                if (i + 1 < s->pattern.length) // has a next component?
+                    t2->active_components[i + 1] = 1;
+                else
+                    wglob_add_result(s, only_if_existing, false);
+                break;
+            case WGLOB_MATCH:
+                if (name[0] == '\0')
+                    continue;
+                if (xfnm_match(c->value.match.pattern, name) != 0)
+                    continue;
+                if (i + 1 < s->pattern.length) // has a next component?
+                    t2->active_components[i + 1] = 1;
+                else
+                    wglob_add_result(s, only_if_existing, s->flags & WGLB_MARK);
+                break;
+            case WGLOB_RECSEARCH:
+                assert(i + 1 < s->pattern.length);
+                if (name[0] == '\0')
+                    continue;
+                if (t2->active_components[i] == 0) {
+                    const char *path = s->path.contents;
+                    size_t count = t->active_components[i] - 1;
+                    if (wglob_should_recurse(name, path, c, t2, count))
+                        t2->active_components[i] = t->active_components[i] + 1;
+                }
+                break;
+        }
     }
 
     sb_ccat(&s->path, '/');
@@ -1089,26 +1089,26 @@ done:
  * In this function, `t->st' is updated to the result of `stat'ing the `path'.
  */
 bool wglob_should_recurse(
-	const char *restrict name, const char *restrict path,
-	const struct wglob_pattern *restrict c, struct wglob_stack *restrict t,
-	size_t count)
+        const char *restrict name, const char *restrict path,
+        const struct wglob_pattern *restrict c, struct wglob_stack *restrict t,
+        size_t count)
 {
     if (c->value.recsearch.allowperiod) {
-	if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
-	    return false;
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+            return false;
     } else {
-	if (name[0] == '.')
-	    return false;
+        if (name[0] == '.')
+            return false;
     }
 
     int (*statfunc)(const char *path, struct stat *st) =
-	c->value.recsearch.followlink ? stat : lstat;
+        c->value.recsearch.followlink ? stat : lstat;
     if (statfunc(path, &t->st) < 0)
-	return false;
+        return false;
     if (!S_ISDIR(t->st.st_mode))
-	return false;
+        return false;
     if (wglob_is_reentry(t, count))
-	return false;
+        return false;
     return true;
 }
 
@@ -1117,10 +1117,10 @@ bool wglob_should_recurse(
 bool wglob_is_reentry(const struct wglob_stack *const t, size_t count)
 {
     for (const struct wglob_stack *t2 = t->prev;
-	    t2 != NULL && count > 0;
-	    t2 = t2->prev, count--)
-	if (stat_result_same_file(&t->st, &t2->st))
-	    return true;
+            t2 != NULL && count > 0;
+            t2 = t2->prev, count--)
+        if (stat_result_same_file(&t->st, &t2->st))
+            return true;
     return false;
 }
 
@@ -1167,44 +1167,44 @@ int cd_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, cd_options, XGETOPT_DIGIT)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'L':  logical = true;    break;
-	    case L'P':  logical = false;   break;
-	    case L'd':  newpwd = xoptarg;  break;
+        switch (opt->shortopt) {
+            case L'L':  logical = true;    break;
+            case L'P':  logical = false;   break;
+            case L'd':  newpwd = xoptarg;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     bool printnewdir = false;
     switch (argc - xoptind) {
-	case 0:
-	    if (newpwd == NULL) {
-		newpwd = getvar(L VAR_HOME);
-		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$HOME is not set"));
-		    return Exit_FAILURE;
-		}
-	    }
-	    break;
-	case 1:
-	    if (wcscmp(ARGV(xoptind), L"-") == 0) {
-		newpwd = getvar(L VAR_OLDPWD);
-		if (newpwd == NULL || newpwd[0] == L'\0') {
-		    xerror(0, Ngt("$OLDPWD is not set"));
-		    return Exit_FAILURE;
-		}
-		printnewdir = true;
-	    } else {
-		newpwd = ARGV(xoptind);
-	    }
-	    break;
-	default:
-	    return too_many_operands_error(1);
+        case 0:
+            if (newpwd == NULL) {
+                newpwd = getvar(L VAR_HOME);
+                if (newpwd == NULL || newpwd[0] == L'\0') {
+                    xerror(0, Ngt("$HOME is not set"));
+                    return Exit_FAILURE;
+                }
+            }
+            break;
+        case 1:
+            if (wcscmp(ARGV(xoptind), L"-") == 0) {
+                newpwd = getvar(L VAR_OLDPWD);
+                if (newpwd == NULL || newpwd[0] == L'\0') {
+                    xerror(0, Ngt("$OLDPWD is not set"));
+                    return Exit_FAILURE;
+                }
+                printnewdir = true;
+            } else {
+                newpwd = ARGV(xoptind);
+            }
+            break;
+        default:
+            return too_many_operands_error(1);
     }
     return change_directory(newpwd, printnewdir, logical);
 }
@@ -1224,31 +1224,31 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     /* get the current value of $PWD as `origpwd' */
     origpwd = getvar(L VAR_PWD);
     if (origpwd == NULL || origpwd[0] != L'/') {
-	if (origpwd == newpwd) {
-	    xerror(0, Ngt("$PWD has an invalid value"));
-	    return Exit_FAILURE;
-	}
-	/* we have to assure `origpwd != newpwd' because we're going to
-	 * re-assign $PWD */
+        if (origpwd == newpwd) {
+            xerror(0, Ngt("$PWD has an invalid value"));
+            return Exit_FAILURE;
+        }
+        /* we have to assure `origpwd != newpwd' because we're going to
+         * re-assign $PWD */
 
-	char *pwd = xgetcwd();
-	if (pwd == NULL) {
-	    if (logical) {
-		xerror(errno, Ngt("cannot determine the current directory"));
-		return Exit_FAILURE;
-	    }
-	} else {
-	    wchar_t *wpwd = realloc_mbstowcs(pwd);
-	    if (wpwd != NULL) {
-		if (set_variable(L VAR_PWD, wpwd, SCOPE_GLOBAL, false))
-		    origpwd = getvar(L VAR_PWD);
-		else
-		    logical = false, origpwd = NULL;
-	    } else {
-		xerror(EILSEQ, Ngt("cannot determine the current directory"));
-		return Exit_ERROR;
-	    }
-	}
+        char *pwd = xgetcwd();
+        if (pwd == NULL) {
+            if (logical) {
+                xerror(errno, Ngt("cannot determine the current directory"));
+                return Exit_FAILURE;
+            }
+        } else {
+            wchar_t *wpwd = realloc_mbstowcs(pwd);
+            if (wpwd != NULL) {
+                if (set_variable(L VAR_PWD, wpwd, SCOPE_GLOBAL, false))
+                    origpwd = getvar(L VAR_PWD);
+                else
+                    logical = false, origpwd = NULL;
+            } else {
+                xerror(EILSEQ, Ngt("cannot determine the current directory"));
+                return Exit_ERROR;
+            }
+        }
     }
     assert(!logical || origpwd != NULL);
     assert(origpwd == NULL || origpwd[0] == L'/');
@@ -1257,36 +1257,36 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     
     /* step 3 */
     if (newpwd[0] == L'/') {
-	wb_cat(&curpath, newpwd);
-	goto step7;
+        wb_cat(&curpath, newpwd);
+        goto step7;
     }
 
     /* step 4: check if `newpwd' starts with "." or ".." */
     if (newpwd[0] == L'.' && (newpwd[1] == L'\0' || newpwd[1] == L'/' ||
-	    (newpwd[1] == L'.' && (newpwd[2] == L'\0' || newpwd[2] == L'/'))))
-	goto step6;
+            (newpwd[1] == L'.' && (newpwd[2] == L'\0' || newpwd[2] == L'/'))))
+        goto step6;
 
     /* step 5: search $CDPATH */
     {
-	char *mbsnewpwd = malloc_wcstombs(newpwd);
-	if (mbsnewpwd == NULL) {
-	    wb_destroy(&curpath);
-	    xerror(EILSEQ, Ngt("unexpected error"));
-	    return Exit_ERROR;
-	}
-	char *const *cdpath = get_path_array(PA_CDPATH);
-	char *path = which(mbsnewpwd,
-		(cdpath != NULL) ? cdpath : (char *[]) { "", NULL },
-		is_directory);
-	if (path != NULL) {
-	    if (strcmp(mbsnewpwd, path) != 0)
-		printnewdir = true;
-	    wb_mbscat(&curpath, path);
-	    free(mbsnewpwd);
-	    free(path);
-	    goto step7;
-	}
-	free(mbsnewpwd);
+        char *mbsnewpwd = malloc_wcstombs(newpwd);
+        if (mbsnewpwd == NULL) {
+            wb_destroy(&curpath);
+            xerror(EILSEQ, Ngt("unexpected error"));
+            return Exit_ERROR;
+        }
+        char *const *cdpath = get_path_array(PA_CDPATH);
+        char *path = which(mbsnewpwd,
+                (cdpath != NULL) ? cdpath : (char *[]) { "", NULL },
+                is_directory);
+        if (path != NULL) {
+            if (strcmp(mbsnewpwd, path) != 0)
+                printnewdir = true;
+            wb_mbscat(&curpath, path);
+            free(mbsnewpwd);
+            free(path);
+            goto step7;
+        }
+        free(mbsnewpwd);
     }
 
 step6:  /* set the value of `curpath' */
@@ -1296,26 +1296,26 @@ step6:  /* set the value of `curpath' */
 
 step7:  /* ensure the value of `curpath' is an absolute path */
     if (!logical)
-	goto step10;
+        goto step10;
     if (curpath.contents[0] != L'/') {
-	wchar_t *oldcurpath = wb_towcs(&curpath);
-	wb_init(&curpath);
-	wb_cat(&curpath, origpwd);
-	if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
-	    wb_wccat(&curpath, L'/');
-	wb_catfree(&curpath, oldcurpath);
+        wchar_t *oldcurpath = wb_towcs(&curpath);
+        wb_init(&curpath);
+        wb_cat(&curpath, origpwd);
+        if (curpath.length == 0 || curpath.contents[curpath.length - 1] != L'/')
+            wb_wccat(&curpath, L'/');
+        wb_catfree(&curpath, oldcurpath);
     }
 
     /* step 8: canonicalization */
     assert(logical);
     {
-	wchar_t *canon = canonicalize_path(curpath.contents);
-	wb_destroy(&curpath);
-	if (canon == NULL) {
-	    xerror(ENOTDIR, Ngt("`%ls'"), newpwd);
-	    return Exit_FAILURE;
-	}
-	wb_initwith(&curpath, canon);
+        wchar_t *canon = canonicalize_path(curpath.contents);
+        wb_destroy(&curpath);
+        if (canon == NULL) {
+            xerror(ENOTDIR, Ngt("`%ls'"), newpwd);
+            return Exit_FAILURE;
+        }
+        wb_initwith(&curpath, canon);
     }
 
     /* step 9: determine `curpathoffset' */
@@ -1324,31 +1324,31 @@ step7:  /* ensure the value of `curpath' is an absolute path */
      * with `origpwd', then a relative path to the new working directory can be
      * obtained by removing the matching prefix of `curpath'. */
     if (origpwd[wcsspn(origpwd, L"/")] != L'\0') {
-	wchar_t *s = matchwcsprefix(curpath.contents, origpwd);
-	if (s != NULL && (s[-1] == L'/' || s[0] == L'/')) {
-	    if (s[0] == L'/')
-		s++;
-	    assert(s[0] != L'/');
-	    curpathoffset = s - curpath.contents;
-	}
+        wchar_t *s = matchwcsprefix(curpath.contents, origpwd);
+        if (s != NULL && (s[-1] == L'/' || s[0] == L'/')) {
+            if (s[0] == L'/')
+                s++;
+            assert(s[0] != L'/');
+            curpathoffset = s - curpath.contents;
+        }
     }
 
 step10:  /* do chdir */
     assert(curpathoffset <= curpath.length);
     {
-	char *mbscurpath = malloc_wcstombs(curpath.contents + curpathoffset);
-	if (mbscurpath == NULL) {
-	    xerror(EILSEQ, Ngt("unexpected error"));
-	    wb_destroy(&curpath);
-	    return Exit_ERROR;
-	}
-	if (chdir(mbscurpath) < 0) {
-	    xerror(errno, Ngt("`%s'"), mbscurpath);
-	    free(mbscurpath);
-	    wb_destroy(&curpath);
-	    return Exit_FAILURE;
-	}
-	free(mbscurpath);
+        char *mbscurpath = malloc_wcstombs(curpath.contents + curpathoffset);
+        if (mbscurpath == NULL) {
+            xerror(EILSEQ, Ngt("unexpected error"));
+            wb_destroy(&curpath);
+            return Exit_ERROR;
+        }
+        if (chdir(mbscurpath) < 0) {
+            xerror(errno, Ngt("`%s'"), mbscurpath);
+            free(mbscurpath);
+            wb_destroy(&curpath);
+            return Exit_FAILURE;
+        }
+        free(mbscurpath);
     }
 
 #ifndef NDEBUG
@@ -1359,28 +1359,28 @@ step10:  /* do chdir */
 
     /* set $OLDPWD and $PWD */
     if (origpwd != NULL)
-	set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false);
+        set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false);
     if (logical) {
-	if (!posixly_correct)
-	    canonicalize_path_ex(&curpath);
-	if (printnewdir)
-	    printf("%ls\n", curpath.contents);
-	set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false);
+        if (!posixly_correct)
+            canonicalize_path_ex(&curpath);
+        if (printnewdir)
+            printf("%ls\n", curpath.contents);
+        set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false);
     } else {
-	wb_destroy(&curpath);
+        wb_destroy(&curpath);
 
-	char *mbsnewpwd = xgetcwd();
-	if (mbsnewpwd != NULL) {
-	    if (printnewdir)
-		printf("%s\n", mbsnewpwd);
+        char *mbsnewpwd = xgetcwd();
+        if (mbsnewpwd != NULL) {
+            if (printnewdir)
+                printf("%s\n", mbsnewpwd);
 
-	    wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
-	    if (wnewpwd != NULL)
-		set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false);
-	}
+            wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
+            if (wnewpwd != NULL)
+                set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false);
+        }
     }
     if (!posixly_correct)
-	exec_variable_as_auxiliary_(VAR_YASH_AFTER_CD);
+        exec_variable_as_auxiliary_(VAR_YASH_AFTER_CD);
 
     return Exit_SUCCESS;
 }
@@ -1402,59 +1402,59 @@ wchar_t *canonicalize_path(const wchar_t *path)
     pl_init(&clist);
 
     if (*path == L'/') {  /* first slash */
-	path++;
-	*rp++ = '/';
-	if (*path == L'/') {  /* second slash */
-	    path++;
-	    if (*path != L'/')  /* third slash */
-		*rp++ = '/';
-	}
+        path++;
+        *rp++ = '/';
+        if (*path == L'/') {  /* second slash */
+            path++;
+            if (*path != L'/')  /* third slash */
+                *rp++ = '/';
+        }
     }
 
     for (;;) {
-	*rp = L'\0';
-	while (*path == L'/')
-	    path++;
-	if (*path == L'\0')
-	    break;
-	if (path[0] == L'.') {
-	    if (path[1] == L'\0') {
-		/* ignore trailing dot component */
-		break;
-	    } else if (path[1] == L'/') {
-		/* skip dot component */
-		path += 2;
-		continue;
-	    } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
-		    && clist.length > 0) {
-		/* dot-dot component */
-		wchar_t *prev = clist.contents[clist.length - 1];
-		if (not_dotdot(prev)) {
-		    char *mbsresult = malloc_wcstombs(result);
-		    bool isdir = (mbsresult != NULL) && is_directory(mbsresult);
-		    free(mbsresult);
-		    if (isdir) {
-			rp = prev;
-			/* result[index] = L'\0'; */
-			pl_truncate(&clist, clist.length - 1);
-			path += 2;
-			continue;
-		    } else {
-			/* error */
-			pl_destroy(&clist);
-			free(result);
-			return NULL;
-		    }
-		}
-	    }
-	}
+        *rp = L'\0';
+        while (*path == L'/')
+            path++;
+        if (*path == L'\0')
+            break;
+        if (path[0] == L'.') {
+            if (path[1] == L'\0') {
+                /* ignore trailing dot component */
+                break;
+            } else if (path[1] == L'/') {
+                /* skip dot component */
+                path += 2;
+                continue;
+            } else if (path[1] == L'.' && (path[2] == L'\0' || path[2] == L'/')
+                    && clist.length > 0) {
+                /* dot-dot component */
+                wchar_t *prev = clist.contents[clist.length - 1];
+                if (not_dotdot(prev)) {
+                    char *mbsresult = malloc_wcstombs(result);
+                    bool isdir = (mbsresult != NULL) && is_directory(mbsresult);
+                    free(mbsresult);
+                    if (isdir) {
+                        rp = prev;
+                        /* result[index] = L'\0'; */
+                        pl_truncate(&clist, clist.length - 1);
+                        path += 2;
+                        continue;
+                    } else {
+                        /* error */
+                        pl_destroy(&clist);
+                        free(result);
+                        return NULL;
+                    }
+                }
+            }
+        }
 
-	/* others */
-	pl_add(&clist, rp);
-	if (clist.length > 1)
-	    *rp++ = L'/';
-	while (*path != L'\0' && *path != L'/')  /* copy next component */
-	    *rp++ = *path++;
+        /* others */
+        pl_add(&clist, rp);
+        if (clist.length > 1)
+            *rp++ = L'/';
+        while (*path != L'\0' && *path != L'/')  /* copy next component */
+            *rp++ = *path++;
     }
     pl_destroy(&clist);
     assert(*rp == L'\0');
@@ -1464,7 +1464,7 @@ wchar_t *canonicalize_path(const wchar_t *path)
 bool not_dotdot(const wchar_t *p)
 {
     if (*p == L'/')
-	p++;
+        p++;
     return wcscmp(p, L"..") != 0;
 }
 
@@ -1473,11 +1473,11 @@ bool not_dotdot(const wchar_t *p)
 void canonicalize_path_ex(xwcsbuf_T *buf)
 {
     if (starts_with_root_parent(buf->contents) && is_same_file("/", "/..")) {
-	do
-	    wb_remove(buf, 0, 3);
-	while (starts_with_root_parent(buf->contents));
-	if (buf->length == 0)
-	    wb_wccat(buf, L'/');
+        do
+            wb_remove(buf, 0, 3);
+        while (starts_with_root_parent(buf->contents));
+        if (buf->length == 0)
+            wb_wccat(buf, L'/');
     }
 }
 
@@ -1485,7 +1485,7 @@ void canonicalize_path_ex(xwcsbuf_T *buf)
 bool starts_with_root_parent(const wchar_t *path)
 {
     return path[0] == L'/' && path[1] == L'.' && path[2] == L'.' &&
-	(path[3] == L'\0' || path[3] == L'/');
+        (path[3] == L'\0' || path[3] == L'/');
 }
 
 #if YASH_ENABLE_HELP
@@ -1508,43 +1508,43 @@ int pwd_builtin(int argc __attribute__((unused)), void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, pwd_options, XGETOPT_DIGIT)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'L':  logical = true;   break;
-	    case L'P':  logical = false;  break;
+        switch (opt->shortopt) {
+            case L'L':  logical = true;   break;
+            case L'P':  logical = false;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (xoptind != argc)
-	return too_many_operands_error(0);
+        return too_many_operands_error(0);
 
     char *mbspwd;
 
     if (logical) {
-	const wchar_t *pwd = getvar(L VAR_PWD);
-	if (pwd != NULL && pwd[0] == L'/' && is_normalized_path(pwd)) {
-	    mbspwd = malloc_wcstombs(pwd);
-	    if (mbspwd != NULL) {
-		if (is_same_file(mbspwd, "."))
-		    goto print;
-		free(mbspwd);
-	    }
-	}
+        const wchar_t *pwd = getvar(L VAR_PWD);
+        if (pwd != NULL && pwd[0] == L'/' && is_normalized_path(pwd)) {
+            mbspwd = malloc_wcstombs(pwd);
+            if (mbspwd != NULL) {
+                if (is_same_file(mbspwd, "."))
+                    goto print;
+                free(mbspwd);
+            }
+        }
     }
 
     mbspwd = xgetcwd();
     if (mbspwd == NULL) {
-	xerror(errno, Ngt("cannot determine the current directory"));
-	return Exit_FAILURE;
+        xerror(errno, Ngt("cannot determine the current directory"));
+        return Exit_FAILURE;
     }
 print:
     if (printf("%s\n", mbspwd) < 0)
-	xerror(errno, Ngt("cannot print to the standard output"));
+        xerror(errno, Ngt("cannot print to the standard output"));
     free(mbspwd);
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
@@ -1580,72 +1580,72 @@ int hash_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, hash_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'a':  all    = true;  break;
-	    case L'd':  dir    = true;  break;
-	    case L'r':  remove = true;  break;
+        switch (opt->shortopt) {
+            case L'a':  all    = true;  break;
+            case L'd':  dir    = true;  break;
+            case L'r':  remove = true;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
     if (all && xoptind != argc)
-	return too_many_operands_error(0);
+        return too_many_operands_error(0);
 
     if (dir) {
-	if (remove) {
-	    if (xoptind == argc) {  // forget all
-		clear_homedirhash();
-	    } else {                // forget the specified
-		for (int i = xoptind; i < argc; i++)
-		    forget_home_directory(ARGV(i));
-	    }
-	} else {
-	    if (xoptind == argc) {  // print all
-		print_home_directories();
-	    } else {                // remember the specified
-		for (int i = xoptind; i < argc; i++)
-		    if (!get_home_directory(ARGV(i), true))
-			xerror(0, Ngt("no such user `%ls'"), ARGV(i));
-	    }
-	}
+        if (remove) {
+            if (xoptind == argc) {  // forget all
+                clear_homedirhash();
+            } else {                // forget the specified
+                for (int i = xoptind; i < argc; i++)
+                    forget_home_directory(ARGV(i));
+            }
+        } else {
+            if (xoptind == argc) {  // print all
+                print_home_directories();
+            } else {                // remember the specified
+                for (int i = xoptind; i < argc; i++)
+                    if (!get_home_directory(ARGV(i), true))
+                        xerror(0, Ngt("no such user `%ls'"), ARGV(i));
+            }
+        }
     } else {
-	if (remove) {
-	    if (xoptind == argc) {  // forget all
-		clear_cmdhash();
-	    } else {                // forget the specified
-		for (int i = xoptind; i < argc; i++) {
-		    char *cmd = malloc_wcstombs(ARGV(i));
-		    if (cmd != NULL) {
-			forget_command_path(cmd);
-			free(cmd);
-		    }
-		}
-	    }
-	} else {
-	    if (xoptind == argc) {  // print all
-		print_command_paths(all);
-	    } else {                // remember the specified
-		for (int i = xoptind; i < argc; i++) {
-		    if (wcschr(ARGV(i), L'/') != NULL) {
-			xerror(0, Ngt("`%ls': a command name must not contain "
-				    "`/'"), ARGV(i));
-			continue;
-		    }
+        if (remove) {
+            if (xoptind == argc) {  // forget all
+                clear_cmdhash();
+            } else {                // forget the specified
+                for (int i = xoptind; i < argc; i++) {
+                    char *cmd = malloc_wcstombs(ARGV(i));
+                    if (cmd != NULL) {
+                        forget_command_path(cmd);
+                        free(cmd);
+                    }
+                }
+            }
+        } else {
+            if (xoptind == argc) {  // print all
+                print_command_paths(all);
+            } else {                // remember the specified
+                for (int i = xoptind; i < argc; i++) {
+                    if (wcschr(ARGV(i), L'/') != NULL) {
+                        xerror(0, Ngt("`%ls': a command name must not contain "
+                                    "`/'"), ARGV(i));
+                        continue;
+                    }
 
-		    char *cmd = malloc_wcstombs(ARGV(i));
-		    if (cmd != NULL) {
-			if (!get_command_path(cmd, true))
-			    xerror(0, Ngt("command `%s' was not found "
-					"in $PATH"), cmd);
-			free(cmd);
-		    }
-		}
-	    }
-	}
+                    char *cmd = malloc_wcstombs(ARGV(i));
+                    if (cmd != NULL) {
+                        if (!get_command_path(cmd, true))
+                            xerror(0, Ngt("command `%s' was not found "
+                                        "in $PATH"), cmd);
+                        free(cmd);
+                    }
+                }
+            }
+        }
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
 }
@@ -1659,14 +1659,14 @@ void print_command_paths(bool all)
     size_t index = 0;
 
     while ((kv = ht_next(&cmdhash, &index)).key != NULL) {
-	const char *path = kv.value;
-	if (path[0] != '/')
-	    continue;
-	if (all || get_builtin(kv.key) == NULL) {
-	    if (!xprintf("%s\n", path)) {
-		break;
-	    }
-	}
+        const char *path = kv.value;
+        if (path[0] != '/')
+            continue;
+        if (all || get_builtin(kv.key) == NULL) {
+            if (!xprintf("%s\n", path)) {
+                break;
+            }
+        }
     }
 }
 
@@ -1679,10 +1679,10 @@ void print_home_directories(void)
     size_t index = 0;
 
     while ((kv = ht_next(&homedirhash, &index)).key != NULL) {
-	const wchar_t *key = kv.key, *value = kv.value;
-	if (!xprintf("~%ls=%ls\n", key, value)) {
-	    break;
-	}
+        const wchar_t *key = kv.key, *value = kv.value;
+        if (!xprintf("~%ls=%ls\n", key, value)) {
+            break;
+        }
     }
 }
 
@@ -1718,26 +1718,26 @@ int umask_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, umask_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'S':
-		symbolic = true;
-		break;
+        switch (opt->shortopt) {
+            case L'S':
+                symbolic = true;
+                break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     switch (argc - xoptind) {
-	case 0:
-	    return print_umask(symbolic);
-	case 1:
-	    return set_umask(ARGV(xoptind));
-	default:
-	    return too_many_operands_error(1);
+        case 0:
+            return print_umask(symbolic);
+        case 1:
+            return set_umask(ARGV(xoptind));
+        default:
+            return too_many_operands_error(1);
     }
 }
 
@@ -1748,9 +1748,9 @@ int print_umask(bool symbolic)
 
     bool success;
     if (symbolic)
-	success = print_umask_symbolic(mode);
+        success = print_umask_symbolic(mode);
     else
-	success = print_umask_octal(mode);
+        success = print_umask_octal(mode);
     return success ? Exit_SUCCESS : Exit_FAILURE;
 }
 
@@ -1790,18 +1790,18 @@ bool print_umask_symbolic(mode_t mode)
 int set_umask(const wchar_t *maskstr)
 {
     if (iswdigit(maskstr[0])) {
-	/* parse as an octal number */
-	uintmax_t mask;
-	wchar_t *end;
+        /* parse as an octal number */
+        uintmax_t mask;
+        wchar_t *end;
 
-	errno = 0;
-	mask = wcstoumax(maskstr, &end, 8);
-	if (errno || *end != L'\0') {
-	    xerror(0, Ngt("`%ls' is not a valid mask specification"), maskstr);
-	    return Exit_ERROR;
-	}
-	umask((mode_t) (mask & (S_IRWXU | S_IRWXG | S_IRWXO)));
-	return Exit_SUCCESS;
+        errno = 0;
+        mask = wcstoumax(maskstr, &end, 8);
+        if (errno || *end != L'\0') {
+            xerror(0, Ngt("`%ls' is not a valid mask specification"), maskstr);
+            return Exit_ERROR;
+        }
+        umask((mode_t) (mask & (S_IRWXU | S_IRWXG | S_IRWXO)));
+        return Exit_SUCCESS;
     }
 
     /* otherwise parse as a symbolic mode specification */
@@ -1810,69 +1810,69 @@ int set_umask(const wchar_t *maskstr)
     const wchar_t *const savemaskstr = maskstr;
 
     for (;;) {
-	mode_t who, perm;
-	char op;  /* '+', '-' or '=' */
+        mode_t who, perm;
+        char op;  /* '+', '-' or '=' */
 
-	/* parse 'who' */
-	who = 0;
-	for (;; maskstr++) switch (*maskstr) {
-	    case L'u':  who |= S_IRWXU;  break;
-	    case L'g':  who |= S_IRWXG;  break;
-	    case L'o':  who |= S_IRWXO;  break;
-	    case L'a':  who = S_IRWXU | S_IRWXG | S_IRWXO;  break;
-	    default:    goto who_end;
-	}
+        /* parse 'who' */
+        who = 0;
+        for (;; maskstr++) switch (*maskstr) {
+            case L'u':  who |= S_IRWXU;  break;
+            case L'g':  who |= S_IRWXG;  break;
+            case L'o':  who |= S_IRWXO;  break;
+            case L'a':  who = S_IRWXU | S_IRWXG | S_IRWXO;  break;
+            default:    goto who_end;
+        }
 who_end:
-	if (who == 0)
-	    who = S_IRWXU | S_IRWXG | S_IRWXO;
+        if (who == 0)
+            who = S_IRWXU | S_IRWXG | S_IRWXO;
 
-	/* parse 'op' */
+        /* parse 'op' */
 op_start:
-	op = *maskstr;
-	switch (op) {
-	    case L'+':  case L'-':  case L'=':
-		break;
-	    default:
-		goto err;
-	}
-	maskstr++;
+        op = *maskstr;
+        switch (op) {
+            case L'+':  case L'-':  case L'=':
+                break;
+            default:
+                goto err;
+        }
+        maskstr++;
 
-	/* parse 'perm' */
-	switch (*maskstr) {
-	    case L'u':  perm = copy_user_mask(origmask);  maskstr++;  break;
-	    case L'g':  perm = copy_group_mask(origmask); maskstr++;  break;
-	    case L'o':  perm = copy_other_mask(origmask); maskstr++;  break;
-	    default:
-		perm = 0;
-		for (;; maskstr++) switch (*maskstr) {
-		    case L'r':  perm |= S_IRUSR | S_IRGRP | S_IROTH;  break;
-		    case L'w':  perm |= S_IWUSR | S_IWGRP | S_IWOTH;  break;
-		    case L'X':
-			if (!(origmask & (S_IXUSR | S_IXGRP | S_IXOTH)))
-			    break;
-			/* falls thru! */
-		    case L'x':  perm |= S_IXUSR | S_IXGRP | S_IXOTH;  break;
-		    case L's':  perm |= S_ISUID | S_ISGID;            break;
-		    default:    goto perm_end;
-		}
+        /* parse 'perm' */
+        switch (*maskstr) {
+            case L'u':  perm = copy_user_mask(origmask);  maskstr++;  break;
+            case L'g':  perm = copy_group_mask(origmask); maskstr++;  break;
+            case L'o':  perm = copy_other_mask(origmask); maskstr++;  break;
+            default:
+                perm = 0;
+                for (;; maskstr++) switch (*maskstr) {
+                    case L'r':  perm |= S_IRUSR | S_IRGRP | S_IROTH;  break;
+                    case L'w':  perm |= S_IWUSR | S_IWGRP | S_IWOTH;  break;
+                    case L'X':
+                        if (!(origmask & (S_IXUSR | S_IXGRP | S_IXOTH)))
+                            break;
+                        /* falls thru! */
+                    case L'x':  perm |= S_IXUSR | S_IXGRP | S_IXOTH;  break;
+                    case L's':  perm |= S_ISUID | S_ISGID;            break;
+                    default:    goto perm_end;
+                }
 perm_end:
-		break;
-	}
+                break;
+        }
 
-	/* set newmask */
-	switch (op) {
-	    case L'+':  newmask |= who & perm;                      break;
-	    case L'-':  newmask &= ~(who & perm);                   break;
-	    case L'=':  newmask = (~who & newmask) | (who & perm);  break;
-	    default:    assert(false);
-	}
+        /* set newmask */
+        switch (op) {
+            case L'+':  newmask |= who & perm;                      break;
+            case L'-':  newmask &= ~(who & perm);                   break;
+            case L'=':  newmask = (~who & newmask) | (who & perm);  break;
+            default:    assert(false);
+        }
 
-	switch (*maskstr) {
-	    case L'\0':  goto parse_end;
-	    case L',':   break;
-	    default:     goto op_start;
-	}
-	maskstr++;
+        switch (*maskstr) {
+            case L'\0':  goto parse_end;
+            case L',':   break;
+            default:     goto op_start;
+        }
+        maskstr++;
     }
 parse_end:
     umask(~newmask);
@@ -1888,21 +1888,21 @@ mode_t copy_user_mask(mode_t mode)
 {
     return ((mode & S_IRUSR) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
          | ((mode & S_IWUSR) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
-	 | ((mode & S_IXUSR) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+         | ((mode & S_IXUSR) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
 
 mode_t copy_group_mask(mode_t mode)
 {
     return ((mode & S_IRGRP) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
          | ((mode & S_IWGRP) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
-	 | ((mode & S_IXGRP) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+         | ((mode & S_IXGRP) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
 
 mode_t copy_other_mask(mode_t mode)
 {
     return ((mode & S_IROTH) ? (S_IRUSR | S_IRGRP | S_IROTH) : 0)
          | ((mode & S_IWOTH) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0)
-	 | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
+         | ((mode & S_IXOTH) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0);
 }
 
 #if YASH_ENABLE_HELP
@@ -1916,4 +1916,4 @@ const char umask_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

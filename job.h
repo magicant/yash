@@ -83,7 +83,7 @@ extern size_t stopped_job_count(void)
 
 extern void do_wait(void);
 extern int wait_for_job(size_t jobnumber, _Bool return_on_stop,
-	_Bool interruptible, _Bool return_on_trap);
+        _Bool interruptible, _Bool return_on_trap);
 extern wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, _Bool return_on_stop);
 extern pid_t get_job_pgid(const wchar_t *jobname)
     __attribute__((pure));
@@ -128,4 +128,4 @@ extern const char disown_help[], disown_syntax[];
 #endif /* YASH_JOB_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

@@ -72,7 +72,7 @@ struct shell_invocation_T {
 };
 
 extern int parse_shell_options(int argc, void *const *argv,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(2),warn_unused_result));
 #if YASH_ENABLE_LINEEDIT
 extern void set_lineedit_option(enum shopt_lineedit_T v);
@@ -102,4 +102,4 @@ extern const char set_help[], set_syntax[];
 #endif /* YASH_OPTION_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

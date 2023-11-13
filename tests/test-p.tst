@@ -42,7 +42,7 @@ assert() (
     [ "$@" ]
     result_bracket=$?
     case "$result_test" in ("$result_bracket")
-	exit "$result_bracket"
+        exit "$result_bracket"
     esac
     printf 'result_test=%d result_bracket=%d\n' "$result_test" "$result_bracket"
     exit 100
@@ -52,7 +52,7 @@ __END__
     expected_exit_status="$2"
     shift 2
     testcase "$lineno" -e "$expected_exit_status" "test $*" -s -- "$@" \
-	3</dev/null 4<&3 5<&3
+        3</dev/null 4<&3 5<&3
 )
 
 alias assert_true='assert "$LINENO" 0'
@@ -377,4 +377,4 @@ assert_false "(" "(" 12345 = abcde ")" ")"
 assert_false "(" ! a = a ")"
 assert_true "(" ! a = b ")"
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

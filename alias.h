@@ -36,17 +36,17 @@ extern const wchar_t *get_alias_value(const wchar_t *aliasname)
     __attribute__((nonnull,pure));
 extern void destroy_aliaslist(struct aliaslist_T *list);
 extern void shift_aliaslist_index(
-	struct aliaslist_T *list, size_t i, ptrdiff_t inc);
+        struct aliaslist_T *list, size_t i, ptrdiff_t inc);
 extern _Bool substitute_alias(
-	struct xwcsbuf_T *restrict buf, size_t i,
-	struct aliaslist_T **restrict list, substaliasflags_T flags)
+        struct xwcsbuf_T *restrict buf, size_t i,
+        struct aliaslist_T **restrict list, substaliasflags_T flags)
     __attribute__((nonnull));
 extern _Bool substitute_alias_range(
-	struct xwcsbuf_T *restrict buf, size_t i, size_t j,
-	struct aliaslist_T **restrict list, substaliasflags_T flags)
+        struct xwcsbuf_T *restrict buf, size_t i, size_t j,
+        struct aliaslist_T **restrict list, substaliasflags_T flags)
     __attribute__((nonnull));
 extern _Bool print_alias_if_defined(
-	const wchar_t *aliasname, _Bool user_friendly)
+        const wchar_t *aliasname, _Bool user_friendly)
     __attribute__((nonnull));
 
 extern int alias_builtin(int argc, void **argv)
@@ -67,4 +67,4 @@ extern const struct xgetopt_T unalias_options[];
 #endif /* YASH_ALIAS_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

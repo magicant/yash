@@ -80,34 +80,34 @@ for i
 do
     if [ x"$i" != x"--no-create" ]
     then
-	quoted_args="${quoted_args} '"$(printf '%s\n' "$i" |
-	    sed -e "s/'/'\\\\''/g")"'"
+        quoted_args="${quoted_args} '"$(printf '%s\n' "$i" |
+            sed -e "s/'/'\\\\''/g")"'"
     fi
 done
 
 parseenable() {
     case "$1" in
-	--enable-*=yes|--enable-*=true) val=true  ;;
-	--enable-*=no|--enable-*=false) val=false ;;
-	*=*)  echo "$0: $1: invalid option" >&2;  exit 2 ;;
-	--enable-*)  val=true  ;;
-	--disable-*) val=false ;;
+        --enable-*=yes|--enable-*=true) val=true  ;;
+        --enable-*=no|--enable-*=false) val=false ;;
+        *=*)  echo "$0: $1: invalid option" >&2;  exit 2 ;;
+        --enable-*)  val=true  ;;
+        --disable-*) val=false ;;
     esac
     opt="${1#--*able-}"
     opt="${opt%%=*}"
     case "$opt" in
-	array)          enable_array=$val ;;
-	dirstack)       enable_dirstack=$val ;;
-	double-bracket) enable_double_bracket=$val ;;
-	help)           enable_help=$val ;;
-	history)        enable_history=$val ;;
-	lineedit)       enable_lineedit=$val ;;
-	nls)            enable_nls=$val ;;
-	printf)         enable_printf=$val ;;
-	socket)         enable_socket=$val ;;
-	test)           enable_test=$val ;;
-	ulimit)         enable_ulimit=$val ;;
-	*)              echo "$0: $1: invalid option" >&2;  exit 2 ;;
+        array)          enable_array=$val ;;
+        dirstack)       enable_dirstack=$val ;;
+        double-bracket) enable_double_bracket=$val ;;
+        help)           enable_help=$val ;;
+        history)        enable_history=$val ;;
+        lineedit)       enable_lineedit=$val ;;
+        nls)            enable_nls=$val ;;
+        printf)         enable_printf=$val ;;
+        socket)         enable_socket=$val ;;
+        test)           enable_test=$val ;;
+        ulimit)         enable_ulimit=$val ;;
+        *)              echo "$0: $1: invalid option" >&2;  exit 2 ;;
     esac
 }
 
@@ -115,51 +115,51 @@ parseenable() {
 for i
 do
     case "$i" in
-	-h|--help)
-	    help="true" ;;
-	--no-create)
-	    nocreate="true" ;;
-	-d|--debug)
-	    debug="true" ;;
-	--prefix=*)
-	    prefix="${i#--prefix=}" ;;
-	--exec-prefix=*)
-	    exec_prefix="${i#--exec-prefix=}" ;;
-	--bindir=*)
-	    bindir="${i#--bindir=}" ;;
-	--datarootdir=*)
-	    datarootdir="${i#--datarootdir=}" ;;
-	--datadir=*)
-	    datadir="${i#--datadir=}" ;;
-	--localedir=*)
-	    localedir="${i#--localedir=}" ;;
-	--mandir=*)
-	    mandir="${i#--mandir=}" ;;
-	--docdir=*)
-	    docdir="${i#--docdir=}" ;;
-	--htmldir=*)
-	    htmldir="${i#--htmldir=}" ;;
-	--enable-*|--disable-*)
-	    parseenable "$i" ;;
-	--default-loadpath=*)
-	    default_loadpath="${i#--default-loadpath=}" ;;
-	--with-intl-lib=*)
-	    intl_lib="${i#--with-intl-lib=}" ;;
-	--with-term-lib=*)
-	    term_lib="${i#--with-term-lib=}" ;;
-	?*=*)
-	    # parse variable assignment
-	    if echo "$i" | grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
-	    then
-		export "$i"
-	    else
-		echo "$0: $i: unknown argument" >&2
-		exit 1
-	    fi
-	    ;;
-	*)
-	    echo "$0: $i: unknown argument" >&2
-	    exit 1
+        -h|--help)
+            help="true" ;;
+        --no-create)
+            nocreate="true" ;;
+        -d|--debug)
+            debug="true" ;;
+        --prefix=*)
+            prefix="${i#--prefix=}" ;;
+        --exec-prefix=*)
+            exec_prefix="${i#--exec-prefix=}" ;;
+        --bindir=*)
+            bindir="${i#--bindir=}" ;;
+        --datarootdir=*)
+            datarootdir="${i#--datarootdir=}" ;;
+        --datadir=*)
+            datadir="${i#--datadir=}" ;;
+        --localedir=*)
+            localedir="${i#--localedir=}" ;;
+        --mandir=*)
+            mandir="${i#--mandir=}" ;;
+        --docdir=*)
+            docdir="${i#--docdir=}" ;;
+        --htmldir=*)
+            htmldir="${i#--htmldir=}" ;;
+        --enable-*|--disable-*)
+            parseenable "$i" ;;
+        --default-loadpath=*)
+            default_loadpath="${i#--default-loadpath=}" ;;
+        --with-intl-lib=*)
+            intl_lib="${i#--with-intl-lib=}" ;;
+        --with-term-lib=*)
+            term_lib="${i#--with-term-lib=}" ;;
+        ?*=*)
+            # parse variable assignment
+            if echo "$i" | grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
+            then
+                export "$i"
+            else
+                echo "$0: $i: unknown argument" >&2
+                exit 1
+            fi
+            ;;
+        *)
+            echo "$0: $i: unknown argument" >&2
+            exit 1
     esac
 done
 
@@ -233,11 +233,11 @@ exec 5>"${configlog}"
     printf '# Invocation command line was:\n%%'
     for i in "$0" "$@"
     do
-	printf ' %s' "$(printf '%s\n' "$i" |
-	    sed -e '\|[^[:alnum:]./=-]| {
-	    s/'"'"'/'"'\\''"'/g
-	    s/\(.*\)/'"'"'\1'"'"'/
-	    }')"
+        printf ' %s' "$(printf '%s\n' "$i" |
+            sed -e '\|[^[:alnum:]./=-]| {
+            s/'"'"'/'"'\\''"'/g
+            s/\(.*\)/'"'"'\1'"'"'/
+            }')"
     done
     echo
     echo
@@ -265,27 +265,27 @@ checkby () {
     laststatus=$?
     if [ ${laststatus} -eq 0 ]
     then
-	checkresult="yes"
+        checkresult="yes"
     else
-	printf '# exit status: %d\n' "${laststatus}" >&5
-	checkresult="no"
-	return ${laststatus}
+        printf '# exit status: %d\n' "${laststatus}" >&5
+        checkresult="no"
+        return ${laststatus}
     fi
 }
 trymake () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
-	${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
-	${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
-	"$@" ${LDLIBS-${ldlibs}}
+        ${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
+        ${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
+        "$@" ${LDLIBS-${ldlibs}}
 }
 trycompile () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
-	${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
-	-c -o "${tempo}" "${tempsrc}" "$@"
+        ${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
+        -c -o "${tempo}" "${tempsrc}" "$@"
 }
 trylink () {
     checkby ${CC-${cc}} ${LDFLAGS-${ldflags}} ${LDADDS-${null}} \
-	-o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
+        -o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
 }
 tryexec () {
     checkby "${tempout}"
@@ -293,7 +293,7 @@ tryexec () {
 checked () {
     if [ $# -ge 1 ]
     then
-	checkresult="$1"
+        checkresult="$1"
     fi
     printf '%s\n' "${checkresult}"
     printf '# result: %s\n' "${checkresult}" >&5
@@ -348,11 +348,11 @@ ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
 checked "${ostype}"
 case "${ostype}" in
     darwin)
-	defconfigh "_DARWIN_C_SOURCE"
-	;;
+        defconfigh "_DARWIN_C_SOURCE"
+        ;;
     sunos)
-	defconfigh "__EXTENSIONS__"
-	;;
+        defconfigh "__EXTENSIONS__"
+        ;;
 esac
 
 
@@ -379,16 +379,16 @@ fi
 
 case "${ostype}" in
     freebsd)
-	# FreeBSD doesn't have a feature test macro to enable non-POSIX
-	# extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
-	# non-POSIX extensions are available.
-	posix=
-	xopen=
-	;;
+        # FreeBSD doesn't have a feature test macro to enable non-POSIX
+        # extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
+        # non-POSIX extensions are available.
+        posix=
+        xopen=
+        ;;
     *)
-	posix=${posixver}
-	xopen=${xopenver}
-	;;
+        posix=${posixver}
+        xopen=${xopenver}
+        ;;
 esac
 
 
@@ -413,8 +413,8 @@ then
     checked "yes"
 elif
     [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-	cc='gcc'
-	trymake && tryexec
+        cc='gcc'
+        trymake && tryexec
     )
 then
     checked "yes (using gcc)"
@@ -423,7 +423,7 @@ else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
     printf 'The compiler is expected to accept these options: %s\n' \
-	"${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
+        "${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
     fail
 fi
 
@@ -437,12 +437,12 @@ then
 int main(void) { return 0; }
 END
     if
-	trycompile
+        trycompile
     then
-	checked "yes"
+        checked "yes"
     else
-	checked "no"
-	cflags=${savecflags}
+        checked "no"
+        cflags=${savecflags}
     fi
     unset savecflags
 fi
@@ -473,7 +473,7 @@ else
     checked "failed"
     printf 'Compiler "%s" does not seem to support C99.\n' "${CC-${cc}}" >&2
     printf 'The compiler was tested with these options: %s\n' \
-	"${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
+        "${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
     fail
 fi
 
@@ -482,7 +482,7 @@ checking 'whether make supports include statements'
 if
     cat >"${temptxt}" <<END
 _TEST_:
-	@echo >/dev/null
+        @echo >/dev/null
 END
     checkby eval "${MAKE-make} -f - _TEST_ <<END
 .POSIX:
@@ -502,7 +502,7 @@ checking 'whether make sets $SHELL macro'
 checkby eval "SHELL=false ${MAKE-make} -f - <<END
 .POSIX:
 _TEST_:
-	\\\$(SHELL) -c :
+        \\\$(SHELL) -c :
 END
 "
 checked
@@ -522,9 +522,9 @@ then
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	archiver='pax -w -x ustar -f'
+        archiver='pax -w -x ustar -f'
     else
-	archiver='tar cf'
+        archiver='tar cf'
     fi
 fi
 
@@ -537,9 +537,9 @@ then
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	install='install'
+        install='install'
     else
-	install='$(topdir)/install-sh'
+        install='$(topdir)/install-sh'
     fi
 fi
 
@@ -550,29 +550,29 @@ if [ -n "${posix}" ]
 then
     checking 'what values _POSIX_C_SOURCE and _XOPEN_SOURCE should have'
     if
-	cat >"${tempsrc}" <<END
+        cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 #include <unistd.h>
 int main(void) { fork(); return 0; }
 END
-	trycompile
+        trycompile
     then
-	checked "_POSIX_C_SOURCE=200809L, _XOPEN_SOURCE=700"
-	posix=200809 xopen=700
+        checked "_POSIX_C_SOURCE=200809L, _XOPEN_SOURCE=700"
+        posix=200809 xopen=700
     elif
-	cat >"${tempsrc}" <<END
+        cat >"${tempsrc}" <<END
 #define _POSIX_C_SOURCE 200112L
 #define _XOPEN_SOURCE 600
 #include <unistd.h>
 int main(void) { fork(); return 0; }
 END
-	trycompile
+        trycompile
     then
-	checked "_POSIX_C_SOURCE=200112L, _XOPEN_SOURCE=600"
-	posix=200112 xopen=600
+        checked "_POSIX_C_SOURCE=200112L, _XOPEN_SOURCE=600"
+        posix=200112 xopen=600
     else
-	checked "failed"
+        checked "failed"
     fi
 fi
 if [ -n "${posix}" ]
@@ -600,7 +600,7 @@ END
     checked
     if [ x"${checkresult}" = x"no" ]
     then
-	ldlibs="${ldlibs} -lm"
+        ldlibs="${ldlibs} -lm"
     fi
 fi
 
@@ -614,44 +614,44 @@ ${confighdefs}
 #include <sys/socket.h>
 int main(void) {
     struct addrinfo ai = {
-	.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
-	.ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
-	.ai_addrlen = 0, .ai_addr = (void*)0, .ai_canonname = (void*)0,
-	.ai_next = (void*)0
+        .ai_flags = 0, .ai_family = AF_UNSPEC, .ai_protocol = 0,
+        .ai_socktype = 1 ? SOCK_STREAM : SOCK_DGRAM,
+        .ai_addrlen = 0, .ai_addr = (void*)0, .ai_canonname = (void*)0,
+        .ai_next = (void*)0
     };
     gai_strerror(getaddrinfo("", "", &ai, (void*)0));
     connect(socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol),
-	ai.ai_addr, ai.ai_addrlen);
+        ai.ai_addr, ai.ai_addrlen);
     freeaddrinfo(&ai);
 }
 END
     saveldlibs="${ldlibs}"
     if
-	trymake
+        trymake
     then
-	checked "yes"
+        checked "yes"
     else
-	for lib in '-lxnet' '-lsocket' '-lnsl' '-lsocket -lnsl'
-	do
-	    ldlibs="${saveldlibs} ${lib}"
-	    if trymake
-	    then
-		checked "with ${lib}"
-		break
-	    fi
-	done
+        for lib in '-lxnet' '-lsocket' '-lnsl' '-lsocket -lnsl'
+        do
+            ldlibs="${saveldlibs} ${lib}"
+            if trymake
+            then
+                checked "with ${lib}"
+                break
+            fi
+        done
     fi
     case "${checkresult}" in
     yes|with*)
-	defconfigh "YASH_ENABLE_SOCKET"
-	unset saveldlibs
-	;;
+        defconfigh "YASH_ENABLE_SOCKET"
+        unset saveldlibs
+        ;;
     no)
-	checked "no"
-	printf 'The socket library is unavailable!\n' >&2
-	printf 'Add the "--disable-socket" option and try again.\n' >&2
-	fail
-	;;
+        checked "no"
+        printf 'The socket library is unavailable!\n' >&2
+        printf 'Add the "--disable-socket" option and try again.\n' >&2
+        fail
+        ;;
     esac
 fi
 
@@ -668,7 +668,7 @@ END
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_NGETTEXT"
+        defconfigh "HAVE_NGETTEXT"
     fi
 
     checking 'for gettext library'
@@ -686,35 +686,35 @@ int main(void) {
 }
 END
     if
-	trycompile
+        trycompile
     then
-	saveldlibs="${ldlibs}"
-	if trylink
-	then
-	    checked "yes"
-	else
-	    for lib in ${intl_lib}
-	    do
-		ldlibs="${saveldlibs} -l${lib}"
-		if trylink
-		then
-		    checked "with -l${lib}"
-		    break
-		fi
-	    done
-	fi
+        saveldlibs="${ldlibs}"
+        if trylink
+        then
+            checked "yes"
+        else
+            for lib in ${intl_lib}
+            do
+                ldlibs="${saveldlibs} -l${lib}"
+                if trylink
+                then
+                    checked "with -l${lib}"
+                    break
+                fi
+            done
+        fi
     fi
     case "${checkresult}" in
     yes|with*)
-	defconfigh "HAVE_GETTEXT"
-	unset saveldlibs
-	;;
+        defconfigh "HAVE_GETTEXT"
+        unset saveldlibs
+        ;;
     no)
-	checked "no"
-	printf 'The gettext library is unavailable!\n' >&2
-	printf 'Add the "--disable-nls" option and try again.\n' >&2
-	fail
-	;;
+        checked "no"
+        printf 'The gettext library is unavailable!\n' >&2
+        printf 'Add the "--disable-nls" option and try again.\n' >&2
+        fail
+        ;;
     esac
 fi
 
@@ -722,29 +722,29 @@ fi
 if ${enable_lineedit}
 then
     for i in curses.h:CURSES_H ncurses.h:NCURSES_H \
-	ncurses/ncurses.h:NCURSES_NCURSES_H \
-	ncursesw/ncurses.h:NCURSESW_NCURSES_H
+        ncurses/ncurses.h:NCURSES_NCURSES_H \
+        ncursesw/ncurses.h:NCURSESW_NCURSES_H
     do
-	checking "for ${i%:*}"
-	cat >"${tempsrc}" <<END
+        checking "for ${i%:*}"
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <${i%:*}>
 int main(void) { return ERR; }
 END
-	trycompile
-	checked
-	if [ x"${checkresult}" = x"yes" ]
-	then
-	    defconfigh "HAVE_${i#*:}"
-	    break
-	fi
+        trycompile
+        checked
+        if [ x"${checkresult}" = x"yes" ]
+        then
+            defconfigh "HAVE_${i#*:}"
+            break
+        fi
     done
 
     for i in term.h:TERM_H ncurses/term.h:NCURSES_TERM_H \
-	ncursesw/term.h:NCURSESW_TERM_H
+        ncursesw/term.h:NCURSESW_TERM_H
     do
-	checking "for ${i%:*}"
-	cat >"${tempsrc}" <<END
+        checking "for ${i%:*}"
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #if HAVE_CURSES_H
 #include <curses.h>
@@ -778,13 +778,13 @@ int i4 = tputs(s2, 1, putchar);
 return i4;
 }
 END
-	trycompile
-	checked
-	if [ x"${checkresult}" = x"yes" ]
-	then
-	    defconfigh "HAVE_${i#*:}"
-	    break
-	fi
+        trycompile
+        checked
+        if [ x"${checkresult}" = x"yes" ]
+        then
+            defconfigh "HAVE_${i#*:}"
+            break
+        fi
     done
 
     checking 'for terminfo library'
@@ -819,35 +819,35 @@ return i4;
 }
 END
     if
-	trycompile
+        trycompile
     then
-	saveldlibs="${ldlibs}"
-	if trylink
-	then
-	    checked "yes"
-	else
-	    for lib in ${term_lib}
-	    do
-		ldlibs="${saveldlibs} -l${lib}"
-		if trylink
-		then
-		    checked "with -l${lib}"
-		    break
-		fi
-	    done
-	fi
+        saveldlibs="${ldlibs}"
+        if trylink
+        then
+            checked "yes"
+        else
+            for lib in ${term_lib}
+            do
+                ldlibs="${saveldlibs} -l${lib}"
+                if trylink
+                then
+                    checked "with -l${lib}"
+                    break
+                fi
+            done
+        fi
     fi
     case "${checkresult}" in
     yes|with*)
-	defconfigh "YASH_ENABLE_LINEEDIT"
-	unset saveldlibs
-	;;
+        defconfigh "YASH_ENABLE_LINEEDIT"
+        unset saveldlibs
+        ;;
     no)
-	checked "no"
-	printf 'The terminfo (curses) library is unavailable!\n' >&2
-	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
-	fail
-	;;
+        checked "no"
+        printf 'The terminfo (curses) library is unavailable!\n' >&2
+        printf 'Add the "--disable-lineedit" option and try again.\n' >&2
+        fail
+        ;;
     esac
 fi
 
@@ -1075,9 +1075,9 @@ fi
 if ${enable_test}
 then
     if
-	checking 'for st_atim'
-	cat >"${tempsrc}" <<END
-	${confighdefs}
+        checking 'for st_atim'
+        cat >"${tempsrc}" <<END
+        ${confighdefs}
 #include <sys/stat.h>
 int main(void) {
 struct stat st;
@@ -1086,14 +1086,14 @@ struct timespec ts = st.st_atim;
 return ts.tv_nsec != 0;
 }
 END
-	trymake
-	checked
-	[ x"${checkresult}" = x"yes" ]
+        trymake
+        checked
+        [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_ST_ATIM"
+        defconfigh "HAVE_ST_ATIM"
     elif
-	checking 'for st_atimespec'
-	cat >"${tempsrc}" <<END
+        checking 'for st_atimespec'
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
 int main(void) {
@@ -1103,14 +1103,14 @@ struct timespec ts = st.st_atimespec;
 return ts.tv_nsec != 0;
 }
 END
-	trymake
-	checked
-	[ x"${checkresult}" = x"yes" ]
+        trymake
+        checked
+        [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_ST_ATIMESPEC"
+        defconfigh "HAVE_ST_ATIMESPEC"
     elif
-	checking 'for st_atimensec'
-	cat >"${tempsrc}" <<END
+        checking 'for st_atimensec'
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
 int main(void) {
@@ -1119,14 +1119,14 @@ st.st_atimensec = 0;
 return st.st_atimensec != 0;
 }
 END
-	trymake
-	checked
-	[ x"${checkresult}" = x"yes" ]
+        trymake
+        checked
+        [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_ST_ATIMENSEC"
+        defconfigh "HAVE_ST_ATIMENSEC"
     elif
-	checking 'for __st_atimensec'
-	cat >"${tempsrc}" <<END
+        checking 'for __st_atimensec'
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <sys/stat.h>
 int main(void) {
@@ -1135,11 +1135,11 @@ st.__st_atimensec = 0;
 return st.__st_atimensec != 0;
 }
 END
-	trymake
-	checked
-	[ x"${checkresult}" = x"yes" ]
+        trymake
+        checked
+        [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE___ST_ATIMENSEC"
+        defconfigh "HAVE___ST_ATIMENSEC"
     fi
 fi
 
@@ -1322,7 +1322,7 @@ END
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_PW_GECOS"
+        defconfigh "HAVE_PW_GECOS"
     fi
 fi
 
@@ -1397,15 +1397,15 @@ char *xgetcwd(void) {
     char *pwd = malloc(pwdlen);
     if (!pwd) return NULL;
     while (getcwd(pwd, pwdlen) == NULL) {
-	if (errno == ERANGE) {
-	    pwdlen *= 2;
-	    if (!pwdlen) return NULL;
-	    pwd = realloc(pwd, pwdlen);
-	    if (!pwd) return NULL;
-	} else {
-	    free(pwd);
-	    return NULL;
-	}
+        if (errno == ERANGE) {
+            pwdlen *= 2;
+            if (!pwdlen) return NULL;
+            pwd = realloc(pwd, pwdlen);
+            if (!pwd) return NULL;
+        } else {
+            free(pwd);
+            return NULL;
+        }
     }
     return pwd;
 }
@@ -1443,7 +1443,7 @@ END
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "HAVE_TIOCGWINSZ"
+        defconfigh "HAVE_TIOCGWINSZ"
     fi
 fi
 
@@ -1471,7 +1471,7 @@ int main(void)
     if (fgetwc(f) != L'3')          return 10;
     if (fseek(f, 0, SEEK_SET) != 0) return 11;
     for (size_t i = 0; i < LEN; i++)
-	if (fputwc(L'0', f) != L'0') return 12;
+        if (fputwc(L'0', f) != L'0') return 12;
     if (fgetpos(f, &pos) != 0)      return 13;
     if (fputwc(L'1', f) != L'1')    return 14;
     if (fseek(f, 0, SEEK_SET) != 0) return 15;
@@ -1480,7 +1480,7 @@ int main(void)
     if (fgetwc(f) != L'1')          return 18;
     if (fseek(f, 0, SEEK_SET) != 0) return 19;
     for (size_t i = 0; i < LEN; i++)
-	if (fgetwc(f) != L'0')       return 20;
+        if (fgetwc(f) != L'0')       return 20;
     if (fgetwc(f) != L'1')          return 21;
     if (fclose(f) != 0)             return 22;
     return 0;
@@ -1553,9 +1553,9 @@ then
 else
     if ${enable_lineedit}
     then
-	printf 'History is required for lineedit but disabled.\n' >&2
-	printf 'Add the "--disable-lineedit" option and try again.\n' >&2
-	fail
+        printf 'History is required for lineedit but disabled.\n' >&2
+        printf 'Add the "--disable-lineedit" option and try again.\n' >&2
+        fail
     fi
 fi
 
@@ -1574,11 +1574,11 @@ then
 else
     if ${enable_double_bracket}
     then
-	cat >&2 <<END
+        cat >&2 <<END
 The test built-in is required for the double-bracket command, but disabled.
 Add the "--disable-double-bracket" option and try again.
 END
-	fail
+        fail
     fi
 fi
 
@@ -1601,19 +1601,19 @@ END
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	defconfigh "YASH_ENABLE_ULIMIT"
-	builtin_objs="$builtin_objs "'$(ULIMIT_OBJS)'
+        defconfigh "YASH_ENABLE_ULIMIT"
+        builtin_objs="$builtin_objs "'$(ULIMIT_OBJS)'
     else
-	printf 'The getrlimit and setrlimit functions are unavailable.\n' >&2
-	printf 'Add the "--disable-ulimit" option and try again.\n' >&2
-	fail
+        printf 'The getrlimit and setrlimit functions are unavailable.\n' >&2
+        printf 'Add the "--disable-ulimit" option and try again.\n' >&2
+        fail
     fi
 
     # check for RLIM_SAVED_CUR & RLIM_SAVED_MAX
     for i in CUR MAX
     do
-	checking "for RLIM_SAVED_${i}"
-	cat >"${tempsrc}" <<END
+        checking "for RLIM_SAVED_${i}"
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
@@ -1623,27 +1623,27 @@ struct rlimit l = { .rlim_cur = RLIM_SAVED_${i}, .rlim_max = RLIM_SAVED_${i} };
 return l.rlim_cur == l.rlim_max;
 }
 END
-	trymake
-	checked
-	if [ x"${checkresult}" = x"yes" ]
-	then
-	    defconfigh "HAVE_RLIM_SAVED_${i}"
-	fi
+        trymake
+        checked
+        if [ x"${checkresult}" = x"yes" ]
+        then
+            defconfigh "HAVE_RLIM_SAVED_${i}"
+        fi
     done
 
     # check for RLIMIT_***
     for i in AS LOCKS MEMLOCK MSGQUEUE NICE NPROC RSS RTPRIO SIGPENDING
     do
-	checking "for RLIMIT_${i}"
-	cat >"${tempsrc}" <<END
+        checking "for RLIMIT_${i}"
+        cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
 #include <sys/resource.h>
 int main(void) {
     if (0) {
-	struct rlimit r;
-	getrlimit(RLIMIT_${i}, &r);
+        struct rlimit r;
+        getrlimit(RLIMIT_${i}, &r);
     }
 #if HAVE_RLIMIT_AS
     return RLIMIT_${i} == RLIMIT_AS;
@@ -1652,12 +1652,12 @@ int main(void) {
 #endif
 }
 END
-	trymake && tryexec
-	checked
-	if [ x"${checkresult}" = x"yes" ]
-	then
-	    defconfigh "HAVE_RLIMIT_${i}"
-	fi
+        trymake && tryexec
+        checked
+        if [ x"${checkresult}" = x"yes" ]
+        then
+            defconfigh "HAVE_RLIMIT_${i}"
+        fi
     done
 fi
 
@@ -1672,9 +1672,9 @@ then
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	CTAGSARGS='--recurse'
+        CTAGSARGS='--recurse'
     else
-	CTAGSARGS='*.[ch]'
+        CTAGSARGS='*.[ch]'
     fi
 fi
 if [ x"${ETAGSARGS+set}" != x"set" ]
@@ -1686,9 +1686,9 @@ then
     checked
     if [ x"${checkresult}" = x"yes" ]
     then
-	ETAGSARGS='--recurse'
+        ETAGSARGS='--recurse'
     else
-	ETAGSARGS='*.[ch]'
+        ETAGSARGS='*.[ch]'
     fi
 fi
 
@@ -1710,7 +1710,7 @@ then
     CATALOGS=''
     for i in ${LINGUAS}
     do
-	CATALOGS="${CATALOGS} ${i}.mo"
+        CATALOGS="${CATALOGS} ${i}.mo"
     done
 else
     CATALOGS='$(MOFILES)'
@@ -1876,18 +1876,18 @@ done
 while [ \$# -gt 0 ]
 do
     case "\$1" in
-	-h|--help)
-	    help=true ;;
-	--recheck)
-	    recheck=true ;;
-	--)
-	    shift
-	    break ;;
-	-*)
-	    echo "\$0: \$i: unknown option" >&2
-	    exit 1 ;;
-	*)
-	    break ;;
+        -h|--help)
+            help=true ;;
+        --recheck)
+            recheck=true ;;
+        --)
+            shift
+            break ;;
+        -*)
+            echo "\$0: \$i: unknown option" >&2
+            exit 1 ;;
+        *)
+            break ;;
     esac
     shift
 done
@@ -1924,26 +1924,26 @@ for target
 do
     printf 'creating %s... ' "\${target}"
     case \${target} in
-	'${configh}')
-	    cat >'${configh}' <<END
+        '${configh}')
+            cat >'${configh}' <<END
 /* ${configh##*/}: generated by \${0##*/} */
 #ifndef YASH_CONFIG_H
 #define YASH_CONFIG_H
 ${confighdefs}
 #endif
 END
-	    ;;
-	'${makefile}' | */'${makefile}')
-	    dir=\$(dirname "\${target}")
-	    sed -e '${sed_subst_cmd}' -e "1i\\\\
+            ;;
+        '${makefile}' | */'${makefile}')
+            dir=\$(dirname "\${target}")
+            sed -e '${sed_subst_cmd}' -e "1i\\\\
 # \${target##*/}: generated by \${0##*/}" "\${dir}/${makefilein}" >"\${target}"
-	    if ! ${make_supports_include} &&
-		ls "\${dir}"/*.d >/dev/null 2>&1
-	    then
-		printf '(including dependencies) '
-		cat "\${dir}"/*.d >>"\${target}"
-	    fi
-	    ;;
+            if ! ${make_supports_include} &&
+                ls "\${dir}"/*.d >/dev/null 2>&1
+            then
+                printf '(including dependencies) '
+                cat "\${dir}"/*.d >>"\${target}"
+            fi
+            ;;
     esac
     printf 'done\n'
 done
@@ -1966,4 +1966,4 @@ then
 fi
 
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet tw=80:
+# vim: set ft=sh ts=8 sts=4 sw=4 et tw=80:

@@ -6,159 +6,159 @@
 
 function completion/od {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
-	case $type in
-		(GNU|*BSD|Darwin) typeset bsd=true ;;
-		(*)               typeset bsd= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
+        case $type in
+                (GNU|*BSD|Darwin) typeset bsd=true ;;
+                (*)               typeset bsd= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"A: ${long:+--address-radix:}; specify the radix of addresses printed at the beginning of lines"
-	"b; like -t o1: interpret bytes in octal"
-	"c; interpret bytes as characters"
-	"d; like -t u2: interpret 2-byte words in unsigned decimal"
-	"j: ${long:+--skip-bytes:}; specify the number of bytes to skip first"
-	"N: ${long:+--read-bytes:}; specify the number of bytes to dump at most"
-	"o ${bsd:+B}; like -t o2: interpret 2-byte words in octal"
-	"s; like -t d2: interpret 2-byte words in signed decimal"
-	"t: ${long:+--format:}; specify output format"
-	"v ${long:+--output-duplicates}; don't omit lines containing the same data as the previous line"
-	"x ${bsd:+h}; like -t x2: interpret 2-byte words in hexadecimal"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "A: ${long:+--address-radix:}; specify the radix of addresses printed at the beginning of lines"
+        "b; like -t o1: interpret bytes in octal"
+        "c; interpret bytes as characters"
+        "d; like -t u2: interpret 2-byte words in unsigned decimal"
+        "j: ${long:+--skip-bytes:}; specify the number of bytes to skip first"
+        "N: ${long:+--read-bytes:}; specify the number of bytes to dump at most"
+        "o ${bsd:+B}; like -t o2: interpret 2-byte words in octal"
+        "s; like -t d2: interpret 2-byte words in signed decimal"
+        "t: ${long:+--format:}; specify output format"
+        "v ${long:+--output-duplicates}; don't omit lines containing the same data as the previous line"
+        "x ${bsd:+h}; like -t x2: interpret 2-byte words in hexadecimal"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|*BSD|Darwin|SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"F ${bsd:+e}; like -t fD: interpret double-precision floating point numbers"
-		"f; like -t fF: interpret single-precision floating point numbers"
-		"O; like -t o4: interpret 4-byte words in octal"
-		"X ${bsd:+H}; like -t x4: interpret 4-byte words in hexadecimal"
-		) #<#
-		case $type in (GNU|*BSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"a; like -t a: interpret named characters"
-			"l L I; like -t dL: interpret signed long values in decimal"
-			"i; like -t dI: interpret singed int values in decimal"
-			) #<#
-		esac
-		case $type in (GNU|FreeBSD|Darwin|SunOS)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"D; like -t u4: interpret 4-byte words in unsigned decimal"
-			) #<#
-		esac
-		case $type in
-		(GNU)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"S: --strings::; output strings of at least n-byte long"
-			"w:: --width::; specify the number of input bytes per output line"
-			"--traditional; use the traditional syntax"
-			"--help"
-			"--version"
-			) #<#
-			;;
-		(SunOS)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"C; interpret bytes as characters"
-			"S; like -t d4: interpret 4-byte words in signed decimal"
-			) #<#
-			;;
-		esac
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|*BSD|Darwin|SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "F ${bsd:+e}; like -t fD: interpret double-precision floating point numbers"
+                "f; like -t fF: interpret single-precision floating point numbers"
+                "O; like -t o4: interpret 4-byte words in octal"
+                "X ${bsd:+H}; like -t x4: interpret 4-byte words in hexadecimal"
+                ) #<#
+                case $type in (GNU|*BSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "a; like -t a: interpret named characters"
+                        "l L I; like -t dL: interpret signed long values in decimal"
+                        "i; like -t dI: interpret singed int values in decimal"
+                        ) #<#
+                esac
+                case $type in (GNU|FreeBSD|Darwin|SunOS)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "D; like -t u4: interpret 4-byte words in unsigned decimal"
+                        ) #<#
+                esac
+                case $type in
+                (GNU)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "S: --strings::; output strings of at least n-byte long"
+                        "w:: --width::; specify the number of input bytes per output line"
+                        "--traditional; use the traditional syntax"
+                        "--help"
+                        "--version"
+                        ) #<#
+                        ;;
+                (SunOS)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "C; interpret bytes as characters"
+                        "S; like -t d4: interpret 4-byte words in signed decimal"
+                        ) #<#
+                        ;;
+                esac
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(A|--address-radix) #>>#
-		complete -P "$PREFIX" -D "decimal" d
-		complete -P "$PREFIX" -D "octal" o
-		complete -P "$PREFIX" -D "hexadecimal" x
-		complete -P "$PREFIX" -D "none" n
-		;; #<<#
-	(j|--skip-bytes)
-		typeset word hex
-		command -f completion/od::size && {
-			if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
-					. -AL completion/_blocksize; then
-				command -f completion//completesizesuffix k m ${hex:-b}
-			fi
-		}
-		;;
-	([NS]|--read-bytes|--strings)
-		typeset word hex
-		command -f completion/od::size
-		;;
-	(w|--width)
-		;;
-	(t|--format) #>>#
-		complete -P "$TARGETWORD" -D "named character" a
-		complete -P "$TARGETWORD" -D "character" c
-		complete -P "$TARGETWORD" -D "signed decimal" d
-		complete -P "$TARGETWORD" -D "floating point number" f
-		complete -P "$TARGETWORD" -D "octal" o
-		complete -P "$TARGETWORD" -D "unsigned decimal" u
-		complete -P "$TARGETWORD" -D "hexadecimal" x
-		#<<#
-		case ${TARGETWORD#"$PREFIX"} in
-		(*[doux]) #>>#
-			complete -P "$TARGETWORD" -D "char" C
-			complete -P "$TARGETWORD" -D "short" S
-			complete -P "$TARGETWORD" -D "int" I
-			complete -P "$TARGETWORD" -D "long" L
-			;; #<<#
-		(*f) #>>#
-			complete -P "$TARGETWORD" -D "float" F
-			complete -P "$TARGETWORD" -D "double" D
-			complete -P "$TARGETWORD" -D "long double" L
-			;; #<<#
-		esac
-		case $type in (GNU)
-			case ${TARGETWORD#"$PREFIX"} in (*[acdfouxCDFSIL[:digit:]]) #>>#
-				complete -P "$TARGETWORD" -D "also print characters directly" z
-			esac #<<#
-		esac
-		;;
-	(*)
-		complete -f
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (A|--address-radix) #>>#
+                complete -P "$PREFIX" -D "decimal" d
+                complete -P "$PREFIX" -D "octal" o
+                complete -P "$PREFIX" -D "hexadecimal" x
+                complete -P "$PREFIX" -D "none" n
+                ;; #<<#
+        (j|--skip-bytes)
+                typeset word hex
+                command -f completion/od::size && {
+                        if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
+                                        . -AL completion/_blocksize; then
+                                command -f completion//completesizesuffix k m ${hex:-b}
+                        fi
+                }
+                ;;
+        ([NS]|--read-bytes|--strings)
+                typeset word hex
+                command -f completion/od::size
+                ;;
+        (w|--width)
+                ;;
+        (t|--format) #>>#
+                complete -P "$TARGETWORD" -D "named character" a
+                complete -P "$TARGETWORD" -D "character" c
+                complete -P "$TARGETWORD" -D "signed decimal" d
+                complete -P "$TARGETWORD" -D "floating point number" f
+                complete -P "$TARGETWORD" -D "octal" o
+                complete -P "$TARGETWORD" -D "unsigned decimal" u
+                complete -P "$TARGETWORD" -D "hexadecimal" x
+                #<<#
+                case ${TARGETWORD#"$PREFIX"} in
+                (*[doux]) #>>#
+                        complete -P "$TARGETWORD" -D "char" C
+                        complete -P "$TARGETWORD" -D "short" S
+                        complete -P "$TARGETWORD" -D "int" I
+                        complete -P "$TARGETWORD" -D "long" L
+                        ;; #<<#
+                (*f) #>>#
+                        complete -P "$TARGETWORD" -D "float" F
+                        complete -P "$TARGETWORD" -D "double" D
+                        complete -P "$TARGETWORD" -D "long double" L
+                        ;; #<<#
+                esac
+                case $type in (GNU)
+                        case ${TARGETWORD#"$PREFIX"} in (*[acdfouxCDFSIL[:digit:]]) #>>#
+                                complete -P "$TARGETWORD" -D "also print characters directly" z
+                        esac #<<#
+                esac
+                ;;
+        (*)
+                complete -f
+                ;;
+        esac
 
 }
 
 # This function sets the word, hex, PREFIX variables.
 function completion/od::size {
-	word="${TARGETWORD#"$PREFIX"}"
-	case $word in
-		(0[Xx]*) hex=true ;;
-		(*)      hex= ;;
-	esac
-	case $word in ([[:digit:]]*)
-		while [ "${word#[[:digit:]AaBbCcDdEeFfXx]}" != "$word" ]; do
-			word=${word#[[:digit:]AaBbCcDdEeFfXx]}
-		done
-		PREFIX=${TARGETWORD%"$word"}
-		case $type in (GNU)
-			if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
-					. -AL completion/_blocksize; then
-				command -f completion//completesizesuffix GNU${hex:+-E}
-			fi
-		esac
-		return 0
-	esac
-	return 1
+        word="${TARGETWORD#"$PREFIX"}"
+        case $word in
+                (0[Xx]*) hex=true ;;
+                (*)      hex= ;;
+        esac
+        case $word in ([[:digit:]]*)
+                while [ "${word#[[:digit:]AaBbCcDdEeFfXx]}" != "$word" ]; do
+                        word=${word#[[:digit:]AaBbCcDdEeFfXx]}
+                done
+                PREFIX=${TARGETWORD%"$word"}
+                case $type in (GNU)
+                        if command -vf completion//completesizesuffix >/dev/null 2>&1 ||
+                                        . -AL completion/_blocksize; then
+                                command -f completion//completesizesuffix GNU${hex:+-E}
+                        fi
+                esac
+                return 0
+        esac
+        return 1
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

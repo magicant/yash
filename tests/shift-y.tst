@@ -140,4 +140,4 @@ __IN__
 shift: $a is not an array
 __ERR__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

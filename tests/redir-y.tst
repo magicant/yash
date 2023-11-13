@@ -250,11 +250,11 @@ test_oE 'using pipe redirection in subshell'
 exec 3>&1
 {
     while read -r i && [ "$i" -lt 5 ]; do
-	echo "$i" >&3
-	echo "$((i+1))"
+        echo "$i" >&3
+        echo "$((i+1))"
     done | {
-	echo 0
-	cat -u
+        echo 0
+        cat -u
     }
 } >>|0
 __IN__
@@ -575,4 +575,4 @@ test_OE -e 0 'keyword after redirection in compound command (non-POSIX)'
 { ( echo not printed  ) >/dev/null }
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

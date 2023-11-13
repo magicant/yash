@@ -175,4 +175,4 @@ static const signal_T signals[] = {
 #endif  /* YASH_SIGLIST_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

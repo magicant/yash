@@ -23,15 +23,15 @@ int main(void)
 {
     int ttyfd = open("/dev/tty", O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (ttyfd < 0)
-	return EXIT_FAILURE;
+        return EXIT_FAILURE;
 
     pid_t tpgid = tcgetpgrp(ttyfd);
     if (tpgid < 0)
-	return EXIT_FAILURE;
+        return EXIT_FAILURE;
 
     pid_t pgid = getpgrp();
 
     return tpgid == pgid ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

@@ -5,45 +5,45 @@
 
 function completion/basename {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type= ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type= ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=()
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" "--help" "--version")
-		;;
-	esac
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=()
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" "--help" "--version")
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		command -f completion//getoperands
-		case ${WORDS[#]} in
-		(0)
-			complete -f
-			;;
-		(1)
-			typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"${WORDS[1]}")"
-			while word=${word#?}; [ "$word" ]; do
-				complete -- "$word"
-			done
-			;;
-		esac
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                command -f completion//getoperands
+                case ${WORDS[#]} in
+                (0)
+                        complete -f
+                        ;;
+                (1)
+                        typeset word="$(sed -e 's;/*$;;' -e 's;^.*/;;' <<<"${WORDS[1]}")"
+                        while word=${word#?}; [ "$word" ]; do
+                                complete -- "$word"
+                        done
+                        ;;
+                esac
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

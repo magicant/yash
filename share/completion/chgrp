@@ -6,76 +6,76 @@
 
 function completion/chgrp {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"h ${long:+--no-dereference}; change the group of symbolic links"
-	"H; follow symbolic links to directories in operands (with -R)"
-	"L; follow all symbolic links to directories (with -R)"
-	"P; don't follow any symbolic links (with -R)"
-	"R ${long:+--recursive}; recursively change the group of files in a directory"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "h ${long:+--no-dereference}; change the group of symbolic links"
+        "H; follow symbolic links to directories in operands (with -R)"
+        "L; follow all symbolic links to directories (with -R)"
+        "P; don't follow any symbolic links (with -R)"
+        "R ${long:+--recursive}; recursively change the group of files in a directory"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|*BSD|Darwin|SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"f ${long:+--silent --quiet}; suppress error messages"
-		) #<#
-		case $type in (GNU|NetBSD|FreeBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"v ${long:+--verbose}; print a message for each file processed"
-			) #<#
-		esac
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c --changes; print a message when a change has been made"
-		"--dereference; change the group of files referred to by symbolic links"
-		"--no-preserve-root; cancel the --preserve-root option"
-		"--preserve-root; don't recursively change the group of the root directory"
-		"--reference:; specify a file to whose group changes are made"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(FreeBSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"x; stop recursion when reaching a different file system"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|*BSD|Darwin|SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "f ${long:+--silent --quiet}; suppress error messages"
+                ) #<#
+                case $type in (GNU|NetBSD|FreeBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "v ${long:+--verbose}; print a message for each file processed"
+                        ) #<#
+                esac
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "c --changes; print a message when a change has been made"
+                "--dereference; change the group of files referred to by symbolic links"
+                "--no-preserve-root; cancel the --preserve-root option"
+                "--preserve-root; don't recursively change the group of the root directory"
+                "--reference:; specify a file to whose group changes are made"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (FreeBSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "x; stop recursion when reaching a different file system"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(--reference)
-		complete -P "$PREFIX" -f
-		;;
-	(*)
-		command -f completion//getoperands
-		if [ ${WORDS[#]} -eq 0 ]; then
-			complete -g
-		else
-			complete -f
-		fi
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--reference)
+                complete -P "$PREFIX" -f
+                ;;
+        (*)
+                command -f completion//getoperands
+                if [ ${WORDS[#]} -eq 0 ]; then
+                        complete -g
+                else
+                        complete -f
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

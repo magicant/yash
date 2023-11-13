@@ -60,7 +60,7 @@ void le_keymap_init(void)
 {
     static bool initialized = false;
     if (initialized)
-	return;
+        return;
     initialized = true;
 
     trie_T *t;
@@ -348,16 +348,16 @@ void le_set_mode(le_mode_id_T id)
 void generate_bindkey_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_BINDKEY))
-	return;
+        return;
 
     le_compdebug("adding lineedit command name candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (le_match_comppatterns(compopt, commands[i].name))
-	    le_new_candidate(CT_BINDKEY,
-		    malloc_mbstowcs(commands[i].name), NULL, compopt);
+        if (le_match_comppatterns(compopt, commands[i].name))
+            le_new_candidate(CT_BINDKEY,
+                    malloc_mbstowcs(commands[i].name), NULL, compopt);
 }
 
 
@@ -365,7 +365,7 @@ void generate_bindkey_candidates(const le_compopt_T *compopt)
 
 static int print_all_commands(void);
 static int set_key_binding(
-	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
+        le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
     __attribute__((nonnull));
 static le_command_func_T *get_command_from_name(const char *name)
     __attribute__((nonnull,pure));
@@ -374,7 +374,7 @@ static int command_name_compare(const void *p1, const void *p2)
 static int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
     __attribute__((nonnull));
 static int print_binding_main(
-	void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
+        void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
     __attribute__((nonnull));
 static const char *get_command_name(le_command_func_T *command)
     __attribute__((nonnull,const));
@@ -404,48 +404,48 @@ int bindkey_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, bindkey_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'a':  mode = LE_MODE_VI_COMMAND;  break;
-	    case L'e':  mode = LE_MODE_EMACS;       break;
-	    case L'v':  mode = LE_MODE_VI_INSERT;   break;
-	    case L'l':  list = true;                break;
+        switch (opt->shortopt) {
+            case L'a':  mode = LE_MODE_VI_COMMAND;  break;
+            case L'e':  mode = LE_MODE_EMACS;       break;
+            case L'v':  mode = LE_MODE_VI_INSERT;   break;
+            case L'l':  list = true;                break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     le_keymap_init();
 
     if (list) {
-	if (!validate_operand_count(argc - xoptind, 0, 0))
-	    return Exit_ERROR;
-	if (mode != LE_MODE_N) {
-	    xerror(0, Ngt("option combination is invalid"));
-	    return Exit_ERROR;
-	}
-	return print_all_commands();
+        if (!validate_operand_count(argc - xoptind, 0, 0))
+            return Exit_ERROR;
+        if (mode != LE_MODE_N) {
+            xerror(0, Ngt("option combination is invalid"));
+            return Exit_ERROR;
+        }
+        return print_all_commands();
     }
 
     if (mode == LE_MODE_N) {
-	xerror(0, Ngt("no option is specified"));
-	return Exit_ERROR;
+        xerror(0, Ngt("no option is specified"));
+        return Exit_ERROR;
     }
 
     switch (argc - xoptind) {
-	case 0:;
-	    /* print all key bindings */
-	    le_mode_T *m = le_id_to_mode(mode);
-	    return trie_foreachw(m->keymap, print_binding_main, m);
-	case 1:
-	    return print_binding(mode, ARGV(xoptind));
-	case 2:
-	    return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
-	default:
-	    return too_many_operands_error(2);
+        case 0:;
+            /* print all key bindings */
+            le_mode_T *m = le_id_to_mode(mode);
+            return trie_foreachw(m->keymap, print_binding_main, m);
+        case 1:
+            return print_binding(mode, ARGV(xoptind));
+        case 2:
+            return set_key_binding(mode, ARGV(xoptind), ARGV(xoptind + 1));
+        default:
+            return too_many_operands_error(2);
     }
 }
 
@@ -453,8 +453,8 @@ int bindkey_builtin(int argc, void **argv)
 int print_all_commands(void)
 {
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (!xprintf("%s\n", commands[i].name))
-	    return Exit_FAILURE;
+        if (!xprintf("%s\n", commands[i].name))
+            return Exit_FAILURE;
     return Exit_SUCCESS;
 }
 
@@ -462,36 +462,36 @@ int print_all_commands(void)
  * If `commandname' is L"-", the binding is removed.
  * If the specified command is not found, it is an error. */
 int set_key_binding(
-	le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
+        le_mode_id_T mode, const wchar_t *keyseq, const wchar_t *commandname)
 {
     if (keyseq[0] == L'\0') {
-	xerror(0, Ngt("cannot bind an empty key sequence"));
-	return Exit_FAILURE;
+        xerror(0, Ngt("cannot bind an empty key sequence"));
+        return Exit_FAILURE;
     }
 
     if (wcscmp(commandname, L"-") == 0) {
-	/* delete key binding */
-	register trie_T *t = le_modes[mode].keymap;
-	t = trie_removew(t, keyseq);
-	le_modes[mode].keymap = t;
+        /* delete key binding */
+        register trie_T *t = le_modes[mode].keymap;
+        t = trie_removew(t, keyseq);
+        le_modes[mode].keymap = t;
     } else {
-	/* set key binding */
-	char *mbsname = malloc_wcstombs(commandname);
-	if (mbsname == NULL) {
-	    xerror(EILSEQ, Ngt("unexpected error"));
-	    return Exit_FAILURE;
-	}
+        /* set key binding */
+        char *mbsname = malloc_wcstombs(commandname);
+        if (mbsname == NULL) {
+            xerror(EILSEQ, Ngt("unexpected error"));
+            return Exit_FAILURE;
+        }
 
-	le_command_func_T *cmd = get_command_from_name(mbsname);
-	free(mbsname);
-	if (cmd) {
-	    register trie_T *t = le_modes[mode].keymap;
-	    t = trie_setw(t, keyseq, (trievalue_T) { .cmdfunc = cmd });
-	    le_modes[mode].keymap = t;
-	} else {
-	    xerror(0, Ngt("no such editing command `%ls'"), commandname);
-	    return Exit_FAILURE;
-	}
+        le_command_func_T *cmd = get_command_from_name(mbsname);
+        free(mbsname);
+        if (cmd) {
+            register trie_T *t = le_modes[mode].keymap;
+            t = trie_setw(t, keyseq, (trievalue_T) { .cmdfunc = cmd });
+            le_modes[mode].keymap = t;
+        } else {
+            xerror(0, Ngt("no such editing command `%ls'"), commandname);
+            return Exit_FAILURE;
+        }
     }
     return Exit_SUCCESS;
 }
@@ -501,9 +501,9 @@ int set_key_binding(
 le_command_func_T *get_command_from_name(const char *name)
 {
     struct command_name_pair *cnp = bsearch(name, commands,
-	    sizeof commands / sizeof *commands,
-	    sizeof *commands,
-	    command_name_compare);
+            sizeof commands / sizeof *commands,
+            sizeof *commands,
+            command_name_compare);
 
     return (cnp != NULL) ? cnp->command : 0;
 }
@@ -511,7 +511,7 @@ le_command_func_T *get_command_from_name(const char *name)
 int command_name_compare(const void *p1, const void *p2)
 {
     return strcmp((const char *) p1,
-	    ((const struct command_name_pair *) p2)->name);
+            ((const struct command_name_pair *) p2)->name);
 }
 
 /* Prints the binding for the given key sequence. */
@@ -520,18 +520,18 @@ int print_binding(le_mode_id_T mode, const wchar_t *keyseq)
     trieget_T tg = trie_getw(le_modes[mode].keymap, keyseq);
 
     if ((tg.type & TG_EXACTMATCH) && tg.matchlength == wcslen(keyseq)) {
-	return print_binding_main(
-		le_id_to_mode(mode), keyseq, tg.value.cmdfunc);
+        return print_binding_main(
+                le_id_to_mode(mode), keyseq, tg.value.cmdfunc);
     } else {
-	xerror(0, Ngt("key sequence `%ls' is not bound"), keyseq);
-	return Exit_FAILURE;
+        xerror(0, Ngt("key sequence `%ls' is not bound"), keyseq);
+        return Exit_FAILURE;
     }
 }
 
 /* Prints a command to restore the specified key binding.
  * `mode' must be a pointer to one of the modes in `le_modes'. */
 int print_binding_main(
-	void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
+        void *mode, const wchar_t *keyseq, le_command_func_T *cmd)
 {
     const char *format;
     char modechar;
@@ -539,18 +539,18 @@ int print_binding_main(
     const char *commandname;
 
     switch (le_mode_to_id(mode)) {
-	case LE_MODE_VI_INSERT:     modechar = 'v';  break;
-	case LE_MODE_VI_COMMAND:    modechar = 'a';  break;
-	case LE_MODE_VI_SEARCH:     modechar = 'V';  break;
-	case LE_MODE_EMACS:         modechar = 'e';  break;
-	case LE_MODE_EMACS_SEARCH:  modechar = 'E';  break;
-	case LE_MODE_CHAR_EXPECT:   modechar = 'c';  break;
-	default:                    assert(false);
+        case LE_MODE_VI_INSERT:     modechar = 'v';  break;
+        case LE_MODE_VI_COMMAND:    modechar = 'a';  break;
+        case LE_MODE_VI_SEARCH:     modechar = 'V';  break;
+        case LE_MODE_EMACS:         modechar = 'e';  break;
+        case LE_MODE_EMACS_SEARCH:  modechar = 'E';  break;
+        case LE_MODE_CHAR_EXPECT:   modechar = 'c';  break;
+        default:                    assert(false);
     }
     if (keyseq[0] == L'-')
-	format = "bindkey -%c -- %ls %s\n";
+        format = "bindkey -%c -- %ls %s\n";
     else
-	format = "bindkey -%c %ls %s\n";
+        format = "bindkey -%c %ls %s\n";
     keyseqquote = quote_as_word(keyseq);
     commandname = get_command_name(cmd);
     xprintf(format, modechar, keyseqquote, commandname);
@@ -562,8 +562,8 @@ int print_binding_main(
 const char *get_command_name(le_command_func_T *command)
 {
     for (size_t i = 0; i < sizeof commands / sizeof *commands; i++)
-	if (commands[i].command == command)
-	    return commands[i].name;
+        if (commands[i].command == command)
+            return commands[i].name;
     return NULL;
 }
 
@@ -578,4 +578,4 @@ const char bindkey_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

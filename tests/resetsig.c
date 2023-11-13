@@ -24,8 +24,8 @@
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-	fprintf(stderr, "resetsig: too few arguments\n");
-	return 2;
+        fprintf(stderr, "resetsig: too few arguments\n");
+        return 2;
     }
 
     struct sigaction action;
@@ -34,12 +34,12 @@ int main(int argc, char **argv)
     sigemptyset(&action.sa_mask);
     sigprocmask(SIG_SETMASK, &action.sa_mask, NULL);
     for (const signal_T *s = signals; s->no != 0; s++)
-	if (s->no != SIGKILL && s->no != SIGSTOP)
-	    sigaction(s->no, &action, NULL);
+        if (s->no != SIGKILL && s->no != SIGSTOP)
+            sigaction(s->no, &action, NULL);
 
     execvp(argv[1], &argv[1]);
     perror("invoke: exec failed");
     return 126;
 }
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

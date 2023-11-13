@@ -6,57 +6,57 @@
 
 function completion/rmdir {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"p ${long:+--parents}; remove parent directories as well"
-	) #<#
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "p ${long:+--parents}; remove parent directories as well"
+        ) #<#
 
-	case $type in (GNU|FreeBSD)
-		OPTIONS=("$OPTIONS" #>#
-		"v ${long:+--verbose}; print a message for each directory processed"
-		) #<#
-	esac
-	case $type in
-	(GNU)
-		OPTIONS=("$OPTIONS" #>#
-		"--ignore-fail-on-non-empty; suppress error messages about non-empty directories"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(SunOS)
-		OPTIONS=("$OPTIONS" #>#
-		"s; suppress error messages (with -p)"
-		) #<#
-		;;
-	(HP-UX)
-		OPTIONS=("$OPTIONS" #>#
-		"f; remove directories without confirmation"
-		"i; confirm before removing each directory"
-		) #<#
-		;;
-	esac
+        case $type in (GNU|FreeBSD)
+                OPTIONS=("$OPTIONS" #>#
+                "v ${long:+--verbose}; print a message for each directory processed"
+                ) #<#
+        esac
+        case $type in
+        (GNU)
+                OPTIONS=("$OPTIONS" #>#
+                "--ignore-fail-on-non-empty; suppress error messages about non-empty directories"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (SunOS)
+                OPTIONS=("$OPTIONS" #>#
+                "s; suppress error messages (with -p)"
+                ) #<#
+                ;;
+        (HP-UX)
+                OPTIONS=("$OPTIONS" #>#
+                "f; remove directories without confirmation"
+                "i; confirm before removing each directory"
+                ) #<#
+                ;;
+        esac
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		complete -T -S / -d
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                complete -T -S / -d
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

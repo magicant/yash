@@ -6,72 +6,72 @@
 
 function completion/typeset {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=( #>#
-	"p --print; print specified variables or functions"
-	"X --unexport; cancel exportation of variables"
-	"--help"
-	) #<#
-	if [ "${WORDS[1]}" = "typeset" ]; then
-		OPTIONS=("$OPTIONS" #>#
-		"g --global; define global variables"
-		) #<#
-	fi
-	if [ "${WORDS[1]}" = "readonly" ] || [ "${WORDS[1]}" = "typeset" ]; then
-		OPTIONS=("$OPTIONS" #>#
-		"f --functions; define or print functions rather than variables"
-		) #<#
-	fi
-	if [ "${WORDS[1]}" != "export" ]; then
-		OPTIONS=("$OPTIONS" #>#
-		"x --export; export variables or print exported variables"
-		) #<#
-	fi
-	if [ "${WORDS[1]}" != "readonly" ]; then
-		OPTIONS=("$OPTIONS" #>#
-		"r --readonly; define or print read-only variables or functions"
-		) #<#
-	fi
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "p --print; print specified variables or functions"
+        "X --unexport; cancel exportation of variables"
+        "--help"
+        ) #<#
+        if [ "${WORDS[1]}" = "typeset" ]; then
+                OPTIONS=("$OPTIONS" #>#
+                "g --global; define global variables"
+                ) #<#
+        fi
+        if [ "${WORDS[1]}" = "readonly" ] || [ "${WORDS[1]}" = "typeset" ]; then
+                OPTIONS=("$OPTIONS" #>#
+                "f --functions; define or print functions rather than variables"
+                ) #<#
+        fi
+        if [ "${WORDS[1]}" != "export" ]; then
+                OPTIONS=("$OPTIONS" #>#
+                "x --export; export variables or print exported variables"
+                ) #<#
+        fi
+        if [ "${WORDS[1]}" != "readonly" ]; then
+                OPTIONS=("$OPTIONS" #>#
+                "r --readonly; define or print read-only variables or functions"
+                ) #<#
+        fi
 
-	command -f completion//parseoptions -es
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(*)
-		typeset i=1 func=false
-		while [ $i -le ${WORDS[#]} ]; do
-			case ${WORDS[i++]} in
-				(-f|--functions) func=true ;;
-				(--)             break ;;
-			esac
-		done
-		if $func; then
-			complete --function
-		else
-			case $TARGETWORD in
-			(*=*:*)
-			# remove until the last colon after the first '=' and
-			# complete as a filename. If $word is
-			# PATH=/bin:/usr/bin:/u for example, we complete the
-			# filename /u
-				PREFIX=${TARGETWORD%"${${TARGETWORD#*=}##*:}"}
-				complete -T -P "$PREFIX" -S : -f
-				;;
-			(*=*)
-			# remove until '=' and complete as a filename.
-				PREFIX=${TARGETWORD%"${TARGETWORD#*=}"}
-				complete -P "$PREFIX" -f
-				;;
-			(*)
-				complete -T -S = -v
-				;;
-			esac
-		fi
-		;;
-	esac
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                typeset i=1 func=false
+                while [ $i -le ${WORDS[#]} ]; do
+                        case ${WORDS[i++]} in
+                                (-f|--functions) func=true ;;
+                                (--)             break ;;
+                        esac
+                done
+                if $func; then
+                        complete --function
+                else
+                        case $TARGETWORD in
+                        (*=*:*)
+                        # remove until the last colon after the first '=' and
+                        # complete as a filename. If $word is
+                        # PATH=/bin:/usr/bin:/u for example, we complete the
+                        # filename /u
+                                PREFIX=${TARGETWORD%"${${TARGETWORD#*=}##*:}"}
+                                complete -T -P "$PREFIX" -S : -f
+                                ;;
+                        (*=*)
+                        # remove until '=' and complete as a filename.
+                                PREFIX=${TARGETWORD%"${TARGETWORD#*=}"}
+                                complete -P "$PREFIX" -f
+                                ;;
+                        (*)
+                                complete -T -S = -v
+                                ;;
+                        esac
+                fi
+                ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

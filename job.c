@@ -69,7 +69,7 @@ static char *get_process_status_string(const process_T *p, bool *needfree)
 static char *get_job_status_string(const job_T *job, bool *needfree)
     __attribute__((nonnull,malloc,warn_unused_result));
 static int print_job_status(size_t jobnumber,
-	bool changedonly, bool verbose, bool remove_done, FILE *f)
+        bool changedonly, bool verbose, bool remove_done, FILE *f)
     __attribute__((nonnull));
 static size_t get_jobnumber_from_name(const wchar_t *name)
     __attribute__((nonnull,pure));
@@ -77,8 +77,8 @@ static size_t get_jobnumber_from_pid(long pid)
     __attribute__((pure));
 
 static bool jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pgidonly,
-	bool runningonly, bool stoppedonly);
+        bool verbose, bool changedonly, bool pgidonly,
+        bool runningonly, bool stoppedonly);
 static int continue_job(size_t jobnumber, job_T *job, bool fg)
     __attribute__((nonnull));
 static int wait_for_job_by_jobspec(const wchar_t *jobspec)
@@ -125,10 +125,10 @@ void add_job(bool current)
 
     /* if there is an empty element in the list, use it */
     for (jobnumber = 1; jobnumber < joblist.length; jobnumber++) {
-	if (joblist.contents[jobnumber] == NULL) {
-	    joblist.contents[jobnumber] = job;
-	    goto set_current;
-	}
+        if (joblist.contents[jobnumber] == NULL) {
+            joblist.contents[jobnumber] = job;
+            goto set_current;
+        }
     }
 
     /* if there is no empty, append at the end of the list */
@@ -137,9 +137,9 @@ void add_job(bool current)
 set_current:
     assert(joblist.contents[jobnumber] == job);
     if (job->j_status == JS_STOPPED || current)
-	set_current_jobnumber(jobnumber);
+        set_current_jobnumber(jobnumber);
     else
-	set_current_jobnumber(current_jobnumber);
+        set_current_jobnumber(current_jobnumber);
 }
 
 /* Returns the job of the specified number or NULL if not found. */
@@ -163,8 +163,8 @@ void remove_job(size_t jobnumber)
 void remove_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++) {
-	free_job(joblist.contents[i]);
-	joblist.contents[i] = NULL;
+        free_job(joblist.contents[i]);
+        joblist.contents[i] = NULL;
     }
     trim_joblist();
     current_jobnumber = previous_jobnumber = 0;
@@ -174,9 +174,9 @@ void remove_all_jobs(void)
 void free_job(job_T *job)
 {
     if (job != NULL) {
-	for (size_t i = 0; i < job->j_pcount; i++)
-	    free(job->j_procs[i].pr_name);
-	free(job);
+        for (size_t i = 0; i < job->j_pcount; i++)
+            free(job->j_procs[i].pr_name);
+        free(job);
     }
 }
 
@@ -184,14 +184,14 @@ void free_job(job_T *job)
 void trim_joblist(void)
 {
     if (joblist.maxlength > 20 && joblist.maxlength / 2 > joblist.length) {
-	pl_setmax(&joblist, joblist.length * 2);
+        pl_setmax(&joblist, joblist.length * 2);
     } else {
-	size_t tail = joblist.length;
+        size_t tail = joblist.length;
 
-	while (tail > 1 && joblist.contents[tail - 1] == NULL)
-	    tail--;
-	assert(tail > 0);
-	pl_truncate(&joblist, tail);
+        while (tail > 1 && joblist.contents[tail - 1] == NULL)
+            tail--;
+        assert(tail > 0);
+        pl_truncate(&joblist, tail);
     }
 }
 
@@ -200,9 +200,9 @@ void trim_joblist(void)
 void neglect_all_jobs(void)
 {
     for (size_t i = 0; i < joblist.length; i++) {
-	job_T *job = joblist.contents[i];
-	if (job != NULL)
-	    job->j_legacy = true;
+        job_T *job = joblist.contents[i];
+        if (job != NULL)
+            job->j_legacy = true;
     }
     current_jobnumber = previous_jobnumber = 0;
 }
@@ -238,36 +238,36 @@ void set_current_jobnumber(size_t jobnumber)
     const job_T *newcurrent = get_job(jobnumber);
 
     if (newcurrent == NULL
-	    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
-	jobnumber = current_jobnumber;
-	newcurrent = get_job(jobnumber);
-	if (newcurrent == NULL
-		|| (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
-	    jobnumber = previous_jobnumber;
-	    newcurrent = get_job(jobnumber);
-	    if (newcurrent == NULL
-		    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED))
-		jobnumber = find_next_job(ACTIVE_JOBNO);
-	}
+            || (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
+        jobnumber = current_jobnumber;
+        newcurrent = get_job(jobnumber);
+        if (newcurrent == NULL
+                || (stopcount > 0 && newcurrent->j_status != JS_STOPPED)) {
+            jobnumber = previous_jobnumber;
+            newcurrent = get_job(jobnumber);
+            if (newcurrent == NULL
+                    || (stopcount > 0 && newcurrent->j_status != JS_STOPPED))
+                jobnumber = find_next_job(ACTIVE_JOBNO);
+        }
     }
 
     if (jobnumber != current_jobnumber) {
-	size_t oldcurrentnum = current_jobnumber;
-	current_jobnumber = jobnumber;
-	jobnumber = oldcurrentnum;
+        size_t oldcurrentnum = current_jobnumber;
+        current_jobnumber = jobnumber;
+        jobnumber = oldcurrentnum;
     } else {
-	jobnumber = previous_jobnumber;
+        jobnumber = previous_jobnumber;
     }
 
     const job_T *newprevious = get_job(jobnumber);
 
     if (newprevious == NULL || jobnumber == current_jobnumber
-	    || (stopcount > 1 && newprevious->j_status != JS_STOPPED)) {
-	jobnumber = previous_jobnumber;
-	newprevious = get_job(jobnumber);
-	if (newprevious == NULL || jobnumber == current_jobnumber
-		|| (stopcount > 1 && newprevious->j_status != JS_STOPPED))
-	    jobnumber = find_next_job(current_jobnumber);
+            || (stopcount > 1 && newprevious->j_status != JS_STOPPED)) {
+        jobnumber = previous_jobnumber;
+        newprevious = get_job(jobnumber);
+        if (newprevious == NULL || jobnumber == current_jobnumber
+                || (stopcount > 1 && newprevious->j_status != JS_STOPPED))
+            jobnumber = find_next_job(current_jobnumber);
     }
     previous_jobnumber = jobnumber;
 }
@@ -280,25 +280,25 @@ void set_current_jobnumber(size_t jobnumber)
 size_t find_next_job(size_t excl)
 {
     if (previous_jobnumber != excl) {
-	job_T *job = get_job(previous_jobnumber);
-	if (job != NULL && job->j_status == JS_STOPPED)
-	    return previous_jobnumber;
+        job_T *job = get_job(previous_jobnumber);
+        if (job != NULL && job->j_status == JS_STOPPED)
+            return previous_jobnumber;
     }
     size_t jobnumber = joblist.length;
     while (--jobnumber > 0) {
-	if (jobnumber != excl) {
-	    job_T *job = get_job(jobnumber);
-	    if (job != NULL && job->j_status == JS_STOPPED)
-		return jobnumber;
-	}
+        if (jobnumber != excl) {
+            job_T *job = get_job(jobnumber);
+            if (job != NULL && job->j_status == JS_STOPPED)
+                return jobnumber;
+        }
     }
     jobnumber = joblist.length;
     while (--jobnumber > 0) {
-	if (jobnumber != excl) {
-	    job_T *job = get_job(jobnumber);
-	    if (job != NULL)
-		return jobnumber;
-	}
+        if (jobnumber != excl) {
+            job_T *job = get_job(jobnumber);
+            if (job != NULL)
+                return jobnumber;
+        }
     }
     return 0;
 }
@@ -308,12 +308,12 @@ size_t find_next_job(size_t excl)
 void apply_curstop(void)
 {
     if (shopt_curstop) {
-	for (size_t i = 0; i < joblist.length; i++) {
-	    job_T *job = joblist.contents[i];
-	    if (job != NULL)
-		if (job->j_status == JS_STOPPED && job->j_statuschanged)
-		    set_current_jobnumber(i);
-	}
+        for (size_t i = 0; i < joblist.length; i++) {
+            job_T *job = joblist.contents[i];
+            if (job != NULL)
+                if (job->j_status == JS_STOPPED && job->j_statuschanged)
+                    set_current_jobnumber(i);
+        }
     }
     set_current_jobnumber(current_jobnumber);
 }
@@ -323,12 +323,12 @@ size_t job_count(void)
 {
     size_t count = 0;
     for (size_t i = 0; i < joblist.length; i++) {
-	const job_T *job = joblist.contents[i];
-	if (job == NULL)
-	    continue;
-	if (job->j_status == JS_DONE && !job->j_statuschanged)
-	    continue; // Ignore finished jobs that have already been reported.
-	count++;
+        const job_T *job = joblist.contents[i];
+        if (job == NULL)
+            continue;
+        if (job->j_status == JS_DONE && !job->j_statuschanged)
+            continue; // Ignore finished jobs that have already been reported.
+        count++;
     }
     return count;
 }
@@ -338,9 +338,9 @@ size_t stopped_job_count(void)
 {
     size_t count = 0;
     for (size_t i = 0; i < joblist.length; i++) {
-	job_T *job = joblist.contents[i];
-	if (job != NULL && job->j_status == JS_STOPPED)
-	    count++;
+        job_T *job = joblist.contents[i];
+        if (job != NULL && job->j_status == JS_STOPPED)
+            count++;
     }
     return count;
 }
@@ -361,29 +361,29 @@ void do_wait(void)
 start:
     pid = waitpid(-1, &status, waitpidoption);
     if (pid < 0) {
-	switch (errno) {
-	    case EINTR:
-		goto start;  /* try again */
-	    case ECHILD:
-		return;      /* there are no child processes */
+        switch (errno) {
+            case EINTR:
+                goto start;  /* try again */
+            case ECHILD:
+                return;      /* there are no child processes */
 #if HAVE_WCONTINUED
-	    /* Even when the WCONTINUED flag is defined in the <sys/wait.h>
-	     * header, the OS kernel may not support it. We try again without
-	     * the flag if it is rejected. */
-	    case EINVAL:
-		if (waitpidoption & WCONTINUED) {
-		    waitpidoption &= ~WCONTINUED;
-		    goto start;
-		}
+            /* Even when the WCONTINUED flag is defined in the <sys/wait.h>
+             * header, the OS kernel may not support it. We try again without
+             * the flag if it is rejected. */
+            case EINVAL:
+                if (waitpidoption & WCONTINUED) {
+                    waitpidoption &= ~WCONTINUED;
+                    goto start;
+                }
 #endif
-		; /* falls thru! */
-	    default:
-		xerror(errno, "waitpid");
-		return;
-	}
+                ; /* falls thru! */
+            default:
+                xerror(errno, "waitpid");
+                return;
+        }
     } else if (pid == 0) {
-	/* no more jobs to be updated */
-	return;
+        /* no more jobs to be updated */
+        return;
     }
 
     size_t jobnumber, pnumber;
@@ -392,11 +392,11 @@ start:
 
     /* determine `jobnumber', `job' and `pr' from `pid' */
     for (jobnumber = 0; jobnumber < joblist.length; jobnumber++)
-	if ((job = joblist.contents[jobnumber]) != NULL)
-	    for (pnumber = 0; pnumber < job->j_pcount; pnumber++)
-		if ((pr = &job->j_procs[pnumber])->pr_pid == pid &&
-			pr->pr_status != JS_DONE)
-		    goto found;
+        if ((job = joblist.contents[jobnumber]) != NULL)
+            for (pnumber = 0; pnumber < job->j_pcount; pnumber++)
+                if ((pr = &job->j_procs[pnumber])->pr_pid == pid &&
+                        pr->pr_status != JS_DONE)
+                    goto found;
 
     /* If `pid' was not found in the job list, we simply ignore it. This may
      * happen on some occasions: e.g. the job has been "disown"ed. */
@@ -405,12 +405,12 @@ start:
 found:
     pr->pr_statuscode = status;
     if (WIFEXITED(status) || WIFSIGNALED(status))
-	pr->pr_status = JS_DONE;
+        pr->pr_status = JS_DONE;
     if (WIFSTOPPED(status))
-	pr->pr_status = JS_STOPPED;
+        pr->pr_status = JS_STOPPED;
 #ifdef HAVE_WCONTINUED
     if (WIFCONTINUED(status))
-	pr->pr_status = JS_RUNNING;
+        pr->pr_status = JS_RUNNING;
     /* On FreeBSD, when WIFCONTINUED is true, WIFSIGNALED is also true. We must
      * be careful about the order of these checks. */
 #endif
@@ -423,16 +423,16 @@ found:
     bool anyrunning = false, anystopped = false;
     /* check if there are running/stopped processes */
     for (size_t i = 0; i < job->j_pcount; i++) {
-	switch (job->j_procs[i].pr_status) {
-	    case JS_RUNNING:  anyrunning = true;  goto out_of_loop;
-	    case JS_STOPPED:  anystopped = true;  break;
-	    default:                              break;
-	}
+        switch (job->j_procs[i].pr_status) {
+            case JS_RUNNING:  anyrunning = true;  goto out_of_loop;
+            case JS_STOPPED:  anystopped = true;  break;
+            default:                              break;
+        }
     }
 out_of_loop:
     job->j_status = anyrunning ? JS_RUNNING : anystopped ? JS_STOPPED : JS_DONE;
     if (job->j_status != oldstatus)
-	job->j_statuschanged = true;
+        job->j_statuschanged = true;
 
     goto start;
 }
@@ -451,24 +451,24 @@ out_of_loop:
  * foreground after calling `wait_for_job' if `doing_job_control_now' is true.
  */
 int wait_for_job(size_t jobnumber, bool return_on_stop,
-	bool interruptible, bool return_on_trap)
+        bool interruptible, bool return_on_trap)
 {
     int signum = 0;
     job_T *job = joblist.contents[jobnumber];
 
     if (!job->j_legacy) {
-	bool savenonotify = job->j_nonotify;
-	job->j_nonotify = true;
-	for (;;) {
-	    if (job->j_status == JS_DONE)
-		break;
-	    if (return_on_stop && job->j_status == JS_STOPPED)
-		break;
-	    signum = wait_for_sigchld(interruptible, return_on_trap);
-	    if (signum != 0)
-		break;
-	}
-	job->j_nonotify = savenonotify;
+        bool savenonotify = job->j_nonotify;
+        job->j_nonotify = true;
+        for (;;) {
+            if (job->j_status == JS_DONE)
+                break;
+            if (return_on_stop && job->j_status == JS_STOPPED)
+                break;
+            signum = wait_for_sigchld(interruptible, return_on_trap);
+            if (signum != 0)
+                break;
+        }
+        job->j_nonotify = savenonotify;
     }
     return signum;
 }
@@ -504,15 +504,15 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
     set_active_job(job);
     wait_for_job(ACTIVE_JOBNO, return_on_stop, false, false);
     if (doing_job_control_now)
-	put_foreground(shell_pgid);
+        put_foreground(shell_pgid);
     laststatus = calc_status_of_job(job);
     if (job->j_status == JS_DONE) {
-	notify_signaled_job(ACTIVE_JOBNO);
-	remove_job(ACTIVE_JOBNO);
-	return NULL;
+        notify_signaled_job(ACTIVE_JOBNO);
+        remove_job(ACTIVE_JOBNO);
+        return NULL;
     } else {
-	add_job(true);
-	return &job->j_procs[0].pr_name;
+        add_job(true);
+        return &job->j_procs[0].pr_name;
     }
 }
 
@@ -522,22 +522,22 @@ wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
 pid_t get_job_pgid(const wchar_t *jobname)
 {
     size_t jobnumber = get_jobnumber_from_name(
-	    (jobname[0] == L'%') ? &jobname[1] : jobname);
+            (jobname[0] == L'%') ? &jobname[1] : jobname);
     const job_T *job;
 
     if (jobnumber >= joblist.length) {
-	xerror(0, Ngt("job specification `%ls' is ambiguous"), jobname);
-	return -1;
+        xerror(0, Ngt("job specification `%ls' is ambiguous"), jobname);
+        return -1;
     } else if (jobnumber == 0
-	    || (job = joblist.contents[jobnumber]) == NULL
-	    || job->j_legacy) {
-	xerror(0, Ngt("no such job `%ls'"), jobname);
-	return -1;
+            || (job = joblist.contents[jobnumber]) == NULL
+            || job->j_legacy) {
+        xerror(0, Ngt("no such job `%ls'"), jobname);
+        return -1;
     } else if (job->j_pgid == 0) {
-	xerror(0, Ngt("`%ls' is not a job-controlled job"), jobname);
-	return -1;
+        xerror(0, Ngt("`%ls' is not a job-controlled job"), jobname);
+        return -1;
     } else {
-	return job->j_pgid;
+        return job->j_pgid;
     }
 }
 
@@ -599,17 +599,17 @@ void ensure_foreground(void)
 int calc_status(int status)
 {
     if (WIFEXITED(status))
-	return WEXITSTATUS(status);
+        return WEXITSTATUS(status);
 #ifdef WIFCONTINUED
     if (WIFCONTINUED(status))
-	return Exit_SUCCESS;
+        return Exit_SUCCESS;
     /* On FreeBSD, when WIFCONTINUED is true, WIFSIGNALED is also true. We must
      * be careful about the order of these checks. */
 #endif
     if (WIFSIGNALED(status))
-	return WTERMSIG(status) + TERMSIGOFFSET;
+        return WTERMSIG(status) + TERMSIGOFFSET;
     if (WIFSTOPPED(status))
-	return WSTOPSIG(status) + TERMSIGOFFSET;
+        return WSTOPSIG(status) + TERMSIGOFFSET;
     assert(false);
 }
 
@@ -627,22 +627,22 @@ int calc_status_of_job(const job_T *job)
 {
     switch (job->j_status) {
     case JS_DONE:
-	if (!shopt_pipefail)
-	    return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
-	for (size_t i = job->j_pcount; i-- > 0; ) {
-	    int status = calc_status_of_process(&job->j_procs[i]);
-	    if (status != Exit_SUCCESS)
-		return status;
-	}
-	return Exit_SUCCESS;
+        if (!shopt_pipefail)
+            return calc_status_of_process(&job->j_procs[job->j_pcount - 1]);
+        for (size_t i = job->j_pcount; i-- > 0; ) {
+            int status = calc_status_of_process(&job->j_procs[i]);
+            if (status != Exit_SUCCESS)
+                return status;
+        }
+        return Exit_SUCCESS;
     case JS_STOPPED:
-	for (size_t i = job->j_pcount; i-- > 0; ) {
-	    if (job->j_procs[i].pr_status == JS_STOPPED)
-		return calc_status(job->j_procs[i].pr_statuscode);
-	}
-	/* falls thru! */
+        for (size_t i = job->j_pcount; i-- > 0; ) {
+            if (job->j_procs[i].pr_status == JS_STOPPED)
+                return calc_status(job->j_procs[i].pr_statuscode);
+        }
+        /* falls thru! */
     default:
-	assert(false);
+        assert(false);
     }
 }
 
@@ -653,14 +653,14 @@ int calc_status_of_job(const job_T *job)
 wchar_t *get_job_name(const job_T *job)
 {
     if (job->j_pcount == 1)
-	return job->j_procs[0].pr_name;
+        return job->j_procs[0].pr_name;
 
     xwcsbuf_T buf;
     wb_init(&buf);
     for (size_t i = 0; i < job->j_pcount; i++) {
-	if (i > 0)
-	    wb_cat(&buf, L" | ");
-	wb_cat(&buf, job->j_procs[i].pr_name);
+        if (i > 0)
+            wb_cat(&buf, L" | ");
+        wb_cat(&buf, job->j_procs[i].pr_name);
     }
     return wb_towcs(&buf);
 }
@@ -675,37 +675,37 @@ char *get_process_status_string(const process_T *p, bool *needfree)
 
     switch (p->pr_status) {
     case JS_RUNNING:
-	*needfree = false;
-	return (char *) gt("Running");
+        *needfree = false;
+        return (char *) gt("Running");
     case JS_STOPPED:
-	*needfree = true;
-	return malloc_printf(gt("Stopped(SIG%ls)"),
-		get_signal_name(WSTOPSIG(p->pr_statuscode)));
+        *needfree = true;
+        return malloc_printf(gt("Stopped(SIG%ls)"),
+                get_signal_name(WSTOPSIG(p->pr_statuscode)));
     case JS_DONE:
-	status = p->pr_statuscode;
-	if (p->pr_pid == 0)
-	    goto exitstatus;
-	if (WIFEXITED(status)) {
-	    status = WEXITSTATUS(status);
+        status = p->pr_statuscode;
+        if (p->pr_pid == 0)
+            goto exitstatus;
+        if (WIFEXITED(status)) {
+            status = WEXITSTATUS(status);
 exitstatus:
-	    if (status == Exit_SUCCESS) {
-		*needfree = false;
-		return (char *) gt("Done");
-	    } else {
-		*needfree = true;
-		return malloc_printf(gt("Done(%d)"), status);
-	    }
-	} else {
-	    assert(WIFSIGNALED(status));
-	    *needfree = true;
-	    sig = WTERMSIG(status);
+            if (status == Exit_SUCCESS) {
+                *needfree = false;
+                return (char *) gt("Done");
+            } else {
+                *needfree = true;
+                return malloc_printf(gt("Done(%d)"), status);
+            }
+        } else {
+            assert(WIFSIGNALED(status));
+            *needfree = true;
+            sig = WTERMSIG(status);
 #ifdef WCOREDUMP
-	    if (WCOREDUMP(sig))
-		return malloc_printf(gt("Killed (SIG%ls: core dumped)"),
-			get_signal_name(sig));
+            if (WCOREDUMP(sig))
+                return malloc_printf(gt("Killed (SIG%ls: core dumped)"),
+                        get_signal_name(sig));
 #endif
-	    return malloc_printf(gt("Killed (SIG%ls)"), get_signal_name(sig));
-	}
+            return malloc_printf(gt("Killed (SIG%ls)"), get_signal_name(sig));
+        }
     }
     assert(false);
 }
@@ -718,17 +718,17 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 {
     switch (job->j_status) {
     case JS_RUNNING:
-	*needfree = false;
-	return (char *) gt("Running");
+        *needfree = false;
+        return (char *) gt("Running");
     case JS_STOPPED:
-	/* find a stopped process */
-	for (size_t i = job->j_pcount; ; )
-	    if (job->j_procs[--i].pr_status == JS_STOPPED)
-		return get_process_status_string(&job->j_procs[i], needfree);
-	assert(false);
+        /* find a stopped process */
+        for (size_t i = job->j_pcount; ; )
+            if (job->j_procs[--i].pr_status == JS_STOPPED)
+                return get_process_status_string(&job->j_procs[i], needfree);
+        assert(false);
     case JS_DONE:
-	return get_process_status_string(
-		&job->j_procs[job->j_pcount - 1], needfree);
+        return get_process_status_string(
+                &job->j_procs[job->j_pcount - 1], needfree);
     }
     assert(false);
 }
@@ -738,9 +738,9 @@ char *get_job_status_string(const job_T *job, bool *needfree)
 bool any_job_status_has_changed(void)
 {
     for (size_t i = 1; i < joblist.length; i++) {
-	const job_T *job = get_job(i);
-	if (job != NULL && !job->j_nonotify && job->j_statuschanged)
-	    return true;
+        const job_T *job = get_job(i);
+        if (job != NULL && !job->j_nonotify && job->j_statuschanged)
+            return true;
     }
     return false;
 }
@@ -755,15 +755,15 @@ bool any_job_status_has_changed(void)
  * than the usual job-wise format.
  * Returns zero if successful. Returns errno if `fprintf' failed. */
 int print_job_status(size_t jobnumber,
-	bool changedonly, bool verbose, bool remove_done, FILE *f)
+        bool changedonly, bool verbose, bool remove_done, FILE *f)
 {
     int result = 0;
 
     job_T *job = get_job(jobnumber);
     if (job == NULL || job->j_nonotify)
-	return result;
+        return result;
     if (changedonly && !job->j_statuschanged)
-	return result;
+        return result;
 
     char current;
     if      (jobnumber == current_jobnumber)  current = '+';
@@ -771,56 +771,56 @@ int print_job_status(size_t jobnumber,
     else                                      current = ' ';
 
     if (!verbose) {
-	bool needfree;
-	char *status = get_job_status_string(job, &needfree);
-	wchar_t *jobname = get_job_name(job);
+        bool needfree;
+        char *status = get_job_status_string(job, &needfree);
+        wchar_t *jobname = get_job_name(job);
 
-	/* TRANSLATORS: the translated format string can be different 
-	 * from the original only in the number of spaces. This is required
-	 * for POSIX compliance. */
-	result = fprintf(f, gt("[%zu] %c %-20s %ls\n"),
-		jobnumber, current, status, jobname);
-	result = (result >= 0) ? 0 : errno;
+        /* TRANSLATORS: the translated format string can be different 
+         * from the original only in the number of spaces. This is required
+         * for POSIX compliance. */
+        result = fprintf(f, gt("[%zu] %c %-20s %ls\n"),
+                jobnumber, current, status, jobname);
+        result = (result >= 0) ? 0 : errno;
 
-	if (needfree)
-	    free(status);
-	if (jobname != job->j_procs[0].pr_name)
-	    free(jobname);
+        if (needfree)
+            free(status);
+        if (jobname != job->j_procs[0].pr_name)
+            free(jobname);
     } else {
-	bool needfree;
-	pid_t pid = job->j_procs[0].pr_pid;
-	char *status = get_process_status_string(
-		&job->j_procs[posixly_correct ? job->j_pcount - 1 : 0],
-		&needfree);
-	wchar_t *jobname = job->j_procs[0].pr_name;
+        bool needfree;
+        pid_t pid = job->j_procs[0].pr_pid;
+        char *status = get_process_status_string(
+                &job->j_procs[posixly_correct ? job->j_pcount - 1 : 0],
+                &needfree);
+        wchar_t *jobname = job->j_procs[0].pr_name;
 
-	/* TRANSLATORS: the translated format string can be different 
-	 * from the original only in the number of spaces. This is required
-	 * for POSIX compliance. */
-	result = fprintf(f, gt("[%zu] %c %5jd %-20s   %ls\n"),
-		jobnumber, current, (intmax_t) pid, status, jobname);
-	result = (result >= 0) ? 0 : errno;
-	if (needfree)
-	    free(status);
+        /* TRANSLATORS: the translated format string can be different 
+         * from the original only in the number of spaces. This is required
+         * for POSIX compliance. */
+        result = fprintf(f, gt("[%zu] %c %5jd %-20s   %ls\n"),
+                jobnumber, current, (intmax_t) pid, status, jobname);
+        result = (result >= 0) ? 0 : errno;
+        if (needfree)
+            free(status);
 
-	for (size_t i = 1; result == 0 && i < job->j_pcount; i++) {
-	    pid = job->j_procs[i].pr_pid;
-	    status = get_process_status_string(&job->j_procs[i], &needfree);
-	    jobname = job->j_procs[i].pr_name;
+        for (size_t i = 1; result == 0 && i < job->j_pcount; i++) {
+            pid = job->j_procs[i].pr_pid;
+            status = get_process_status_string(&job->j_procs[i], &needfree);
+            jobname = job->j_procs[i].pr_name;
 
-	    /* TRANSLATORS: the translated format string can be different 
-	     * from the original only in the number of spaces. This is required
-	     * for POSIX compliance. */
-	    result = fprintf(f, gt("      %5jd %-20s | %ls\n"),
-		    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
-	    result = (result >= 0) ? 0 : errno;
-	    if (needfree)
-		free(status);
-	}
+            /* TRANSLATORS: the translated format string can be different 
+             * from the original only in the number of spaces. This is required
+             * for POSIX compliance. */
+            result = fprintf(f, gt("      %5jd %-20s | %ls\n"),
+                    (intmax_t) pid, (posixly_correct ? "" : status), jobname);
+            result = (result >= 0) ? 0 : errno;
+            if (needfree)
+                free(status);
+        }
     }
     job->j_statuschanged = false;
     if (remove_done && job->j_status == JS_DONE)
-	remove_job(jobnumber);
+        remove_job(jobnumber);
 
     return result;
 }
@@ -830,7 +830,7 @@ void print_job_status_all(void)
 {
     apply_curstop();
     for (size_t i = 1; i < joblist.length; i++)
-	print_job_status(i, true, false, false, stderr);
+        print_job_status(i, true, false, false, stderr);
 }
 
 /* If the shell is interactive and the specified job has been killed by a
@@ -840,34 +840,34 @@ void print_job_status_all(void)
 void notify_signaled_job(size_t jobnumber)
 {
     if (!is_interactive_now)
-	return;
+        return;
 
     job_T *job = get_job(jobnumber);
     if (job == NULL || job->j_status != JS_DONE)
-	return;
+        return;
 
     process_T *p = &job->j_procs[job->j_pcount - 1];
     assert(p->pr_status == JS_DONE);
     if (p->pr_pid == 0 || !WIFSIGNALED(p->pr_statuscode))
-	return;
+        return;
 
     int sig = WTERMSIG(p->pr_statuscode);
     switch (sig) {
-	case SIGINT:
-	    fputc('\n', stderr);
-	    set_interrupted();
-	    break;
-	case SIGPIPE:
-	    break;
-	default:
+        case SIGINT:
+            fputc('\n', stderr);
+            set_interrupted();
+            break;
+        case SIGPIPE:
+            break;
+        default:
 #if HAVE_STRSIGNAL
-	    fprintf(stderr, gt("The process was killed by SIG%ls: %s\n"),
-		    get_signal_name(sig), strsignal(sig));
+            fprintf(stderr, gt("The process was killed by SIG%ls: %s\n"),
+                    get_signal_name(sig), strsignal(sig));
 #else
-	    fprintf(stderr, gt("The process was killed by SIG%ls\n"),
-		    get_signal_name(sig));
+            fprintf(stderr, gt("The process was killed by SIG%ls\n"),
+                    get_signal_name(sig));
 #endif
-	    break;
+            break;
     }
 }
 
@@ -884,40 +884,40 @@ void notify_signaled_job(size_t jobnumber)
 size_t get_jobnumber_from_name(const wchar_t *name)
 {
     if (name[0] == L'\0' || wcscmp(name, L"%") == 0 || wcscmp(name, L"+") == 0)
-	return current_jobnumber;
+        return current_jobnumber;
     if (wcscmp(name, L"-") == 0)
-	return previous_jobnumber;
+        return previous_jobnumber;
 
     if (iswdigit(name[0])) {
-	unsigned long num;
-	if (xwcstoul(name, 10, &num))
-	    return (num <= SIZE_MAX && get_job(num) != NULL) ? num : 0;
+        unsigned long num;
+        if (xwcstoul(name, 10, &num))
+            return (num <= SIZE_MAX && get_job(num) != NULL) ? num : 0;
     }
 
     bool contain;
     size_t n = 0;
     if (name[0] == L'?') {
-	contain = true;
-	name++;
+        contain = true;
+        name++;
     } else {
-	contain = false;
+        contain = false;
     }
     for (size_t i = 1; i < joblist.length; i++) {
-	job_T *job = joblist.contents[i];
-	if (job != NULL) {
-	    wchar_t *jobname = get_job_name(job);
-	    bool match = contain
-		? wcsstr(jobname, name) != NULL
-		: matchwcsprefix(jobname, name) != NULL;
-	    if (jobname != job->j_procs[0].pr_name)
-		free(jobname);
-	    if (match) {
-		if (n != 0)
-		    return joblist.length;  /* more than one found */
-		else
-		    n = i;
-	    }
-	}
+        job_T *job = joblist.contents[i];
+        if (job != NULL) {
+            wchar_t *jobname = get_job_name(job);
+            bool match = contain
+                ? wcsstr(jobname, name) != NULL
+                : matchwcsprefix(jobname, name) != NULL;
+            if (jobname != job->j_procs[0].pr_name)
+                free(jobname);
+            if (match) {
+                if (n != 0)
+                    return joblist.length;  /* more than one found */
+                else
+                    n = i;
+            }
+        }
     }
     return n;
 }
@@ -928,14 +928,14 @@ size_t get_jobnumber_from_pid(long pid)
 {
     size_t jobnumber;
     if (pid == 0)
-	return 0;
+        return 0;
     for (jobnumber = joblist.length; --jobnumber > 0; ) {
-	job_T *job = joblist.contents[jobnumber];
-	if (job != NULL) {
-	    for (size_t i = 0; i < job->j_pcount; i++)
-		if (job->j_procs[i].pr_pid == pid)
-		    goto found;
-	}
+        job_T *job = joblist.contents[jobnumber];
+        if (job != NULL) {
+            for (size_t i = 0; i < job->j_pcount; i++)
+                if (job->j_procs[i].pr_pid == pid)
+                    goto found;
+        }
     }
 found:
     return jobnumber;
@@ -948,38 +948,38 @@ found:
 void generate_job_candidates(const le_compopt_T *compopt)
 {
     if (!(compopt->type & CGT_JOB))
-	return;
+        return;
 
     le_compdebug("adding job candidates");
     if (!le_compile_cpatterns(compopt))
-	return;
+        return;
 
     for (size_t i = 1; i < joblist.length; i++) {
-	const job_T *job = joblist.contents[i];
-	if (job == NULL)
-	    continue;
-	switch (job->j_status) {
-	    case JS_RUNNING:
-		if (!(compopt->type & CGT_RUNNING))
-		    continue;
-		break;
-	    case JS_STOPPED:
-		if (!(compopt->type & CGT_STOPPED))
-		    continue;
-		break;
-	    case JS_DONE:
-		if (!(compopt->type & CGT_DONE))
-		    continue;
-		break;
-	}
+        const job_T *job = joblist.contents[i];
+        if (job == NULL)
+            continue;
+        switch (job->j_status) {
+            case JS_RUNNING:
+                if (!(compopt->type & CGT_RUNNING))
+                    continue;
+                break;
+            case JS_STOPPED:
+                if (!(compopt->type & CGT_STOPPED))
+                    continue;
+                break;
+            case JS_DONE:
+                if (!(compopt->type & CGT_DONE))
+                    continue;
+                break;
+        }
 
-	wchar_t *jobname = get_job_name(job);
-	if (le_wmatch_comppatterns(compopt, jobname))
-	    le_new_candidate(CT_JOB, xwcsdup(jobname),
-		    malloc_wprintf(L"%%%zu", i), compopt);
+        wchar_t *jobname = get_job_name(job);
+        if (le_wmatch_comppatterns(compopt, jobname))
+            le_new_candidate(CT_JOB, xwcsdup(jobname),
+                    malloc_wprintf(L"%%%zu", i), compopt);
 
-	if (jobname != job->j_procs[0].pr_name)
-	    free(jobname);
+        if (jobname != job->j_procs[0].pr_name)
+            free(jobname);
     }
 }
 
@@ -1016,55 +1016,55 @@ int jobs_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, jobs_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'l':  verbose     = true;  break;
-	    case L'n':  changedonly = true;  break;
-	    case L'p':  pgidonly    = true;  break;
-	    case L'r':  runningonly = true;  break;
-	    case L's':  stoppedonly = true;  break;
+        switch (opt->shortopt) {
+            case L'l':  verbose     = true;  break;
+            case L'n':  changedonly = true;  break;
+            case L'p':  pgidonly    = true;  break;
+            case L'r':  runningonly = true;  break;
+            case L's':  stoppedonly = true;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     nextforceexit = true;
     apply_curstop();
 
     if (xoptind < argc) {
-	/* print the specified jobs */
-	do {
-	    const wchar_t *jobspec = ARGV(xoptind);
-	    if (jobspec[0] == L'%') {
-		jobspec++;
-	    } else if (posixly_correct) {
-		xerror(0, Ngt("`%ls' is not a valid job specification"),
-			ARGV(xoptind));
-		continue;
-	    }
+        /* print the specified jobs */
+        do {
+            const wchar_t *jobspec = ARGV(xoptind);
+            if (jobspec[0] == L'%') {
+                jobspec++;
+            } else if (posixly_correct) {
+                xerror(0, Ngt("`%ls' is not a valid job specification"),
+                        ARGV(xoptind));
+                continue;
+            }
 
-	    size_t jobnumber = get_jobnumber_from_name(jobspec);
-	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("job specification `%ls' is ambiguous"),
-			ARGV(xoptind));
-	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
-	    } else {
-		if (!jobs_builtin_print_job(jobnumber, verbose,
-			changedonly, pgidonly, runningonly, stoppedonly))
-		    return Exit_FAILURE;
-	    }
-	} while (++xoptind < argc);
+            size_t jobnumber = get_jobnumber_from_name(jobspec);
+            if (jobnumber >= joblist.length) {
+                xerror(0, Ngt("job specification `%ls' is ambiguous"),
+                        ARGV(xoptind));
+            } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+                xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
+            } else {
+                if (!jobs_builtin_print_job(jobnumber, verbose,
+                        changedonly, pgidonly, runningonly, stoppedonly))
+                    return Exit_FAILURE;
+            }
+        } while (++xoptind < argc);
     } else {
-	/* print all jobs */
-	for (size_t i = 1; i < joblist.length; i++) {
-	    if (!jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
-		    runningonly, stoppedonly))
-		return Exit_FAILURE;
-	}
+        /* print all jobs */
+        for (size_t i = 1; i < joblist.length; i++) {
+            if (!jobs_builtin_print_job(i, verbose, changedonly, pgidonly,
+                    runningonly, stoppedonly))
+                return Exit_FAILURE;
+        }
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -1074,32 +1074,32 @@ int jobs_builtin(int argc, void **argv)
  * On an I/O error, an error message is printed to the standard error and false
  * is returned. */
 bool jobs_builtin_print_job(size_t jobnumber,
-	bool verbose, bool changedonly, bool pgidonly,
-	bool runningonly, bool stoppedonly)
+        bool verbose, bool changedonly, bool pgidonly,
+        bool runningonly, bool stoppedonly)
 {
     job_T *job = get_job(jobnumber);
 
     if (job == NULL)
-	return true;
+        return true;
     if (runningonly && job->j_status != JS_RUNNING)
-	return true;
+        return true;
     if (stoppedonly && job->j_status != JS_STOPPED)
-	return true;
+        return true;
 
     int err;
     if (pgidonly) {
-	if (changedonly && !job->j_statuschanged)
-	    return true;
-	int result = printf("%jd\n", (intmax_t) job->j_pgid);
-	err = (result >= 0) ? 0 : errno;
+        if (changedonly && !job->j_statuschanged)
+            return true;
+        int result = printf("%jd\n", (intmax_t) job->j_pgid);
+        err = (result >= 0) ? 0 : errno;
     } else {
-	err = print_job_status(jobnumber, changedonly, verbose, true, stdout);
+        err = print_job_status(jobnumber, changedonly, verbose, true, stdout);
     }
     if (err != 0) {
-	xerror(err, Ngt("cannot print to the standard output"));
-	return false;
+        xerror(err, Ngt("cannot print to the standard output"));
+        return false;
     } else {
-	return true;
+        return true;
     }
 }
 
@@ -1120,68 +1120,68 @@ int fg_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
-	switch (opt->shortopt) {
+        switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (fg && posixly_correct && !validate_operand_count(argc - xoptind, 0, 1))
-	return Exit_ERROR;
+        return Exit_ERROR;
 
     if (!doing_job_control_now) {
-	xerror(0, Ngt("job control is disabled"));
-	return Exit_FAILURE;
+        xerror(0, Ngt("job control is disabled"));
+        return Exit_FAILURE;
     }
 
     int status = Exit_SUCCESS;
     job_T *job;
 
     if (xoptind < argc) {
-	do {
-	    const wchar_t *jobspec = ARGV(xoptind);
-	    if (jobspec[0] == L'%') {
-		jobspec++;
-	    } else if (posixly_correct) {
-		xerror(0, Ngt("`%ls' is not a valid job specification"),
-			ARGV(xoptind));
-		continue;
-	    }
+        do {
+            const wchar_t *jobspec = ARGV(xoptind);
+            if (jobspec[0] == L'%') {
+                jobspec++;
+            } else if (posixly_correct) {
+                xerror(0, Ngt("`%ls' is not a valid job specification"),
+                        ARGV(xoptind));
+                continue;
+            }
 
-	    size_t jobnumber = get_jobnumber_from_name(jobspec);
-	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("job specification `%ls' is ambiguous"),
-			ARGV(xoptind));
-	    } else if (jobnumber == 0
-		    || (job = joblist.contents[jobnumber]) == NULL
-		    || job->j_legacy) {
-		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
-	    } else if (job->j_pgid == 0) {
-		xerror(0, Ngt("`%ls' is not a job-controlled job"),
-			ARGV(xoptind));
-	    } else {
-		status = continue_job(jobnumber, job, fg);
-	    }
-	} while (++xoptind < argc);
+            size_t jobnumber = get_jobnumber_from_name(jobspec);
+            if (jobnumber >= joblist.length) {
+                xerror(0, Ngt("job specification `%ls' is ambiguous"),
+                        ARGV(xoptind));
+            } else if (jobnumber == 0
+                    || (job = joblist.contents[jobnumber]) == NULL
+                    || job->j_legacy) {
+                xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
+            } else if (job->j_pgid == 0) {
+                xerror(0, Ngt("`%ls' is not a job-controlled job"),
+                        ARGV(xoptind));
+            } else {
+                status = continue_job(jobnumber, job, fg);
+            }
+        } while (++xoptind < argc);
     } else {
-	if (current_jobnumber == 0 ||
-		(job = joblist.contents[current_jobnumber])->j_legacy) {
-	    xerror(0, Ngt("there is no current job"));
-	} else if (job->j_pgid == 0) {
-	    xerror(0, Ngt("the current job is not a job-controlled job"));
-	} else {
-	    status = continue_job(current_jobnumber, job, fg);
-	}
+        if (current_jobnumber == 0 ||
+                (job = joblist.contents[current_jobnumber])->j_legacy) {
+            xerror(0, Ngt("there is no current job"));
+        } else if (job->j_pgid == 0) {
+            xerror(0, Ngt("the current job is not a job-controlled job"));
+        } else {
+            status = continue_job(current_jobnumber, job, fg);
+        }
     }
 
     if (status != 0)
-	return status;
+        return status;
     if (yash_error_message_count != 0)
-	return Exit_FAILURE;
+        return Exit_FAILURE;
     return Exit_SUCCESS;
 }
 
@@ -1194,50 +1194,50 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
 
     wchar_t *name = get_job_name(job);
     if (fg && posixly_correct)
-	xprintf("%ls\n", name);
+        xprintf("%ls\n", name);
     else
-	xprintf("[%zu] %ls\n", jobnumber, name);
+        xprintf("[%zu] %ls\n", jobnumber, name);
     if (name != job->j_procs[0].pr_name)
-	free(name);
+        free(name);
 
 #if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
     bool termsave = fg && le_save_terminal();  /* see below */
 #endif
 
     if (job->j_status != JS_DONE) {
-	if (fg)
-	    put_foreground(job->j_pgid);
-	if (kill(-job->j_pgid, SIGCONT) >= 0)
-	    job->j_status = JS_RUNNING;
+        if (fg)
+            put_foreground(job->j_pgid);
+        if (kill(-job->j_pgid, SIGCONT) >= 0)
+            job->j_status = JS_RUNNING;
     } else {
-	if (!fg)
-	    xerror(0, Ngt("job %%%zu has already terminated"), jobnumber);
+        if (!fg)
+            xerror(0, Ngt("job %%%zu has already terminated"), jobnumber);
     }
 
     int status;
     if (fg) {
-	wait_for_job(jobnumber, true, false, false);
-	put_foreground(shell_pgid);
+        wait_for_job(jobnumber, true, false, false);
+        put_foreground(shell_pgid);
 #if YASH_ENABLE_LINEEDIT && !defined(FG_DONT_SAVE_TERMINAL)
-	if (termsave)
-	    le_restore_terminal();
+        if (termsave)
+            le_restore_terminal();
 #endif
-	switch (job->j_status) {
-	    case JS_STOPPED:
-		status = calc_status_of_job(job);
-		set_current_jobnumber(jobnumber);
-		break;
-	    case JS_DONE:
-		status = calc_status_of_job(job);
-		notify_signaled_job(jobnumber);
-		remove_job(jobnumber);
-		break;
-	    default:
-		assert(false);
-	}
+        switch (job->j_status) {
+            case JS_STOPPED:
+                status = calc_status_of_job(job);
+                set_current_jobnumber(jobnumber);
+                break;
+            case JS_DONE:
+                status = calc_status_of_job(job);
+                notify_signaled_job(jobnumber);
+                remove_job(jobnumber);
+                break;
+            default:
+                assert(false);
+        }
     } else {
-	set_current_jobnumber(shopt_curbg ? jobnumber : current_jobnumber);
-	status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
+        set_current_jobnumber(shopt_curbg ? jobnumber : current_jobnumber);
+        status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
     }
     return status;
 
@@ -1281,40 +1281,40 @@ int wait_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, help_option, 0)) != NULL) {
-	switch (opt->shortopt) {
+        switch (opt->shortopt) {
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (xoptind < argc) {
-	/* wait for the specified jobs */
-	for (; xoptind < argc; xoptind++) {
-	    int jobstatus = wait_for_job_by_jobspec(ARGV(xoptind));
-	    if (jobstatus < 0) {
-		status = -jobstatus;
-		break;
-	    }
-	    status = jobstatus;
-	}
+        /* wait for the specified jobs */
+        for (; xoptind < argc; xoptind++) {
+            int jobstatus = wait_for_job_by_jobspec(ARGV(xoptind));
+            if (jobstatus < 0) {
+                status = -jobstatus;
+                break;
+            }
+            status = jobstatus;
+        }
     } else {
-	/* wait for all jobs */
-	while (wait_builtin_has_job(jobcontrol)) {
-	    status = wait_for_sigchld(jobcontrol, true);
-	    if (status) {
-		assert(TERMSIGOFFSET >= 128);
-		status += TERMSIGOFFSET;
-		break;
-	    }
-	}
+        /* wait for all jobs */
+        while (wait_builtin_has_job(jobcontrol)) {
+            status = wait_for_sigchld(jobcontrol, true);
+            if (status) {
+                assert(TERMSIGOFFSET >= 128);
+                status += TERMSIGOFFSET;
+                break;
+            }
+        }
     }
 
     if (yash_error_message_count != 0)
-	return Exit_FAILURE;
+        return Exit_FAILURE;
     return status;
 }
 
@@ -1324,39 +1324,39 @@ int wait_for_job_by_jobspec(const wchar_t *jobspec)
 {
     size_t jobnumber;
     if (jobspec[0] == L'%') {
-	jobnumber = get_jobnumber_from_name(&jobspec[1]);
+        jobnumber = get_jobnumber_from_name(&jobspec[1]);
     } else {
-	long pid;
-	if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
-	    xerror(0, Ngt("`%ls' is not a valid job specification"), jobspec);
-	    return Exit_FAILURE;
-	}
-	jobnumber = get_jobnumber_from_pid(pid);
+        long pid;
+        if (!xwcstol(jobspec, 10, &pid) || pid < 0) {
+            xerror(0, Ngt("`%ls' is not a valid job specification"), jobspec);
+            return Exit_FAILURE;
+        }
+        jobnumber = get_jobnumber_from_pid(pid);
     }
     if (jobnumber >= joblist.length) {
-	xerror(0, Ngt("job specification `%ls' is ambiguous"), jobspec);
-	return Exit_FAILURE;
+        xerror(0, Ngt("job specification `%ls' is ambiguous"), jobspec);
+        return Exit_FAILURE;
     }
 
     job_T *job;
     if (jobnumber == 0
-	    || (job = joblist.contents[jobnumber]) == NULL
-	    || job->j_legacy)
-	return Exit_NOTFOUND;
+            || (job = joblist.contents[jobnumber]) == NULL
+            || job->j_legacy)
+        return Exit_NOTFOUND;
 
     int signal = wait_for_job(jobnumber,
-	    doing_job_control_now, doing_job_control_now, true);
+            doing_job_control_now, doing_job_control_now, true);
     if (signal != 0) {
-	assert(TERMSIGOFFSET >= 128);
-	return -(signal + TERMSIGOFFSET);
+        assert(TERMSIGOFFSET >= 128);
+        return -(signal + TERMSIGOFFSET);
     }
 
     int status = calc_status_of_job(job);
     if (job->j_status != JS_RUNNING) {
-	if (doing_job_control_now && is_interactive_now && !posixly_correct)
-	    print_job_status(jobnumber, false, false, true, stdout);
-	else if (job->j_status == JS_DONE)
-	    remove_job(jobnumber);
+        if (doing_job_control_now && is_interactive_now && !posixly_correct)
+            print_job_status(jobnumber, false, false, true, stdout);
+        else if (job->j_status == JS_DONE)
+            remove_job(jobnumber);
     }
     return status;
 }
@@ -1366,18 +1366,18 @@ bool wait_builtin_has_job(bool jobcontrol)
 {
     /* print/remove already-finished jobs */
     for (size_t i = 1; i < joblist.length; i++) {
-	job_T *job = joblist.contents[i];
-	if (jobcontrol && is_interactive_now && !posixly_correct)
-	    print_job_status(i, true, false, false, stdout);
-	if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
-	    remove_job(i);
+        job_T *job = joblist.contents[i];
+        if (jobcontrol && is_interactive_now && !posixly_correct)
+            print_job_status(i, true, false, false, stdout);
+        if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
+            remove_job(i);
     }
 
     /* see if we have jobs to wait for. */
     for (size_t i = 1; i < joblist.length; i++) {
-	job_T *job = joblist.contents[i];
-	if (job != NULL && (!jobcontrol || job->j_status == JS_RUNNING))
-	    return true;
+        job_T *job = joblist.contents[i];
+        if (job != NULL && (!jobcontrol || job->j_status == JS_RUNNING))
+            return true;
     }
     return false;
 }
@@ -1400,46 +1400,46 @@ int disown_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, all_help_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'a':
-		all = true;
-		break;
+        switch (opt->shortopt) {
+            case L'a':
+                all = true;
+                break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		return Exit_ERROR;
-	}
+            default:
+                return Exit_ERROR;
+        }
     }
 
     if (all) {
-	remove_all_jobs();
+        remove_all_jobs();
     } else if (xoptind < argc) {
-	do {
-	    const wchar_t *jobspec = ARGV(xoptind);
-	    if (jobspec[0] == L'%') {
-		jobspec++;
-	    } else if (posixly_correct) {
-		xerror(0, Ngt("`%ls' is not a valid job specification"),
-			ARGV(xoptind));
-		continue;
-	    }
-	    size_t jobnumber = get_jobnumber_from_name(jobspec);
-	    if (jobnumber >= joblist.length) {
-		xerror(0, Ngt("job specification `%ls' is ambiguous"),
-			ARGV(xoptind));
-	    } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
-		xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
-	    } else {
-		remove_job(jobnumber);
-	    }
-	} while (++xoptind < argc);
+        do {
+            const wchar_t *jobspec = ARGV(xoptind);
+            if (jobspec[0] == L'%') {
+                jobspec++;
+            } else if (posixly_correct) {
+                xerror(0, Ngt("`%ls' is not a valid job specification"),
+                        ARGV(xoptind));
+                continue;
+            }
+            size_t jobnumber = get_jobnumber_from_name(jobspec);
+            if (jobnumber >= joblist.length) {
+                xerror(0, Ngt("job specification `%ls' is ambiguous"),
+                        ARGV(xoptind));
+            } else if (jobnumber == 0 || joblist.contents[jobnumber] == NULL) {
+                xerror(0, Ngt("no such job `%ls'"), ARGV(xoptind));
+            } else {
+                remove_job(jobnumber);
+            }
+        } while (++xoptind < argc);
     } else {
-	if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL)
-	    xerror(0, Ngt("there is no current job"));
-	else
-	    remove_job(current_jobnumber);
+        if (current_jobnumber == 0 || get_job(current_jobnumber) == NULL)
+            xerror(0, Ngt("there is no current job"));
+        else
+            remove_job(current_jobnumber);
     }
 
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;
@@ -1456,4 +1456,4 @@ const char disown_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

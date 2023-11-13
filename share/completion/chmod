@@ -6,145 +6,145 @@
 
 function completion/chmod {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'coreutils'*) typeset type=GNU ;;
-		(*)             typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'coreutils'*) typeset type=GNU ;;
+                (*)             typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"R ${long:+--recursive}; recursively change the permission of files in a directory"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "R ${long:+--recursive}; recursively change the permission of files in a directory"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|FreeBSD|NetBSD|Darwin|SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"f ${long:+--silent --quiet}; ignore errors"
-		) #<#
-		case $type in (GNU|FreeBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"v ${long:+--verbose}; print a message for each file processed"
-			) #<#
-		esac
-		case $type in (FreeBSD|NetBSD|Darwin)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"h; change the mode of symbolic links"
-			) #<#
-		esac
-	esac
-	case $type in (*BSD|Darwin)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"H; follow symbolic links in operands (with -R)"
-		"L; follow all symbolic links (with -R)"
-		"P; don't follow symbolic links (with -R)"
-		) #<#
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"c --changes; print a message when a change has been made"
-		"--no-preserve-root; cancel the --preserve-root option"
-		"--preserve-root; don't recursively change the permission of the root directory"
-		"--reference:; specify a file to whose permission changes are made"
-		"--help"
-		"--version"
-		) #<#
-		;;
-	(HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"A; preserve access control list entries"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|FreeBSD|NetBSD|Darwin|SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "f ${long:+--silent --quiet}; ignore errors"
+                ) #<#
+                case $type in (GNU|FreeBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "v ${long:+--verbose}; print a message for each file processed"
+                        ) #<#
+                esac
+                case $type in (FreeBSD|NetBSD|Darwin)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "h; change the mode of symbolic links"
+                        ) #<#
+                esac
+        esac
+        case $type in (*BSD|Darwin)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "H; follow symbolic links in operands (with -R)"
+                "L; follow all symbolic links (with -R)"
+                "P; don't follow symbolic links (with -R)"
+                ) #<#
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "c --changes; print a message when a change has been made"
+                "--no-preserve-root; cancel the --preserve-root option"
+                "--preserve-root; don't recursively change the permission of the root directory"
+                "--reference:; specify a file to whose permission changes are made"
+                "--help"
+                "--version"
+                ) #<#
+                ;;
+        (HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "A; preserve access control list entries"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
-	unset POSIXOPTIONS ADDOPTIONS
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        unset POSIXOPTIONS ADDOPTIONS
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	(--reference)
-		complete -P "$PREFIX" -f
-		;;
-	(*)
-		command -f completion//getoperands
-		if [ ${WORDS[#]} -eq 0 ]; then
-			command -f completion/chmod::mode chmod
-		else
-			complete -f
-		fi
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--reference)
+                complete -P "$PREFIX" -f
+                ;;
+        (*)
+                command -f completion//getoperands
+                if [ ${WORDS[#]} -eq 0 ]; then
+                        command -f completion/chmod::mode chmod
+                else
+                        complete -f
+                fi
+                ;;
+        esac
 
 }
 
 function completion/chmod::mode {
 
-	typeset word="${TARGETWORD#"$PREFIX"}"
+        typeset word="${TARGETWORD#"$PREFIX"}"
 
-	# we don't complete a numeric mode value
-	case $word in (*[[:digit:]]*)
-		return
-	esac
+        # we don't complete a numeric mode value
+        case $word in (*[[:digit:]]*)
+                return
+        esac
 
-	word=${word##*,}
-	case $word in (*[-+=]*)
-		case $word in
-		(*[-+=]*[ugo]*)
-			return
-			;;
-		(*[-+=]) #>>#
-			complete -P "$TARGETWORD" -D "copy from the user part of permission" u
-			complete -P "$TARGETWORD" -D "copy from the group part of permission" g
-			complete -P "$TARGETWORD" -D "copy from the other part of permission" o
-			;; #<<#
-		esac
-		#>>#
-		complete -P "$TARGETWORD" -D "read permission" r
-		complete -P "$TARGETWORD" -D "write permission" w
-		complete -P "$TARGETWORD" -D "execute permission" x
-		complete -P "$TARGETWORD" -D "execute permission (only when there's already one)" X
-		#<<#
-		case ${1-} in (chmod|find|mkdir|tar|umask) #>>#
-			complete -P "$TARGETWORD" -D "set-user/group-ID" s
-		esac #<<#
-		case ${1-} in (chmod|find|mkdir|tar) #>>#
-			complete -P "$TARGETWORD" -D "sticky bit" t
-		esac #<<#
-		return
-	esac
+        word=${word##*,}
+        case $word in (*[-+=]*)
+                case $word in
+                (*[-+=]*[ugo]*)
+                        return
+                        ;;
+                (*[-+=]) #>>#
+                        complete -P "$TARGETWORD" -D "copy from the user part of permission" u
+                        complete -P "$TARGETWORD" -D "copy from the group part of permission" g
+                        complete -P "$TARGETWORD" -D "copy from the other part of permission" o
+                        ;; #<<#
+                esac
+                #>>#
+                complete -P "$TARGETWORD" -D "read permission" r
+                complete -P "$TARGETWORD" -D "write permission" w
+                complete -P "$TARGETWORD" -D "execute permission" x
+                complete -P "$TARGETWORD" -D "execute permission (only when there's already one)" X
+                #<<#
+                case ${1-} in (chmod|find|mkdir|tar|umask) #>>#
+                        complete -P "$TARGETWORD" -D "set-user/group-ID" s
+                esac #<<#
+                case ${1-} in (chmod|find|mkdir|tar) #>>#
+                        complete -P "$TARGETWORD" -D "sticky bit" t
+                esac #<<#
+                return
+        esac
 
-	case $word in ('')
-		case ${1-} in (rsync) #>>#
-			complete -T -P "$TARGETWORD" -D "affect directories only" D
-			complete -T -P "$TARGETWORD" -D "affect non-directories only" F
-		esac #<<#
-	esac
+        case $word in ('')
+                case ${1-} in (rsync) #>>#
+                        complete -T -P "$TARGETWORD" -D "affect directories only" D
+                        complete -T -P "$TARGETWORD" -D "affect non-directories only" F
+                esac #<<#
+        esac
 
-	case $word in
-	(*a*)
-		;;
-	(*) #>>#
-		complete -T -P "$TARGETWORD" -D "affect the user part of the permission" u
-		complete -T -P "$TARGETWORD" -D "affect the group part of the permission" g
-		complete -T -P "$TARGETWORD" -D "affect the other part of the permission" o
-		complete -T -P "$TARGETWORD" -D "affect all parts of the permission" a
-		;; #<<#
-	esac
+        case $word in
+        (*a*)
+                ;;
+        (*) #>>#
+                complete -T -P "$TARGETWORD" -D "affect the user part of the permission" u
+                complete -T -P "$TARGETWORD" -D "affect the group part of the permission" g
+                complete -T -P "$TARGETWORD" -D "affect the other part of the permission" o
+                complete -T -P "$TARGETWORD" -D "affect all parts of the permission" a
+                ;; #<<#
+        esac
 
-	#>>#
-	complete -T -P "$TARGETWORD" -D "add the specified permission" -- +
-	complete -T -P "$TARGETWORD" -D "remove the specified permission" -- -
-	complete -T -P "$TARGETWORD" -D "set the permission to the specified one" -- =
-	#<<#
+        #>>#
+        complete -T -P "$TARGETWORD" -D "add the specified permission" -- +
+        complete -T -P "$TARGETWORD" -D "remove the specified permission" -- -
+        complete -T -P "$TARGETWORD" -D "set the permission to the specified one" -- =
+        #<<#
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

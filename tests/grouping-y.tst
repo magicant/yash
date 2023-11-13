@@ -129,4 +129,4 @@ syntax error: invalid use of `('
 __ERR__
 #'`
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

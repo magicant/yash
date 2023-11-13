@@ -4,33 +4,33 @@
 # Supports Git 1.7.7.
 
 function completion/git-show {
-	WORDS=(git show "${WORDS[2,-1]}")
-	command -f completion//reexecute
+        WORDS=(git show "${WORDS[2,-1]}")
+        command -f completion//reexecute
 }
 
 function completion/git::show:arg {
 
-	OPTIONS=()
-	{ command -vf completion/git::log:getopt >/dev/null 2>&1 ||
-			. -AL completion/git-log; } &&
-		command -f completion/git::log:getopt
+        OPTIONS=()
+        { command -vf completion/git::log:getopt >/dev/null 2>&1 ||
+                        . -AL completion/git-log; } &&
+                command -f completion/git::log:getopt
 
-	command -f completion//parseoptions
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions
-			;;
-		('')
-			command -f completion/git::completeobject
-			;;
-		(*)
-			{ command -vf completion/git::log:compopt >/dev/null 2>&1 ||
-					. -AL completion/git-log; } &&
-				command -f completion/git::log:compopt
-			;;
-	esac
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completeobject
+                        ;;
+                (*)
+                        { command -vf completion/git::log:compopt >/dev/null 2>&1 ||
+                                        . -AL completion/git-log; } &&
+                                command -f completion/git::log:compopt
+                        ;;
+        esac
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

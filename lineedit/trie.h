@@ -31,10 +31,10 @@ typedef union trievalue_T {
 typedef struct trienode_T trie_T;
 typedef struct trieget_T {
     enum {
-	TG_NOMATCH     = 0,
-	TG_EXACTMATCH  = 1 << 0,
-	TG_PREFIXMATCH = 1 << 1,
-	TG_AMBIGUOUS   = TG_EXACTMATCH | TG_PREFIXMATCH,
+        TG_NOMATCH     = 0,
+        TG_EXACTMATCH  = 1 << 0,
+        TG_PREFIXMATCH = 1 << 1,
+        TG_AMBIGUOUS   = TG_EXACTMATCH | TG_PREFIXMATCH,
     } type;
     size_t matchlength;
     trievalue_T value;
@@ -58,8 +58,8 @@ extern trieget_T trie_get(const trie_T *t, const char *keystr, size_t keylen)
 extern trieget_T trie_getw(const trie_T *t, const wchar_t *keywcs)
     __attribute__((nonnull));
 extern int trie_foreachw(const trie_T *t,
-	int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
-	void *v)
+        int (*func)(void *v, const wchar_t *key, le_command_func_T *cmd),
+        void *v)
     __attribute__((nonnull(1,2)));
 extern void trie_destroy(trie_T *t);
 
@@ -72,4 +72,4 @@ extern wchar_t *trie_probable_key(const trie_T *t, const wchar_t *skipkey)
 #endif /* YASH_TRIE_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

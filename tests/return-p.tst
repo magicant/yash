@@ -20,9 +20,9 @@ first=true
 fn1() {
     echo in fn1
     if $first; then
-	first=false
+        first=false
     else
-	return
+        return
     fi
     echo recurring
     fn1
@@ -249,8 +249,8 @@ __IN__
 test_OE 'returning out of for loop'
 fn() {
     for i in 1; do
-	return
-	echo not reached in loop
+        return
+        echo not reached in loop
     done
     echo not reached after loop
 }
@@ -260,8 +260,8 @@ __IN__
 test_OE 'returning out of while loop'
 fn() {
     while true; do
-	return
-	echo not reached in loop
+        return
+        echo not reached in loop
     done
     echo not reached after loop
 }
@@ -271,8 +271,8 @@ __IN__
 test_OE 'returning out of until loop'
 fn() {
     until false; do
-	return
-	echo not reached in loop
+        return
+        echo not reached in loop
     done
     echo not reached after loop
 }
@@ -282,13 +282,13 @@ __IN__
 test_OE 'returning out of case'
 fn() {
     case x in
-	x)
-	    return
-	    echo not reached in case
+        x)
+            return
+            echo not reached in case
     esac
     echo not reached after esac
 }
 fn
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

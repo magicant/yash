@@ -6,250 +6,250 @@
 
 function completion/make {
 
-	case $("${WORDS[1]}" --version 2>/dev/null) in
-		(*'GNU Make'*) typeset type=GNU ;;
-		(*)            typeset type="$(uname 2>/dev/null)" ;;
-	esac
-	case $type in
-		(GNU) typeset long=true ;;
-		(*)   typeset long= ;;
-	esac
+        case $("${WORDS[1]}" --version 2>/dev/null) in
+                (*'GNU Make'*) typeset type=GNU ;;
+                (*)            typeset type="$(uname 2>/dev/null)" ;;
+        esac
+        case $type in
+                (GNU) typeset long=true ;;
+                (*)   typeset long= ;;
+        esac
 
-	typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
-	POSIXOPTIONS=( #>#
-	"e ${long:+--environment-overrides}; environment variables override variables defined in makefile"
-	"f: ${long:+--file: --makefile:}; specify makefile"
-	"i ${long:+--ignore-errors}; ignore errors returned by invoked commands"
-	"k ${long:+--keep-going}; continue to make other targets if some can't be made"
-	"n ${long:+--just-print --dry-run --recon}; don't actually make but print what would be done"
-	"p ${long:+--print-data-base}; print defined macros and targets"
-	"q ${long:+--question}; check if the target is up-to-date without making anything"
-	"r ${long:+--no-builtin-rules}; disable the built-in rules"
-	"S ${long:+--no-keep-going --stop}; stop immediately when some target can't be made"
-	"s ${long:+--silent --quiet}; don't print invoked commands"
-	"t ${long:+--touch}; touch targets instead of usual making"
-	) #<#
+        typeset OPTIONS POSIXOPTIONS ADDOPTIONS ARGOPT PREFIX
+        POSIXOPTIONS=( #>#
+        "e ${long:+--environment-overrides}; environment variables override variables defined in makefile"
+        "f: ${long:+--file: --makefile:}; specify makefile"
+        "i ${long:+--ignore-errors}; ignore errors returned by invoked commands"
+        "k ${long:+--keep-going}; continue to make other targets if some can't be made"
+        "n ${long:+--just-print --dry-run --recon}; don't actually make but print what would be done"
+        "p ${long:+--print-data-base}; print defined macros and targets"
+        "q ${long:+--question}; check if the target is up-to-date without making anything"
+        "r ${long:+--no-builtin-rules}; disable the built-in rules"
+        "S ${long:+--no-keep-going --stop}; stop immediately when some target can't be made"
+        "s ${long:+--silent --quiet}; don't print invoked commands"
+        "t ${long:+--touch}; touch targets instead of usual making"
+        ) #<#
 
-	ADDOPTIONS=()
-	case $type in (GNU|*BSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"I: ${long:+--include-dir:}; specify a directory containing makefiles"
-		"j: ${long:+--jobs:}; specify the number of concurrent jobs"
-		) #<#
-		case $type in (GNU|FreeBSD|NetBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"C: ${long:+--directory:}; change to the specified directory"
-			) #<#
-		case $type in (OpenBSD|NetBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"D:; define the specified variable to be 1"
-			) #<#
-		esac
-		esac
-	esac
-	case $type in (GNU|SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"w ${long:+--print-directory}; print working directory name"
-		) #<#
-	esac
-	case $type in (GNU|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"d; print debugging info"
-		) #<#
-	esac
-	case $type in (SunOS|HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"u; remake everything unconditionally"
-		) #<#
-	esac
-	case $type in
-	(GNU)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"B --always-make; consider all targets out-of-date"
-		"--debug::; specify debugging options"
-		"--eval:; evaluate the specified rule"
-		"h --help; print help"
-		"L --check-symlink-times; consider the last modified time of symbolic links"
-		"l::; --load-average:: --max-load::; keep concurrency below the specified load average"
-		"--no-print-directory; cancel the -w option"
-		"o: --old-file: --assume-old:; don't remake targets depending on the specified file"
-		"R --no-builtin-variables; disable the build-in variables and rules"
-		"v --version; print version info"
-		"W: --what-if: --new-file: --assume-new:; assume the specified file has just been modified"
-		"--warn-undefined-variables; print an error message when an undefined variable is encountered"
-		) #<#
-		;;
-	(*BSD)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"B; disable POSIX-incompatible optimization"
-		"d:; specify debug flags"
-		"m; specify a directory to add to the system include path"
-		"V:; print the value of the specified variable"
-		) #<#
-		case $type in
-		(FreeBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"E:; specify a macro overridden by environment variable"
-			"P; don't intermix output of concurrent jobs"
-			"Q; be extra quiet"
-			"v; be extra verbose"
-			"X; don't expand variable values recursively (with -V)"
-			"x:; specify warning options"
-			) #<#
-			;;
-		(NetBSD)
-			ADDOPTIONS=("$ADDOPTIONS" #>#
-			"N; don't execute any commands at all"
-			"T:; specify a file to save a trace record"
-			"W; treat warnings as errors"
-			"X; export variables by MAKEFLAGS instead of environment variables"
-			) #<#
-			;;
-		esac
-		;;
-	(SunOS)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"D; print makefile contents"
-		"d; print why make chooses to rebuild a target"
-		"K:; specify a state file"
-		"P; print defined macros and targets completely"
-		"V; run in SysV mode"
-		"x; enable compatibility mode"
-		) #<#
-		;;
-	(HP-UX)
-		ADDOPTIONS=("$ADDOPTIONS" #>#
-		"B; disable compatibility mode"
-		"b; enable compatibility mode"
-		"P; enable parallel command execution"
-		"w; suppress warnings"
-		) #<#
-		;;
-	esac
+        ADDOPTIONS=()
+        case $type in (GNU|*BSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "I: ${long:+--include-dir:}; specify a directory containing makefiles"
+                "j: ${long:+--jobs:}; specify the number of concurrent jobs"
+                ) #<#
+                case $type in (GNU|FreeBSD|NetBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "C: ${long:+--directory:}; change to the specified directory"
+                        ) #<#
+                case $type in (OpenBSD|NetBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "D:; define the specified variable to be 1"
+                        ) #<#
+                esac
+                esac
+        esac
+        case $type in (GNU|SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "w ${long:+--print-directory}; print working directory name"
+                ) #<#
+        esac
+        case $type in (GNU|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "d; print debugging info"
+                ) #<#
+        esac
+        case $type in (SunOS|HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "u; remake everything unconditionally"
+                ) #<#
+        esac
+        case $type in
+        (GNU)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "B --always-make; consider all targets out-of-date"
+                "--debug::; specify debugging options"
+                "--eval:; evaluate the specified rule"
+                "h --help; print help"
+                "L --check-symlink-times; consider the last modified time of symbolic links"
+                "l::; --load-average:: --max-load::; keep concurrency below the specified load average"
+                "--no-print-directory; cancel the -w option"
+                "o: --old-file: --assume-old:; don't remake targets depending on the specified file"
+                "R --no-builtin-variables; disable the build-in variables and rules"
+                "v --version; print version info"
+                "W: --what-if: --new-file: --assume-new:; assume the specified file has just been modified"
+                "--warn-undefined-variables; print an error message when an undefined variable is encountered"
+                ) #<#
+                ;;
+        (*BSD)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "B; disable POSIX-incompatible optimization"
+                "d:; specify debug flags"
+                "m; specify a directory to add to the system include path"
+                "V:; print the value of the specified variable"
+                ) #<#
+                case $type in
+                (FreeBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "E:; specify a macro overridden by environment variable"
+                        "P; don't intermix output of concurrent jobs"
+                        "Q; be extra quiet"
+                        "v; be extra verbose"
+                        "X; don't expand variable values recursively (with -V)"
+                        "x:; specify warning options"
+                        ) #<#
+                        ;;
+                (NetBSD)
+                        ADDOPTIONS=("$ADDOPTIONS" #>#
+                        "N; don't execute any commands at all"
+                        "T:; specify a file to save a trace record"
+                        "W; treat warnings as errors"
+                        "X; export variables by MAKEFLAGS instead of environment variables"
+                        ) #<#
+                        ;;
+                esac
+                ;;
+        (SunOS)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "D; print makefile contents"
+                "d; print why make chooses to rebuild a target"
+                "K:; specify a state file"
+                "P; print defined macros and targets completely"
+                "V; run in SysV mode"
+                "x; enable compatibility mode"
+                ) #<#
+                ;;
+        (HP-UX)
+                ADDOPTIONS=("$ADDOPTIONS" #>#
+                "B; disable compatibility mode"
+                "b; enable compatibility mode"
+                "P; enable parallel command execution"
+                "w; suppress warnings"
+                ) #<#
+                ;;
+        esac
 
-	OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
+        OPTIONS=("$POSIXOPTIONS" "$ADDOPTIONS")
 
-	command -f completion//parseoptions ${long:+-es}
-	case $ARGOPT in
-	(-)
-		command -f completion//completeoptions
-		;;
-	([fKoTW]|--file|--makefile|--old-file|--assume-old|--what-if|--new-file|--assume-new)
-		complete -P "$PREFIX" -f
-		;;
-	([CIm]|--directory|--include-dir)
-		complete -P "$PREFIX" -S / -T -d
-		;;
-	([DEV])
-		command -f completion/make::macro
-		;;
-#	(d)
-#		#TODO
-#		;;
-#	(j|--jobs)
-#		;;
-#	(l|--load-average|--max-load)
-#		;;
-#	(x)
-#		#TODO
-#		;;
-	(*)
-		command -f completion//getoperands
-		command -f completion/make::operand
-		;;
-	esac
+        command -f completion//parseoptions ${long:+-es}
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        ([fKoTW]|--file|--makefile|--old-file|--assume-old|--what-if|--new-file|--assume-new)
+                complete -P "$PREFIX" -f
+                ;;
+        ([CIm]|--directory|--include-dir)
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        ([DEV])
+                command -f completion/make::macro
+                ;;
+#       (d)
+#               #TODO
+#               ;;
+#       (j|--jobs)
+#               ;;
+#       (l|--load-average|--max-load)
+#               ;;
+#       (x)
+#               #TODO
+#               ;;
+        (*)
+                command -f completion//getoperands
+                command -f completion/make::operand
+                ;;
+        esac
 
 }
 
 function completion/make::macro {
 
-	complete -P "$PREFIX" "$@" -v
-	while read -rA targets; do
-		complete -P "$PREFIX" "$@" -- "$targets"
-	done 2>/dev/null <(make -pq | sed -n '
-		/^[[:space:]]*#/d
-		/^	/d
-		/:/d
-		/=/ {
-			s/=.*$//
-			p
-		}
-	')
+        complete -P "$PREFIX" "$@" -v
+        while read -rA targets; do
+                complete -P "$PREFIX" "$@" -- "$targets"
+        done 2>/dev/null <(make -pq | sed -n '
+                /^[[:space:]]*#/d
+                /^      /d
+                /:/d
+                /=/ {
+                        s/=.*$//
+                        p
+                }
+        ')
 
 }
 
 function completion/make::operand {
 
-	typeset allowmacro=true
-	case $type in
-	(GNU)
-		;;
-	(*)
-		typeset word
-		for word in "$WORDS"; do
-			case $word in
-				(*=*)
-					;;
-				(*)
-					allowmacro=false ;;
-			esac
-		done
-		;;
-	esac
+        typeset allowmacro=true
+        case $type in
+        (GNU)
+                ;;
+        (*)
+                typeset word
+                for word in "$WORDS"; do
+                        case $word in
+                                (*=*)
+                                        ;;
+                                (*)
+                                        allowmacro=false ;;
+                        esac
+                done
+                ;;
+        esac
 
-	if $allowmacro; then
-		command -f completion/make::macrooperand
-	fi
+        if $allowmacro; then
+                command -f completion/make::macrooperand
+        fi
 
-	command -f completion/make::target
+        command -f completion/make::target
 
 }
 
 function completion/make::macrooperand {
 
-	case $TARGETWORD in
-		(*=*)
-			typeset word="${TARGETWORD#*=}"
-			typeset PREFIX="${TARGETWORD%"$word"}"
-			complete -P "$PREFIX" -f
-			;;
-		(*)
-			command -f completion/make::macro -S = -T
-			;;
-	esac
+        case $TARGETWORD in
+                (*=*)
+                        typeset word="${TARGETWORD#*=}"
+                        typeset PREFIX="${TARGETWORD%"$word"}"
+                        complete -P "$PREFIX" -f
+                        ;;
+                (*)
+                        command -f completion/make::macro -S = -T
+                        ;;
+        esac
 
 }
 
 function completion/make::target {
 
-	typeset completed=false
+        typeset completed=false
 
-	while read -rA targets; do
-		for target in "$targets"; do
-			case $target in
-				(.*|*[/%]*)
-					;;
-				(*)
-					complete -P "$PREFIX" -- "$target"
-					completed=true
-					;;
-			esac
-		done
-	done 2>/dev/null <(make -pq MAKE=: | sed -n '
-		/^[[:space:]]*#/d
-		/^	/d
-		/=/d
-		/:/ {
-			s/:.*$//
-			p
-		}
-	')
+        while read -rA targets; do
+                for target in "$targets"; do
+                        case $target in
+                                (.*|*[/%]*)
+                                        ;;
+                                (*)
+                                        complete -P "$PREFIX" -- "$target"
+                                        completed=true
+                                        ;;
+                        esac
+                done
+        done 2>/dev/null <(make -pq MAKE=: | sed -n '
+                /^[[:space:]]*#/d
+                /^      /d
+                /=/d
+                /:/ {
+                        s/:.*$//
+                        p
+                }
+        ')
 
-	if ! $completed; then
-		complete -P "$PREFIX" -f
-	fi
+        if ! $completed; then
+                complete -P "$PREFIX" -f
+        fi
 
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

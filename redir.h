@@ -55,4 +55,4 @@ extern void maybe_redirect_stdin_to_devnull(void);
 #endif /* YASH_REDIR_H */
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

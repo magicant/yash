@@ -43,4 +43,4 @@ test_OE -e 0 'unary -t: tty file descriptor 5'
 test -t 5 5<>/dev/tty
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

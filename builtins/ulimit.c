@@ -55,7 +55,7 @@ struct resource {
 
 static int print_all_limits(bool soft);
 static void print_limit_value(bool soft, const struct rlimit *rlimit,
-	const struct resource *resource)
+        const struct resource *resource)
     __attribute__((nonnull));
 
 #define RES(type,factor,desc) \
@@ -70,51 +70,51 @@ const struct xgetopt_T ulimit_options[] = {
     { L'S', L"soft", OPTARG_NONE, true, NULL, },
     { L'a', L"all",  OPTARG_NONE, true, NULL, },
     { L'c', L"core", OPTARG_NONE, true,
-	&RES(RLIMIT_CORE, 512, Ngt("core file size (blocks)")), },
+        &RES(RLIMIT_CORE, 512, Ngt("core file size (blocks)")), },
     { L'd', L"data", OPTARG_NONE, true,
-	&RES(RLIMIT_DATA, 1024, Ngt("data segment size (kbytes)")), },
+        &RES(RLIMIT_DATA, 1024, Ngt("data segment size (kbytes)")), },
 #if HAVE_RLIMIT_NICE
     { L'e', L"nice", OPTARG_NONE, true,
-	&RES(RLIMIT_NICE, 1, Ngt("max nice")), },
+        &RES(RLIMIT_NICE, 1, Ngt("max nice")), },
 #endif
     { L'f', L"fsize", OPTARG_NONE, true, (void *) &res_fsize, },
 #if HAVE_RLIMIT_SIGPENDING
     { L'i', L"sigpending", OPTARG_NONE, true,
-	&RES(RLIMIT_SIGPENDING, 1, Ngt("pending signals")), },
+        &RES(RLIMIT_SIGPENDING, 1, Ngt("pending signals")), },
 #endif
 #if HAVE_RLIMIT_MEMLOCK
     { L'l', L"memlock", OPTARG_NONE, true,
-	&RES(RLIMIT_MEMLOCK, 1024, Ngt("locked memory (kbytes)")), },
+        &RES(RLIMIT_MEMLOCK, 1024, Ngt("locked memory (kbytes)")), },
 #endif
 #if HAVE_RLIMIT_RSS
     { L'm', L"rss", OPTARG_NONE, true,
-	&RES(RLIMIT_RSS, 1024, Ngt("resident set size (kbytes)")), },
+        &RES(RLIMIT_RSS, 1024, Ngt("resident set size (kbytes)")), },
 #endif
     { L'n', L"nofile", OPTARG_NONE, true,
-	&RES(RLIMIT_NOFILE, 1, Ngt("open files")), },
+        &RES(RLIMIT_NOFILE, 1, Ngt("open files")), },
 #if HAVE_RLIMIT_MSGQUEUE
     { L'q', L"msgqueue", OPTARG_NONE, true,
-	&RES(RLIMIT_MSGQUEUE, 1, Ngt("message queue size (bytes)")), },
+        &RES(RLIMIT_MSGQUEUE, 1, Ngt("message queue size (bytes)")), },
 #endif
 #if HAVE_RLIMIT_RTPRIO
     { L'r', L"rtprio", OPTARG_NONE, true,
-	&RES(RLIMIT_RTPRIO, 1, Ngt("real-time priority")), },
+        &RES(RLIMIT_RTPRIO, 1, Ngt("real-time priority")), },
 #endif
     { L's', L"stack", OPTARG_NONE, true,
-	&RES(RLIMIT_STACK, 1024, Ngt("stack size (kbytes)")), },
+        &RES(RLIMIT_STACK, 1024, Ngt("stack size (kbytes)")), },
     { L't', L"cpu", OPTARG_NONE, true,
-	&RES(RLIMIT_CPU, 1, Ngt("CPU time (seconds)")), },
+        &RES(RLIMIT_CPU, 1, Ngt("CPU time (seconds)")), },
 #if HAVE_RLIMIT_NPROC
     { L'u', L"nproc", OPTARG_NONE, true,
-	&RES(RLIMIT_NPROC, 1, Ngt("user processes")), },
+        &RES(RLIMIT_NPROC, 1, Ngt("user processes")), },
 #endif
 #if HAVE_RLIMIT_AS
     { L'v', L"as", OPTARG_NONE, true,
-	&RES(RLIMIT_AS, 1024, Ngt("memory (kbytes)")), },
+        &RES(RLIMIT_AS, 1024, Ngt("memory (kbytes)")), },
 #endif
 #if HAVE_RLIMIT_LOCKS
     { L'x', L"locks", OPTARG_NONE, true,
-	&RES(RLIMIT_LOCKS, 1, Ngt("file locks")), },
+        &RES(RLIMIT_LOCKS, 1, Ngt("file locks")), },
 #endif
 #if YASH_ENABLE_HELP
     { L'-', L"help", OPTARG_NONE, false, NULL, },
@@ -133,94 +133,94 @@ int ulimit_builtin(int argc, void **argv)
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, ulimit_options, 0)) != NULL) {
-	switch (opt->shortopt) {
-	    case L'H':  type = HARD;       break;
-	    case L'S':  type = SOFT;       break;
-	    case L'a':  print_all = true;  break;
+        switch (opt->shortopt) {
+            case L'H':  type = HARD;       break;
+            case L'S':  type = SOFT;       break;
+            case L'a':  print_all = true;  break;
 #if YASH_ENABLE_HELP
-	    case L'-':
-		return print_builtin_help(ARGV(0));
+            case L'-':
+                return print_builtin_help(ARGV(0));
 #endif
-	    default:
-		if (opt->ptr != NULL) {
-		    resourceoption = opt->shortopt;
-		    resource = opt->ptr;
-		    break;
-		} else {
-		    return Exit_ERROR;
-		}
-	}
+            default:
+                if (opt->ptr != NULL) {
+                    resourceoption = opt->shortopt;
+                    resource = opt->ptr;
+                    break;
+                } else {
+                    return Exit_ERROR;
+                }
+        }
     }
 
     assert(type & (HARD | SOFT));
     if (print_all) {
-	if (resourceoption != L'\0')
-	    return mutually_exclusive_option_error(L'a', resourceoption);
-	if (!validate_operand_count(argc - xoptind, 0, 0))
-	    return Exit_ERROR;
+        if (resourceoption != L'\0')
+            return mutually_exclusive_option_error(L'a', resourceoption);
+        if (!validate_operand_count(argc - xoptind, 0, 0))
+            return Exit_ERROR;
 
-	return print_all_limits(type & SOFT);
+        return print_all_limits(type & SOFT);
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-	return Exit_ERROR;
+        return Exit_ERROR;
 
     struct rlimit rlimit;
     if (getrlimit(resource->type, &rlimit) < 0) {
-	xerror(errno, Ngt("cannot get the current limit "
-			"for the resource type of `%s'"),
-			gt(resource->description));
-	return Exit_FAILURE;
+        xerror(errno, Ngt("cannot get the current limit "
+                        "for the resource type of `%s'"),
+                        gt(resource->description));
+        return Exit_FAILURE;
     }
 
     if (xoptind == argc) {
-	print_limit_value(type & SOFT, &rlimit, resource);
-	return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
+        print_limit_value(type & SOFT, &rlimit, resource);
+        return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
     }
 
     /* parse the operand */
     rlim_t value;
     if (wcscmp(ARGV(xoptind), L"hard") == 0) {
-	value = rlimit.rlim_max;
+        value = rlimit.rlim_max;
     } else if (wcscmp(ARGV(xoptind), L"soft") == 0) {
-	value = rlimit.rlim_cur;
+        value = rlimit.rlim_cur;
     } else if (wcscmp(ARGV(xoptind), L"unlimited") == 0) {
-	value = RLIM_INFINITY;
+        value = RLIM_INFINITY;
     } else if (iswdigit(ARGV(xoptind)[0])) {
-	unsigned long v;
+        unsigned long v;
 
-	if (!xwcstoul(ARGV(xoptind), 10, &v))
-	    goto err_format;
-	value = (rlim_t) v * resource->factor;
-	if (value / resource->factor != v || value == RLIM_INFINITY
-		|| value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
-	    xerror(ERANGE, NULL);
-	    return Exit_FAILURE;
-	}
+        if (!xwcstoul(ARGV(xoptind), 10, &v))
+            goto err_format;
+        value = (rlim_t) v * resource->factor;
+        if (value / resource->factor != v || value == RLIM_INFINITY
+                || value == RLIM_SAVED_MAX || value == RLIM_SAVED_CUR) {
+            xerror(ERANGE, NULL);
+            return Exit_FAILURE;
+        }
     } else {
-	goto err_format;
+        goto err_format;
     }
 
     if (type & HARD)
-	rlimit.rlim_max = value;
+        rlimit.rlim_max = value;
     if (type & SOFT)
-	rlimit.rlim_cur = value;
+        rlimit.rlim_cur = value;
     
     /* check if soft limit does not exceed hard limit */
     if (rlimit.rlim_max != RLIM_INFINITY
-	    && rlimit.rlim_max != RLIM_SAVED_MAX
-	    && rlimit.rlim_max != RLIM_SAVED_CUR
-	    && (rlimit.rlim_cur == RLIM_INFINITY
-		|| (rlimit.rlim_cur != RLIM_SAVED_MAX
-		    && rlimit.rlim_cur != RLIM_SAVED_CUR
-		    && rlimit.rlim_cur > rlimit.rlim_max))) {
-	xerror(0, Ngt("the soft limit cannot exceed the hard limit"));
-	return Exit_FAILURE;
+            && rlimit.rlim_max != RLIM_SAVED_MAX
+            && rlimit.rlim_max != RLIM_SAVED_CUR
+            && (rlimit.rlim_cur == RLIM_INFINITY
+                || (rlimit.rlim_cur != RLIM_SAVED_MAX
+                    && rlimit.rlim_cur != RLIM_SAVED_CUR
+                    && rlimit.rlim_cur > rlimit.rlim_max))) {
+        xerror(0, Ngt("the soft limit cannot exceed the hard limit"));
+        return Exit_FAILURE;
     }
 
     if (setrlimit(resource->type, &rlimit) < 0) {
-	xerror(errno, Ngt("failed to set the limit"));
-	return Exit_FAILURE;
+        xerror(errno, Ngt("failed to set the limit"));
+        return Exit_FAILURE;
     }
 
     return Exit_SUCCESS;
@@ -236,33 +236,33 @@ int print_all_limits(bool soft)
 {
     const struct xgetopt_T *opt;
     for (opt = ulimit_options; opt->shortopt != L'\0'; opt++) {
-	const struct resource *resource = opt->ptr;
-	if (resource == NULL)
-	    continue;
+        const struct resource *resource = opt->ptr;
+        if (resource == NULL)
+            continue;
 
-	struct rlimit rlimit;
-	if (getrlimit(resource->type, &rlimit) < 0) {
-	    xerror(errno, Ngt("cannot get the current limit "
-			    "for the resource type of `%s'"),
-			    gt(resource->description));
-	    continue;
-	}
+        struct rlimit rlimit;
+        if (getrlimit(resource->type, &rlimit) < 0) {
+            xerror(errno, Ngt("cannot get the current limit "
+                            "for the resource type of `%s'"),
+                            gt(resource->description));
+            continue;
+        }
 
-	xprintf(gt("-%lc: %-30s "),
-		(wint_t) opt->shortopt, gt(resource->description));
-	print_limit_value(soft, &rlimit, resource);
+        xprintf(gt("-%lc: %-30s "),
+                (wint_t) opt->shortopt, gt(resource->description));
+        print_limit_value(soft, &rlimit, resource);
     }
     return yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE;
 }
 
 void print_limit_value(bool soft, const struct rlimit *rlimit,
-	const struct resource *resource)
+        const struct resource *resource)
 {
     rlim_t value = soft ? rlimit->rlim_cur : rlimit->rlim_max;
     if (value == RLIM_INFINITY)
-	xprintf("%s\n", gt("unlimited"));
+        xprintf("%s\n", gt("unlimited"));
     else
-	xprintf("%ju\n", (uintmax_t) (value / resource->factor));
+        xprintf("%ju\n", (uintmax_t) (value / resource->factor));
 }
 
 #if YASH_ENABLE_HELP
@@ -276,4 +276,4 @@ const char ulimit_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

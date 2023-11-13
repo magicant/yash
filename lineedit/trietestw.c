@@ -15,21 +15,21 @@ void print(const trie_T *t, const wchar_t *key)
 
     printf("%-10ls: ", key);
     switch (tg.type) {
-	case TG_NOMATCH:
-	    printf("nomatch %zu\n", tg.matchlength);
-	    break;
-	case TG_EXACTMATCH:
-	    printf("exact   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
-	    break;
-	case TG_PREFIXMATCH:
-	    printf("prefix  %zu\n", tg.matchlength);
-	    break;
-	case TG_AMBIGUOUS:
-	    printf("ambig   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
-	    break;
-	default:
-	    printf("ERROR: type=%d\n", (int) tg.type);
-	    assert(false);
+        case TG_NOMATCH:
+            printf("nomatch %zu\n", tg.matchlength);
+            break;
+        case TG_EXACTMATCH:
+            printf("exact   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+            break;
+        case TG_PREFIXMATCH:
+            printf("prefix  %zu\n", tg.matchlength);
+            break;
+        case TG_AMBIGUOUS:
+            printf("ambig   %zu (%ls)\n", tg.matchlength, tg.value.keyseq);
+            break;
+        default:
+            printf("ERROR: type=%d\n", (int) tg.type);
+            assert(false);
     }
 }
 
@@ -87,4 +87,4 @@ int main(int argc, char **argv)
     exit(EXIT_SUCCESS);
 }
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */

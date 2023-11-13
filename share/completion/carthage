@@ -5,227 +5,227 @@
 
 function completion/carthage {
 
-	typeset OPTIONS ARGOPT PREFIX
-	OPTIONS=()
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=()
 
-	case ${WORDS[#]} in
-		(1)
-			command -f completion/carthage::completesubcmds
-			;;
-		(*)
-			typeset subcmd="${WORDS[2]}"
-			if command -vf "completion/carthage::$subcmd:arg" >/dev/null 2>&1; then
-				WORDS=("${WORDS[2,-1]}")
-				command -f "completion/carthage::$subcmd:arg"
-			fi
-			;;
-	esac
+        case ${WORDS[#]} in
+                (1)
+                        command -f completion/carthage::completesubcmds
+                        ;;
+                (*)
+                        typeset subcmd="${WORDS[2]}"
+                        if command -vf "completion/carthage::$subcmd:arg" >/dev/null 2>&1; then
+                                WORDS=("${WORDS[2,-1]}")
+                                command -f "completion/carthage::$subcmd:arg"
+                        fi
+                        ;;
+        esac
 
 }
 
 function completion/carthage::getbuildoptions {
-	OPTIONS=("$OPTIONS" #>#
-	"--cache-builds; reuse cached builds"
-	"--configuration:"
-	"--derived-data:"
-	"--platform:"
-	"--toolchain:"
-	"--verbose"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--cache-builds; reuse cached builds"
+        "--configuration:"
+        "--derived-data:"
+        "--platform:"
+        "--toolchain:"
+        "--verbose"
+        ) #<#
 }
 
 function completion/carthage::getcheckoutoptions {
-	OPTIONS=("$OPTIONS" #>#
-	"--no-use-binaries"
-	"--use-ssh"
-	"--use-submodules"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--no-use-binaries"
+        "--use-ssh"
+        "--use-submodules"
+        ) #<#
 }
 
 function completion/carthage::getcpoptions {
-	OPTIONS=("$OPTIONS" #>#
-	"--color:"
-	"--project-directory:"
-	) #<#
+        OPTIONS=("$OPTIONS" #>#
+        "--color:"
+        "--project-directory:"
+        ) #<#
 }
 
 function completion/carthage::completeoptarg
-	case $ARGOPT in
-		(-)
-			command -f completion//completeoptions -e
-			;;
-		(--derived-data|--project-directory)
-			complete -P "$PREFIX" -S / -T -d
-			;;
-		(--color)
-			complete -P "$PREFIX" always auto never
-			;;
-		(--configuration)
-			# TODO Complete configuration
-			;;
-		(--platform)
-			typeset word="${TARGETWORD#"$PREFIX"}"
-			word=${word##*,}
-			PREFIX=${TARGETWORD%"$word"}
-			complete -P "$PREFIX" all macOS iOS watchOS tvOS
-			;;
-		(--toolchain)
-			# TODO Complete toolchain
-			;;
-	esac
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions -e
+                        ;;
+                (--derived-data|--project-directory)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                (--color)
+                        complete -P "$PREFIX" always auto never
+                        ;;
+                (--configuration)
+                        # TODO Complete configuration
+                        ;;
+                (--platform)
+                        typeset word="${TARGETWORD#"$PREFIX"}"
+                        word=${word##*,}
+                        PREFIX=${TARGETWORD%"$word"}
+                        complete -P "$PREFIX" all macOS iOS watchOS tvOS
+                        ;;
+                (--toolchain)
+                        # TODO Complete toolchain
+                        ;;
+        esac
 
 function completion/carthage::completesubcmds { #>>#
-	complete -P "${PREFIX-}" archive bootstrap build checkout fetch help \
-		outdated update version
+        complete -P "${PREFIX-}" archive bootstrap build checkout fetch help \
+                outdated update version
 } #<<#
 
 function completion/carthage::completedependencies {
 
-	typeset saveopts="$(set +o)"
-	set +o glob
+        typeset saveopts="$(set +o)"
+        set +o glob
 
-	# This code can only complete dependencies that have already been
-	# checked out in Carthage/Checkouts. Maybe we could improve candidates
-	# by parsing Cartfile.
-	typeset IFS=/
-	complete -P "$PREFIX" -- $(
-		set -o glob -o nullglob
-		exec 2>/dev/null
-		typeset CDPATH=
-		cd -P "./$(git rev-parse --show-cdup)Carthage/Checkouts" || exit
-		candidates=(*/)
-		candidates=("${candidates%/}")
-		printf %s "${candidates[*]}"
-	)
+        # This code can only complete dependencies that have already been
+        # checked out in Carthage/Checkouts. Maybe we could improve candidates
+        # by parsing Cartfile.
+        typeset IFS=/
+        complete -P "$PREFIX" -- $(
+                set -o glob -o nullglob
+                exec 2>/dev/null
+                typeset CDPATH=
+                cd -P "./$(git rev-parse --show-cdup)Carthage/Checkouts" || exit
+                candidates=(*/)
+                candidates=("${candidates%/}")
+                printf %s "${candidates[*]}"
+        )
 
-	eval "$saveopts"
+        eval "$saveopts"
 
 }
 
 function completion/carthage::archive:arg {
 
-	OPTIONS=( #>#
-	"--output:"
-	) #<#
-	command -f completion/carthage::getcpoptions
+        OPTIONS=( #>#
+        "--output:"
+        ) #<#
+        command -f completion/carthage::getcpoptions
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		('')
-			# TODO complete framework
-			;;
-		(--output)
-			complete -P "$PREFIX" -f
-			;;
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                ('')
+                        # TODO complete framework
+                        ;;
+                (--output)
+                        complete -P "$PREFIX" -f
+                        ;;
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::bootstrap:arg {
 
-	OPTIONS=( #>#
-	"--no-build"
-	"--no-checkout"
-	) #<#
-	command -f completion/carthage::getbuildoptions
-	command -f completion/carthage::getcheckoutoptions
-	command -f completion/carthage::getcpoptions
+        OPTIONS=( #>#
+        "--no-build"
+        "--no-checkout"
+        ) #<#
+        command -f completion/carthage::getbuildoptions
+        command -f completion/carthage::getcheckoutoptions
+        command -f completion/carthage::getcpoptions
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		('')
-			command -f completion/carthage::completedependencies
-			;;
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                ('')
+                        command -f completion/carthage::completedependencies
+                        ;;
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::build:arg {
 
-	OPTIONS=( #>#
-	"--no-skip-current; build current project as well"
-	) #<#
-	command -f completion/carthage::getbuildoptions
-	command -f completion/carthage::getcpoptions
+        OPTIONS=( #>#
+        "--no-skip-current; build current project as well"
+        ) #<#
+        command -f completion/carthage::getbuildoptions
+        command -f completion/carthage::getcpoptions
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		('')
-			command -f completion/carthage::completedependencies
-			;;
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                ('')
+                        command -f completion/carthage::completedependencies
+                        ;;
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::checkout:arg {
 
-	OPTIONS=()
-	command -f completion/carthage::getcheckoutoptions
-	command -f completion/carthage::getcpoptions
+        OPTIONS=()
+        command -f completion/carthage::getcheckoutoptions
+        command -f completion/carthage::getcpoptions
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		('')
-			command -f completion/carthage::completedependencies
-			;;
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                ('')
+                        command -f completion/carthage::completedependencies
+                        ;;
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::fetch:arg {
 
-	OPTIONS=( #>#
-	"--color:"
-	) #<#
+        OPTIONS=( #>#
+        "--color:"
+        ) #<#
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		('')
-			# TODO complete repository
-			;;
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                ('')
+                        # TODO complete repository
+                        ;;
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::help:arg {
-	command -f completion/carthage::completesubcmds
+        command -f completion/carthage::completesubcmds
 }
 
 function completion/carthage::outdated:arg {
 
-	OPTIONS=( #>#
-	"--use-ssh"
-	"--verbose"
-	) #<#
-	command -f completion/carthage::getcpoptions
+        OPTIONS=( #>#
+        "--use-ssh"
+        "--verbose"
+        ) #<#
+        command -f completion/carthage::getcpoptions
 
-	command -f completion//parseoptions -e
-	case $ARGOPT in
-		(*)
-			command -f completion/carthage::completeoptarg
-			;;
-	esac
+        command -f completion//parseoptions -e
+        case $ARGOPT in
+                (*)
+                        command -f completion/carthage::completeoptarg
+                        ;;
+        esac
 
 }
 
 function completion/carthage::update:arg {
-	command -f completion/carthage::bootstrap:arg "$@"
+        command -f completion/carthage::bootstrap:arg "$@"
 }
 
 
-# vim: set ft=sh ts=8 sts=8 sw=8 noet:
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

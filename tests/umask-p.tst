@@ -5,8 +5,8 @@ posix="true"
 # $1 = $LINENO, $2 = umask
 test_restore_non_symbolic() {
     testcase "$1" -e 0 \
-	"restoring umask using previous output, non-symbolic, $2" \
-	3<<\__IN__ 4</dev/null 5<&4
+        "restoring umask using previous output, non-symbolic, $2" \
+        3<<\__IN__ 4</dev/null 5<&4
 mask=$(umask)
 umask 777
 umask "$mask"
@@ -30,8 +30,8 @@ test_restore_non_symbolic "$LINENO" 017
 # $1 = $LINENO, $2 = umask
 test_restore_symbolic() {
     testcase "$1" -e 0 \
-	"restoring umask using previous output, symbolic, $2" \
-	3<<\__IN__ 4</dev/null 5<&4
+        "restoring umask using previous output, symbolic, $2" \
+        3<<\__IN__ 4</dev/null 5<&4
 mask=$(umask -S)
 umask 777
 umask "$mask"
@@ -141,4 +141,4 @@ test_OE -e 0 'with operand, -S option is ignored'
 umask -S 000
 __IN__
 
-# vim: set ft=sh ts=8 sts=4 sw=4 noet:
+# vim: set ft=sh ts=8 sts=4 sw=4 et:

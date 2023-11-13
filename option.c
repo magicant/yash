@@ -289,7 +289,7 @@ enum normal_option_index_T {
 static const struct xgetopt_T normal_options[] = {
 #if YASH_ENABLE_HELP
     [NOI_HELP]      = { L'-', L"help",      OPTARG_NONE,     false,
-			(void *) &normal_options, },
+                        (void *) &normal_options, },
 #endif
     [NOI_VERSION]   = { L'V', L"version",   OPTARG_NONE,     false, NULL, },
     [NOI_NOPROFILE] = { L'-', L"noprofile", OPTARG_NONE,     false, NULL, },
@@ -306,34 +306,34 @@ static const struct xgetopt_T normal_options[] = {
 static wchar_t *normalize_option_name(const wchar_t *optname)
     __attribute__((nonnull,malloc,warn_unused_result));
 static int parse_short_option(void *const *argv, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
 static int parse_option_character(
-	wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation);
+        wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation);
 static int parse_long_option(void *const *argv, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
 static size_t collect_matching_shell_options(
-	const wchar_t *optstr, plist_T *options)
+        const wchar_t *optstr, plist_T *options)
     __attribute__((nonnull));
 static void search_shell_options(const wchar_t *optname, plist_T *resultlist)
     __attribute__((nonnull));
 static void search_normal_options(const wchar_t *optname, plist_T *resultlist,
-	const struct shell_invocation_T *shell_invocation)
+        const struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1,2)));
 static int handle_search_result(plist_T *options, void *const *argv,
-	bool enable, size_t shelloptindex, size_t noshelloptindex,
-	struct shell_invocation_T *shell_invocation)
+        bool enable, size_t shelloptindex, size_t noshelloptindex,
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1, 2)));
 static int set_shell_option(const struct option_T *option, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
 #if YASH_ENABLE_LINEEDIT
 static void update_lineedit_option(void);
 static void update_le_convmeta_option(void);
 #endif
 static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
     __attribute__((nonnull(1)));
 #if YASH_ENABLE_TEST
 static int test_option_unique(const wchar_t *s)
@@ -351,46 +351,46 @@ static int test_option_unique(const wchar_t *s)
  * Returns Exit_SUCCESS if successful. Otherwise, returns Exit_FAILURE or
  * Exit_ERROR after printing an error message. */
 int parse_shell_options(int argc, void *const *argv,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
 {
     /* We don't use the xgetopt function because of the non-standard syntax. */
     for (xoptind = 1; xoptind < argc; xoptind++) {
-	const wchar_t *arg = ARGV(xoptind);
-	bool enable;
-	switch (arg[0]) {
-	    case L'-':  enable = true;   break;
-	    case L'+':  enable = false;  break;
-	    default:    goto main;
-	}
+        const wchar_t *arg = ARGV(xoptind);
+        bool enable;
+        switch (arg[0]) {
+            case L'-':  enable = true;   break;
+            case L'+':  enable = false;  break;
+            default:    goto main;
+        }
 
-	if (arg[1] == L'\0') {
-	    if (enable && shell_invocation != NULL)  /* ignore first "-" */
-		xoptind++;
-	    goto main;
-	}
+        if (arg[1] == L'\0') {
+            if (enable && shell_invocation != NULL)  /* ignore first "-" */
+                xoptind++;
+            goto main;
+        }
 
-	int result;
-	if (arg[0] == arg[1]) {
-	    if (arg[2] == L'\0') {
-		if (enable)  /* `arg' is L"--" */
-		    xoptind++;
-		goto set_positional_parameters;
-	    }
+        int result;
+        if (arg[0] == arg[1]) {
+            if (arg[2] == L'\0') {
+                if (enable)  /* `arg' is L"--" */
+                    xoptind++;
+                goto set_positional_parameters;
+            }
 
-	    result = parse_long_option(argv, enable, shell_invocation);
-	} else {
-	    result = parse_short_option(argv, enable, shell_invocation);
-	}
-	if (result != Exit_SUCCESS)
-	    return result;
+            result = parse_long_option(argv, enable, shell_invocation);
+        } else {
+            result = parse_short_option(argv, enable, shell_invocation);
+        }
+        if (result != Exit_SUCCESS)
+            return result;
     }
 
 main:
     if (xoptind < argc) {
 set_positional_parameters:
-	assert(xoptind <= argc);
-	if (shell_invocation == NULL)
-	    set_positional_parameters(&argv[xoptind]);
+        assert(xoptind <= argc);
+        if (shell_invocation == NULL)
+            set_positional_parameters(&argv[xoptind]);
     }
 
     return Exit_SUCCESS;
@@ -404,8 +404,8 @@ wchar_t *normalize_option_name(const wchar_t *optname)
     xwcsbuf_T result;
     wb_initwithmax(&result, wcslen(optname));
     for (const wchar_t *s = optname; *s != L'\0'; s++)
-	if (iswalnum(*s))
-	    wb_wccat(&result, towlower(*s));
+        if (iswalnum(*s))
+            wb_wccat(&result, towlower(*s));
     return wb_towcs(&result);
 }
 
@@ -413,37 +413,37 @@ wchar_t *normalize_option_name(const wchar_t *optname)
  * and enables/disables the option.
  * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
 int parse_short_option(void *const *argv, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
 {
     const wchar_t *optstr = ARGV(xoptind);
 
     assert(optstr[0] != L'\0');
     for (size_t i = 1; optstr[i] != L'\0'; i++) {
-	if (optstr[i] == L'o') {
-	    const wchar_t *optname = &optstr[i + 1];
-	    if (*optname == L'\0') {
-		optname = ARGV(++xoptind);;
-		if (optname == NULL) {
-		    xerror(0, Ngt("the -%lc option requires an argument"),
-			    (wint_t) L'o');
-		    return special_builtin_error(Exit_ERROR);
-		}
-	    }
+        if (optstr[i] == L'o') {
+            const wchar_t *optname = &optstr[i + 1];
+            if (*optname == L'\0') {
+                optname = ARGV(++xoptind);;
+                if (optname == NULL) {
+                    xerror(0, Ngt("the -%lc option requires an argument"),
+                            (wint_t) L'o');
+                    return special_builtin_error(Exit_ERROR);
+                }
+            }
 
-	    plist_T options;
-	    pl_init(&options);
+            plist_T options;
+            pl_init(&options);
 
-	    size_t shelloptindex =
-		collect_matching_shell_options(optname, &options);
+            size_t shelloptindex =
+                collect_matching_shell_options(optname, &options);
 
-	    return handle_search_result(&options, argv, enable,
-		    shelloptindex, options.length, shell_invocation);
-	} else {
-	    int result = parse_option_character(
-		    optstr[i], enable, shell_invocation);
-	    if (result != Exit_SUCCESS)
-		return result;
-	}
+            return handle_search_result(&options, argv, enable,
+                    shelloptindex, options.length, shell_invocation);
+        } else {
+            int result = parse_option_character(
+                    optstr[i], enable, shell_invocation);
+            if (result != Exit_SUCCESS)
+                return result;
+        }
     }
     return Exit_SUCCESS;
 }
@@ -451,24 +451,24 @@ int parse_short_option(void *const *argv, bool enable,
 /* Parses the specified single-character option and enables/disables the option.
  * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
 int parse_option_character(
-	wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation)
+        wchar_t opt, bool enable, struct shell_invocation_T *shell_invocation)
 {
     assert(opt != L'\0');
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	if (opt == o->shortopt_enable)
-	    return set_shell_option(o, enable, shell_invocation);
-	else if (opt == o->shortopt_disable)
-	    return set_shell_option(o, !enable, shell_invocation);
+        if (opt == o->shortopt_enable)
+            return set_shell_option(o, enable, shell_invocation);
+        else if (opt == o->shortopt_disable)
+            return set_shell_option(o, !enable, shell_invocation);
     }
     if (opt != L'-') {
-	const struct xgetopt_T *o;
-	for (o = normal_options; o->shortopt != L'\0'; o++) {
-	    if (!o->posix && posixly_correct)
-		continue;
-	    if (opt == o->shortopt &&
-		    (shell_invocation != NULL || o->ptr != NULL))
-		return set_normal_option(o, NULL, shell_invocation);
-	}
+        const struct xgetopt_T *o;
+        for (o = normal_options; o->shortopt != L'\0'; o++) {
+            if (!o->posix && posixly_correct)
+                continue;
+            if (opt == o->shortopt &&
+                    (shell_invocation != NULL || o->ptr != NULL))
+                return set_normal_option(o, NULL, shell_invocation);
+        }
     }
 
     xerror(0, Ngt("`%ls' is not a valid option"), (wchar_t[]) { opt, L'\0' });
@@ -479,7 +479,7 @@ int parse_option_character(
  * enables/disables the option.
  * Returns Exit_SUCCESS iff successful. Prints an error message on error. */
 int parse_long_option(void *const *argv, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
 {
     const wchar_t *optstr = ARGV(xoptind);
     plist_T options;
@@ -488,20 +488,20 @@ int parse_long_option(void *const *argv, bool enable,
     pl_init(&options);
 
     if (posixly_correct) {
-	/* No long options are available in the POSIXly correct mode. */
-	shelloptindex = noshelloptindex = 0;
+        /* No long options are available in the POSIXly correct mode. */
+        shelloptindex = noshelloptindex = 0;
     } else {
-	shelloptindex = collect_matching_shell_options(optstr, &options);
-	noshelloptindex = options.length;
+        shelloptindex = collect_matching_shell_options(optstr, &options);
+        noshelloptindex = options.length;
 
-	if (enable) {
-	    assert(matchwcsprefix(optstr, L"--"));
-	    search_normal_options(&optstr[2], &options, shell_invocation);
-	}
+        if (enable) {
+            assert(matchwcsprefix(optstr, L"--"));
+            search_normal_options(&optstr[2], &options, shell_invocation);
+        }
     }
 
     return handle_search_result(&options, argv, enable,
-	    shelloptindex, noshelloptindex, shell_invocation);
+            shelloptindex, noshelloptindex, shell_invocation);
 }
 
 /* Collects shell options that match the specified name.
@@ -517,7 +517,7 @@ size_t collect_matching_shell_options(const wchar_t *optname, plist_T *options)
 
     size_t nooptindex = options->length;
     if (matchwcsprefix(normoptname, L"no"))
-	search_shell_options(&normoptname[2], options);
+        search_shell_options(&normoptname[2], options);
 
     free(normoptname);
     return nooptindex;
@@ -530,18 +530,18 @@ size_t collect_matching_shell_options(const wchar_t *optname, plist_T *options)
 void search_shell_options(const wchar_t *optname, plist_T *resultlist)
 {
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	const wchar_t *s = matchwcsprefix(o->longopt, optname);
-	if (s != NULL) {
-	    if (*s == L'\0') {
-		/* exact match! */
-		pl_truncate(resultlist, 0);
-		pl_add(resultlist, o);
-		break;
-	    } else {
-		/* partial match */
-		pl_add(resultlist, o);
-	    }
-	}
+        const wchar_t *s = matchwcsprefix(o->longopt, optname);
+        if (s != NULL) {
+            if (*s == L'\0') {
+                /* exact match! */
+                pl_truncate(resultlist, 0);
+                pl_add(resultlist, o);
+                break;
+            } else {
+                /* partial match */
+                pl_add(resultlist, o);
+            }
+        }
     }
 }
 
@@ -550,24 +550,24 @@ void search_shell_options(const wchar_t *optname, plist_T *resultlist)
  * If `optname' exactly matches one of shell option names, `resultlist' is
  * cleared and only a pointer to that option is added. */
 void search_normal_options(const wchar_t *optname, plist_T *resultlist,
-	const struct shell_invocation_T *shell_invocation)
+        const struct shell_invocation_T *shell_invocation)
 {
     size_t namelen = wcscspn(optname, L"=");
     for (const struct xgetopt_T *o = normal_options; o->longopt != NULL; o++) {
-	if (!o->posix && posixly_correct)
-	    continue;
-	if (wcsncmp(o->longopt, optname, namelen) == 0 &&
-		(shell_invocation != NULL || o->ptr != NULL)) {
-	    if (o->longopt[namelen] == L'\0') {
-		/* exact match! */
-		pl_truncate(resultlist, 0);
-		pl_add(resultlist, o);
-		break;
-	    } else {
-		/* partial match */
-		pl_add(resultlist, o);
-	    }
-	}
+        if (!o->posix && posixly_correct)
+            continue;
+        if (wcsncmp(o->longopt, optname, namelen) == 0 &&
+                (shell_invocation != NULL || o->ptr != NULL)) {
+            if (o->longopt[namelen] == L'\0') {
+                /* exact match! */
+                pl_truncate(resultlist, 0);
+                pl_add(resultlist, o);
+                break;
+            } else {
+                /* partial match */
+                pl_add(resultlist, o);
+            }
+        }
     }
 }
 
@@ -579,8 +579,8 @@ void search_normal_options(const wchar_t *optname, plist_T *resultlist,
  * which have the "no" prefix in their names, must have indices no less than
  * `shelloptindex'. The list is destroyed in this function. */
 int handle_search_result(plist_T *options, void *const *argv, bool enable,
-	size_t shelloptindex, size_t noshelloptindex,
-	struct shell_invocation_T *shell_invocation)
+        size_t shelloptindex, size_t noshelloptindex,
+        struct shell_invocation_T *shell_invocation)
 {
     assert(shelloptindex <= noshelloptindex);
     assert(noshelloptindex <= options->length);
@@ -588,124 +588,124 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
     const wchar_t *optstr = ARGV(xoptind);
 
     switch (options->length) {
-	case 0:
-	    pl_destroy(options);
-	    xerror(0, Ngt("`%ls' is not a valid option"), optstr);
-	    return special_builtin_error(Exit_ERROR);
-	case 1:
-	    if (noshelloptindex > 0) {
-		const struct option_T *opt = options->contents[0];
-		pl_destroy(options);
-		if (shelloptindex == 0)
-		    enable = !enable;
-		return set_shell_option(opt, enable, shell_invocation);
-	    } else {
-		const struct xgetopt_T *opt = options->contents[0];
-		const wchar_t *eq = wcschr(optstr, L'=');
-		const wchar_t *optarg;
-		pl_destroy(options);
-		if (opt->optarg != OPTARG_NONE) {
-		    if (eq == NULL) {
-			switch (opt->optarg) {
-			    case OPTARG_OPTIONAL:
-				optarg = NULL;
-				break;
-			    case OPTARG_REQUIRED:
-				optarg = ARGV(++xoptind);
-				if (optarg == NULL) {
-				    xerror(0, Ngt("the --%ls option requires "
-						"an argument"), opt->longopt);
-				    return special_builtin_error(Exit_ERROR);
-				}
-				break;
-			    default:
-				assert(false);
-			}
-		    } else {
-			optarg = &eq[1];
-		    }
-		} else {
-		    if (eq != NULL) {
-			xerror(0, Ngt("%ls: the --%ls option does not take "
-				    "an argument"), optstr, opt->longopt);
-			return special_builtin_error(Exit_ERROR);
-		    }
-		    optarg = NULL;
-		}
-		return set_normal_option(opt, optarg, shell_invocation);
-	    }
-	default:
-	    xerror(0, Ngt("option `%ls' is ambiguous"), optstr);
+        case 0:
+            pl_destroy(options);
+            xerror(0, Ngt("`%ls' is not a valid option"), optstr);
+            return special_builtin_error(Exit_ERROR);
+        case 1:
+            if (noshelloptindex > 0) {
+                const struct option_T *opt = options->contents[0];
+                pl_destroy(options);
+                if (shelloptindex == 0)
+                    enable = !enable;
+                return set_shell_option(opt, enable, shell_invocation);
+            } else {
+                const struct xgetopt_T *opt = options->contents[0];
+                const wchar_t *eq = wcschr(optstr, L'=');
+                const wchar_t *optarg;
+                pl_destroy(options);
+                if (opt->optarg != OPTARG_NONE) {
+                    if (eq == NULL) {
+                        switch (opt->optarg) {
+                            case OPTARG_OPTIONAL:
+                                optarg = NULL;
+                                break;
+                            case OPTARG_REQUIRED:
+                                optarg = ARGV(++xoptind);
+                                if (optarg == NULL) {
+                                    xerror(0, Ngt("the --%ls option requires "
+                                                "an argument"), opt->longopt);
+                                    return special_builtin_error(Exit_ERROR);
+                                }
+                                break;
+                            default:
+                                assert(false);
+                        }
+                    } else {
+                        optarg = &eq[1];
+                    }
+                } else {
+                    if (eq != NULL) {
+                        xerror(0, Ngt("%ls: the --%ls option does not take "
+                                    "an argument"), optstr, opt->longopt);
+                        return special_builtin_error(Exit_ERROR);
+                    }
+                    optarg = NULL;
+                }
+                return set_normal_option(opt, optarg, shell_invocation);
+            }
+        default:
+            xerror(0, Ngt("option `%ls' is ambiguous"), optstr);
 #if LIST_AMBIGUOUS_OPTIONS
-	    size_t i = 0;
-	    for (; i < shelloptindex; i++)
-		fprintf(stderr, "\t--%ls\n",
-		    ((const struct option_T *) options->contents[i])->longopt);
-	    for (; i < noshelloptindex; i++)
-		fprintf(stderr, "\t--no%ls\n",
-		    ((const struct option_T *) options->contents[i])->longopt);
-	    for (; i < options->length; i++)
-		fprintf(stderr, "\t--%ls\n",
-		    ((const struct xgetopt_T *) options->contents[i])->longopt);
+            size_t i = 0;
+            for (; i < shelloptindex; i++)
+                fprintf(stderr, "\t--%ls\n",
+                    ((const struct option_T *) options->contents[i])->longopt);
+            for (; i < noshelloptindex; i++)
+                fprintf(stderr, "\t--no%ls\n",
+                    ((const struct option_T *) options->contents[i])->longopt);
+            for (; i < options->length; i++)
+                fprintf(stderr, "\t--%ls\n",
+                    ((const struct xgetopt_T *) options->contents[i])->longopt);
 #endif
-	    pl_destroy(options);
-	    return special_builtin_error(Exit_ERROR);
+            pl_destroy(options);
+            return special_builtin_error(Exit_ERROR);
     }
 }
 
 /* Sets the specified shell option.
  * Returns Exit_SUCCESS iff successful. Print an error message on error. */
 int set_shell_option(const struct option_T *option, bool enable,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
 {
     if (shell_invocation == NULL && !option->resettable) {
-	xerror(0, Ngt("the %ls option cannot be changed "
-		    "once the shell has been initialized"),
-		option->longopt);
-	return special_builtin_error(Exit_ERROR);
+        xerror(0, Ngt("the %ls option cannot be changed "
+                    "once the shell has been initialized"),
+                option->longopt);
+        return special_builtin_error(Exit_ERROR);
     }
 
     *option->optp = enable;
 
     if (shell_invocation != NULL) {
-	if (option->optp == &is_interactive)
-	    shell_invocation->is_interactive_set = true;
-	else if (option->optp == &do_job_control)
-	    shell_invocation->do_job_control_set = true;
+        if (option->optp == &is_interactive)
+            shell_invocation->is_interactive_set = true;
+        else if (option->optp == &do_job_control)
+            shell_invocation->do_job_control_set = true;
     }
     if (shell_invocation == NULL && option->optp == &do_job_control) {
-	if (do_job_control && ttyfd < 0)
-	    open_ttyfd();
-	if (do_job_control)
-	    ensure_foreground();
-	reset_job_signals();
+        if (do_job_control && ttyfd < 0)
+            open_ttyfd();
+        if (do_job_control)
+            ensure_foreground();
+        reset_job_signals();
     }
 #if YASH_ENABLE_LINEEDIT
     if (option->optp == &shopt_vi) {
-	if (enable)
-	    shopt_emacs = false;
-	update_lineedit_option();
-	if (shell_invocation != NULL)
-	    shell_invocation->lineedit_set = true;
+        if (enable)
+            shopt_emacs = false;
+        update_lineedit_option();
+        if (shell_invocation != NULL)
+            shell_invocation->lineedit_set = true;
     } else if (option->optp == &shopt_emacs) {
-	if (enable)
-	    shopt_vi = false;
-	update_lineedit_option();
-	if (shell_invocation != NULL)
-	    shell_invocation->lineedit_set = true;
+        if (enable)
+            shopt_vi = false;
+        update_lineedit_option();
+        if (shell_invocation != NULL)
+            shell_invocation->lineedit_set = true;
     } else if (option->optp == &shopt_le_yesconvmeta) {
-	if (enable)
-	    shopt_le_noconvmeta = false;
-	update_le_convmeta_option();
+        if (enable)
+            shopt_le_noconvmeta = false;
+        update_le_convmeta_option();
     } else if (option->optp == &shopt_le_noconvmeta) {
-	if (enable)
-	    shopt_le_yesconvmeta = false;
-	update_le_convmeta_option();
+        if (enable)
+            shopt_le_yesconvmeta = false;
+        update_le_convmeta_option();
     }
 #endif
 
     return (*option->optp == enable) ?
-	    Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
+            Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
 }
 
 #if YASH_ENABLE_LINEEDIT
@@ -715,11 +715,11 @@ int set_shell_option(const struct option_T *option, bool enable,
 void update_lineedit_option(void)
 {
     if (shopt_vi)
-	shopt_lineedit = SHOPT_VI;
+        shopt_lineedit = SHOPT_VI;
     else if (shopt_emacs)
-	shopt_lineedit = SHOPT_EMACS;
+        shopt_lineedit = SHOPT_EMACS;
     else
-	shopt_lineedit = SHOPT_NOLINEEDIT;
+        shopt_lineedit = SHOPT_NOLINEEDIT;
 }
 
 /* Updates the value of `shopt_le_convmeta' according to the values of
@@ -727,11 +727,11 @@ void update_lineedit_option(void)
 void update_le_convmeta_option(void)
 {
     if (shopt_le_yesconvmeta)
-	shopt_le_convmeta = SHOPT_YES;
+        shopt_le_convmeta = SHOPT_YES;
     else if (shopt_le_noconvmeta)
-	shopt_le_convmeta = SHOPT_NO;
+        shopt_le_convmeta = SHOPT_NO;
     else
-	shopt_le_convmeta = SHOPT_AUTO;
+        shopt_le_convmeta = SHOPT_AUTO;
 }
 
 #endif
@@ -739,46 +739,46 @@ void update_le_convmeta_option(void)
 /* Sets the specified normal option.
  * Returns Exit_SUCCESS iff successful. Print an error message on error. */
 int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
-	struct shell_invocation_T *shell_invocation)
+        struct shell_invocation_T *shell_invocation)
 {
     enum normal_option_index_T index = opt - normal_options;
 
     if (shell_invocation == NULL) {
-	switch (index) {
+        switch (index) {
 #if YASH_ENABLE_HELP
-	    case NOI_HELP:
-		return print_builtin_help(L"set");
+            case NOI_HELP:
+                return print_builtin_help(L"set");
 #endif
-	    default:
-		assert(false);
-	}
+            default:
+                assert(false);
+        }
     } else {
-	switch (index) {
+        switch (index) {
 #if YASH_ENABLE_HELP
-	    case NOI_HELP:
-		shell_invocation->help = true;
-		break;
+            case NOI_HELP:
+                shell_invocation->help = true;
+                break;
 #endif
-	    case NOI_VERSION:
-		shell_invocation->version = true;
-		break;
-	    case NOI_NOPROFILE:
-		shell_invocation->noprofile = true;
-		break;
-	    case NOI_NORCFILE:
-		shell_invocation->norcfile = true;
-		break;
-	    case NOI_PROFILE:
-		assert(arg != NULL);
-		shell_invocation->profile = arg;
-		break;
-	    case NOI_RCFILE:
-		assert(arg != NULL);
-		shell_invocation->rcfile = arg;
-		break;
-	    case NOI_N:
-		assert(false);
-	}
+            case NOI_VERSION:
+                shell_invocation->version = true;
+                break;
+            case NOI_NOPROFILE:
+                shell_invocation->noprofile = true;
+                break;
+            case NOI_NORCFILE:
+                shell_invocation->norcfile = true;
+                break;
+            case NOI_PROFILE:
+                assert(arg != NULL);
+                shell_invocation->profile = arg;
+                break;
+            case NOI_RCFILE:
+                assert(arg != NULL);
+                shell_invocation->rcfile = arg;
+                break;
+            case NOI_N:
+                assert(false);
+        }
     }
     return Exit_SUCCESS;
 }
@@ -791,9 +791,9 @@ void set_lineedit_option(enum shopt_lineedit_T v)
     shopt_vi = shopt_emacs = false;
     shopt_lineedit = v;
     switch (v) {
-	case SHOPT_VI:          shopt_vi    = true;  break;
-	case SHOPT_EMACS:       shopt_emacs = true;  break;
-	case SHOPT_NOLINEEDIT:  break;
+        case SHOPT_VI:          shopt_vi    = true;  break;
+        case SHOPT_EMACS:       shopt_emacs = true;  break;
+        case SHOPT_NOLINEEDIT:  break;
     }
 }
 
@@ -829,9 +829,9 @@ int test_option_unique(const wchar_t *s)
     int result = (options.length == 1);
 
     if (result) {
-	struct option_T *opt = options.contents[0];
-	bool negated = (nooptindex == 0);
-	result += *opt->optp ^ negated;
+        struct option_T *opt = options.contents[0];
+        bool negated = (nooptindex == 0);
+        result += *opt->optp ^ negated;
     }
 
     pl_destroy(&options);
@@ -848,10 +848,10 @@ wchar_t *get_hyphen_parameter(void)
     wb_init(&buf);
 
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	if (o->shortopt_enable != L'\0' && *o->optp)
-	    wb_wccat(&buf, o->shortopt_enable);
-	if (o->shortopt_disable != L'\0' && !*o->optp)
-	    wb_wccat(&buf, o->shortopt_disable);
+        if (o->shortopt_enable != L'\0' && *o->optp)
+            wb_wccat(&buf, o->shortopt_enable);
+        if (o->shortopt_disable != L'\0' && !*o->optp)
+            wb_wccat(&buf, o->shortopt_disable);
     }
 
     return wb_towcs(&buf);
@@ -864,26 +864,26 @@ wchar_t *get_hyphen_parameter(void)
 bool print_shopts_body(bool include_normal_options)
 {
     if (include_normal_options)
-	if (!print_option_list(normal_options))
-	    return false;
+        if (!print_option_list(normal_options))
+            return false;
 
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	if (!xprintf("\t"))
-	    return false;
+        if (!xprintf("\t"))
+            return false;
 
-	if (o->shortopt_enable != L'\0') {
-	    if (!xprintf("-%lc", o->shortopt_enable))
-		return false;
-	} else if (o->shortopt_disable != L'\0') {
-	    if (!xprintf("+%lc", o->shortopt_disable))
-		return false;
-	} else {
-	    if (!xprintf("  "))
-		return false;
-	}
+        if (o->shortopt_enable != L'\0') {
+            if (!xprintf("-%lc", o->shortopt_enable))
+                return false;
+        } else if (o->shortopt_disable != L'\0') {
+            if (!xprintf("+%lc", o->shortopt_disable))
+                return false;
+        } else {
+            if (!xprintf("  "))
+                return false;
+        }
 
-	if (!xprintf("       -o %ls\n", o->longopt))
-	    return false;
+        if (!xprintf("       -o %ls\n", o->longopt))
+            return false;
     }
 
     return true;
@@ -911,12 +911,12 @@ static int set_builtin_print_restoring_commands(void);
 int set_builtin(int argc, void **argv)
 {
     if (argc <= 1) {
-	return typeset_builtin(argc, argv);
+        return typeset_builtin(argc, argv);
     } else if (argc == 2) {
-	if (wcscmp(ARGV(1), L"-o") == 0)
-	    return set_builtin_print_current_settings();
-	else if (wcscmp(ARGV(1), L"+o") == 0)
-	    return set_builtin_print_restoring_commands();
+        if (wcscmp(ARGV(1), L"-o") == 0)
+            return set_builtin_print_current_settings();
+        else if (wcscmp(ARGV(1), L"+o") == 0)
+            return set_builtin_print_restoring_commands();
     }
 
     return parse_shell_options(argc, argv, NULL);
@@ -925,13 +925,13 @@ int set_builtin(int argc, void **argv)
 int set_builtin_print_current_settings(void)
 {
     const char *vals[] = {
-	[true]  = gt("on"),
-	[false] = gt("off"),
+        [true]  = gt("on"),
+        [false] = gt("off"),
     };
 
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	if (!xprintf("%-15ls %s\n", o->longopt, vals[(bool) *o->optp]))
-	    return special_builtin_error(Exit_FAILURE);
+        if (!xprintf("%-15ls %s\n", o->longopt, vals[(bool) *o->optp]))
+            return special_builtin_error(Exit_FAILURE);
     }
 
     return Exit_SUCCESS;
@@ -940,9 +940,9 @@ int set_builtin_print_current_settings(void)
 int set_builtin_print_restoring_commands(void)
 {
     for (const struct option_T *o = shell_options; o->longopt != NULL; o++) {
-	if (o->resettable)
-	    if (!xprintf("set %co %ls\n", *o->optp ? '-' : '+', o->longopt))
-		return special_builtin_error(Exit_FAILURE);
+        if (o->resettable)
+            if (!xprintf("set %co %ls\n", *o->optp ? '-' : '+', o->longopt))
+                return special_builtin_error(Exit_FAILURE);
     }
 
     return Exit_SUCCESS;
@@ -959,4 +959,4 @@ const char set_syntax[] = Ngt(
 #endif
 
 
-/* vim: set ts=8 sts=4 sw=4 noet tw=80: */
+/* vim: set ts=8 sts=4 sw=4 et tw=80: */
