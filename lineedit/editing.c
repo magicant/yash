@@ -231,7 +231,8 @@ static inline bool is_overwriting(void)
     __attribute__((pure));
 static void restore_overwritten_buffer_contents(
         size_t start_index, size_t end_index);
-static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir);
+static void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir,
+        bool init_le);
 static void to_upper_case(wchar_t *s, size_t n)
     __attribute__((nonnull));
 static void to_lower_case(wchar_t *s, size_t n)
@@ -750,8 +751,13 @@ void restore_overwritten_buffer_contents(size_t start_index, size_t end_index)
 /* Starts command history search by setting the editing mode to `mode' with
  * the specified direction `dir'. `mode' must be either LE_MODE_VI_SEARCH or
  * LE_MODE_EMACS_SEARCH.
+ *
+ * If `init_le` is true, the search buffer is initialised with the current
+ * content of the line-edit buffer.
+ *
  * The current editing mode is saved in `savemode'. */
-void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir)
+void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir,
+        bool init_le)
 {
     le_complete_cleanup();
 
@@ -763,7 +769,12 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir)
         case LE_MODE_EMACS_SEARCH:  le_search_type = SEARCH_EMACS;  break;
         default:                    assert(false);
     }
+
     wb_init(&le_search_buffer);
+    if (init_le) {
+        wb_ncat(&le_search_buffer, le_main_buffer.contents, active_length());
+    }
+
     update_search();
 }
 
@@ -3035,14 +3046,14 @@ void cmd_vi_complete_max(wchar_t c __attribute__((unused)))
 void cmd_vi_search_forward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    set_search_mode(LE_MODE_VI_SEARCH, FORWARD);
+    set_search_mode(LE_MODE_VI_SEARCH, FORWARD, false);
 }
 
 /* Starts vi-like command history search in the backward direction. */
 void cmd_vi_search_backward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    set_search_mode(LE_MODE_VI_SEARCH, BACKWARD);
+    set_search_mode(LE_MODE_VI_SEARCH, BACKWARD, false);
 }
 
 
@@ -3286,14 +3297,34 @@ void replace_horizontal_space(bool deleteafter, const wchar_t *s)
 void cmd_emacs_search_forward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    set_search_mode(LE_MODE_EMACS_SEARCH, FORWARD);
+    set_search_mode(LE_MODE_EMACS_SEARCH, FORWARD, false);
 }
 
 /* Starts emacs-like command history search in the backward direction. */
 void cmd_emacs_search_backward(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
-    set_search_mode(LE_MODE_EMACS_SEARCH, BACKWARD);
+    set_search_mode(LE_MODE_EMACS_SEARCH, BACKWARD, false);
+}
+
+/*
+ * Starts emacs-like command history search in the forward direction with the
+ * search initialised with the current contents of the line-edit buffer
+ */
+void cmd_emacs_search_forward_current(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    set_search_mode(LE_MODE_EMACS_SEARCH, FORWARD, true);
+}
+
+/*
+ * Starts emacs-like command history search in the backward direction with the
+ * search initialised with the current contents of the line-edit buffer
+ */
+void cmd_emacs_search_backward_current(wchar_t c __attribute__((unused)))
+{
+    ALERT_AND_RETURN_IF_PENDING;
+    set_search_mode(LE_MODE_EMACS_SEARCH, BACKWARD, true);
 }
 
 
