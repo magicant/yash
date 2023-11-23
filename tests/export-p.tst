@@ -34,7 +34,10 @@ __OUT__
 
 test_oE 'exporting with assignments'
 a=A export b=B
+# POSIX requires $a to persist after the export built-in,
+# but it is unspecified whether $a is exported.
 echo $a
+# $a does not affect $b being exported.
 sh -c 'echo $b'
 __IN__
 A
@@ -44,7 +47,9 @@ __OUT__
 test_O -d -e n 'read-only variable cannot be re-assigned'
 readonly a=1
 export a=2
-echo not reached # special built-in error kills non-interactive shell
+# The export built-in fails because of the readonly variable.
+# Since it is a special built-in, the non-interactive shell exits.
+echo not reached
 __IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
