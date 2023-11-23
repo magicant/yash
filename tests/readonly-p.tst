@@ -5,17 +5,29 @@ posix="true"
 test_o -d -e n 'making one variable read-only'
 readonly a=bar
 echo $a
-a=X && test "$a" = bar
+a=X # This should fail, and the shell should exit.
+echo not reached
 __IN__
 bar
 __OUT__
 
-test_o -d -e n 'making many variables read-only'
+test_o -d 'making many variables read-only'
 a=X b=B c=X
 readonly a=A b c=C
 echo $a $b $c
-a=X || b=Y || c=Z && test "$a/$b/$c" = A/B/C
+(
+    a=X # This should fail, and the subshell should exit.
+    echo not reached
+) || (
+    b=Y # This should fail, and the subshell should exit.
+    echo not reached
+) || (
+    c=Z # This should fail, and the subshell should exit.
+    echo not reached
+) ||
+echo $a $b $c # This should print the values passed to the readonly built-in.
 __IN__
+A B C
 A B C
 __OUT__
 
@@ -26,7 +38,9 @@ __OUT__
 test_O -d -e n 'read-only variable cannot be re-assigned'
 readonly a=1
 readonly a=2
-echo not reached # special built-in error kills non-interactive shell
+# The readonly built-in fails because of the readonly variable.
+# Since it is a special built-in, the non-interactive shell exits.
+echo not reached
 __IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
