@@ -436,7 +436,7 @@ done
 __IN__
 
 # This is a questionable case. Is this really a "lexically enclosing" loop as
-# defined in POSIX? Most shells (other than mksh) support this case.
+# defined in POSIX? Most shells do support this case.
 test_oE 'continuing out of eval'
 for i in 1 2; do
     echo $i
