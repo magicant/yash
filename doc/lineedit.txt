@@ -1329,6 +1329,10 @@ ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
 ifndef::basebackend-html[`\^S`]
 --
 
+emacs-search-forward-current::
+The same as emacs-search-forward, but the search is initialised with the
+current contents of the line-edit buffer.
+
 emacs-search-backward::
 Switch to the emacs search mode and start backward
 link:interact.html#history[history] search.
@@ -1338,6 +1342,10 @@ emacs::
 ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
 ifndef::basebackend-html[`\^R`]
 --
+
+emacs-search-backward-current::
+The same as emacs-search-backward, but the search is initialised with the
+current contents of the line-edit buffer.
 
 [[history-commands]]
 === History-related commands

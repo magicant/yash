@@ -139,6 +139,8 @@ emacs-delete-horizontal-space
 emacs-just-one-space
 emacs-search-forward
 emacs-search-backward
+emacs-search-forward-current
+emacs-search-backward-current
 oldest-history
 newest-history
 return-history

@@ -194,7 +194,9 @@ extern le_command_func_T
     cmd_emacs_delete_horizontal_space, /*C*/
     cmd_emacs_just_one_space, /*C*/
     cmd_emacs_search_forward, /*C*/
-    cmd_emacs_search_backward; /*C*/
+    cmd_emacs_search_backward, /*C*/
+    cmd_emacs_search_forward_current, /*C*/
+    cmd_emacs_search_backward_current; /*C*/
 
 /* history-related commands */
 extern le_command_func_T
