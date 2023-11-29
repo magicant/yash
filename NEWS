@@ -10,6 +10,8 @@ History of Yash
   - Fixed the bug where the `emacs-capitalize-word` line-editing
     command misbehaves and possibly crashes the shell if there is no
     word following the cursor to be capitalized.
+  - Added the `emacs-search-forward-current` and
+    `emacs-search-backward-current` line-editing commands.
 
 
 ======================================================================

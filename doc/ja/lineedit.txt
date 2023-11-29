@@ -1159,6 +1159,9 @@ ifdef::basebackend-html[+++<kbd><code>\^S</code></kbd>+++]
 ifndef::basebackend-html[`\^S`]
 --
 
+emacs-search-forward-current::
+emacs-search-forward と同様ですが、現在のバッファの内容をそのまま検索キーワードとして入力済みの状態にします。
+
 emacs-search-backward::
 順方向の履歴検索を開始します。編集モードを emacs 風編集モードの検索モードに変更します。
 +
@@ -1167,6 +1170,9 @@ emacs::
 ifdef::basebackend-html[+++<kbd><code>\^R</code></kbd>+++]
 ifndef::basebackend-html[`\^R`]
 --
+
+emacs-search-backward-current::
+emacs-search-backward と同様ですが、現在のバッファの内容をそのまま検索キーワードとして入力済みの状態にします。
 
 [[history-commands]]
 === コマンド履歴関連のコマンド
