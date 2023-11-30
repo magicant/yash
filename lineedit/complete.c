@@ -484,7 +484,7 @@ void le_compdebug(const char *format, ...)
  * enabled. */
 void print_context_info(const le_context_T *ctxt)
 {
-    const char *INIT(s, NULL);
+    const char *s DUMMY_INIT(NULL);
     switch (ctxt->quote) {
         case QUOTE_NONE:    s = "none";    break;
         case QUOTE_NORMAL:  s = "normal";  break;
@@ -527,7 +527,7 @@ void print_compopt_info(const le_compopt_T *compopt)
 
     le_compdebug("target word without prefix: \"%ls\"", compopt->src);
     for (const le_comppattern_T *p = compopt->patterns; p != NULL; p = p->next){
-        const char *INIT(s, NULL);
+        const char *s DUMMY_INIT(NULL);
         switch (p->type) {
             case CPT_ACCEPT:  s = "accept";  break;
             case CPT_REJECT:  s = "reject";  break;

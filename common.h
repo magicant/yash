@@ -49,9 +49,9 @@
  * by assigning the given dummy value. When debugging is disabled, this macro
  * just leaves the variable uninitialized. */
 #ifdef NDEBUG
-# define INIT(x, dummy_initial_value) x
+# define DUMMY_INIT(dummy_initial_value)
 #else
-# define INIT(x, dummy_initial_value) x = dummy_initial_value
+# define DUMMY_INIT(dummy_initial_value) = (dummy_initial_value)
 #endif
 
 #define ARGV(i) ((wchar_t *) argv[i])

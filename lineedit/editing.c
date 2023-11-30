@@ -594,8 +594,7 @@ void exec_motion_command(size_t new_index, bool inclusive)
                 end_index - start_index);
     }
     if (mec & MEC_CASEMASK) {
-        void (*case_func)(wchar_t *, size_t);
-        INIT(case_func, 0);
+        void (*case_func)(wchar_t *, size_t) DUMMY_INIT(0);
         switch (mec & MEC_CASEMASK) {
             case MEC_UPPERCASE:
                 case_func = to_upper_case;

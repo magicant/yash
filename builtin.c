@@ -463,7 +463,7 @@ void format_option_list_entry(
     sb_ccat(buf, '\t');
 
     if (print_short_option && opt->shortopt != L'-') {
-        const char *INIT(optargmark, NULL);
+        const char *optargmark DUMMY_INIT(NULL);
         switch (opt->optarg) {
             case OPTARG_NONE:      optargmark = "";       break;
             case OPTARG_REQUIRED:  optargmark = " ...";   break;
@@ -477,7 +477,7 @@ void format_option_list_entry(
         if (print_short_option && buf->length < 10)
             sb_ccat_repeat(buf, ' ', 10 - buf->length);
 
-        const char *INIT(optargmark, NULL);
+        const char *optargmark DUMMY_INIT(NULL);
         switch (opt->optarg) {
             case OPTARG_NONE:      optargmark = "";        break;
             case OPTARG_REQUIRED:  optargmark = "=...";    break;
