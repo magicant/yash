@@ -95,11 +95,11 @@ system.
    the shell itself contains a null character, characters following
    the null character will be ignored.
  * The GCC extension keyword `__attribute__` is used in the source
-   code. When not compiled with GCC, this keyword is removed by the
-   preprocessor, so generally there is no harm. But if your compiler
-   uses this keyword for any other purpose, compilation may fail.
-   Additionally, some other identifiers starting with `_` may cause
-   compilation errors on some rare environments.
+   code. When not compiled with GCC or Clang, this keyword is removed
+   by the preprocessor, so generally there is no harm. But if your
+   compiler uses this keyword for any other purpose, compilation may
+   fail. Additionally, some other identifiers starting with `_` may
+   cause compilation errors on some rare environments.
  * Some signals are assumed to have the specific numbers:
      SIGHUP=1 SIGINT=2 SIGQUIT=3 SIGABRT=6
      SIGKILL=9 SIGALRM=14 SIGTERM=15
