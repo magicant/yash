@@ -201,6 +201,9 @@ bool shopt_le_compdebug = false;
 bool shopt_le_trimright = false;
 #endif
 
+/* If set, the history file is not re-read before each prompt.
+ * Corresponds to the --nohistreread option. */
+bool shopt_nohistreread = false;
 
 struct option_T {
     wchar_t shortopt_enable, shortopt_disable;
@@ -251,6 +254,7 @@ static const struct option_T shell_options[] = {
     { L'l', 0,    L"login",          &is_login_shell,       false, },
     { 0,    0,    L"markdirs",       &shopt_markdirs,       true, },
     { L'm', 0,    L"monitor",        &do_job_control,       true, },
+    { 0,    0,    L"nohistreread",   &shopt_nohistreread,   true, },
     { L'b', 0,    L"notify",         &shopt_notify,         true, },
 #if YASH_ENABLE_LINEEDIT
     { 0,    0,    L"notifyle",       &shopt_notifyle,       true, },

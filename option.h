@@ -60,6 +60,7 @@ extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
     shopt_le_predict, shopt_le_predictempty, shopt_le_compdebug,
     shopt_le_trimright;
 #endif
+extern _Bool shopt_nohistreread;
 
 /* Whether or not this shell process is doing job control right now. */
 #define doing_job_control_now  (do_job_control && ttyfd >= 0)

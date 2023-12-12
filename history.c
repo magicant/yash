@@ -119,6 +119,8 @@ static time_t now = (time_t) -1;
 /* If true, the history is locked, that is, readonly. */
 static bool hist_lock = false;
 
+/* Whether to re-read the history file before each prompt */
+static bool histreread = true;
 
 struct search_result_T {
     histlink_T *prev, *next;
@@ -824,7 +826,7 @@ void update_history(bool refresh)
     fpos_t pos;
     long rev;
 
-    if (histfile == NULL)
+    if ((histfile == NULL) || (!histreread))
         return;
     assert(!hist_lock);
 
@@ -966,6 +968,9 @@ void maybe_init_history(void)
         if (xwcstoul(vhistrmdup, 10, &rmdup))
             histrmdup = (rmdup <= histsize) ? rmdup : histsize;
     }
+
+    /* set `histreread' */
+    histreread = !shopt_nohistreread;
 
     update_time();
 
