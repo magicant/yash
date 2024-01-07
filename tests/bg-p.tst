@@ -72,7 +72,7 @@ __OUT__
 test_OE -e 0 'bg prints resumed job' -m
 sleep 1&
 bg >bg.out
-grep -qx '\[[[:digit:]][[:digit:]]*][[:blank:]]*sleep 1' bg.out
+grep -q '^\[[[:digit:]][[:digit:]]*][[:blank:]]*sleep 1' bg.out
 __IN__
 
 test_OE -e 0 'exit status of bg' -m
