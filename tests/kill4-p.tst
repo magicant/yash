@@ -42,32 +42,34 @@ setup 'halt() while kill -s CONT $$; do sleep 1; done'
 mkfifo fifo1 fifo2 fifo3
 
 test_oE 'sending signal to background job' -m
-(trap 'echo 1;      exit' USR1; >fifo1; halt) |
-(trap 'echo 2; cat; exit' USR1; >fifo2; halt) |
-(trap 'echo 3; cat; exit' USR1; >fifo3; halt) &
+# The subshells stop at the redirections, waiting for the unopened FIFOs.
+(>fifo1; echo not reached 1 >&2) |
+(>fifo2; echo not reached 2 >&2) |
+(>fifo3; echo not reached 3 >&2) &
 halt &
-<fifo1 <fifo2 <fifo3
-kill -s USR1 %'(trap'
-wait %'(trap'
+kill -s USR1 '%?echo'
+wait '%?echo'
+kill -l $?
 kill -s USR2 %halt
 wait %halt
 kill -l $?
 __IN__
-3
-2
-1
+USR1
 USR2
 __OUT__
 
 test_oE 'sending to multiple processes' -m
-(trap 'echo; exit' TERM; >fifo1; halt X) &
-(trap 'echo; exit' TERM; >fifo2; halt Y) &
-<fifo1 <fifo2
-kill '%?X' $!
-wait '%?X' $!
+# The subshells stop at the redirections, waiting for the unopened FIFOs.
+(>fifo1; echo not reached 1 >&2) &
+(>fifo2; echo not reached 2 >&2) &
+kill '%?fifo1' '%?fifo2'
+wait '%?fifo1'
+kill -l $?
+wait '%?fifo2'
+kill -l $?
 __IN__
-
-
+TERM
+TERM
 __OUT__
 
 )
