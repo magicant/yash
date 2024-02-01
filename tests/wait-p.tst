@@ -101,23 +101,19 @@ __IN__
 test_oE 'trap interrupts wait' -m
 interrupted=false
 trap 'interrupted=true' USR1
-(
-    set +m
-    trap 'echo received USR2; exit' USR2
-    while kill -s USR1 $$; do sleep 1; done # loop until signaled
-)&
-wait $!
+while kill -s 0 $$; do kill -s USR1 $$; done&
+# The asynchronous job should eventually interrupt the wait.
+wait
 status=$?
 echo interrupted=$interrupted $((status > 128))
 kill -l $status
-# Now, the background job should be still running.
+# Now the job should be still running. Kill it.
 kill -s USR2 %
-wait $!
+wait
 echo waited $?
 __IN__
 interrupted=true 1
 USR1
-received USR2
 waited 0
 __OUT__
 
