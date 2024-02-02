@@ -107,6 +107,7 @@ wait
 status=$?
 echo interrupted=$interrupted $((status > 128))
 kill -l $status
+trap '' USR1
 # Now the job should be still running. Kill it.
 kill -s USR2 %
 wait
