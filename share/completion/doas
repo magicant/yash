@@ -1,0 +1,36 @@
+# (C) 2024 Danie
+
+# Completion script for the "doas" command.
+# Supports opendoas
+
+function completion/doas {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "C:; parse and check the configuration file"
+        "L; clear any persisted authentications"
+        "n; non-interactive mode"
+        "s; execute shell from SHELL or /etc/passwd"
+        "u:; execute the command as user"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (C)
+                complete -P "$PREFIX" -f
+                ;;
+        (u)
+                complete -P "$PREFIX" -u
+                ;;
+        ('')
+                command -f completion//getoperands
+                command -f completion//reexecute
+                ;;
+        esac
+
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
