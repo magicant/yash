@@ -1,5 +1,6 @@
 # Yash release procedure
 
+1. Make sure all issues relevant to the release are associated with the corresponding milestone and are closed. ([Milestones])
 1. Run `make update-po` in [po] and see if there is any text that needs
    translation. If all the texts are up-to-date, revert (`git reset`) the
    change in auto- generated comments to avoid committing it.
@@ -20,6 +21,7 @@
     - Make sure the tarball includes the just committed update.
 1. Tag and push the revision.
 1. Release the tarball on GitHub. ([Releases])
+1. Close the milestone for the just-published release and create one for the next release. ([Milestones])
 1. Update [doc] on the gh-pages branch.
     - All the files should be copied intact from the [Documentation build] based
       on the [Distribution build] for the released commit.
@@ -31,6 +33,7 @@
 [Documentation build]: https://jenkins.wonderwand.net/job/yash/job/yash_doc/
 [Extra test]: https://jenkins.wonderwand.net/job/yash/job/yash_extra/
 [Full test]: https://jenkins.wonderwand.net/job/yash/job/yash_fulltest/
+[Milestones]: https://github.com/magicant/yash/milestones
 [NEWS]: NEWS
 [NEWS.ja]: NEWS.ja
 [po]: po
