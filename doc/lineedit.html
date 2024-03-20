@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 9.1.0" />
+<meta name="generator" content="AsciiDoc 10.2.0" />
 <meta name="description" content="This page describes yash's line-editing feature." />
 <title>Line-editing</title>
 <link rel="stylesheet" href="./asciidoc.css" type="text/css" />
@@ -2699,6 +2699,15 @@ emacs
 </div></div>
 </dd>
 <dt class="hdlist1">
+emacs-search-forward-current
+</dt>
+<dd>
+<p>
+The same as emacs-search-forward, but the search is initialised with the
+current contents of the line-edit buffer.
+</p>
+</dd>
+<dt class="hdlist1">
 emacs-search-backward
 </dt>
 <dd>
@@ -2719,6 +2728,15 @@ emacs
 </dd>
 </dl></div>
 </div></div>
+</dd>
+<dt class="hdlist1">
+emacs-search-backward-current
+</dt>
+<dd>
+<p>
+The same as emacs-search-backward, but the search is initialised with the
+current contents of the line-edit buffer.
+</p>
 </dd>
 </dl></div>
 </div>
@@ -4235,7 +4253,7 @@ because less probable part of the fragment is excluded from prediction.</p></div
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-05-12 01:59:06 JST
+ 2023-11-30 08:39:09 JST
 </div>
 </div>
 </body>
