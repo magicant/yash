@@ -1,5 +1,10 @@
 History of Yash
-======================================================================
+
+## Yash 2.57 (Unreleased)
+
+  - [line-editing] Fixed the spurious error message printed when
+    completing after `git config alias.` with the nounset shell option
+    enabled.
 
 ## Yash 2.56.1 (2024-03-20)
 

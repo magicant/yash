@@ -1,4 +1,4 @@
-# (C) 2011 magicant
+# (C) 2011-2024 magicant
 
 # Completion script for the "git-config" command.
 # Supports Git 1.7.7.
@@ -90,7 +90,7 @@ function completion//git::completeoptionname {
                         ;; #<<#
                 (alias.*)
                         PREFIX=${PREFIX}alias. #>>#
-                        command -f completion/git::completealias ${usesuffix+"$suffix"}
+                        command -f completion/git::completealias ${usesuffix:+"$suffix"}
                         ;;
                 (am.*)
                         PREFIX=${PREFIX}am. #>>#
