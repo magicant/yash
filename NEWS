@@ -12,6 +12,7 @@ History of Yash
     word following the cursor to be capitalized.
   - Added the `emacs-search-forward-current` and
     `emacs-search-backward-current` line-editing commands.
+  - [line-editing] Added the completion script for `doas`.
 
 
 ======================================================================
