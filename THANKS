@@ -12,3 +12,5 @@ The author thanks:
 * leath-dub, for implementing the le-trim-right option
 
 * Victorien Elvinger, for writing the completion script for pass and git-switch
+
+* DanisDGK, for the completion script for doas

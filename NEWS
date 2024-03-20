@@ -1,7 +1,7 @@
 History of Yash
 ======================================================================
 
-## Yash 2.56 (Unreleased)
+## Yash 2.56 (2024-03-20)
 
   - The shell can now open more file descriptors on Cygwin.
   - Fixed the bug where the "typeset -fp" built-in prints parameter
