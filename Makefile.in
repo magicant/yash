@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2021 magicant
+# (C) 2007-2024 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -168,7 +168,7 @@ uninstall-data:
 DISTDIR = $(TARGET)-$(VERSION)
 DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
 ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-zstd dist-shar dist-zip
-DIST_TARGETS = dist-gzip dist-xz
+DIST_TARGETS = dist-gzip dist-xz dist-zstd
 RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar
 $(DISTDIR): _PHONY
 	@+(cd po && $(MAKE) update-po)  # must be done first
