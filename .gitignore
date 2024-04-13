@@ -5,13 +5,6 @@ TAGS
 tags
 cscope.out
 
-*.1
-*.html
-*.xhtml
-*.xml
-index.txt
-yash.txt
-
 /yash
 /makesignum
 /signum.h
@@ -21,6 +14,13 @@ yash.txt
 /config.status
 
 /builtins/builtins.a
+
+/doc/**/*.1
+/doc/**/*.html
+/doc/**/*.xhtml
+/doc/**/*.xml
+/doc/**/index.txt
+/doc/**/yash.txt
 
 /lineedit/lineedit.a
 /lineedit/commands.in
