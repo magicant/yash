@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -486,10 +486,12 @@ void print_context_info(const le_context_T *ctxt)
 {
     const char *s DUMMY_INIT(NULL);
     switch (ctxt->quote) {
-        case QUOTE_NONE:    s = "none";    break;
-        case QUOTE_NORMAL:  s = "normal";  break;
-        case QUOTE_SINGLE:  s = "single";  break;
-        case QUOTE_DOUBLE:  s = "double";  break;
+        case QUOTE_NONE:            s = "none";            break;
+        case QUOTE_NORMAL:          s = "normal";          break;
+        case QUOTE_NORMAL_ESCAPED:  s = "normal escaped";  break;
+        case QUOTE_SINGLE:          s = "single";          break;
+        case QUOTE_DOUBLE:          s = "double";          break;
+        case QUOTE_DOUBLE_ESCAPED:  s = "double escaped";  break;
     }
     le_compdebug("quote type: %s", s);
     switch (ctxt->type & CTXT_MASK) {
@@ -1177,13 +1179,9 @@ size_t get_common_prefix_length(void)
  * up after this function. */
 void update_main_buffer(bool subst, bool finish)
 {
-    const le_candidate_T *cand;
-    xwcsbuf_T buf;
     size_t srclen;
     size_t substindex;
     le_quote_T quotetype;
-
-    wb_init(&buf);
     if (subst) {
         srclen = 0;
         substindex = ctxt->srcindex;
@@ -1192,8 +1190,29 @@ void update_main_buffer(bool subst, bool finish)
         srclen = wcslen(ctxt->src);
         substindex = ctxt->origindex;
         quotetype = ctxt->quote;
+
+        switch (quotetype) {
+            case QUOTE_NONE:
+            case QUOTE_NORMAL:
+            case QUOTE_SINGLE:
+            case QUOTE_DOUBLE:
+                break;
+            case QUOTE_NORMAL_ESCAPED:
+            case QUOTE_DOUBLE_ESCAPED:
+                // Get the backslash preceding the cursor removed
+                assert(substindex > 0);
+                substindex--;
+                assert(le_main_buffer.contents[substindex] == '\\');
+                break;
+        }
     }
+
+    // Quote the substring of the candidate to be inserted
+    const le_candidate_T *cand;
+    xwcsbuf_T quoted;
+    wb_init(&quoted);
     if (le_selected_candidate_index >= le_candidates.length) {
+        // No candidate selected. Quote the longest common prefix.
         size_t cpl = get_common_prefix_length();
         assert(srclen <= cpl);
         cand = le_candidates.contents[0];
@@ -1202,21 +1221,24 @@ void update_main_buffer(bool subst, bool finish)
         wchar_t value[valuelen + 1];
         wcsncpy(value, cand->origvalue + srclen, valuelen);
         value[valuelen] = L'\0';
-        quote(&buf, value, quotetype);
+        quote(&quoted, value, quotetype);
     } else {
+        // Quote the selected candidate.
         cand = le_candidates.contents[le_selected_candidate_index];
         assert(srclen <= wcslen(cand->origvalue));
         if (cand->origvalue[0] == L'\0' && quotetype == QUOTE_NORMAL)
-            wb_cat(&buf, L"\"\"");
+            wb_cat(&quoted, L"\"\"");
         else
-            quote(&buf, cand->origvalue + srclen, quotetype);
+            quote(&quoted, cand->origvalue + srclen, quotetype);
     }
+
+    // Insert the quoted candidate to the main buffer
     assert(le_main_index >= substindex);
     wb_replace_force(&le_main_buffer,
             substindex, le_main_index - substindex,
-            buf.contents, buf.length);
-    le_main_index = substindex + buf.length;
-    wb_destroy(&buf);
+            quoted.contents, quoted.length);
+    le_main_index = substindex + quoted.length;
+    wb_destroy(&quoted);
 
     if (le_selected_candidate_index >= le_candidates.length)
         return;
@@ -1227,11 +1249,13 @@ void update_main_buffer(bool subst, bool finish)
     switch (quotetype) {
         case QUOTE_NONE:
         case QUOTE_NORMAL:
+        case QUOTE_NORMAL_ESCAPED:
             break;
         case QUOTE_SINGLE:
             insert_to_main_buffer(L'\'');
             break;
         case QUOTE_DOUBLE:
+        case QUOTE_DOUBLE_ESCAPED:
             insert_to_main_buffer(L'"');
             break;
     }
@@ -1331,6 +1355,7 @@ void quote(xwcsbuf_T *restrict buf,
             wb_cat(buf, s);
             return;
         case QUOTE_NORMAL:
+        case QUOTE_NORMAL_ESCAPED:
             for (size_t i = 0; s[i] != L'\0'; i++) {
                 if (s[i] == L'\n') {
                     wb_ncat_force(buf, L"'\n'", 3);
@@ -1350,6 +1375,7 @@ void quote(xwcsbuf_T *restrict buf,
             }
             return;
         case QUOTE_DOUBLE:
+        case QUOTE_DOUBLE_ESCAPED:
             for (size_t i = 0; s[i] != L'\0'; i++) {
                 if (wcschr(CHARS_ESCAPABLE, s[i]) != NULL)
                     wb_wccat(buf, L'\\');

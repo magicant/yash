@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.h: command line completion */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,8 +64,10 @@ typedef struct le_candidate_T {
 typedef enum le_quote_T {
     QUOTE_NONE,    // no quotation required
     QUOTE_NORMAL,  // not in single/double quotation; backslashes can be used
+    QUOTE_NORMAL_ESCAPED,  // like QUOTE_NORMAL, but the cursor is backslashed
     QUOTE_SINGLE,  // in single quotation
     QUOTE_DOUBLE,  // in double quotation
+    QUOTE_DOUBLE_ESCAPED,  // like QUOTE_DOUBLE, but the cursor is backslashed
 } le_quote_T;
 typedef enum le_contexttype_T {
     CTXT_NORMAL,             // normal word

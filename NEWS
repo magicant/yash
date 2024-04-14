@@ -5,6 +5,9 @@ History of Yash
   - [line-editing] Fixed the spurious error message printed when
     completing after `git config alias.` with the nounset shell option
     enabled.
+  - [line-editing] Completion no longer inserts a redundant backslash
+    to escape a character included in the completed word
+    when the cursor follows another backslash.
 
 ## Yash 2.56.1 (2024-03-20)
 

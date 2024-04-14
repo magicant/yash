@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -618,7 +618,8 @@ cparse_word:
             return NULL;
 
     wordunit_T *first = NULL, **lastp = &first;
-    bool indq = false;   /* in double quotes? */
+    bool indq = false;     /* in double quotes? */
+    bool escaped = false;  /* after a backslash? */
     size_t startindex = INDEX;
     size_t srcindex = le_main_index - (LEN - INDEX);
 
@@ -638,11 +639,14 @@ cparse_word:
         case L'\0':
             goto done;
         case L'\\':
-            if (BUF[INDEX + 1] != L'\0') {
+            if (BUF[INDEX + 1] == L'\0') {
+                escaped = true;
+                INDEX += 1;
+                goto done;
+            } else {
                 INDEX += 2;
                 continue;
             }
-            break;
         case L'$':
             MAKE_WORDUNIT_STRING;
             wu = cparse_special_word_unit(
@@ -701,7 +705,9 @@ done:
         assert(first != NULL);
         return first;
     } else {
-        pi->ctxt->quote = indq ? QUOTE_DOUBLE : QUOTE_NORMAL;
+        pi->ctxt->quote = indq ?
+            escaped ? QUOTE_DOUBLE_ESCAPED : QUOTE_DOUBLE :
+            escaped ? QUOTE_NORMAL_ESCAPED : QUOTE_NORMAL;
         goto finish;
     }
 
