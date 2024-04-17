@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,14 +238,13 @@ inputresult_T optimized_read_input(
 inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
 {
     struct input_interactive_info_T *info = inputinfo;
-    struct promptset_T prompt;
-
     if (info->prompttype == 1) {
         if (!posixly_correct)
             exec_variable_as_auxiliary_(VAR_PROMPT_COMMAND);
         check_mail();
     }
-    prompt = get_prompt(info->prompttype);
+
+    struct promptset_T prompt = get_prompt(info->prompttype);
     if (do_job_control)
         print_job_status_all();
     /* Note: no commands must be executed between `print_job_status_all' here
@@ -253,25 +252,22 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
      * `handle_sigchld' must not be called from any other function until it is
      * called from `wait_for_input' during the line-editing. */
 
+    wchar_t *line;
+    inputresult_T result;
+
 #if YASH_ENABLE_LINEEDIT
     /* read a line using line editing */
     if (info->fileinfo->fd == STDIN_FILENO
             && shopt_lineedit != SHOPT_NOLINEEDIT) {
-        wchar_t *line;
-        inputresult_T result;
-
         result = le_readline(prompt, true, &line);
-        if (result != INPUT_ERROR) {
-            free_prompt(prompt);
-            if (result == INPUT_OK) {
-                if (info->prompttype == 1)
-                    info->prompttype = 2;
-#if YASH_ENABLE_HISTORY
-                add_history(line);
-#endif
-                wb_catfree(buf, line);
-            }
-            return result;
+        switch (result) {
+            case INPUT_OK:
+                goto success;
+            case INPUT_EOF:
+            case INPUT_INTERRUPTED:
+                goto done;
+            case INPUT_ERROR:
+                break; // Line-editing unavailable. Fall back to plain input.
         }
     }
 #endif /* YASH_ENABLE_LINEEDIT */
@@ -279,21 +275,27 @@ inputresult_T input_interactive(struct xwcsbuf_T *buf, void *inputinfo)
     /* read a line without line editing */
     print_prompt(prompt.main);
     print_prompt(prompt.styler);
-    if (info->prompttype == 1)
-        info->prompttype = 2;
 
-    int result;
-#if YASH_ENABLE_HISTORY
-    size_t oldlen = buf->length;
-#endif
-    result = input_file(buf, info->fileinfo);
+    xwcsbuf_T linebuf;
+    wb_init(&linebuf);
+    result = input_file(&linebuf, info->fileinfo);
+    line = wb_towcs(&linebuf);
 
     print_prompt(PROMPT_RESET);
-    free_prompt(prompt);
 
-#if YASH_ENABLE_HISTORY
-    add_history(buf->contents + oldlen);
+#if YASH_ENABLE_LINEEDIT
+success:
 #endif
+    if (info->prompttype == 1)
+        info->prompttype = 2;
+#if YASH_ENABLE_HISTORY
+    add_history(line);
+#endif
+    wb_catfree(buf, line);
+#if YASH_ENABLE_LINEEDIT
+done:
+#endif
+    free_prompt(prompt);
     return result;
 }
 
