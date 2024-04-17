@@ -64,6 +64,8 @@ static wchar_t *expand_ps1_posix(wchar_t *s)
     __attribute__((nonnull,malloc,warn_unused_result));
 static inline wchar_t get_euid_marker(void)
     __attribute__((pure));
+static wchar_t *post_prompt_command(wchar_t *line)
+    __attribute__((nonnull,malloc,warn_unused_result));
 
 /* An input function that inputs from a wide string.
  * `inputinfo' must be a pointer to a `struct input_wcs_info_T'.
@@ -288,6 +290,8 @@ success:
 #endif
     if (info->prompttype == 1)
         info->prompttype = 2;
+    if (!posixly_correct)
+        line = post_prompt_command(line);
 #if YASH_ENABLE_HISTORY
     add_history(line);
 #endif
@@ -479,6 +483,39 @@ done:
 wchar_t get_euid_marker(void)
 {
     return geteuid() == 0 ? L'#' : L'$';
+}
+
+/* Executes $POST_PROMPT_COMMAND, if any.
+ * `line' is the just input command line, which will be assigned to $COMMAND
+ * during the execution. The post-prompt command may modify or unset the
+ * variable. The final value of the variable is returned as a newly malloced
+ * string. `line' is freed in this function. */
+wchar_t *post_prompt_command(wchar_t *line)
+{
+    // If `line` ends with a newline, trim it here and append it back later.
+    size_t linelen = wcslen(line);
+    bool newline = linelen > 0 && line[linelen - 1] == L'\n';
+    if (newline)
+        line[linelen - 1] = L'\0';
+
+    open_new_environment(false);
+    set_positional_parameters((void *[]) { NULL });
+    set_variable(L VAR_COMMAND, line, SCOPE_LOCAL, false);
+
+    exec_variable_as_auxiliary_(VAR_POST_PROMPT_COMMAND);
+    const wchar_t *c = getvar(L VAR_COMMAND);
+    if (c == NULL)
+        c = L"";
+
+    xwcsbuf_T linebuf;
+    wb_init(&linebuf);
+    wb_cat(&linebuf, c);
+    if (newline)
+        wb_wccat(&linebuf, L'\n');
+
+    close_current_environment();
+
+    return wb_towcs(&linebuf);
 }
 
 /* Unsets O_NONBLOCK flag of the specified file descriptor.

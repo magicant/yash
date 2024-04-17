@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ extern char **environ;
 /* variable names */
 #define VAR_CDPATH                    "CDPATH"
 #define VAR_COLUMNS                   "COLUMNS"
+#define VAR_COMMAND                   "COMMAND"
 #define VAR_COMMAND_NOT_FOUND_HANDLER "COMMAND_NOT_FOUND_HANDLER"
 #define VAR_DIRSTACK                  "DIRSTACK"
 #define VAR_ECHO_STYLE                "ECHO_STYLE"
@@ -57,6 +58,7 @@ extern char **environ;
 #define VAR_OPTARG                    "OPTARG"
 #define VAR_OPTIND                    "OPTIND"
 #define VAR_PATH                      "PATH"
+#define VAR_POST_PROMPT_COMMAND       "POST_PROMPT_COMMAND"
 #define VAR_PPID                      "PPID"
 #define VAR_PROMPT_COMMAND            "PROMPT_COMMAND"
 #define VAR_PS1                       "PS1"

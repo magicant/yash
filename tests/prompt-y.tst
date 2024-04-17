@@ -102,6 +102,14 @@ $
 $ 
 __ERR__
 
+test_Oe 'POST_PROMPT_COMMAND is ignored in POSIX mode' -i +m
+POST_PROMPT_COMMAND='echo not printed'; echo >&2
+echo >&2; exit
+__IN__
+$ 
+$ 
+__ERR__
+
 )
 
 test_e 'YASH_PSx precedes PSx (non-POSIX)' -i +m
@@ -192,6 +200,34 @@ $
 1$ > 0
 123$ 1
 __ERR__
+
+test_oe 'value of $COMMAND in post-prompt command' -i +m
+POST_PROMPT_COMMAND='printf "[%s]\n" "$COMMAND" >&2'
+echo foo\
+bar; exit
+__IN__
+foobar
+__OUT__
+$ $ [echo foo\]
+> [bar; exit]
+__ERR__
+
+test_o 'modifying $COMMAND in post-prompt command' -i +m
+POST_PROMPT_COMMAND='COMMAND="$COMMAND; echo post"'
+echo foo
+exit
+__IN__
+foo
+post
+__OUT__
+
+test_O 'unsetting $COMMAND in post-prompt command' -i +m
+POST_PROMPT_COMMAND='if [ "$COMMAND" != exit ]; then unset COMMAND; fi'
+echo foo\
+bar
+exit
+echo not reached
+__IN__
 
 test_e '\$ in PS1 and PS2 (non-root)' -i +m
 PS1='\$ ' PS2='\$_'; echo >&2
