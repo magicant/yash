@@ -134,6 +134,7 @@ link:syntax.html#for[For ループ]が{zwsp}link:exec.html#function[関数]の�
 [[so-traceall]]trace-all::
 このオプションは、補助コマンド実行中も <<so-xtrace,x-trace オプション>>を機能させるかどうかを指定します。補助コマンドとは、
 link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+]、
+link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+]、
 link:params.html#sv-prompt_command[+PROMPT_COMMAND+]、および
 link:params.html#sv-yash_after_cd[+YASH_AFTER_CD+]
 変数の値として定義され、特定のタイミングで解釈・実行されるコマンドです。

@@ -178,9 +178,16 @@ variables can be defined with a name prefixed with +YASH_+ (e.g.
 link:params.html#sv-yash_ps1[+YASH_PS1+]). This allows using a different
 prompt string than that in the POSIXly-correct mode.
 
-When the shell is not in the link:posix.html[POSIXly-correct mode],
-the value of the link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable]
-is executed before each prompt.
+When the shell is not in the link:posix.html[POSIXly-correct mode]:
+
+- The value of the link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable]
+  is executed before each prompt.
+- The value of the
+  link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+ variable] is
+  executed after each line is input. While the execution, the
+  link:params.html#sv-command[+COMMAND+ variable] is set to the just input
+  line. You can even modify the variable to manipulate the command to be
+  executed. If you unset the variable, the command will not be executed.
 
 [[history]]
 == Command history

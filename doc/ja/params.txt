@@ -82,6 +82,10 @@ dfn:[変数]とはユーザが自由に代入可能なパラメータです。�
 [[sv-columns]]+COLUMNS+::
 この変数は端末ウィンドウの横幅 (文字数) を指定します。この変数が設定されている場合、デフォルトの横幅ではなくこの変数の値で指定された横幅が{zwsp}link:lineedit.html[行編集]で使われます。
 
+[[sv-command]]+COMMAND+::
+<<sv-post_prompt_command,+POST_PROMPT_COMMAND+>> 変数が実行される間、この変数は直前に入力されたコマンドを示します。
++POST_PROMPT_COMMAND+ の実行が終わるとこの変数は消去されます。
+
 [[sv-command_not_found_handler]]+COMMAND_NOT_FOUND_HANDLER+::
 シェルが実行しようとしたコマンドが見つからなかったとき、この変数の値がコマンドとして実行されます。不明なコマンドを実行したときに何か別のコマンドを実行させたい時に便利です。{zwsp}link:exec.html#simple[単純コマンドの実行]を参照。
 +
@@ -163,11 +167,14 @@ link:_getopts.html[Getopts 組込みコマンド]で引数付きのオプショ�
 [[sv-path]]+PATH+::
 この変数は、{zwsp}link:exec.html#search[コマンドの検索時]にコマンドのありかを示すパスを指定します。
 
+[[sv-post_prompt_command]]+POST_PROMPT_COMMAND+::
+link:posix.html[POSIX 準拠モード]でない{zwsp}link:interact.html[対話モード]のシェルにおいて、シェルがコマンドを一行読み込むたびに、この変数の値がコマンドとして解釈・実行されます。詳細は{zwsp}link:interact.html#prompt[プロンプト]を参照してください。
+
 [[sv-ppid]]+PPID+::
 この変数の値は、シェルの親プロセスのプロセス ID を表す正の整数です。この変数はシェルの起動時に初期化されます。この変数の値は{zwsp}link:exec.html#subshell[サブシェル]においても変わりません。
 
 [[sv-prompt_command]]+PROMPT_COMMAND+::
-link:posix.html[POSIX 準拠モード]でない{zwsp}link:interact.html[対話モード]のシェルにおいて、シェルが各コマンドのプロンプトを出す直前に、この変数の値がコマンドとして解釈・実行されます。これは、プロンプトを出す直前に毎回
+link:posix.html[POSIX 準拠モード]でない{zwsp}link:interact.html[対話モード]のシェルにおいて、シェルが各コマンドの{zwsp}link:interact.html#prompt[プロンプト]を出す直前に、この変数の値がコマンドとして解釈・実行されます。これは、プロンプトを出す直前に毎回
 ifdef::basebackend-html[]
 pass:[<code><a href="_eval.html">eval</a> -i -- "${PROMPT_COMMAND-}"</code>]
 endif::basebackend-html[]

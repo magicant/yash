@@ -145,6 +145,11 @@ This variable specifies the width (the number of character columns) of the
 terminal screen. The value affects the display of
 link:lineedit.html[line-editing].
 
+[[sv-command]]+COMMAND+::
+While a <<sv-post_prompt_command,post-prompt command>> is being executed,
+this variable is set to the just input command line. It will be unset after
+the post-prompt command finishes.
+
 [[sv-command_not_found_handler]]+COMMAND_NOT_FOUND_HANDLER+::
 When the shell cannot find a command to be executed,
 the value of this variable is interpreted and executed instead.
@@ -284,6 +289,12 @@ This variable is initialized to +1+ when the shell is started.
 This variable specifies paths that are searched for a command in
 link:exec.html#search[command search].
 
+[[sv-post_prompt_command]]+POST_PROMPT_COMMAND+::
+The shell interprets and executes the value of this variable after reading
+each command if the shell is link:interact.html[interactive] and not in
+the link:posix.html[POSIXly-correct mode].
+See link:interact.html#prompt[Prompts] for details.
+
 [[sv-ppid]]+PPID+::
 The value of this variable is the process ID of the shell's parent process,
 which is a positive integer.
@@ -293,7 +304,7 @@ link:exec.html#subshell[subshell].
 
 [[sv-prompt_command]]+PROMPT_COMMAND+::
 The shell interprets and executes the value of this variable before printing
-each command prompt if the shell is link:interact.html[interactive] and not in
+each command link:interact.html#prompt[prompt] if the shell is link:interact.html[interactive] and not in
 the link:posix.html[POSIXly-correct mode].
 This behavior is equivalent to executing the command
 ifdef::basebackend-html[]

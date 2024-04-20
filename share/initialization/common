@@ -199,6 +199,7 @@ export SHLVL
 # initialize event handlers
 COMMAND_NOT_FOUND_HANDLER=()
 PROMPT_COMMAND=()
+POST_PROMPT_COMMAND=()
 YASH_AFTER_CD=()
 
 # define prompt

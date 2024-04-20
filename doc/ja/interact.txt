@@ -98,7 +98,10 @@ link:lineedit.html#prediction[コマンドライン推定]を使用している�
 
 link:posix.html[POSIX 準拠モード]でないときは、上記の変数は名前に +YASH_+ を付けた名前 (例えば link:params.html#sv-yash_ps1[+YASH_PS1+]) で定義することもできます。これにより、POSIX 準拠モードとは異なるプロンプトを使い分けることができます。
 
-link:posix.html[POSIX 準拠モード]でないときは、プロンプトを出す前に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]の値がコマンドとして実行されます。
+link:posix.html[POSIX 準拠モード]でないときは、以下の変数が評価されます。
+
+- プロンプトを出す前に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]の値がコマンドとして実行されます。
+- コマンドが一行分入力されるたびに link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+ 変数]の値がコマンドとして実行されます。実行中は入力されたコマンドが link:params.html#sv-command[+COMMAND+ 変数]に代入されます。この変数の値を変更することで実行されるコマンドを改変することもできます。変数を削除するとコマンドは実行されません。
 
 [[history]]
 == コマンド履歴

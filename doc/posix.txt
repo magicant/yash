@@ -87,8 +87,9 @@ When the POSIXly-correct mode is enabled:
   arguments or when an error occurs in assignment or redirection with a
   special built-in.
 - An link:interact.html[interactive] shell does not execute the
-  link:params.html#sv-prompt_command[+PROMPT_COMMAND+ variable] before
-  printing a prompt.
+  link:params.html#sv-prompt_command[+PROMPT_COMMAND+] or
+  link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+ variable]
+  before and after a prompt, respectively.
   The values of the link:params.html#sv-ps1[+PS1+],
   link:params.html#sv-ps2[+PS2+], and link:params.html#sv-ps4[+PS4+] variables
   are parsed differently.
