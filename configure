@@ -489,7 +489,7 @@ checking 'whether make supports include statements'
 if
     cat >"${temptxt}" <<END
 _TEST_:
-        @echo >/dev/null
+	@echo >/dev/null
 END
     checkby eval "${MAKE-make} -f - _TEST_ <<END
 .POSIX:
@@ -509,7 +509,7 @@ checking 'whether make sets $SHELL macro'
 checkby eval "SHELL=false ${MAKE-make} -f - <<END
 .POSIX:
 _TEST_:
-        \\\$(SHELL) -c :
+	\\\$(SHELL) -c :
 END
 "
 checked
