@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -686,7 +686,11 @@ done1:
     plfree(argv, free);
 done:
     if (finally_exit)
-        exit_shell();
+        /* If we're running the EXIT trap and the simple command failed with a
+         * shell error, we should exit with the current exit status indicating
+         * the error rather than the exit status saved just before entering the
+         * EXIT trap, so... */
+        exit_shell_with_status(laststatus); // rather than: exit_shell();
 }
 
 /* Executes the simple command that has no expanded words.

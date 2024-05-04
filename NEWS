@@ -4,6 +4,9 @@ History of Yash
 
   - Added support for the "$POST_PROMPT_COMMAND" variable, whose value
     is executed after reading a command line in the interactive shell.
+  - If the shell exits because of a shell error during the EXIT trap,
+    the shell now returns the exit status of the error rather than that
+    of the last command before the EXIT trap.
   - [line-editing] Fixed the spurious error message printed when
     completing after `git config alias.` with the nounset shell option
     enabled.
