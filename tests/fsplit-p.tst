@@ -10,17 +10,14 @@ __IN__
 ]
 __OUT__
 
-(
-export IFS=X
-
 test_o 'default IFS (overriding environment variable)'
+IFS=X $TESTEE <<\__INNER__
 printf "[%s]\n" "$IFS"
+__INNER__
 __IN__
 [ 	
 ]
 __OUT__
-
-)
 
 test_oE -e 0 'field splitting applies to results of expansions'
 IFS=' 0' a='1 2'
