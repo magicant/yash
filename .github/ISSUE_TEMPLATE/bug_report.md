@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+<!--
+Before you file a bug report, please try troubleshooting the issue in the Discussions forum first. Also, ensure that it’s an actual bug in the shell and not a ‘gotcha’ caused by misconfiguration or misunderstanding.
+-->
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
@@ -18,7 +22,7 @@ Steps to reproduce the behavior:
 4. See error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+A clear and concise description of what you expected to happen, and why you expected it.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
