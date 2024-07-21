@@ -36,9 +36,6 @@ testcase "$LINENO" -e 2 'options -c and -s are mutually exclusive (-o)' \
 $testee: the -c option cannot be used with the -s option
 __ERR__
 
-test_O -d -e 127 'reading non-existing file' ./_no_such_file_
-__IN__
-
 (
 unset YASH_LOADPATH
 

@@ -115,6 +115,9 @@ __OUT__
 
 )
 
+test_O -d -e 127 'reading non-existing file' ./_no_such_file_
+__IN__
+
 (
 input=input$LINENO
 >"$input"
