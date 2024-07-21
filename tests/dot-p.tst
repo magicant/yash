@@ -37,6 +37,13 @@ in
 out
 __OUT__
 
+test_e 'with verbose option' -v
+. ./file3
+__IN__
+. ./file3
+exit 11
+__ERR__
+
 (
 # Ensure $PWD is safe to assign to $PATH
 case $PWD in (*[:%]*)

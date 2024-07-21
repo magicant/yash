@@ -9,7 +9,7 @@ if [ "$(uname)" = Darwin ]; then
     # built-in is called in a subshell on macOS, using the SIGCHLD signal as a
     # synchronization trigger.
     setup <<\__EOF__
-killx() (command kill "$@")
+killx() (((command kill "$@"); :); :)
 alias kill=killx
 __EOF__
 fi
