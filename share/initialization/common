@@ -268,6 +268,48 @@ if [ "$_tsl" ] && [ "$_fsl" ]; then
 
 fi
 
+# support VS Code shell integration
+if [ "${TERM_PROGRAM-}" = vscode ]; then
+
+  # wrap the prompt with markers
+  YASH_PS1="\[\e]633;A\e\\\\\]$YASH_PS1\[\e]633;B\e\\\\\]"
+  YASH_PS1R="\[\e]633;A\e\\\\\]$YASH_PS1R\[\e]633;B\e\\\\\]"
+  YASH_PS2="\[\e]633;A\e\\\\\]$YASH_PS2\[\e]633;B\e\\\\\]"
+
+  # notify the terminal before executing a command
+  _send_cmdline() {
+    # Following the pre-execution mark, we also print the command line content
+    # so the terminal can receive the correct command especially in the presence
+    # of the right prompt. Some characters need to be escaped, so we print them
+    # one by one.
+    printf '\033]633;C\033\\\033]633;E;'
+    typeset cmd="$COMMAND"
+    while [ "$cmd" ]; do
+      case "${cmd[1]}" in
+        (';'|[-' '])
+          printf '\\x%.2X' "'${cmd[1]}"
+          ;;
+        (\\)
+          printf '\\\\'
+          ;;
+        (*)
+          printf %c "${cmd[1]}"
+          ;;
+      esac
+      cmd=${cmd[2,-1]}
+    done
+    printf '\033\\'
+  }
+  POST_PROMPT_COMMAND=("$POST_PROMPT_COMMAND" _send_cmdline)
+
+  # notify the terminal after executing a command
+  _send_exit_status() {
+    printf '\033]633;D;%d\033\\' "$?"
+  }
+  PROMPT_COMMAND=("$PROMPT_COMMAND" _send_exit_status)
+
+fi
+
 # define function that updates $_vcs_info and $_vcs_root
 _update_vcs_info() {
   typeset type branch

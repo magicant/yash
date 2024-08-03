@@ -1,4 +1,4 @@
-History of Yash
+# History of Yash
 
 ## Yash 2.57 (Unreleased)
 
@@ -13,6 +13,8 @@ History of Yash
   - [line-editing] Completion no longer inserts a redundant backslash
     to escape a character included in the completed word
     when the cursor follows another backslash.
+  - Updated the sample initialization script (yashrc):
+    - Added setup for VS Code shell integration.
 
 ## Yash 2.56.1 (2024-03-20)
 
