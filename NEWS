@@ -1,6 +1,6 @@
 # History of Yash
 
-## Yash 2.57 (Unreleased)
+## Yash 2.57 (2024-08-04)
 
   - Added support for the "$POST_PROMPT_COMMAND" variable, whose value
     is executed after reading a command line in the interactive shell.
