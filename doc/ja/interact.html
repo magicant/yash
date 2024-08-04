@@ -424,7 +424,19 @@ SIGINT, SIGTERM, SIGQUIT シグナルを受けても、シェルは終了しま�
 <div class="paragraph"><p>また、プロンプトのフォントだけでなく、入力するコマンドのフォントを変えることもできます。&#8203;<a href="params.html#sv-ps1s"><code>PS1S</code></a> (または <a href="params.html#sv-ps2s"><code>PS2S</code></a>) 変数に上述のフォントを指定するシーケンスを指定することで、コマンド入力時のコマンドのフォントが変わります。
 <a href="lineedit.html#prediction">コマンドライン推定</a>を使用している場合は、推定された部分のフォントを <a href="params.html#sv-ps1p"><code>PS1P</code></a> (または <a href="params.html#sv-ps2p"><code>PS2P</code></a>) 変数で変えられます。</p></div>
 <div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>でないときは、上記の変数は名前に <code>YASH_</code> を付けた名前 (例えば <a href="params.html#sv-yash_ps1"><code>YASH_PS1</code></a>) で定義することもできます。これにより、POSIX 準拠モードとは異なるプロンプトを使い分けることができます。</p></div>
-<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>でないときは、プロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値がコマンドとして実行されます。</p></div>
+<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>でないときは、以下の変数が評価されます。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+プロンプトを出す前に <a href="params.html#sv-prompt_command"><code>PROMPT_COMMAND</code> 変数</a>の値がコマンドとして実行されます。
+</p>
+</li>
+<li>
+<p>
+コマンドが一行分入力されるたびに <a href="params.html#sv-post_prompt_command"><code>POST_PROMPT_COMMAND</code> 変数</a>の値がコマンドとして実行されます。実行中は入力されたコマンドが <a href="params.html#sv-command"><code>COMMAND</code> 変数</a>に代入されます。この変数の値を変更することで実行されるコマンドを改変することもできます。変数を削除するとコマンドは実行されません。
+</p>
+</li>
+</ul></div>
 </div>
 </div>
 <div class="sect1">
@@ -473,7 +485,7 @@ SIGINT, SIGTERM, SIGQUIT シグナルを受けても、シェルは終了しま�
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2024-04-20 22:53:39 JST
  更新
 </div>
 </div>

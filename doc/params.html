@@ -226,6 +226,16 @@ terminal screen. The value affects the display of
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-command"></a><code>COMMAND</code>
+</dt>
+<dd>
+<p>
+While a <a href="#sv-post_prompt_command">post-prompt command</a> is being executed,
+this variable is set to the just input command line. It will be unset after
+the post-prompt command finishes.
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-command_not_found_handler"></a><code>COMMAND_NOT_FOUND_HANDLER</code>
 </dt>
 <dd>
@@ -483,6 +493,17 @@ This variable specifies paths that are searched for a command in
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-post_prompt_command"></a><code>POST_PROMPT_COMMAND</code>
+</dt>
+<dd>
+<p>
+The shell interprets and executes the value of this variable after reading
+each command if the shell is <a href="interact.html">interactive</a> and not in
+the <a href="posix.html">POSIXly-correct mode</a>.
+See <a href="interact.html#prompt">Prompts</a> for details.
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-ppid"></a><code>PPID</code>
 </dt>
 <dd>
@@ -500,7 +521,7 @@ The value is not changed when the shell makes a new
 <dd>
 <p>
 The shell interprets and executes the value of this variable before printing
-each command prompt if the shell is <a href="interact.html">interactive</a> and not in
+each command <a href="interact.html#prompt">prompt</a> if the shell is <a href="interact.html">interactive</a> and not in
 the <a href="posix.html">POSIXly-correct mode</a>.
 This behavior is equivalent to executing the command
 <code><a href="_eval.html">eval</a> -i -- "${PROMPT_COMMAND-}"</code>
@@ -766,7 +787,7 @@ a concatenation of all the array values, each separated by a colon.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2024-04-20 22:53:39 JST
 </div>
 </div>
 </body>

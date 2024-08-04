@@ -154,6 +154,15 @@
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-command"></a><code>COMMAND</code>
+</dt>
+<dd>
+<p>
+<a href="#sv-post_prompt_command"><code>POST_PROMPT_COMMAND</code></a> 変数が実行される間、この変数は直前に入力されたコマンドを示します。
+<code>POST_PROMPT_COMMAND</code> の実行が終わるとこの変数は消去されます。
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-command_not_found_handler"></a><code>COMMAND_NOT_FOUND_HANDLER</code>
 </dt>
 <dd>
@@ -355,6 +364,14 @@ POSIX によるとこの変数の値はロケール依存のメッセージデ�
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-post_prompt_command"></a><code>POST_PROMPT_COMMAND</code>
+</dt>
+<dd>
+<p>
+<a href="posix.html">POSIX 準拠モード</a>でない&#8203;<a href="interact.html">対話モード</a>のシェルにおいて、シェルがコマンドを一行読み込むたびに、この変数の値がコマンドとして解釈・実行されます。詳細は&#8203;<a href="interact.html#prompt">プロンプト</a>を参照してください。
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-ppid"></a><code>PPID</code>
 </dt>
 <dd>
@@ -367,7 +384,7 @@ POSIX によるとこの変数の値はロケール依存のメッセージデ�
 </dt>
 <dd>
 <p>
-<a href="posix.html">POSIX 準拠モード</a>でない&#8203;<a href="interact.html">対話モード</a>のシェルにおいて、シェルが各コマンドのプロンプトを出す直前に、この変数の値がコマンドとして解釈・実行されます。これは、プロンプトを出す直前に毎回
+<a href="posix.html">POSIX 準拠モード</a>でない&#8203;<a href="interact.html">対話モード</a>のシェルにおいて、シェルが各コマンドの&#8203;<a href="interact.html#prompt">プロンプト</a>を出す直前に、この変数の値がコマンドとして解釈・実行されます。これは、プロンプトを出す直前に毎回
 <code><a href="_eval.html">eval</a> -i -- "${PROMPT_COMMAND-}"</code>
 というコマンドが実行されるのと同じですが、このコマンドの実行結果は次のコマンドでの <code>?</code> 特殊パラメータの値には影響しません。
 </p>
@@ -564,7 +581,7 @@ POSIX によるとこの変数の値はロケール依存のメッセージデ�
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2024-04-20 22:53:39 JST
  更新
 </div>
 </div>
