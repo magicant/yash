@@ -1,5 +1,6 @@
 ##### Sample Yashrc #####
-# This is a sample initialization script for yash. Copy this file to ~/.yashrc
+# This is a sample initialization script for yash. Copy this file to
+# $XDG_CONFIG_HOME/yash/rc or ~/.yashrc
 # and add your favorite customization to it.
 
 

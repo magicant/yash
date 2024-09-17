@@ -69,6 +69,7 @@ extern char **environ;
 #define VAR_TARGETWORD                "TARGETWORD"
 #define VAR_TERM                      "TERM"
 #define VAR_WORDS                     "WORDS"
+#define VAR_XDG_CONFIG_HOME           "XDG_CONFIG_HOME"
 #define VAR_YASH_AFTER_CD             "YASH_AFTER_CD"
 #define VAR_YASH_LE_TIMEOUT           "YASH_LE_TIMEOUT"
 #define VAR_YASH_LOADPATH             "YASH_LOADPATH"

@@ -57,7 +57,7 @@ static struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     __attribute__((malloc,warn_unused_result));
 static void execute_profile(const wchar_t *profile);
 static void execute_rcfile(const wchar_t *rcfile);
-static bool execute_file_in_home(const wchar_t *path)
+static bool execute_file_in(const wchar_t *dir_var_name, const wchar_t *path)
     __attribute__((nonnull));
 static bool execute_file(const wchar_t *path);
 static bool execute_file_mbs(const char *path);
@@ -256,20 +256,33 @@ struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
     return info;
 }
 
-/* Executes "$HOME/.yash_profile". */
+/* Executes "$XDG_CONFIG_HOME/yash/profile", "$HOME/.config/yash/profile" or
+ * "$HOME/.yash_profile" as a fallback.
+ */
 void execute_profile(const wchar_t *profile)
 {
-    if (profile != NULL)
+    if (profile != NULL) {
         execute_file(profile);
-    else
-        execute_file_in_home(L".yash_profile");
+        return;
+    }
+
+    if (execute_file_in(L VAR_XDG_CONFIG_HOME, L"yash/profile"))
+        return;
+
+    if (execute_file_in(L VAR_HOME, L".config/yash/profile"))
+        return;
+
+    execute_file_in(L VAR_HOME, L".yash_profile");
+
 }
 
-/* Executes the initialization file.
- * `rcfile' is the filename to source.
- * If `rcfile' is NULL, it defaults to "$HOME/.yashrc" and if the file cannot be
- * read it falls back to "initialization/default" from $YASH_LOADPATH.
- * In the POSIXly-correct mode, `rcfile' is ignored and "$ENV" is used. */
+
+/* Executes the initialization file. `rcfile' is the filename to source.
+ * If `rcfile' is NULL, defaults to "$XDG_CONFIG_HOME/yash/rc",
+ * "~/.config/yash/rc", or "~/.yashrc" as a fallback and * finally if the file
+ * cannot * be read it falls back to "initialization/default" * from
+ * $YASH_LOADPATH. * In the POSIXly-correct mode, `rcfile' is ignored and * "$ENV"
+ * is used. */
 void execute_rcfile(const wchar_t *rcfile)
 {
     if (posixly_correct) {
@@ -286,7 +299,14 @@ void execute_rcfile(const wchar_t *rcfile)
         execute_file(rcfile);
         return;
     }
-    if (execute_file_in_home(L".yashrc"))
+
+    if (execute_file_in(L VAR_XDG_CONFIG_HOME, L"yash/rc"))
+        return;
+
+    if (execute_file_in(L VAR_HOME, L".config/yash/rc"))
+        return;
+
+    if (execute_file_in(L VAR_HOME, L".yashrc"))
         return;
 
     char *path = which("initialization/default", get_path_array(PA_LOADPATH),
@@ -296,15 +316,15 @@ void execute_rcfile(const wchar_t *rcfile)
 }
 
 /* Executes the specified file. The `path' must be relative to $HOME. */
-bool execute_file_in_home(const wchar_t *path)
+bool execute_file_in(const wchar_t *dir_var_name, const wchar_t *path)
 {
-    const wchar_t *home = getvar(L VAR_HOME);
-    if (home == NULL || home[0] == L'\0')
+    const wchar_t *directory = getvar(dir_var_name);
+    if (directory == NULL || directory[0] == L'\0')
         return false;
 
     xwcsbuf_T fullpath;
-    wb_initwithmax(&fullpath, add(add(wcslen(home), wcslen(path)), 1));
-    wb_cat(&fullpath, home);
+    wb_initwithmax(&fullpath, add(add(wcslen(directory), wcslen(path)), 1));
+    wb_cat(&fullpath, directory);
     if (fullpath.contents[fullpath.length - 1] != L'/')
         wb_wccat(&fullpath, L'/');
     wb_cat(&fullpath, path);

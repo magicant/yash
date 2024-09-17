@@ -182,7 +182,20 @@ fi
 : ${ECHO_STYLE:=RAW}
 
 # variables needed for command history
-HISTFILE=~/.yash_history HISTSIZE=5000
+
+if ! [ "${HISTFILE-}" ]; then
+    HISTFILE=${XDG_STATE_HOME:-~/.local/state}/yash/history
+
+    # handle old default history path
+    if [ -f ~/.yash_history ]; then
+        printf 'Note: The default history file location has been changed to "%s".\n' "$HISTFILE" >&2
+        HISTFILE=~/.yash_history
+        printf 'Please consider moving the existing file from the current location "%s".\n' "$HISTFILE" >&2
+    fi
+fi
+
+HISTSIZE=5000
+
 # HISTRMDUP makes prediction less accurate
 # HISTRMDUP=500
 
