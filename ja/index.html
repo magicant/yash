@@ -55,7 +55,52 @@ Yash は主に Fedora でテストされています。
 <h2 id="downloads">インストール</h2>
 <p>プログラムのソースコードは<a href="//github.com/magicant/yash/releases">リリースページ</a> からダウンロード可能です。
 (古いバージョンは<a href="../releases.html">リリース一覧</a>から)
-<p><a href="https://getfedora.org/">Fedora</a> では、<kbd>sudo dnf install yash</kbd> で yash のパッケージをインストールできます。<a href="https://www.debian.org/">Debian</a> と <a href="https://www.ubuntu.com/">Ubuntu</a> では <kbd>sudo apt-get install yash</kbd> で yash のパッケージをインストールできます。macOS では <a href="https://www.macports.org/">MacPorts</a> と <a href="http://brew.sh/">Homebrew</a> が yash を提供しています。NetBSD 等では <a href="https://pkgsrc.org/">pkgsrc</a> で yash が利用可能です。
+<p>Yash は様々なシステムのパッケージマネージャーで提供されており、以下のコマンドでインストールできます。
+ <table>
+   <tr>
+    <th>パッケージマネージャー</th>
+    <th>システム</th>
+    <th>コマンド</th>
+  </tr>
+   <tr>
+    <td>DNF</td>
+    <td><a href="https://getfedora.org/">Fedora</a></td>
+    <td><kbd>dnf install yash</kbd></td>
+  </tr>
+   <tr>
+    <td>APT</td>
+    <td>
+      <a href="https://www.debian.org/">Debian</a> /
+      <a href="https://www.ubuntu.com/">Ubuntu</a></td>
+    <td><kbd>apt install yash</kbd></td>
+   </tr>
+   <tr>
+    <td>MacPorts</td>
+        <td><a href="https://www.apple.com/macos/">macOS</a></td>
+    <td><kbd>port install yash</kbd></td>
+   </tr>
+   <tr>
+    <td>Homebrew</td>
+    <td><a href="https://www.apple.com/macos/">macOS</a></td>
+    <td><kbd>brew install yash</kbd></td>
+   </tr>
+   <tr>
+    <td>pkg</td>
+    <td><a href="https://www.freebsd.org/">FreeBSD</a></td>
+    <td><kbd>pkg install yash</kbd></td>
+   </tr>
+   <tr>
+    <td>pkgin</td>
+    <td><a href="https://www.netbsd.org/">NetBSD</a></td>
+    <td><kbd>pkgin install yash</kbd></td>
+   </tr>
+   <tr>
+    <td>pkg_add</td>
+    <td><a href="https://www.openbsd.org/">OpenBSD</a></td>
+    <td><kbd>pkg_add yash</kbd></td>
+  </tr>
+  </table>
+
 <p><a href="../doc/ja/">マニュアル</a>は <kbd>man yash</kbd> で参照できます。
 <!--p>yash の旧いバージョンが欲しいという酔狂な人は<a href="http://homepage2.nifty.com/magicant/author.html"
 >作者</a>にメール等で連絡してください。</p-->
