@@ -49,7 +49,7 @@ test:
 	@tail -n 6 $(SUMMARY) | grep ^FAILED | \
 		(read _ fail_count && \
 		if [ "$$fail_count" -ne 0 ]; then \
-			echo See $(SUMMARY) for details; \
+			echo See $(subdir)/$(SUMMARY) for details; \
 			exit 1; \
 		fi)
 test-posix:
