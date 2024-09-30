@@ -48,7 +48,8 @@ variable to a different value. Please consult your OS's documentation to learn
 how to configure these variables in detail.
 
 If you want to apply the same configuration every time you start yash, write
-the command in ~/.yashrc or ~/.yash_profile.
+the command in $XDG_CONFIG_HOME/yash/rc or $XDG_CONFIG_HOME/yash/profile. The old locations
+~/.yashrc and ~/.yash_profile are also supported as a fallback.
 
 If yash still rejects Unicode characters being entered, see the section below
 regarding line-editing.

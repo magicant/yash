@@ -1,6 +1,6 @@
 ##### Default Yashrc #####
 # This file is automatically loaded when yash starts up and a user-specific
-# initialization script cannot be read from ~/.yashrc.
+# initialization script cannot be read from $XDG_CONFIG_HOME/yash/rc or ~/.yashrc.
 # This file is in the public domain.
 
 # print introduction
@@ -10,7 +10,8 @@ cat <<__END__
 Welcome to yash!
 
 You are seeing this message because a user-specific initialization script is
-not found at ~/.yashrc. The current session has been loaded with common
+not found at ${XDG_CONFIG_HOME:-$HOME/.config}/yash/rc or ~/.yashrc.
+The current session has been loaded with common
 settings that should be useful for many users. To suppress this message, copy
 a sample initialization script from ${yashdatadir}/initialization/sample
 to ~/.yashrc and make any customization in it if you want. For bare default

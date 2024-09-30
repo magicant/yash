@@ -66,16 +66,16 @@ details, see the manual.
 
 ### Initialization scripts
 
-When yash is started as a login shell, it reads `~/.yash_profile`. This
-file is a shell script in which you define environment variables using
-the export command.
+When yash is started as a login shell, it reads `$XDG_CONFIG_HOME/yash/profile`
+or `~/.yash_profile` as a fallback. This file is a shell script in which you
+define environment variables using the export command.
 
-When yash is started for an interactive use, it reads `~/.yashrc` (after
-reading `~/.yash_profile` if it is a login shell also). In this file,
-you make other configurations such as aliases, prompt strings, key
-bindings for command line editing, and command-not-found handler.
-Use the [share/initialization/sample](share/initialization/sample) file
-as a template for your `~/.yashrc`.
+When yash is started for an interactive use, it reads `$XDG_CONFIG_HOME/yash/rc`
+or `~/.yashrc` (after reading `$XDG_CONFIG_HOME/yash/profile` if it is a login
+shell also). In this file, you make other configurations such as aliases,
+prompt strings, key bindings for command line editing, and command-not-found
+handler. Use the [share/initialization/sample](share/initialization/sample)
+file as a template for your `$XDG_CONFIG_HOME/yash/rc`.
 
 ### Making yash your login shell
 
