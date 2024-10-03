@@ -2576,7 +2576,9 @@ void update_buffer_with_prediction(void)
     if (!shopt_le_predictempty && active_length() == 0)
         return;
 
-    if (le_main_index < active_length())
+    size_t effective_index = LE_CURRENT_MODE == LE_MODE_VI_COMMAND ?
+            le_main_index + 1 : le_main_index;
+    if (effective_index < active_length())
         return;
 
     le_main_length = le_main_buffer.length;
