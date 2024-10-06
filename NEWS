@@ -4,6 +4,8 @@
 
   - The location of the initialization files can now be configured
     using the XDG_CONFIG_HOME variable (except in POSIXly-correct mode).
+  - [line-editing] Command line prediction now works in the vi command
+    mode.
 
 ## Yash 2.57 (2024-08-04)
 
