@@ -712,7 +712,6 @@ void update_editline(void)
         lebuf_putwchar(c, true);
         index++;
     }
-    lebuf_print_sgr0(), styler_active = false;
 
     current_length = le_main_length;
 
