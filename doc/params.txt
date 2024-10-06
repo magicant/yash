@@ -398,6 +398,15 @@ running.
 The value affects the behavior of link:lineedit.html[line-editing].
 This variable has to be exported to take effect.
 
+[[sv-xdg_config_home]]+XDG_CONFIG_HOME+::
+This variable can be defined to specify the location where
+link:invoke.html#init[shell initialization files] are placed.
+If not defined, it is assumed to be
+ifdef::basebackend-html[]
+pass:[<code><a href="#sv-home">$HOME</a>/.config</code>.]
+endif::basebackend-html[]
+ifndef::basebackend-html[`$HOME/.config`.]
+
 [[sv-yash_after_cd]]+YASH_AFTER_CD+::
 The shell interprets and executes the value of this variable after each time
 the shell's working directory is changed by the link:_cd.html[cd] or other

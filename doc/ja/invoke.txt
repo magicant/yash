@@ -42,10 +42,12 @@ Yash の起動時のコマンドライン引数は POSIX に準拠していま�
 . シェルは以下の初期化スクリプトを読み込んで解釈・実行します。(ただしシェルプロセスの実ユーザ ID と実効ユーザ ID が異なっているか、実グループ ID と実効グループ ID が異なっている場合を除く)
  .. シェルがログインシェルとして動作している場合は、 +--profile={{ファイル名}}+ オプションで指定したファイルを読み込んで実行します。(ただし +--noprofile+ オプションが指定されているか link:posix.html[POSIX 準拠モード]の場合を除く)
     +
-    +--profile={{ファイル名}}+ オプションが指定されていない場合は、{zwsp}link:expand.html#tilde[~]/.yash_profile がデフォルトのファイルとして使われます。
+    +--profile={{ファイル名}}+ オプションが指定されていない場合は、デフォルトとして link:params.html#sv-xdg_config_home[$XDG_CONFIG_HOME]/yash/profile もしくは link:expand.html#tilde[~]/.yash_profile を読み込みます。
  .. シェルが対話モードの場合は、 +--rcfile={{ファイル名}}+ オプションで指定したファイルを読み込んで実行します。(ただし +--norcfile+ オプションが指定されている場合を除く)
     +
-    +--rcfile+ オプションが指定されていない場合は、非 POSIX 準拠モードではファイル link:expand.html#tilde[~]/.yashrc がデフォルトのファイルとして使われます。&#x7e;/.yashrc が読み込めない場合は、ファイル initialization/default を link:params.html#sv-yash_loadpath[+YASH_LOADPATH+] から探して読み込みます。POSIX 準拠モードでは、{zwsp}link:params.html#sv-env[+ENV+ 環境変数]の値が{zwsp}link:expand.html#params[パラメータ展開]され、その結果をファイル名と見なしてファイルを読み込みます。
+    +--rcfile+ オプションが指定されていない場合は、非 POSIX 準拠モードではファイル link:params.html#sv-xdg_config_home[$XDG_CONFIG_HOME]/yash/rc がデフォルトのファイルとして使われます。それが見付からない場合は、{zwsp}link:expand.html#tilde[~]/.yashrc を読み込みます。&#x7e;/.yashrc も読み込めない場合は、ファイル initialization/default を link:params.html#sv-yash_loadpath[+YASH_LOADPATH+] から探して読み込みます。POSIX 準拠モードでは、{zwsp}link:params.html#sv-env[+ENV+ 環境変数]の値が{zwsp}link:expand.html#params[パラメータ展開]され、その結果をファイル名と見なしてファイルを読み込みます。
+
+link:params.html#sv-xdg_config_home[+XDG_CONFIG_HOME+ 環境変数]が設定されていない場合、その値の代わりに link:expand.html#tilde[~]/.config を使用します。
 
 [NOTE]
 Yash は /etc/profile や /etc/yashrc や link:expand.html#tilde[~]/.profile を自動的に読むことはありません。

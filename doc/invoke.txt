@@ -92,22 +92,27 @@ Yash initializes itself as follows:
     specified or the shell is in the link:posix.html[POSIXly-correct mode].
     +
     If the +--profile={{filename}}+ option is not specified, the shell reads
-    $XDG_CONFIG_HOME/yash/profile or link:expand.html#tilde[~]/.yash_profile
-    as a fallback.
+    link:params.html#sv-xdg_config_home[$XDG_CONFIG_HOME]/yash/profile or
+    link:expand.html#tilde[~]/.yash_profile as a fallback.
  .. If in the interactive mode, the shell reads the file specified by the
     +--rcfile={{filename}}+ option unless the +--norcfile+ option is specified.
     +
     If the +--rcfile={{filename}}+ option is not specified, the shell instead
     reads the following files:
     - If not in the POSIXly-correct mode, the shell reads
-      $XDG_CONFIG_HOME/yash/rc or link:expand.html#tilde[~]/.yashrc as a
-      fallback. If it cannot be read, the shell searches
+      link:params.html#sv-xdg_config_home[$XDG_CONFIG_HOME]/yash/rc or
+      link:expand.html#tilde[~]/.yashrc as a fallback.
+      If it cannot be read, the shell searches
       link:params.html#sv-yash_loadpath[+YASH_LOADPATH+] for a file named
       initialization/default.
     - If in the POSIXly-correct mode, the shell performs
       link:expand.html[parameter expansion] on the value of the
       link:params.html#sv-env[+ENV+ environment variable] and treats the
       expansion result as the name of the file to read.
+
+If the link:params.html#sv-xdg_config_home[+XDG_CONFIG_HOME+ environment
+variable] is not set, link:expand.html#tilde[~]/.config is used as the
+default location.
 
 [NOTE]
 Yash never automatically reads /etc/profile, /etc/yashrc, nor

@@ -229,6 +229,15 @@ link:_set.html#options[Xtrace オプション]が有効なとき、この変数�
 [[sv-term]]+TERM+::
 この変数は対話モードのシェルが動作している端末の種類を指定します。ここで指定された端末の種類に従って{zwsp}link:lineedit.html[行編集]機能は端末を制御します。この変数の効力を得るためには変数がエクスポートされている必要があります。
 
+[[sv-xdg_config_home]]+XDG_CONFIG_HOME+::
+この変数は{zwsp}link:invoke.html#init[シェルの初期化ファイル]の場所を指定するために使われます。
+値が定義されていない場合は
+ifdef::basebackend-html[]
+pass:[<code><a href="#sv-home">$HOME</a>/.config</code>]
+endif::basebackend-html[]
+ifndef::basebackend-html[`$HOME/.config`]
+が使われます。
+
 [[sv-yash_after_cd]]+YASH_AFTER_CD+::
 この変数の値は、{zwsp}link:_cd.html[cd 組込みコマンド]や link:_pushd.html[pushd 組込みコマンド]で作業ディレクトリが変更された後にコマンドとして解釈・実行されます。これは、作業ディレクトリが変わった後に毎回
 ifdef::basebackend-html[]

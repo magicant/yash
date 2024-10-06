@@ -60,9 +60,9 @@ __OUT__
 
 (
 export HOME="${PWD%/}/home$LINENO"
-mkdir "$HOME"
-echo echo profile >"$HOME/.yash_profile"
-echo echo yashrc >"$HOME/.yashrc"
+mkdir -- "$HOME"
+echo echo home/profile >"$HOME/.yash_profile"
+echo echo home/yashrc >"$HOME/.yashrc"
 
 test_oE 'startup: no argument'
 echo $-
@@ -77,53 +77,77 @@ __OUT__
 
 test_oE 'startup: -cl, short option, with profile' -cl 'echo $-'
 __IN__
-profile
+home/profile
 cl
 __OUT__
 
 test_oE 'startup: -cl, long option, with profile' --cmdline --log-in 'echo $-'
 __IN__
-profile
+home/profile
 cl
 __OUT__
 
 test_oE 'startup: -ci +m, short option, with rcfile' -ci +m 'echo $-'
 __IN__
-yashrc
+home/yashrc
 ci
 __OUT__
 
 test_oE 'startup: -ci +m, long option, with rcfile' \
     --cmdline --interactive --no-monitor 'echo $-'
 __IN__
-yashrc
+home/yashrc
 ci
 __OUT__
 
 test_oE 'startup: -cil +m, short option, with profile/rcfile' -cil +m 'echo $-'
 __IN__
-profile
-yashrc
+home/profile
+home/yashrc
 cil
 __OUT__
 
 test_oE 'startup: -cil +m, long option, with profile/rcfile' \
     --cmdline --interactive --log-in --no-monitor 'echo $-'
 __IN__
-profile
-yashrc
+home/profile
+home/yashrc
+cil
+__OUT__
+
+mkdir -p -- "$HOME/.config/yash" "$PWD/my-config/yash"
+echo echo home/config/profile >"$HOME/.config/yash/profile"
+echo echo home/config/yashrc >"$HOME/.config/yash/rc"
+echo echo my-config/profile >"$PWD/my-config/yash/profile"
+echo echo my-config/yashrc >"$PWD/my-config/yash/rc"
+
+# When we have ~/.config/yash/{profile,rc}, we ignore ~/.yash{_profile,rc}.
+test_oE 'startup: profile & rcfile in ~/.config' -cil +m 'echo $-'
+__IN__
+home/config/profile
+home/config/yashrc
+cil
+__OUT__
+
+export XDG_CONFIG_HOME="$PWD/my-config"
+
+# Honor XDG_CONFIG_HOME if defined
+test_oE 'startup: profile & rcfile in XDG_CONFIG_HOME' -cil +m 'echo $-'
+__IN__
+my-config/profile
+my-config/yashrc
 cil
 __OUT__
 
 test_oE 'startup: -cil +m --noprofile' -cil +m --noprofile 'echo $-'
 __IN__
-yashrc
+my-config/yashrc
 cil
 __OUT__
 
 test_oE 'startup: -cil +m --norcfile' -cil +m --norcfile 'echo $-'
 __IN__
-profile
+my-config/profile
 cil
 __OUT__
 

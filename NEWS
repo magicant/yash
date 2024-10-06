@@ -1,5 +1,10 @@
 # History of Yash
 
+## Yash 2.58 (Unreleased)
+
+  - The location of the initialization files can now be configured
+    using the XDG_CONFIG_HOME variable (except in POSIXly-correct mode).
+
 ## Yash 2.57 (2024-08-04)
 
   - Added support for the "$POST_PROMPT_COMMAND" variable, whose value

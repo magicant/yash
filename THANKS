@@ -14,3 +14,5 @@ The author thanks:
 * Victorien Elvinger, for writing the completion script for pass and git-switch
 
 * DanisDGK, for the completion script for doas
+
+* unrealapex, for adding XDG_CONFIG_HOME variable support
