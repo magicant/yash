@@ -278,7 +278,6 @@ if [ "$_tsl" ] && [ "$_fsl" ]; then
     if [ -t 2 ]; then printf "$_tsl"'sudo %s'"$_fsl" "$*" >&2; fi
     command sudo "$@"
   }
-
   doas() {
     if [ -t 2 ]; then printf "$_tsl"'doas %s'"$_fsl" "$*" >&2; fi
     command doas "$@"
