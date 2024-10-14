@@ -279,6 +279,11 @@ if [ "$_tsl" ] && [ "$_fsl" ]; then
     command sudo "$@"
   }
 
+  doas() {
+    if [ -t 2 ]; then printf "$_tsl"'doas %s'"$_fsl" "$*" >&2; fi
+    command doas "$@"
+  }
+
 fi
 
 # support VS Code shell integration
