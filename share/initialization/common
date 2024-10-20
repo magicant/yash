@@ -91,6 +91,8 @@ fi
 # some useful shortcuts
 alias -- -='cd -'
 alias la='ls -a' ll='ls -l' lla='ll -a'
+alias h='fc -l'
+alias j='jobs'
 alias r='fc -s'
 
 # avoid removing/overwriting existing files by accident
