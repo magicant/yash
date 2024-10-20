@@ -1,4 +1,4 @@
-# (C) 2010 magicant
+# (C) 2010-2024 magicant
 
 # Completion script for the "." built-in command.
 
@@ -21,8 +21,13 @@ function completion/. {
                 if [ ${WORDS[#]} -le 0 ]; then
                         # complete as a script file name
                         case $TARGETWORD in
-                                */*) complete -f ;;
-                                *  ) complete --external-command ;;
+                                */*)
+                                        complete -f
+                                        ;;
+                                *  )
+                                        complete --external-command
+                                        complete -T -S / -d
+                                        ;;
                         esac
                 else
                         # complete an argument to the script

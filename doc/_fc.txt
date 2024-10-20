@@ -92,7 +92,7 @@ The default values for {{start}} and {{end}} are:
 |===
 |          |with +-l+ |without +-l+
 |{{start}} |-16       |-1
-|{{end}}   |-16       |same as {{start}}
+|{{end}}   |-1        |same as {{start}}
 |===
 
 {{old}}={{new}}::

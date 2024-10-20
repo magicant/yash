@@ -6,6 +6,9 @@
     using the XDG_CONFIG_HOME variable (except in POSIXly-correct mode).
   - [line-editing] Command line prediction now works in the vi command
     mode.
+  - [line-editing] The completion for the . built-in now suggests
+    directory names for the first operand even before the user enters a
+    slash.
 
 ## Yash 2.57 (2024-08-04)
 
