@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -154,13 +154,13 @@ int main(int argc, char **argv)
 
     int optresult = parse_shell_options(argc, wargv, &options);
     if (optresult != Exit_SUCCESS)
-        exit(optresult);
+        _Exit(optresult);
     if (options.version)
         print_version();
     if (options.help)
         print_help();
     if (options.version || options.help)
-        exit(yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE);
+        _Exit(yash_error_message_count == 0 ? Exit_SUCCESS : Exit_FAILURE);
 
     init_variables();
 
@@ -171,14 +171,14 @@ int main(int argc, char **argv)
     const char *inputname;
 
     if (shopt_cmdline && shopt_stdin)
-        exit(mutually_exclusive_option_error(L'c', L's'));
+        _Exit(mutually_exclusive_option_error(L'c', L's'));
 
     if (shopt_cmdline) {
         input.command = wargv[xoptind++];
         if (input.command == NULL) {
             xerror(0, Ngt("the -c option is specified "
                         "but no command is given"));
-            exit(Exit_ERROR);
+            _Exit(Exit_ERROR);
         }
         if (xoptind < argc) {
             inputname = argv[xoptind];
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
             if (input.fd < 0) {
                 int errno_ = errno;
                 xerror(errno_, Ngt("cannot open file `%s'"), inputname);
-                exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
+                _Exit(errno_ == ENOENT ? Exit_NOTFOUND : Exit_NOEXEC);
             }
         }
     }
@@ -389,7 +389,7 @@ void exit_shell_with_status(int status)
 #if YASH_ENABLE_HISTORY
     finalize_history();
 #endif
-    exit(exitstatus);
+    _Exit(exitstatus);
 }
 
 /* Prints the help message to the standard output. */

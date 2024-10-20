@@ -1630,7 +1630,7 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
         xclose(pipefd[PIPE_IN]);
         if (pipefd[PIPE_OUT] != STDOUT_FILENO) {  /* connect the pipe */
             if (xdup2(pipefd[PIPE_OUT], STDOUT_FILENO) < 0)
-                exit(Exit_NOEXEC);
+                _Exit(Exit_NOEXEC);
             xclose(pipefd[PIPE_OUT]);
         }
 
@@ -2299,7 +2299,7 @@ error2:
     free(mbssaveargv0);
 error1:
     if (posixly_correct || !is_interactive_now)
-        exit(err);
+        _Exit(err);
     return err;
 }
 
