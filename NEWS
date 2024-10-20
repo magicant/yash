@@ -9,6 +9,10 @@
   - [line-editing] The completion for the . built-in now suggests
     directory names for the first operand even before the user enters a
     slash.
+  - Updated the sample initialization script (yashrc):
+    - Added aliases h='fc -l' and j='jobs'.
+    - Added the wrapper function for `doas` in an attempt to remove the
+      misleading terminal title.
 
 ## Yash 2.57 (2024-08-04)
 
