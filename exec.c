@@ -1423,9 +1423,11 @@ done:
     return;
 
 fail:
+    free(word);
     laststatus = Exit_EXPERROR;
     apply_errexit_errreturn(NULL);
-    goto done;
+    if (finally_exit)
+        exit_shell();
 }
 
 /* Executes the function definition. */
