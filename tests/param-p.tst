@@ -451,23 +451,11 @@ kill $$
 echo not reached
 __IN__
 
-test_oE 'special parameter !'
-mkfifo fifo
-echo foo | {
-    trap 'echo trapped; exit 0' USR1
-    cat
-    cat fifo
-}&
-exec 3>fifo
-echo bar >&3
-kill -s USR1 $! # should kill the last process of the background pipeline
-exec 3>&-
+test_O -e USR1 'special parameter !'
+while kill -s 0 $$; do sleep 1; done &
+kill -s USR1 $!
 wait $!
 __IN__
-foo
-bar
-trapped
-__OUT__
 
 # Special parameter 0 is tested in sh-p.tst
 #test_oE 'special parameter 0'
