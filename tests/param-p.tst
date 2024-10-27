@@ -425,7 +425,6 @@ __IN__
 __OUT__
 
 test_oE 'special parameter ?'
-true
 echo $?
 (exit 1)
 echo $?
