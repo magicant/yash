@@ -430,10 +430,13 @@ echo $?
 echo $?
 (exit 123)
 echo $?
+(exit 42)
+(echo $?)
 __IN__
 0
 1
 123
+42
 __OUT__
 
 test_OE -e 0 'special parameter -' -eu
