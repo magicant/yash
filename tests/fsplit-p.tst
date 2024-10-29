@@ -200,6 +200,13 @@ __IN__
 [15][][]
 __OUT__
 
+test_oE 'empty field removal with empty IFS'
+IFS= a=
+bracket $a - $IFS
+__IN__
+[-]
+__OUT__
+
 test_oE 'empty last field is ignored (non-backslash IFS)'
 IFS=' ='
 a='='; bracket $a
