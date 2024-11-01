@@ -1,0 +1,48 @@
+# (C) 2024 unrealapex
+
+# Completion script for the "git-restore" command.
+
+function completion/git-restore {
+        WORDS=(git restore "${WORDS[2,-1]}")
+        command -f completion//reexecute
+}
+
+function completion/git::restore:arg {
+
+        OPTIONS=( #>#
+        "s: --source:; specify which tree-ish to checkout from"
+        "p --patch; select hunks interactively"
+        "W --worktree; restore the working tree"
+        "S --staged; restore the index"
+        "q --quiet; suppress feedback messages"
+        "--progress; force progress reporting"
+        "--no-progress; suppress progress reporting"
+        "--ours; checkout our version for unmerged files"
+        "--theirs; checkout their version for unmerged files"
+        "m --merge; perform a 3-way merge with the new branch"
+        "--conflict:; change how conflicting hunks are presented"
+        "--ignore-unmerged; ignore unmerged entries"
+        "--ignore-skip-worktree-bits; don't limit pathspecs to sparse entries only"
+        "--recurse-submodules; control recursive updating of submodules"
+        "--no-recurse-submodules; ignore recursive updating of submodules"
+        "--overlay; never remove files when restoring."
+        "--no-overlay; remove tracked files that do not appear in the --source tree"
+        "--pathspec-from-file:; read pathspec from file"
+        "--pathspec-file-nul; pathspec elements are separated with NUL character"
+        "--; do not interpret any more arguments as options"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completepath
+                        ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

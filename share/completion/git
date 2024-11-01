@@ -246,6 +246,7 @@ function completion/git::completecmd { #>>#
         complete -P "$PREFIX" -D "print a message that helps a pull request" request-pull
         # discouraged: complete -P "$PREFIX" -D "" rerere
         complete -P "$PREFIX" -D "restore the index and working tree" reset
+        complete -P "$PREFIX" -D "restore the working tree files" restore
         complete -P "$PREFIX" -D "list commit objects" rev-list
         complete -P "$PREFIX" -D "parse git command arguments" rev-parse
         complete -P "$PREFIX" -D "undo some commits" revert
