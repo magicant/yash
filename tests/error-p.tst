@@ -27,6 +27,50 @@ __IN__
 reached
 __OUT__
 
+test_o 'redirection error on compound command spares non-interactive shell'
+if echo not printed 1; then echo not printed 2; fi <_no_such_dir_/foo
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+test_o 'redirection error on compound command in subshell'
+(if echo not printed 1; then echo not printed 2; fi <_no_such_dir_/foo
+[ \$? -ne 0 ]; printf 'reached %d\n' \$?)
+__IN__
+reached 0
+__OUT__
+
+test_o 'redirection error on compound command spares interactive shell' -i +m
+if echo not printed 1; then echo not printed 2; fi <_no_such_dir_/foo
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+test_o 'redirection error on function spares non-interactive shell'
+func() { echo not printed; }
+func <_no_such_dir_/foo
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+test_o 'redirection error on function in subshell'
+func() { echo not printed; }
+(func <_no_such_dir_/foo; [ \$? -ne 0 ]; printf 'reached %d\n' \$?)
+__IN__
+reached 0
+__OUT__
+
+test_o 'redirection error on function spares interactive shell' -i +m
+func() { echo not printed; }
+func <_no_such_dir_/foo
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
 test_O -d -e n 'expansion error kills non-interactive shell'
 unset a
 echo ${a?}
