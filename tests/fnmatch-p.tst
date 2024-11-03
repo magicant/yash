@@ -139,6 +139,26 @@ __IN__
 354
 __OUT__
 
+test_oE 'escapes resulting from expansions'
+bs=\\ a=*
+
+# $bs* expands to \* which only matches literal *
+case x in $bs*) echo not reached 11; esac
+case * in $bs*) echo 12; esac
+
+# $bs$a expands to \* which only matches literal *
+case x in $bs$a) echo not reached 21; esac
+case * in $bs$a) echo 22; esac
+
+# $bs$bs expands to \\ which only matches literal \
+case x  in $bs$bs) echo not reached 31; esac
+case \\ in $bs$bs) echo 32; esac
+__IN__
+12
+22
+32
+__OUT__
+
 test_oE 'blanks'
 n=
 case ''   in ''  ) echo 11; esac
