@@ -89,15 +89,12 @@ foo/no_search_dir
 foo/no_search_d*r/file
 foo/no_search_dir/file
 __OUT__
-# POSIX says:
-# - Each component that contains a pattern character shall require read
-#   permission in the directory containing that component.
-# - Any component, except the last, that does not contain a pattern character
-#   shall require search permission.
-# The second statement is not actually correct. If the last component contains
-# a pattern character, only read permission is required for its parent
+# POSIX says: "Any component, except the last, that does not contain any '*',
+# '?' or '[' characters that will be treated as special shall require search
+# permission." This statement is not actually correct. If the last component
+# contains a pattern character, only read permission is required for its parent
 # directory. The expansion of foo/no_search_dir/f*e succeeds in many shells
-# despite the POSIX requirements, hence the comment.
+# despite the POSIX requirement, so the line for this case is commented out.
 
 )
 
