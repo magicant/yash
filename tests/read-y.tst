@@ -13,17 +13,6 @@ typeset b=''
 typeset c=''
 __OUT__
 
-test_oE 'input ending without newline'
-printf 'A' | {
-read a
-echo $?
-typeset -p a
-}
-__IN__
-1
-typeset a=A
-__OUT__
-
 test_oE 'input ending with backslash - not raw mode'
 printf '%s' 'A\' | {
 read a

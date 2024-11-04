@@ -16,6 +16,7 @@ assert_true == == ==
 assert_false "(" == ")"
 
 # The behavior of the ===, !==, <, <=, >, >= operators cannot be fully tested.
+# The < and > operators are tested in test-p.tst.
 assert_true "" === ""
 assert_true 1 === 1
 assert_true abcde === abcde
@@ -34,17 +35,9 @@ assert_false ! !== !
 assert_false !== !== !==
 assert_true "(" !== ")"
 
-assert_false 11 '<' 100
-assert_false 11 '<' 11
-assert_true 100 '<' 11
-
 assert_false 11 '<=' 100
 assert_true 11 '<=' 11
 assert_true 100 '<=' 11
-
-assert_true 11 '>' 100
-assert_false 11 '>' 11
-assert_false 100 '>' 11
 
 assert_true 11 '>=' 100
 assert_true 11 '>=' 11

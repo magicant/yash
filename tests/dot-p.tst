@@ -44,6 +44,13 @@ __IN__
 exit 11
 __ERR__
 
+test_oE -e 3 'option-operand separator'
+(exit 5)
+. -- ./file1
+__IN__
+5
+__OUT__
+
 (
 # Ensure $PWD is safe to assign to $PATH
 case $PWD in (*[:%]*)

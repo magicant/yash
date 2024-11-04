@@ -11,10 +11,7 @@ umask u=rwx,go=
 >file
 ln -s file filelink
 ln -s _no_such_file_ brokenlink
-ln file hardlink
 
-touch -t 200001010000 older
-touch -t 200101010000 newer
 touch -a -t 200101010000 old; touch -m -t 200001010000 old
 touch -a -t 200001010000 new; touch -m -t 200101010000 new
 
@@ -92,29 +89,6 @@ assert_true -o \?notify
 assert_true -o \?nonotify
 assert_true -o \?n-o-n-otify
 )
-
-assert_true XXXXX -ot newer
-assert_false XXXXX -ot XXXXX
-assert_false newer -ot XXXXX
-assert_true older -ot newer
-assert_false newer -ot newer
-assert_false newer -ot older
-
-assert_false XXXXX -nt newer
-assert_false XXXXX -nt XXXXX
-assert_true newer -nt XXXXX
-assert_false older -nt newer
-assert_false older -nt older
-assert_true newer -nt older
-
-assert_false XXXXX -ef newer
-assert_false XXXXX -ef XXXXX
-assert_false newer -ef XXXXX
-assert_false older -ef newer
-assert_true older -ef older
-assert_false newer -ef older
-assert_true file -ef hardlink
-assert_false file -ef newer
 
 assert_true 1 -a "(" 1 = 0 -o "(" 2 = 2 ")" ")" -a "(" = ")"
 assert_true -n = -o -o -n = -n  # ( -n = -o ) -o ( -n = -n )

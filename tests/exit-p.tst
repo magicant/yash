@@ -70,9 +70,9 @@ trap '(exit 1); exit' EXIT
 exit
 __IN__
 
-# POSIX says the exit status in this case should be that of "the command that
-# executed immediately preceding the trap action." Many shells including yash
-# interprets it as the exit status of "exit" rather than "trap."
+# POSIX says the exit status in this case should be "the value (of the special
+# parameter '?') it had immediately preceding the trap action." Many shells
+# including yash interpret it as the exit status of "exit" rather than "trap."
 test_OE -e 1 'default exit status in EXIT trap in exiting with 1'
 trap exit EXIT
 exit 1

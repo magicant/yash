@@ -226,7 +226,6 @@ test_nonspecial_builtin_function_override "$LINENO" getopts
 test_nonspecial_builtin_function_override "$LINENO" hash
 test_nonspecial_builtin_function_override "$LINENO" jobs
 test_nonspecial_builtin_function_override "$LINENO" kill
-test_nonspecial_builtin_function_override "$LINENO" newgrp
 test_nonspecial_builtin_function_override "$LINENO" pwd
 test_nonspecial_builtin_function_override "$LINENO" read
 test_nonspecial_builtin_function_override "$LINENO" true
@@ -237,6 +236,7 @@ test_nonspecial_builtin_function_override "$LINENO" unalias
 test_nonspecial_builtin_function_override "$LINENO" wait
 
 test_nonspecial_builtin_function_override "$LINENO" grep
+test_nonspecial_builtin_function_override "$LINENO" newgrp
 test_nonspecial_builtin_function_override "$LINENO" sed
 
 (
@@ -352,9 +352,6 @@ __IN__
 test_OE -e 0 'intrinsic built-in kill can be invoked without $PATH'
 kill -0 $$
 __IN__
-
-# Many shells including yash does not implement newgrp as a built-in.
-#TODO: test_OE -e 0 'intrinsic built-in newgrp can be invoked without $PATH'
 
 test_E -e 0 'intrinsic built-in pwd can be invoked without $PATH'
 pwd

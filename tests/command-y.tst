@@ -80,7 +80,6 @@ trap: a special built-in
 unset: a special built-in
 __OUT__
 
-# `newgrp' is not a mandatory built-in in yash.
 test_oE -e 0 'describing mandatory built-ins (-V)'
 command -V alias bg cd command false fg getopts hash jobs kill pwd read true \
     type umask unalias wait

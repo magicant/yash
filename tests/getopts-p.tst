@@ -35,12 +35,33 @@ getopts ab:c o -a -b arg -c
 getopts ab:c o -a -b arg -c
 __IN__
 
-test_x -e n 'exit status is non-zero after parsing all options' -e
+test_x -e 1 'exit status is one after parsing all options' -e
 getopts ab:c o -a -b arg -c
 getopts ab:c o -a -b arg -c
 getopts ab:c o -a -b arg -c
 getopts ab:c o -a -b arg -c
 __IN__
+
+test_o 'OPTIND is set when option argument is parsed: empty'
+getopts a:b o -a '' -b
+echo "[$OPTIND]"
+__IN__
+[3]
+__OUT__
+
+test_o 'OPTIND is set when option argument is parsed: non-empty separate'
+getopts a:b o -a '-x  foo' -b
+echo "[$OPTIND]"
+__IN__
+[3]
+__OUT__
+
+test_o 'OPTIND is set when option argument is parsed: non-empty adjoined'
+getopts a:b o -a'  foo' -b
+echo "[$OPTIND]"
+__IN__
+[2]
+__OUT__
 
 test_o 'OPTARG is set when option argument is parsed: empty'
 getopts a: o -a ''
@@ -163,7 +184,7 @@ __IN__
 4[?]
 __OUT__
 
-test_x -e n 'single hyphen is not option'
+test_x -e 1 'single hyphen is not an option but an operand'
 getopts '' x -
 __IN__
 

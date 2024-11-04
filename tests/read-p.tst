@@ -259,6 +259,15 @@ __IN__
 0 [A] [B] [] [D] [E] [- F\]
 __OUT__
 
+test_oE 'input ending without newline'
+printf 'A' | {
+read a
+echo $? $a
+}
+__IN__
+1 A
+__OUT__
+
 test_oE 'in subshell'
 (echo A | read a)
 echoraw $? "[${a-unset}]"

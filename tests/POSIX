@@ -86,13 +86,26 @@ Volume 3: Shell & Utilities
  * error-p.tst
 
 2.9.1 Simple Commands
+
+2.9.1.1 Order of Processing
+ * simple-p.tst
+
+2.9.1.2 Variable Assignments
  * builtins-p.tst
+ * simple-p.tst
+
+2.9.1.3 Commands with no Command Name
  * redir-p.tst
  * simple-p.tst
 
-Command Search and Execution
+2.9.1.4 Command Search and Execution
  * builtins-p.tst
  * builtins-y.tst
+ * simple-p.tst
+
+2.9.1.5 Standard File Descriptors
+
+2.9.1.6 Non-built-in Utility Execution
  * simple-p.tst
 
 2.9.2 Pipelines
@@ -126,21 +139,24 @@ Command Search and Execution
  * trap-p.tst
  * wait-p.tst
 
-2.12 Shell Execution Environment
+2.12 Job Control
+ * job-p.tst
+
+2.13 Shell Execution Environment
  * trap-p.tst
 
-2.13 Pattern Matching Notation
+2.14 Pattern Matching Notation
 
-2.13.1 Patterns Matching a Single Character
+2.14.1 Patterns Matching a Single Character
  * fnmatch-p.tst
 
-2.13.2 Patterns Matching Multiple Characters
+2.14.2 Patterns Matching Multiple Characters
  * fnmatch-p.tst
 
-2.13.3 Patterns Used for Filename Expansion
+2.14.3 Patterns Used for Filename Expansion
  * path-p.tst
 
-2.14 Special Built-In Utilities
+2.15 Special Built-In Utilities
  * builtins-p.tst
 
 break
