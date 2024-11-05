@@ -2,6 +2,19 @@
 
 posix="true"
 
+# This file is for testing the shell built-in, so we should skip the tests
+# if the shell does not seem to implement the test built-in.
+case $("$TESTEE" -c 'command -V test') in
+    (*built-in*|*builtin*)
+        # Okay, the testee seems to support the test command as a built-in.
+        # This check is not POSIXly portable because the output of "command -V"
+        # is unspecified in POSIX, but it works for yash and most other shells.
+        ;;
+    (*)
+        skip=true
+        ;;
+esac
+
 umask u=rwx,go=
 
 >file
