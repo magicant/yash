@@ -52,6 +52,7 @@ function completion/git::merge:getopt {
         "s: --strategy:; specify the merge strategy"
         "X: --strategy-option:; specify a strategy-specific option"
         "v --verbose" # TODO description
+        "--continue; continue the current merge"
         ) #<#
 }
 
