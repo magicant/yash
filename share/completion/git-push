@@ -31,7 +31,7 @@ function completion/git::push:arg {
         "u --set-upstream; make pushed branches remote-tracking"
         "--tags; push all local tags"
         "--thin; send a thin pack to reduce traffic"
-        "v --verbose" # TODO description
+        "v --verbose; output additional information"
         "--verify; enable the pre-push hook"
         ) #<#
 
