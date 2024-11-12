@@ -36,6 +36,7 @@ function completion/git::merge:arg {
 function completion/git::merge:getopt {
         OPTIONS=("$OPTIONS" #>#
         "--commit; commit the merge result automatically"
+        "--continue; continue the current merge"
         "--ff; fast-forward if possible"
         "--ff-only; allow fast-forward only"
         "--log::; specify the number of commits in the merged branch of which the messages are reused"
@@ -51,7 +52,7 @@ function completion/git::merge:getopt {
         "--stat --summary; print a diffstat"
         "s: --strategy:; specify the merge strategy"
         "X: --strategy-option:; specify a strategy-specific option"
-        "v --verbose" # TODO description
+        "v --verbose; output additional information"
         ) #<#
 }
 

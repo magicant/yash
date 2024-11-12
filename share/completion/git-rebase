@@ -67,7 +67,7 @@ function completion/git::rebase:getopt {
         "s: --strategy:; specify the merge strategy"
         "x: --exec:; insert an \"exec\" line with the specified command after each commit (with -i)"
         "X: --strategy-option:; specify a strategy-specific option"
-        "v --verbose" # TODO description
+        "v --verbose; output additional information"
         "--verify; run the pre-rebase hook"
         ) #<#
         if command -vf completion/git::apply:getopt >/dev/null 2>&1 ||
