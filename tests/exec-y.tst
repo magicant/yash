@@ -1,22 +1,5 @@
 # exec-y.tst: yash-specific test of the exec built-in
 
-test_O 'execution error kills shell, POSIX, interactive' --posix -i +m
-exec ./_no_such_command_
-echo not reached
-__IN__
-
-test_O 'execution error kills shell, non-POSIX, non-interactive'
-exec ./_no_such_command_
-echo not reached
-__IN__
-
-test_o 'execution error spares shell, non-POSIX, interactive' -i +m
-exec ./_no_such_command_
-echo reached
-__IN__
-reached
-__OUT__
-
 test_O -d -e 127 'executing non-existing command (empty path)'
 PATH=
 exec _no_such_command_

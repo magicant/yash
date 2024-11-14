@@ -28,9 +28,8 @@ that starts the external command is called in the current
 link:exec.html#environment[command execution environment] instead of a
 subshell, replacing the shell process with the new command process.
 
-If the shell is in the link:posix.html[POSIXly-correct mode] or not
-link:interact.html[interactive], failure in execution of {{command}} causes
-the shell to exit immediately.
+If the shell is not link:interact.html[interactive], failure in execution of
+{{command}} causes the shell to exit immediately.
 
 If an interactive shell that is not in the POSIXly-correct mode has a stopped
 link:job.html[job], the shell prints a warning message and refuses to execute

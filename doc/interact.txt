@@ -54,7 +54,7 @@ When the shell is interactive:
 - The shell does not exit when the link:_dot.html[dot built-in] fails to find
   a script file to read.
 - The shell does not exit when the link:_exec.html[exec built-in] fails to
-  execute a command (if not in the link:posix.html[POSIXly-correct mode]).
+  execute a command.
 - When a job finished for which the link:_wait.html[wait built-in] has been
   waiting, the fact is reported (only if link:job.html[job control] is active
   and not in the link:posix.html[POSIXly-correct mode]).
