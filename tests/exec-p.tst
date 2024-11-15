@@ -64,10 +64,17 @@ foo bar
 0
 __OUT__
 
-test_O -d -e 127 'executing non-existing command (relative)'
+test_O -d -e 127 'executing non-existing command (relative, non-interactive)'
 exec ./_no_such_command_
 echo not reached
 __IN__
+
+test_o -d 'executing non-existing command (relative, interactive)' -i +m
+exec ./_no_such_command_
+echo $?
+__IN__
+127
+__OUT__
 
 test_x -d -e 0 'redirection error on exec'
 command exec <_no_such_file_

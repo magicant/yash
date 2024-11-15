@@ -9,6 +9,9 @@
   - [line-editing] The completion for the . built-in now suggests
     directory names for the first operand even before the user enters a
     slash.
+  - Improved POSIX.1-2024 support:
+    - An interactive shell no longer exits on an error in the `exec`
+      built-in, even if the POSIXly-correct mode is on.
   - Updated the sample initialization script (yashrc):
     - Added aliases h='fc -l' and j='jobs'.
     - Added the wrapper function for `doas` in an attempt to remove the

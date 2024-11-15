@@ -2300,7 +2300,7 @@ error3:
 error2:
     free(mbssaveargv0);
 error1:
-    if (posixly_correct || !is_interactive_now)
+    if (!is_interactive_now)
         _Exit(err);
     return err;
 }
