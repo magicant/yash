@@ -14,6 +14,9 @@
       expands to the process ID of the job.
     - An interactive shell no longer exits on an error in the `exec`
       built-in, even if the POSIXly-correct mode is on.
+    - The shell's syntax now always allows `esac` as the first pattern
+      of a case branch as in `case esac in (esac|case) echo ok; esac`.
+      Previously, it was a syntax error in the POSIXly-correct mode.
   - Updated the sample initialization script (yashrc):
     - Added aliases h='fc -l' and j='jobs'.
     - Added the wrapper function for `doas` in an attempt to remove the

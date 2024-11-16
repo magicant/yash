@@ -372,9 +372,9 @@ The {{word}} between the +case+ and +in+ tokens must be exactly one word. The
 {{word}} is not treated as a keyword, but you need to <<quotes,quote>>
 separator characters (such as +&+ and +|+) to include them as part of the
 {{word}}. Between the +in+ and +esac+ tokens you can put any number of case
-items (may be none). You can omit the first +(+ token of a case item and the
-last +;;+ token before the +esac+ token. If the last {{command}} of a case
-item is terminated by a semicolon, you can omit the semicolon as well. The
+items (may be none). You can omit the first +(+ token of a case item unless
+the first pattern is +esac+. If the last {{command}} is terminated by a
+linebreak, you can omit the last +;;+ token before the +esac+ token. The
 {{command}}s in a case item may be empty.
 
 The {{patterns}} in a case item are one or more tokens each separated by a +|+
@@ -398,9 +398,6 @@ The exit status of a case command is that of the {{command}}s executed. The
 exit status is zero if no
 {{command}}s were executed, that is, there were no case items, no matching
 pattern was found, or no commands were associated with the matching pattern.
-
-In the link:posix.html[POSIXly-correct mode], the first pattern in a case item
-cannot be +esac+ (even if you do not omit the +(+ token).
 
 [[double-bracket]]
 === Double-bracket command
