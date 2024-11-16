@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1236,6 +1236,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
                 assert(false);
         }
     } else {
+        lastasyncpid = job->j_procs[job->j_pcount - 1].pr_pid;
         set_current_jobnumber(shopt_curbg ? jobnumber : current_jobnumber);
         status = (job->j_status == JS_RUNNING) ? Exit_SUCCESS : Exit_FAILURE;
     }
