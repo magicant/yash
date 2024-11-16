@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2023 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2691,11 +2691,7 @@ void **parse_case_patterns(parsestate_T *ps)
 
     if (ps->tokentype == TT_LPAREN) {  /* ignore the first '(' */
         next_token(ps);
-        do {
-            if (posixly_correct && ps->tokentype == TT_ESAC)
-                serror(ps,
-                    Ngt("an unquoted `esac' cannot be the first case pattern"));
-        } while (psubstitute_alias(ps, 0));
+        psubstitute_alias_recursive(ps, 0);
     }
 
     const wchar_t *predecessor = L"(";

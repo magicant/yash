@@ -333,7 +333,13 @@ test_reserved_word_as_pattern "$LINENO" then
 test_reserved_word_as_pattern "$LINENO" until
 test_reserved_word_as_pattern "$LINENO" while
 
-test_oE 'reserved word esac as (non-first) pattern'
+test_oE 'esac as first pattern'
+case esac in (esac) echo matched;; esac
+__IN__
+matched
+__OUT__
+
+test_oE 'esac as non-first pattern'
 case esac in -|esac) echo matched;; esac
 __IN__
 matched

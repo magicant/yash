@@ -1,18 +1,5 @@
 # case-y.tst: yash-specific test of case command
 
-(
-posix="true"
-
-test_Oe -e 2 'reserved word esac as pattern (-o POSIX)'
-case x in (esac) echo not reached; esac
-__IN__
-syntax error: an unquoted `esac' cannot be the first case pattern
-__ERR__
-#'
-#`
-
-)
-
 test_oe 'patterns separated by | are expanded and matched in order'
 case 1 in
     $(echo expanded 0 >&2; echo 0) |\
