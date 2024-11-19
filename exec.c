@@ -1395,28 +1395,41 @@ void exec_case(const command_T *c, bool finally_exit)
     if (word == NULL)
         goto fail;
 
+    bool match = false, emptycmd = true;
+
     for (const caseitem_T *ci = c->c_casitems; ci != NULL; ci = ci->next) {
-        for (void **pats = ci->ci_patterns; *pats != NULL; pats++) {
+        for (void **pats = ci->ci_patterns; !match && *pats != NULL; pats++) {
             wchar_t *pattern =
                 expand_single(*pats, TT_SINGLE, Q_WORD, ES_QUOTED);
             if (pattern == NULL)
                 goto fail;
 
-            bool match = match_pattern(word, pattern);
+            match = match_pattern(word, pattern);
             free(pattern);
-            if (match) {
-                if (ci->ci_commands != NULL) {
-                    exec_and_or_lists(ci->ci_commands, finally_exit);
-                    goto done;
-                } else {
-                    goto success;
-                }
-            }
+        }
+        if (!match)
+            continue;
+
+        exec_and_or_lists(
+                ci->ci_commands,
+                finally_exit && (ci->next == NULL || ci->ci_cont == CC_BREAK));
+        emptycmd = (ci->ci_commands == NULL);
+
+        switch (ci->ci_cont) {
+            case CC_BREAK:
+                goto done;
+            case CC_FALLTHRU:
+                match = true;
+                break;
+            case CC_CONTINUE:
+                match = false;
+                break;
         }
     }
-success:
-    laststatus = Exit_SUCCESS;
+
 done:
+    if (emptycmd)
+        laststatus = Exit_SUCCESS;
     free(word);
     if (finally_exit)
         exit_shell();

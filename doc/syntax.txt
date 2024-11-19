@@ -366,19 +366,28 @@ Case command syntax::
   +case {{word}} in {{caseitem}}... esac+
 
 Case item syntax::
-  +({{patterns}}) {{command}}...;;+
+  +({{patterns}}) {{command}}... ;;+
+  +
+  +({{patterns}}) {{command}}... ;&+
+  +
+  +({{patterns}}) {{command}}... ;|+
+  +
+  +({{patterns}}) {{command}}... ;;&+
 
 The {{word}} between the +case+ and +in+ tokens must be exactly one word. The
 {{word}} is not treated as a keyword, but you need to <<quotes,quote>>
 separator characters (such as +&+ and +|+) to include them as part of the
 {{word}}. Between the +in+ and +esac+ tokens you can put any number of case
-items (may be none). You can omit the first +(+ token of a case item unless
-the first pattern is +esac+. If the last {{command}} is terminated by a
-linebreak, you can omit the last +;;+ token before the +esac+ token. The
-{{command}}s in a case item may be empty.
+items (or none).
 
+You can omit the first +(+ token of a case item unless the first pattern is
++esac+.
 The {{patterns}} in a case item are one or more tokens each separated by a +|+
 token.
+
+The {{command}}s in a case item may be empty.
+If the last case item of a case command is terminated by +;;+, you can omit
+the +;;+ token.
 
 The execution of a case command starts with subjecting the {{word}} to
 link:expand.html[the four expansions]. Next, the following steps are taken for
@@ -391,13 +400,24 @@ each case item (in the order of appearance):
   expanded. Yash expands and tests the patterns in the order of appearance,
   but it may not be the case for other shells.)
 . If one of the {{patterns}} was found to match the {{word}} in the previous
-  step, the {{command}}s in this case item are executed and the execution of
-  the whole case item ends. Otherwise, proceed to the next case item.
+  step, the {{command}}s in this case item are executed.
+  * If the case item is terminated by +;;+ (or the +;;+ token is omitted), any
+    remaining case items are ignored and the execution of the whole case
+    command ends.
+  * If the case item is terminated by +;&+, continue to the next case item.
+    However, the {{patterns}} of the next item are not expanded nor tested,
+    and the {{command}}s are unconditionally executed.
+  * If the case item is terminated by +;|+ or +;;&+, continue to the next case
+    item, looking for a next match.
+. If none of the {{patterns}} match the word, proceed to the next case item.
 
-The exit status of a case command is that of the {{command}}s executed. The
-exit status is zero if no
-{{command}}s were executed, that is, there were no case items, no matching
-pattern was found, or no commands were associated with the matching pattern.
+The exit status of a case command is that of the last {{command}}s executed.
+The exit status is zero if commands were not executed, that is, there were no
+case items, no matching pattern was found, or the {{command}}s were empty in
+the last executed case item.
+
+The +;|+ and +;;&+ terminators are a non-standard extension that cannot be
+used in the link:posix.html[POSIXly-correct mode].
 
 [[double-bracket]]
 === Double-bracket command

@@ -23,11 +23,89 @@ case $(echo 2; exit 2) in
 esac
 __IN__
 
-test_oE 'reserved word esac as pattern (preceded by parenthesis, +o POSIX)'
-case esac in (esac) echo matched;; esac
+# The behavior is unspecified in POSIX, but many existing shells seem to behave
+# this way (with the notable exception of ksh).
+test_OE -e 0 'exit status of case command with ;& followed by empty item'
+case i in
+    i) (exit 1);&
+    j) ;;
+esac
 __IN__
-matched
+
+test_oE -e 42 'pattern matching after ;| (+o posix)'
+case 1 in
+    0) echo not reached 0;;
+    1) echo matched 1; (exit 12);|
+    2) echo not reached 2;;
+    1) echo matched 2 $?; (exit 42);|
+    2) echo not reached 3;;
+esac
+__IN__
+matched 1
+matched 2 12
 __OUT__
+
+test_oE -e 42 'pattern matching after ;;& (+o posix)'
+case 1 in
+    0) echo not reached 0;;
+    1) echo matched 1; (exit 12);;&
+    2) echo not reached 2;;
+    1) echo matched 2 $?; (exit 42);;&
+    2) echo not reached 3;;
+esac
+__IN__
+matched 1
+matched 2 12
+__OUT__
+
+(
+posix="true"
+
+test_Oe -e 2 'pattern matching after ;| (-o posix)'
+case 1 in
+    0) echo not reached 0;;
+    1) echo matched 1; (exit 12);|
+    2) echo not reached 2;;
+    1) echo matched 2 $?; (exit 42);|
+    2) echo not reached 3;;
+esac
+__IN__
+syntax error: The ;| or ;;& operator is not supported in the POSIXly-correct mode
+syntax error: `esac' is missing
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'pattern matching after ;;& (-o posix)'
+case 1 in
+    0) echo not reached 0;;
+    1) echo matched 1; (exit 12);;&
+    2) echo not reached 2;;
+    1) echo matched 2 $?; (exit 42);;&
+    2) echo not reached 3;;
+esac
+__IN__
+syntax error: The ;| or ;;& operator is not supported in the POSIXly-correct mode
+syntax error: `esac' is missing
+__ERR__
+#'
+#`
+
+)
+
+# Existing shells disagree on the behavior of this case.
+test_oE 'exit status in case command with subject containing command substitution'
+case $(echo 1; exit 42) in
+    1) echo $?
+esac
+__IN__
+0
+__OUT__
+
+# Many existing shells behave this way (with the notable exception of ksh).
+test_OE -e 0 'exit status of case command with subject containing command substitution'
+case $(echo 1; exit 42) in esac
+__IN__
 
 test_Oe -e 2 'in without case'
 in
@@ -51,6 +129,66 @@ test_Oe -e 2 ';; outside case (after simple command)'
 echo foo;;
 __IN__
 syntax error: `;;' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';& outside case (at beginning of line)'
+;&
+__IN__
+syntax error: `;&' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';& outside case (after simple command)'
+echo foo;&
+__IN__
+syntax error: `;&' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';| outside case (at beginning of line)'
+;|
+__IN__
+syntax error: `;|' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';| outside case (after simple command)'
+echo foo;|
+__IN__
+syntax error: `;|' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';;& outside case (at beginning of line)'
+;;&
+__IN__
+syntax error: `;;&' is used outside `case'
+__ERR__
+#'
+#`
+#'
+#`
+
+test_Oe -e 2 ';;& outside case (after simple command)'
+echo foo;;&
+__IN__
+syntax error: `;;&' is used outside `case'
 __ERR__
 #'
 #`

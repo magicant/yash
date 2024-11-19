@@ -10,6 +10,11 @@
     directory names for the first operand even before the user enters a
     slash.
   - Improved POSIX.1-2024 support:
+    - Case command items now can be terminated by `;&` instead of `;;'
+      to force the shell to execute the next item.
+      - The non-standard terminators `;|` and `;;&` are also supported
+        to resume pattern matching with the next item unless in the
+        POSIXly-correct mode.
     - After the `bg` built-in resumed a job, the `!` special parameter
       expands to the process ID of the job.
     - An interactive shell no longer exits on an error in the `exec`

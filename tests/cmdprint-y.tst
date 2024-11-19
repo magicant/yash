@@ -2,6 +2,8 @@
 
 mkfifo fifo
 
+# Commands used in testcase_single must perform exactly one "cat fifo" so that
+# the background job finishes after "jobs" prints the job status.
 testcase_single() {
     testcase "$@" 3<<__IN__ 5<&- 4<<__OUT__
 $(cat <&3) &
@@ -411,6 +413,27 @@ case i in
    (n)
       :&
       ;;
+esac
+__OUT__
+
+test_single 'case command, terminators, single line'
+case 1 in (1) cat fifo;& (2) ;| (3) ./oops&;;& esac
+__IN__
+case 1 in (1) cat fifo ;& (2) ;| (3) ./oops& ;| esac
+__OUT__
+
+test_multi 'case command, terminators, multi-line'
+case 1 in (1) cat fifo;& (2) ;| (3) ./oops&;;& esac
+__IN__
+case 1 in
+   (1)
+      cat fifo
+      ;&
+   (2)
+      ;|
+   (3)
+      ./oops&
+      ;|
 esac
 __OUT__
 

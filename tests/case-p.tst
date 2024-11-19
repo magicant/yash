@@ -200,6 +200,27 @@ case $(echo 2; exit 2) in
 esac
 __IN__
 
+test_oE -e 42 'executing item after ;&'
+case 1 in
+    0) echo not reached 0;;
+    1) echo matched 1;&
+    2) echo matched 2; (exit 42);&
+esac
+__IN__
+matched 1
+matched 2
+__OUT__
+
+test_oE 'exit status after empty ;& in case command'
+(exit 1)
+case i in
+    i) ;&
+    j) echo $?
+esac
+__IN__
+1
+__OUT__
+
 test_oE 'patterns can be preceded by ('
 case a in
     (a) echo matched 1;;

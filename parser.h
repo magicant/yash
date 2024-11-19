@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -131,11 +131,19 @@ typedef struct ifcommand_T {
 } ifcommand_T;
 /* For an "else" clause, `next' and `ic_condition' are NULL. */
 
+/* type of an case item terminator symbol */
+typedef enum {
+    CC_BREAK,    // ;;
+    CC_FALLTHRU, // ;&
+    CC_CONTINUE, // ;| aka ;;&
+} casecont_T;
+
 /* patterns and commands of a case command */
 typedef struct caseitem_T {
     struct caseitem_T *next;
     void             **ci_patterns;  /* patterns to do matching */
     struct and_or_T   *ci_commands;  /* commands executed if match succeeds */
+    casecont_T         ci_cont;      /* terminator symbol type */
 } caseitem_T;
 /* `ci_patterns' is a NULL-terminated array of pointers to `wordunit_T' that are
  * cast to `void *'. */
