@@ -101,7 +101,10 @@ __IN__
 
 (
 if
-    ! { LOGNAME="$(logname)" && export LOGNAME; }
+    logname=$(logname)
+    if [ "$logname" ]; then LOGNAME=$logname; fi
+    unset logname
+    ! { [ "$LOGNAME" ] && export LOGNAME; }
 then
     skip="true"
 elif
