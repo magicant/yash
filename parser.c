@@ -293,6 +293,7 @@ typedef enum tokentype_T {
     /* operators */
     TT_NEWLINE,
     TT_AMP, TT_AMPAMP, TT_LPAREN, TT_RPAREN, TT_SEMICOLON, TT_DOUBLE_SEMICOLON,
+    TT_SEMICOLONAMP, TT_SEMICOLONPIPE, TT_DOUBLE_SEMICOLON_AMP,
     TT_PIPE, TT_PIPEPIPE, TT_LESS, TT_LESSLESS, TT_LESSAMP, TT_LESSLESSDASH,
     TT_LESSLESSLESS, TT_LESSGREATER, TT_LESSLPAREN, TT_GREATER,
     TT_GREATERGREATER, TT_GREATERGREATERPIPE, TT_GREATERPIPE, TT_GREATERAMP,
@@ -526,6 +527,9 @@ bool is_closing_tokentype(tokentype_T tt)
         case TT_DO:
         case TT_DONE:
         case TT_DOUBLE_SEMICOLON:
+        case TT_DOUBLE_SEMICOLON_AMP:
+        case TT_SEMICOLONAMP:
+        case TT_SEMICOLONPIPE:
         case TT_ESAC:
             return true;
         default:
@@ -881,6 +885,9 @@ const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
         case TT_RBRACE:
             return Ngt("encountered `%ls' without a matching `{'");
         case TT_DOUBLE_SEMICOLON:
+        case TT_DOUBLE_SEMICOLON_AMP:
+        case TT_SEMICOLONAMP:
+        case TT_SEMICOLONPIPE:
             return Ngt("`%ls' is used outside `case'");
         case TT_BANG:
             return Ngt("`%ls' cannot be used as a command name");
@@ -1050,11 +1057,19 @@ skip_blanks:
         case L')':  ps->tokentype = TT_RPAREN;       index++; break;
         case L';':
             maybe_line_continuations(ps, ++index);
-            if (ps->src.contents[index] == L';') {
-                ps->tokentype = TT_DOUBLE_SEMICOLON;
-                index++;
-            } else {
-                ps->tokentype = TT_SEMICOLON;
+            switch (ps->src.contents[index]) {
+                default:    ps->tokentype = TT_SEMICOLON;              break;
+                case L'&':  ps->tokentype = TT_SEMICOLONAMP;  index++; break;
+                case L'|':  ps->tokentype = TT_SEMICOLONPIPE; index++; break;
+                case L';':
+                    maybe_line_continuations(ps, ++index);
+                    if (ps->src.contents[index] == L'&') {
+                        ps->tokentype = TT_DOUBLE_SEMICOLON_AMP;
+                        index++;
+                    } else {
+                        ps->tokentype = TT_DOUBLE_SEMICOLON;
+                    }
+                    break;
             }
             break;
         case L'&':
@@ -2673,11 +2688,27 @@ caseitem_T *parse_case_list(parsestate_T *ps)
         ci->ci_patterns = parse_case_patterns(ps);
         ci->ci_commands = parse_compound_list(ps);
         /* `ci_commands' may be NULL unlike for and while commands */
-        if (ps->tokentype == TT_DOUBLE_SEMICOLON)
-            next_token(ps);
-        else
-            break;
+        switch (ps->tokentype) {
+            case TT_DOUBLE_SEMICOLON:
+                ci->ci_cont = CC_BREAK;
+                break;
+            case TT_SEMICOLONAMP:
+                ci->ci_cont = CC_FALLTHRU;
+                break;
+            case TT_SEMICOLONPIPE:
+            case TT_DOUBLE_SEMICOLON_AMP:
+                ci->ci_cont = CC_CONTINUE;
+                if (posixly_correct)
+                    serror(ps, Ngt("The ;| or ;;& operator is not supported "
+                                "in the POSIXly-correct mode"));
+                break;
+            default:
+                ci->ci_cont = CC_BREAK;
+                goto done;
+        }
+        next_token(ps);
     } while (!ps->error);
+done:
     return first;
 }
 
@@ -3389,6 +3420,8 @@ static void print_caseitems(
         struct print *restrict pr, const caseitem_T *restrict caseitems,
         unsigned indent)
     __attribute__((nonnull(1)));
+static const wchar_t *case_item_terminator(casecont_T cc)
+    __attribute__((const));
 #if YASH_ENABLE_DOUBLE_BRACKET
 static void print_double_bracket(
         struct print *restrict pr, const command_T *restrict c, unsigned indent)
@@ -3722,11 +3755,21 @@ void print_caseitems(struct print *restrict pr, const caseitem_T *restrict ci,
         }
 
         print_indent(pr, indent + 1);
-        wb_cat(&pr->buffer, L";;");
+        wb_cat(&pr->buffer, case_item_terminator(ci->ci_cont));
         print_space_or_newline(pr);
 
         ci = ci->next;
     }
+}
+
+const wchar_t *case_item_terminator(casecont_T cc)
+{
+    switch (cc) {
+        case CC_BREAK:     return L";;";
+        case CC_FALLTHRU:  return L";&";
+        case CC_CONTINUE:  return L";|";
+    }
+    assert(false);
 }
 
 #if YASH_ENABLE_DOUBLE_BRACKET
