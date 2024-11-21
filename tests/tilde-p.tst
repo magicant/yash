@@ -104,7 +104,7 @@ if
     logname=$(logname)
     if [ "$logname" ]; then LOGNAME=$logname; fi
     unset logname
-    ! { [ "$LOGNAME" ] && export LOGNAME; }
+    ! { [ "${LOGNAME-}" ] && export LOGNAME; }
 then
     skip="true"
 elif
