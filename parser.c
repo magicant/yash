@@ -1209,9 +1209,8 @@ wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
                 *lastp = wu;
                 lastp = &wu->next;
                 continue;
-            } else if (ps->src.contents[ps->index] == L'\0') {
-                continue;
             }
+            assert(ps->src.contents[ps->index] == L'$');
             break;
         case L'\'':
             if (!indq) {
