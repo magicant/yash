@@ -593,7 +593,7 @@ static void next_token(parsestate_T *ps)
     __attribute__((nonnull));
 static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
-static void skip_to_next_single_quote(parsestate_T *ps)
+static void skip_to_next_single_quote(parsestate_T *ps, bool allowescape)
     __attribute__((nonnull));
 static wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1211,11 +1211,18 @@ wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
                 continue;
             }
             assert(ps->src.contents[ps->index] == L'$');
+            if (!indq && ps->src.contents[ps->index + 1] == L'\'') {
+                ps->index += 2;
+                skip_to_next_single_quote(ps, true);
+                if (ps->src.contents[ps->index] == L'\'')
+                    ps->index++;
+                continue;
+            }
             break;
         case L'\'':
             if (!indq) {
                 ps->index++;
-                skip_to_next_single_quote(ps);
+                skip_to_next_single_quote(ps, false);
                 if (ps->src.contents[ps->index] == L'\'')
                     ps->index++;
                 continue;
@@ -1241,19 +1248,29 @@ done:
 /* Skips to the next single quote.
  * If the current position is already at a single quote, the position is not
  * moved.
- * It is an error if there is no single quote before the end of file. */
-void skip_to_next_single_quote(parsestate_T *ps)
+ * It is an error if there is no single quote before the end of file.
+ * If `allowescape' is true, backslash escapes are considered: quotes preceded
+ * by a backslash are treated literally. */
+void skip_to_next_single_quote(parsestate_T *ps, bool allowescape)
 {
+    bool escape = false;
     for (;;) {
+        bool nextescape = false;
         switch (ps->src.contents[ps->index]) {
         case L'\'':
-            return;
+            if (escape)
+                break;
+            else
+                return;
         case L'\0':
             if (read_more_input(ps) != INPUT_OK) {
                 serror(ps, Ngt("the single quotation is not closed"));
                 return;
             }
             continue;
+        case L'\\':
+            nextescape = !escape && allowescape;
+            break;
         case L'\n':
             ps->info->lineno++;
             break;
@@ -1261,6 +1278,7 @@ void skip_to_next_single_quote(parsestate_T *ps)
             break;
         }
         ps->index++;
+        escape = nextescape;
     }
 }
 

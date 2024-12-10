@@ -15,6 +15,7 @@
       - The non-standard terminators `;|` and `;;&` are also supported
         to resume pattern matching with the next item unless in the
         POSIXly-correct mode.
+    - Dollar-single-quotes are now supported.
     - After the `bg` built-in resumed a job, the `!` special parameter
       expands to the process ID of the job.
     - An interactive shell no longer exits on an error in the `exec`

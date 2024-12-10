@@ -103,6 +103,27 @@ __ERR__
 
 )
 
+test_oE 'null character in dollar-single-quotes'
+printf '%s\n' a$'b\0c'd w$'x\x0y'z 1$'2\c@3'4
+__IN__
+abd
+wxz
+12?34
+__OUT__
+
+test_oE 'too large octal escape in dollar-single-quotes'
+printf '%s\n' $'\777'
+__IN__
+?
+__OUT__
+
+test_oE 'no dollar-single-quotes inside double quotes'
+null=
+printf '%s\n' "$'\x20$null'"
+__IN__
+$'\x20'
+__OUT__
+
 test_oE 'backslash preceding EOF is ignored'
 "$TESTEE" -c 'printf "[%s]\n" 123\'
 __IN__

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2024 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,6 +140,8 @@ static void add_empty_field(plist_T *dest, const wchar_t *p)
 static inline void add_sq(
         const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
     __attribute__((nonnull));
+static wchar_t *interpret_dsq(const wchar_t *restrict *ss)
+    __attribute__((nonnull,malloc,warn_unused_result));
 static inline bool should_escape(charcategory_T cc, escaping_T escaping)
     __attribute__((const));
 static wchar_t *quote_removal_free(
@@ -469,6 +471,23 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
                     sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
 
                     add_sq(&ss, &valuebuf, false);
+                    assert(*ss == L'\'');
+                    fill_ccbuf(&valuebuf, &ccbuf, defaultcc | CC_QUOTED);
+
+                    wb_wccat(&valuebuf, L'\'');
+                    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
+                    break;
+                case L'$':
+                    // Check for dollar-single-quotes.
+                    if (quoting != Q_WORD || indq || ss[1] != '\'')
+                        goto default_;
+
+                    wb_wccat(&valuebuf, L'$');
+                    wb_wccat(&valuebuf, L'\'');
+                    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
+                    sb_ccat(&ccbuf, defaultcc | CC_QUOTATION);
+
+                    wb_catfree(&valuebuf, interpret_dsq(&ss));
                     assert(*ss == L'\'');
                     fill_ccbuf(&valuebuf, &ccbuf, defaultcc | CC_QUOTED);
 
@@ -1697,6 +1716,119 @@ void add_sq(const wchar_t *restrict *ss, xwcsbuf_T *restrict buf, bool escape)
                 if (escape)
                     wb_wccat(buf, L'\\');
                 wb_wccat(buf, **ss);
+                break;
+        }
+    }
+}
+
+/* Expands the content of a dollar-single-quoted string to a newly-malloced
+ * string.
+ * `ss' is a pointer to a pointer to the string to be expanded. Initially,
+ * `(*ss)[0]' and `(*ss)[1]' must be '$' and '\'', respectively, which are
+ * skipped in this function. The following characters in the string are
+ * accumulated in the string to be returned, interpreting any backslash escapes
+ * encountered, until a closing '\'' is found (or the end of the string is
+ * reached). When this function returns, `*ss' is updated so that `**ss' is the
+ * closing quote or terminating null character. */
+/* If an escape contained in `*ss' produces a null character, the rest of the
+ * string is ignored by the caller. This is one of the behaviors allowed by
+ * POSIX. This function could have been designed to take an `xwcsbuf_T *'
+ * argument and append the result directly to it, but that would not be
+ * compliant because the null character would also hide the characters after the
+ * closing quote. */
+wchar_t *interpret_dsq(const wchar_t *restrict *ss)
+{
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
+    const wchar_t *s = *ss;
+    assert(s[0] == '$');
+    assert(s[1] == '\'');
+    s += 2;
+
+    for (;;) {
+        switch (*s) {
+            case L'\0':
+            case L'\'':
+                *ss = s;
+                return wb_towcs(&buf);
+            case L'\\':
+                s++;
+                switch (*s) {
+                    case L'"':
+                    case L'\'':
+                    case L'\\':
+                        wb_wccat(&buf, *s);
+                        s++;
+                        break;
+                    case L'a':  wb_wccat(&buf, L'\a');    s++;  break;
+                    case L'b':  wb_wccat(&buf, L'\b');    s++;  break;
+                    case L'e':  wb_wccat(&buf, L'\033');  s++;  break;
+                    case L'f':  wb_wccat(&buf, L'\f');    s++;  break;
+                    case L'n':  wb_wccat(&buf, L'\n');    s++;  break;
+                    case L'r':  wb_wccat(&buf, L'\r');    s++;  break;
+                    case L't':  wb_wccat(&buf, L'\t');    s++;  break;
+                    case L'v':  wb_wccat(&buf, L'\v');    s++;  break;
+                    case L'c':
+                        s++;
+                        wchar_t c;
+                        if (*s == L'\\') {
+                            s++;
+                            if (*s == L'\\')
+                                c = L'\\' ^ 0x40;
+                            else // Oops, unknown escape!
+                                c = L'?';
+                        } else if (*s == L'?' || (L'A' <= *s && *s <= L'_')) {
+                            c = *s ^ 0x40;
+                        } else if (L'a' <= *s && *s <= L'z') {
+                            c = *s ^ 0x60;
+                        } else { // Oops, unknown escape!
+                            c = L'?';
+                        }
+                        wb_wccat(&buf, c);
+                        s++;
+                        break;
+                    case L'x':
+                        s++;
+                        int value;
+                        if (L'0' <= *s && *s <= L'9') {
+                            value = *s - L'0';
+                        } else if (L'A' <= *s && *s <= L'F') {
+                            value = *s - L'A' + 0xA;
+                        } else if (L'a' <= *s && *s <= L'f') {
+                            value = *s - L'a' + 0xA;
+                        } else { // Oops, missing digit
+                            wb_wccat(&buf, L'?');
+                            break;
+                        }
+                        s++;
+                        if (L'0' <= *s && *s <= L'9')
+                            value = (value << 4) | (*s - L'0');
+                        else if (L'A' <= *s && *s <= L'F')
+                            value = (value << 4) | (*s - L'A' + 0xA);
+                        else if (L'a' <= *s && *s <= L'f')
+                            value = (value << 4) | (*s - L'a' + 0xA);
+                        else // Okay, no second digit
+                            goto only_one_xdigit;
+                        s++;
+only_one_xdigit:
+                        wb_wccat(&buf, (wchar_t) value);
+                        break;
+                    default:;
+                        int count = 0;
+                        value = 0;
+                        while (count < 3 && L'0' <= *s && *s <= L'7')
+                            value = (value << 3) | (*s - L'0'), s++, count++;
+                        if (count > 0 && (value & ~0xFF) == 0)
+                            wb_wccat(&buf, (wchar_t) value);
+                        else
+                            wb_wccat(&buf, L'?');
+                        break;
+                }
+                break;
+            default:
+                wb_wccat(&buf, *s);
+                s++;
                 break;
         }
     }

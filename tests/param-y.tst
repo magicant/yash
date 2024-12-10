@@ -32,12 +32,6 @@ __IN__
 [$][$][$]
 __OUT__
 
-test_oE "\$'"
-bracket $'x'
-__IN__
-[$x]
-__OUT__
-
 test_oE '$"'
 bracket $"x"
 __IN__

@@ -399,6 +399,19 @@ b][a
 b]
 __OUT__
 
+test_oE 'dollar-single-quotes'
+bracket $'' $'a' $'a
+b' -$'\"\'\'"\\\a\b\e\f\n\r\t\v\x20\1000'- =$'\x9'$'\11\7'=
+bracket $'\cA\ca\c^\c\\\c?' $'\\
+'
+__IN__
+[][a][a
+b][-"''"\
+	 @0-][=		=]
+[][\
+]
+__OUT__
+
 test_oE 'double quotes'
 bracket "abc" "'a'"
 bracket "a

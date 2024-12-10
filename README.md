@@ -130,6 +130,11 @@ system.
    total ordering of characters, order of uncomparable results are
    unstable. This limitation is not strictly POSIX-compliant, but
    inevitable due to use of wide characters in the whole shell.
+ * Most part of the shell cannot handle bytes that do not represent
+   valid characters, because string operations are written in terms of
+   wide character strings. This design choice was made before POSIX
+   added requirements for the shell to accept arbitrary bytes in some
+   operations, and it is too late to fully implement them.
 
 
 ## Known Issues

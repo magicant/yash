@@ -61,15 +61,56 @@ quotation marks:
   dfn:[line continuation] rather than a newline being quoted. The two
   characters are removed from the input and the two lines surrounding the line
   continuation are concatenated into a single line.
-* A pair of single-quotation marks (+'+) quote any characters between them
-  except another single-quotation. Note that newlines can be quoted using
-  single-quotations.
+* A pair of single-quotation marks (+'+) quote any characters between them.
+  Note that newlines can be quoted using single-quotations.
+  Single-quotations cannot quote a single-quotation mark itself unless the
+  mark is escaped in a <<dollar-single,dollar-single-quoted>> string.
 * Double-quotation marks (+"+) are like single-quotations, but they have a few
   exceptions: Parameter expansion, command substitution, and arithmetic
   expansion are interpreted as usual even between double-quotations. A
   backslash between double-quotations is treated as a quotation mark only when
   it is followed by +$+, +`+, +"+, +\+, or a newline; other backslashes are
   treated as normal characters.
+
+[[dollar-single]]
+=== Dollar-single-quotes
+
+Dollar-single-quotes are a special form of quotation introduced by +$&#x27;+
+and terminated by +&#x27;+. This is similar to normal single-quotation marks,
+but the following backslash escapes are recognized in the quoted string:
+
++\"+, +\'+, +\\+::
+  Represents literal +"+, +&#x27;+, and +\+, respectively. Note that a
+  single-quotation mark escaped by a backslash does not terminate the
+  dollar-single-quoted string.
++\a+, +\b+, +\e+, +\f+, +\n+, +\r+, +\t+, +\v+::
+  Represents the alert (bell), backspace, escape, form feed, newline, carriage
+  return, horizontal tab, and vertical tab characters, respectively.
++\c+::
+  Represents the control character corresponding to a character that follows.
+  For example, +\cA+ represents the SOH character, which can be entered by
+  typing Ctrl-A.
+  The null character (Ctrl-@, +\c@+) is not supported.
+  To specify the FS character (Ctrl-\), the following backslash must also be
+  escaped as in +\c\\+ rather than +\c\+.
++\x+::
+  Represents the character whose value is specified by hexadecimal digits that
+  follow. For example, +\x20+ represents the character that has the value 20
+  in hexadecimal. There must be at least one digit that follows +\x+ and at
+  most two digits are recognized.
++\0+, +\1+, +\2+, ..., +\377+::
+  Represents the character whose value is specified by octal digits. There
+  must be at least one digit and at most three digits are recognized. The
+  value must fit in 8 bits.
+
+Any other use of backslashes is considered as an error and converted to the
++?+ character.
+
+[NOTE]
+The value represented by a hexadecimal or octal digit escape is interpreted as
+a wide character codepoint.
+This behavior does not conform to POSIX, which requires that the value be
+treated as a raw byte.
 
 [[aliases]]
 == Aliases
