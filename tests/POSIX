@@ -44,6 +44,7 @@ Volume 3: Shell & Utilities
 
 2.6.2 Parameter Expansion
  * param-p.tst
+ * quote-p.tst
 
 2.6.3 Command Substitution
  * cmdsub-p.tst
