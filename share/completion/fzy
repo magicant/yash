@@ -6,9 +6,9 @@ function completion/fzy {
 
         typeset OPTIONS ARGOPT PREFIX
         OPTIONS=( #>#
-        "s --show-scores:; show the scores for each item"
         "l: --lines:; how many lines to display"
         "p: --prompt:; input prompt"
+        "s --show-scores; show the scores for each item"
         "t: --tty:; use tty instead of the default tty device"
         "q: --query:; use query as the initial search query"
         "e: --show-matches:; non-interactive mode"
