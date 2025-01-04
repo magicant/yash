@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.c: word expansion */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -187,9 +187,10 @@ bool expand_line(void *const *restrict args,
     return true;
 }
 
-/* Expands a word.
- * The results, which are added to `list' as newly-malloced wide strings, may
- * be multiple words.
+/* Expands a word to (possibly any number of) fields.
+ * The operation includes the four expansions, brace expansion, field splitting,
+ * pathname expansion, and quote removal.
+ * The results are added to `list' as newly-malloced wide strings.
  * The return value is true iff successful.
  * On error in a non-interactive shell, the shell exits. */
 bool expand_multiple(const wordunit_T *w, plist_T *list)
@@ -226,6 +227,29 @@ bool expand_multiple(const wordunit_T *w, plist_T *list)
     glob_all(&expand, list);
 
     return true;
+}
+
+/* Expands a word to (possibly any number of) fields.
+ * The operation includes the four expansions and quote removal. Unlike
+ * `expand_multiple', this function does not perform brace expansion, field
+ * splitting, or pathname expansion.
+ * If successful, the return value is a plist_T containing newly malloced wide
+ * strings. In most cases, the plist_T contains one string. If the word contains
+ * "$@", however, it may contain any number of strings.
+ * On error, the return value is a plist_T with `contents' being NULL. */
+plist_T expand_word(const wordunit_T *w)
+{
+    /* four expansions */
+    struct expand_four_T expand = expand_four(w, TT_NONE, Q_WORD, CC_LITERAL);
+
+    /* quote removal */
+    for (size_t i = 0; i < expand.valuelist.length; i++)
+        expand.valuelist.contents[i] = quote_removal_free(
+            expand.valuelist.contents[i], expand.cclist.contents[i], ES_NONE);
+
+    pl_destroy(&expand.cclist);
+
+    return expand.valuelist;
 }
 
 /* Expands a word to a single field.
@@ -274,26 +298,6 @@ struct cc_word_T expand_single_cc(
     pl_destroy(&e.valuelist);
     pl_destroy(&e.cclist);
     return (struct cc_word_T) { wb_towcs(&valuebuf), sb_tostr(&ccbuf) };
-}
-
-/* Expands a word to (possibly any number of) fields.
- * If successful, the return value is a plist_T containing newly malloced wide
- * strings. In most cases, the plist_T contains one string. If the word contains
- * "$@", however, it may contain any number of strings.
- * On error, the return value is a plist_T with `contents' being NULL. */
-plist_T expand_word(const wordunit_T *w)
-{
-    /* four expansions */
-    struct expand_four_T expand = expand_four(w, TT_NONE, Q_WORD, CC_LITERAL);
-
-    /* quote removal */
-    for (size_t i = 0; i < expand.valuelist.length; i++)
-        expand.valuelist.contents[i] = quote_removal_free(
-            expand.valuelist.contents[i], expand.cclist.contents[i], ES_NONE);
-
-    pl_destroy(&expand.cclist);
-
-    return expand.valuelist;
 }
 
 /* Expands a single word: the four expansions and quote removal.
