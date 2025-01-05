@@ -665,7 +665,7 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     lastcmdsubstatus = Exit_SUCCESS;
 
     /* expand the command words */
-    plist_T args = expand_line(c->c_words, false);
+    plist_T args = expand_line(c->c_words, c->c_isdeclutil);
     if (args.contents == NULL) {
         laststatus = Exit_EXPERROR;
         goto done;

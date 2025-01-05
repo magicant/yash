@@ -2098,6 +2098,7 @@ command_T *parse_command(parsestate_T *ps)
     result->c_redirs = NULL;
     result->c_words = parse_simple_command_tokens(
             ps, &result->c_assigns, &result->c_redirs);
+    result->c_isdeclutil = false; // TODO FIXME
 
     if (result->c_words[0] == NULL && result->c_assigns == NULL &&
             result->c_redirs == NULL) {
