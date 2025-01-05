@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -665,9 +665,8 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     lastcmdsubstatus = Exit_SUCCESS;
 
     /* expand the command words */
-    int argc;
-    void **argv;
-    if (!expand_line(c->c_words, &argc, &argv)) {
+    plist_T args = expand_line(c->c_words);
+    if (args.contents == NULL) {
         laststatus = Exit_EXPERROR;
         goto done;
     }
@@ -675,15 +674,15 @@ void exec_simple_command(const command_T *c, bool finally_exit)
         goto done1;
 
     /* execute the remaining part */
-    if (argc == 0)
+    if (args.length == 0)
         finally_exit |= exec_simple_command_without_words(c);
     else
-        finally_exit |=
-            exec_simple_command_with_words(c, argc, argv, finally_exit);
+        finally_exit |= exec_simple_command_with_words(
+                c, args.length, args.contents, finally_exit);
 
     /* cleanup */
 done1:
-    plfree(argv, free);
+    plfree(pl_toary(&args), free);
 done:
     if (finally_exit)
         /* If we're running the EXIT trap and the simple command failed with a
@@ -1286,22 +1285,25 @@ void exec_for(const command_T *c, bool finally_exit)
     execstate.loopnest++;
     execstate.breakloopnest = execstate.loopnest;
 
-    int count;
+    size_t count;
     void **words;
 
     if (c->c_forwords != NULL) {
         /* expand the words between "in" and "do" of the for command. */
-        if (!expand_line(c->c_forwords, &count, &words)) {
+        plist_T wordlist = expand_line(c->c_forwords);
+        if (wordlist.contents == NULL) {
             laststatus = Exit_EXPERROR;
             apply_errexit_errreturn(NULL);
             goto finish;
         }
+        count = wordlist.length;
+        words = pl_toary(&wordlist);
     } else {
         /* no "in" keyword in the for command: use the positional parameters */
         struct get_variable_T v = get_variable(L"@");
         assert(v.type == GV_ARRAY && v.values != NULL);
         save_get_variable_values(&v);
-        count = (int) v.count;
+        count = v.count;
         words = v.values;
     }
 
@@ -1317,7 +1319,7 @@ void exec_for(const command_T *c, bool finally_exit)
         goto done;                                      \
     } else (void) 0
 
-    int i;
+    size_t i;
     for (i = 0; i < count; i++) {
         if (!set_variable(c->c_forname, words[i],
                     shopt_forlocal && !posixly_correct ?

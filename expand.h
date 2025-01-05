@@ -84,11 +84,8 @@ typedef struct cc_word_T {
 
 struct wordunit_T;
 struct plist_T;
-extern _Bool expand_line(
-        void *const *restrict args,
-        int *restrict argcp,
-        void ***restrict argvp)
-    __attribute__((nonnull));
+extern struct plist_T expand_line(void *const *restrict args)
+    __attribute__((nonnull,warn_unused_result));
 extern _Bool expand_multiple(
         const struct wordunit_T *restrict w, struct plist_T *restrict list)
     __attribute__((nonnull(2)));

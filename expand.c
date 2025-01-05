@@ -162,15 +162,11 @@ static void maybe_exit_on_error(void);
 /* Expands a command line.
  * `args' is a NULL-terminated array of pointers to `const wordunit_T'
  * to expand.
- * If successful, the number of resulting words is assigned to `*argcp', a
- * pointer to a newly malloced array of the expanded words is assigned to
- * `*argvp', and true is returned. The array is NULL-terminated and its elements
- * are newly malloced wide strings.
- * If unsuccessful, false is returned and the values of `*argcp' and `*argvp'
- * are indeterminate.
+ * If successful, a list of pointers to newly malloced wide strings is returned.
+ * On error, a non-initialized pointer list is returned whose `contents' field
+ * is NULL.
  * On error in a non-interactive shell, the shell exits. */
-bool expand_line(void *const *restrict args,
-    int *restrict argcp, void ***restrict argvp)
+plist_T expand_line(void *const *restrict args)
 {
     plist_T list;
     pl_init(&list);
@@ -178,13 +174,12 @@ bool expand_line(void *const *restrict args,
     for (; *args != NULL; args++) {
         if (!expand_multiple(*args, &list)) {
             plfree(pl_toary(&list), free);
-            return false;
+            list.contents = NULL;
+            break;
         }
     }
 
-    *argcp = list.length;
-    *argvp = pl_toary(&list);
-    return true;
+    return list;
 }
 
 /* Expands a word to (possibly any number of) fields.

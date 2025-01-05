@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -742,14 +742,10 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
         assert(current_env->is_temporary);
 
     scope_T scope = temp ? SCOPE_TEMP : SCOPE_GLOBAL;
-    while (assign != NULL) {
-        wchar_t *value;
-        int count;
-        void **values;
-
+    for (; assign != NULL; assign = assign->next) {
         switch (assign->a_type) {
-            case A_SCALAR:
-                value =
+            case A_SCALAR:;
+                wchar_t *value =
                     expand_single(assign->a_scalar, TT_MULTI, Q_WORD, ES_NONE);
                 if (value == NULL)
                     return false;
@@ -758,17 +754,18 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
                 if (!set_variable(assign->a_name, value, scope, export))
                     return false;
                 break;
-            case A_ARRAY:
-                if (!expand_line(assign->a_array, &count, &values))
+            case A_ARRAY:;
+                plist_T valuelist = expand_line(assign->a_array);
+                if (valuelist.contents == NULL)
                     return false;
-                assert(values != NULL);
                 if (shopt_xtrace)
-                    xtrace_array(assign->a_name, values);
+                    xtrace_array(assign->a_name, valuelist.contents);
+                size_t count = valuelist.length;
+                void **values = pl_toary(&valuelist);
                 if (!set_array(assign->a_name, count, values, scope, export))
                     return false;
                 break;
         }
-        assign = assign->next;
     }
     return true;
 }
