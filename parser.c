@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -386,6 +386,13 @@ bool is_portable_name(const wchar_t *s)
 bool is_name(const wchar_t *s)
 {
     return is_name_by_predicate(s, is_name_char);
+}
+
+/* Returns true iff the specified string is a prefix (leading substring) of an
+ * assignment token. */
+bool is_assignment_prefix(const wchar_t *s)
+{
+    return s[0] != L'\0' && skip_name(s, is_name_char)[0] == L'=';
 }
 
 /* Converts a string to the corresponding token type. Returns TT_WORD for

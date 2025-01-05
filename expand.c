@@ -162,17 +162,31 @@ static void maybe_exit_on_error(void);
 /* Expands a command line.
  * `args' is a NULL-terminated array of pointers to `const wordunit_T'
  * to expand.
+ * If `assignsingle' is true, assignment-like words are expanded to single
+ * fields like expanding assignment tokens. Otherwise, all words are expanded to
+ * multiple fields as usual.
  * If successful, a list of pointers to newly malloced wide strings is returned.
  * On error, a non-initialized pointer list is returned whose `contents' field
  * is NULL.
  * On error in a non-interactive shell, the shell exits. */
-plist_T expand_line(void *const *restrict args)
+plist_T expand_line(void *const *args, bool assignsingle)
 {
     plist_T list;
     pl_init(&list);
 
     for (; *args != NULL; args++) {
-        if (!expand_multiple(*args, &list)) {
+        const wordunit_T *w = *args;
+        bool success;
+        if (!assignsingle || w == NULL || w->wu_type != WT_STRING ||
+                !is_assignment_prefix(w->wu_string)) {
+            success = expand_multiple(w, &list);
+        } else {
+            wchar_t *s = expand_single(w, TT_ASSIGN, Q_WORD, ES_NONE);
+            success = (s != NULL);
+            if (success)
+                pl_add(&list, s);
+        }
+        if (!success) {
             plfree(pl_toary(&list), free);
             list.contents = NULL;
             break;

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -370,7 +370,9 @@ extern _Bool is_portable_name_char(wchar_t c)
 extern _Bool is_name_char(wchar_t c)
     __attribute__((pure));
 extern _Bool is_name(const wchar_t *s)
-    __attribute__((pure));
+    __attribute__((nonnull,pure));
+extern _Bool is_assignment_prefix(const wchar_t *s)
+    __attribute__((nonnull,pure));
 extern _Bool is_keyword(const wchar_t *s)
     __attribute__((nonnull,pure));
 extern _Bool is_token_delimiter_char(wchar_t c)

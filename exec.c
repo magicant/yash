@@ -665,7 +665,7 @@ void exec_simple_command(const command_T *c, bool finally_exit)
     lastcmdsubstatus = Exit_SUCCESS;
 
     /* expand the command words */
-    plist_T args = expand_line(c->c_words);
+    plist_T args = expand_line(c->c_words, false);
     if (args.contents == NULL) {
         laststatus = Exit_EXPERROR;
         goto done;
@@ -1290,7 +1290,7 @@ void exec_for(const command_T *c, bool finally_exit)
 
     if (c->c_forwords != NULL) {
         /* expand the words between "in" and "do" of the for command. */
-        plist_T wordlist = expand_line(c->c_forwords);
+        plist_T wordlist = expand_line(c->c_forwords, false);
         if (wordlist.contents == NULL) {
             laststatus = Exit_EXPERROR;
             apply_errexit_errreturn(NULL);
