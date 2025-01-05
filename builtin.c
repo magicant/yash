@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.c: built-in commands */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,16 +77,28 @@ void init_builtin(void)
     ht_initwithcapacity(&builtins, hashstr, htstrcmp, 53);
 
 #if YASH_ENABLE_HELP
-# define DEFBUILTIN(name,func,type,help,syntax,options) \
-    do {                                                                      \
-        static const builtin_T bi = { func, type, help, syntax, options, };   \
-        ht_set(&builtins, name, &bi);                                         \
+# define DEFBUILTIN(name,func,type,help,syntax,options)      \
+    do {                                                     \
+        static const builtin_T bi =                          \
+            { func, type, false, help, syntax, options, };   \
+        ht_set(&builtins, name, &bi);                        \
+    } while (0)
+# define DEFDECLUTIL(name,func,type,help,syntax,options)     \
+    do {                                                     \
+        static const builtin_T bi =                          \
+            { func, type, true, help, syntax, options, };    \
+        ht_set(&builtins, name, &bi);                        \
     } while (0)
 #else
-# define DEFBUILTIN(name,func,type,help,syntax,options) \
-    do {                                                                      \
-        static const builtin_T bi = { func, type, };                          \
-        ht_set(&builtins, name, &bi);                                         \
+# define DEFBUILTIN(name,func,type,help,syntax,options)      \
+    do {                                                     \
+        static const builtin_T bi = { func, type, false, };  \
+        ht_set(&builtins, name, &bi);                        \
+    } while (0)
+# define DEFDECLUTIL(name,func,type,help,syntax,options)     \
+    do {                                                     \
+        static const builtin_T bi = { func, type, true, };   \
+        ht_set(&builtins, name, &bi);                        \
     } while (0)
 #endif
 
@@ -121,13 +133,13 @@ void init_builtin(void)
             unalias_syntax, all_help_options);
 
     /* defined in "variable.c" */
-    DEFBUILTIN("typeset", typeset_builtin, BI_ELECTIVE, typeset_help,
+    DEFDECLUTIL("typeset", typeset_builtin, BI_ELECTIVE, typeset_help,
             typeset_syntax, typeset_options);
-    DEFBUILTIN("export", typeset_builtin, BI_SPECIAL, export_help,
+    DEFDECLUTIL("export", typeset_builtin, BI_SPECIAL, export_help,
             export_syntax, typeset_options);
-    DEFBUILTIN("local", typeset_builtin, BI_ELECTIVE, local_help,
+    DEFDECLUTIL("local", typeset_builtin, BI_ELECTIVE, local_help,
             local_syntax, local_options);
-    DEFBUILTIN("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
+    DEFDECLUTIL("readonly", typeset_builtin, BI_SPECIAL, readonly_help,
             readonly_syntax, typeset_options);
 #if YASH_ENABLE_ARRAY
     DEFBUILTIN("array", array_builtin, BI_EXTENSION, array_help, array_syntax,
