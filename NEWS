@@ -25,6 +25,8 @@
     - The shell's syntax now always allows `esac` as the first pattern
       of a case branch as in `case esac in (esac|case) echo ok; esac`.
       Previously, it was a syntax error in the POSIXly-correct mode.
+  - Fixed a potential crash caused by an expansion error in nested
+    parameter expansion.
   - Updated the sample initialization script (yashrc):
     - Added aliases h='fc -l' and j='jobs'.
     - Added the wrapper function for `doas` in an attempt to remove the

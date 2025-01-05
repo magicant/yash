@@ -241,6 +241,8 @@ plist_T expand_word(const wordunit_T *w)
 {
     /* four expansions */
     struct expand_four_T expand = expand_four(w, TT_NONE, Q_WORD, CC_LITERAL);
+    if (expand.valuelist.contents == NULL)
+        return expand.valuelist;
 
     /* quote removal */
     for (size_t i = 0; i < expand.valuelist.length; i++)

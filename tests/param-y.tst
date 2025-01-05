@@ -427,6 +427,10 @@ __IN__
 [-][-][][][-][][]
 __OUT__
 
+test_O -d -e 2 'error in nested expansion'
+: ${${a-${b?}}}
+__IN__
+
 test_oE 'disambiguation of ${$...' # None of below are nested expansions
 bracket ${$++} ${$:++}
 [ "${$--}" = "$$" ] || echoraw - [ "${$--}" = "$$" ]
