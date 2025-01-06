@@ -16,6 +16,10 @@ link:syntax.html#simple[A simple command] is executed as follows:
   If an error occurs during expansion, the execution of the simple command is
   aborted with a non-zero exit status.
   +
+  Tokens are usually expanded in a multi-field context, but tokens that look
+  like assignments are only subjected to the four expansions if the command is
+  a <<declaration-utility,declaration utility>>.
+  +
   In the following steps, the first word of the expansion results is referred
   to as dfn:[command name], and the other words as dfn:[command arguments].
   If there is only one word of the expansion results, there are no command
@@ -121,6 +125,35 @@ successfully determined and executed.
 The exit status of the simple command is that of the command string in this
 case.
 --
+
+[[declaration-utility]]
+=== Declaration utility
+
+dfn:[Declaration utilities] are a predefined set of command names that have
+special word expansion semantics. If a simple command is a declaration
+utility and a word token in the simple command has a form of assignment, the
+word is link:expand.html[expanded] in the same manner as an assignment.
+
+Declaration utilities are detected when commands are parsed (rather than when
+command words are expanded), so a command name word that expands to a
+declaration utility name does not trigger the declaration utility expansion
+semantics.
+
+[NOTE]
+Some shells other than yash detects declaration utilities after a command name
+word is expanded, which allows dynamically produced declaration utility names.
+
+The following link:builtin.html[built-ins] are the declaration utilities in
+yash:
+
+. link:_export.html[+export+]
+. link:_local.html[+local+]
+. link:_readonly.html[+readonly+]
+. link:_typeset.html[+typeset+]
+
+Additionally, the link:_command.html[+command+ built-in] is treated as a
+declaration utility if the name is followed by another word that names a
+declaration utility.
 
 [[search]]
 === Command search
