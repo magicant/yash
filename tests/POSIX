@@ -89,6 +89,7 @@ Volume 3: Shell & Utilities
 2.9.1 Simple Commands
 
 2.9.1.1 Order of Processing
+ * declutil-p.tst
  * simple-p.tst
 
 2.9.1.2 Variable Assignments
@@ -181,9 +182,11 @@ exit
  * exit-p.tst
 
 export
+ * declutil-p.tst
  * export-p.tst
 
 readonly
+ * declutil-p.tst
  * readonly-p.tst
  * readonly-y.tst
 
@@ -215,6 +218,7 @@ cd
  * cd-p.tst
 
 command
+ * declutil-p.tst
  * command-p.tst
 
 false

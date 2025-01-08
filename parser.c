@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include <wchar.h>
 #include <wctype.h>
 #include "alias.h"
+#include "builtin.h"
 #include "expand.h"
 #include "input.h"
 #include "option.h"
@@ -388,6 +389,13 @@ bool is_name(const wchar_t *s)
     return is_name_by_predicate(s, is_name_char);
 }
 
+/* Returns true iff the specified string is a prefix (leading substring) of an
+ * assignment token. */
+bool is_assignment_prefix(const wchar_t *s)
+{
+    return s[0] != L'\0' && skip_name(s, is_name_char)[0] == L'=';
+}
+
 /* Converts a string to the corresponding token type. Returns TT_WORD for
  * non-reserved words. */
 tokentype_T identify_reserved_word_string(const wchar_t *s)
@@ -656,6 +664,8 @@ static redir_T *tryparse_redirect(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static void validate_redir_operand(parsestate_T *ps)
     __attribute__((nonnull));
+static bool is_declaration_utility(void *const *words)
+    __attribute__((nonnull,pure,warn_unused_result));
 static command_T *parse_compound_command(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
 static command_T *parse_group(parsestate_T *ps)
@@ -2091,6 +2101,7 @@ command_T *parse_command(parsestate_T *ps)
     result->c_redirs = NULL;
     result->c_words = parse_simple_command_tokens(
             ps, &result->c_assigns, &result->c_redirs);
+    result->c_isdeclutil = is_declaration_utility(result->c_words);
 
     if (result->c_words[0] == NULL && result->c_assigns == NULL &&
             result->c_redirs == NULL) {
@@ -2376,6 +2387,29 @@ void validate_redir_operand(parsestate_T *ps)
                     ps->src.contents[ps->next_index]);
         }
     } while (psubstitute_alias(ps, 0));
+}
+
+/* Determines if the command name is a declaration utility.
+ * `words` must point to a NULL-terminated array of pointers to `wordunit_T's.
+ * This function usually examines only the first word, but may scan remaining
+ * words if a word delegates to the next one. */
+bool is_declaration_utility(void *const *words)
+{
+    for (; *words != NULL; words++) {
+        const wordunit_T *w = *words;
+        if (!is_single_string_word(w))
+            return false;
+        if (wcscmp(w->wu_string, L"command") == 0)
+            continue;
+
+        char *name = malloc_wcstombs(w->wu_string);
+        if (name == NULL)
+            return false;
+        const builtin_T *bi = get_builtin(name);
+        free(name);
+        return bi != NULL && bi->isdeclutil;
+    }
+    return false;
 }
 
 /* Parses a compound command.

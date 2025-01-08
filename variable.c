@@ -755,7 +755,7 @@ bool do_assignments(const assign_T *assign, bool temp, bool export)
                     return false;
                 break;
             case A_ARRAY:;
-                plist_T valuelist = expand_line(assign->a_array);
+                plist_T valuelist = expand_line(assign->a_array, false);
                 if (valuelist.contents == NULL)
                     return false;
                 if (shopt_xtrace)

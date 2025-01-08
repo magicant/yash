@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.h: syntax parser */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,8 +77,9 @@ typedef struct command_T {
     struct redir_T   *c_redirs;   /* redirections */
     union {
         struct {
-            struct assign_T *assigns;  /* assignments */
-            void           **words;    /* command name and arguments */
+            struct assign_T *assigns;     /* assignments */
+            void           **words;       /* command name and arguments */
+            _Bool            isdeclutil;  /* is a declaration utility? */
         } simplecommand;
         struct and_or_T     *subcmds;  /* contents of command group */
         struct ifcommand_T  *ifcmds;   /* contents of if command */
@@ -103,21 +104,22 @@ typedef struct command_T {
         } funcdef;
     } c_content;
 } command_T;
-#define c_assigns  c_content.simplecommand.assigns
-#define c_words    c_content.simplecommand.words
-#define c_subcmds  c_content.subcmds
-#define c_ifcmds   c_content.ifcmds
-#define c_forname  c_content.forloop.forname
-#define c_forwords c_content.forloop.forwords
-#define c_forcmds  c_content.forloop.forcmds
-#define c_whltype  c_content.whileloop.whltype
-#define c_whlcond  c_content.whileloop.whlcond
-#define c_whlcmds  c_content.whileloop.whlcmds
-#define c_casword  c_content.casecommand.casword
-#define c_casitems c_content.casecommand.casitems
-#define c_dbexp    c_content.dbexp
-#define c_funcname c_content.funcdef.funcname
-#define c_funcbody c_content.funcdef.funcbody
+#define c_assigns    c_content.simplecommand.assigns
+#define c_words      c_content.simplecommand.words
+#define c_isdeclutil c_content.simplecommand.isdeclutil
+#define c_subcmds    c_content.subcmds
+#define c_ifcmds     c_content.ifcmds
+#define c_forname    c_content.forloop.forname
+#define c_forwords   c_content.forloop.forwords
+#define c_forcmds    c_content.forloop.forcmds
+#define c_whltype    c_content.whileloop.whltype
+#define c_whlcond    c_content.whileloop.whlcond
+#define c_whlcmds    c_content.whileloop.whlcmds
+#define c_casword    c_content.casecommand.casword
+#define c_casitems   c_content.casecommand.casitems
+#define c_dbexp      c_content.dbexp
+#define c_funcname   c_content.funcdef.funcname
+#define c_funcbody   c_content.funcdef.funcbody
 /* `c_words' and `c_forwords' are NULL-terminated arrays of pointers to
  * `wordunit_T' that are cast to `void *'.
  * If `c_forwords' is NULL, the for loop doesn't have the "in" clause.
@@ -370,7 +372,9 @@ extern _Bool is_portable_name_char(wchar_t c)
 extern _Bool is_name_char(wchar_t c)
     __attribute__((pure));
 extern _Bool is_name(const wchar_t *s)
-    __attribute__((pure));
+    __attribute__((nonnull,pure));
+extern _Bool is_assignment_prefix(const wchar_t *s)
+    __attribute__((nonnull,pure));
 extern _Bool is_keyword(const wchar_t *s)
     __attribute__((nonnull,pure));
 extern _Bool is_token_delimiter_char(wchar_t c)

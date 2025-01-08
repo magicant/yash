@@ -6,7 +6,7 @@
 
 dfn:[Word expansion] is substitution of part of a word with another particular
 string.
-There are seven types of word expansions:
+There are many types of word expansions:
 
 . <<tilde,Tilde expansion>>
 . <<params,Parameter expansion>>
@@ -16,10 +16,12 @@ There are seven types of word expansions:
 . <<split,Field splitting>>
 . <<glob,Pathname expansion>> (globbing)
 
-These types of expansions are performed in the order specified above.
-
 Tilde expansion, parameter expansion, command substitution, and arithmetic
-expansion are called the dfn:[four expansions].
+expansion are called the dfn:[four expansions], and are performed in the order
+of appearance. After them, brace expansion, field splitting, and pathname
+expansion are optionally performed in that order if the expansion is being
+performed in a multi-field context, that is, when a whole list of words is
+being expanded at once to produce a list of fields.
 
 [[tilde]]
 == Tilde expansion

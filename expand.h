@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* expand.h: word expansion */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,12 @@
 #define CHARS_ESCAPABLE L"$`\"\\"
 
 /* type of tilde expansion */
-typedef enum { TT_NONE, TT_SINGLE, TT_MULTI, } tildetype_T;
+typedef enum {
+    TT_NONE,    /* No tilde expansion */
+    TT_SINGLE,  /* Tilde expansion only at the beginning of a word */
+    TT_MULTI,   /* TT_SINGLE plus tilde expansion after each colon in a word */
+    TT_ASSIGN,  /* Like TT_MULTI, but only after an unquoted '=' */
+} tildetype_T;
 
 /* treatment of quotation marks during expansion */
 typedef enum {
@@ -84,7 +89,7 @@ typedef struct cc_word_T {
 
 struct wordunit_T;
 struct plist_T;
-extern struct plist_T expand_line(void *const *restrict args)
+extern struct plist_T expand_line(void *const *args, _Bool assignsingle)
     __attribute__((nonnull,warn_unused_result));
 extern _Bool expand_multiple(
         const struct wordunit_T *restrict w, struct plist_T *restrict list)

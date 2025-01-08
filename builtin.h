@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* builtin.h: built-in commands */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ typedef enum builtintype_T {
 typedef struct builtin_T {
     main_T *body;
     builtintype_T type;
+    _Bool isdeclutil;
 #if YASH_ENABLE_HELP
     const char *help_text, *syntax_text;
     const struct xgetopt_T *options;

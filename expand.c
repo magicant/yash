@@ -64,7 +64,7 @@ static inline void fill_ccbuf(
     __attribute__((nonnull));
 
 static wchar_t *expand_tilde(const wchar_t **ss,
-        bool hasnextwordunit, tildetype_T tt)
+        bool hasnextwordunit, bool stopatcolon)
     __attribute__((nonnull,malloc,warn_unused_result));
 
 enum indextype_T { IDX_NONE, IDX_ALL, IDX_CONCAT, IDX_NUMBER, };
@@ -162,17 +162,31 @@ static void maybe_exit_on_error(void);
 /* Expands a command line.
  * `args' is a NULL-terminated array of pointers to `const wordunit_T'
  * to expand.
+ * If `assignsingle' is true, assignment-like words are expanded to single
+ * fields like expanding assignment tokens. Otherwise, all words are expanded to
+ * multiple fields as usual.
  * If successful, a list of pointers to newly malloced wide strings is returned.
  * On error, a non-initialized pointer list is returned whose `contents' field
  * is NULL.
  * On error in a non-interactive shell, the shell exits. */
-plist_T expand_line(void *const *restrict args)
+plist_T expand_line(void *const *args, bool assignsingle)
 {
     plist_T list;
     pl_init(&list);
 
     for (; *args != NULL; args++) {
-        if (!expand_multiple(*args, &list)) {
+        const wordunit_T *w = *args;
+        bool success;
+        if (!assignsingle || w == NULL || w->wu_type != WT_STRING ||
+                !is_assignment_prefix(w->wu_string)) {
+            success = expand_multiple(w, &list);
+        } else {
+            wchar_t *s = expand_single(w, TT_ASSIGN, Q_WORD, ES_NONE);
+            success = (s != NULL);
+            if (success)
+                pl_add(&list, s);
+        }
+        if (!success) {
             plfree(pl_toary(&list), free);
             list.contents = NULL;
             break;
@@ -429,8 +443,8 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
         switch (w->wu_type) {
         case WT_STRING:
             ss = w->wu_string;
-            if (first && tilde != TT_NONE) {
-                s = expand_tilde(&ss, w->next, tilde);
+            if (first && (tilde == TT_SINGLE || tilde == TT_MULTI)) {
+                s = expand_tilde(&ss, w->next != NULL, tilde == TT_MULTI);
                 if (s != NULL) {
                     wb_catfree(&valuebuf, s);
                     fill_ccbuf(&valuebuf, &ccbuf,
@@ -524,15 +538,22 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
                 case L':':
                     if (indq || tilde != TT_MULTI)
                         goto default_;
-
-                    /* perform tilde expansion after a colon */
-                    wb_wccat(&valuebuf, L':');
+                    /* perform tilde expansion after the colon */
+                    goto tilde;
+                case L'=':
+                    if (indq || tilde != TT_ASSIGN)
+                        goto default_;
+                    tilde = TT_MULTI;
+                    /* perform tilde expansion after the equal */
+tilde:
+                    wb_wccat(&valuebuf, *ss);
                     sb_ccat(&ccbuf, defaultcc);
                     ss++;
-                    s = expand_tilde(&ss, w->next, tilde);
+                    s = expand_tilde(&ss, w->next != NULL, true);
                     if (s != NULL) {
                         wb_catfree(&valuebuf, s);
-                        fill_ccbuf(&valuebuf, &ccbuf, CC_HARD_EXPANSION);
+                        fill_ccbuf(&valuebuf, &ccbuf,
+                                CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
                     }
                     continue;
 default_:
@@ -611,14 +632,15 @@ void fill_ccbuf(const xwcsbuf_T *restrict valuebuf, xstrbuf_T *restrict ccbuf,
  * If `**ss' is not L'~' or expansion fails, this function has no side effects
  * and returns NULL. If successful, `*ss' is incremented and the result is
  * returned as a newly malloced string. */
-wchar_t *expand_tilde(const wchar_t **ss, bool hasnextwordunit, tildetype_T tt)
+wchar_t *expand_tilde(
+        const wchar_t **ss, bool hasnextwordunit, bool stopatcolon)
 {
     const wchar_t *s = *ss;
     if (*s != L'~')
         return NULL;
     s++;
 
-    const wchar_t *end = wcspbrk(s, tt == TT_SINGLE ? L"/" : L"/:");
+    const wchar_t *end = wcspbrk(s, stopatcolon ? L"/:" : L"/");
     wchar_t *username;
     const wchar_t *home;
     size_t usernamelen;
