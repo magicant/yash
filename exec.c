@@ -1320,17 +1320,15 @@ void exec_for(const command_T *c, bool finally_exit)
     } else (void) 0
 
     size_t i;
+    bool assignsuccess = true;
     for (i = 0; i < count; i++) {
-        if (!set_variable(c->c_forname, words[i],
-                    shopt_forlocal && !posixly_correct ?
-                        SCOPE_LOCAL : SCOPE_GLOBAL,
-                    false)) {
-            laststatus = Exit_ASSGNERR;
-            apply_errexit_errreturn(NULL);
-            if (!is_interactive_now)
-                finally_exit = true;
-            goto done;
-        }
+        assignsuccess = set_variable(
+                c->c_forname, words[i],
+                shopt_forlocal && !posixly_correct ? SCOPE_LOCAL : SCOPE_GLOBAL,
+                false);
+        if (!assignsuccess)
+            break;
+
         exec_and_or_lists(c->c_forcmds, finally_exit && i + 1 == count);
 
         if (c->c_forcmds == NULL)
@@ -1342,6 +1340,14 @@ done:
     while (++i < count)  /* free unused words */
         free(words[i]);
     free(words);
+
+    if (!assignsuccess) {
+        laststatus = Exit_ASSGNERR;
+        apply_errexit_errreturn(NULL);
+        if (!is_interactive_now)
+            finally_exit = true;
+    }
+
     if (count == 0 && c->c_forcmds != NULL)
         laststatus = Exit_SUCCESS;
 finish:
