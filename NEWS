@@ -7,7 +7,7 @@
     mode).
   - [line-editing] Command line prediction now works in the vi command
     mode.
-  - [line-editing] Added completion for git-restore.
+  - [line-editing] Added completion for fzy and git-restore.
   - [line-editing] Added completion for git-merge's --continue option.
   - [line-editing] The completion for the `.` built-in now suggests
     directory names for the first operand even before the user enters a

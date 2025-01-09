@@ -15,5 +15,5 @@ The author thanks:
 
 * DanisDGK, for the completion script for doas
 
-* unrealapex, for adding XDG_CONFIG_HOME variable support, git-restore
+* unrealapex, for adding XDG_CONFIG_HOME variable support, fzy and git-restore
   completion, and more
