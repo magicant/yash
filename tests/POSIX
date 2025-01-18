@@ -239,6 +239,9 @@ kill
  * kill3-p.tst
  * kill4-p.tst
 
+printf
+ * printf-y.tst
+
 read
  * read-p.tst
 

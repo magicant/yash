@@ -32,8 +32,9 @@ A conversion specification starts with a percent sign (+%+).
 
 A conversion specification except +%%+ consumes a {{value}}, which is
 formatted according to the specification and printed.
-Each conversion specification consumes one {{value}} in the order of
-appearance.
+By default, the {{value}}s are consumed in the order of their appearance, but
+you can specify which {{value}} to consume by using the
+<<convspec-position,position specifier>>.
 If there are more {{value}}s than conversion specifications, the entire
 {{format}} is re-processed until all the {{value}}s are consumed.
 If a {{value}} to be consumed is missing, it is assumed to be an empty string
@@ -66,7 +67,22 @@ the exponent part is between -5 and the precision (exclusive); +%e+ or +%E+
 otherwise.
 
 In a conversion specification except +%%+, the leading percent sign may be
-followed by flags, field width, and/or precision in this order.
+followed by position, flags, field width, and/or precision in this order.
+
+[[convspec-position]]
+==== Position
+
+A position specifier is a dollar sign (+$+) preceded by a positive decimal
+integer.
+The integer specifies the index of the {{value}} to be consumed.
+For example, in the format string +%2$d %1$d+, the second {{value}} is
+consumed first and the first {{value}} is consumed next.
+
+More than one position specifier can specify the same {{value}}.
+
+It is also possible that a {{value}} is not selected by any position
+specifier. If a position refers to a {{value}}, any preceding {{value}}s that
+are not selected by any other position specifier are silently consumed.
 
 [[convspec-flags]]
 ==== Flags
@@ -208,5 +224,10 @@ If the shell is not in the link:posix.html[POSIXly-correct mode] and the
 ``long double'' floating-point arithmetic is supported on the running system,
 then ``long double'' is used for floating-point conversion specifications.
 Otherwise, ``double'' is used.
+
+POSIX leaves the behavior unspecified when a {{format}} contains conversion
+specifications with a position and others without a position.
+You should not rely on the selection order of {{value}}s in such cases.
+Future versions of yash may treat such cases as errors.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

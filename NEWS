@@ -22,6 +22,8 @@
       arguments to the `export`, `local`, `readonly`, and `typeset`
       built-ins are now expanded in the same way as assignments are
       expanded.
+    - The `printf` built-in now supports position specifiers in format
+      strings as in `printf '%2$s %1$s\n' foo bar`.
     - After the `bg` built-in resumed a job, the `!` special parameter
       expands to the process ID of the job.
     - An interactive shell no longer exits on an error in the `exec`

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* printf.c: the echo/printf built-ins */
-/* (C) 2007-2019 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,17 +55,21 @@ struct format_T {
             char *value;
             size_t length;
         } raw;
-        char *convspec;
+        struct {
+            char *spec;
+            int position; // zero-based position of value to format
+        } conv;
         struct {
             bool left;
             unsigned long width, max;
+            int position; // zero-based position of value to format
         } echo;
     } value;
 };
 /* The FT_NONE format type corresponds to the "%%" conversion specification.
  * The FT_RAW format type is used for literal strings that are not conversion
  * specifications. The format types of FT_STRING, FT_CHAR, FT_INT, FT_UINT, and
- * FT_FLOAT are used for various types of conversion specifications (`convspec')
+ * FT_FLOAT are used for various types of conversion specifications (`conv')
  * that require a value of the corresponding type.
  * The FT_ECHO format type is used for the "b" conversion specification. */
 /* FT_STRING  -> wchar_t *
@@ -73,6 +77,13 @@ struct format_T {
  * FT_INT     -> intmax_t
  * FT_UINT    -> uintmax_t
  * FT_FLOAT   -> long double */
+
+/* state to track consumption of formatted values */
+struct args_T {
+    int argc;           // number of values in `args'
+    int toconsume;      // number of values to consume from `args'
+    void *const *argv;  // array of pointers to wide strings to be formatted
+};
 
 enum printf_result_T { PR_OK, PR_OK_END, PR_ERROR, };
 static enum printf_result_T echo_parse_escape(const wchar_t *restrict s,
@@ -82,13 +93,16 @@ static bool printf_parse_format(
         const wchar_t *format, struct format_T **resultp)
     __attribute__((nonnull));
 static struct format_T **printf_parse_percent(
-        const wchar_t **formatp, struct format_T **resultp)
+        const wchar_t **formatp, int *nextposition, struct format_T **resultp)
     __attribute__((nonnull,warn_unused_result));
-static struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
+static struct format_T *printf_parse_percent_b(
+        int position, xstrbuf_T *convspec)
     __attribute__((nonnull,malloc,warn_unused_result));
+static const wchar_t *nth_arg(struct args_T *args, int position)
+    __attribute__((nonnull));
 static enum printf_result_T printf_printf(
-        const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
-    __attribute__((nonnull(1,3)));
+        const struct format_T *format, struct args_T *args, xstrbuf_T *buf)
+    __attribute__((nonnull));
 static uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed);
 static enum printf_result_T printf_print_escape(
         const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
@@ -300,19 +314,25 @@ int printf_builtin(int argc, void **argv)
     xoptind++;
 
     /* format the operands */
-    int oldoptind;
+    struct args_T args = {
+        .argc = argc - xoptind,
+        .toconsume = 0,
+        .argv = &argv[xoptind],
+    };
     xstrbuf_T buf;
     sb_init(&buf);
     do {
-        oldoptind = xoptind;
+        args.toconsume = 0;
         for (struct format_T *f = format; f != NULL; f = f->next) {
-            switch (printf_printf(f, ARGV(xoptind), &buf)) {
+            switch (printf_printf(f, &args, &buf)) {
                 case PR_OK:      break;
                 case PR_OK_END:  goto print;
                 case PR_ERROR:   goto error;
             }
         }
-    } while (xoptind < argc && xoptind != oldoptind);
+        args.argc -= args.toconsume;
+        args.argv += args.toconsume;
+    } while (args.argc > 0 && args.toconsume > 0);
 
 print:
     freeformat(format);
@@ -359,14 +379,16 @@ bool printf_parse_format(const wchar_t *format, struct format_T **resultp)
 
     xstrbuf_T buf;
     mbstate_t state;
+    int position;
 
     sb_init(&buf);
     memset(&state, 0, sizeof state);
+    position = 0;
     while (*format != L'\0') {
         switch (*format) {
         case L'%':
             MAKE_STRING;
-            resultp = printf_parse_percent(&format, resultp);
+            resultp = printf_parse_percent(&format, &position, resultp);
             if (resultp == NULL)
                 return false;
             sb_init(&buf);
@@ -426,16 +448,20 @@ put_char:
 
 /* Parses the conversion specification that starts with L'%' pointed to by
  * `*formatp'.
+ * `*nextposition` is the default position used when the conversion
+ * specification does not specify a position. `*nextposition` is updated to the
+ * next position after the conversion specification.
  * If successful, a pointer to the character to parse next is assigned to
  * `*formatp', a pointer to the result is assigned to `*resultp', and the next
  * `resultp' value is returned.
  * If unsuccessful, an error message is printed and NULL is returned. A pointer
  * to a partial result may be assigned to `*resultp'. */
 struct format_T **printf_parse_percent(
-        const wchar_t **formatp, struct format_T **resultp)
+        const wchar_t **formatp, int *nextposition, struct format_T **resultp)
 {
     const wchar_t *format = *formatp;
     xstrbuf_T buf;
+    int position = *nextposition;
     bool hashflag = false, zeroflag = false;
     enum formattype_T type;
     struct format_T *result;
@@ -451,6 +477,18 @@ struct format_T **printf_parse_percent(
     format++;
     sb_init(&buf);
     sb_ccat(&buf, '%');
+
+    /* parse position */
+    if (iswdigit(*format)) {
+        wchar_t *end;
+        long value = wcstol(format, &end, 10);
+        if (value > INT_MAX)
+            value = INT_MAX;
+        if (value > 0 && *end == L'$') {
+            format = &end[1];
+            position = (int) value - 1;
+        }
+    }
 
     /* parse flags */
     for (;;) {
@@ -511,7 +549,7 @@ parse_width:
         case L'b':
             if (hashflag || zeroflag) goto flag_error;
             format++;
-            result = printf_parse_percent_b(&buf);
+            result = printf_parse_percent_b(position, &buf);
             goto end;
         case L'%':
             if (buf.length != 1) goto flag_error;
@@ -534,6 +572,7 @@ flag_error:
     }
     BUFCAT(*format++);
 
+    /* create the result */
     result = xmalloc(sizeof *result);
     result->next = NULL;
     result->type = type;
@@ -545,11 +584,13 @@ flag_error:
         case FT_ECHO:
             assert(false);
         default:
-            result->value.convspec = sb_tostr(&buf);
+            result->value.conv.spec = sb_tostr(&buf);
+            result->value.conv.position = position;
+end:
+            *nextposition = position + (position < INT_MAX);
             break;
     }
 
-end:
     *formatp = format;
     *resultp = result;
     return &result->next;
@@ -560,7 +601,7 @@ end:
 /* Parses the conversion specification given in buffer `convspec'.
  * The specification in the buffer must not have the conversion specifier, which
  * is assumed to be 'b'. The buffer is destroyed in this function. */
-struct format_T *printf_parse_percent_b(xstrbuf_T *convspec)
+struct format_T *printf_parse_percent_b(int position, xstrbuf_T *convspec)
 {
     size_t index = 0;
     struct format_T *result = xmalloc(sizeof *result);
@@ -597,16 +638,33 @@ parse_width:
         result->value.echo.max = ULONG_MAX;
     }
 
+    result->value.echo.position = position;
+
     assert(index == convspec->length);
     sb_destroy(convspec);
     return result;
 }
 
-/* Formats the specified string. The result is appended to buffer `buf'.
- * Increases `xoptind' if `arg' is used. Otherwise, `arg' is ignored. */
-enum printf_result_T printf_printf(
-        const struct format_T *format, const wchar_t *arg, xstrbuf_T *buf)
+/* Finds the value from `args' at the specified position, updating the
+ * `args->toconsume' field if necessary to make sure the selected value is
+ * consumed. */
+const wchar_t *nth_arg(struct args_T *args, int position)
 {
+    if (position >= args->argc) {
+        args->toconsume = args->argc;
+        return NULL;
+    }
+    if (position >= args->toconsume)
+        args->toconsume = position + 1;
+    return args->argv[position];
+}
+
+/* Formats the specified string. The result is appended to buffer `buf'.
+ * Updates `args->toconsume' if a value from `args` is used. */
+enum printf_result_T printf_printf(
+        const struct format_T *format, struct args_T *args, xstrbuf_T *buf)
+{
+    const wchar_t *arg;
     switch (format->type) {
         case FT_NONE:
             sb_ccat(buf, '%');
@@ -616,27 +674,29 @@ enum printf_result_T printf_printf(
                     format->value.raw.value, format->value.raw.length);
             return PR_OK;
         case FT_STRING:
-            if (arg != NULL)
-                xoptind++;
-            else
+            arg = nth_arg(args, format->value.conv.position);
+            if (arg == NULL)
                 arg = L"";
-            if (sb_printf(buf, format->value.convspec, arg) < 0)
+            if (sb_printf(buf, format->value.conv.spec, arg) < 0)
                 return PR_ERROR;
             return PR_OK;
         case FT_CHAR:
+            arg = nth_arg(args, format->value.conv.position);
             if (arg != NULL && arg[0] != L'\0') {
-                xoptind++;
-                if (sb_printf(buf, format->value.convspec, (wint_t) arg[0]) < 0)
+                if (sb_printf(buf, format->value.conv.spec, (wint_t) arg[0])
+                        < 0)
                     return PR_ERROR;
             }
             return PR_OK;
         case FT_INT:
-            if (sb_printf(buf, format->value.convspec,
+            arg = nth_arg(args, format->value.conv.position);
+            if (sb_printf(buf, format->value.conv.spec,
                         printf_parse_integer(arg, true)) < 0)
                 return PR_ERROR;
             return PR_OK;
         case FT_UINT:
-            if (sb_printf(buf, format->value.convspec,
+            arg = nth_arg(args, format->value.conv.position);
+            if (sb_printf(buf, format->value.conv.spec,
                         printf_parse_integer(arg, false)) < 0)
                 return PR_ERROR;
             return PR_OK;
@@ -645,9 +705,8 @@ enum printf_result_T printf_printf(
                 long double value;
                 wchar_t *end;
 
-                if (arg != NULL)
-                    xoptind++;
-                else
+                arg = nth_arg(args, format->value.conv.position);
+                if (arg == NULL)
                     arg = L"0";
                 errno = 0;
 #if HAVE_WCSTOLD
@@ -658,14 +717,13 @@ enum printf_result_T printf_printf(
                     value = wcstod(arg, &end);
                 if (errno || arg[0] == L'\0' || *end != L'\0')
                     xerror(errno, Ngt("`%ls' is not a valid number"), arg);
-                if (sb_printf(buf, format->value.convspec, value) < 0)
+                if (sb_printf(buf, format->value.conv.spec, value) < 0)
                     return PR_ERROR;
                 return PR_OK;
             }
         case FT_ECHO:
-            if (arg != NULL)
-                xoptind++;
-            else
+            arg = nth_arg(args, format->value.echo.position);
+            if (arg == NULL)
                 arg = L"";
             return printf_print_escape(format, arg, buf);
     }
@@ -678,9 +736,7 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
     uintmax_t value;
     wchar_t *end;
 
-    if (arg != NULL)
-        xoptind++;
-    else
+    if (arg == NULL)
         arg = L"0";
     if (arg[0] == L'"' || arg[0] == L'\'') {
         value = (uintmax_t) arg[1];
@@ -746,7 +802,7 @@ void freeformat(struct format_T *f)
             case FT_ECHO:
                 break;
             default:
-                free(f->value.convspec);
+                free(f->value.conv.spec);
                 break;
         }
         free(f);

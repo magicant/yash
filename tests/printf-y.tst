@@ -479,6 +479,40 @@ S
 !1
 __OUT__
 
+test_oE 'position'
+printf '%3$d %4$d %2$d\n' 10 20 30 42
+printf '%2$d\n' 1 2 3 4 5
+__IN__
+30 42 20
+2
+4
+0
+__OUT__
+
+# In yash, %b is implemented separately from other conversion specifiers,
+# so we test it separately, too.
+test_oE 'position in %b'
+printf '%3$b %4$b %1$b\n' A BB CCC ddd
+printf '%2$b\n' a b c d e
+__IN__
+CCC ddd A
+b
+d
+
+__OUT__
+
+test_oE 'position with flag'
+printf '%1$03d\n' 1
+__IN__
+001
+__OUT__
+
+test_oE 'mixing % and %n$'
+printf '%d %5$.3s %5$s %c %d\n' 42 A B C formatted words
+__IN__
+42 for formatted w 0
+__OUT__
+
 test_oE 'percent'
 printf '%%\n'
 printf '+%%+%%%%+\n'
@@ -492,6 +526,30 @@ printf '%d%%%d\n' 1 2
 __IN__
 1%2
 __OUT__
+
+test_Oe -e n 'unsupported conversion %y'
+printf '%y' 1
+__IN__
+printf: `y' is not a valid conversion specifier
+__ERR__
+#'
+#`
+
+test_Oe -e n 'missing number before $'
+printf '%$d' 1
+__IN__
+printf: `$' is not a valid conversion specifier
+__ERR__
+#'
+#`
+
+test_Oe -e n 'position 0'
+printf '%0$d' 42
+__IN__
+printf: `$' is not a valid conversion specifier
+__ERR__
+#'
+#`
 
 test_o -d -e n 'operands in invalid format'
 printf '%d\n' not_a_integer 32_trailing_characters
