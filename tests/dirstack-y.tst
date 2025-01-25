@@ -456,7 +456,7 @@ $PWD/testdir
 $PWD
 __OUT__
 
-test_Oe -e n 'missing $OLDPWD'
+test_Oe -e 4 'missing $OLDPWD'
 unset OLDPWD
 pushd -
 __IN__
@@ -504,33 +504,33 @@ __IN__
 set
 __OUT__
 
-test_Oe -e n 'pushd: index out of range (+1 for 1 directory)'
+test_Oe -e 4 'pushd: index out of range (+1 for 1 directory)'
 pushd +1
 __IN__
 pushd: the directory stack is empty
 __ERR__
 
-test_Oe -e n 'pushd: index out of range (-1 for 1 directory)'
+test_Oe -e 4 'pushd: index out of range (-1 for 1 directory)'
 pushd -1
 __IN__
 pushd: the directory stack is empty
 __ERR__
 
-test_Oe -e n 'pushd: index out of range (+2 for 2 directories)'
+test_Oe -e 4 'pushd: index out of range (+2 for 2 directories)'
 DIRSTACK=(/foo)
 pushd +2
 __IN__
 pushd: index +2 is out of range
 __ERR__
 
-test_Oe -e n 'pushd: index out of range (-2 for 2 directories)'
+test_Oe -e 4 'pushd: index out of range (-2 for 2 directories)'
 DIRSTACK=(/foo)
 pushd -2
 __IN__
 pushd: index -2 is out of range
 __ERR__
 
-test_Oe -e n 'pushd: default operand, empty stack'
+test_Oe -e 4 'pushd: default operand, empty stack'
 pushd
 __IN__
 pushd: the directory stack is empty
@@ -587,7 +587,7 @@ __OUT__
 pushd: $OLDPWD is read-only
 __ERR__
 
-test_Oe -e n 'pushd: read-only array $DIRSTACK, exit status and message'
+test_Oe -e 1 'pushd: read-only array $DIRSTACK, exit status and message'
 DIRSTACK=(a)
 readonly DIRSTACK
 pushd testdir
@@ -608,7 +608,7 @@ $PWD/testdir
 a
 __OUT__
 
-test_Oe -e n 'pushd: read-only non-array $DIRSTACK, exit status and message'
+test_Oe -e 1 'pushd: read-only non-array $DIRSTACK, exit status and message'
 readonly DIRSTACK=
 pushd testdir
 __IN__
@@ -626,7 +626,7 @@ $PWD/testdir
 $PWD/testdir
 __OUT__
 
-test_Oe -e n 'pushd: read-only unset $DIRSTACK, exit status and message'
+test_Oe -e 1 'pushd: read-only unset $DIRSTACK, exit status and message'
 unset DIRSTACK
 readonly DIRSTACK
 pushd testdir
@@ -646,7 +646,21 @@ $PWD/testdir
 $PWD/testdir
 __OUT__
 
-test_O -d -e n 'pushing non-existing directory, exit status and message'
+test_Oe -e 4 'pushd: unset $PWD, exit status and message'
+unset PWD
+pushd testdir
+__IN__
+pushd: $PWD is not set
+__ERR__
+
+test_x "$LINENO" -e 0 'pushd: unset $PWD, directory not changed'
+cd -P .
+unset PWD
+pushd testdir
+test "$(pwd -P)" = "$OLDPWD"
+__IN__
+
+test_O -d -e 2 'pushing non-existing directory, exit status and message'
 pushd _no_such_directory_
 __IN__
 
@@ -666,7 +680,7 @@ if [ -x testdir/000 ]; then
     skip="true"
 fi
 
-test_O -d -e n 'pushing restricted directory'
+test_O -d -e 2 'pushing restricted directory'
 pushd testdir/000
 __IN__
 
@@ -677,14 +691,14 @@ OLDPWD=$PWD
 pushd - >&-
 __IN__
 
-test_Oe -e n 'pushd: invalid option'
+test_Oe -e 5 'pushd: invalid option'
 pushd --no-such-option
 __IN__
 pushd: `--no-such-option' is not a valid option
 __ERR__
 #`
 
-test_Oe -e n 'pushd: too many operands'
+test_Oe -e 5 'pushd: too many operands'
 pushd +0 +0
 __IN__
 pushd: too many operands are specified
@@ -705,7 +719,7 @@ __IN__
 popd: an elective built-in
 __OUT__
 
-test_Oe -e n 'popping default directory from empty stack'
+test_Oe -e 4 'popping default directory from empty stack'
 popd
 __IN__
 popd: the directory stack is empty
@@ -771,19 +785,19 @@ b
 a
 __OUT__
 
-test_Oe -e n 'popping +0 from empty stack'
+test_Oe -e 4 'popping +0 from empty stack'
 popd +0
 __IN__
 popd: the directory stack is empty
 __ERR__
 
-test_Oe -e n 'popping +2 from empty stack'
+test_Oe -e 4 'popping +2 from empty stack'
 popd +2
 __IN__
 popd: the directory stack is empty
 __ERR__
 
-test_Oe -e n 'popping +2 from 1-element stack'
+test_Oe -e 4 'popping +2 from 1-element stack'
 DIRSTACK=(b)
 popd +2
 __IN__
@@ -863,7 +877,7 @@ __OUT__
 popd: $OLDPWD is read-only
 __ERR__
 
-test_Oe -e n 'popd: read-only array $DIRSTACK, exit status and message'
+test_Oe -e 4 'popd: read-only array $DIRSTACK, exit status and message'
 DIRSTACK=("$PWD/testdir")
 readonly DIRSTACK
 popd
@@ -884,7 +898,7 @@ $PWD
 $PWD/testdir
 __OUT__
 
-test_Oe -e n 'popd: read-only non-array $DIRSTACK, exit status and message'
+test_Oe -e 4 'popd: read-only non-array $DIRSTACK, exit status and message'
 readonly DIRSTACK=
 popd
 __IN__
@@ -902,7 +916,7 @@ $PWD
 $PWD
 __OUT__
 
-test_Oe -e n 'popd: read-only unset $DIRSTACK, exit status and message'
+test_Oe -e 4 'popd: read-only unset $DIRSTACK, exit status and message'
 unset DIRSTACK
 readonly DIRSTACK
 popd
@@ -922,7 +936,7 @@ $PWD
 $PWD
 __OUT__
 
-test_O -d -e n 'popping to non-existing directory, exit status and message'
+test_O -d -e 2 'popping to non-existing directory, exit status and message'
 DIRSTACK=("$PWD/_no_such_directory_")
 popd
 __IN__
@@ -944,7 +958,7 @@ if [ -x testdir/000 ]; then
     skip="true"
 fi
 
-test_O -d -e n 'popping to restricted directory'
+test_O -d -e 2 'popping to restricted directory'
 DIRSTACK=("$PWD/testdir/000")
 popd
 __IN__
@@ -956,18 +970,27 @@ DIRSTACK=("$PWD")
 popd >&-
 __IN__
 
-test_Oe -e n 'popd: invalid option'
+test_Oe -e 5 'popd: invalid option'
 popd --no-such-option
 __IN__
 popd: `--no-such-option' is not a valid option
 __ERR__
 #`
 
-test_Oe -e n 'popd: too many operands'
+test_Oe -e 5 'popd: too many operands'
 popd +0 +0
 __IN__
 popd: too many operands are specified
 __ERR__
+
+test_Oe -e 5 'popd: non-numeric operand'
+DIRSTACK=("$PWD")
+popd not-a-number
+__IN__
+popd: `not-a-number' is not a valid index
+__ERR__
+#'
+#`
 
 test_O -d -e 127 'popd built-in is unavailable in POSIX mode' --posix
 echo echo not reached > popd

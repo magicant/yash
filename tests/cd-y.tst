@@ -4,14 +4,14 @@ cd -P .
 export ORIGPWD="$PWD"
 mkdir dir -
 
-test_Oe -e 1 'unset HOME'
+test_Oe -e 4 'unset HOME'
 unset HOME
 cd
 __IN__
 cd: $HOME is not set
 __ERR__
 
-test_Oe -e 1 'empty HOME'
+test_Oe -e 4 'empty HOME'
 HOME=
 cd
 __IN__
@@ -43,7 +43,7 @@ OLDPWD=$ORIGPWD
 $ORIGPWD/dir
 __OUT__
 
-test_Oe -e 1 'unset OLDPWD'
+test_Oe -e 4 'unset OLDPWD'
 unset OLDPWD
 cd -
 __IN__
@@ -167,13 +167,13 @@ __IN__
 $ORIGPWD/-
 __OUT__
 
-test_Oe -e 2 'too many operands'
+test_Oe -e 5 'too many operands'
 cd . .
 __IN__
 cd: too many operands are specified
 __ERR__
 
-test_Oe -e 2 'invalid option'
+test_Oe -e 5 'invalid option'
 cd --no-such-option
 __IN__
 cd: `--no-such-option' is not a valid option

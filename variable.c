@@ -3056,17 +3056,17 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
                 return print_builtin_help(ARGV(0));
 #endif
             default:
-                return Exit_ERROR;
+                return 5;
         }
     }
 
     if (!validate_operand_count(argc - xoptind, 0, 1))
-        return Exit_ERROR;
+        return 5;
 
     const wchar_t *origpwd = getvar(L VAR_PWD);
     if (origpwd == NULL) {
         xerror(0, Ngt("$PWD is not set"));
-        return Exit_FAILURE;
+        return 4;
     }
 
     bool useoldpwd = false;
@@ -3082,11 +3082,11 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
         stackindex = SIZE_MAX;
         if (newpwd == NULL || newpwd[0] == L'\0') {
             xerror(0, Ngt("$OLDPWD is not set"));
-            return Exit_FAILURE;
+            return 4;
         }
     } else {
         if (!parse_dirstack_index(newpwd, &stackindex, &newpwd, true))
-            return Exit_FAILURE;
+            return 4;
     }
     assert(newpwd != NULL);
 
@@ -3095,7 +3095,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
 #ifndef NDEBUG
     newpwd = NULL;  /* newpwd cannot be used anymore. */
 #endif
-    if (result != Exit_SUCCESS) {
+    if (result > 1) {
         free(saveorigpwd);
         return result;
     }
@@ -3103,7 +3103,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     variable_T *var = get_dirstack();
     if (var == NULL) {
         free(saveorigpwd);
-        return Exit_FAILURE;
+        return 1;
     }
 
     push_dirstack(var, saveorigpwd);
@@ -3113,7 +3113,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
         remove_dirstack_dups(var);
     if (var->v_type & VF_EXPORT)
         update_environment(L VAR_DIRSTACK);
-    return Exit_SUCCESS;
+    return result;
 }
 
 /* Returns the directory stack.
@@ -3200,7 +3200,7 @@ int popd_builtin(int argc, void **argv)
                 return print_builtin_help(ARGV(0));
 #endif
             default:
-                return Exit_ERROR;
+                return 5;
         }
     }
 
@@ -3208,31 +3208,31 @@ int popd_builtin(int argc, void **argv)
     switch (argc - xoptind) {
         case 0:   arg = L"+0";          break;
         case 1:   arg = ARGV(xoptind);  break;
-        default:  return too_many_operands_error(1);
+        default:  too_many_operands_error(1);  return 5;
     }
 
     variable_T *var = get_dirstack();
     if (var == NULL)
-        return Exit_FAILURE;
+        return 4;
     if (var->v_valc == 0) {
         xerror(0, Ngt("the directory stack is empty"));
-        return Exit_FAILURE;
+        return 4;
     }
 
     size_t stackindex;
     const wchar_t *dummy;
     if (!parse_dirstack_index(arg, &stackindex, &dummy, true))
-        return Exit_FAILURE;
+        return 4;
     if (stackindex == SIZE_MAX) {
         xerror(0, Ngt("`%ls' is not a valid index"), arg);
-        return Exit_ERROR;
+        return 5;
     }
 
     if (stackindex < var->v_valc) {
         remove_dirstack_entry_at(var, stackindex);
         if (var->v_type & VF_EXPORT)
             update_environment(L VAR_DIRSTACK);
-        return Exit_SUCCESS;
+        return 0;
     }
 
     int result;

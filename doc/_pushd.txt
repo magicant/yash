@@ -50,7 +50,17 @@ specified either, the default is index `+1`.
 [[exitstatus]]
 == Exit status
 
-The exit status of the pushd built-in is zero unless there is any error.
+In addition to the link:_cd.html#exitstatus[exit status of the cd built-in],
+the pushd built-in returns the following exit status:
+
+* If the link:params.html#sv-dirstack[+DIRSTACK+ variable] is read-only, the
+  exit status is 1.
+* If the link:params.html#sv-pwd[+PWD+ variable] is unset, the exit status is
+  4.
+* If {{directory}} is a signed integer and the index is out of range, the exit
+  status is 4.
+* If {{directory}} is omitted, the +--default-directory=...+ option is not
+  specified, and the directory stack is empty, the exit status is 4.
 
 [[notes]]
 == Notes

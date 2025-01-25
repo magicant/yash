@@ -81,8 +81,16 @@ specified either, the default is the link:params.html#sv-home[home directory].
 [[exitstatus]]
 == Exit status
 
-The exit status of the cd built-in is zero if the working directory was
-successfully changed and non-zero if there was an error.
+* If the working directory is successfully changed, the exit status is 0.
+* If the working directory cannot be changed because of an error in the
+  underlying +chdir+ system call, the exit status is 2.
+* If the +-L+ option is effective and the new directory pathname cannot be
+  canonicalized because of a +..+ component referring to a non-existent
+  directory, the exit status is 3.
+* If {{directory}} cannot be processed because of an unset or empty
+  link:params.html#sv-home[+HOME+] or link:params.html#sv-oldpwd[+OLDPWD+],
+  the exit status is 4.
+* If the command arguments are invalid, the exit status is 5.
 
 [[notes]]
 == Notes

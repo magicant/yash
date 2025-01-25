@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1176,7 +1176,7 @@ int cd_builtin(int argc, void **argv)
                 return print_builtin_help(ARGV(0));
 #endif
             default:
-                return Exit_ERROR;
+                return 5;
         }
     }
 
@@ -1187,7 +1187,7 @@ int cd_builtin(int argc, void **argv)
                 newpwd = getvar(L VAR_HOME);
                 if (newpwd == NULL || newpwd[0] == L'\0') {
                     xerror(0, Ngt("$HOME is not set"));
-                    return Exit_FAILURE;
+                    return 4;
                 }
             }
             break;
@@ -1196,7 +1196,7 @@ int cd_builtin(int argc, void **argv)
                 newpwd = getvar(L VAR_OLDPWD);
                 if (newpwd == NULL || newpwd[0] == L'\0') {
                     xerror(0, Ngt("$OLDPWD is not set"));
-                    return Exit_FAILURE;
+                    return 4;
                 }
                 printnewdir = true;
             } else {
@@ -1204,7 +1204,8 @@ int cd_builtin(int argc, void **argv)
             }
             break;
         default:
-            return too_many_operands_error(1);
+            too_many_operands_error(1);
+            return 5;
     }
     return change_directory(newpwd, printnewdir, logical);
 }
@@ -1214,7 +1215,7 @@ int cd_builtin(int argc, void **argv)
  * $PWD and $OLDPWD are set in this function.
  * If `printnewdir' is true or the new directory is found from $CDPATH, the new
  * directory is printed to the standard output.
- * Returns Exit_SUCCESS, Exit_FAILURE or Exit_ERROR. */
+ * Returns the exit status to be returned from the built-in. */
 int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
 {
     const wchar_t *origpwd;
@@ -1226,7 +1227,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
     if (origpwd == NULL || origpwd[0] != L'/') {
         if (origpwd == newpwd) {
             xerror(0, Ngt("$PWD has an invalid value"));
-            return Exit_FAILURE;
+            return 4;
         }
         /* we have to assure `origpwd != newpwd' because we're going to
          * re-assign $PWD */
@@ -1235,7 +1236,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
         if (pwd == NULL) {
             if (logical) {
                 xerror(errno, Ngt("cannot determine the current directory"));
-                return Exit_FAILURE;
+                return 4;
             }
         } else {
             wchar_t *wpwd = realloc_mbstowcs(pwd);
@@ -1246,7 +1247,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
                     logical = false, origpwd = NULL;
             } else {
                 xerror(EILSEQ, Ngt("cannot determine the current directory"));
-                return Exit_ERROR;
+                return 4;
             }
         }
     }
@@ -1272,7 +1273,7 @@ int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
         if (mbsnewpwd == NULL) {
             wb_destroy(&curpath);
             xerror(EILSEQ, Ngt("unexpected error"));
-            return Exit_ERROR;
+            return 4;
         }
         char *const *cdpath = get_path_array(PA_CDPATH);
         char *path = which(mbsnewpwd,
@@ -1313,7 +1314,7 @@ step7:  /* ensure the value of `curpath' is an absolute path */
         wb_destroy(&curpath);
         if (canon == NULL) {
             xerror(ENOTDIR, Ngt("`%ls'"), newpwd);
-            return Exit_FAILURE;
+            return 3;
         }
         wb_initwith(&curpath, canon);
     }
@@ -1340,13 +1341,13 @@ step10:  /* do chdir */
         if (mbscurpath == NULL) {
             xerror(EILSEQ, Ngt("unexpected error"));
             wb_destroy(&curpath);
-            return Exit_ERROR;
+            return 2;
         }
         if (chdir(mbscurpath) < 0) {
             xerror(errno, Ngt("`%s'"), mbscurpath);
             free(mbscurpath);
             wb_destroy(&curpath);
-            return Exit_FAILURE;
+            return 2;
         }
         free(mbscurpath);
     }
@@ -1382,7 +1383,7 @@ step10:  /* do chdir */
     if (!posixly_correct)
         exec_variable_as_auxiliary_(VAR_YASH_AFTER_CD);
 
-    return Exit_SUCCESS;
+    return 0;
 }
 
 /* Canonicalizes a pathname.

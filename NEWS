@@ -3,12 +3,13 @@
 ## Yash 2.58 (Unreleased)
 
   - The location of the initialization files can now be configured
-    using the XDG_CONFIG_HOME variable (except in POSIXly-correct mode).
+    using the `XDG_CONFIG_HOME` variable (except in POSIXly-correct
+    mode).
   - [line-editing] Command line prediction now works in the vi command
     mode.
   - [line-editing] Added completion for git-restore.
   - [line-editing] Added completion for git-merge's --continue option.
-  - [line-editing] The completion for the . built-in now suggests
+  - [line-editing] The completion for the `.` built-in now suggests
     directory names for the first operand even before the user enters a
     slash.
   - Improved POSIX.1-2024 support:
@@ -31,6 +32,9 @@
     - The shell's syntax now always allows `esac` as the first pattern
       of a case branch as in `case esac in (esac|case) echo ok; esac`.
       Previously, it was a syntax error in the POSIXly-correct mode.
+  - The exit statuses returned from the `cd`, `pushd`, and `popd`
+    built-ins have been updated to make it easier to distinguish the
+    reasons for failure.
   - Fixed a potential crash caused by an expansion error in nested
     parameter expansion.
   - Updated the sample initialization script (yashrc):

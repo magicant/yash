@@ -182,9 +182,9 @@ test_nonspecial_builtin_syntax() (
 # -l and -n are mutually exclusive for the kill built-in.
 # Four arguments are too many for the test built-in.
 $2 -l -n --no-such-option-- -
-echo \$?
+test \$? -ne 0 && echo reached
 __IN__
-2
+reached
 __OUT__
 )
 

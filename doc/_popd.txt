@@ -29,7 +29,12 @@ If omitted, `+0` (the last entry) is assumed.
 [[exitstatus]]
 == Exit status
 
-The exit status of the popd built-in is zero unless there is any error.
+In addition to the link:_cd.html#exitstatus[exit status of the cd built-in],
+the popd built-in returns the following exit status:
+
+* If the link:params.html#sv-dirstack[+DIRSTACK+ variable] is read-only or
+  empty, the exit status is 4.
+* If {{index}} is out of range, the exit status is 4.
 
 [[notes]]
 == Notes
