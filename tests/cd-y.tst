@@ -181,6 +181,12 @@ __ERR__
 #'
 #`
 
+test_Oe -e 5 -- '-e without -P'
+cd -e
+__IN__
+cd: the -e option requires the -P option
+__ERR__
+
 test_O -e 0 'printing to closed stream'
 OLDPWD=/ cd - >&-
 __IN__

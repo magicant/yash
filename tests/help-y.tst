@@ -136,10 +136,11 @@ __IN__
 cd: change the working directory
 
 Syntax:
-	cd [-L|-P] [directory]
+	cd [-L|-P [-e]] [directory]
 
 Options:
 	-d ...   --default-directory=...
+	-e       --ensure-pwd
 	-L       --logical
 	-P       --physical
 	         --help
@@ -656,11 +657,12 @@ __IN__
 pushd: push a directory into the directory stack
 
 Syntax:
-	pushd [-L|-P] [directory]
+	pushd [-L|-P [-e]] [directory]
 
 Options:
 	-D       --remove-duplicates
 	-d ...   --default-directory=...
+	-e       --ensure-pwd
 	-L       --logical
 	-P       --physical
 	         --help

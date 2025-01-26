@@ -373,6 +373,18 @@ PWD=$ORIGPWD/cdpath2/dev
 $ORIGPWD/cdpath2/dev
 __OUT__
 
+test_x -e 0 'exit status of success with -e'
+cd -P -e .
+__IN__
+
+# There is no reliable way to test this case.
+#test_x -e 1 'exit status of failure with -e'
+
+test_x -e 0 'exit status of change error with -e'
+cd -P -e _no_such_path_
+[ $? -gt 1 ]
+__IN__
+
 (
 # Skip if we're root.
 if [ -d no_search_dir/. ]; then

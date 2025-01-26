@@ -1157,20 +1157,22 @@ static inline mode_t copy_other_mask(mode_t mode)
 /* The "cd" built-in, which accepts the following options:
  *  -L: don't resolve symbolic links (default)
  *  -P: resolve symbolic links
+ *  -e: fail if new $PWD value cannot be determined
  *  --default-directory=<dir>: go to <dir> when the operand is missing
  * -L and -P are mutually exclusive: the one specified last is used. */
 int cd_builtin(int argc, void **argv)
 {
-    bool logical = true;
+    bool logical = true, ensure_pwd = false;
     const wchar_t *newpwd = NULL;
 
     const struct xgetopt_T *opt;
     xoptind = 0;
     while ((opt = xgetopt(argv, cd_options, XGETOPT_DIGIT)) != NULL) {
         switch (opt->shortopt) {
-            case L'L':  logical = true;    break;
-            case L'P':  logical = false;   break;
-            case L'd':  newpwd = xoptarg;  break;
+            case L'L':  logical = true;     break;
+            case L'P':  logical = false;    break;
+            case L'e':  ensure_pwd = true;  break;
+            case L'd':  newpwd = xoptarg;   break;
 #if YASH_ENABLE_HELP
             case L'-':
                 return print_builtin_help(ARGV(0));
@@ -1178,6 +1180,11 @@ int cd_builtin(int argc, void **argv)
             default:
                 return 5;
         }
+    }
+
+    if (logical && ensure_pwd) {
+        xerror(0, Ngt("the -e option requires the -P option"));
+        return 5;
     }
 
     bool printnewdir = false;
@@ -1207,7 +1214,7 @@ int cd_builtin(int argc, void **argv)
             too_many_operands_error(1);
             return 5;
     }
-    return change_directory(newpwd, printnewdir, logical);
+    return change_directory(newpwd, printnewdir, logical, ensure_pwd);
 }
 
 /* Changes the working directory to `newpwd'.
@@ -1216,11 +1223,14 @@ int cd_builtin(int argc, void **argv)
  * If `printnewdir' is true or the new directory is found from $CDPATH, the new
  * directory is printed to the standard output.
  * Returns the exit status to be returned from the built-in. */
-int change_directory(const wchar_t *newpwd, bool printnewdir, bool logical)
+int change_directory(
+        const wchar_t *newpwd, bool printnewdir, bool logical, bool ensure_pwd)
 {
     const wchar_t *origpwd;
     xwcsbuf_T curpath;
     size_t curpathoffset = 0;
+
+    assert(!logical || !ensure_pwd);
 
     /* get the current value of $PWD as `origpwd' */
     origpwd = getvar(L VAR_PWD);
@@ -1359,6 +1369,7 @@ step10:  /* do chdir */
 #endif
 
     /* set $OLDPWD and $PWD */
+    int result = 0;
     if (origpwd != NULL)
         set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false);
     if (logical) {
@@ -1378,12 +1389,16 @@ step10:  /* do chdir */
             wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
             if (wnewpwd != NULL)
                 set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false);
+            else
+                result = ensure_pwd ? 1 : 0;
+        } else {
+            result = ensure_pwd ? 1 : 0;
         }
     }
     if (!posixly_correct)
         exec_variable_as_auxiliary_(VAR_YASH_AFTER_CD);
 
-    return 0;
+    return result;
 }
 
 /* Canonicalizes a pathname.
@@ -1494,7 +1509,7 @@ const char cd_help[] = Ngt(
 "change the working directory"
 );
 const char cd_syntax[] = Ngt(
-"\tcd [-L|-P] [directory]\n"
+"\tcd [-L|-P [-e]] [directory]\n"
 );
 #endif
 

@@ -698,6 +698,12 @@ pushd: `--no-such-option' is not a valid option
 __ERR__
 #`
 
+test_Oe -e 5 -- '-e without -P'
+pushd -e
+__IN__
+pushd: the -e option requires the -P option
+__ERR__
+
 test_Oe -e 5 'pushd: too many operands'
 pushd +0 +0
 __IN__

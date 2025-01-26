@@ -8,7 +8,7 @@ The dfn:[cd built-in] changes the working directory.
 [[syntax]]
 == Syntax
 
-- +cd [-L|-P] [{{directory}}]+
+- +cd [-L|-P [-e]] [{{directory}}]+
 
 [[description]]
 == Description
@@ -55,6 +55,14 @@ Symbolic links in the pathname of the new working directory are resolved.
 The new value of the +PWD+ variable never includes pathname components that
 are symbolic links.
 
++-e+::
++--ensure-pwd+::
+This option must be specified with +-P+ (+--physical+).
+If this option is specified and if the absolute pathname of the new working
+directory cannot be obtained after successfully changing the working
+directory, the exit status is 1. If this option is not specified, the exit
+status is 0 in such a case.
+
 +--default-directory={{directory}}+::
 If this option is specified and the {{directory}} operand is omitted, the
 argument to this option is used for the {{directory}} operand.
@@ -81,7 +89,15 @@ specified either, the default is the link:params.html#sv-home[home directory].
 [[exitstatus]]
 == Exit status
 
-* If the working directory is successfully changed, the exit status is 0.
+* If the working directory is successfully changed:
+** If the +-L+ option is effective, the exit status is 0.
+** If the +-P+ option is effective:
+*** If the absolute pathname of the new working directory is successfully
+    obtained, the exit status is 0.
+*** If the +PWD+ variable cannot be updated because the absolute pathname of
+    the new working directory cannot be obtained:
+**** If the +-e+ option is effective, the exit status is 1.
+**** If the +-e+ option is not effective, the exit status is 0.
 * If the working directory cannot be changed because of an error in the
   underlying +chdir+ system call, the exit status is 2.
 * If the +-L+ option is effective and the new directory pathname cannot be
@@ -92,6 +108,12 @@ specified either, the default is the link:params.html#sv-home[home directory].
   the exit status is 4.
 * If the command arguments are invalid, the exit status is 5.
 
+If and only if the exit status is 2 or larger, the working directory is not
+changed.
+
+If the +PWD+ or +OLDPWD+ variable is read-only, the variable is not updated,
+but that does not affect the exit status.
+
 [[notes]]
 == Notes
 
@@ -99,7 +121,6 @@ The cd built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard does not define the use of the +YASH_AFTER_CD+ variable or
 the +--default-directory=...+ option.
-The standard does not allow using an option with a single hyphen operand.
 
 The exit status of the commands in the +YASH_AFTER_CD+ variable does not
 affect that of the cd built-in.

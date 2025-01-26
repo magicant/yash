@@ -8,7 +8,7 @@ The dfn:[pushd built-in] pushes a directory into the directory stack.
 [[syntax]]
 == Syntax
 
-- +pushd [-L|-P] [{{directory}}]+
+- +pushd [-L|-P [-e]] [{{directory}}]+
 
 [[description]]
 == Description

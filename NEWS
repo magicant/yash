@@ -25,6 +25,8 @@
       expanded.
     - The `printf` built-in now supports position specifiers in format
       strings as in `printf '%2$s %1$s\n' foo bar`.
+    - The `cd` and `pushd` built-ins now support the `-e` option, which
+      can be used to see if the `$PWD` variable is successfully updated.
     - After the `bg` built-in resumed a job, the `!` special parameter
       expands to the process ID of the job.
     - An interactive shell no longer exits on an error in the `exec`

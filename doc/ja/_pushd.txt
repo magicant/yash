@@ -8,7 +8,7 @@ dfn:[Pushd 組込みコマンド]は{zwsp}link:_dirs.html[ディレクトリス�
 [[syntax]]
 == 構文
 
-- +pushd [-L|-P] [{{ディレクトリ}}]+
+- +pushd [-L|-P [-e]] [{{ディレクトリ}}]+
 
 [[description]]
 == 説明

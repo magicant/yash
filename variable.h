@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -195,10 +195,10 @@ extern const char pushd_help[], pushd_syntax[];
 extern const struct xgetopt_T pushd_options[];
 #if YASH_ENABLE_DIRSTACK
 # define cd_options  (&pushd_options[1])
-# define pwd_options (&pushd_options[2])
+# define pwd_options (&pushd_options[3])
 #else
 # define cd_options  pushd_options
-# define pwd_options (&pushd_options[1])
+# define pwd_options (&pushd_options[2])
 #endif
 
 extern int popd_builtin(int argc, void **argv)

@@ -3009,6 +3009,7 @@ const struct xgetopt_T pushd_options[] = {
     { L'D', L"remove-duplicates", OPTARG_NONE,     true,  NULL, },
 #endif
     { L'd', L"default-directory", OPTARG_REQUIRED, false, NULL, },
+    { L'e', L"ensure-pwd",        OPTARG_NONE,     true,  NULL, },
     { L'L', L"logical",           OPTARG_NONE,     true,  NULL, },
     { L'P', L"physical",          OPTARG_NONE,     true,  NULL, },
 #if YASH_ENABLE_HELP
@@ -3035,12 +3036,13 @@ static bool print_dirstack_entry(
 /* The "pushd" built-in.
  *  -L: don't resolve symbolic links (default)
  *  -P: resolve symbolic links
+ *  -e: fail if new $PWD value cannot be determined
  *  --default-directory=<dir>: go to <dir> when the operand is missing
  *  --remove-duplicates: remove duplicate entries in the directory stack.
  * -L and -P are mutually exclusive: the one specified last is used. */
 int pushd_builtin(int argc __attribute__((unused)), void **argv)
 {
-    bool logical = true, remove_dups = false;
+    bool logical = true, remove_dups = false, ensure_pwd = false;
     const wchar_t *newpwd = L"+1";
 
     const struct xgetopt_T *opt;
@@ -3051,6 +3053,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
             case L'P':  logical = false;      break;
             case L'd':  newpwd = xoptarg;     break;
             case L'D':  remove_dups = true;   break;
+            case L'e':  ensure_pwd = true;    break;
 #if YASH_ENABLE_HELP
             case L'-':
                 return print_builtin_help(ARGV(0));
@@ -3060,6 +3063,10 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
         }
     }
 
+    if (logical && ensure_pwd) {
+        xerror(0, Ngt("the -e option requires the -P option"));
+        return 5;
+    }
     if (!validate_operand_count(argc - xoptind, 0, 1))
         return 5;
 
@@ -3091,7 +3098,7 @@ int pushd_builtin(int argc __attribute__((unused)), void **argv)
     assert(newpwd != NULL);
 
     wchar_t *saveorigpwd = xwcsdup(origpwd);
-    int result = change_directory(newpwd, useoldpwd, logical);
+    int result = change_directory(newpwd, useoldpwd, logical, ensure_pwd);
 #ifndef NDEBUG
     newpwd = NULL;  /* newpwd cannot be used anymore. */
 #endif
@@ -3184,7 +3191,7 @@ const char pushd_help[] = Ngt(
 "push a directory into the directory stack"
 );
 const char pushd_syntax[] = Ngt(
-"\tpushd [-L|-P] [directory]\n"
+"\tpushd [-L|-P [-e]] [directory]\n"
 );
 #endif
 
@@ -3242,7 +3249,7 @@ int popd_builtin(int argc, void **argv)
     var->v_valc--;
     newpwd = var->v_vals[var->v_valc];
     var->v_vals[var->v_valc] = NULL;
-    result = change_directory(newpwd, true, true);
+    result = change_directory(newpwd, true, true, false);
     free(newpwd);
     if (var->v_type & VF_EXPORT)
         update_environment(L VAR_DIRSTACK);

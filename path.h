@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.h: filename-related utilities */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -133,7 +133,8 @@ extern const char umask_help[], umask_syntax[];
 extern const struct xgetopt_T umask_options[];
 
 extern int change_directory(
-        const wchar_t *newpwd, _Bool printnewdir, _Bool logical)
+        const wchar_t *newpwd, _Bool printnewdir,
+        _Bool logical, _Bool ensure_pwd)
     __attribute__((nonnull,warn_unused_result));
 
 

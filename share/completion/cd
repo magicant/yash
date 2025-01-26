@@ -1,4 +1,4 @@
-# (C) 2010-2018 magicant
+# (C) 2010-2025 magicant
 
 # Completion script for the "cd" built-in command.
 # Completion function "completion/cd" is used for the "dirs", "pushd", "popd"
@@ -13,6 +13,7 @@ function completion/cd {
         case ${WORDS[1]} in
         (cd|pushd)
                 OPTIONS=("$OPTIONS" #>#
+                "e --ensure-pwd; exit with status 1 if the new PWD cannot be determined"
                 "L --logical; keep symbolic links in the \$PWD variable as is"
                 "P --physical; resolve symbolic links in the \$PWD variable"
                 "--default-directory:; specify the default directory to change to"
