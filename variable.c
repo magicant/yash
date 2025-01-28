@@ -2524,10 +2524,10 @@ int getopts_builtin(int argc, void **argv)
 
     if (wcschr(varname, L'=')) {
         xerror(0, Ngt("`%ls' is not a valid variable name"), varname);
-        return Exit_FAILURE;
+        return Exit_ERROR;
     } else if (!check_options(options)) {
         xerror(0, Ngt("`%ls' is not a valid option specification"), options);
-        return Exit_FAILURE;
+        return Exit_ERROR;
     }
 
     /* Parse $OPTIND */
@@ -2563,7 +2563,7 @@ int getopts_builtin(int argc, void **argv)
         args = var->v_vals;
     }
 
-#define TRY(exp)  do { if (!(exp)) return Exit_FAILURE; } while (0)
+#define TRY(exp)  do { if (!(exp)) return Exit_ERROR; } while (0)
 parse_arg:
     arg = args[optind];
     if (arg == NULL || arg[0] != L'-' || arg[1] == L'\0') {
@@ -2631,7 +2631,7 @@ no_more_options:
     return Exit_FAILURE;
 optind_invalid:
     xerror(0, Ngt("$OPTIND has an invalid value"));
-    return Exit_FAILURE;
+    return Exit_ERROR;
 }
 
 /* Checks if the `options' is valid. Returns true iff OK. */

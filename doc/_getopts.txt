@@ -74,7 +74,8 @@ parameters] are parsed.
 
 If an option is found, whether or not it is specified in {{optionlist}}, the
 exit status is zero.
-If there is no more option to be parsed, the exit status is non-zero.
+If there is no more option to be parsed, the exit status is one.
+The exit status is two on error.
 
 [[example]]
 == Example

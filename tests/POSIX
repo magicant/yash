@@ -229,6 +229,7 @@ fg
 
 getopts
  * getopts-p.tst
+ * getopts-y.tst
 
 hash
  * hash-y.tst

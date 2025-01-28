@@ -14,7 +14,7 @@ __OUT__
 (
 posix="true"
 
-test_Oe -e 1 'invalid option candidate "?"'
+test_Oe -e 2 'invalid option candidate "?"'
 getopts '?' o
 __IN__
 getopts: `?' is not a valid option specification
@@ -22,7 +22,7 @@ __ERR__
 #'
 #`
 
-test_Oe -e 1 'invalid option candidate ":"'
+test_Oe -e 2 'invalid option candidate ":"'
 getopts :: o
 __IN__
 getopts: `::' is not a valid option specification
@@ -30,7 +30,7 @@ __ERR__
 #'
 #`
 
-test_Oe -e 1 'invalid option candidate "-"'
+test_Oe -e 2 'invalid option candidate "-"'
 getopts - o
 __IN__
 getopts: `-' is not a valid option specification
@@ -38,7 +38,7 @@ __ERR__
 #'
 #`
 
-test_Oe -e 1 'invalid option candidate "+"'
+test_Oe -e 2 'invalid option candidate "+"'
 getopts + o
 __IN__
 getopts: `+' is not a valid option specification
@@ -48,7 +48,7 @@ __ERR__
 
 )
 
-test_Oe -e 1 'invalid operand variable name'
+test_Oe -e 2 'invalid operand variable name'
 getopts '' =
 __IN__
 getopts: `=' is not a valid variable name
@@ -56,21 +56,21 @@ __ERR__
 #'
 #`
 
-test_Oe -e 1 'unset OPTIND'
+test_Oe -e 2 'unset OPTIND'
 unset OPTIND
 getopts a o -a
 __IN__
 getopts: $OPTIND has an invalid value
 __ERR__
 
-test_Oe -e 1 'empty OPTIND'
+test_Oe -e 2 'empty OPTIND'
 OPTIND=
 getopts a o -a
 __IN__
 getopts: $OPTIND has an invalid value
 __ERR__
 
-test_Oe -e 1 'non-numeric OPTIND'
+test_Oe -e 2 'non-numeric OPTIND'
 OPTIND=X
 getopts a o -a
 __IN__
@@ -104,21 +104,21 @@ __IN__
 1 ? 2
 __OUT__
 
-test_Oe -e 1 'read-only operand variable'
+test_Oe -e 2 'read-only operand variable'
 readonly o
 getopts a o -a
 __IN__
 getopts: $o is read-only
 __ERR__
 
-test_Oe -e 1 'read-only OPTARG'
+test_Oe -e 2 'read-only OPTARG'
 readonly OPTARG
 getopts a: o -a foo
 __IN__
 getopts: $OPTARG is read-only
 __ERR__
 
-test_Oe -e 1 'read-only OPTIND'
+test_Oe -e 2 'read-only OPTIND'
 readonly OPTIND
 getopts a o -a
 __IN__
