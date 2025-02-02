@@ -41,6 +41,12 @@
   - Fixed a potential crash caused by an expansion error in nested
     parameter expansion.
   - Updated the sample initialization script (yashrc):
+    - The default `$HISTFILE` is now set to
+      `${XDG_STATE_HOME}/yash/history` unless `${HOME}/.yash_history`
+      exists, in which case the latter is used and a warning is
+      printed. To suppress the warning and keep using the previous
+      location, you can set the `$HISTFILE` variable before the sample
+      initialization script is sourced.
     - Added aliases h='fc -l' and j='jobs'.
     - Added the wrapper function for `doas` in an attempt to remove the
       misleading terminal title.
