@@ -82,7 +82,7 @@
 </dt>
 <dd>
 <p>
-このパラメータの値は、最後に実行した&#8203;<a href="syntax.html#async">非同期コマンド</a>のプロセス ID です。
+このパラメータの値は、最後に開始した&#8203;<a href="syntax.html#async">非同期コマンド</a>もしくは最後に&#8203;<a href="_bg.html">再開</a>したジョブのプロセス ID です。
 </p>
 </dd>
 <dt class="hdlist1">
@@ -499,6 +499,17 @@ POSIX によるとこの変数の値はロケール依存のメッセージデ�
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-xdg_config_home"></a><code>XDG_CONFIG_HOME</code>
+</dt>
+<dd>
+<p>
+この変数は&#8203;<a href="invoke.html#init">シェルの初期化ファイル</a>の場所を指定するために使われます。
+値が定義されていない場合は
+<code><a href="#sv-home">$HOME</a>/.config</code>
+が使われます。
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-yash_after_cd"></a><code>YASH_AFTER_CD</code>
 </dt>
 <dd>
@@ -581,7 +592,7 @@ POSIX によるとこの変数の値はロケール依存のメッセージデ�
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-04-20 22:53:39 JST
+ 2024-11-16 23:47:20 JST
  更新
 </div>
 </div>

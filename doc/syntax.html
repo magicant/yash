@@ -97,9 +97,10 @@ A backslash (<code>\</code>) quotes a character that immediately follows.
 </li>
 <li>
 <p>
-A pair of single-quotation marks (<code>'</code>) quote any characters between them
-  except another single-quotation. Note that newlines can be quoted using
-  single-quotations.
+A pair of single-quotation marks (<code>'</code>) quote any characters between them.
+  Note that newlines can be quoted using single-quotations.
+  Single-quotations cannot quote a single-quotation mark itself unless the
+  mark is escaped in a <a href="#dollar-single">dollar-single-quoted</a> string.
 </p>
 </li>
 <li>
@@ -113,6 +114,80 @@ Double-quotation marks (<code>"</code>) are like single-quotations, but they hav
 </p>
 </li>
 </ul></div>
+<div class="sect2">
+<h3 id="dollar-single">Dollar-single-quotes</h3>
+<div class="paragraph"><p>Dollar-single-quotes are a special form of quotation introduced by <code>$&#x27;</code>
+and terminated by <code>&#x27;</code>. This is similar to normal single-quotation marks,
+but the following backslash escapes are recognized in the quoted string:</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\"</code>, <code>\'</code>, <code>\\</code>
+</dt>
+<dd>
+<p>
+  Represents literal <code>"</code>, <code>&#x27;</code>, and <code>\</code>, respectively. Note that a
+  single-quotation mark escaped by a backslash does not terminate the
+  dollar-single-quoted string.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a</code>, <code>\b</code>, <code>\e</code>, <code>\f</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\v</code>
+</dt>
+<dd>
+<p>
+  Represents the alert (bell), backspace, escape, form feed, newline, carriage
+  return, horizontal tab, and vertical tab characters, respectively.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c</code>
+</dt>
+<dd>
+<p>
+  Represents the control character corresponding to a character that follows.
+  For example, <code>\cA</code> represents the SOH character, which can be entered by
+  typing Ctrl-A.
+  The null character (Ctrl-@, <code>\c@</code>) is not supported.
+  To specify the FS character (Ctrl-\), the following backslash must also be
+  escaped as in <code>\c\\</code> rather than <code>\c\</code>.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\x</code>
+</dt>
+<dd>
+<p>
+  Represents the character whose value is specified by hexadecimal digits that
+  follow. For example, <code>\x20</code> represents the character that has the value 20
+  in hexadecimal. There must be at least one digit that follows <code>\x</code> and at
+  most two digits are recognized.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\0</code>, <code>\1</code>, <code>\2</code>, &#8230;, <code>\377</code>
+</dt>
+<dd>
+<p>
+  Represents the character whose value is specified by octal digits. There
+  must be at least one digit and at most three digits are recognized. The
+  value must fit in 8 bits.
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>Any other use of backslashes is considered as an error and converted to the
+<code>?</code> character.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The value represented by a hexadecimal or octal digit escape is interpreted as
+a wide character codepoint.
+This behavior does not conform to POSIX, which requires that the value be
+treated as a raw byte.</td>
+</tr></table>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -471,7 +546,13 @@ Case item syntax
 </dt>
 <dd>
 <p>
-  <code>(<var>patterns</var>) <var>command</var>&#8230;;;</code>
+  <code>(<var>patterns</var>) <var>command</var>&#8230; ;;</code>
+ <br />
+  <code>(<var>patterns</var>) <var>command</var>&#8230; ;&amp;</code>
+ <br />
+  <code>(<var>patterns</var>) <var>command</var>&#8230; ;|</code>
+ <br />
+  <code>(<var>patterns</var>) <var>command</var>&#8230; ;;&amp;</code>
 </p>
 </dd>
 </dl></div>
@@ -479,12 +560,14 @@ Case item syntax
 <var>word</var> is not treated as a keyword, but you need to <a href="#quotes">quote</a>
 separator characters (such as <code>&amp;</code> and <code>|</code>) to include them as part of the
 <var>word</var>. Between the <code>in</code> and <code>esac</code> tokens you can put any number of case
-items (may be none). You can omit the first <code>(</code> token of a case item and the
-last <code>;;</code> token before the <code>esac</code> token. If the last <var>command</var> of a case
-item is terminated by a semicolon, you can omit the semicolon as well. The
-<var>command</var>s in a case item may be empty.</p></div>
-<div class="paragraph"><p>The <var>patterns</var> in a case item are one or more tokens each separated by a <code>|</code>
+items (or none).</p></div>
+<div class="paragraph"><p>You can omit the first <code>(</code> token of a case item unless the first pattern is
+<code>esac</code>.
+The <var>patterns</var> in a case item are one or more tokens each separated by a <code>|</code>
 token.</p></div>
+<div class="paragraph"><p>The <var>command</var>s in a case item may be empty.
+If the last case item of a case command is terminated by <code>;;</code>, you can omit
+the <code>;;</code> token.</p></div>
 <div class="paragraph"><p>The execution of a case command starts with subjecting the <var>word</var> to
 <a href="expand.html">the four expansions</a>. Next, the following steps are taken for
 each case item (in the order of appearance):</p></div>
@@ -502,17 +585,43 @@ For each word in the <var>patterns</var>, expand the word in the same manner as 
 <li>
 <p>
 If one of the <var>patterns</var> was found to match the <var>word</var> in the previous
-  step, the <var>command</var>s in this case item are executed and the execution of
-  the whole case item ends. Otherwise, proceed to the next case item.
+  step, the <var>command</var>s in this case item are executed.
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+If the case item is terminated by <code>;;</code> (or the <code>;;</code> token is omitted), any
+    remaining case items are ignored and the execution of the whole case
+    command ends.
+</p>
+</li>
+<li>
+<p>
+If the case item is terminated by <code>;&amp;</code>, continue to the next case item.
+    However, the <var>patterns</var> of the next item are not expanded nor tested,
+    and the <var>command</var>s are unconditionally executed.
+</p>
+</li>
+<li>
+<p>
+If the case item is terminated by <code>;|</code> or <code>;;&amp;</code>, continue to the next case
+    item, looking for a next match.
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+If none of the <var>patterns</var> match the word, proceed to the next case item.
 </p>
 </li>
 </ol></div>
-<div class="paragraph"><p>The exit status of a case command is that of the <var>command</var>s executed. The
-exit status is zero if no
-<var>command</var>s were executed, that is, there were no case items, no matching
-pattern was found, or no commands were associated with the matching pattern.</p></div>
-<div class="paragraph"><p>In the <a href="posix.html">POSIXly-correct mode</a>, the first pattern in a case item
-cannot be <code>esac</code> (even if you do not omit the <code>(</code> token).</p></div>
+<div class="paragraph"><p>The exit status of a case command is that of the last <var>command</var>s executed.
+The exit status is zero if commands were not executed, that is, there were no
+case items, no matching pattern was found, or the <var>command</var>s were empty in
+the last executed case item.</p></div>
+<div class="paragraph"><p>The <code>;|</code> and <code>;;&amp;</code> terminators are a non-standard extension that cannot be
+used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
 </div>
 <div class="sect2">
 <h3 id="double-bracket">Double-bracket command</h3>
@@ -697,7 +806,7 @@ without errors, and non-zero otherwise.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2024-12-11 04:30:37 JST
 </div>
 </div>
 </body>

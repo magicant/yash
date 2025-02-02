@@ -116,7 +116,8 @@ If it is behaving as a login shell, the shell reads the file specified by
     specified or the shell is in the <a href="posix.html">POSIXly-correct mode</a>.
    <br />
     If the <code>--profile=<var>filename</var></code> option is not specified, the shell reads
-    <a href="expand.html#tilde">~</a>/.yash_profile as a default.
+    <a href="params.html#sv-xdg_config_home">$XDG_CONFIG_HOME</a>/yash/profile or
+    <a href="expand.html#tilde">~</a>/.yash_profile as a fallback.
 </p>
 </li>
 <li>
@@ -131,9 +132,11 @@ If in the interactive mode, the shell reads the file specified by the
 <li>
 <p>
 If not in the POSIXly-correct mode, the shell reads
-      <a href="expand.html#tilde">~</a>/.yashrc. If it cannot be read, the shell
-      searches <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> for a file
-      named initialization/default.
+      <a href="params.html#sv-xdg_config_home">$XDG_CONFIG_HOME</a>/yash/rc or
+      <a href="expand.html#tilde">~</a>/.yashrc as a fallback.
+      If it cannot be read, the shell searches
+      <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> for a file named
+      initialization/default.
 </p>
 </li>
 <li>
@@ -149,6 +152,9 @@ If in the POSIXly-correct mode, the shell performs
 </ol></div>
 </li>
 </ol></div>
+<div class="paragraph"><p>If the <a href="params.html#sv-xdg_config_home"><code>XDG_CONFIG_HOME</code> environment
+variable</a> is not set, <a href="expand.html#tilde">~</a>/.config is used as the
+default location.</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -164,7 +170,7 @@ If in the POSIXly-correct mode, the shell performs
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2024-10-15 22:01:07 JST
 </div>
 </div>
 </body>

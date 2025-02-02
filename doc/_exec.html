@@ -48,9 +48,8 @@ ignoring any existing functions and built-ins and that the exec system call
 that starts the external command is called in the current
 <a href="exec.html#environment">command execution environment</a> instead of a
 subshell, replacing the shell process with the new command process.</p></div>
-<div class="paragraph"><p>If the shell is in the <a href="posix.html">POSIXly-correct mode</a> or not
-<a href="interact.html">interactive</a>, failure in execution of <var>command</var> causes
-the shell to exit immediately.</p></div>
+<div class="paragraph"><p>If the shell is not <a href="interact.html">interactive</a>, failure in execution of
+<var>command</var> causes the shell to exit immediately.</p></div>
 <div class="paragraph"><p>If an interactive shell that is not in the POSIXly-correct mode has a stopped
 <a href="job.html">job</a>, the shell prints a warning message and refuses to execute
 <var>command</var>.
@@ -167,7 +166,7 @@ the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2024-11-16 04:21:14 JST
 </div>
 </div>
 </body>

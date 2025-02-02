@@ -55,7 +55,8 @@ and the UTF-8 encoding.</p></div>
 variable to a different value. Please consult your OS&#8217;s documentation to learn
 how to configure these variables in detail.</p></div>
 <div class="paragraph"><p>If you want to apply the same configuration every time you start yash, write
-the command in ~/.yashrc or ~/.yash_profile.</p></div>
+the command in $XDG_CONFIG_HOME/yash/rc or $XDG_CONFIG_HOME/yash/profile. The old locations
+~/.yashrc and ~/.yash_profile are also supported as a fallback.</p></div>
 <div class="paragraph"><p>If yash still rejects Unicode characters being entered, see the section below
 regarding line-editing.</p></div>
 </div>
@@ -80,7 +81,7 @@ option by <code>set -o le-no-conv-meta</code>.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2024-10-15 22:01:07 JST
 </div>
 </div>
 </body>

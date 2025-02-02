@@ -33,6 +33,10 @@ All tokens in the simple command are <a href="expand.html">expanded</a> except f
   If an error occurs during expansion, the execution of the simple command is
   aborted with a non-zero exit status.
  <br />
+  Tokens are usually expanded in a multi-field context, but tokens that look
+  like assignments are only subjected to the four expansions if the command is
+  a <a href="#declaration-utility">declaration utility</a>.
+ <br />
   In the following steps, the first word of the expansion results is referred
   to as <dfn>command name</dfn>, and the other words as <dfn>command arguments</dfn>.
   If there is only one word of the expansion results, there are no command
@@ -187,6 +191,53 @@ case.</p></div>
 </div></div>
 </li>
 </ol></div>
+<div class="sect2">
+<h3 id="declaration-utility">Declaration utility</h3>
+<div class="paragraph"><p><dfn>Declaration utilities</dfn> are a predefined set of command names that have
+special word expansion semantics. If a simple command is a declaration
+utility and a word token in the simple command has a form of assignment, the
+word is <a href="expand.html">expanded</a> in the same manner as an assignment.</p></div>
+<div class="paragraph"><p>Declaration utilities are detected when commands are parsed (rather than when
+command words are expanded), so a command name word that expands to a
+declaration utility name does not trigger the declaration utility expansion
+semantics.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">Some shells other than yash detects declaration utilities after a command name
+word is expanded, which allows dynamically produced declaration utility names.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>The following <a href="builtin.html">built-ins</a> are the declaration utilities in
+yash:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<a href="_export.html"><code>export</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_local.html"><code>local</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_readonly.html"><code>readonly</code></a>
+</p>
+</li>
+<li>
+<p>
+<a href="_typeset.html"><code>typeset</code></a>
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Additionally, the <a href="_command.html"><code>command</code> built-in</a> is treated as a
+declaration utility if the name is followed by another word that names a
+declaration utility.</p></div>
+</div>
 <div class="sect2">
 <h3 id="search">Command search</h3>
 <div class="paragraph"><p>A command that is executed in a simple command is determined by the command
@@ -439,7 +490,7 @@ may not reset the traps on entry to the subshell.</td>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2025-01-09 00:51:20 JST
 </div>
 </div>
 </body>

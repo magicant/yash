@@ -50,8 +50,9 @@ sequence are printed literally.</p></div>
 <div class="paragraph"><p>A conversion specification starts with a percent sign (<code>%</code>).</p></div>
 <div class="paragraph"><p>A conversion specification except <code>%%</code> consumes a <var>value</var>, which is
 formatted according to the specification and printed.
-Each conversion specification consumes one <var>value</var> in the order of
-appearance.
+By default, the <var>value</var>s are consumed in the order of their appearance, but
+you can specify which <var>value</var> to consume by using the
+<a href="#convspec-position">position specifier</a>.
 If there are more <var>value</var>s than conversion specifications, the entire
 <var>format</var> is re-processed until all the <var>value</var>s are consumed.
 If a <var>value</var> to be consumed is missing, it is assumed to be an empty string
@@ -188,7 +189,19 @@ prints a percent sign (<code>%</code>)
 the exponent part is between -5 and the precision (exclusive); <code>%e</code> or <code>%E</code>
 otherwise.</p></div>
 <div class="paragraph"><p>In a conversion specification except <code>%%</code>, the leading percent sign may be
-followed by flags, field width, and/or precision in this order.</p></div>
+followed by position, flags, field width, and/or precision in this order.</p></div>
+<div class="sect3">
+<h4 id="convspec-position">Position</h4>
+<div class="paragraph"><p>A position specifier is a dollar sign (<code>$</code>) preceded by a positive decimal
+integer.
+The integer specifies the index of the <var>value</var> to be consumed.
+For example, in the format string <code>%2$d %1$d</code>, the second <var>value</var> is
+consumed first and the first <var>value</var> is consumed next.</p></div>
+<div class="paragraph"><p>More than one position specifier can specify the same <var>value</var>.</p></div>
+<div class="paragraph"><p>It is also possible that a <var>value</var> is not selected by any position
+specifier. If a position refers to a <var>value</var>, any preceding <var>value</var>s that
+are not selected by any other position specifier are silently consumed.</p></div>
+</div>
 <div class="sect3">
 <h4 id="convspec-flags">Flags</h4>
 <div class="paragraph"><p>The flags are a sequence of any number of the following characters:</p></div>
@@ -428,13 +441,17 @@ when processed in the shell.</p></div>
 &#8220;long double&#8221; floating-point arithmetic is supported on the running system,
 then &#8220;long double&#8221; is used for floating-point conversion specifications.
 Otherwise, &#8220;double&#8221; is used.</p></div>
+<div class="paragraph"><p>POSIX leaves the behavior unspecified when a <var>format</var> contains conversion
+specifications with a position and others without a position.
+You should not rely on the selection order of <var>value</var>s in such cases.
+Future versions of yash may treat such cases as errors.</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2025-01-19 11:49:38 JST
 </div>
 </div>
 </body>

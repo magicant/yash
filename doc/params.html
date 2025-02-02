@@ -106,7 +106,8 @@ The value is a non-negative integer.
 </dt>
 <dd>
 <p>
-The process ID of the last executed <a href="syntax.html#async">asynchronous list</a>.
+The process ID of the last started <a href="syntax.html#async">asynchronous list</a>
+or the last <a href="_bg.html">resumed</a> background job.
 </p>
 </dd>
 <dt class="hdlist1">
@@ -677,6 +678,17 @@ This variable has to be exported to take effect.
 </p>
 </dd>
 <dt class="hdlist1">
+<a id="sv-xdg_config_home"></a><code>XDG_CONFIG_HOME</code>
+</dt>
+<dd>
+<p>
+This variable can be defined to specify the location where
+<a href="invoke.html#init">shell initialization files</a> are placed.
+If not defined, it is assumed to be
+<code><a href="#sv-home">$HOME</a>/.config</code>.
+</p>
+</dd>
+<dt class="hdlist1">
 <a id="sv-yash_after_cd"></a><code>YASH_AFTER_CD</code>
 </dt>
 <dd>
@@ -787,7 +799,7 @@ a concatenation of all the array values, each separated by a colon.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-04-20 22:53:39 JST
+ 2024-11-16 23:47:20 JST
 </div>
 </div>
 </body>

@@ -77,7 +77,7 @@ for function if in then until while</code></pre>
 </li>
 <li>
 <p>
-二つの一重引用符 (<code>'</code>) で囲んだ部分では、全ての文字は通常の文字と同じように扱われます。改行を一重引用符で囲むこともできます。ただし、一重引用符を一重引用符で囲むことはできません。
+二つの一重引用符 (<code>'</code>) で囲んだ部分では、全ての文字は通常の文字と同じように扱われます。改行を一重引用符で囲むこともできます。通常は一重引用符を一重引用符で囲むことはできませんが、<a href="#dollar-single">ドル一重引用符</a>内でエスケープすれば一重引用符を一重引用符でクォートできます。
 </p>
 </li>
 <li>
@@ -86,6 +86,64 @@ for function if in then until while</code></pre>
 </p>
 </li>
 </ul></div>
+<div class="sect2">
+<h3 id="dollar-single">ドル一重引用符</h3>
+<div class="paragraph"><p>一重引用符で囲まれた部分の直前に <code>$</code> が付いている場合、その <code>$&#x27;</code> と <code>&#x27;</code> で囲まれた間の部分では以下のエスケープ記法が認識されます。それ以外の点では二つの <code>&#x27;</code> で囲まれた通常のクォートと同様です。</p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<code>\"</code>, <code>\'</code>, <code>\\</code>
+</dt>
+<dd>
+<p>
+  それぞれ <code>"</code>, <code>&#x27;</code>, <code>\</code> そのものを表します。
+  このようにエスケープされた <code>&#x27;</code> はドル一重引用符の終わりとはみなされません。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\a</code>, <code>\b</code>, <code>\e</code>, <code>\f</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\v</code>
+</dt>
+<dd>
+<p>
+  順に、アラート (ベル)・バックスペース・エスケープ・フォームフィード・改行・キャリッジリターン・水平タブ・垂直タブの文字を表します。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\c</code>
+</dt>
+<dd>
+<p>
+  直後にある文字に対応する制御文字を表します。例えば <code>\cA</code> は Ctrl-A によって入力される SOH 制御文字を表します。この記法ではヌル文字 (Ctrl-@, <code>\c@</code>) はサポートされません。また FS 制御文字 (Ctrl-\) を表すにはバックスラッシュ自体もエスケープする必要があります (<code>\c\</code> ではなく <code>\c\\</code> のように)。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\x</code>
+</dt>
+<dd>
+<p>
+  直後に続く 1 桁または 2 桁の十六進数によって指定された値の文字を表します。
+  例えば <code>\x20</code> は十六進法で 20 の値を持つ文字に変換されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>\0</code>, <code>\1</code>, <code>\2</code>, &#8230;, <code>\377</code>
+</dt>
+<dd>
+<p>
+  直後に続く 1～3 桁の八進数によって指定された値の文字を表します。
+  値は 8 ビット以内に収まる必要があります。
+</p>
+</dd>
+</dl></div>
+<div class="paragraph"><p>上記以外のバックスラッシュ記法はエラーとみなされ、当該部分の文字は <code>?</code> に置換されます。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">十六進数または八進数のエスケープ記法で表される値は、ワイド文字のコードポイントとして解釈されます。この動作は、値を生のバイトとして扱うことを要求する POSIX には準拠していません。</td>
+</tr></table>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -325,12 +383,21 @@ Caseitem の構文
 </dt>
 <dd>
 <p>
-  <code>(<var>パターン</var>) <var>コマンド</var>&#8230;;;</code>
+  <code>(<var>パターン</var>) <var>コマンド</var>&#8230; ;;</code>
+ <br />
+  <code>(<var>パターン</var>) <var>コマンド</var>&#8230; ;&amp;</code>
+ <br />
+  <code>(<var>パターン</var>) <var>コマンド</var>&#8230; ;|</code>
+ <br />
+  <code>(<var>パターン</var>) <var>コマンド</var>&#8230; ;;&amp;</code>
 </p>
 </dd>
 </dl></div>
-<div class="paragraph"><p><code>case</code> と <code>in</code> の間の単語はちょうど一トークンでなければなりません。この単語トークンは予約語としては認識されませんが、<code>&amp;</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in</code> と <code>esac</code> の間には任意の個数の caseitem を置きます (0 個でもよい)。Caseitem の最初の <code>(</code> と <code>esac</code> の直前の <code>;;</code> は省略できます。また<var>コマンド</var>が <code>;</code> で終わる場合はその <code>;</code> も省略できます。Caseitem の <code>)</code> と <code>;;</code> との間に<var>コマンド</var>が一つもなくても構いません。</p></div>
-<div class="paragraph"><p>Caseitem の<var>パターン</var>にはトークンを指定します。各トークンを <code>|</code> で区切ることで複数のトークンをパターンとして指定することもできます。</p></div>
+<div class="paragraph"><p><code>case</code> と <code>in</code> の間の単語はちょうど一トークンでなければなりません。この単語トークンは予約語としては認識されませんが、<code>&amp;</code> や <code>|</code> などの記号を含めるには適切な<a href="#quotes">クォート</a>が必要です。<code>in</code> と <code>esac</code> の間には任意の個数の caseitem を置きます (0 個でもよい)。</p></div>
+<div class="paragraph"><p>Caseitem の最初の <code>(</code> は (最初の<var>パターン</var>が <code>esac</code> でない限り) 省略できます。
+Caseitem の<var>パターン</var>にはトークンを指定します。各トークンの間を <code>|</code> で区切ることで複数のトークンをパターンとして指定することもできます。</p></div>
+<div class="paragraph"><p>Caseitem には任意の個数の<var>コマンド</var>を含めることができます (0 個でもよい)。
+Case 文の最後の caseitem が <code>;;</code> で終端されている場合は、その <code>;;</code> は省略できます。</p></div>
 <div class="paragraph"><p>Case 文の実行では、まず<var>単語</var>が&#8203;<a href="expand.html">四種展開</a>されます。その後、各 caseitem に対して順に以下の動作を行います。</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
@@ -340,12 +407,34 @@ Caseitem の構文
 </li>
 <li>
 <p>
-マッチした場合は、直後の<var>コマンド</var>を実行し、それでこの case 文の実行は終了です。マッチしなかった場合は、次の caseitem の処理に移ります。
+マッチした場合は、直後の<var>コマンド</var>を実行します。その後の動作は caseitem の最後のトークンにより変わります。
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+Caseitem が <code>;;</code> で終わる (または <code>;;</code> が省略されている) 場合、case 文の実行はそこで終了し、残りの caseitem は無視されます。
+</p>
+</li>
+<li>
+<p>
+Caseitem が <code>;&amp;</code> で終わる場合、次の caseitem の処理に進みます。ただし<var>パターン</var>の展開やマッチングは行わず、<var>コマンド</var>が直ちに実行されます。
+</p>
+</li>
+<li>
+<p>
+Caseitem が <code>;|</code> または <code>;;&amp;</code> で終わる場合、後続の caseitem の処理を継続します。
+</p>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+マッチしなかった場合は、次の caseitem の処理に移ります。
 </p>
 </li>
 </ol></div>
-<div class="paragraph"><p>Case 文全体の終了ステータスは、実行した<var>コマンド</var>の終了ステータスです。<var>コマンド</var>が実行されなかった場合 (どのパターンもマッチしなかったか、caseitem が一つもないか、マッチしたパターンの後にコマンドがない場合) は、終了ステータスは 0 です。</p></div>
-<div class="paragraph"><p><a href="posix.html">POSIX 準拠モード</a>では、(<code>|</code> で区切られた最初の) <var>パターン</var>トークンを <code>esac</code> にすることはできません。</p></div>
+<div class="paragraph"><p>Case 文全体の終了ステータスは、実行した最後の<var>コマンド</var>の終了ステータスです。コマンドが実行されなかった場合 (caseitem が一つもないか、どのパターンもマッチしなかったか、最後にマッチしたパターンの後の<var>コマンド</var>が空の場合) は、終了ステータスは 0 です。</p></div>
+<div class="paragraph"><p><code>;|</code> と <code>;;&amp;</code> は <a href="posix.html">POSIX 準拠モード</a>では使用できない拡張機能です。</p></div>
 </div>
 <div class="sect2">
 <h3 id="double-bracket">二重ブラケットコマンド</h3>
@@ -485,7 +574,7 @@ Caseitem の構文
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2024-12-11 04:30:37 JST
  更新
 </div>
 </div>

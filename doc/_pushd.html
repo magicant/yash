@@ -26,7 +26,7 @@
 <div class="ulist"><ul>
 <li>
 <p>
-<code>pushd [-L|-P] [<var>directory</var>]</code>
+<code>pushd [-L|-P [-e]] [<var>directory</var>]</code>
 </p>
 </li>
 </ul></div>
@@ -87,7 +87,34 @@ specified either, the default is index <code>+1</code>.</p></div>
 <div class="sect1">
 <h2 id="exitstatus">Exit status</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The exit status of the pushd built-in is zero unless there is any error.</p></div>
+<div class="paragraph"><p>In addition to the <a href="_cd.html#exitstatus">exit status of the cd built-in</a>,
+the pushd built-in returns the following exit status:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+If the <a href="params.html#sv-dirstack"><code>DIRSTACK</code> variable</a> is read-only, the
+  exit status is 1.
+</p>
+</li>
+<li>
+<p>
+If the <a href="params.html#sv-pwd"><code>PWD</code> variable</a> is unset, the exit status is
+  4.
+</p>
+</li>
+<li>
+<p>
+If <var>directory</var> is a signed integer and the index is out of range, the exit
+  status is 4.
+</p>
+</li>
+<li>
+<p>
+If <var>directory</var> is omitted, the <code>--default-directory=&#8230;</code> option is not
+  specified, and the directory stack is empty, the exit status is 4.
+</p>
+</li>
+</ul></div>
 </div>
 </div>
 <div class="sect1">
@@ -102,7 +129,7 @@ because POSIX does not define its behavior.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2025-01-26 16:24:18 JST
 </div>
 </div>
 </body>

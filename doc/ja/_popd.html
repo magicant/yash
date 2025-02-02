@@ -56,7 +56,19 @@
 <div class="sect1">
 <h2 id="exitstatus">終了ステータス</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>ディレクトリスタックの要素を正しく削除し作業ディレクトリを変更できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+<div class="paragraph"><p>Popd コマンドの終了ステータスは、&#8203;<a href="_cd.html#exitstatus">cd コマンドの終了ステータス</a>に加えて以下の値があります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="params.html#sv-dirstack"><code>DIRSTACK</code> 変数</a>が読み取り専用または空の場合は 4。
+</p>
+</li>
+<li>
+<p>
+<var>インデックス</var>が範囲外の場合は 4。
+</p>
+</li>
+</ul></div>
 </div>
 </div>
 <div class="sect1">
@@ -71,7 +83,7 @@ POSIX では popd コマンドの動作は規定されていません。
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2025-01-25 22:03:52 JST
  更新
 </div>
 </div>

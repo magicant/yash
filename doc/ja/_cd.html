@@ -26,7 +26,7 @@
 <div class="ulist"><ul>
 <li>
 <p>
-<code>cd [-L|-P] [<var>ディレクトリ</var>]</code>
+<code>cd [-L|-P [-e]] [<var>ディレクトリ</var>]</code>
 </p>
 </li>
 </ul></div>
@@ -69,6 +69,18 @@
 </p>
 </dd>
 <dt class="hdlist1">
+<code>-e</code>
+</dt>
+<dt class="hdlist1">
+<code>--ensure-pwd</code>
+</dt>
+<dd>
+<p>
+このオプションは <code>-P</code> (<code>--physical</code>) オプションと一緒に指定する必要があります。
+作業ディレクトリが変更された後に、<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できない場合、このオプションが指定されていると、終了ステータスが 1 になります。このオプションが指定されていない場合は、終了ステータスが 0 になります。
+</p>
+</dd>
+<dt class="hdlist1">
 <code>--default-directory=<var>ディレクトリ</var></code>
 </dt>
 <dd>
@@ -99,21 +111,85 @@
 <div class="sect1">
 <h2 id="exitstatus">終了ステータス</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>作業ディレクトリを正しく変更できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+作業ディレクトリを正しく変更できた場合:
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>-L</code> オプションが有効な場合、終了ステータスは 0 です。
+</p>
+</li>
+<li>
+<p>
+<code>-P</code> オプションが有効な場合:
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できた場合、終了ステータスは 0 です。
+</p>
+</li>
+<li>
+<p>
+<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できなかった場合:
+</p>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>-e</code> オプションが指定されている場合、終了ステータスは 1 です。
+</p>
+</li>
+<li>
+<p>
+<code>-e</code> オプションが指定されていない場合、終了ステータスは 0 です。
+</p>
+</li>
+</ul></div>
+</li>
+</ul></div>
+</li>
+</ul></div>
+</li>
+<li>
+<p>
+内部で呼び出される <code>chdir</code> システムコールがエラーを返した場合、終了ステータスは 2 です。
+</p>
+</li>
+<li>
+<p>
+<code>-L</code> オプションが有効で、新しいディレクトリパス名に <code>..</code> が含まれていて、それが存在しないディレクトリを指している場合、終了ステータスは 3 です。
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#sv-home"><code>HOME</code></a> または <a href="params.html#sv-oldpwd"><code>OLDPWD</code></a> が未定義もしくは空文字列であるために<var>ディレクトリ</var>が解決できなかった場合、終了ステータスは 4 です。
+</p>
+</li>
+<li>
+<p>
+コマンドライン引数が不正な場合、終了ステータスは 5 です。
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>終了ステータスが 2 以上の場合、作業ディレクトリは変更されません。</p></div>
+<div class="paragraph"><p><code>PWD</code> または <code>OLDPWD</code> 変数が読み取り専用の場合、変数は更新されませんが、これは終了ステータスに影響しません。</p></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Cd コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
-<div class="paragraph"><p>POSIX には <code>YASH_AFTER_CD</code> 変数および <code>--default-directory=&#8230;</code> オプションに関する規定はありません。POSIX は<var>ディレクトリ</var>としてハイフン一つを指定したときに <code>-L</code> または <code>-P</code> オプションを併用することを認めていません。</p></div>
+<div class="paragraph"><p>POSIX には <code>YASH_AFTER_CD</code> 変数および <code>--default-directory=&#8230;</code> オプションに関する規定はありません。</p></div>
 <div class="paragraph"><p><code>YASH_AFTER_CD</code> 変数の実行結果は cd コマンドの終了ステータスには影響しません。</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2025-01-26 16:24:18 JST
  更新
 </div>
 </div>

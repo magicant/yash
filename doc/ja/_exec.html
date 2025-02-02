@@ -37,7 +37,7 @@
 <h2 id="description">説明</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Exec コマンドを<var>コマンド</var>を指定して実行すると、シェルは&#8203;<a href="exec.html#simple">単純コマンドの実行</a>の最後のステップと同様にしてコマンドを実行します。ただし、コマンドは必ず外部コマンドとしてみなされ、関数や組込みコマンドは無視します。そしてその外部コマンドはサブシェルではなく現在の&#8203;<a href="exec.html#environment">コマンド実行環境</a>で exec システムコールを呼び出すことで実行します。これにより、シェルのプロセスは新しく起動するコマンドに置き換わります。</p></div>
-<div class="paragraph"><p>シェルが <a href="posix.html">POSIX 準拠モード</a>のときまたは&#8203;<a href="interact.html">対話モード</a>でないとき、コマンドの起動に失敗するとシェルは直ちに終了します。</p></div>
+<div class="paragraph"><p>シェルが&#8203;<a href="interact.html">対話モード</a>でないとき、コマンドの起動に失敗するとシェルは直ちに終了します。</p></div>
 <div class="paragraph"><p>シェルが POSIX 準拠モードではなくかつ対話モードのとき、停止中のジョブがあると、シェルは警告を表示し、コマンドを起動しません。一度 exec が実行されると、シェルが持っているジョブの情報は失われるため、手動でシグナルを送ってジョブを再開または終了させなければならなくなります。警告を無視してコマンドを起動するには <code>-f</code> (<code>--force</code>) オプションを付けてください。</p></div>
 <div class="paragraph"><p><var>コマンド</var>なしで実行した場合 exec コマンドは何も行いませんが、この exec コマンドを実行する際に行った&#8203;<a href="redir.html">リダイレクト</a>の効果は現在のコマンド実行環境に残ります。</p></div>
 </div>
@@ -122,7 +122,7 @@
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2024-11-16 04:21:14 JST
  更新
 </div>
 </div>

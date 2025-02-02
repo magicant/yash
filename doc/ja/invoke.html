@@ -66,19 +66,20 @@ Yash はまず、(コマンドライン引数の前に渡される) それ自身
 <p>
 シェルがログインシェルとして動作している場合は、 <code>--profile=<var>ファイル名</var></code> オプションで指定したファイルを読み込んで実行します。(ただし <code>--noprofile</code> オプションが指定されているか <a href="posix.html">POSIX 準拠モード</a>の場合を除く)
    <br />
-    <code>--profile=<var>ファイル名</var></code> オプションが指定されていない場合は、&#8203;<a href="expand.html#tilde">~</a>/.yash_profile がデフォルトのファイルとして使われます。
+    <code>--profile=<var>ファイル名</var></code> オプションが指定されていない場合は、デフォルトとして <a href="params.html#sv-xdg_config_home">$XDG_CONFIG_HOME</a>/yash/profile もしくは <a href="expand.html#tilde">~</a>/.yash_profile を読み込みます。
 </p>
 </li>
 <li>
 <p>
 シェルが対話モードの場合は、 <code>--rcfile=<var>ファイル名</var></code> オプションで指定したファイルを読み込んで実行します。(ただし <code>--norcfile</code> オプションが指定されている場合を除く)
    <br />
-    <code>--rcfile</code> オプションが指定されていない場合は、非 POSIX 準拠モードではファイル <a href="expand.html#tilde">~</a>/.yashrc がデフォルトのファイルとして使われます。&#x7e;/.yashrc が読み込めない場合は、ファイル initialization/default を <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> から探して読み込みます。POSIX 準拠モードでは、&#8203;<a href="params.html#sv-env"><code>ENV</code> 環境変数</a>の値が&#8203;<a href="expand.html#params">パラメータ展開</a>され、その結果をファイル名と見なしてファイルを読み込みます。
+    <code>--rcfile</code> オプションが指定されていない場合は、非 POSIX 準拠モードではファイル <a href="params.html#sv-xdg_config_home">$XDG_CONFIG_HOME</a>/yash/rc がデフォルトのファイルとして使われます。それが見付からない場合は、&#8203;<a href="expand.html#tilde">~</a>/.yashrc を読み込みます。&#x7e;/.yashrc も読み込めない場合は、ファイル initialization/default を <a href="params.html#sv-yash_loadpath"><code>YASH_LOADPATH</code></a> から探して読み込みます。POSIX 準拠モードでは、&#8203;<a href="params.html#sv-env"><code>ENV</code> 環境変数</a>の値が&#8203;<a href="expand.html#params">パラメータ展開</a>され、その結果をファイル名と見なしてファイルを読み込みます。
 </p>
 </li>
 </ol></div>
 </li>
 </ol></div>
+<div class="paragraph"><p><a href="params.html#sv-xdg_config_home"><code>XDG_CONFIG_HOME</code> 環境変数</a>が設定されていない場合、その値の代わりに <a href="expand.html#tilde">~</a>/.config を使用します。</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -92,7 +93,7 @@ Yash はまず、(コマンドライン引数の前に渡される) それ自身
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2024-10-15 22:01:07 JST
  更新
 </div>
 </div>

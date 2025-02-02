@@ -26,7 +26,7 @@
 <div class="ulist"><ul>
 <li>
 <p>
-<code>pushd [-L|-P] [<var>ディレクトリ</var>]</code>
+<code>pushd [-L|-P [-e]] [<var>ディレクトリ</var>]</code>
 </p>
 </li>
 </ul></div>
@@ -75,7 +75,29 @@
 <div class="sect1">
 <h2 id="exitstatus">終了ステータス</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>作業ディレクトリを正しく変更しディレクトリスタックに追加できた場合、終了ステータスは 0 です。エラーがあると終了ステータスは非 0 です。</p></div>
+<div class="paragraph"><p>Pushd コマンドの終了ステータスは、&#8203;<a href="_cd.html#exitstatus">cd コマンドの終了ステータス</a>に加えて以下の値があります。</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<a href="params.html#sv-dirstack"><code>DIRSTACK</code> 変数</a>が読み取り専用の場合は 1。
+</p>
+</li>
+<li>
+<p>
+<a href="params.html#sv-pwd"><code>PWD</code> 変数</a>が未設定の場合は 4。
+</p>
+</li>
+<li>
+<p>
+<var>ディレクトリ</var>が符号付き整数であり、そのインデックスが範囲外の場合は 4。
+</p>
+</li>
+<li>
+<p>
+<var>ディレクトリ</var>および <code>--default-directory=&#8230;</code> オプションが指定されておらず、ディレクトリスタックが空の場合は 4。
+</p>
+</li>
+</ul></div>
 </div>
 </div>
 <div class="sect1">
@@ -89,7 +111,7 @@ POSIX では pushd コマンドの動作は規定されていません。
 </div>
 <div id="footer">
 <div id="footer-text">
- 2023-04-22 01:39:14 JST
+ 2025-01-26 16:24:18 JST
  更新
 </div>
 </div>

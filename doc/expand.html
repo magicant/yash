@@ -20,7 +20,7 @@
 <div class="sectionbody">
 <div class="paragraph"><p><dfn>Word expansion</dfn> is substitution of part of a word with another particular
 string.
-There are seven types of word expansions:</p></div>
+There are many types of word expansions:</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
@@ -58,9 +58,12 @@ There are seven types of word expansions:</p></div>
 </p>
 </li>
 </ol></div>
-<div class="paragraph"><p>These types of expansions are performed in the order specified above.</p></div>
 <div class="paragraph"><p>Tilde expansion, parameter expansion, command substitution, and arithmetic
-expansion are called the <dfn>four expansions</dfn>.</p></div>
+expansion are called the <dfn>four expansions</dfn>, and are performed in the order
+of appearance. After them, brace expansion, field splitting, and pathname
+expansion are optionally performed in that order if the expansion is being
+performed in a multi-field context, that is, when a whole list of words is
+being expanded at once to produce a list of fields.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -983,7 +986,7 @@ including ones with a name starting with a period.
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2023-04-22 01:39:14 JST
+ 2025-01-09 00:51:20 JST
 </div>
 </div>
 </body>
