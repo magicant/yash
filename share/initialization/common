@@ -196,6 +196,9 @@ if ! [ "${HISTFILE-}" ]; then
     fi
 fi
 
+# create HISTFILE parent directory if missing
+! [ -d "${HISTFILE%/*}" ] && mkdir -p "${HISTFILE%/*}"
+
 HISTSIZE=5000
 
 # HISTRMDUP makes prediction less accurate
