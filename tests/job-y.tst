@@ -14,7 +14,6 @@ if [ "$user_id" -eq 0 ]; then
     skip="true"
 fi
 
-(
 test_e 'interactive shell reports job status before prompt (non-root)' -im
 echo >&2; sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
 echo done >&2; exit
@@ -24,14 +23,12 @@ $
 $ done
 __ERR__
 )
-)
 
 (
 if [ "$user_id" -ne 0 ]; then
     skip="true"
 fi
 
-(
 test_e 'interactive shell reports job status before prompt (root)' -im
 echo >&2; sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
 echo done >&2; exit
@@ -40,7 +37,6 @@ __IN__
 [1] + Done                 sleep 0
 # done
 __ERR__
-)
 )
 
 mkfifo sync
