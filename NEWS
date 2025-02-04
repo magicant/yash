@@ -1,5 +1,18 @@
 # History of Yash
 
+## Yash 2.58.1 (2025-02-04)
+
+  - Updated the sample initialization script (yashrc):
+    - Version 2.58 changed the default `$HISTFILE` location to
+      `${XDG_STATE_HOME}/yash/history`, but the initialization script
+      was not making the containing directory. This was causing the
+      shell to fail to save the history file. The initialization script
+      now creates the directory if it does not exist.
+  - [line-editing] Version 2.58 added completion for fzy, but the NEWS
+    file did not mention it. This has been fixed.
+  - Fixed a test case in `tests/job-y.tst` that was failing when run as
+    root.
+
 ## Yash 2.58 (2025-02-02)
 
   - The location of the initialization files can now be configured
