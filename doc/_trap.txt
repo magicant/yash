@@ -32,7 +32,9 @@ When executed with the +-p+ (+--print+) option or with no operands, the
 built-in prints currently set traps to the standard output in a format that
 can be executed as commands that restore the current traps.
 If one or more {{signal}}s are specified, only those signals are printed.
-Otherwise, all signals with non-default actions are printed.
+If no {{signal}} is specified but the +-p+ option is given, all signals are
+printed. If no {{signal}} is specified and the +-p+ option is not given, only
+signals with non-default actions are printed.
 (In some situations, however, the built-in may print previous trap settings
 instead of the current. See notes below.)
 
@@ -77,11 +79,8 @@ The exit status of the trap built-in is zero unless there is any error.
 
 The trap built-in is a link:builtin.html#types[special built-in].
 
-The POSIX standard defines no options for the trap built-in;
-the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
-
-The POSIX standard requires that signal names must be specified without the
-+SIG+-prefix, like +INT+ and +QUIT+.
+The POSIX standard requires that signal names must be specified in uppercase
+without the +SIG+-prefix, like +INT+ and +QUIT+.
 As an extension, yash accepts +SIG+-prefixed names like +SIGINT+ and +SIGQUIT+
 and treats signal names case-insensitively.
 

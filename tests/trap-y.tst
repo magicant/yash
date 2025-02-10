@@ -102,26 +102,28 @@ __OUT__
 
 test_oE -e 0 'printing all traps (with -p)'
 trap 'echo "a"'"'b'"'\c' USR1
-trap 'echo 1 &
-echo 2 ;' USR2
-trap -p
-trap --print
+trap 'echo USR2' USR2
+trap -p | grep 'INT\|QUIT\|KILL\|STOP\|USR'
+trap --print | grep 'INT\|QUIT\|KILL\|STOP\|USR'
 __IN__
+trap -- - INT
+trap -- - QUIT
 trap -- 'echo "a"'\'b\''\c' USR1
-trap -- 'echo 1 &
-echo 2 ;' USR2
+trap -- 'echo USR2' USR2
+trap -- - INT
+trap -- - QUIT
 trap -- 'echo "a"'\'b\''\c' USR1
-trap -- 'echo 1 &
-echo 2 ;' USR2
+trap -- 'echo USR2' USR2
 __OUT__
 
 test_oE -e 0 'printing specific traps (with -p)'
 trap 'echo X' USR1 USR2 HUP
 trap 'echo Y' INT QUIT
-trap -p QUIT USR1
+trap -p QUIT USR1 TERM
 __IN__
 trap -- 'echo Y' QUIT
 trap -- 'echo X' USR1
+trap -- - TERM
 __OUT__
 
 test_oE -e 0 'specifying signal with SIG-prefix'
