@@ -11,6 +11,8 @@
       to be ignored.
   - Fixed a possible crash when the `read` built-in reads input in an
     interactive shell.
+  - Added a workaround for an apparent bug in glibc's fsetpos function
+    that prevents the shell from updating the history file.
 
 ## Yash 2.58.1 (2025-02-04)
 

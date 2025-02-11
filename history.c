@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* history.c: command history management */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -839,16 +839,24 @@ void update_history(bool refresh)
     if (!posfail && rev == histfilerev) {
         /* The revision has not been changed. Just read new entries. */
         fsetpos(histfile, &pos);
-        read_history();
+        if (ferror(histfile)) {
+            /* This should not happen, but glibc seems buggy. If fsetpos fails,
+             * rewind and read from the beginning. */
+            rev = read_signature();
+            if (rev < 0)
+                goto error;
+            goto reread;
+        }
     } else {
         /* The revision has been changed. Re-read everything. */
+reread:
         clear_all_entries();
         clear_histfile_pids();
         add_histfile_pid(shell_pid);
         histfilerev = rev;
         histfilelines = 0;
-        read_history();
     }
+    read_history();
     if (ferror(histfile) || !feof(histfile))
         goto error;
 
