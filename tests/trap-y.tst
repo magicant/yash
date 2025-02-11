@@ -1,5 +1,17 @@
 # trap-y.tst: yash-specific test of the trap built-in
 
+if [ "$(uname)" = Darwin ]; then
+    # On macOS, kill(2) does not appear to run any signal handlers
+    # synchronously, making it impossible for the shell to respond to self-sent
+    # signals at a predictable time. To work around this issue, the kill
+    # built-in is called in a subshell on macOS, using the SIGCHLD signal as a
+    # synchronization trigger.
+    setup <<'__EOF__'
+killx() (((command kill "$@"); :); :)
+alias kill=killx
+__EOF__
+fi
+
 test_o 'trap for EXIT is executed just once'
 "$TESTEE" -c  'trap "echo EXIT  1" EXIT;  ./_no_such_command_ '
 "$TESTEE" -c  'trap "echo EXIT  2" EXIT; (./_no_such_command_)'
