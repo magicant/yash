@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* sig.c: signal handling */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -953,11 +953,9 @@ default_ignore:
 }
 
 /* Checks if the specified signal was originally ignored when the shell was
- * invoked. Asserts the shell is not interactive. */
+ * invoked. */
 bool is_originally_ignored(int signum)
 {
-    assert(!is_interactive_now);
-
     if (signum == 0)
         return false;
 
@@ -1153,8 +1151,9 @@ void sig_new_candidate(
 
 /********** Built-in **********/
 
-static bool print_trap(const wchar_t *signame, const wchar_t *command)
-    __attribute__((nonnull(1)));
+static bool print_trap(
+        int signum, const wchar_t *signame, const wchar_t *command, bool force)
+    __attribute__((nonnull(2)));
 static bool print_signal(int signum, const wchar_t *name, bool verbose)
     __attribute__((nonnull));
 static void signal_job(int signum, const wchar_t *jobname)
@@ -1162,7 +1161,7 @@ static void signal_job(int signum, const wchar_t *jobname)
 
 /* Options for the "trap" built-in. */
 const struct xgetopt_T trap_options[] = {
-    { L'p', L"print", OPTARG_NONE, false, NULL, },
+    { L'p', L"print", OPTARG_NONE, true,  NULL, },
 #if YASH_ENABLE_HELP
     { L'-', L"help",  OPTARG_NONE, false, NULL, },
 #endif
@@ -1191,24 +1190,29 @@ int trap_builtin(int argc, void **argv)
     }
 
     if (xoptind == argc) {
-        /* print all traps */
+        /* print all traps but KILL and STOP */
         sigset_t printed;
         sigemptyset(&printed);
-        if (!print_trap(L"EXIT", trap_command[sigindex(0)]))
+        sigaddset(&printed, SIGKILL);
+        sigaddset(&printed, SIGSTOP);
+        if (!print_trap(0, L"EXIT", trap_command[sigindex(0)], print))
             return Exit_FAILURE;
         for (const signal_T *s = signals; s->no != 0; s++) {
             if (!sigismember(&printed, s->no)) {
                 sigaddset(&printed, s->no);
-                if (!print_trap(s->name, trap_command[sigindex(s->no)]))
+                if (!print_trap(s->no, s->name, trap_command[sigindex(s->no)],
+                            print))
                     return special_builtin_error(Exit_FAILURE);
             }
         }
 #if defined SIGRTMIN && defined SIGRTMAX
         int sigrtmin = SIGRTMIN, sigrtmax = SIGRTMAX;
         for (int i = 0; i < RTSIZE; i++) {
-            if (sigrtmin + i > sigrtmax)
+            int signum = sigrtmin + i;
+            if (signum > sigrtmax)
                 break;
-            if (!print_trap(get_signal_name(sigrtmin + i), rttrap_command[i]))
+            if (!print_trap(signum, get_signal_name(signum), rttrap_command[i],
+                        print))
                 return special_builtin_error(Exit_FAILURE);
         }
 #endif
@@ -1229,12 +1233,13 @@ int trap_builtin(int argc, void **argv)
             if (sigrtmin <= signum && signum <= sigrtmax) {
                 int index = signum - sigrtmin;
                 if (index < RTSIZE)
-                    if (!print_trap(name, rttrap_command[index]))
+                    if (!print_trap(signum, name, rttrap_command[index], true))
                         return special_builtin_error(Exit_FAILURE);
             } else
 #endif
             {
-                if (!print_trap(name, trap_command[sigindex(signum)]))
+                if (!print_trap(
+                            signum, name, trap_command[sigindex(signum)], true))
                     return special_builtin_error(Exit_FAILURE);
             }
         } while (++xoptind < argc);
@@ -1274,14 +1279,21 @@ int trap_builtin(int argc, void **argv)
 
 /* Prints trap to the standard output in a format that can be used to restore
  * the current signal handler for the specified signal.
- * If the `command' is NULL, this function does nothing.
+ * If the `command' is NULL and `force` is false, this function does nothing.
  * Otherwise, the `command' is properly single-quoted and printed.
  * Returns true iff successful (no error). On error, an error message is printed
  * to the standard error. */
-bool print_trap(const wchar_t *signame, const wchar_t *command)
+bool print_trap(
+        int signum, const wchar_t *signame, const wchar_t *command, bool force)
 {
-    if (command == NULL)
-        return true;
+    if (command == NULL) {
+        if (is_originally_ignored(signum))
+            command = L"";
+        else if (!force)
+            return true;
+        else
+            command = L"-";
+    }
 
     wchar_t *q = quote_as_word(command);
     bool ok = xprintf("trap -- %ls %ls\n", q, signame);

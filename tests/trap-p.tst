@@ -251,6 +251,38 @@ __IN__
 abc
 __OUT__
 
+test_oE -e 0 'without -p, only non-default traps are printed' -e
+trap - USR1
+trap >printed_trap_1 # should not print USR1
+trap 'echo trapped' USR1
+. ./printed_trap_1
+kill -s USR1 $$
+__IN__
+trapped
+__OUT__
+
+test_OE -e USR1 'with -p, all traps are printed' -e
+trap - USR1
+trap -p >printed_trap_2 # should print USR1
+trap 'echo trapped' USR1
+. ./printed_trap_2
+kill -s USR1 $$
+__IN__
+
+test_oE -e QUIT 'with -p and operands, only specified traps are printed' -e
+trap '' INT TERM
+trap -p TERM QUIT >printed_trap_3 # should not print INT
+trap 'echo INT' INT
+trap 'echo TERM' TERM
+trap '' QUIT
+. ./printed_trap_3 # TERM is ignored again, QUIT is now default
+kill -s INT $$ # should print INT
+kill -s TERM $$ # should be ignored
+kill -s QUIT $$
+__IN__
+INT
+__OUT__
+
 echo 'echo "$@"' > ./-
 chmod a+x ./-
 

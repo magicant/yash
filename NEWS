@@ -1,5 +1,15 @@
 # History of Yash
 
+## Yash 2.59 (Unreleased)
+
+  - Improved POSIX.1-2024 support:
+    - The `trap` built-in now supports the `-p` option in the POSIXly-
+      correct mode. When the `-p` option is used, the built-in prints
+      all traps without filtering out traps that are not set.
+    - The `trap` built-in now also reports signals that are ignored
+      because the program that invoked the shell has set the signal
+      to be ignored.
+
 ## Yash 2.58.1 (2025-02-04)
 
   - Updated the sample initialization script (yashrc):
