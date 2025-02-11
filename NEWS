@@ -9,6 +9,8 @@
     - The `trap` built-in now also reports signals that are ignored
       because the program that invoked the shell has set the signal
       to be ignored.
+  - Fixed a possible crash when the `read` built-in reads input in an
+    interactive shell.
 
 ## Yash 2.58.1 (2025-02-04)
 

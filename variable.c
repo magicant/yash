@@ -2883,6 +2883,7 @@ struct promptset_T promptset_for_read(
     ps.main = escape(ro->prompt != NULL ? ro->prompt : L"", L"\\");
     ps.right = xwcsdup(L"");
     ps.styler = xwcsdup(L"");
+    ps.predict = xwcsdup(L"");
     return ps;
 }
 
