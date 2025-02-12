@@ -50,6 +50,11 @@ trap '' USR1
 __IN__
 __OUT__
 
+(
+if "$use_valgrind"; then
+    skip="true"
+fi
+
 test_oE 'printing after setting in subshell'
 trap '' USR1
 trap 'echo USR2' USR2
@@ -68,6 +73,8 @@ foo
 trap -- '' USR1
 trap -- 'echo USR2' USR2
 __OUT__
+
+)
 
 test_oE 'ignored signal is still ignored in subshell'
 trap '' USR1
@@ -101,6 +108,11 @@ __OUT__
 
 }
 
+(
+if "$use_valgrind"; then
+    skip="true"
+fi
+
 test_oE -e 0 'printing all traps (w/o -p)'
 trap 'echo "a"'"'b'"'\c' USR1
 trap 'echo 1 &
@@ -111,6 +123,8 @@ trap -- 'echo "a"'\'b\''\c' USR1
 trap -- 'echo 1 &
 echo 2 ;' USR2
 __OUT__
+
+)
 
 test_oE -e 0 'printing all traps (with -p)'
 trap 'echo "a"'"'b'"'\c' USR1
