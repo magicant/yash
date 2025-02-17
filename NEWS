@@ -9,6 +9,7 @@
     - The `trap` built-in now also reports signals that are ignored
       because the program that invoked the shell has set the signal
       to be ignored.
+  - [line-editing] Added completion for bmake and gmake.
   - Fixed a possible crash when the `read` built-in reads input in an
     interactive shell.
   - Added a workaround for an apparent bug in glibc's fsetpos function
