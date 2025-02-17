@@ -1,0 +1,10 @@
+# (C) 2025 magicant unrealapex
+
+# Completion script for the "gmake" command.
+
+function completion/gmake {
+		command -f completion//reexecute make
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
