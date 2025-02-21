@@ -1,7 +1,7 @@
-# (C) 2012 magicant
+# (C) 2012-2025 magicant
 
 # Completion script for the "git" command.
-# Supports Git 1.8.0.2.
+# Supports Git 2.48.1.
 
 function completion/git-request-pull {
         WORDS=(git request-pull "${WORDS[2,-1]}")
@@ -11,7 +11,7 @@ function completion/git-request-pull {
 function completion/git::request-pull:arg {
 
         OPTIONS=( #>#
-        "p; print a patch"
+        "p; include a patch"
         ) #<#
 
         command -f completion//parseoptions -es

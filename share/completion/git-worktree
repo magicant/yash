@@ -1,7 +1,7 @@
-# (C) 2016 magicant
+# (C) 2016-2025 magicant
 
 # Completion script for the "git-worktree" command.
-# Supports Git 2.7.0.
+# Supports Git 2.48.1.
 
 function completion/git-worktree {
         WORDS=(git worktree "${WORDS[2,-1]}")
@@ -9,9 +9,16 @@ function completion/git-worktree {
 }
 
 function completion/git::worktree:arg
-        if [ ${WORDS[#]} -le 1 ]; then
-                complete -P "$PREFIX" add prune list
-        else
+        if [ ${WORDS[#]} -le 1 ]; then #>>#
+                complete -P "$PREFIX" -D "create a new worktree" add
+                complete -P "$PREFIX" -D "clean up info for deleted worktrees" prune
+                complete -P "$PREFIX" -D "show worktree status" list
+                complete -P "$PREFIX" -D "prevent a worktree from being pruned" lock
+                complete -P "$PREFIX" -D "move a worktree" move
+                complete -P "$PREFIX" -D "remove a worktree" remove
+                complete -P "$PREFIX" -D "recover worktree metadata" repair
+                complete -P "$PREFIX" -D "unlock a worktree" unlock
+        else #<<#
                 WORDS=("${WORDS[2,-1]}")
                 if command -vf "completion/git::worktree:${WORDS[1]}:arg" >/dev/null 2>&1; then
                         command -f "completion/git::worktree:${WORDS[1]}:arg"
@@ -23,8 +30,20 @@ function completion/git::worktree:add:arg {
         OPTIONS=( #>#
         "B:; create or reset a new branch and check it out"
         "b:; create a new branch and check it out"
+        "--checkout; check out the branch in the new worktree"
         "--detach; leave HEAD in detached head state"
-        "f --force; allow multiple working trees for single branch"
+        "f --force; allow multiple working trees for a single branch"
+        "--guess-remote; guess which remote to use for a new branch"
+        "--lock; keep the working tree locked"
+        "--no-checkout; don't check out the branch in the new worktree"
+        "--no-guess-remote; don't create a new branch from a remote"
+        "--no-relative-paths; save worktrees with absolute paths"
+        "--no-track; create a non-tracking branch"
+        "--orphan; create a new branch with no parent"
+        "q --quiet; print error messages only"
+        "--reason:; specify a reason for locking the working tree"
+        "--relative-paths; save worktree paths relative to the main tree"
+        "t --track; create a tracking branch"
         ) #<#
 
         command -f completion//parseoptions
@@ -35,6 +54,9 @@ function completion/git::worktree:add:arg {
                 ([Bb])
                         command -f completion/git::completeref --branches
                         ;;
+#                (--track)
+#                        command -f completion/git::--track:arg
+#                        ;;
                 ('')
                         command -f completion//getoperands
                         case ${WORDS[#]} in
@@ -50,11 +72,65 @@ function completion/git::worktree:add:arg {
 
 }
 
+function completion/git::worktree:list:arg {
+
+        OPTIONS=( #>#
+        "--expire:; annotate missing worktrees older than the specified time"
+        "--porcelain; print in the machine-friendly format"
+        "v --verbose; print lock reasons as well"
+        "z; use NUL as separator"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        ;;
+        esac
+
+}
+
+function completion/git::worktree:lock:arg {
+
+        OPTIONS=( #>#
+        "--reason:; specify a reason for locking the working tree"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+
+}
+
+function completion/git::worktree:move:arg {
+
+        OPTIONS=()
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+
+}
+
 function completion/git::worktree:prune:arg {
 
         OPTIONS=( #>#
         "--expire:; specify age of working trees to remove"
-        "n --dry-run; don't remove any working trees"
+        "n --dry-run; don't remove anything, just report"
         "v --verbose; report removed working trees"
         ) #<#
 
@@ -70,18 +146,54 @@ function completion/git::worktree:prune:arg {
 
 }
 
-function completion/git::worktree:list:arg {
+function completion/git::worktree:remove:arg {
 
         OPTIONS=( #>#
-        "--porcelain; print in the machine-friendly format"
+        "--force; remove even if the worktree is dirty"
         ) #<#
 
-        command -f completion//parseoptions -n
+        command -f completion//parseoptions
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
                         ;;
                 ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+
+}
+
+function completion/git::worktree:repair:arg {
+
+        OPTIONS=( #>#
+        "--no-relative-paths; save worktrees with absolute paths"
+        "--relative-paths; save worktree paths relative to the main tree"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+
+}
+
+function completion/git::worktree:unlock:arg {
+
+        OPTIONS=()
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
                         ;;
         esac
 

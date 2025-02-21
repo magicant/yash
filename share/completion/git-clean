@@ -1,7 +1,7 @@
-# (C) 2013 magicant
+# (C) 2013-2025 magicant
 
 # Completion script for the "git-clean" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.48.1.
 
 function completion/git-clean {
         WORDS=(git clean "${WORDS[2,-1]}")
@@ -14,6 +14,7 @@ function completion/git::clean:arg {
         "d; remove untracked directories"
         "f --force; really remove untracked files"
         "n --dry-run; don't actually remove files, but show what would be removed"
+        "i --interactive; interactively choose files to remove"
         "q --quiet; print error messages only"
         "e: --exclude:; skip files whose names match the specified pattern"
         "X; remove ignored files only"

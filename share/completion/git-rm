@@ -1,7 +1,7 @@
-# (C) 2015 magicant
+# (C) 2015-2025 magicant
 
 # Completion script for the "git-rm" command.
-# Supports Git 2.2.2.
+# Supports Git 2.48.1.
 
 function completion/git-rm {
         WORDS=(git rm "${WORDS[2,-1]}")
@@ -15,14 +15,20 @@ function completion/git::rm:arg {
         "n --dry-run; don't actually remove files"
         "f --force; forcibly remove files with uncommitted changes"
         "--ignore-unmatch; pretend success even if no files matched"
+        "--pathspec-file-nul; use nul as separator for pathspecs"
+        "--pathspec-from-file:; read pathspecs from file"
         "q --quiet; don't report which files are being removed"
         "-r; remove directories recursively"
+        "--sparse; update index outside of sparse-checkout cone"
         ) #<#
 
         command -f completion//parseoptions -n
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
+                        ;;
+                (--pathspec-from-file)
+                        complete -P "$PREFIX" -f
                         ;;
                 ('')
                         command -f completion/git::completepath -r

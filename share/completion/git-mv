@@ -1,0 +1,41 @@
+# (C) 2025 magicant
+
+# Completion script for the "git-mv" command.
+# Supports Git 2.48.1.
+
+function completion/git-mv {
+        WORDS=(git mv "${WORDS[2,-1]}")
+        command -f completion//reexecute
+}
+
+function completion/git::mv:arg {
+
+        OPTIONS=( #>#
+        "-f --force; force move/rename even if target exists"
+        "-k; ignore errors when moving/renaming a file"
+        "-n --dry-run; don't actually move/rename files"
+        "-v --verbose; report what is being done"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion//getoperands
+                        case ${WORDS[#]} in
+                        (0)
+                                command -f completion/git::completepath -r
+                                ;;
+                        (*)
+                                complete -P "$PREFIX" -f
+                                ;;
+                        esac
+                        ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

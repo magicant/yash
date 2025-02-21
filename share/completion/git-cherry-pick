@@ -1,7 +1,7 @@
-# (C) 2011-2013 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-cherry-pick" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.48.1.
 
 function completion/git-cherry-pick {
         WORDS=(git cherry-pick "${WORDS[2,-1]}")
@@ -14,12 +14,16 @@ function completion/git::cherry-pick:arg {
         "--abort; end suspended cherry-picking and restore the original state"
         "--allow-empty; allow commits that make no change"
         "--allow-empty-message"
+        "--cleanup:; specify the way the message is cleaned up"
         "--continue; resume suspended cherry-picking"
         "e --edit; reedit the message"
+        "--empty:; specify how to handle already-merged commits"
         "--ff; fast-forward if possible"
+        "S:: --gpg-sign::; sign commits using GPG"
         "--keep-redundant-commits; don't omit already-merged commits"
         "m: --mainline:; apply diffs from the nth parent"
         "n --no-commit; don't commit the result automatically"
+        "--no-gpg-sign; don't sign commits using GPG"
         "--quit; end suspended cherry-picking and keep the current state"
         "r; don't include the original commit ID in the message"
         "s --signoff; add a \"signed-off-by\" line to the message"
@@ -32,6 +36,15 @@ function completion/git::cherry-pick:arg {
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
+                        ;;
+                (--cleanup)
+                        command -f completion/git::--cleanup:arg
+                        ;;
+                (--empty)
+                        command -f completion/git::--empty:arg
+                        ;;
+                (S|--gpg-sign)
+                        command -f completion/git::--gpg-sign:arg
                         ;;
 #               (m|--mainline)
 #                       ;;

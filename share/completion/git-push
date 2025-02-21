@@ -1,7 +1,7 @@
-# (C) 2011-2014 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-push" command.
-# Supports Git 2.0.1.
+# Supports Git 2.48.1.
 
 function completion/git-push {
         WORDS=(git push "${WORDS[2,-1]}")
@@ -11,24 +11,34 @@ function completion/git-push {
 function completion/git::push:arg {
 
         OPTIONS=( #>#
-        "--all; push all local branches"
-        "--delete; delete remote refs specified as operands"
+        "4 --ipv4; use IPv4 addresses only"
+        "6 --ipv6; use IPv6 addresses only"
+        "--atomic; update all remote refs atomically"
+        "--branches --all; push all local branches"
+        "d --delete; delete remote refs specified as operands"
         "n --dry-run; don't actually push anything"
         "--follow-tags; push reachable annotated tags as well"
         "f --force; allow non-fast-forward update"
+        "--force-if-includes; force only if the current remote has been locally integrated"
         "--force-with-lease::; like --force, but prevent unexpected history loss"
         "--mirror; push all local refs"
+        "--no-atomic; don't require atomic updates"
+        "--no-force-if-includes; cancel the --force-if-includes option"
         "--no-force-with-lease; cancel the --force-with-lease option"
+        "--no-recurse-submodules; don't push submodules"
+        "--no-signed; don't GPG-sign the push request"
         "--no-thin; cancel the --thin option"
         "--no-verify; disable the pre-push hook"
         "--porcelain; print in the machine-friendly format"
         "--progress; report progress"
         "--prune; delete remote branches that have no local counterparts"
+        "o: --push-option:; send the specified option to the remote"
         "q --quiet; don't report progress"
         "--repo:; specify the default repository to push to"
         "--receive-pack: --exec:; specify a path for git-receive-pack on the remote host"
         "--recurse-submodules:; ensure submodule commits are available on the remote"
         "u --set-upstream; make pushed branches remote-tracking"
+        "--signed::; GPG-sign the push request"
         "--tags; push all local tags"
         "--thin; send a thin pack to reduce traffic"
         "v --verbose; output additional information"
@@ -52,6 +62,9 @@ function completion/git::push:arg {
                 (--recurse-submodules) #>>#
                         complete -P "$PREFIX" -D "check if submodules have been pushed" check
                         complete -P "$PREFIX" -D "push submodules as necessary" on-demand
+                        complete -P "$PREFIX" -D "push submodules but not the superproject" 
+                        only
+                        complete -P "$PREFIX" -D "don't push submodules" no
                         ;; #<<#
                 (--repo|'')
                         command -f completion//getoperands
@@ -76,6 +89,11 @@ function completion/git::push:arg {
                                 esac
                         fi
                         ;;
+                (--signed) #>>#
+                        complete -P "$PREFIX" -D "always sign" true
+                        complete -P "$PREFIX" -D "never sign" false
+                        complete -P "$PREFIX" -D "sign if supported by the server" if-asked
+                        ;; #<<#
         esac
 
 }

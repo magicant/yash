@@ -1,7 +1,7 @@
-# (C) 2011-2019 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-rebase" command.
-# Supports Git 2.24.0.
+# Supports Git 2.48.1.
 
 function completion/git-rebase {
         WORDS=(git rebase "${WORDS[2,-1]}")
@@ -32,14 +32,16 @@ function completion/git::rebase:getopt {
         OPTIONS=("$OPTIONS" #>#
         "--abort; abort the current rebasing and reset to the original"
         "--allow-empty-message"
+        "--apply; use git-am internally"
         "--autosquash; find commits to be squashed (with -i)"
         "--autostash; stash before and restore after rebasing"
         "--committer-date-is-author-date; use author date for committer date"
         "--continue; continue the current rebasing"
         "--edit-todo; re-edit the to-do list of the current rebasing"
+        "--empty:; specify how to handle commits that become empty"
         "f --force-rebase --no-ff; create new commits without fast-forwarding"
         "--fork-point; use reflog to find a better common ancestor"
-        "--ignore-date; use committer date for author date"
+        "--ignore-date --reset-author-date; reset author date to current time"
         "i --interactive; interactively reedit commits that are rebased"
         "--keep-base; apply commits starting from the same merge base"
         "--keep-empty; don't omit commits that make no change"
@@ -47,14 +49,19 @@ function completion/git::rebase:getopt {
         "--no-autosquash; cancel the --autosquash option"
         "--no-autostash; cancel the --autostash option"
         "--no-fork-point; ignore reflog when finding a better common ancestor"
+        "--no-gpg-sign; don't sign commits with GPG"
+        "--no-keep-empty; omit commits that make no change"
+        "--no-reapply-cherry-picks; drop cherry-picks from the upstream"
         "--no-reschedule-failed-exec"
         "--no-rerere-autoupdate; disable the rerere mechanism"
         "n --no-stat; don't print a diffstat"
+        "--no-update-refs; don't update other branches"
         "--no-verify; don't run the pre-rebase hook"
         "--onto; specify a branch to rebase onto"
         # Deprecated "p --preserve-merges; don't ignore merge commits"
         "q --quiet; don't print anything"
         "--quit; end suspended rebasing and keep the current state"
+        "--reapply-cherry-picks; keep cherry-picks from the upstream"
         "r --rebase-merges::; recreate merge commits"
         "--rerere-autoupdate; enable the rerere mechanism"
         "--reschedule-failed-exec"
@@ -67,6 +74,7 @@ function completion/git::rebase:getopt {
         "s: --strategy:; specify the merge strategy"
         "x: --exec:; insert an \"exec\" line with the specified command after each commit (with -i)"
         "X: --strategy-option:; specify a strategy-specific option"
+        "--update-refs; update other branches to point at the rebased commits"
         "v --verbose; output additional information"
         "--verify; run the pre-rebase hook"
         ) #<#
@@ -78,11 +86,14 @@ function completion/git::rebase:getopt {
 
 function completion/git::rebase:compopt
         case $ARGOPT in
+                (--empty)
+                        command -f completion/git::--empty:arg
+                        ;;
                 (--rebase-merges)
                         complete -P "$PREFIX" no-rebase-cousins rebase-cousins
                         ;;
                 (S|--gpg-sign)
-                        #TODO
+                        command -f completion/git::--gpg-sign:arg
                         ;;
                 (*)
                         if command -vf completion/git::apply:compopt >/dev/null 2>&1 ||

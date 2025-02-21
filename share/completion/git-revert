@@ -1,7 +1,7 @@
-# (C) 2011-2016 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-revert" command.
-# Supports Git 2.9.3.
+# Supports Git 2.48.1.
 
 function completion/git-revert {
         WORDS=(git revert "${WORDS[2,-1]}")
@@ -12,12 +12,17 @@ function completion/git::revert:arg {
 
         OPTIONS=( #>#
         "--abort; end suspended revert and restore the original state"
+        "--cleanup:; specify the way the message is cleaned up"
         "--continue; resume suspended revert"
         "e --edit; (re)edit the message"
         "m: --mainline:; specify the mainline parent by number"
         "n --no-commit; don't commit the reversion result automatically"
         "--no-edit; don't reedit the message"
+        "--no-gpg-sign; don't sign commits using GPG"
+        "--no-rerere-autoupdate; don't update the index with rerere resolution"
         "--quit; end suspended quit and keep the current state"
+        "--reference; use the reference format in the message"
+        "--rerere-autoupdate; update the index with rerere resolution"
         "S:: --gpg-sign::; sign commits with GPG"
         "s --signoff; add a \"signed-off-by\" line to the message"
         "--strategy:; specify the merge strategy"
