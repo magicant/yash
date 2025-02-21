@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-format-patch" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-format-patch {
         WORDS=(git format-patch "${WORDS[2,-1]}")
@@ -12,25 +12,46 @@ function completion/git::format-patch:arg {
 
         OPTIONS=( #>#
         "--add-header:; specify an additional header string"
+        "--always; produce patches even for empty commits"
         "--attach::; make patch contents an mail attachment"
+        "--base:; insert base commit info"
         "--cc:; specify an additional receiver"
+        "--cover-from-description:; specify which part of cover letter is auto-filled"
         "--cover-letter; create a file containing overall diffstat"
+        "--creation-factor:; specify the creation factor for the range-diff"
+        "--description-file:; specify a file containing the cover letter"
+        "--encode-email-headers; encode non-ASCII email headers"
+        "--filename-max-length:; specify the maximum length of the filenames"
+        "--force-in-body-from; always output an in-body 'From:' line"
+        "--from::; specify the email sender"
         "--ignore-if-in-upstream"
         "--inline::; like --attach, but use \"Content-Disposition: inline\""
         "--in-reply-to:"
+        "--interdiff:; specify a revision to compare with and produce an interdiff"
         "k --keep-subject; don't add/remove \"[PATCH]\""
         "--no-attach; cancel the --attach option"
+        "--no-base; don't insert base commit info"
         "--no-binary; don't include diffs for binary files"
-        "p --no-stat; create plain patches without diffstats"
+        "--no-cover-letter; don't create a cover letter"
+        "--no-encode-email-headers; keep non-ASCII email headers as-is"
+        "--no-force-in-body-from; cancel the --force-in-body-from option"
+        "--no-notes; don't append notes for each commit"
         "N --no-numbered; name output in \"[PATCH]\" format"
         "--no-signature; don't append a signature to results"
+        "p --no-stat; create plain patches without diffstats"
+        "--notes::; append notes for each commit"
         "--no-thread; don't thread mails"
         "n --numbered; name output in \"[PATCH n/m]\" format"
         "--numbered-files; use simple integers for output filenames"
         "o: --output-directory:; specify the directory to place the results in"
-        "--quiet; don't print created patch filenames"
+        "--progress; report progress"
+        "q --quiet; don't print created patch filenames"
+        "--range-diff:; specify a revision to compare with and produce a range-diff"
+        "v: --reroll-count:; mark patches with a specified version"
+        "--rfc::; prepend an additional subject prefix"
         "--root; treat the operand as a revision range"
         "--signature:; specify a signature appended to each message"
+        "--signature-file:; specify a file containing a signature"
         "s --signoff; include a signed-off-by line"
         "--start-number:; specify a number to start numbering patches from"
         "--stdout; output results to the standard output rather than files"
@@ -38,6 +59,7 @@ function completion/git::format-patch:arg {
         "--suffix:; specify a suffix appended to result filenames"
         "--thread::; specify mail threading behavior"
         "--to:; specify an additional receiver"
+        "--zero-commit; replace commit hashes with zeros"
         ) #<#
         if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
                         . -AL completion/git-diff; then
@@ -53,12 +75,35 @@ function completion/git::format-patch:arg {
                         ;;
                 (--attach|--inline)
                         ;;
+                (--base)
+                        complete -P "$PREFIX" auto
+                        command -f completion/git::completeref
+                        ;;
+                (--cover-from-description) #>>#
+                        complete -P "$PREFIX" -D "auto-fill message body" message default
+                        complete -P "$PREFIX" -D "auto-fill message subject and body" subject
+                        complete -P "$PREFIX" -D "based on description length" auto
+                        complete -P "$PREFIX" none
+                        ;; #<<#
                 (--in-reply-to)
+                        ;;
+                (--interdiff|--range-diff)
+                        command -f completion/git::completeref
+                        ;;
+                (--notes)
+                        command -f completion/git::completeref \
+                                abbrprefixes=refs/notes/ dontcompletefull=true \
+                                --glob=refs/notes/\*
                         ;;
                 (o|--output-directory)
                         complete -P "$PREFIX" -S / -T -d
                         ;;
+                (--rfc)
+                        ;;
                 (--signature)
+                        ;;
+                (--signature-file)
+                        complete -P "$PREFIX" -f
                         ;;
                 (--start-number)
                         ;;

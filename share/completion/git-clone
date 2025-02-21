@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-clone" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-clone {
         WORDS=(git clone "${WORDS[2,-1]}")
@@ -11,21 +11,41 @@ function completion/git-clone {
 function completion/git::clone:arg {
 
         OPTIONS=( #>#
+        "--also-filter-submodules"
         "--bare; clone as a bare repository"
         "b: --branch:; specify a branch to be the new repository's HEAD"
+        "--bundle-uri:; specify a bundle file to fetch objects from"
         "c: --config:; specify a config variable for the new repository"
         "--depth:; specify the max number of history to clone"
+        "--dissociate; stop borrowing objects after cloning"
+        "--filter:; specify a filter for initial transfer"
+        "j: --jobs:; specify the number of submodules to fetch in parallel"
         "l --local; optimize local clone"
         "--mirror; clone as a mirror repository"
         "n --no-checkout; don't check out HEAD automatically"
         "--no-hardlinks; don't use hard links to spare disk space for local clone"
+        "--no-reject-shallow; allow cloning a shallow repository"
+        "--no-remote-submodules; checkout submodules to the commit recorded in the superproject"
+        "--no-single-branch; clone all branches"
+        "--no-shallow-submodules; fully clone submodules"
+        "--no-tags; don't clone tags"
         "o: --origin:; specify a name for the source repository to set as a remote repository"
         "--progress; report progress"
         "q --quiet; don't report progress"
-        "--recursive --recurse-submodules; initialize submodules recursively"
+        "--recursive:: --recurse-submodules::; initialize submodules recursively"
         "--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+        "--reference-if-able:; specify a reference repository to share objects if possible"
+        "--ref-format:; specify a ref storage format"
+        "--reject-shallow; don't clone a shallow repository"
+        "--remote-submodules; update submodules from the remote repository"
         "--separate-git-dir:; specify a directory where the new repository is located"
+        "--server-option:; specify an option for the git server"
+        "--shallow-exclude:; specify a revision to exclude from shallow cloning"
+        "--shallow-since:; specify a date to start shallow cloning"
+        "--shallow-submodules; initialize submodules in shallow cloning"
         "s --shared; share objects in repositories (possibly dangerous operation)"
+        "--single-branch; clone only one branch"
+        "--sparse; only checkout files in the root directory"
         "--template:; specify a directory that contains templates"
         "u: --upload-pack:; specify a path for git-upload-pack on the remote host"
         "v --verbose" # TODO description
@@ -35,6 +55,9 @@ function completion/git::clone:arg {
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
+                        ;;
+                (--filter|--ref-format)
+                        command -f "completion/git::$ARGOPT:arg"
                         ;;
 #               (b|--branch)
 #                       ;;
@@ -48,7 +71,9 @@ function completion/git::clone:arg {
 #                       ;;
 #               (o|--origin)
 #                       ;;
-                (u|--reference|--template|--separate-git-dir|--upload-pack)
+#               (--shallow-since)
+#                       ;;
+                (u|--reference|--reference-if-able|--template|--separate-git-dir|--upload-pack)
                         complete -P "$PREFIX" -S / -T -d
                         ;;
                 ('')

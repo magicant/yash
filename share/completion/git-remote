@@ -1,7 +1,7 @@
-# (C) 2011-2019 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-remote" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-remote {
         WORDS=(git remote "${WORDS[2,-1]}")
@@ -29,9 +29,10 @@ function completion/git::remote:arg {
                         (*) #>>#
                                 complete -P "$PREFIX" -D "add a remote" add
                                 complete -P "$PREFIX" -D "rename a remote" rename
-                                complete -P "$PREFIX" -D "remove a remote" rm
+                                complete -P "$PREFIX" -D "remove a remote" remove
                                 complete -P "$PREFIX" -D "set the default branch of a remote" set-head
                                 complete -P "$PREFIX" -D "set remote-tracking branches" set-branches
+                                complete -P "$PREFIX" -D "show the URL of a remote" get-url
                                 complete -P "$PREFIX" -D "set the URL of a remote" set-url
                                 complete -P "$PREFIX" -D "show a remote" show
                                 complete -P "$PREFIX" -D "delete remote-tracking branches that no longer exist on a remote" prune
@@ -82,6 +83,10 @@ function completion/git::remote:rename:arg {
 }
 
 function completion/git::remote:rm:arg {
+        command -f completion/git::remote:remove:arg
+}
+
+function completion/git::remote:remove:arg {
         command -f completion/git::completeremote
 }
 
@@ -121,6 +126,25 @@ function completion/git::remote:set-head:arg {
 
 function completion/git::remote:set-branches:arg {
         command -f completion/git::remote:set-head:arg "$@"
+}
+
+function completion/git::remote:get-url:arg {
+
+        OPTIONS=( #>#
+        "--all; list all URLs for the remote"
+        "--push; get push URLs instead of fetch URLs"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion/git::completeremote
+                        ;;
+        esac
+
 }
 
 function completion/git::remote:set-url:arg {

@@ -1,7 +1,7 @@
-# (C) 2011-2014 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-branch" command.
-# Supports Git 1.9.0.
+# Supports Git 2.48.1.
 
 function completion/git-branch {
         WORDS=(git branch "${WORDS[2,-1]}")
@@ -16,25 +16,35 @@ function completion/git::branch:arg {
         "--color::; show symbols in color"
         "--column::; columnize output"
         "--contains; show branches that contain the specified commit only"
+        "C; copy a branch, overwriting an existing branch"
+        "c --copy; copy a branch"
         "l --create-reflog; enable reflog for the new branch"
         "D; delete a branch that has not been merged"
         "d --delete; delete a branch"
         "--edit; edit the branch explanation with an editor"
         "f --force; overwrite an existing branch"
-        "--list; list branches matching the operand pattern"
+        "--format:; specify an output format"
+        "i --ignore-case; sort and filter branches case-insensitively"
+        "l --list; list branches matching the operand pattern"
         "M; rename a branch, overwriting an existing branch"
         "--merged; show branches that are contained in the specified commit only"
         "m --move; rename a branch"
         "--no-abbrev; print full commit IDs"
         "--no-color; like --color=never"
         "--no-column; print branches line by line"
+        "--no-contains; show branches that don't contain the specified commit"
         "--no-merged; show branches that aren't contained in the specified commit only"
         "--no-track; create a non-tracking branch"
+        "--omit-empty; don't print empty items"
+        "--points-at; show branches that point at the specified commit"
         "q --quiet; print error messages only"
+        "--recurse-submodules; propagate branches in submodules"
         "r --remotes; print or delete remote-tracking branches"
         "--set-upstream; like --track, but don't move HEAD"
         "u: --set-upstream-to:; set the upstream to the specified one"
-        "t --track; create a remote-tracking branch"
+        "--show-current; show the current branch name"
+        "--sort:; specify the sort order"
+        "t:: --track::; create a remote-tracking branch"
         "--unset-upstream; remove the upstream"
         "v --verbose; print commit ID and summary for each branch"
         ) #<#
@@ -46,8 +56,11 @@ function completion/git::branch:arg {
                         ;;
                 (--abbrev)
                         ;;
-                (--color|--column)
+                (t|--color|--column|--sort|--track)
                         command -f completion/git::$ARGOPT:arg
+                        ;;
+                (--format)
+                        #TODO
                         ;;
                 (u|--set-upstream-to)
                         command -f completion/git::completeref --remotes

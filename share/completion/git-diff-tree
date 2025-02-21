@@ -1,7 +1,7 @@
-# (C) 2012 magicant
+# (C) 2012-2025 magicant
 
 # Completion script for the "git-diff-tree" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-diff-tree {
         WORDS=(git diff-tree "${WORDS[2,-1]}")
@@ -37,7 +37,9 @@ function completion/git::diff-tree:getopt {
         OPTIONS=("$OPTIONS" #>#
         "--always; show commit even if the diff is empty"
         "c; use the alternate format when printing a merge"
+        "--combined-all-paths; list all filenames in combined diff"
         "m; don't suppress showing diffs of merge commits"
+        "--merge-base; compare with the merge base of two commits"
         "--no-commit-id; don't print the commit ID"
         "r; compare directory trees recursively"
         "--root; compare against the null tree"

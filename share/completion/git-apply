@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-apply" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-apply {
         WORDS=(git apply "${WORDS[2,-1]}")
@@ -12,21 +12,26 @@ function completion/git::apply:arg {
 
         OPTIONS=( #>#
         "--allow-binary-replacement --binary"
+        "--allow-empty; accept patch with no diff"
         "--apply; force to apply patches"
         "--build-fake-ancestor:" # TODO
         "--cached; apply patches to the index without modifying the working tree"
         "--check; check if patches can be applied without errors instead of applying patches"
-        "--exclude:; skip files whose names match the specified pattern"
         "--inaccurate-eof; work around diff errors about missing newlines at end of file"
-        "--include:; apply to only files whose names match the specified pattern"
         "--index; apply patches to the index as well as the working tree"
+        "--intent-to-add; add filepaths but not their contents"
         "--no-add; apply deletions but not additions"
+        "--ours; resolve conflicts in favor of our version"
+        "q --quiet; suppress status and progress output"
         "--recount; ignore line counts in hunk headers"
         "R --reverse; patch in reverse"
         "--stat; print diffstat instead of applying patches"
         "--numstat; print a diffstat in the machine-friendly format instead of applying patches"
         "--summary; print summary instead of applying patches"
+        "--theirs; resolve conflicts in favor of their version"
         "--unidiff-zero; accept unified diffs without context lines"
+        "--union; resolve conflicts by combining both sides"
+        "--unsafe-paths; allow patching outside working tree"
         "v --verbose; report progress in detail"
         "z; print a null byte after each filename"
         ) #<#
@@ -52,7 +57,10 @@ function completion/git::apply:getopt {
         case $1 in (am|apply)
                 apply=true
                 OPTIONS=("$OPTIONS" #>#
+                "3 --3way; try 3-way merge on conflict"
                 "--directory:; specify a directory to work in"
+                "--exclude:; skip files whose names match the specified pattern"
+                "--include:; apply to only files whose names match the specified pattern"
                 "p:; specify the number of pathname components to strip from file names"
                 "--reject; apply as much as possible and leave rejected hunks in *.rej file"
                 ) #<#

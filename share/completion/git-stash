@@ -1,7 +1,7 @@
-# (C) 2011-2018 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-stash" command.
-# Supports Git 2.18.0.
+# Supports Git 2.48.1.
 
 function completion/git-stash {
         WORDS=(git stash "${WORDS[2,-1]}")
@@ -105,11 +105,15 @@ function completion/git::stash:push:arg {
 
         OPTIONS=( #>#
         "a --all; stash all files including ignored/untracked files"
-        "k --keep-index; keep the index intact"
-        "p --patch; interactively choose patch hunks to stash"
-        "q --quiet; print error messages only"
-        "--no-keep-index; stash and reset the index"
         "u --include-untracked; stash untracked files as well as tracked files"
+        "k --keep-index; keep the index intact"
+        "m: --message:; specify the stash message"
+        "--no-keep-index; stash and reset the index"
+        "p --patch; interactively choose patch hunks to stash"
+        "--pathspec-file-nul; use nul as separator for pathspecs"
+        "--pathspec-from-file:; read pathspecs from file"
+        "q --quiet; print error messages only"
+        "S --staged; stash only staged changes"
         ) #<#
         case ${WORDS[1]} in (push|-*)
                 OPTIONS=("$OPTIONS" #>#
@@ -124,6 +128,9 @@ function completion/git::stash:push:arg {
                                 WORDS=(push "$WORDS")
                         fi
                         command -f completion//completeoptions
+                        ;;
+                (--pathspec-from-file)
+                        complete -P "$PREFIX" -f
                         ;;
                 ('')
                         case ${WORDS[1]} in (-*)
@@ -150,7 +157,11 @@ function completion/git::stash:save:arg {
 
 function completion/git::stash:show:arg {
 
-        OPTIONS=()
+        OPTIONS=( #>#
+        "u --include-untracked; show untracked files"
+        "--no-include-untracked; don't show untracked files"
+        "--only-untracked; show only untracked files"
+        ) #<#
         if command -vf completion/git::diff:getopt >/dev/null 2>&1 ||
                         . -AL completion/git-diff; then
                 command -f completion/git::diff:getopt

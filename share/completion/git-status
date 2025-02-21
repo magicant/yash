@@ -1,7 +1,7 @@
-# (C) 2011-2014 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-status" command.
-# Supports Git 1.8.5.3.
+# Supports Git 2.48.1.
 
 function completion/git-status {
         WORDS=(git status "${WORDS[2,-1]}")
@@ -11,15 +11,22 @@ function completion/git-status {
 function completion/git::status:arg {
 
         OPTIONS=( #>#
+        "--ahead-behind; show the number of commits ahead/behind the remote branch"
         "b --branch; print the current branch"
         "--column::; columnize output"
-        "--ignored; print ignored files as well"
+        "--find-renames::; detect renames"
+        "--ignored::; print ignored files as well"
         "--ignore-submodules::; ignore changes to submodules"
         "--long --no-short; print in the long format"
+        "--no-ahead-behind; don't show the number of commits ahead/behind the remote branch"
         "--no-column; print files line by line"
-        "--porcelain; print in the machine-friendly format"
+        "--no-renames; don't show renamed files"
+        "--porcelain::; print in the machine-friendly format"
+        "--renames; show renamed files"
         "s --short; print in the short format"
+        "--show-stash; show the stash entry count"
         "u:: --untracked-files::; print untracked files"
+        "v --verbose; show the diff of uncommitted changes"
         "z; print a null byte after each filename"
         ) #<#
 
@@ -31,8 +38,16 @@ function completion/git::status:arg {
                 (--column)
                         command -f completion/git::--column:arg
                         ;;
+                (--ignored) #>>#
+                        complete -P "$PREFIX" -D "show all ignored files recursively" traditional
+                        complete -P "$PREFIX" -D "don't show ignored files" no
+                        complete -P "$PREFIX" -D "show files matching an ignore pattern" matching
+                        ;; #<<#
                 (--ignore-submodules)
                         command -f completion/git::--ignore-submodules:arg
+                        ;;
+                (--porcelain)
+                        complete -P "$PREFIX" v1 v2
                         ;;
                 (u|--untracked-files)
                         command -f completion/git::--untracked-files:arg

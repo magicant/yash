@@ -1,7 +1,7 @@
-# (C) 2011-2021 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git" command.
-# Supports Git 2.9.2.
+# Supports Git 2.48.1.
 
 function completion/git {
 
@@ -9,23 +9,29 @@ function completion/git {
         OPTIONS=( #>#
         "C:; specify a directory to operate in"
         "c:; specify a configuration parameter"
+        "--attr-source:; specify the attribute file"
         "--bare; treat the repository as a bare repository"
+        "--config-env:; specify a configuration parameter from environment"
         "--exec-path::; specify or print the directory containing core git executables"
         "--git-dir:; specify the repository directory"
         "--glob-pathspecs; enable globbing on all path-specs"
         "--html-path; print the directory where HTML documentation is installed"
         "--icase-pathspecs; treat path-specs case-insensitively"
         "--info-path; print the directory where info manuals are installed"
+        "--list-cmds:; list commands by group"
         "--literal-pathspecs; treat path-specs literally"
         "--man-path; print the directory where manual pages are installed"
         "--namespace:; specify a namespace"
+        "--no-advice; don't print any hints"
         "--noglob-pathspecs; disable globbing on all path-specs"
+        "--no-lazy-fetch; don't fetch missing objects from remote"
+        "--no-optional-locks; don't do optional operations that require locks"
         "p --paginate; run a pager to view Git's output"
-        "--no-pager; don't run a pager to view Git's output"
+        "P --no-pager; don't run a pager to view Git's output"
         "--no-replace-objects; don't use replacement refs"
         "--work-tree:; specify the working tree directory"
-        "--help"
-        "--version"
+        "h --help"
+        "v --version"
         ) #<#
 
         # convert "--help" to "help"
@@ -634,6 +640,14 @@ function completion/git::--author:arg {
         done 2>/dev/null <(git log --all --format=format:%an | uniq)
 }
 
+function completion/git::--cleanup:arg { #>>#
+        complete -P "$PREFIX" -D "like \"strip\" when editing and \"whitespace\" otherwise" default
+        complete -P "$PREFIX" -D "delete empty lines and lines below the cut line" scissors
+        complete -P "$PREFIX" -D "delete empty lines and comments" strip
+        complete -P "$PREFIX" -D "leave message as is" verbatim
+        complete -P "$PREFIX" -D "delete empty lines" whitespace
+} #<<#
+
 function completion/git::--color:arg { #>>#
         complete -P "$PREFIX" -D "always print in color" always
         complete -P "$PREFIX" -D "print in color if output is terminal" auto
@@ -658,12 +672,37 @@ function completion/git::--date:arg { #>>#
         complete -P "$PREFIX" -D "print in strict ISO 8601 format" iso8601-strict
         complete -P "$PREFIX" -D "print in RFC 2822 format" rfc2822
         complete -P "$PREFIX" -D "print in YYYY-MM-DD format" short
-        complete -P "$PREFIX" -D "print the raw timestamp value" raw
+        complete -P "$PREFIX" -D "print the raw timestamp value with offset" raw
+        complete -P "$PREFIX" -D "print in minimal human-readable format" human
+        complete -P "$PREFIX" -D "print the raw timestamp value" unix
         complete -P "$PREFIX" local relative-local default-local iso8601-local \
                 iso8601-strict-local rfc2822-local short-local raw-local
         complete -P "$PREFIX" -D "specify a format" -T format:
 } #<<#
 # TODO --date=format:...%
+
+function completion/git::--empty:arg { #>>#
+        complete -P "$PREFIX" -D 'discard redundant patches' drop
+        complete -P "$PREFIX" -D 'create empty commits for redundant patches' keep
+        complete -P "$PREFIX" -D 'pause on redundant patches' stop
+} #<<#
+
+function completion/git::--exclude-hidden:arg { #>>#
+        complete -P "$PREFIX" -D "fetch.hideRefs" fetch
+        complete -P "$PREFIX" -D "receive.hideRefs" receive
+        complete -P "$PREFIX" -D "uploadpack.hideRefs" uploadpack
+} #<<#
+
+function completion/git::--filter:arg { #>>#
+        complete -P "$PREFIX" -D "omit all blobs" blob:none
+        complete -P "$PREFIX" -S = -T -D "pick blobs smaller than the specified size" blob:limit
+        complete -P "$PREFIX" -D "pick tags only" object:type=tag
+        complete -P "$PREFIX" -D "pick commits only" object:type=commit
+        complete -P "$PREFIX" -D "pick trees only" object:type=tree
+        complete -P "$PREFIX" -D "pick blobs only" object:type=blob
+        complete -P "$PREFIX" -S = -T -D "pick blobs for sparse checkout only" sparse:oid
+        complete -P "$PREFIX" -S : -T -D "omit blobs deeper than the specified level" tree
+} #<<#
 
 function completion/git::--format:arg {
         typeset word="${TARGETWORD#"$PREFIX"}"
@@ -721,6 +760,7 @@ function completion/git::--format:arg {
                 complete -P "$PREFIX" -D "commit ID, author, date, and full log message" medium
                 complete -P "$PREFIX" -D "commit ID, author, committer, and full log message" full
                 complete -P "$PREFIX" -D "commit ID, author, date, committer, date, and full log message" fuller
+                complete -P "$PREFIX" -D "commit ID, title, and date" reference
                 complete -P "$PREFIX" -D "imitate email" email
                 complete -P "$PREFIX" -D "raw commit object" raw
                 complete -P "$PREFIX" -D "specify a format (newline-separated)" -T format:
@@ -733,12 +773,20 @@ function completion/git::--format:arg {
         esac
 }
 
+function completion/git::--gpg-sign:arg {
+        # TODO
+}
+
 function completion/git::--ignore-submodules:arg { #>>#
         complete -P "$PREFIX" -D "ignore all changes in submodules" all
         complete -P "$PREFIX" -D "ignore uncommitted changes in submodules" dirty
         complete -P "$PREFIX" -D "show all changes in submodules" none
         complete -P "$PREFIX" -D "ignore untracked files in submodules" untracked
 } #<<#
+
+function completion/git::--negotiation-tip:arg {
+        command -f completion/git::completeref
+}
 
 function completion/git::--pretty:arg {
         command -f completion/git::--format:arg "$@"
@@ -753,6 +801,27 @@ function completion/git::--recurse-submodules:arg { #>>#
         complete -P "$PREFIX" no
         complete -P "$PREFIX" -D "update a submodule when the superproject has been changed" on-demand
         complete -P "$PREFIX" yes
+} #<<#
+
+function completion/git::--ref-format:arg { #>>#
+        complete -P "$PREFIX" files reftable
+} #<<#
+
+function completion/git::--refmap:arg {
+        command -f completion/git::completeref
+}
+
+function completion/git::--shallow-exclude:arg {
+        command -f completion/git::completeref
+}
+
+function completion/git::--sort:arg {
+        # TODO
+}
+
+function completion/git::--track:arg { #>>#
+        complete -P "$PREFIX" -D "use start-point branch as upstream" direct
+        complete -P "$PREFIX" -D "copy remote-tracking branch from start-point branch" inherit
 } #<<#
 
 function completion/git::--untracked-files:arg { #>>#

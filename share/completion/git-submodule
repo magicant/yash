@@ -1,7 +1,7 @@
-# (C) 2013-2016 magicant
+# (C) 2013-2025 magicant
 
 # Completion script for the "git-submodule" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.48.1.
 
 function completion/git-submodule {
         WORDS=(git submodule "${WORDS[2,-1]}")
@@ -14,7 +14,7 @@ function completion/git::submodule:arg {
         "q --quiet; print error messages only"
         ) #<#
 
-        while [ x"${WORDS[2]}" = x"-q" ] || [ x"${WORDS[2]}" = x"--quiet" ]; do
+        while case "${WORDS[2]}" in (--cached|-q|--quiet) true ;; (*) false ;; esac; do
                 WORDS=("${WORDS[1]}" "${WORDS[3,-1]}")
         done
 
@@ -24,14 +24,20 @@ function completion/git::submodule:arg {
                                 complete -P "$PREFIX" -- -q
                                 ;;
                         (-*)
+                                OPTIONS=("$OPTIONS" #>#
+                                "--cached; print status of the superproject index"
+                                ) #<#
                                 command -f completion//parseoptions
                                 command -f completion//completeoptions
                                 ;;
                         (*) #>>#
+                                complete -P "$PREFIX" -D "move the git directories from submodules to the superproject" absorbgitdirs
                                 complete -P "$PREFIX" -D "add a submodule" add
                                 complete -P "$PREFIX" -D "unregister submodules" deinit
                                 complete -P "$PREFIX" -D "execute a shell command in each submodule" foreach
                                 complete -P "$PREFIX" -D "configure submodules according to .gitmodules" init
+                                complete -P "$PREFIX" -D "set the default tracking branch for a submodule" set-branch
+                                complete -P "$PREFIX" -D "set the URL of a submodule" set-url
                                 complete -P "$PREFIX" -D "show status of submodules" status
                                 complete -P "$PREFIX" -D "print summary of changes in submodules" summary
                                 complete -P "$PREFIX" -D "reset submodule remote URL" sync
@@ -47,14 +53,23 @@ function completion/git::submodule:arg {
 
 }
 
+function completion/git::submodule:absorbgitdirs:arg {
+
+        complete -P "$PREFIX" -S / -T -d
+
+}
+
 function completion/git::submodule:add:arg {
 
         OPTIONS=("$OPTIONS" #>#
         "b: --branch:; specify a branch of the submodule to clone"
         "--depth:; specify the max number of history to clone"
+        "--dissociate; stop borrowing objects after cloning"
         "f --force; add an ignored path"
         "--name:; specify the name of the submodule"
+        "--progress; force progress reporting"
         "--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+        "--ref-format:; specify a ref storage format"
         ) #<#
 
         command -f completion//parseoptions
@@ -68,6 +83,9 @@ function completion/git::submodule:add:arg {
 #                       ;;
                 (--reference)
                         complete -P "$PREFIX" -S / -T -d
+                        ;;
+                (--ref-format)
+                        command -f completion/git::--ref-format:arg
                         ;;
                 ('')
                         command -f completion//getoperands
@@ -83,6 +101,7 @@ function completion/git::submodule:add:arg {
 function completion/git::submodule:deinit:arg {
 
         OPTIONS=("$OPTIONS" #>#
+        "--all; unregister all submodules"
         "f --force; overwrite local changes or ignore unmerged files"
         ) #<#
 
@@ -123,10 +142,35 @@ function completion/git::submodule:init:arg {
 
 }
 
+function completion/git::submodule:set-branch:arg {
+
+        OPTIONS=("$OPTIONS" #>#
+        "b: --branch:; specify a branch of the submodule to track"
+        "d --default; reset to the remote's default branch"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+
+}
+
+function completion/git::submodule:set-url:arg {
+
+        complete -P "$PREFIX" -S / -T -d
+
+}
+
 function completion/git::submodule:status:arg {
 
         OPTIONS=("$OPTIONS" #>#
-        "--cached; print status of the supermodule index"
+        "--cached; print status of the superproject index"
         "--recursive; operate on all submodules recursively"
         ) #<#
 
@@ -145,8 +189,8 @@ function completion/git::submodule:status:arg {
 function completion/git::submodule:summary:arg {
 
         OPTIONS=("$OPTIONS" #>#
-        "--cached; compare the supermodule HEAD and index"
-        "--files; compare the supermodule index with the submodule HEAD"
+        "--cached; compare the superproject HEAD and index"
+        "--files; compare the superproject index with the submodule HEAD"
         "n: --summary-limit:; specify the max number of commits to show"
         ) #<#
 
@@ -189,15 +233,25 @@ function completion/git::submodule:sync:arg {
 function completion/git::submodule:update:arg {
 
         OPTIONS=("$OPTIONS" #>#
+        "--checkout; check out in submodules"
         "--depth:; specify the max number of history to clone"
+        "--dissociate; stop borrowing objects after cloning"
+        "--filter:; partial-clone by applying a filter"
         "f --force; overwrite local changes or ignore unmerged files"
         "--init; do \"git submodule init\" before updating"
+        "--jobs:; specify the max number of submodules to clone in parallel"
         "--merge; merge in submodules"
         "N --no-fetch; don't fetch from submodule remotes"
+        "--no-recommend-shallow; always fully clone submodules"
+        "--no-single-branch; clone all branches"
+        "--progress; force progress reporting"
         "--rebase; rebase in submodules"
+        "--recommend-shallow; shallow-clone if recommended in .gitmodules"
         "--recursive; operate on all submodules recursively"
         "--reference:; specify a reference repository to share objects (possibly dangerous operation)"
+        "--ref-format:; specify a ref storage format"
         "--remote; update submodules to their remote's latest commit"
+        "--single-branch; clone only the target branch"
         ) #<#
 
         command -f completion//parseoptions
@@ -205,10 +259,10 @@ function completion/git::submodule:update:arg {
                 (-)
                         command -f completion//completeoptions
                         ;;
-                (--reference)
-                        complete -P "$PREFIX" -S / -T -d
+                (--filter|--ref-format)
+                        command -f "completion/git::$ARGOPT:arg"
                         ;;
-                ('')
+                (--reference|'')
                         complete -P "$PREFIX" -S / -T -d
                         ;;
         esac

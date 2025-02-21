@@ -1,7 +1,8 @@
 # (C) 2023 Victorien Elvinger
+# (C) 2025 magicant
 
 # Completion script for the "git-switch" command.
-# Supports Git 2.23.0.
+# Supports Git 2.48.1.
 
 function completion/git-switch {
         WORDS=(git switch "${WORDS[2,-1]}")
@@ -27,7 +28,7 @@ function completion/git::switch:arg {
         "--progress; report progress status on standard error"
         "q --quiet; print error and warning messages only"
         "--recurse-submodules; update the content of all active submodules"
-        "t --track; create a tracking branch"
+        "t:: --track::; create a tracking branch"
         ) #<#
 
         command -f completion//parseoptions
@@ -41,7 +42,11 @@ function completion/git::switch:arg {
                 (--conflict) #>>#
                         complete -P "$PREFIX" -D "ours and theirs" merge
                         complete -P "$PREFIX" -D "ours, theirs, and original" diff3
+                        complete -P "$PREFIX" zdiff3
                         ;; #<<#
+                (t|--track)
+                        command -f completion/git::--track:arg
+                        ;;
                 ('')
                         # Parse options that modify completion behavior,
                         # and find first non-option argument.

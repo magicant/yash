@@ -1,7 +1,7 @@
-# (C) 2011-2012 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-commit" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-commit {
         WORDS=(git commit "${WORDS[2,-1]}")
@@ -16,19 +16,27 @@ function completion/git::commit:arg {
         "--allow-empty-message"
         "--amend; redo the last commit on the current branch"
         "--author:; specify the author"
+        "--branch; show the branch name (with --short)"
         "--cleanup:; specify the way the message is cleaned up"
         "--date:; specify the date"
         "--dry-run; don't actually commit, but show what would happen"
         "e --edit; reedit the message"
         "F: --file:; specify a file containing the message"
         "--fixup:; prepare the message to fix up the specified commit in later autosquash"
+        "S:: --gpg-sign::; sign commits using GPG"
         "i --include; include operand files in the commit"
+        "--long; dry-run with the long output format"
         "m: --message:; specify the message"
         "--no-edit; don't reedit the message"
+        "--no-gpg-sign; don't sign commits using GPG"
+        "--no-post-rewrite; bypass the post-rewrite hook"
+        "--no-signoff; don't add a \"signed-off-by\" line to the message"
         "--no-status; don't include file statuses in the message template"
         "n --no-verify; bypass the pre-commit and commit-msg hooks"
         "o --only; commit operand files only"
         "p --patch; interactive choose patch hunks to commit"
+        "--pathspec-file-nul; use nul as separator for pathspecs"
+        "--pathspec-from-file:; read pathspecs from file"
         "--porcelain; dry-run with the machine-friendly format"
         "q --quiet; suppress the commit summary message"
         "--reset-author; ignore the date and author of the original commit"
@@ -39,9 +47,10 @@ function completion/git::commit:arg {
         "--squash:; prepare the message to squash the specified commit in later autosquash"
         "--status; include file statuses in the message template"
         "t: --template:; specify a file containing a template message to edit"
+        "--trailer:; specify token-value pair to append to the message"
         "u:: --untracked-files::; print untracked files"
         "v --verbose; include diffs in the message template"
-        "z; print a null byte after each filename"
+        "z --null; print a null byte after each filename"
         ) #<#
 
         command -f completion//parseoptions -n
@@ -52,20 +61,30 @@ function completion/git::commit:arg {
                 (--author)
                         command -f completion/git::--author:arg
                         ;;
-                (--cleanup) #>>#
-                        complete -P "$PREFIX" -D "like \"strip\" when editing and \"whitespace\" otherwise" default
-                        complete -P "$PREFIX" -D "delete empty lines and comments" strip
-                        complete -P "$PREFIX" -D "don't clean up the message at all" verbatim
-                        complete -P "$PREFIX" -D "delete empty lines" whitespace
-                        ;; #<<#
+                (--cleanup)
+                        command -f completion/git::--cleanup:arg
+                        ;;
 #               (--date)
                         # TODO complete date
 #                       ;;
-                ([Ft]|--file|--template)
+                ([Ft]|--file|--pathspec-from-file|--template)
                         complete -P "$PREFIX" -f
+                        ;;
+                (--fixup) #>>#
+                        complete -P "$PREFIX" -D "prepare for later amend" -T amend:
+                        complete -P "$PREFIX" -D "prepare for later amend with explicitly specified files" -T reword:
+                        #<<#
+                        case "${TARGETWORD#"$PREFIX"}" in
+                                (amend:*) PREFIX=${PREFIX}amend: ;;
+                                (reword:*) PREFIX=${PREFIX}reword: ;;
+                        esac
+                        command -f completion/git::completeref
                         ;;
                 ([Cc]|--fixup|--reuse-message|--reedit-message|--squash)
                         command -f completion/git::completeref
+                        ;;
+                (S|--gpg-sign)
+                        command -f completion/git::--gpg-sign:arg
                         ;;
                 (u|--untracked-files)
                         command -f completion/git::--untracked-files:arg

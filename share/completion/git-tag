@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-tag" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-tag {
         WORDS=(git tag "${WORDS[2,-1]}")
@@ -11,23 +11,42 @@ function completion/git-tag {
 function completion/git::tag:arg {
 
         OPTIONS=( #>#
-        "a; make an unsigned annotated tag"
+        "a --annotate; make an unsigned annotated tag"
+        "--cleanup:; specify the way the message is cleaned up"
+        "--color::; show in color"
+        "--column::; columnize output"
         "--contains:; list tags that are ancestors of the specified commit"
-        "d; delete tags"
-        "F:; specify a file containing the message"
+        "--create-reflog; enable reflog for the new tag"
+        "d --delete; delete tags"
+        "e --edit; edit the tag message"
+        "F: --file:; specify a file containing the message"
         "f --force; overwrite an existing tag"
-        "l; list tag names that match an operand"
-        "m:; specify the message"
+        "--format:; specify an output format"
+        "i --ignore-case; sort and filter tags case-insensitively"
+        "l --list; list tag names that match an operand"
+        "u: --local-user:; specify a key to make a GPG-signed tag with"
+        "m: --message:; specify the message"
+        "--merged:; list tags that are descendants of the specified commit"
         "n::; specify the number of lines of annotation to print"
-        "s; make a GPG-signed tag with the default email address's key"
-        "u:; specify a key to make a GPG-signed tag with"
-        "v; verify tags"
+        "--no-column; print tags line by line"
+        "--no-contains:; list tags that are not ancestors of the specified commit"
+        "--no-merged:; list tags that are not descendants of the specified commit"
+        "--no-sign; don't GPG-sign the tag"
+        "--omit-empty; don't print empty items"
+        "--points-at:; list tags that point at the specified commit"
+        "s --sign; make a GPG-signed tag with the default email address's key"
+        "--sort:; sort listed tags"
+        "--trailer:; specify token-value pair to append to the message"
+        "v --verify; verify the GPG signature of tags"
         ) #<#
 
         command -f completion//parseoptions -n
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
+                        ;;
+                (--cleanup|--color|--column|--format|--sort)
+                        command -f completion/git::$ARGOPT:arg
                         ;;
                 (--contains)
                         command -f completion/git::completeref
@@ -38,6 +57,11 @@ function completion/git::tag:arg {
                                 case ${WORDS[i]} in
                                 (--)
                                         i=$((i+1))
+                                        break
+                                        ;;
+                                (--contains|--delete|--list|--merged| \
+                                --no-contains|--no-merged|--points-at|--verify)
+                                        nomake=true
                                         break
                                         ;;
                                 (--*)

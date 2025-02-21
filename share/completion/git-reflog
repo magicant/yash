@@ -1,7 +1,7 @@
-# (C) 2016 magicant
+# (C) 2016-2025 magicant
 
 # Completion script for the "git-reflog" command.
-# Supports Git 2.6.2.
+# Supports Git 2.48.1.
 
 function completion/git-reflog {
         WORDS=(git reflog "${WORDS[2,-1]}")
@@ -10,7 +10,7 @@ function completion/git-reflog {
 
 function completion/git::reflog:arg
         if [ ${WORDS[#]} -le 1 ]; then
-                complete -P "$PREFIX" delete exists expire show
+                complete -P "$PREFIX" delete exists expire list show
         else
                 WORDS=("${WORDS[2,-1]}")
                 if command -vf "completion/git::reflog:${WORDS[1]}:arg" >/dev/null 2>&1; then
@@ -30,6 +30,9 @@ function completion/git::reflog:exists:arg {
 
 # Not supported, since the expire subcommand is not mainly for interactive use.
 # function completion/git::reflog:expire:arg
+
+# The list subcommand takes no arguments.
+# function completion/git::reflog:list:arg
 
 function completion/git::reflog:show:arg {
         WORDS=(git log -g --abbrev-commit --pretty=oneline "${WORDS[2,-1]}")

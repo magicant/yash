@@ -1,7 +1,7 @@
-# (C) 2016 magicant
+# (C) 2016-2025 magicant
 
 # Completion script for the "git-notes" command.
-# Supports Git 2.6.2.
+# Supports Git 2.48.1.
 
 function completion/git-notes {
         WORDS=(git notes "${WORDS[2,-1]}")
@@ -43,10 +43,15 @@ function completion/git::notes:add:arg {
         OPTIONS=( #>#
         "C: --reuse-message:; specify a blob used as the note message"
         "c: --reedit-message:; like -C, but reedit the message"
+        "e --edit; edit the note message"
         "F: --file:; specify a file containing the note message"
         "f --force; overwrite existing note"
         "m: --message:; specify a note message"
         "--allow-empty; allow an empty note"
+        "--no-separator; don't insert a separator"
+        "--no-stripspace; leave leading and trailing spaces and blank lines"
+        "--separator::; specify a inter-paragraph separator"
+        "--stripspace; remove leading and trailing spaces and blank lines"
         ) #<#
 
         command -f completion//parseoptions
@@ -91,6 +96,8 @@ function completion/git::notes:edit:arg {
 
         OPTIONS=( #>#
         "--allow-empty; allow an empty note"
+        "--no-stripspace; leave leading and trailing spaces and blank lines"
+        "--stripspace; remove leading and trailing spaces and blank lines"
         ) #<#
 
         command -f completion//parseoptions
