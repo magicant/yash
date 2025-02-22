@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.c: job control */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1345,20 +1345,29 @@ int wait_for_job_by_jobspec(const wchar_t *jobspec)
             || job->j_legacy)
         return Exit_NOTFOUND;
 
-    int signal = wait_for_job(jobnumber,
-            doing_job_control_now, doing_job_control_now, true);
-    if (signal != 0) {
-        assert(TERMSIGOFFSET >= 128);
-        return -(signal + TERMSIGOFFSET);
+    while (job->j_status != JS_DONE) {
+        bool savenonotify = job->j_nonotify;
+        job->j_nonotify = true;
+        int signal = wait_for_sigchld(
+                /* interruptible */ doing_job_control_now,
+                /* return_on_stop */ true);
+        job->j_nonotify = savenonotify;
+        if (signal != 0) {
+            assert(TERMSIGOFFSET >= 128);
+            return -(signal + TERMSIGOFFSET);
+        }
+
+        if (doing_job_control_now && is_interactive_now && !posixly_correct)
+            print_job_status(
+                    jobnumber,
+                    /* changedonly */ true,
+                    /* verbose */ false,
+                    /* remove_done */ false,
+                    stdout);
     }
 
     int status = calc_status_of_job(job);
-    if (job->j_status != JS_RUNNING) {
-        if (doing_job_control_now && is_interactive_now && !posixly_correct)
-            print_job_status(jobnumber, false, false, true, stdout);
-        else if (job->j_status == JS_DONE)
-            remove_job(jobnumber);
-    }
+    remove_job(jobnumber);
     return status;
 }
 
@@ -1369,7 +1378,12 @@ bool wait_builtin_has_job(bool jobcontrol)
     for (size_t i = 1; i < joblist.length; i++) {
         job_T *job = joblist.contents[i];
         if (jobcontrol && is_interactive_now && !posixly_correct)
-            print_job_status(i, true, false, false, stdout);
+            print_job_status(
+                    i,
+                    /* changedonly */ true,
+                    /* verbose */ false,
+                    /* remove_done */ false,
+                    stdout);
         if (job != NULL && (job->j_legacy || job->j_status == JS_DONE))
             remove_job(i);
     }
@@ -1377,7 +1391,7 @@ bool wait_builtin_has_job(bool jobcontrol)
     /* see if we have jobs to wait for. */
     for (size_t i = 1; i < joblist.length; i++) {
         job_T *job = joblist.contents[i];
-        if (job != NULL && (!jobcontrol || job->j_status == JS_RUNNING))
+        if (job != NULL)
             return true;
     }
     return false;
