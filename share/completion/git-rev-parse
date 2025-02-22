@@ -1,7 +1,7 @@
-# (C) 2016 magicant
+# (C) 2016-2025 magicant
 
 # Completion script for the "git-rev-parse" command.
-# Supports Git 2.9.2.
+# Supports Git 2.48.1.
 
 function completion/git-rev-parse {
         WORDS=(git rev-parse "${WORDS[2,-1]}")
@@ -12,10 +12,13 @@ function completion/git::rev-parse:arg {
 
         OPTIONS=( #>#
         "--abbrev-ref::; print in short object names"
+        "--absolute-git-dir; print the absolute path of the repository"
         "--after: --since:; convert the specified date to --max-age timestamp"
         "--before: --until:; convert the specified date to --mim-age timestamp"
         "--default; specify a default argument"
         "--disambiguate:; show all SHA-1 values that start with the specified prefix"
+        "--end-of-options"
+        "--exclude-hidden:; apply hideRefs to exclude refs"
         "--flags; print options only"
         "--git-common-dir; print the main repository path"
         "--git-dir; print the repository path"
@@ -23,20 +26,26 @@ function completion/git::rev-parse:arg {
         "--is-bare-repository; test if the repository is bare"
         "--is-inside-git-dir; test if the current directory is inside a repository"
         "--is-inside-work-tree; test if the current directory is inside a working tree"
+        "--is-shallow-repository; test if the repository is shallow"
         "--keep-dashdash"
         "--local-env-vars; print repository-local environment variables"
         "--no-flags; print operands only"
         "--no-revs; ignore arguments meant for rev-list"
         "--not; negate printed object names"
+        "--output-object-format:; convert object IDs to the specified format"
         "--parseopt; enable option parsing mode"
+        "--path-format:"
         "--prefix; specify a directory to operate in"
         "q --quiet; don't print any error message (with --verify)"
+        "--show-ref-format; print the ref format used in the current repository"
         "--resolve-git-dir; test if the operand is a repository path"
         "--revs-only; ignore arguments not meant for rev-list"
         "--shared-index-path; print the shared index file path"
         "--short::; abbreviate printed SHA-1 values"
         "--show-cdup; print a relative path to the top-level directory"
+        "--show-object-format:; print the object format used in the current repository"
         "--show-prefix; print a relative path from the top-level directory"
+        "--show-superproject-working-tree; print the path to the superproject working tree"
         "--show-toplevel; print the absolute path of the top-level directory"
         "--sq; print with shell-friendly quotation"
         "--sq-quote; enable shell quoting mode"
@@ -58,6 +67,18 @@ function completion/git::rev-parse:arg {
                 (--abbrev-ref) #>>#
                         complete -P "$PREFIX" -D "allow ambiguous names" loose
                         complete -P "$PREFIX" -D "ensure unambiguous names" strict
+                        ;; #<<#
+                (--exclude-hidden)
+                        command -f completion/git::--exclude-hidden:arg
+                        ;;
+                (--output-object-format) #>>#
+                        complete -P "$PREFIX" sha1 sha256 storage
+                        ;; #<<#
+                (--path-format) #>>#
+                        complete -P "$PREFIX" absolute relative
+                        ;; #<<#
+                (--show-object-format) #>>#
+                        complete -P "$PREFIX" storage input output
                         ;; #<<#
                 ('')
                         command -f completion/git::completerefpath range=true

@@ -1,7 +1,7 @@
-# (C) 2013 magicant
+# (C) 2013-2025 magicant
 
 # Completion script for the "git-ls-remote" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.48.1.
 
 function completion/git-ls-remote {
         WORDS=(git ls-remote "${WORDS[2,-1]}")
@@ -11,17 +11,25 @@ function completion/git-ls-remote {
 function completion/git::ls-remote:arg {
 
         OPTIONS=( #>#
+        "b h --branches --heads; print branches only"
         "--exit-code; return a non-zero exit status if no refs were printed"
         "--get-url; just print remote URL"
-        "--heads; print branches only"
-        "--tags; print tags only"
-        "u: --upload-pack:; specify a path for git-upload-pack on the remote host"
+        "q --quiet; don't print remote URL"
+        "--refs; only show real refs"
+        "o: --server-option:; specify a server option"
+        "--sort:; specify the sort order"
+        "--symref; also show intermediate symbolic refs"
+        "t --tags; print tags only"
+        "--upload-pack:; specify a path for git-upload-pack on the remote host"
         ) #<#
 
         command -f completion//parseoptions -n
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
+                        ;;
+                (--sort)
+                        command -f completion/git::--sort:arg
                         ;;
                 (u|--upload-pack)
                         command -f completion/git::--upload-pack:arg

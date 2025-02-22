@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-merge" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-merge {
         WORDS=(git merge "${WORDS[2,-1]}")
@@ -12,8 +12,14 @@ function completion/git::merge:arg {
 
         OPTIONS=( #>#
         "--abort; reset to the state before starting merge"
+        "--continue; resume the ongoing merge"
+        "F: --file:; specify a file containing the message"
+        "--into-name:; specify the branch name to merge into"
         "m:; specify the message"
+        "--no-overwrite-ignore; abort if ignored files would be overwritten"
         "--no-rerere-autoupdate; disable the rerere mechanism"
+        "--overwrite-ignore; overwrite ignored files"
+        "--quit; end the merge and keep the current state"
         "--rerere-autoupdate; enable the rerere mechanism"
         ) #<#
         command -f completion/git::merge:getopt
@@ -35,29 +41,51 @@ function completion/git::merge:arg {
 
 function completion/git::merge:getopt {
         OPTIONS=("$OPTIONS" #>#
+        "--allow-unrelated-histories; allow merging branches without a common ancestor"
+        "--autostash; stash local changes before merging"
+        "--cleanup:; specify the way the message is cleaned up"
         "--commit; commit the merge result automatically"
         "--continue; continue the current merge"
+        "e --edit; edit the commit message"
         "--ff; fast-forward if possible"
         "--ff-only; allow fast-forward only"
+        "S:: --gpg-sign::; sign commits using GPG"
         "--log::; specify the number of commits in the merged branch of which the messages are reused"
+        "--no-autostash; cancel the --autostash option"
         "--no-commit; don't commit the merge result automatically"
+        "--no-edit; accept the default commit message without editing"
         "--no-ff; don't fast-forward even if possible"
+        "--no-gpg-sign; don't sign commits using GPG"
         "--no-log; don't reuse messages from the commits on the merged branch"
         "--no-progress; don't print progress info"
+        "--no-signoff; don't add a \"signed-off-by\" line to the message"
         "--no-squash; cancel the --squash option"
         "n --no-stat --no-summary; don't print a diffstat"
+        "--no-verify; bypass the pre-merge and commit-msg hooks"
+        "--no-verify-signatures; don't verify the signatures of the commits to be merged"
         "--progress; print progress info"
         "q --quiet; don't print anything"
+        "--signoff; add a \"signed-off-by\" line to the message"
         "--squash; like --no-commit, but don't set MERGE_HEAD"
         "--stat --summary; print a diffstat"
         "s: --strategy:; specify the merge strategy"
         "X: --strategy-option:; specify a strategy-specific option"
         "v --verbose; output additional information"
+        "--verify-signatures; verify the signatures of the commits to be merged"
         ) #<#
 }
 
 function completion/git::merge:compopt
         case $ARGOPT in
+                (--cleanup)
+                        command -f completion/git::--cleanup:arg
+                        ;;
+                (F|--file)
+                        complete -P "$PREFIX" -f
+                        ;;
+                (S|--gpg-sign)
+                        command -f completion/git::--gpg-sign:arg
+                        ;;
                 (m|--log)
                         ;;
                 (s|--strategy) #>>#

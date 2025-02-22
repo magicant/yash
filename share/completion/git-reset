@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-reset" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-reset {
         WORDS=(git reset "${WORDS[2,-1]}")
@@ -15,8 +15,17 @@ function completion/git::reset:arg {
         "--keep; like --hard, but keep working tree changes"
         "--merge; reset out of a conflicted merge"
         "--mixed; reset the index but keep the working tree"
+        "N --intent-to-add; keep removed files as intent-to-add"
+        "--no-intent-to-add"
+        "--no-patch"
+        "--no-recurse-submodules; don't reset submodules"
+        "--no-refresh; don't refresh the index"
         "p --patch; interactively choose patch hunks to reset"
+        "--pathspec-file-nul; use nul as separator for pathspecs"
+        "--pathspec-from-file:; read pathspecs from a file"
         "q --quiet; print error and warning messages only"
+        "--recurse-submodules; also reset submodules"
+        "--refresh; refresh the index"
         "--soft; keep the index and working tree intact"
         ) #<#
 

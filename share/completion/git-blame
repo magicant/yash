@@ -1,7 +1,7 @@
 # (C) 2011 magicant
 
 # Completion script for the "git-blame" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-blame {
         WORDS=(git blame "${WORDS[2,-1]}")

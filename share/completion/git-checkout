@@ -1,7 +1,7 @@
 # (C) 2011-2014 magicant
 
 # Completion script for the "git-checkout" command.
-# Supports Git 2.1.2.
+# Supports Git 2.48.1.
 
 function completion/git-checkout {
         WORDS=(git checkout "${WORDS[2,-1]}")
@@ -14,18 +14,31 @@ function completion/git::checkout:arg {
         "B:; create or reset a new branch and check it out"
         "b:; create a new branch and check it out"
         "--conflict:; like --merge, but specify format of unmerged files"
-        "--detach; leave HEAD in detached head state"
+        "d --detach; leave HEAD in detached head state"
         "f --force; overwrite local changes or ignore unmerged files"
+        "--guess; auto-create a branch from existing remote"
+        "--ignore-other-worktrees; force if already checked out in another worktree"
         "--ignore-skip-worktree-bits; ignore sparse patterns"
         "l; enable reflog for the new branch"
         "m --merge; do 3-way merge for destination branch"
+        "--no-guess; don't auto-create a branch from existing remote"
+        "--no-overlay; remove files to match the target"
+        "--no-overwrite-ignore; abort if ignored files would be overwritten"
+        "--no-progress; don't show progress"
+        "--no-recurse-submodules; don't propagate checkout in submodules"
         "--no-track; create a non-tracking branch"
         "--orphan:; create a new branch with no parent"
         "--ours; checkout local version for unmerged files"
+        "--overlay; don't remove files from the index"
+        "--overwrite-ignore; overwrite ignored files"
         "p --patch; interactively choose hunks to check out"
+        "--pathspec-file-nul; use nul as separator for pathspecs"
+        "--pathspec-from-file:; read pathspecs from file"
+        "--progress; show progress"
+        "--recurse-submodules; propagate checkout in submodules"
         "q --quiet; print error and warning messages only"
         "--theirs; checkout remote version for unmerged files"
-        "t --track; create a tracking branch"
+        "t:: --track::; create a tracking branch"
         ) #<#
 
         command -f completion//parseoptions -n
@@ -40,6 +53,12 @@ function completion/git::checkout:arg {
                         complete -P "$PREFIX" -D "ours and theirs" merge
                         complete -P "$PREFIX" -D "ours, theirs, and original" diff3
                         ;; #<<#
+                (--pathspec-from-file)
+                        complete -P "$PREFIX" -f
+                        ;;
+                (t|--track)
+                        command -f completion/git::--track:arg
+                        ;;
                 ('')
                         command -f completion/git::completerefpath
                         ;;

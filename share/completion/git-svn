@@ -1,7 +1,7 @@
-# (C) 2011-2015 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-svn" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-svn {
         WORDS=(git svn "${WORDS[2,-1]}")
@@ -29,6 +29,7 @@ function completion/git::svn:arg
                 complete -P "$PREFIX" -D "print revision log" log
                 complete -P "$PREFIX" -D "recreate empty directories" mkdirs
                 complete -P "$PREFIX" -D "reduce local repository size" gc
+                complete -P "$PREFIX" -D "set a property of a file" propset
                 complete -P "$PREFIX" -D "show a file with commit info" blame
                 complete -P "$PREFIX" -D "undo fetch" reset
         else #<<#
@@ -67,6 +68,7 @@ function completion/git::svn:branch:arg {
         "d: --destination:; specify a branch/tag path to operate on"
         "n --dry-run; don't actually make a branch/tag"
         "m: --message:; specify the commit message"
+        "--parents; create missing parent directories"
         "t --tag; create a tag rather than a branch"
         "--username:; specify a user name for authentication"
         ) #<#
@@ -99,6 +101,7 @@ function completion/git::svn:clone:arg {
         "--placeholder-filename:; specify the name of dummy files in empty directories"
         ) #<#
         command -f completion/git::svn:getcommonopt
+        #command -f completion/git::svn:getregexfilteropt # included in fetch:getopt
         command -f completion/git::svn:fetch:getopt
         command -f completion/git::svn:init:getopt
 
@@ -156,8 +159,10 @@ function completion/git::svn:commit-diff:getopt {
         OPTIONS=("$OPTIONS" #>#
         "--add-author-from; add an author name to each log message"
         "e --edit; reedit the message"
+        "F: --file:; specify a file containing the message"
         "--find-copies-harder" #TODO
         "l:" #TODO
+        "m: --message:; specify the commit message"
         "--rmdir; remove empty directories from the Subversion tree"
         ) #<#
         command -f completion/git::svn:getauthoropt
@@ -191,9 +196,11 @@ function completion/git::svn:dcommit:arg {
         OPTIONS=( #>#
         "--commit-url:; specify a repository URL to commit to"
         "n --dry-run; don't actually commit anything"
+        "--interactive; interactively confirm each commit"
         "m --merge; use merging strategies to rebase"
         "--mergeinfo:; specify mergeinfo to add"
         "--no-rebase; don't rebase after committing"
+        "--rebase-merges; recreate merge commits while rebasing"
         "s: --strategy:; specify the merge strategy"
         ) #<#
         command -f completion/git::svn:getcommonopt
@@ -248,18 +255,22 @@ function completion/git::svn:fetch:arg {
 
 function completion/git::svn:fetch:getopt {
         OPTIONS=("$OPTIONS" #>#
-        "--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
         "--localtime; store Git commit dates in the local timezone"
+        "--log-window-size:; fetch the specified number of commits at once"
         #"--repack::" obsolete option
         #"--repack-flags:" obsolete option
         "--use-log-author; find author names out of log messages"
         ) #<#
         command -f completion/git::svn:getauthoropt
+        command -f completion/git::svn:getregexfilteropt
 }
 
 function completion/git::svn:find-rev:arg {
 
-        OPTIONS=()
+        OPTIONS=( #>#
+        "A --after; find the earliest equal commit"
+        "B --before; find the last equal commit"
+        ) #<#
         command -f completion/git::svn:getcommonopt
 
         command -f completion//parseoptions
@@ -309,6 +320,7 @@ function completion/git::svn:init:arg {
         "--template:; specify a directory that contains templates"
         ) #<#
         command -f completion/git::svn:getcommonopt
+        command -f completion/git::svn:getregexfilteropt
         command -f completion/git::svn:init:getopt
 
         command -f completion//parseoptions
@@ -332,7 +344,6 @@ function completion/git::svn:init:arg {
 function completion/git::svn:init:getopt {
         OPTIONS=("$OPTIONS" #>#
         "b: --branches:; specify the branches subdirectory name"
-        "--ignore-paths:; specify a regular expression whose matching pathnames are ignored when fetching"
         "--no-metadata; set the noMetadata option"
         "--no-minimize-url; don't normalize URL to the repository root"
         "--prefix:; specify the prefix for trunk/branches/tags"
@@ -351,13 +362,17 @@ function completion/git::svn:log:arg {
 
         OPTIONS=( #>#
         "--incremental; print output in a format suitable for concatenation"
-        "--limit:; specify the number of revisions to show at most"
+        "--limit:; specify the max number of revisions to show"
         "--oneline; use only one line for each revision"
         "r: --revision:; specify a revision (range) to show"
         "--show-commit; show git commit IDs as well"
         "v --verbose; print additional info"
         ) #<#
         command -f completion/git::svn:getcommonopt
+        if command -vf completion/git::log:getopt >/dev/null 2>&1 ||
+                        . -AL completion/git-log; then
+                command -f completion/git::log:getopt
+        fi
 
         command -f completion//parseoptions -n
         case $ARGOPT in
@@ -372,7 +387,10 @@ function completion/git::svn:log:arg {
                         command -f completion/git::completepath -a
                         ;;
                 (*)
-                        command -f completion/git::svn:compopt
+                        command -f completion/git::svn:compopt ||
+                        if command -vf completion/git::log:compopt >/dev/null 2>&1; then
+                                command -f completion/git::log:compopt
+                        fi
                         ;;
         esac
 
@@ -432,6 +450,33 @@ function completion/git::svn:proplist:arg {
                         ;;
                 (*)
                         command -f completion/git::svn:compopt
+                        ;;
+        esac
+
+}
+
+function completion/git::svn:propset:arg {
+
+        OPTIONS=()
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                ('')
+                        command -f completion//getoperands
+                        case ${WORDS[#]} in
+                        (0)
+                                # TODO complete property name
+                                ;;
+                        (1)
+                                # property value
+                                ;;
+                        (2)
+                                command -f completion/git::completepath -r
+                                ;;
+                        esac
                         ;;
         esac
 
@@ -549,7 +594,11 @@ function completion/git::svn:tag:arg {
 
 function completion/git::svn:getcommonopt {
         OPTIONS=("$OPTIONS" #>#
+        "--follow-parent; recreate history with branching and merged commits"
+        "i: --id:; specify a ref name to fetch from"
+        "--no-follow-parent; create a linear history"
         "q --quiet; print less messages"
+        "R: --svn-remote: specify the Subversion remote"
         ) #<#
 }
 
@@ -560,9 +609,17 @@ function completion/git::svn:getauthoropt {
         ) #<#
 }
 
+function completion/git::svn:getregexfilteropt {
+        OPTIONS=("$OPTIONS" #>#
+        "--ignore-paths:; ignore paths matching the specified regular expression"
+        "--ignore-refs:; ignore refs matching the specified regular expression"
+        "--include-paths:; only fetch paths that match the specified regular expression"
+        ) #<#
+}
+
 function completion/git::svn:compopt
         case $ARGOPT in
-                (A|--authors-file|--ignore-paths|--placeholder-filename)
+                ([AF]|--authors-file|--file|--ignore-paths|--include-paths|--placeholder-filename)
                         complete -P "$PREFIX" -f
                         ;;
                 (--authors-prog)

@@ -1,7 +1,7 @@
-# (C) 2011-2016 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-log" command.
-# Supports Git 2.11.0.
+# Supports Git 2.48.1.
 
 function completion/git-log {
         WORDS=(git log "${WORDS[2,-1]}")
@@ -31,14 +31,19 @@ function completion/git::log:arg {
 function completion/git::log:getopt {
         OPTIONS=("$OPTIONS" #>#
         "--bisect; show commits between good and bad only"
+        "--clear-decorations; decorate with the default set of refs"
         "--decorate::; show ref names of commits"
+        "--decorate-refs::; only decorate with refs that match the given pattern"
+        "--decorate-refs-exclude::; only decorate with refs that don't match the given pattern"
         "--follow; show history beyond filename renaming"
         "--full-diff; show diffs for all files affected in each commit"
         "L:; specify a range in a file to trace history"
         "--log-size; print its size before printing log messages"
+        "--mailmap --use-mailmap; canonicalize authors, committers and emails"
         "--no-decorate; like --decorate=no"
+        "--no-mailmap --no-use-mailmap; cancel the --mailmap option"
         "--source; show from which ref each commit was reached"
-        "--use-mailmap; canonicalize authors, committers and emails"
+        "t; show tree objects in the diff"
         ) #<#
         if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
                         . -AL completion/git-rev-list; then
@@ -58,6 +63,9 @@ function completion/git::log:compopt
                         complete -P "$PREFIX" -D "show ref names without prefixes" short
                         complete -P "$PREFIX" -D "don't show ref names" no
                         ;; #<<#
+                (--decorate-refs*)
+                        command -f completion/git::completeref
+                        ;;
                 (L)
                         case $TARGETWORD in (?*:*)
                                 typeset w="${TARGETWORD#?*:}"

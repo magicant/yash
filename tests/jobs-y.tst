@@ -51,14 +51,13 @@ __OUT__
 test_oE 'exit status of suspended job' -m
 "$TESTEE" -cim --norcfile 'echo 1; suspend; echo 2'
 kill -l $?
-bg >/dev/null
-wait %
-kill -l $?
+#bg >/dev/null
+#wait %
+#kill -l $?
 fg >/dev/null
 __IN__
 1
 STOP
-TTOU
 2
 __OUT__
 

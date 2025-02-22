@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-fetch" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-fetch {
         WORDS=(git fetch "${WORDS[2,-1]}")
@@ -12,12 +12,11 @@ function completion/git::fetch:arg {
 
         OPTIONS=( #>#
         "--dry-run; don't actually fetch anything"
-        "--multiple; allow specifying multiple remotes"
-        "p --prune; delete remote-tracking branches that no longer exist on the remote"
         "q --quiet; don't report progress"
-        "--submodule-prefix" # not for command line use
+        "--stdin; read refspecs from the standard input"
+        "--submodule-prefix:" # not for command line use
         "--recurse-submodules-default::" # not for command line use
-        "t --tags; fetch all tags from the remote"
+        "u --update-head-ok" # not for command line use
         "v --verbose" # TODO description
         ) #<#
         command -f completion/git::fetch:getopt
@@ -27,7 +26,8 @@ function completion/git::fetch:arg {
                 (-)
                         command -f completion//completeoptions
                         ;;
-                (--recurse-submodules|--upload-pack)
+                (--negotiation-tip|--recurse-submodules|--refmap| \
+                        --shallow-exclude|--upload-pack)
                         command -f completion/git::$ARGOPT:arg
                         ;;
                 (--recurse-submodules-default)
@@ -83,22 +83,51 @@ function completion/git::fetch:arg {
 }
 
 function completion/git::fetch:getopt {
-        typeset fetch=
         case ${gitcmd-} in
-                fetch) fetch=true;;
+                (pull) typeset no_pull=;;
+                (*)    typeset no_pull=true;;
         esac
         OPTIONS=("$OPTIONS" #>#
+        "4 --ipv4; use IPv4 addresses only"
+        "6 --ipv6; use IPv6 addresses only"
         "--all; fetch all remotes"
         "a --append; append to (not overwrite) existing FETCH_HEAD"
+        "--atomic; update all local refs atomically"
+        "${no_pull:+--auto-maintenance}; run maintenance tasks after fetching"
         "--depth:; specify the max number of history to fetch"
+        "--deepen:; deepen history of shallow clone by specified number of commits"
         "f --force; allow non-fast-forward update"
+        "j: --jobs:; specify the number of parallel fetches"
         "k --keep; keep downloaded pack"
+        "${no_pull:+--multiple}; allow specifying multiple remotes"
+        "--negotiate-only; just print ancestors of the negotiation tip"
+        "--negotiation-tip:; specify a commit to start negotiation at"
+        "--no-all; don't fetch all remotes"
+        "${no_pull:+--no-auto-maintenance}; don't run maintenance tasks after fetching"
         "--no-recurse-submodules; don't fetch submodules"
-        "${fetch+n} --no-tags; don't fetch tags automatically"
+        "--no-show-forced-updates"
+        "${no_pull:+n} --no-tags; don't fetch tags automatically"
+        "${no_pull:+--no-write-commit-graph}; don't write commit-graph"
+        "${no_pull:+--no-write-fetch-head}; don't update FETCH_HEAD"
+        "--porcelain; produce machine-readable output"
+        "--prefetch; record fetched objects for future use"
         "--progress; report progress"
+        "p --prune; delete remote-tracking branches that no longer exist on the remote"
+        "${no_pull:+P --prune-tags}; delete local tags that no longer exist on the remote"
         "--recurse-submodules::; specify whether to fetch submodules"
-        "u --update-head-ok" # not for command line use
+        "${no_pull:+--refetch}; fetch all objects anew"
+        "--refmap:; specify a local ref to receive fetched refs"
+        "o: --server-option:; specify a server option"
+        "--set-upstream; set upstream for the fetched ref"
+        "--shallow-exclude:; resize history of shallow clone by excluding commits reachable from specified refs"
+        "--shallow-since:; resize history of shallow clone to specified time"
+        "--show-forced-updates"
+        "t --tags; fetch all tags from the remote"
+        "--unshallow; convert shallow clone to complete clone"
+        "--update-shallow; accept refs that update shallow clone"
         "--upload-pack:; specify a path for git-upload-pack on the remote host"
+        "${no_pull:+--write-commit-graph}; write commit-graph"
+        "${no_pull:+--write-fetch-head}; update FETCH_HEAD"
         ) #<#
 }
 

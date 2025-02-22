@@ -1,7 +1,7 @@
-# (C) 2013 magicant
+# (C) 2013-2025 magicant
 
 # Completion script for the "git-whatchanged" command.
-# Supports Git 1.8.1.4.
+# Supports Git 2.48.1.
 
 function completion/git-whatchanged {
         WORDS=(git whatchanged "${WORDS[2,-1]}")
@@ -10,30 +10,10 @@ function completion/git-whatchanged {
 
 function completion/git::whatchanged:arg {
 
-        OPTIONS=()
-
-        if command -vf completion/git::diff-tree:getopt >/dev/null 2>&1 ||
-                        . -AL completion/git-diff-tree; then
-                command -f completion/git::diff-tree:getopt
+        if command -vf completion/git::log:arg >/dev/null 2>&1 ||
+                        . -AL completion/git-log; then
+                command -f completion/git::log:arg
         fi
-        if command -vf completion/git::rev-list:getopt >/dev/null 2>&1 ||
-                        . -AL completion/git-rev-list; then
-                command -f completion/git::rev-list:getopt
-        fi
-
-        command -f completion//parseoptions -n
-        case $ARGOPT in
-                (-)
-                        command -f completion//completeoptions
-                        ;;
-                ('')
-                        command -f completion/git::completerefpath range=true
-                        ;;
-                (*)
-                        command -f completion/git::diff-tree:compopt ||
-                        command -f completion/git::rev-list:compopt
-                        ;;
-        esac
 
 }
 

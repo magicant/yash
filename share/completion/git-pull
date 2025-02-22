@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-pull" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-pull {
         WORDS=(git pull "${WORDS[2,-1]}")
@@ -11,9 +11,9 @@ function completion/git-pull {
 function completion/git::pull:arg {
 
         OPTIONS=( #>#
-        "--no-rebase; cancel the --rebase option"
+        "--no-rebase; don't rebase but merge"
         "q --quiet; don't report progress"
-        "--rebase; rebase the current branch instead of merging"
+        "r:: --rebase::; rebase the current branch instead of merging"
         "v --verbose" # TODO description
         ) #<#
         if command -vf completion/git::fetch:getopt >/dev/null 2>&1 ||
@@ -30,11 +30,18 @@ function completion/git::pull:arg {
                 (-)
                         command -f completion//completeoptions
                         ;;
-                (--recurse-submodules|--upload-pack)
+                (--negotiation-tip|--recurse-submodules|--refmap| \
+                        --shallow-exclude|--upload-pack)
                         command -f completion/git::$ARGOPT:arg
                         ;;
 #               (--depth)
 #                       ;;
+                (r|--rebase) #>>#
+                        complete -P "$PREFIX" -D "don't rebase but merge" false
+                        complete -P "$PREFIX" -D "rebase" true
+                        complete -P "$PREFIX" -D "rebase recreating merge commits" merges
+                        complete -P "$PREFIX" -D "rebase interactively" interactive
+                        ;; #<<#
                 ('')
                         command -f completion//getoperands
                         if [ ${WORDS[#]} -eq 0 ]; then

@@ -1,7 +1,7 @@
-# (C) 2013-2018 magicant
+# (C) 2013-2025 magicant
 
 # Completion script for the "git-grep" command.
-# Supports Git 2.19.1.
+# Supports Git 2.48.1.
 
 function completion/git-grep {
         WORDS=(git grep "${WORDS[2,-1]}")
@@ -36,11 +36,13 @@ function completion/git::grep:arg {
         "i --ignore-case; case-insensitive matching"
         "L --files-without-match; print only the names of files containing no selected lines"
         "l --files-with-matches --name-only; print filenames only"
+        "m: --max-count:; limit the number of matches per file"
         "--max-depth:; specify directory depth to limit search"
         "n --line-number; print line numbers"
         "--no-color; like --color=never"
         "--no-exclude-standard; search ignored files"
         "--no-index; search files outside a working tree"
+        "--no-recursive; only search the operand directory"
         "--not; negate a pattern"
         "--no-textconv; ignore textconv settings"
         "O:: --open-files-in-pager::; open matching files in a pager"
@@ -49,6 +51,7 @@ function completion/git::grep:arg {
         "p --show-function; print the name of the function containing the match"
         "P --perl-regexp; use Perl's regular expression"
         "q --quiet; don't print anything to the standard output"
+        "r --recursive; search subdirectories recursively"
         "--recurse-submodules; search submodules as well"
         "--textconv; honor textconv settings"
         "--threads:; specify the number of worker threads"

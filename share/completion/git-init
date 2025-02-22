@@ -1,7 +1,7 @@
-# (C) 2011 magicant
+# (C) 2011-2025 magicant
 
 # Completion script for the "git-init" command.
-# Supports Git 1.7.7.
+# Supports Git 2.48.1.
 
 function completion/git-init {
         WORDS=(git init "${WORDS[2,-1]}")
@@ -12,7 +12,10 @@ function completion/git::init:arg {
 
         OPTIONS=( #>#
         "--bare; create a bare repository"
+        "b: --initial-branch:; specify the initial branch name"
+        "--object-format:; specify a hash algorithm for objects"
         "q --quiet; print error and warning messages only"
+        "--ref-format:; specify a ref storage format"
         "--separate-git-dir:; specify the repository directory"
         "--shared::; share the repository with other users"
         "--template:; specify a directory that contains templates"
@@ -35,6 +38,12 @@ function completion/git::init:arg {
 
 function completion/git::init:compopt
         case $ARGOPT in
+                (--object-format) #>>#
+                        complete -P "$PREFIX" sha1 sha256
+                        ;; #<<#
+                (--ref-format)
+                        command -f completion/git::--ref-format:arg
+                        ;;
                 (--shared) #>>#
                         complete -P "$PREFIX" -D "set permissions according to the current umask" umask false
                         complete -P "$PREFIX" -D "make the repository group-writable" group true
