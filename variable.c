@@ -2740,20 +2740,20 @@ int read_builtin(int argc, void **argv)
                 return print_builtin_help(ARGV(0));
 #endif
             default:
-                return Exit_ERROR;
+                return 4;
         }
     }
 
     if (ro.ps1 && ro.prompt != NULL)
-        return mutually_exclusive_option_error(L'P', L'p');
+        return mutually_exclusive_option_error(L'P', L'p'), 4;
     if (xoptind == argc)
-        return insufficient_operands_error(1);
+        return insufficient_operands_error(1), 4;
 
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
         if (wcschr(ARGV(i), L'=') != NULL) {
             xerror(0, Ngt("`%ls' is not a valid variable name"), ARGV(i));
-            return Exit_FAILURE;
+            return 4;
         }
     }
 
@@ -2765,7 +2765,7 @@ int read_builtin(int argc, void **argv)
     if (!read_with_prompt(&buf, &cc, &ro)) {
         sb_destroy(&cc);
         wb_destroy(&buf);
-        return Exit_FAILURE;
+        return 3;
     }
 
     /* remove trailing newline */
@@ -2825,8 +2825,7 @@ int read_builtin(int argc, void **argv)
     pl_destroy(&list);
     sb_destroy(&cc);
     wb_destroy(&buf);
-    return (!eof && yash_error_message_count == 0)
-            ? Exit_SUCCESS : Exit_FAILURE;
+    return yash_error_message_count != 0 ? 2 : eof ? 1 : 0;
 }
 
 /* Reads one line from the standard input. The result is appended to `buf' and

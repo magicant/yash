@@ -3,6 +3,8 @@
 ## Yash 2.59 (Unreleased)
 
   - Improved POSIX.1-2024 support:
+    - The `read` built-in now returns a more specific exit status
+      depending on the cause of the error.
     - The `trap` built-in now supports the `-p` option in the POSIXly-
       correct mode. When the `-p` option is used, the built-in prints
       all traps without filtering out traps that are not set.

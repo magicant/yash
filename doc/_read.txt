@@ -78,10 +78,12 @@ Names of variables to which input words are assigned.
 [[exitstatus]]
 == Exit status
 
-The exit status of the read built-in is zero unless there is any error.
-
-Note that the exit status is non-zero if an end of input is encountered before
-reading the entire line.
+The exit status is 0 if the read built-in successfully reads a line.
+If the end of the input is reached, the exit status is 1.
+The variables are assigned the words read so far.
+If a variable is read-only, the exit status is 2.
+If the standard input is unreadable, the exit status is 3.
+In case of a syntax error in the command line arguments, the exit status is 4.
 
 [[notes]]
 == Notes
@@ -90,6 +92,8 @@ The read built-in is a link:builtin.html#types[mandatory built-in].
 
 The POSIX standard defines the +-r+  option only:
 other options cannot be used in the link:posix.html[POSIXly-correct mode].
+Only the exit status 0 and 1 are portable; for other error conditions, the
+exit status may be different in other shells.
 
 The link:params.html#sv-ps1r[+PS1R+] and link:params.html#sv-ps1s[+PS1S+]
 variables affect the behavior of line-editing if the +PS1+ prompt is used. The

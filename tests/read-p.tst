@@ -52,6 +52,24 @@ B
 C
 __OUT__
 
+test_oE 'variables are assigned even if EOF is reached without newline'
+printf 'foo bar baz' | {
+read a b
+echo $? [$a] [$b]
+}
+__IN__
+1 [foo] [bar baz]
+__OUT__
+
+test_oE 'orphan backslash is ignored'
+printf 'foo\' | {
+read a
+printf '[%s]\n' "$a"
+}
+__IN__
+[foo]
+__OUT__
+
 test_oE 'set -o allexport'
 (
 set -a
@@ -191,6 +209,18 @@ __IN__
 0 [A A] [ B ] [C\C-C\] [D]
 __OUT__
 
+test_oE 'line continuation and newline as IFS'
+IFS='
+' read a b <<\END
+A\
+B
+C
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]"
+__IN__
+0 [AB] []
+__OUT__
+
 test_oE 'variables are assigned empty string for missing fields'
 read a b c d <<\END
 A B
@@ -257,15 +287,6 @@ echoraw $? "[${a-unset}]" "[${b-unset}]" "[${c-unset}]" "[${d-unset}]" \
     "[${e-unset}]" "[${f-unset}]"
 __IN__
 0 [A] [B] [] [D] [E] [- F\]
-__OUT__
-
-test_oE 'input ending without newline'
-printf 'A' | {
-read a
-echo $? $a
-}
-__IN__
-1 A
 __OUT__
 
 test_oE 'in subshell'

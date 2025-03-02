@@ -2,17 +2,6 @@
 
 setup -d
 
-test_oE 'variables are assigned even if EOF is encountered'
-read a b c </dev/null
-echo $?
-typeset -p a b c
-__IN__
-1
-typeset a=''
-typeset b=''
-typeset c=''
-__OUT__
-
 test_oE 'input ending with backslash - not raw mode'
 printf '%s' 'A\' | {
 read a
@@ -181,23 +170,33 @@ __IN__
 [A] [B:C:D]
 __OUT__
 
-test_O -d -e 1 'reading from closed stream'
+test_o -d 'assignment to read-only variable'
+readonly a
+echo A | {
+read a
+echo $? [$a]
+}
+__IN__
+2 []
+__OUT__
+
+test_O -d -e 3 'reading from closed stream'
 read foo <&-
 __IN__
 
-test_Oe -e 2 'specifying -P and -p both'
+test_Oe -e 4 'specifying -P and -p both'
 read -P -p X foo
 __IN__
 read: the -P option cannot be used with the -p option
 __ERR__
 
-test_Oe -e 2 'missing operand'
+test_Oe -e 4 'missing operand'
 read
 __IN__
 read: this command requires an operand
 __ERR__
 
-test_Oe -e 1 'invalid variable name'
+test_Oe -e 4 'invalid variable name'
 read a=b
 __IN__
 read: `a=b' is not a valid variable name
@@ -212,7 +211,7 @@ __IN__
 readonly ''=foo
 __OUT__
 
-test_Oe -e 2 'invalid option'
+test_Oe -e 4 'invalid option'
 read --no-such-option foo
 __IN__
 read: `--no-such-option' is not a valid option

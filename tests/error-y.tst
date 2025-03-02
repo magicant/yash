@@ -143,9 +143,15 @@ __IN__
 exec: --cle=X: the --clear option does not take an argument
 __ERR__
 
+(
+if ! testee -c "set +o posix; command -bv ulimit" >/dev/null; then
+    skip="true" # TODO Remove this condition when ulimit is made mandatory
+fi
+
 test_O -e 2 'ambiguous long option, exit status and standard output'
-read --p X
+ulimit --s
 __IN__
+)
 
 test_o 'ambiguous long option, standard error'
 read --p X 2>&1 | head -n 1
