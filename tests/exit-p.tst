@@ -78,17 +78,7 @@ trap exit EXIT
 exit 1
 __IN__
 
-if [ "$(uname)" = Darwin ]; then
-    # On macOS, kill(2) does not appear to run any signal handlers
-    # synchronously, making it impossible for the shell to respond to self-sent
-    # signals at a predictable time. To work around this issue, the kill
-    # built-in is called in a subshell on macOS, using the SIGCHLD signal as a
-    # synchronization trigger.
-    setup <<\__EOF__
-killx() (((command kill "$@"); :); :)
-alias kill=killx
-__EOF__
-fi
+macos_kill_workaround
 
 test_OE -e 3 'exit from signal trap with 3'
 trap '(exit 2); exit 3' INT
