@@ -104,9 +104,9 @@ void init_builtin(void)
 
     /* defined in "builtin.c" */
     DEFBUILTIN(":", true_builtin, BI_SPECIAL, colon_help, colon_syntax, NULL);
-    DEFBUILTIN("true", true_builtin, BI_MANDATORY, true_help, true_syntax,
+    DEFBUILTIN("true", true_builtin, BI_SUBSTITUTIVE, true_help, true_syntax,
             NULL);
-    DEFBUILTIN("false", false_builtin, BI_MANDATORY, false_help, false_syntax,
+    DEFBUILTIN("false", false_builtin, BI_SUBSTITUTIVE, false_help, false_syntax,
             NULL);
 #if YASH_ENABLE_HELP
     DEFBUILTIN("help", help_builtin, BI_ELECTIVE, help_help, help_syntax,
@@ -119,7 +119,7 @@ void init_builtin(void)
     /* defined in "path.c" */
     DEFBUILTIN("cd", cd_builtin, BI_MANDATORY, cd_help, cd_syntax,
             cd_options);
-    DEFBUILTIN("pwd", pwd_builtin, BI_MANDATORY, pwd_help, pwd_syntax,
+    DEFBUILTIN("pwd", pwd_builtin, BI_SUBSTITUTIVE, pwd_help, pwd_syntax,
             pwd_options);
     DEFBUILTIN("hash", hash_builtin, BI_MANDATORY, hash_help, hash_syntax,
             hash_options);

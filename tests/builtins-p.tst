@@ -329,10 +329,6 @@ test_OE -e 0 'intrinsic built-in command can be invoked without $PATH'
 command :
 __IN__
 
-test_OE 'intrinsic built-in false can be invoked without $PATH'
-false
-__IN__
-
 # Tested in builtins-y.tst.
 #test_OE -e 0 'intrinsic built-in fc can be invoked without $PATH'
 #test_OE -e 0 'intrinsic built-in fg can be invoked without $PATH'
@@ -353,17 +349,9 @@ test_OE -e 0 'intrinsic built-in kill can be invoked without $PATH'
 kill -0 $$
 __IN__
 
-test_E -e 0 'intrinsic built-in pwd can be invoked without $PATH'
-pwd
-__IN__
-
 test_OE -e 0 'intrinsic built-in read can be invoked without $PATH'
 read a
 _this_line_is_read_by_the_read_built_in_
-__IN__
-
-test_OE -e 0 'intrinsic built-in true can be invoked without $PATH'
-true
 __IN__
 
 test_E -e 0 'intrinsic built-in type can be invoked without $PATH'

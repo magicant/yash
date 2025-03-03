@@ -24,9 +24,9 @@ __IN__
 a
 __OUT__
 
-test_OE -e n 'command ignores function (mandatory built-in)'
-false () { true; }
-command false
+test_OE -e 0 'command ignores function (mandatory built-in)'
+alias () { false; }
+command alias
 __IN__
 
 test_E -e 0 'command ignores function (substitutive built-in)'
