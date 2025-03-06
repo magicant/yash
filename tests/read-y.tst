@@ -24,6 +24,34 @@ __IN__
 typeset a='A\'
 __OUT__
 
+test_oE 'input containing null byte'
+printf 'A\0B\n' | { read a; printf '%s\n' "$a"; }
+__IN__
+A
+__OUT__
+
+# Regardless of the -d option, only backslash-newline is treated as line continuation.
+test_oE 'line continuation with non-default delimiter'
+read -d : a <<'END'
+A\
+B:C
+END
+echoraw $? "[${a-unset}]"
+__IN__
+0 [AB]
+__OUT__
+
+# When the delimiter is backslash, no escape sequence is recognized.
+test_oE 'backslash as delimiter'
+read -d \\ a <<'END'
+A\
+B
+END
+echoraw $? "[${a-unset}]"
+__IN__
+0 [A]
+__OUT__
+
 (
 setup 'set --empty-last-field'
 
@@ -188,6 +216,12 @@ test_Oe -e 4 'specifying -P and -p both'
 read -P -p X foo
 __IN__
 read: the -P option cannot be used with the -p option
+__ERR__
+
+test_Oe -e 4 'multi-character delimiter'
+read -d AB foo
+__IN__
+read: multi-character delimiter is not supported
 __ERR__
 
 test_Oe -e 4 'missing operand'

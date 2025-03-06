@@ -268,6 +268,18 @@ __IN__
 0 [ A B  C  D\E-F\-G ] [] [] []
 __OUT__
 
+test_oE 'non-default delimiters'
+{
+read -d : a b
+read -d x c d
+} <<\END
+A B:C D ExF
+END
+echoraw $? "[${a-unset}]" "[${b-unset}]" "[${c-unset}]" "[${d-unset}]"
+__IN__
+0 [A] [B] [C] [D E]
+__OUT__
+
 test_oE 'raw mode - backslash not in IFS'
 IFS=' -' read -r a b c d <<\END
 A\A\\ B-C\- D\

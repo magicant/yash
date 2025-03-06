@@ -1,4 +1,4 @@
-# (C) 2010-2015 magicant
+# (C) 2010-2025 magicant
 
 # Completion script for the "read" built-in command.
 
@@ -7,6 +7,7 @@ function completion/read {
         typeset OPTIONS ARGOPT PREFIX
         OPTIONS=( #>#
         "A --array; assign words to an array"
+        "d: --delimiter:; specify a delimiter"
         "e --line-editing; use line-editing"
         "P --ps1; use \$PS1 as a prompt"
         "p: --prompt:; specify a prompt"
@@ -18,6 +19,8 @@ function completion/read {
         case $ARGOPT in
         (-)
                 command -f completion//completeoptions
+                ;;
+        (d|--delimiter)
                 ;;
         (p|--prompt)
                 complete -P "$PREFIX" -fv
