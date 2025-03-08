@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.c: functions for input of command line */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,8 @@
 
 static bool is_seekable_file(int fd);
 static inputresult_T optimized_read_input(
-        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, bool trap,
+        wchar_t delimiter)
     __attribute__((nonnull));
 static wchar_t *expand_prompt_variable(wchar_t num, wchar_t suffix)
     __attribute__((malloc,warn_unused_result));
@@ -111,8 +112,16 @@ inputresult_T input_file(struct xwcsbuf_T *buf, void *inputinfo)
 inputresult_T read_input(
         xwcsbuf_T *buf, struct input_file_info_T *info, bool trap)
 {
+    return read_input_delimited(buf, info, trap, L'\n');
+}
+
+/* Like `read_input', but reads input until a delimiter character is found. */
+inputresult_T read_input_delimited(
+        xwcsbuf_T *buf, struct input_file_info_T *info, bool trap,
+        wchar_t delimiter)
+{
     if (info->bufsize == 1 && is_seekable_file(info->fd))
-        return optimized_read_input(buf, info, trap);
+        return optimized_read_input(buf, info, trap, delimiter);
 
     size_t initlen = buf->length;
     inputresult_T status = INPUT_EOF;
@@ -170,7 +179,7 @@ read_input:  /* if there's nothing in the buffer, read the next input */
             default:
                 info->bufpos += convcount;
                 buf->contents[++buf->length] = L'\0';
-                if (buf->contents[buf->length - 1] == L'\n')
+                if (buf->contents[buf->length - 1] == delimiter)
                     goto end;
                 break;
         }
@@ -200,7 +209,8 @@ bool is_seekable_file(int fd)
  * once even if `info->bufsize' is 1. The input file descriptor must be
  * seekable. */
 inputresult_T optimized_read_input(
-        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, bool trap,
+        wchar_t delimiter)
 {
     struct input_file_info_T *tmpinfo =
         xmallocs(sizeof *tmpinfo, BUFSIZ, sizeof *tmpinfo->buf);
@@ -212,7 +222,7 @@ inputresult_T optimized_read_input(
     while (info->bufpos < info->bufmax)
         tmpinfo->buf[tmpinfo->bufmax++] = info->buf[info->bufpos++];
 
-    inputresult_T result = read_input(buf, tmpinfo, trap);
+    inputresult_T result = read_input_delimited(buf, tmpinfo, trap, delimiter);
 
     if (tmpinfo->bufpos < tmpinfo->bufmax) {
         /* rewind the FD to pretend we're not buffering */
