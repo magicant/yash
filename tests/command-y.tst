@@ -81,22 +81,19 @@ unset: a special built-in
 __OUT__
 
 test_oE -e 0 'describing mandatory built-ins (-V)'
-command -V alias bg cd command false fg getopts hash jobs kill pwd read true \
+command -V alias bg cd command fg getopts hash jobs kill read \
     type umask unalias wait
 __IN__
 alias: a mandatory built-in
 bg: a mandatory built-in
 cd: a mandatory built-in
 command: a mandatory built-in
-false: a mandatory built-in
 fg: a mandatory built-in
 getopts: a mandatory built-in
 hash: a mandatory built-in
 jobs: a mandatory built-in
 kill: a mandatory built-in
-pwd: a mandatory built-in
 read: a mandatory built-in
-true: a mandatory built-in
 type: a mandatory built-in
 umask: a mandatory built-in
 unalias: a mandatory built-in
@@ -133,8 +130,38 @@ if ! testee -c 'command -bv echo' >/dev/null; then
     skip="true"
 fi
 
-test_OE 'describing substitutive built-in (-V)'
+test_OE 'describing substitutive built-in echo (-V)'
 command -V echo | grep -v "^echo: a substitutive built-in "
+__IN__
+)
+
+(
+if ! testee -c 'command -bv false' >/dev/null; then
+    skip="true"
+fi
+
+test_OE 'describing substitutive built-in false (-V)'
+command -V false | grep -v "^false: a substitutive built-in "
+__IN__
+)
+
+(
+if ! testee -c 'command -bv true' >/dev/null; then
+    skip="true"
+fi
+
+test_OE 'describing substitutive built-in true (-V)'
+command -V true | grep -v "^true: a substitutive built-in "
+__IN__
+)
+
+(
+if ! testee -c 'command -bv pwd' >/dev/null; then
+    skip="true"
+fi
+
+test_OE 'describing substitutive built-in pwd (-V)'
+command -V pwd | grep -v "^pwd: a substitutive built-in "
 __IN__
 )
 
