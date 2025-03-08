@@ -1232,6 +1232,11 @@ int change_directory(
 
     assert(!logical || !ensure_pwd);
 
+    if ( newpwd[0] == L'\0' ) {
+	xerror(0, Ngt("empty directory"));
+	return 5;
+    }
+
     /* get the current value of $PWD as `origpwd' */
     origpwd = getvar(L VAR_PWD);
     if (origpwd == NULL || origpwd[0] != L'/') {

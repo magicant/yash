@@ -19,6 +19,8 @@
       of mode.
     - The `true`, `false`, and `pwd` built-ins are now substitutive
       built-ins.
+    - The `cd` built-in now exits with status code 5, when an empty 
+      operand is supplied.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
