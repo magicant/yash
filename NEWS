@@ -17,6 +17,8 @@
       suspended if job-control is on. The built-in now waits for the
       target process to exit or be terminated by a signal regardless
       of mode.
+    - The `true`, `false`, and `pwd` built-ins are now substitutive
+      built-ins.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
