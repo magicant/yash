@@ -1232,7 +1232,7 @@ int change_directory(
 
     assert(!logical || !ensure_pwd);
 
-    if ( newpwd[0] == L'\0' ) {
+    if (newpwd[0] == L'\0') {
 	xerror(0, Ngt("empty directory"));
 	return 5;
     }
