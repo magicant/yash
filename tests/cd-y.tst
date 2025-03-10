@@ -21,7 +21,7 @@ __ERR__
 test_Oe -e 5 'empty operand'
 cd ''
 __IN__
-cd: empty directory
+cd: empty directory name
 __ERR__
 
 testcase "$LINENO" 'unset PWD' \
