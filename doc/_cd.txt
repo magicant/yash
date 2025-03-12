@@ -106,7 +106,8 @@ specified either, the default is the link:params.html#sv-home[home directory].
 * If {{directory}} cannot be processed because of an unset or empty
   link:params.html#sv-home[+HOME+] or link:params.html#sv-oldpwd[+OLDPWD+],
   the exit status is 4.
-* If the command arguments are invalid, the exit status is 5.
+* If the command arguments are invalid or if an empty operand is supplied
+  for {{directory}}, the exit status is 5.
 
 If and only if the exit status is 2 or larger, the working directory is not
 changed.
