@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.59\n"
 "Report-Msgid-Bugs-To: https://github.com/magicant/yash/issues\n"
-"POT-Creation-Date: 2025-03-07 01:00+0900\n"
-"PO-Revision-Date: 2025-03-07 01:02+0900\n"
+"POT-Creation-Date: 2025-03-12 16:03+0900\n"
+"PO-Revision-Date: 2025-03-12 16:04+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@wonderwand.net>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -199,7 +199,7 @@ msgid "\thelp [built-in...]\n"
 msgstr "\thelp [組込みコマンド...]\n"
 
 #: builtins/printf.c:220 builtins/printf.c:353 history.c:1473 job.c:1099
-#: path.c:1563 util.c:285
+#: path.c:1568 util.c:285
 msgid "cannot print to the standard output"
 msgstr "標準出力に出力できません"
 
@@ -268,8 +268,8 @@ msgid "`%ls' is not a unary operator"
 msgstr "「%ls」は単項演算子ではありません"
 
 #: builtins/test.c:188 builtins/test.c:656 builtins/test.c:664 exec.c:2116
-#: exec.c:2260 exec.c:2269 history.c:1507 lineedit/keymap.c:481 path.c:1285
-#: path.c:1352 strbuf.c:566 strbuf.c:589
+#: exec.c:2260 exec.c:2269 history.c:1507 lineedit/keymap.c:481 path.c:1290
+#: path.c:1357 strbuf.c:566 strbuf.c:589
 msgid "unexpected error"
 msgstr "想定外のエラーです"
 
@@ -1262,60 +1262,64 @@ msgstr "$HOME が設定されていません"
 msgid "$OLDPWD is not set"
 msgstr "$OLDPWD が設定されていません"
 
-#: path.c:1239
+#: path.c:1236
+msgid "empty directory name"
+msgstr "ディレクトリ名が空です"
+
+#: path.c:1244
 msgid "$PWD has an invalid value"
 msgstr "$PWD の値が正しくありません"
 
-#: path.c:1248 path.c:1259 path.c:1558
+#: path.c:1253 path.c:1264 path.c:1563
 msgid "cannot determine the current directory"
 msgstr "現在の作業ディレクトリが分かりません"
 
-#: path.c:1326
+#: path.c:1331
 #, c-format
 msgid "`%ls'"
 msgstr "「%ls」"
 
-#: path.c:1357
+#: path.c:1362
 #, c-format
 msgid "`%s'"
 msgstr "「%s」"
 
-#: path.c:1509
+#: path.c:1514
 msgid "change the working directory"
 msgstr "作業ディレクトリを変更する"
 
-#: path.c:1512
+#: path.c:1517
 msgid "\tcd [-L|-P [-e]] [directory]\n"
 msgstr "\tcd [-L|-P [-e]] [ディレクトリ]\n"
 
-#: path.c:1570
+#: path.c:1575
 msgid "print the working directory"
 msgstr "作業ディレクトリを表示する"
 
-#: path.c:1573
+#: path.c:1578
 msgid "\tpwd [-L|-P]\n"
 msgstr "\tpwd [-L|-P]\n"
 
-#: path.c:1628
+#: path.c:1633
 #, c-format
 msgid "no such user `%ls'"
 msgstr "「%ls」というユーザは存在しません"
 
-#: path.c:1650
+#: path.c:1655
 #, c-format
 msgid "`%ls': a command name must not contain `/'"
 msgstr "「%ls」: コマンド名に / を含めることはできません"
 
-#: path.c:1658
+#: path.c:1663
 #, c-format
 msgid "command `%s' was not found in $PATH"
 msgstr "コマンド「%s」は $PATH の中に見つかりませんでした"
 
-#: path.c:1707
+#: path.c:1712
 msgid "remember, forget, or report command locations"
 msgstr "コマンドのパスのキャッシュデータを登録・消去・表示する"
 
-#: path.c:1710
+#: path.c:1715
 msgid ""
 "\thash command...\n"
 "\thash -r [command...]\n"
@@ -1331,16 +1335,16 @@ msgstr ""
 "\thash -d -r [ユーザ...]\n"
 "\thash -d  # 記憶したパスを表示する\n"
 
-#: path.c:1816 path.c:1899
+#: path.c:1821 path.c:1904
 #, c-format
 msgid "`%ls' is not a valid mask specification"
 msgstr "「%ls」は有効なマスク設定ではありません"
 
-#: path.c:1926
+#: path.c:1931
 msgid "print or set the file creation mask"
 msgstr "ファイル作成マスクを表示または設定する"
 
-#: path.c:1929
+#: path.c:1934
 msgid ""
 "\tumask mode\n"
 "\tumask [-S]\n"
