@@ -32,6 +32,7 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <sys/stat.h>
+#include "../redir.h"
 #include "../history.h"
 #include "../job.h"
 #include "../option.h"
@@ -516,13 +517,13 @@ void finish(void)
     display_active = false;
 }
 
-/* Flushes the contents of the print buffer to the standard error and destroys
+/* Flushes the contents of the print buffer to the tty and destroys
  * the buffer. */
 void le_display_flush(void)
 {
     current_position = lebuf.pos;
-    fwrite(lebuf.buf.contents, 1, lebuf.buf.length, stderr);
-    fflush(stderr);
+    write(ttyfd, lebuf.buf.contents, lebuf.buf.length);
+    fsync(ttyfd);
     sb_destroy(&lebuf.buf);
 }
 
@@ -1505,7 +1506,7 @@ size_t select_list_item(size_t index, int offset, size_t listsize)
  * terminal and returns true. */
 bool le_try_print_prompt(const wchar_t *s)
 {
-    if (isatty(STDERR_FILENO) && le_setupterm(true)) {
+    if (le_setupterm(true)) {
         lebuf_init((le_pos_T) { 0, 0 });
         lebuf_print_prompt(s);
         le_display_flush();
