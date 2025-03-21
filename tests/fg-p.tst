@@ -16,8 +16,10 @@ chmod a+x job2
 
 mkfifo fifo
 
-test_O -d -e n 'fg cannot be used when job control is disabled' +m
+test_O -d -e n 'fg cannot be used when job control is disabled'
+set -m
 :&
+set +m
 fg
 __IN__
 
