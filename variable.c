@@ -1608,12 +1608,13 @@ static bool read_with_prompt(
 static struct promptset_T promptset_for_read(
         bool firstline, const struct reading_option_T *ro)
     __attribute__((nonnull,warn_unused_result));
-static wchar_t *read_one_line_with_prompt(
-        struct promptset_T prompt, bool lineedit)
-    __attribute__((malloc,warn_unused_result));
-static wchar_t *read_one_line(void)
-    __attribute__((malloc,warn_unused_result));
-static bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *cc)
+static xwcsbuf_T read_one_line_with_prompt(
+        struct promptset_T prompt, wchar_t delimiter, bool lineedit)
+    __attribute__((warn_unused_result));
+static xwcsbuf_T read_one_line(wchar_t delimiter)
+    __attribute__((warn_unused_result));
+static bool unescape_line(
+        const xwcsbuf_T *line, xwcsbuf_T *buf, xstrbuf_T *cc, wchar_t delimiter)
     __attribute__((nonnull));
 static void assign_array(const wchar_t *name, const plist_T *ranges, size_t i)
     __attribute__((nonnull));
@@ -2694,6 +2695,7 @@ const char getopts_syntax[] = Ngt(
 /* Options for the "read" built-in. */
 const struct xgetopt_T read_options[] = {
     { L'A', L"array",        OPTARG_NONE,     false, NULL, },
+    { L'd', L"delimiter",    OPTARG_REQUIRED, true,  NULL, },
     { L'e', L"line-editing", OPTARG_NONE,     false, NULL, },
     { L'P', L"ps1",          OPTARG_NONE,     false, NULL, },
     { L'p', L"prompt",       OPTARG_REQUIRED, false, NULL, },
@@ -2706,11 +2708,12 @@ const struct xgetopt_T read_options[] = {
 
 struct reading_option_T {
     bool array, lineedit, ps1, raw;
-    const wchar_t *prompt;
+    const wchar_t *delimiter, *prompt;
 };
 
 /* The "read" built-in, which accepts the following options:
  *  -A: assign values to array
+ *  -d: specify delimiter
  *  -e: use line-editing
  *  -P: use $PS1
  *  -p: specify prompt
@@ -2723,6 +2726,7 @@ int read_builtin(int argc, void **argv)
         .lineedit = false,
         .ps1 = false,
         .raw = false,
+        .delimiter = L"\n",
         .prompt = NULL,
     };
 
@@ -2730,30 +2734,35 @@ int read_builtin(int argc, void **argv)
     xoptind = 0;
     while ((opt = xgetopt(argv, read_options, 0)) != NULL) {
         switch (opt->shortopt) {
-            case L'A':  ro.array    = true;     break;
-            case L'e':  ro.lineedit = true;     break;
-            case L'P':  ro.ps1      = true;     break;
-            case L'p':  ro.prompt   = xoptarg;  break;
-            case L'r':  ro.raw      = true;     break;
+            case L'A':  ro.array     = true;     break;
+            case L'd':  ro.delimiter = xoptarg;  break;
+            case L'e':  ro.lineedit  = true;     break;
+            case L'P':  ro.ps1       = true;     break;
+            case L'p':  ro.prompt    = xoptarg;  break;
+            case L'r':  ro.raw       = true;     break;
 #if YASH_ENABLE_HELP
             case L'-':
                 return print_builtin_help(ARGV(0));
 #endif
             default:
-                return Exit_ERROR;
+                return 4;
         }
     }
 
     if (ro.ps1 && ro.prompt != NULL)
-        return mutually_exclusive_option_error(L'P', L'p');
+        return mutually_exclusive_option_error(L'P', L'p'), 4;
     if (xoptind == argc)
-        return insufficient_operands_error(1);
+        return insufficient_operands_error(1), 4;
+    if (wcslen(ro.delimiter) > 1) {
+        xerror(0, Ngt("multi-character delimiter is not supported"));
+        return 4;
+    }
 
     /* check if the identifiers are valid */
     for (int i = xoptind; i < argc; i++) {
         if (wcschr(ARGV(i), L'=') != NULL) {
             xerror(0, Ngt("`%ls' is not a valid variable name"), ARGV(i));
-            return Exit_FAILURE;
+            return 4;
         }
     }
 
@@ -2765,17 +2774,19 @@ int read_builtin(int argc, void **argv)
     if (!read_with_prompt(&buf, &cc, &ro)) {
         sb_destroy(&cc);
         wb_destroy(&buf);
-        return Exit_FAILURE;
+        return 3;
     }
+    assert(buf.length == cc.length);
 
-    /* remove trailing newline */
-    bool eof;
-    if (buf.length > 0 && buf.contents[buf.length - 1] == L'\n') {
+    /* remove trailing delimiter */
+    bool delimited;
+    if (buf.length > 0 && buf.contents[buf.length - 1] == ro.delimiter[0] &&
+            !(cc.contents[cc.length - 1] & CC_QUOTED)) {
         wb_truncate(&buf, buf.length - 1);
-        eof = false;
+        sb_truncate(&cc, cc.length - 1);
+        delimited = true;
     } else {
-        /* no newline means the EOF was encountered */
-        eof = true;
+        delimited = false;
     }
 
     /* split fields */
@@ -2825,8 +2836,7 @@ int read_builtin(int argc, void **argv)
     pl_destroy(&list);
     sb_destroy(&cc);
     wb_destroy(&buf);
-    return (!eof && yash_error_message_count == 0)
-            ? Exit_SUCCESS : Exit_FAILURE;
+    return yash_error_message_count != 0 ? 2 : !delimited ? 1 : 0;
 }
 
 /* Reads one line from the standard input. The result is appended to `buf' and
@@ -2840,30 +2850,33 @@ int read_builtin(int argc, void **argv)
 bool read_with_prompt(
         xwcsbuf_T *buf, xstrbuf_T *cc, const struct reading_option_T *ro)
 {
+    wchar_t delimiter = ro->delimiter[0];
+
     bool firstline = true;
     bool completed = false;
     bool use_prompt = is_interactive_now && isatty(STDIN_FILENO);
 
     while (!completed) {
-        wchar_t *line;
+        xwcsbuf_T line;
         if (use_prompt) {
             struct promptset_T prompt = promptset_for_read(firstline, ro);
-            line = read_one_line_with_prompt(prompt, ro->lineedit);
+            line = read_one_line_with_prompt(prompt, delimiter, ro->lineedit);
             free_prompt(prompt);
         } else {
-            line = read_one_line();
+            line = read_one_line(delimiter);
         }
-        if (line == NULL)
+        if (line.contents == NULL)
             return false;
 
         if (ro->raw) {
-            wb_cat(buf, line);
-            sb_ccat_repeat(cc, CC_SOFT_EXPANSION, wcslen(line));
+            wb_cat(buf, line.contents);
+            sb_ccat_repeat(cc, CC_SOFT_EXPANSION, line.length);
             completed = true;
         } else {
-            completed = unescape_line(line, buf, cc);
+            completed =
+                line.length == 0 || unescape_line(&line, buf, cc, delimiter);
         }
-        free(line);
+        wb_destroy(&line);
 
         firstline = false;
     }
@@ -2889,23 +2902,28 @@ struct promptset_T promptset_for_read(
 
 /* Reads one line from the standard input with the specified prompt.
  * If `lineedit' is true, use line-editing if possible.
- * The result is returned as a newly-malloced wide string. The result is null
- * iff an error occurs. */
-wchar_t *read_one_line_with_prompt(struct promptset_T prompt, bool lineedit)
+ * The result is returned as a wide string buffer. The buffer contents are NULL
+ * if an error occurs. */
+xwcsbuf_T read_one_line_with_prompt(
+        struct promptset_T prompt, wchar_t delimiter, bool lineedit)
 {
-    wchar_t *line;
+    xwcsbuf_T buf;
 
     if (lineedit) {
 #if YASH_ENABLE_LINEEDIT
-        if (shopt_lineedit != SHOPT_NOLINEEDIT) {
+        if (delimiter == L'\n' && shopt_lineedit != SHOPT_NOLINEEDIT) {
+            wchar_t *line;
             switch (le_readline(prompt, false, &line)) {
                 case INPUT_OK:
-                    return line;
+                    wb_initwith(&buf, line);
+                    return buf;
                 case INPUT_EOF:
-                    return xwcsdup(L"");
+                    wb_init(&buf);
+                    return buf;
                 case INPUT_INTERRUPTED:
                     set_interrupted();
-                    return NULL;
+                    buf.contents = NULL;
+                    return buf;
                 case INPUT_ERROR:
                     break;
             }
@@ -2916,58 +2934,58 @@ wchar_t *read_one_line_with_prompt(struct promptset_T prompt, bool lineedit)
     print_prompt(prompt.main);
     print_prompt(prompt.styler);
 
-    line = read_one_line();
+    buf = read_one_line(delimiter);
 
     print_prompt(PROMPT_RESET);
 
-    return line;
+    return buf;
 }
 
 /* Reads one line from the standard input without printing any prompt or using
  * line-editing.
  * The result is returned as a newly-malloced wide string. The result is null
  * iff an error occurs. */
-wchar_t *read_one_line(void)
+xwcsbuf_T read_one_line(wchar_t delimiter)
 {
     xwcsbuf_T buf;
     wb_init(&buf);
-    if (read_input(&buf, stdin_input_file_info, false) != INPUT_ERROR)
-        return wb_towcs(&buf);
-    wb_destroy(&buf);
-    return NULL;
+
+    inputresult_T result =
+        read_input_delimited(&buf, stdin_input_file_info, false, delimiter);
+
+    if (result == INPUT_ERROR) {
+        wb_destroy(&buf);
+        buf.contents = NULL;
+    }
+    return buf;
 }
 
 /* Parses a string that may contain backslash escapes.
  * Unescaped `line' is appended to `buf' with a corresponding charcategory_T
  * string appended to `cc'.
- * The result is false iff `line' ends with a line continuation.
- * The line continuation is not appended to `buf'. */
-bool unescape_line(const wchar_t *line, xwcsbuf_T *buf, xstrbuf_T *cc)
+ * The result is false iff the read built-in should read the next line, that is,
+ * the line does not end with an unescaped delimiter.
+ * Line continuations are skipped and not appended to `buf' or `cc'. */
+bool unescape_line(
+        const xwcsbuf_T *line, xwcsbuf_T *buf, xstrbuf_T *cc, wchar_t delimiter)
 {
-    for (;;) {
-        bool splitchar;
-
-        switch (*line) {
-            case L'\0':
+    for (size_t i = 0; i < line->length; i++) {
+        if (delimiter != L'\\' && line->contents[i] == L'\\') {
+            i++;
+            if (i == line->length)
+                break;
+            if (line->contents[i] == L'\n')
+                continue;
+            wb_wccat(buf, line->contents[i]);
+            sb_ccat(cc, CC_SOFT_EXPANSION | CC_QUOTED);
+        } else {
+            wb_wccat(buf, line->contents[i]);
+            sb_ccat(cc, CC_SOFT_EXPANSION);
+            if (line->contents[i] == delimiter)
                 return true;
-            case L'\\':
-                line++;
-                switch (*line) {
-                    case L'\0':
-                        return true;
-                    case L'\n':
-                        return false;
-                }
-                splitchar = false;
-                break;
-            default:
-                splitchar = true;
-                break;
         }
-        wb_wccat(buf, *line);
-        sb_ccat(cc, CC_SOFT_EXPANSION | (splitchar ? 0 : CC_QUOTED));
-        line++;
     }
+    return false;
 }
 
 /* Assigns a result of field-splitting contained in `ranges' to an array named
@@ -3000,7 +3018,7 @@ const char read_help[] = Ngt(
 "read a line from the standard input"
 );
 const char read_syntax[] = Ngt(
-"\tread [-Aer] [-P|-p] variable...\n"
+"\tread [-Aer] [-d delimiter] [-P|-p prompt] variable...\n"
 );
 #endif
 

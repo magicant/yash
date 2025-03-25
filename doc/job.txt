@@ -17,6 +17,9 @@ When job control is active:
   processes to finish, the shell continues to the next command as if the
   process have finished.
   The shell remembers the job as suspended so that it can be resumed later.
+  * If the shell is link:interact.html[interactive] in this case, the shell
+    discards any remaining commands that have been read but not executed, and
+    continues to the next command line prompt.
 - If a job is executed link:syntax.html#async[synchronously], the shell sets
   the foreground process group of the terminal to the process group of the
   job.

@@ -53,4 +53,13 @@ cat sync
 wait $pid
 __IN__
 
+# This is a POSIX requirement, but this test case depends on the shell's
+# behavior that runs all pipeline components in child processes.
+test_o -e 0 'discard remaining commands when a command suspends' -im
+echo resumed | { kill -STOP 0; cat; }; echo not printed 1; echo not printed 2&
+fg >/dev/null
+__IN__
+resumed
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

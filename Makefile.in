@@ -1,5 +1,5 @@
 # Makefile.in for yash: yet another shell
-# (C) 2007-2024 magicant
+# (C) 2007-2025 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -236,7 +236,8 @@ distcheck: dist
 	# Currently, distcheck requires tar that automatically uncompresses
 	# the archive.
 	tar -x -f $(DISTDIR).tar.gz
-	(unset MAKEFLAGS && cd $(DISTDIR) && sh configure && make check dist)
+	(unset MAKEFLAGS && cd $(DISTDIR) && sh configure && \
+		make -j4 check && make -j4 dist)
 	$(RM_DISTDIR)
 
 DISTFILES = $(SOURCES) $(SOURCES:.c=.d) $(HEADERS) README.md README.ja.md COPYING INSTALL INSTALL.ja NEWS NEWS.ja THANKS configure Makefile.in install-sh makedeps.yash

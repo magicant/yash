@@ -3,6 +3,13 @@
 ## Yash 2.59 (Unreleased)
 
   - Improved POSIX.1-2024 support:
+    - When a foreground job suspends in an interactive shell, the shell
+      now discards any remaining commands that were typed but not yet
+      executed, and immediately continues to read the next command.
+    - The `read` built-in now returns a more specific exit status
+      depending on the cause of the error.
+    - The `read` built-in now supports the `-d` option, which can be
+      used to specify a delimiter character.
     - The `trap` built-in now supports the `-p` option in the POSIXly-
       correct mode. When the `-p` option is used, the built-in prints
       all traps without filtering out traps that are not set.
@@ -13,6 +20,10 @@
       suspended if job-control is on. The built-in now waits for the
       target process to exit or be terminated by a signal regardless
       of mode.
+    - The `true`, `false`, and `pwd` built-ins are now substitutive
+      built-ins.
+    - The `cd` built-in now exits with status code 5, when an empty 
+      operand is supplied.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.

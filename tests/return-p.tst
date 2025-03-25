@@ -2,6 +2,8 @@
 
 posix="true"
 
+macos_kill_workaround
+
 test_oE 'returning from function, unnested'
 fn() {
     echo in function

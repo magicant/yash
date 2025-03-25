@@ -8,7 +8,7 @@ The dfn:[read built-in] reads a line from the standard input.
 [[syntax]]
 == Syntax
 
-- +read [-Aer] [-P|-p] {{variable}}...+
+- +read [-Aer] [-d {{delimiter}}] [-P|-p {{prompt}}] {{variable}}...+
 
 [[description]]
 == Description
@@ -27,6 +27,11 @@ When the built-in reads the next line, the link:params.html#sv-ps2[+PS2+
 variable] is used as a prompt if the shell is link:interact.html[interactive]
 and the standard input is a terminal.
 
+By default, the input line is read up to a newline character.
+If the +-d+ (+--delimiter+) option is specified, the input line is read up to
+the specified {{delimiter}} character instead.
+The {{delimiter}} character must be a single character.
+
 The input line is subject to link:expand.html#split[field splitting].
 The resulting words are assigned to {{variable}}s in order.
 If there are more words than {{variable}}s, the last variable is assigned all
@@ -43,6 +48,10 @@ Make the last {{variable}} an link:params.html#arrays[array].
 Instead of assigning a concatenation of the remaining words to a normal
 variable, the words are assigned to an array.
 
++-d {{delimiter}}+::
++--delimiter={{delimiter}}+::
+Read up to the specified {{delimiter}} character instead of a newline.
+
 +-e+::
 +--line-editing+::
 Use link:lineedit.html[line-editing] to read the line.
@@ -53,6 +62,7 @@ To use line-editing, all of the following conditions must also be met:
 - The link:_set.html#so-vi[vi] or link:_set.html#so-emacs[emacs] option is
   enabled.
 - The standard input and standard error are connected to a terminal.
+- The {{delimiter}} is a newline.
 
 +-P+::
 +--ps1+::
@@ -78,18 +88,22 @@ Names of variables to which input words are assigned.
 [[exitstatus]]
 == Exit status
 
-The exit status of the read built-in is zero unless there is any error.
-
-Note that the exit status is non-zero if an end of input is encountered before
-reading the entire line.
+The exit status is 0 if the read built-in successfully reads a line.
+If the end of the input is reached, the exit status is 1.
+The variables are assigned the words read so far.
+If a variable is read-only, the exit status is 2.
+If the standard input is unreadable, the exit status is 3.
+In case of a syntax error in the command line arguments, the exit status is 4.
 
 [[notes]]
 == Notes
 
 The read built-in is a link:builtin.html#types[mandatory built-in].
 
-The POSIX standard defines the +-r+  option only:
-other options cannot be used in the link:posix.html[POSIXly-correct mode].
+The POSIX standard defines the +-d+ and +-r+ options only.
+Other options cannot be used in the link:posix.html[POSIXly-correct mode].
+Only the exit status 0 and 1 are portable; for other error conditions, the
+exit status may be different in other shells.
 
 The link:params.html#sv-ps1r[+PS1R+] and link:params.html#sv-ps1s[+PS1S+]
 variables affect the behavior of line-editing if the +PS1+ prompt is used. The

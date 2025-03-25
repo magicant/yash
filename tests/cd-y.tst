@@ -18,16 +18,11 @@ __IN__
 cd: $HOME is not set
 __ERR__
 
-testcase "$LINENO" 'empty operand is like "."' \
-    3<<\__IN__ 5</dev/null 4<<__OUT__
-unset CDPATH
+test_Oe -e 5 'empty operand'
 cd ''
-echo ---
-pwd
 __IN__
----
-$ORIGPWD
-__OUT__
+cd: empty directory name
+__ERR__
 
 testcase "$LINENO" 'unset PWD' \
     3<<\__IN__ 5</dev/null 4<<__OUT__

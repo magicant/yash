@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* input.h: functions for input of command line */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,10 @@ struct xwcsbuf_T;
 struct input_file_info_T;
 extern inputresult_T read_input(
         struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap)
+    __attribute__((nonnull));
+extern inputresult_T read_input_delimited(
+        struct xwcsbuf_T *buf, struct input_file_info_T *info, _Bool trap,
+        wchar_t delimiter)
     __attribute__((nonnull));
 
 /* The type of input functions.

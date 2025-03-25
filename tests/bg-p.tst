@@ -10,8 +10,10 @@ __END__
 chmod a+x job1
 ln job1 job2
 
-test_O -d -e n 'bg cannot be used when job control is disabled' +m
+test_O -d -e n 'bg cannot be used when job control is disabled'
+set -m
 :&
+set +m
 bg
 __IN__
 

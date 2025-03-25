@@ -43,7 +43,7 @@ v{yashversion},
 - link:_exec.html[+exec+] (S)
 - link:_exit.html[+exit+] (S)
 - link:_export.html[+export+] (S)
-- link:_false.html[+false+] (M)
+- link:_false.html[+false+]
 - link:_fc.html[+fc+] (M)
 - link:_fg.html[+fg+] (M)
 - link:_getopts.html[+getopts+] (M)
@@ -56,7 +56,7 @@ v{yashversion},
 - link:_popd.html[+popd+] (L)
 - link:_printf.html[+printf+]
 - link:_pushd.html[+pushd+] (L)
-- link:_pwd.html[+pwd+] (M)
+- link:_pwd.html[+pwd+]
 - link:_read.html[+read+] (M)
 - link:_readonly.html[+readonly+] (S)
 - link:_return.html[+return+] (S)
@@ -66,7 +66,7 @@ v{yashversion},
 - link:_test.html[+test+]
 - link:_times.html[+times+] (S)
 - link:_trap.html[+trap+] (S)
-- link:_true.html[+true+] (M)
+- link:_true.html[+true+]
 - link:_type.html[+type+] (M)
 - link:_typeset.html[+typeset+] (L)
 - link:_ulimit.html[+ulimit+] (M)
@@ -102,7 +102,7 @@ v{yashversion},
 - link:_umask.html[+umask+] (M)
 - link:_trap.html[+trap+] (S)
 - link:_cd.html[+cd+] (M)
-- link:_pwd.html[+pwd+] (M)
+- link:_pwd.html[+pwd+]
 - link:_times.html[+times+] (S)
 
 [[g-job]]
@@ -137,7 +137,7 @@ v{yashversion},
 
 [role="list-group"]
 - link:_cd.html[+cd+] (M)
-- link:_pwd.html[+pwd+] (M)
+- link:_pwd.html[+pwd+]
 - link:_pushd.html[+pushd+] (L)
 - link:_popd.html[+popd+] (L)
 - link:_dirs.html[+dirs+] (L)
@@ -176,8 +176,8 @@ v{yashversion},
 [role="list-group"]
 - link:_help.html[+help+] (L)
 - link:_colon.html[+:+ (コロン)] (S)
-- link:_true.html[+true+] (M)
-- link:_false.html[+false+] (M)
+- link:_true.html[+true+]
+- link:_false.html[+false+]
 - link:_test.html[+[+ (括弧), +test+]
 - link:_type.html[+type+] (M)
 
