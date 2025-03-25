@@ -127,6 +127,7 @@ typedef enum exception_T {
     E_RETURN,
     E_BREAK_ITERATION,
     E_CONTINUE_ITERATION,
+    E_SUSPEND,
 } exception_T;
 
 /* state of currently executed loop */
@@ -291,6 +292,21 @@ void disable_return(void)
 void cancel_return(void)
 {
     if (exception == E_RETURN)
+        exception = E_NONE;
+}
+
+/* Forces the interactive shell to return to the command prompt by aborting the
+ * current command. This is used when a foreground job has been suspended. */
+void raise_suspend(void)
+{
+    exception = E_SUSPEND;
+}
+
+/* If the shell has been interrupted as a result of a suspended job, clears the
+ * flag. */
+void cancel_suspend(void)
+{
+    if (exception == E_SUSPEND)
         exception = E_NONE;
 }
 

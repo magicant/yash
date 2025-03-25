@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -536,6 +536,7 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
     for (;;) {
         if (pinfo->interactive) {
             set_laststatus_if_interrupted();
+            cancel_suspend();
             forceexit = nextforceexit;
             nextforceexit = false;
             pinfo->lineno = 1;

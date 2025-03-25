@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.h: command execution */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,8 @@ extern void restore_execstate(struct execstate_T *save)
     __attribute__((nonnull));
 extern void disable_return(void);
 extern void cancel_return(void);
+extern void raise_suspend(void);
+extern void cancel_suspend(void);
 extern _Bool need_break(void)
     __attribute__((pure));
 
