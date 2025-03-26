@@ -193,7 +193,7 @@ int main(int argc, char **argv)
             input.fd = STDIN_FILENO;
             inputname = NULL;
             if (!options.is_interactive_set && argc == xoptind
-                    && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+                    && isatty(STDIN_FILENO))
                 is_interactive = true;
             unset_nonblocking(STDIN_FILENO);
         } else {
@@ -212,16 +212,15 @@ int main(int argc, char **argv)
 #if YASH_ENABLE_LINEEDIT
     /* enable line editing if interactive and connected to a terminal */
     if (!options.lineedit_set && shopt_lineedit == SHOPT_NOLINEEDIT)
-        if (is_interactive && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
+        if (is_interactive && isatty(STDIN_FILENO))
             set_lineedit_option(SHOPT_VI);
 #endif
 
+    open_ttyfd();
     is_interactive_now = is_interactive;
     if (!options.do_job_control_set)
         do_job_control = is_interactive;
     if (do_job_control) {
-        open_ttyfd();
-        if (do_job_control)
             ensure_foreground();
     }
     set_signals();
