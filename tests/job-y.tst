@@ -56,7 +56,9 @@ __IN__
 # This is a POSIX requirement, but this test case depends on the shell's
 # behavior that runs all pipeline components in child processes.
 test_o -e 0 'discard remaining commands when a command suspends' -im
-echo resumed | { kill -STOP 0; cat; }; echo not printed 1; echo not printed 2&
+echo resumed | { kill -STOP 0; kill -STOP 0; cat; }; \
+    echo not printed 1; echo not printed 2&
+fg >/dev/null; echo not printed 3; echo not printed 4&
 fg >/dev/null
 __IN__
 resumed
