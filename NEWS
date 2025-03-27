@@ -6,6 +6,9 @@
     - When a foreground job suspends in an interactive shell, the shell
       now discards any remaining commands that were typed but not yet
       executed, and immediately continues to read the next command.
+    - The shell now considers a job to be suspended when any child
+      process suspends in a pipeline, instead of when all child
+      processes suspend.
     - The `read` built-in now returns a more specific exit status
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be

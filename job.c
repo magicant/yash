@@ -416,22 +416,21 @@ found:
 #endif
 
     /* decide the job status from the process status:
-     * - JS_RUNNING if any of the processes is running.
-     * - JS_STOPPED if no processes are running but some are stopped.
+     * - JS_RUNNING if no processes are stopped but some are running.
+     * - JS_STOPPED if any of the processes is stopped.
      * - JS_DONE if all the processes are finished. */
-    jobstatus_T oldstatus = job->j_status;
-    bool anyrunning = false, anystopped = false;
+    jobstatus_T oldstatus = job->j_status, newstatus = JS_DONE;
     /* check if there are running/stopped processes */
     for (size_t i = 0; i < job->j_pcount; i++) {
         switch (job->j_procs[i].pr_status) {
-            case JS_RUNNING:  anyrunning = true;  goto out_of_loop;
-            case JS_STOPPED:  anystopped = true;  break;
-            default:                              break;
+            case JS_RUNNING:  newstatus = JS_RUNNING;  break;
+            case JS_STOPPED:  newstatus = JS_STOPPED;  goto out_of_loop;
+            case JS_DONE:                              break;
         }
     }
 out_of_loop:
-    job->j_status = anyrunning ? JS_RUNNING : anystopped ? JS_STOPPED : JS_DONE;
-    if (job->j_status != oldstatus)
+    job->j_status = newstatus;
+    if (newstatus != oldstatus)
         job->j_statuschanged = true;
 
     goto start;

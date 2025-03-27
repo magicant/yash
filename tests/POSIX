@@ -136,13 +136,14 @@ Volume 3: Shell & Utilities
  * case-y.tst
  * redir-y.tst
 
-2.11 Signals and Error Handling
+2.11 Job Control
+ * job-p.tst
+ * job-y.tst
+
+2.12 Signals and Error Handling
  * sig*-p.tst
  * trap-p.tst
  * wait-p.tst
-
-2.12 Job Control
- * job-p.tst
 
 2.13 Shell Execution Environment
  * trap-p.tst
