@@ -30,6 +30,9 @@
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
+  - [line-editing] Completion for `cd` and `pushd` no longer incorrectly
+    performs pathname expansion on the directory names listed in
+    `$CDPATH` before searching for candidate directories.
   - Fixed a possible crash when the `read` built-in reads input in an
     interactive shell.
   - Added a workaround for an apparent bug in glibc's fsetpos function
