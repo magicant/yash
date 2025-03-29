@@ -1,0 +1,42 @@
+# (C) 2025 unrealapex
+
+# Completion script for cmus-remote
+
+function completion/cmus-remote {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "--server; connect using socket SOCKET instead of \$XDG_RUNTIME_DIR/cmus-socket"
+        "--passwd; password to use for tcp/ip connection"
+        "--help; display usage information and exit"
+        "--version; display version information and exit"
+        "p --play; start playing"
+        "u --pause; toggle pause"
+        "U --pause-playback; pause if currently playing"
+        "s --stop; stop playing"
+        "n --next; skip forward in playlist"
+        "r --prev; skip backward in playlist"
+        "R --repeat; toggle repeat"
+        "S --shuffle; toggle shuffle"
+        "v --volume; change volume"
+        "k --seek; seek"
+        "f --file; play from file"
+        "Q; get player status information"
+        "l --library; modify library instead of playlist"
+        "P --playlist; modify playlist (default)"
+        "q --queue; modify play queue instead of playlist"
+        "c --clear; clear playlist, library (-l), or play queue (-q)"
+        "C --raw; treat arguments (instead of stdin) as raw commands"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

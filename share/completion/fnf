@@ -1,0 +1,38 @@
+# (C) 2025 unrealapex
+
+# Completion script for fnf
+
+function completion/fnf {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "l: --lines:; how many lines to display"
+        "p: --prompt:; input prompt"
+        "s --show-scores; show the scores for each item"
+        "t: --tty:; use tty instead of the default tty device"
+        "q: --query:; use query as the initial search query"
+        "e: --show-matches:; non-interactive mode"
+        "P: --pad:; set left padding of matches"
+        "m --multi; enable multi-selection"
+        "0 --read-null; read input delimited by ascii null characters"
+        "--pointer:; set pointer char of highlighted match"
+        "--marker:; set mult-select marker char"
+        "--cyclic; enable cyclic scrolling"
+        "--tab-accepts; use TAB to print selection and exit"
+        "--right-accepts; use Right arrow to print selection and exit"
+        "--left-aborts; use Left arrow to cancel selection and exit"
+        "--reverse; list from top, prompt at bottom"
+        "--no-color; run colorless"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -1,0 +1,26 @@
+# (C) 2025 unrealapex
+
+# Completion script for cmus
+
+function completion/cmus {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "--listen; listen on ADDR instead of \$CMUS_SOCKET"
+        "--plugins; list availible plugins and exit"
+        "--show-cursor; always display the cursor"
+        "--help; display usage information and exit"
+        "--version; display version information and exit"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

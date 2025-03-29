@@ -1,0 +1,49 @@
+# (C) 2025 unrealapex
+
+# Completion script for catgirl
+
+function completion/catgirl {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "C; set utility used by /copy"
+        "H; set initial seed for color generation"
+        "I; add a case insensitive message highlight pattern"
+        "N; set utility used for notifications"
+        "O; set the utility used by /open"
+        "R; disable the /copy, /exec, /open, and /help commands and notify option"
+        "S; bind to source address HOST when connecting to the server"
+        "T; show time stamps in strftime(3) format"
+        "a; authenticate as user with pass using sasl plain"
+        "c; load the tls cerificate from path"
+        "e; authenticate using sasl external/certfp"
+        "g; generate a tls client cerificate using openssl(1) and write it to path"
+        "h; connect to host"
+        "i; add a case insensitive message ignore pattern"
+        "j; join a comma-separated list of channels"
+        "k; load the tls client private key from path"
+        "l; log chat events to files in paths"
+        "m; set user mode"
+        "n; set nickname"
+        "o; print server certificate chain to stdout in pem format and exit"
+        "p; connect to port"
+        "q; hide general events (joins, quiets, etc.) for new windows"
+        "r; set realname"
+        "s; save and load windows from name"
+        "t; trust the self-signed certificate loaded from path and disable server name verification"
+        "u; set username"
+        "v; log raw irc messages to <debug> window and stderr if it is not a terminal"
+        "w; log in with server password"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
