@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.h: option settings */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ enum shopt_yesnoauto_T {
 extern const wchar_t *command_name;
 extern _Bool posixly_correct;
 extern _Bool is_login_shell;
-extern _Bool is_interactive, is_interactive_now;
+extern _Bool is_interactive;
 extern _Bool shopt_cmdline, shopt_stdin;
 extern _Bool do_job_control, shopt_notify, shopt_notifyle,
        shopt_curasync, shopt_curbg, shopt_curstop;
@@ -61,8 +61,12 @@ extern _Bool shopt_le_visiblebell, shopt_le_promptsp, shopt_le_alwaysrp,
     shopt_le_trimright;
 #endif
 
+/* `is_subshell' is defined in "yash.c". */
+extern _Bool is_subshell;
+/* Whether or not this shell process is working interactively. */
+#define is_interactive_now     (is_interactive && !is_subshell)
 /* Whether or not this shell process is doing job control right now. */
-#define doing_job_control_now  (do_job_control && ttyfd >= 0)
+#define doing_job_control_now  (do_job_control && !is_subshell)
 
 struct shell_invocation_T {
     _Bool help, version;

@@ -78,6 +78,8 @@ pid_t shell_pgid;
 
 /* Set to true when the shell has been initialized. */
 bool shell_initialized;
+/* Set to true in a subshell. */
+bool is_subshell;
 
 /* If this flag is true when the "exit" built-in is invoked, the -f option is
  * assumed to be specified. */
@@ -216,13 +218,11 @@ int main(int argc, char **argv)
             set_lineedit_option(SHOPT_VI);
 #endif
 
-    is_interactive_now = is_interactive;
     if (!options.do_job_control_set)
         do_job_control = is_interactive;
     if (do_job_control) {
         open_ttyfd();
-        if (do_job_control)
-            ensure_foreground();
+        ensure_foreground();
     }
     set_signals();
     set_positional_parameters(&wargv[xoptind]);

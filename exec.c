@@ -1596,7 +1596,7 @@ void become_child(sigtype_T sigtype)
 
     restore_signals(sigtype & t_leave);  /* signal mask is restored here */
     clear_shellfds(sigtype & t_leave);
-    is_interactive_now = false;
+    is_subshell = true;
     suppresserrreturn = false;
     exitstatus = -1;
 }
