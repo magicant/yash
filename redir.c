@@ -265,19 +265,11 @@ int move_to_shellfd(int fd)
     return newfd;
 }
 
-/* Opens `ttyfd'.
- * On failure, an error message is printed and `do_job_control' is set to false.
- */
+/* Opens `ttyfd'. */
 void open_ttyfd(void)
 {
-    if (ttyfd < 0) {
+    if (ttyfd < 0)
         ttyfd = move_to_shellfd(open("/dev/tty", O_RDWR | O_NOCTTY));
-        if (ttyfd < 0) {
-            xerror(errno, Ngt("cannot open file `%s'"), "/dev/tty");
-            xerror(0, Ngt("disabling job control"));
-            do_job_control = false;
-        }
-    }
 }
 
 

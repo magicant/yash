@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* option.c: option settings */
-/* (C) 2007-2023 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,10 +52,10 @@ bool posixly_correct = false;
 bool is_login_shell = false;
 
 /* If set, this shell is interactive.
- * In subshells, `is_interactive_now' is set to false while `is_interactive'
- * remains unchanged.
- * Correspond to the -i/--interactive option. */
-bool is_interactive = false, is_interactive_now = false;
+ * Corresponds to the -i/--interactive option. */
+/* This value does not change when entering a subshell, but subshells do not run
+ * interactively. See the `is_interactive_now' macro. */
+bool is_interactive = false;
 
 /* `shopt_cmdline' is set if the shell is executing a command in the command-
  * line argument to the shell. `shopt_stdin' is set if the shell is reading
@@ -65,6 +65,8 @@ bool shopt_cmdline = false, shopt_stdin = false;
 
 /* If set, the shell performs job control.
  * Corresponds to the -m/--monitor option. */
+/* This value does not change when entering a subshell, but subshells do not
+ * perform job control. See the `doing_job_control_now' macro. */
 bool do_job_control = false;
 /* If set, the shell immediately notifies on change of job status.
  * Corresponds to the -b/--notify option. */
@@ -674,10 +676,10 @@ int set_shell_option(const struct option_T *option, bool enable,
             shell_invocation->do_job_control_set = true;
     }
     if (shell_invocation == NULL && option->optp == &do_job_control) {
-        if (do_job_control && ttyfd < 0)
+        if (doing_job_control_now) {
             open_ttyfd();
-        if (do_job_control)
             ensure_foreground();
+        }
         reset_job_signals();
     }
 #if YASH_ENABLE_LINEEDIT
