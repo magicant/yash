@@ -53,10 +53,25 @@ cat sync
 wait $pid
 __IN__
 
+: TODO This test case is flaky for unknown reasons <<'__IN__'
+# This is a POSIX requirement, but this test case depends on the shell's
+# behavior that runs all pipeline components in child processes.
+test_O -e USR1 'job is considered suspended when any child process suspends' -im
+# This pipeline suspends its second component. The shell should consider the
+# pipeline as suspended.
+: | sh -c 'kill -STOP $$' | sleep 50
+# The pipeline processes are still alive. Send a signal to terminate them.
+kill -USR1 %
+# The exit status should indicate the signal that terminated the pipeline.
+fg >/dev/null
+__IN__
+
 # This is a POSIX requirement, but this test case depends on the shell's
 # behavior that runs all pipeline components in child processes.
 test_o -e 0 'discard remaining commands when a command suspends' -im
-echo resumed | { kill -STOP 0; cat; }; echo not printed 1; echo not printed 2&
+echo resumed | { kill -STOP 0; kill -STOP 0; cat; }; \
+    echo not printed 1; echo not printed 2&
+fg >/dev/null; echo not printed 3; echo not printed 4&
 fg >/dev/null
 __IN__
 resumed

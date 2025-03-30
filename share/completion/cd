@@ -107,7 +107,7 @@ function completion/cd::completedir {
                 return
         esac
 
-        set -o glob -o nullglob
+        set -o noglob
 
         typeset IFS=: cdpath candidates
         for cdpath in ${CDPATH-}; do
@@ -116,6 +116,7 @@ function completion/cd::completedir {
                 fi
 
                 # list candidates by globbing
+                set -o glob -o nullglob
                 candidates=("${cdpath%/}/$word"*/)
 
                 # remove $cdpath and trailing slash

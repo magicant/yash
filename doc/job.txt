@@ -9,13 +9,18 @@ simultaneously and suspends/resumes the commands.
 
 When job control is active:
 
-- Every link:syntax.html#pipelines[pipeline] executed by the shell becomes a
+- Every link:exec.html#subshell[subshell] executed by the shell is assigned a
+  process group ID that is different from the shell's process group ID. The
+  process group ID is unique except for the subcommands of the same pipeline,
+  which share the same process group ID. Such a process group is called a
   dfn:[job].
-  A job has its unique process group ID that is shared among all processes in
-  the job.
-- If the processes of a job are suspended while the shell is waiting for the
-  processes to finish, the shell continues to the next command as if the
-  process have finished.
+  * Exceptionally, subshells created for executing a
+    link:expand.html#cmdsub[command substitution] or
+    link:redir.html#process[process redirection] remain in the same process
+    group as the shell.
+- If a process in a job is suspended while the shell is waiting for the job to
+  complete, the shell stops waiting and continues to the next command as if
+  the job has finished.
   The shell remembers the job as suspended so that it can be resumed later.
   * If the shell is link:interact.html[interactive] in this case, the shell
     discards any remaining commands that have been read but not executed, and
@@ -31,7 +36,8 @@ When job control is active:
 - The standard input of an link:syntax.html#async[asynchronous command] is not
   automatically redirected to /dev/null.
 - The shell does not stop when it receives the SIGTTIN, SIGTTOU, or SIGTSTP
-  signal.
+  signal. Subshells created for executing a command substitution or process
+  redirection do not stop when they receive the SIGTSTP signal.
 - The value of the link:params.html#sp-hyphen[+-+ special parameter] contains
   +m+.
 - When a job finished for which the link:_wait.html[wait built-in] has been
@@ -51,7 +57,7 @@ prints existing jobs
 link:_fg.html[fg] and link:_bg.html[bg]::
 run jobs in the foreground or background
 link:_wait.html[wait]::
-waits for jobs to be finished (or suspended)
+waits for jobs to be finished
 link:_disown.html[disown]::
 forgets jobs
 link:_kill.html[kill]::

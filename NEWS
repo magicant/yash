@@ -6,6 +6,9 @@
     - When a foreground job suspends in an interactive shell, the shell
       now discards any remaining commands that were typed but not yet
       executed, and immediately continues to read the next command.
+    - The shell now considers a job to be suspended when any child
+      process suspends in a pipeline, instead of when all child
+      processes suspend.
     - The `read` built-in now returns a more specific exit status
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be
@@ -28,8 +31,13 @@
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
   - [line-editing] Added completion for bmake and gmake.
+  - [line-editing] Completion for `cd` and `pushd` no longer incorrectly
+    performs pathname expansion on the directory names listed in
+    `$CDPATH` before searching for candidate directories.
   - Fixed a possible crash when the `read` built-in reads input in an
     interactive shell.
+  - Subshells created for executing a process redirection in a job-
+    control shell now ignore the `SIGTSTP` signal.
   - Added a workaround for an apparent bug in glibc's fsetpos function
     that prevents the shell from updating the history file.
 
