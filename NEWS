@@ -29,6 +29,10 @@
       operand is supplied.
     - Job control can now be enabled even if the shell does not have a
       controlling terminal.
+    - If the job-control shell is started in the same process group as
+      the session leader, the shell now forces the process group to be
+      in the foreground, rather than suspending the shell itself until
+      brought to the foreground by some other means.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
