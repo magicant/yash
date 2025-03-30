@@ -271,7 +271,7 @@ int move_to_shellfd(int fd)
 void open_ttyfd(void)
 {
     if (ttyfd < 0) {
-        ttyfd = move_to_shellfd(open("/dev/tty", O_RDWR));
+        ttyfd = move_to_shellfd(open("/dev/tty", O_RDWR | O_NOCTTY));
         if (ttyfd < 0) {
             xerror(errno, Ngt("cannot open file `%s'"), "/dev/tty");
             xerror(0, Ngt("disabling job control"));
