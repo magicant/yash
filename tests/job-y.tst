@@ -53,6 +53,8 @@ cat sync
 wait $pid
 __IN__
 
+macos_kill_workaround
+
 : TODO This test case is flaky for unknown reasons <<'__IN__'
 # This is a POSIX requirement, but this test case depends on the shell's
 # behavior that runs all pipeline components in child processes.
