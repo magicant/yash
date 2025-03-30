@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* redir.c: manages file descriptors and provides functions for redirections */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -843,7 +843,7 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
                     "for the process redirection"));
         return -1;
     }
-    cpid = fork_and_reset(-1, false, 0);
+    cpid = fork_and_reset(-1, false, t_tstp);
     if (cpid < 0) {
         /* fork failure */
         xclose(pipefd[PIPE_IN]);

@@ -35,6 +35,8 @@
     `$CDPATH` before searching for candidate directories.
   - Fixed a possible crash when the `read` built-in reads input in an
     interactive shell.
+  - Subshells created for executing a process redirection in a job-
+    control shell now ignore the `SIGTSTP` signal.
   - Added a workaround for an apparent bug in glibc's fsetpos function
     that prevents the shell from updating the history file.
 
