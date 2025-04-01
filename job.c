@@ -584,6 +584,10 @@ void put_foreground(pid_t pgrp)
  * foreground if the shell is in the same process group as the session leader
  * because it is unlikely that there is another job-controlling process that can
  * bring the shell into the foreground. */
+/* POSIX also requires that the shell use SIGTTIN to suspend itself when it is
+ * in the background. However, we use SIGTTOU instead for simplicity and
+ * stability. Using `tcsetpgrp' avoids the TOCTOU issue between the check for
+ * the foreground-ness of the shell and the sending of the stop signal. */
 void ensure_foreground(void)
 {
     struct sigaction dflsa, savesa;
