@@ -440,7 +440,7 @@ out_of_loop:
  * `jobnumber' must be a valid job number.
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
- * When the job is stopped, the E_SUSPEND exception is raised if the shell is
+ * When the job is stopped, the E_CANCEL exception is raised if the shell is
  * interactive.
  * If `interruptible' is true, this function can be canceled by SIGINT.
  * If `return_on_trap' is true, this function returns false immediately after
@@ -465,7 +465,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
                 break;
             if (return_on_stop && job->j_status == JS_STOPPED) {
                 if (is_interactive_now)
-                    raise_suspend();
+                    cancel_current_command();
                 break;
             }
             signum = wait_for_sigchld(interruptible, return_on_trap);
@@ -490,7 +490,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
  * a pointer to a pointer to a wide string. The caller must assign a pointer to
  * a newly malloced wide string to the variable the return value points to.
  * This string is used as the name of the new stopped job.
- * Additionally, if the shell is interactive, the E_SUSPEND exception is raised.
+ * Additionally, if the shell is interactive, the E_CANCEL exception is raised.
  * If the child exited, this function returns NULL.
  * The exit status is assigned to `laststatus' in any case. */
 wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)

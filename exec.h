@@ -54,8 +54,8 @@ extern void restore_execstate(struct execstate_T *save)
     __attribute__((nonnull));
 extern void disable_return(void);
 extern void cancel_return(void);
-extern void raise_suspend(void);
-extern void cancel_suspend(void);
+extern void cancel_current_command(void);
+extern void uncancel_current_command(void);
 extern _Bool need_break(void)
     __attribute__((pure));
 

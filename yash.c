@@ -536,7 +536,7 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
     for (;;) {
         if (pinfo->interactive) {
             set_laststatus_if_interrupted();
-            cancel_suspend();
+            uncancel_current_command();
             forceexit = nextforceexit;
             nextforceexit = false;
             pinfo->lineno = 1;
