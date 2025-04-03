@@ -84,13 +84,13 @@ __OUT__
 
 test_o -d 'expansion error spares interactive shell' -i +m
 unset a
-echo ${a?}
+{ echo ${a?}; echo not reached; }
 echo $?
 __IN__
 2
 __OUT__
 
-test_oe -d 'command not found'
+test_o -d 'command not found'
 ./_no_such_command_
 echo $?
 __IN__
