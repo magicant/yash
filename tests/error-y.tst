@@ -164,16 +164,25 @@ __OUT__
 
 # $1 = line no.
 # $2 = built-in name
-test_special_builtin_syntax_i() {
+test_special_builtin_syntax_i()
+if [ "${posix:+set}" = set ]; then
     testcase "$1" -d \
-    "argument syntax error on special built-in $2 spares interactive shell${posix:+" (POSIX)"}" \
+    "argument syntax error on special built-in $2 spares interactive shell (POSIX)" \
         -i +m 3<<__IN__ 4<<\__OUT__ 5<&-
-$2 --no-such-option--
+{ $2 --no-such-option--; echo not reached; }
 echo \$?
 __IN__
 2
 __OUT__
-}
+else
+    testcase "$1" -d \
+    "argument syntax error on special built-in $2 spares interactive shell" \
+        -i +m 3<<__IN__ 4<<\__OUT__ 5<&-
+{ $2 --no-such-option--; echo reached \$?; }
+__IN__
+reached 2
+__OUT__
+fi
 
 # $1 = line no.
 # $2 = built-in name
