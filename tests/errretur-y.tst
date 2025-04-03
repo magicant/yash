@@ -338,11 +338,12 @@ __IN__
 reached 0
 __OUT__
 
-test_o -e n 'errexit: expansion error in for word' -i +m -e
-f() { for i in ${a?}; do echo not reached; done; echo reached; }
+test_o 'errexit: expansion error in for word' -i +m -e
+f() { for i in ${a?}; do echo not reached 1; done; echo not reached 2; }
 ! f
+echo reached $?
 __IN__
-reached
+reached 2
 __OUT__
 
 test_o 'errreturn: for loop body' -o errreturn
@@ -389,11 +390,12 @@ __IN__
 reached 0
 __OUT__
 
-test_o -e n 'errexit: expansion error in case word' -i +m -e
-f() { case ${a?} in (*) esac; echo reached; }
+test_o 'errexit: expansion error in case word' -i +m -e
+f() { case ${a?} in (*) esac; echo not reached; }
 ! f
+echo reached $?
 __IN__
-reached
+reached 2
 __OUT__
 
 test_o 'errreturn: expansion error in case pattern' -i +m -o errreturn
@@ -404,11 +406,12 @@ __IN__
 reached 0
 __OUT__
 
-test_o -e n 'errexit: expansion error in case pattern' -i +m -e
-f() { case a in (${a?}) esac; echo reached; }
+test_o 'errexit: expansion error in case pattern' -i +m -e
+f() { case a in (${a?}) esac; echo not reached; }
 ! f
+echo reached $?
 __IN__
-reached
+reached 2
 __OUT__
 
 test_o 'errreturn: case body' -o errreturn
