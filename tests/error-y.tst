@@ -105,6 +105,41 @@ __IN__
 127
 __OUT__
 
+###############################################################################
+
+test_O 'assignment error without command kills non-interactive shell'
+readonly a=a
+a=b
+printf 'not reached\n'
+__IN__
+
+test_o 'assignment error without command in subshell'
+readonly a=a
+(a=b; printf 'not reached\n')
+[ $? -ne 0 ]
+echo $?
+__IN__
+0
+__OUT__
+
+test_o 'assignment error without command spares interactive shell' -i +m
+readonly a=a
+{ a=b; printf 'not reached\n'; }
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+test_o 'assignment error with command name spares interactive shell' -i +m
+readonly a=a
+{ a=b echo not printed; printf 'not reached\n'; }
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+###############################################################################
+
 test_Oe -e 2 'built-in short option argument missing'
 exec -a
 __IN__

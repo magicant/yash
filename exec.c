@@ -719,7 +719,11 @@ bool exec_simple_command_without_words(const command_T *c)
     last_assign = c->c_assigns;
     if (!ok) {
         laststatus = Exit_ASSGNERR;
-        return !is_interactive_now;
+        if (is_interactive_now) {
+            cancel_current_command();
+            return false;
+        }
+        return true;
     }
 
     /* done? */
@@ -791,7 +795,9 @@ bool exec_simple_command_with_words(
         /* On assignment error, the command is not executed. */
         print_xtrace(NULL);
         laststatus = Exit_ASSGNERR;
-        if (!is_interactive_now)
+        if (is_interactive_now)
+            cancel_current_command();
+        else
             finally_exit = true;
         goto done1;
     }
