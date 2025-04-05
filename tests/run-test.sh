@@ -205,6 +205,9 @@ exec_testee() {
 # is any non-zero exit status. If <expected_exit_status> is a signal name (w/o
 # the SIG-prefix), the testee is expected to be killed by the signal.
 #
+# If the "-f" option is specified, the test result is inverted. This is useful
+# for testing unimplemented features and unfixed bugs.
+#
 # The first operand is used as the name of the test case.
 # The remaining operands are passed as arguments to the testee.
 #
@@ -215,12 +218,15 @@ testcase() {
     OPTIND=1
     diagnostic_required="false"
     expected_exit_status=""
-    while getopts de: opt; do
+    should_succeed="true"
+    while getopts de:f opt; do
         case $opt in
             (d)
                 diagnostic_required="true";;
             (e)
                 expected_exit_status="$OPTARG";;
+            (f)
+                should_succeed="false";;
             (*)
                 return 64 # sysexits.h EX_USAGE
         esac
@@ -282,8 +288,10 @@ testcase() {
     # check exit status
     exit_status_fail() {
         failed="true"
-        eprintf '%s:%d: %s: exit status mismatch\n' \
-            "$test_file" "$test_lineno" "$test_case_name"
+        if "$should_succeed"; then
+            eprintf '%s:%d: %s: exit status mismatch\n' \
+                "$test_file" "$test_lineno" "$test_case_name"
+        fi
     }
     case "$expected_exit_status" in
         ('')
@@ -324,8 +332,10 @@ testcase() {
         printf '%% standard output diff:\n'
         if ! diff $diff_opt - "$out_file" <&4; then
             failed="true"
-            eprintf '%s:%d: %s: standard output mismatch\n' \
-                "$test_file" "$test_lineno" "$test_case_name"
+            if "$should_succeed"; then
+                eprintf '%s:%d: %s: standard output mismatch\n' \
+                    "$test_file" "$test_lineno" "$test_case_name"
+            fi
         fi
         echo
     fi
@@ -336,16 +346,20 @@ testcase() {
         cat "$err_file"
         if ! [ -s "$err_file" ]; then
             failed="true"
-            eprintf '%s:%d: %s: standard error mismatch\n' \
-                "$test_file" "$test_lineno" "$test_case_name"
+            if "$should_succeed"; then
+                eprintf '%s:%d: %s: standard error mismatch\n' \
+                    "$test_file" "$test_lineno" "$test_case_name"
+            fi
         fi
         echo
     elif { <&5; } 2>/dev/null; then
         printf '%% standard error diff:\n'
         if ! diff $diff_opt - "$err_file" <&5; then
             failed="true"
-            eprintf '%s:%d: %s: standard error mismatch\n' \
-                "$test_file" "$test_lineno" "$test_case_name"
+            if "$should_succeed"; then
+                eprintf '%s:%d: %s: standard error mismatch\n' \
+                    "$test_file" "$test_lineno" "$test_case_name"
+            fi
         fi
         echo
     fi
@@ -369,10 +383,20 @@ testcase() {
         fi
     fi
 
-    if "$failed"; then
-        log_stdout FAILED
+    if "$should_succeed"; then
+        if "$failed"; then
+            log_stdout 'ERROR[FAILED]'
+        else
+            log_stdout 'OK[PASSED]'
+        fi
     else
-        log_stdout PASSED
+        if "$failed"; then
+            log_stdout 'OK[FAILED_AS_EXPECTED]'
+        else
+            log_stdout 'ERROR[PASSED_UNEXPECTEDLY]'
+            eprintf '%s:%d: %s: passed unexpectedly\n' \
+                "$test_file" "$test_lineno" "$test_case_name"
+        fi
     fi
     echo
 }
