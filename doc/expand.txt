@@ -504,6 +504,11 @@ from being treated as brace expansion.
 
 Any errors in brace expansion are silently ignored.
 
+[NOTE]
+In yash, brace expansion is performed after the four expansions and before
+field splitting. This is different from what is required by POSIX, which
+specifies that brace expansion is performed before any other expansion.
+
 [[split]]
 == Field splitting
 
