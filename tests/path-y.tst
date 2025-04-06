@@ -117,6 +117,12 @@ __IN__
 .dir .dir/dir .dir/dir/file .dir/file anotherdir anotherdir/file anotherdir/loop anotherdir/loop/.dir anotherdir/loop/.dir/file anotherdir/loop/dir anotherdir/loop/dir/.link anotherdir/loop/dir/file anotherdir/loop/dir/link dir dir/.dir dir/.dir/file dir/dir dir/dir/.link dir/dir/.link/file dir/dir/.link/loop dir/dir/file dir/dir/link dir/dir/link/file dir/dir/link/loop
 __OUT__
 
+# testing that . filter is not applied to literal matches
+test_oE 'extendedglob on: literal match' --dotglob --extendedglob
+echo **/.
+__IN__
+. anotherdir/. dir/. dir/dir/.
+__OUT__
 )
 
 (
