@@ -18,6 +18,13 @@ test_x -e 0 'hashondef (long) off: $-' +o hashondef
 printf '%s\n' "$-" | grep -qv h
 __IN__
 
+test_oE 'hashondef (short) on: effect' -h
+h_option_test() { cat /dev/null; }
+echo $(hash | grep '/cat$' | wc -l)
+__IN__
+1
+__OUT__
+
 test_o 'noexec is linewise'
 set -n; echo executed
 echo not executed
