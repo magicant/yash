@@ -29,7 +29,7 @@ test_oE 'dotglob on: effect' --dotglob
 echo *
 echo ?dotglob
 __IN__
-. .. .dotglob
+.dotglob
 .dotglob
 __OUT__
 
