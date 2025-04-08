@@ -480,6 +480,7 @@ void exec_wcs(const wchar_t *code, const char *name, bool finally_exit)
         .input = input_wcs,
         .inputinfo = &iinfo,
         .interactive = false,
+        .is_dot_builtin = false,
     };
 
     parse_and_exec(&pinfo, finally_exit);
@@ -500,6 +501,7 @@ void exec_input(int fd, const char *name, exec_input_options_T options)
         .filename = name,
         .lineno = 1,
         .interactive = options & XIO_INTERACTIVE,
+        .is_dot_builtin = options & XIO_DOT_BUILTIN,
     };
     struct input_interactive_info_T intrinfo;
     struct input_file_info_T *inputinfo;
@@ -579,7 +581,7 @@ void parse_and_exec(parseparam_T *pinfo, bool finally_exit)
                 }
                 break;
             case PR_INPUT_ERROR:
-                laststatus = Exit_ERROR;
+                laststatus = pinfo->is_dot_builtin ? Exit_ERROR : Exit_INPUTERR;
                 goto out;
         }
     }

@@ -98,6 +98,14 @@ __IN__
 2
 __OUT__
 
+test_o -d -e 128 'unrecoverable read error kills shell'
+echo ok so far
+exec <&-
+echo not reached
+__IN__
+ok so far
+__OUT__
+
 test_o -d 'command not found'
 ./_no_such_command_
 echo $?

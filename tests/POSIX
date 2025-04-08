@@ -1,4 +1,4 @@
-This document indicates which part of IEEE Std 1003.1, 2016 edition is covered
+This document indicates which part of IEEE Std 1003.1, 2024 edition is covered
 by which test file.
 
 
@@ -252,6 +252,8 @@ sh
     * input-p.tst
   Asynchronous events
     * sig*-p.tst
+  Exit status (128)
+    * error-y.tst
 
 test
  * test-p.tst

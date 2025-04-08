@@ -41,8 +41,9 @@ extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
 
 typedef enum exec_input_options_T {
     XIO_INTERACTIVE  = 1 << 0,
-    XIO_SUBST_ALIAS  = 1 << 1,
-    XIO_FINALLY_EXIT = 1 << 2,
+    XIO_DOT_BUILTIN  = 1 << 1,
+    XIO_SUBST_ALIAS  = 1 << 2,
+    XIO_FINALLY_EXIT = 1 << 3,
 } exec_input_options_T;
 
 extern void exec_input(int fd, const char *name, exec_input_options_T options);

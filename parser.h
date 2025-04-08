@@ -346,6 +346,7 @@ typedef struct parseparam_T {
     inputfunc_T *input;   /* input function */
     void *inputinfo;      /* pointer passed to the input function */
     _Bool interactive;    /* input is interactive? */
+    _Bool is_dot_builtin; /* input is for the dot built-in? */
     inputresult_T lastinputresult;  /* last return value of input function */
 } parseparam_T;
 /* If `interactive' is true, `input' is `input_interactive' and `inputinfo' is a

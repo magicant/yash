@@ -36,6 +36,7 @@ typedef enum sigtype_T {
 #define Exit_ERROR    2
 #define Exit_NOEXEC   126
 #define Exit_NOTFOUND 127
+#define Exit_INPUTERR 128
 #define Exit_SYNERROR (256 + Exit_ERROR)
 #define Exit_EXPERROR Exit_ERROR
 #define Exit_ASSGNERR Exit_ERROR

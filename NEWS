@@ -38,6 +38,8 @@
       the session leader, the shell now forces the process group to be
       in the foreground, rather than suspending the shell itself until
       brought to the foreground by some other means.
+    - The shell now returns exit status 128 when encountering a command
+      read error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.

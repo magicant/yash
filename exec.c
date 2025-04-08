@@ -2186,7 +2186,10 @@ int dot_builtin(int argc, void **argv)
     bool saveser = suppresserrreturn;
     suppresserrreturn = false;
 
-    exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
+    exec_input_options_T options = XIO_DOT_BUILTIN;
+    if (enable_alias)
+        options |= XIO_SUBST_ALIAS;
+    exec_input(fd, mbsfilename, options);
 
     cancel_return();
     suppresserrreturn = saveser;
