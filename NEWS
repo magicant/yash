@@ -14,6 +14,8 @@
     - The shell now considers a job to be suspended when any child
       process suspends in a pipeline, instead of when all child
       processes suspend.
+    - Patterns no longer expand to the filename `.` or `..` in pathname
+      expansion.
     - The `read` built-in now returns a more specific exit status
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be
