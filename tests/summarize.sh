@@ -1,5 +1,5 @@
-# summarize.sh: extracts results of failed tests
-# (C) 2015-2020 magicant
+# summarize.sh: extracts errors from test results
+# (C) 2015-2025 magicant
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,12 +22,12 @@ uname -a
 date
 printf '=============\n\n'
 
-passed=0 failed=0 skipped=0
+ok=0 error=0 skipped=0
 
 for result_file do
     # The "grep" command is generally faster than repeated "read" built-in.
-    if [ "$(grep -cE '^%%% (FAIL|SKIPP)ED:' "$result_file")" -eq 0 ]; then
-        passed="$((passed + $(grep -c '^%%% PASSED:' "$result_file" || true)))"
+    if [ "$(grep -cE '^%%% (ERROR\[|SKIPPED:)' "$result_file")" -eq 0 ]; then
+        ok="$((ok + $(grep -c '^%%% OK\[' "$result_file" || true)))"
         continue
     fi
 
@@ -39,12 +39,12 @@ $line"
             ('%%% START:'*)
                 log="$line"
                 ;;
-            ('%%% PASSED:'*)
-                passed="$((passed + 1))"
+            ('%%% OK['*)
+                ok="$((ok + 1))"
                 ;;
-            ('%%% FAILED:'*)
+            ('%%% ERROR['*)
                 printf '%s\n\n' "$log"
-                failed="$((failed + 1))"
+                error="$((error + 1))"
                 ;;
             ('%%% SKIPPED:'*)
                 printf '%s\n\n' "$line"
@@ -55,9 +55,9 @@ $line"
 done
 
 printf '==============\n'
-printf 'TOTAL:   %5d\n' "$((passed + failed + skipped))"
-printf 'PASSED:  %5d\n' "$passed"
-printf 'FAILED:  %5d\n' "$failed"
+printf 'TOTAL:   %5d\n' "$((ok + error + skipped))"
+printf 'OK:      %5d\n' "$ok"
+printf 'ERROR:   %5d\n' "$error"
 printf 'SKIPPED: %5d\n' "$skipped"
 printf '==============\n'
 

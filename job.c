@@ -440,7 +440,7 @@ out_of_loop:
  * `jobnumber' must be a valid job number.
  * If `return_on_stop' is false, waits for the job to finish.
  * Otherwise, waits for the job to finish or stop.
- * When the job is stopped, the E_SUSPEND exception is raised if the shell is
+ * When the job is stopped, the E_CANCEL exception is raised if the shell is
  * interactive.
  * If `interruptible' is true, this function can be canceled by SIGINT.
  * If `return_on_trap' is true, this function returns false immediately after
@@ -465,7 +465,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
                 break;
             if (return_on_stop && job->j_status == JS_STOPPED) {
                 if (is_interactive_now)
-                    raise_suspend();
+                    cancel_current_command();
                 break;
             }
             signum = wait_for_sigchld(interruptible, return_on_trap);
@@ -490,7 +490,7 @@ int wait_for_job(size_t jobnumber, bool return_on_stop,
  * a pointer to a pointer to a wide string. The caller must assign a pointer to
  * a newly malloced wide string to the variable the return value points to.
  * This string is used as the name of the new stopped job.
- * Additionally, if the shell is interactive, the E_SUSPEND exception is raised.
+ * Additionally, if the shell is interactive, the E_CANCEL exception is raised.
  * If the child exited, this function returns NULL.
  * The exit status is assigned to `laststatus' in any case. */
 wchar_t **wait_for_child(pid_t cpid, pid_t cpgid, bool return_on_stop)
@@ -566,38 +566,64 @@ void put_foreground(pid_t pgrp)
     sigprocmask(SIG_SETMASK, &savess, NULL);
 }
 
-/* Ensures the current shell process is in the foreground.
- * The shell process is stopped by SIGTTOU until it is put in the foreground.
- * This function requires `doing_job_control_now' to be true. */
-/* This function prevents the job-control shell from mangling the terminal while
- * another shell is using it. */
+/* Ensures that the process group of the current shell process is the foreground
+ * process group of the controlling terminal.
+ * This function requires `doing_job_control_now' to be true.
+ * This function calls `tcsetpgrp' to bring the current process group to the
+ * foreground. If the process group is the session leader's group, this is done
+ * while the shell is blocking SIGTTOU to prevent the shell from being stopped.
+ * If the process group is not the session leader's group, the call is made
+ * without blocking or ignoring SIGTTOU, so the shell will be stopped if it is
+ * in the background. In this case, the shell has to be brought back to the
+ * foreground by some other process. In either case, the shell is in the
+ * foreground when this function returns. */
+/* This function implements part of the initialization of the job-control shell.
+ * POSIX says that the shell should bring itself into the foreground only if it
+ * is started as the controlling process (that is, the session leader) for the
+ * terminal session. However, this function also brings the shell into the
+ * foreground if the shell is in the same process group as the session leader
+ * because it is unlikely that there is another job-controlling process that can
+ * bring the shell into the foreground. */
+/* POSIX also requires that the shell use SIGTTIN to suspend itself when it is
+ * in the background. However, we use SIGTTOU instead for simplicity and
+ * stability. Using `tcsetpgrp' avoids the TOCTOU issue between the check for
+ * the foreground-ness of the shell and the sending of the stop signal. */
 void ensure_foreground(void)
 {
-    /* This function calls `tcsetpgrp' with the default SIGTTOU handler. If the
-     * shell is in the background, it will receive SIGTTOU and get stopped until
-     * it is continued in the foreground. */
-
     struct sigaction dflsa, savesa;
     sigset_t blockss, savess;
 
     assert(doing_job_control_now);
     assert(shell_pgid > 0);
 
-    dflsa.sa_handler = SIG_DFL;
-    dflsa.sa_flags = 0;
-    sigemptyset(&dflsa.sa_mask);
-    sigemptyset(&savesa.sa_mask);
-    sigaction(SIGTTOU, &dflsa, &savesa);
+    if (shell_pgid == getsid(0)) {
+        /* The shell is in the session leader's process group. */
+        sigemptyset(&blockss);
+        sigaddset(&blockss, SIGTTOU);
+        sigemptyset(&savess);
+        sigprocmask(SIG_BLOCK, &blockss, &savess);
 
-    sigemptyset(&blockss);
-    sigaddset(&blockss, SIGTTOU);
-    sigemptyset(&savess);
-    sigprocmask(SIG_UNBLOCK, &blockss, &savess);
+        tcsetpgrp(ttyfd, shell_pgid);
 
-    tcsetpgrp(ttyfd, shell_pgid);
+        sigprocmask(SIG_SETMASK, &savess, NULL);
+    } else {
+        /* The shell is not in the session leader's process group. */
+        dflsa.sa_handler = SIG_DFL;
+        dflsa.sa_flags = 0;
+        sigemptyset(&dflsa.sa_mask);
+        sigemptyset(&savesa.sa_mask);
+        sigaction(SIGTTOU, &dflsa, &savesa);
 
-    sigprocmask(SIG_SETMASK, &savess, NULL);
-    sigaction(SIGTTOU, &savesa, NULL);
+        sigemptyset(&blockss);
+        sigaddset(&blockss, SIGTTOU);
+        sigemptyset(&savess);
+        sigprocmask(SIG_UNBLOCK, &blockss, &savess);
+
+        tcsetpgrp(ttyfd, shell_pgid);
+
+        sigprocmask(SIG_SETMASK, &savess, NULL);
+        sigaction(SIGTTOU, &savesa, NULL);
+    }
 }
 
 /* Computes the exit status from the status code returned by `waitpid'. */

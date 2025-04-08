@@ -118,13 +118,6 @@ test_x -e 0 'hashondef (short) off: $-' +h
 printf '%s\n' "$-" | grep -qv h
 __IN__
 
-test_oE 'hashondef (short) on: effect' -h
-h_option_test() { cat /dev/null; }
-echo $(hash | grep '/cat$' | wc -l)
-__IN__
-1
-__OUT__
-
 # XXX: test of the -m option is not supported
 
 test_x -e 0 'noexec (short) on: $-' -n

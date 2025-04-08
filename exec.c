@@ -127,7 +127,7 @@ typedef enum exception_T {
     E_RETURN,
     E_BREAK_ITERATION,
     E_CONTINUE_ITERATION,
-    E_SUSPEND,
+    E_CANCEL,
 } exception_T;
 
 /* state of currently executed loop */
@@ -296,17 +296,18 @@ void cancel_return(void)
 }
 
 /* Forces the interactive shell to return to the command prompt by aborting the
- * current command. This is used when a foreground job has been suspended. */
-void raise_suspend(void)
+ * current command. This is used when a foreground job has been suspended and
+ * when a shell error occurs that would terminate the shell if it were not
+ * interactive. */
+void cancel_current_command(void)
 {
-    exception = E_SUSPEND;
+    exception = E_CANCEL;
 }
 
-/* If the shell has been interrupted as a result of a suspended job, clears the
- * flag. */
-void cancel_suspend(void)
+/* Clears the effect of `cancel_current_command'. */
+void uncancel_current_command(void)
 {
-    if (exception == E_SUSPEND)
+    if (exception == E_CANCEL)
         exception = E_NONE;
 }
 
@@ -718,7 +719,11 @@ bool exec_simple_command_without_words(const command_T *c)
     last_assign = c->c_assigns;
     if (!ok) {
         laststatus = Exit_ASSGNERR;
-        return !is_interactive_now;
+        if (is_interactive_now) {
+            cancel_current_command();
+            return false;
+        }
+        return true;
     }
 
     /* done? */
@@ -764,8 +769,12 @@ bool exec_simple_command_with_words(
     if (!open_redirections(c->c_redirs, &savefd)) {
         /* On redirection error, the command is not executed. */
         laststatus = Exit_REDIRERR;
-        if (posixly_correct && !is_interactive_now && is_special_builtin(argv0))
-            finally_exit = true;
+        if (posixly_correct && is_special_builtin(argv0)) {
+            if (is_interactive_now)
+                cancel_current_command();
+            else
+                finally_exit = true;
+        }
         goto done;
     }
 
@@ -786,7 +795,9 @@ bool exec_simple_command_with_words(
         /* On assignment error, the command is not executed. */
         print_xtrace(NULL);
         laststatus = Exit_ASSGNERR;
-        if (!is_interactive_now)
+        if (is_interactive_now)
+            cancel_current_command();
+        else
             finally_exit = true;
         goto done1;
     }
@@ -1596,7 +1607,7 @@ void become_child(sigtype_T sigtype)
 
     restore_signals(sigtype & t_leave);  /* signal mask is restored here */
     clear_shellfds(sigtype & t_leave);
-    is_interactive_now = false;
+    is_subshell = true;
     suppresserrreturn = false;
     exitstatus = -1;
 }
@@ -2175,7 +2186,10 @@ int dot_builtin(int argc, void **argv)
     bool saveser = suppresserrreturn;
     suppresserrreturn = false;
 
-    exec_input(fd, mbsfilename, enable_alias ? XIO_SUBST_ALIAS : 0);
+    exec_input_options_T options = XIO_DOT_BUILTIN;
+    if (enable_alias)
+        options |= XIO_SUBST_ALIAS;
+    exec_input(fd, mbsfilename, options);
 
     cancel_return();
     suppresserrreturn = saveser;

@@ -685,7 +685,7 @@ enum wait_for_input_T wait_for_input(int fd, bool trap, int timeout)
             return FD_ISSET(fd, &fdset) ? W_READY : W_TIMED_OUT;
 
         if (errno != EINTR) {
-            xerror(errno, "pselect");
+            xerror(errno, Ngt("cannot read input"));
             return W_ERROR;
         }
     }

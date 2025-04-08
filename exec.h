@@ -36,6 +36,7 @@ typedef enum sigtype_T {
 #define Exit_ERROR    2
 #define Exit_NOEXEC   126
 #define Exit_NOTFOUND 127
+#define Exit_INPUTERR 128
 #define Exit_SYNERROR (256 + Exit_ERROR)
 #define Exit_EXPERROR Exit_ERROR
 #define Exit_ASSGNERR Exit_ERROR
@@ -54,8 +55,8 @@ extern void restore_execstate(struct execstate_T *save)
     __attribute__((nonnull));
 extern void disable_return(void);
 extern void cancel_return(void);
-extern void raise_suspend(void);
-extern void cancel_suspend(void);
+extern void cancel_current_command(void);
+extern void uncancel_current_command(void);
 extern _Bool need_break(void)
     __attribute__((pure));
 

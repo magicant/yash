@@ -3,6 +3,11 @@
 ## Yash 2.59 (Unreleased)
 
   - Improved POSIX.1-2024 support:
+    - When an error that would terminate a non-interactive shell occurs
+      in an interactive shell, the shell now discards any remaining
+      commands that were typed but not yet executed, and immediately
+      continues to read the next command. Parameter expansion errors and
+      variable assignment errors are examples of such errors.
     - When a foreground job suspends in an interactive shell, the shell
       now discards any remaining commands that were typed but not yet
       executed, and immediately continues to read the next command.
@@ -27,6 +32,14 @@
       built-ins.
     - The `cd` built-in now exits with status code 5, when an empty 
       operand is supplied.
+    - Job control can now be enabled even if the shell does not have a
+      controlling terminal.
+    - If the job-control shell is started in the same process group as
+      the session leader, the shell now forces the process group to be
+      in the foreground, rather than suspending the shell itself until
+      brought to the foreground by some other means.
+    - The shell now returns exit status 128 when encountering a command
+      read error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added completion for `git-mv`, `bmake`, `gmake`,
@@ -40,6 +53,9 @@
     control shell now ignore the `SIGTSTP` signal.
   - Added a workaround for an apparent bug in glibc's fsetpos function
     that prevents the shell from updating the history file.
+  - Previously, you could enable job control in a subshell by setting
+    the `-m` option inside the subshell. This undocumented behavior has
+    been removed.
 
 ## Yash 2.58.1 (2025-02-04)
 

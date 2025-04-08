@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.h: basic functions of the shell and miscellanies */
-/* (C) 2007-2013 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 extern pid_t shell_pid, shell_pgid;
 
-extern _Bool shell_initialized;
+extern _Bool shell_initialized, is_subshell;
 
 static inline void exit_shell(void)
     __attribute__((noreturn));
@@ -41,8 +41,9 @@ extern void exec_wcs(const wchar_t *code, const char *name, _Bool finally_exit)
 
 typedef enum exec_input_options_T {
     XIO_INTERACTIVE  = 1 << 0,
-    XIO_SUBST_ALIAS  = 1 << 1,
-    XIO_FINALLY_EXIT = 1 << 2,
+    XIO_DOT_BUILTIN  = 1 << 1,
+    XIO_SUBST_ALIAS  = 1 << 2,
+    XIO_FINALLY_EXIT = 1 << 3,
 } exec_input_options_T;
 
 extern void exec_input(int fd, const char *name, exec_input_options_T options);

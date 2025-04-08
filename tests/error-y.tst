@@ -25,8 +25,10 @@ __IN__
 __OUT__
 
 test_o 'redirection error on compound command spares non-interactive shell'
+{
 if echo not printed 1; then echo not printed 2; fi <_no_such_dir_/foo
 printf 'reached\n'
+}
 __IN__
 reached
 __OUT__
@@ -39,16 +41,20 @@ reached 0
 __OUT__
 
 test_o 'redirection error on compound command spares interactive shell' -i +m
+{
 if echo not printed 1; then echo not printed 2; fi <_no_such_dir_/foo
 printf 'reached\n'
+}
 __IN__
 reached
 __OUT__
 
 test_o 'redirection error on function spares non-interactive shell'
 func() { echo not printed; }
+{
 func <_no_such_dir_/foo
 printf 'reached\n'
+}
 __IN__
 reached
 __OUT__
@@ -62,8 +68,10 @@ __OUT__
 
 test_o 'redirection error on function spares interactive shell' -i +m
 func() { echo not printed; }
+{
 func <_no_such_dir_/foo
 printf 'reached\n'
+}
 __IN__
 reached
 __OUT__
@@ -84,18 +92,61 @@ __OUT__
 
 test_o -d 'expansion error spares interactive shell' -i +m
 unset a
-echo ${a?}
+{ echo ${a?}; echo not reached; }
 echo $?
 __IN__
 2
 __OUT__
 
-test_oe -d 'command not found'
+test_o -d -e 128 'unrecoverable read error kills shell'
+echo ok so far
+exec <&-
+echo not reached
+__IN__
+ok so far
+__OUT__
+
+test_o -d 'command not found'
 ./_no_such_command_
 echo $?
 __IN__
 127
 __OUT__
+
+###############################################################################
+
+test_O 'assignment error without command kills non-interactive shell'
+readonly a=a
+a=b
+printf 'not reached\n'
+__IN__
+
+test_o 'assignment error without command in subshell'
+readonly a=a
+(a=b; printf 'not reached\n')
+[ $? -ne 0 ]
+echo $?
+__IN__
+0
+__OUT__
+
+test_o 'assignment error without command spares interactive shell' -i +m
+readonly a=a
+{ a=b; printf 'not reached\n'; }
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+test_o 'assignment error with command name spares interactive shell' -i +m
+readonly a=a
+{ a=b echo not printed; printf 'not reached\n'; }
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+
+###############################################################################
 
 test_Oe -e 2 'built-in short option argument missing'
 exec -a
@@ -164,16 +215,25 @@ __OUT__
 
 # $1 = line no.
 # $2 = built-in name
-test_special_builtin_syntax_i() {
+test_special_builtin_syntax_i()
+if [ "${posix:+set}" = set ]; then
     testcase "$1" -d \
-    "argument syntax error on special built-in $2 spares interactive shell${posix:+" (POSIX)"}" \
+    "argument syntax error on special built-in $2 spares interactive shell (POSIX)" \
         -i +m 3<<__IN__ 4<<\__OUT__ 5<&-
-$2 --no-such-option--
+{ $2 --no-such-option--; echo not reached; }
 echo \$?
 __IN__
 2
 __OUT__
-}
+else
+    testcase "$1" -d \
+    "argument syntax error on special built-in $2 spares interactive shell" \
+        -i +m 3<<__IN__ 4<<\__OUT__ 5<&-
+{ $2 --no-such-option--; echo reached \$?; }
+__IN__
+reached 2
+__OUT__
+fi
 
 # $1 = line no.
 # $2 = built-in name
@@ -406,6 +466,20 @@ __IN__
 __OUT__
 }
 
+# $1 = line no.
+# $2 = built-in name
+test_special_builtin_redirect_i() (
+    posix="true"
+    testcase "$1" -d \
+        "redirection error on special built-in $2 spares interactive shell (POSIX)" \
+        -i +m 3<<__IN__ 4<<\__OUT__ 5<&-
+{ $2 <_no_such_file_; echo not reached; }
+printf 'reached\n'
+__IN__
+reached
+__OUT__
+)
+
 # No argument syntax error in special built-in colon
 # test_special_builtin_syntax   "$LINENO" :
 # test_special_builtin_syntax_s "$LINENO" :
@@ -491,21 +565,36 @@ test_nonspecial_builtin_syntax "$LINENO" umask
 test_nonspecial_builtin_syntax "$LINENO" unalias
 test_nonspecial_builtin_syntax "$LINENO" wait
 
-test_special_builtin_redirect "$LINENO" :
-test_special_builtin_redirect "$LINENO" .
-test_special_builtin_redirect "$LINENO" break
-test_special_builtin_redirect "$LINENO" continue
-test_special_builtin_redirect "$LINENO" eval
-test_special_builtin_redirect "$LINENO" exec
-test_special_builtin_redirect "$LINENO" exit
-test_special_builtin_redirect "$LINENO" export
-test_special_builtin_redirect "$LINENO" readonly
-test_special_builtin_redirect "$LINENO" return
-test_special_builtin_redirect "$LINENO" set
-test_special_builtin_redirect "$LINENO" shift
-test_special_builtin_redirect "$LINENO" times
-test_special_builtin_redirect "$LINENO" trap
-test_special_builtin_redirect "$LINENO" unset
+test_special_builtin_redirect   "$LINENO" :
+test_special_builtin_redirect_i "$LINENO" :
+test_special_builtin_redirect   "$LINENO" .
+test_special_builtin_redirect_i "$LINENO" .
+test_special_builtin_redirect   "$LINENO" break
+test_special_builtin_redirect_i "$LINENO" break
+test_special_builtin_redirect   "$LINENO" continue
+test_special_builtin_redirect_i "$LINENO" continue
+test_special_builtin_redirect   "$LINENO" eval
+test_special_builtin_redirect_i "$LINENO" eval
+test_special_builtin_redirect   "$LINENO" exec
+test_special_builtin_redirect_i "$LINENO" exec
+test_special_builtin_redirect   "$LINENO" exit
+test_special_builtin_redirect_i "$LINENO" exit
+test_special_builtin_redirect   "$LINENO" export
+test_special_builtin_redirect_i "$LINENO" export
+test_special_builtin_redirect   "$LINENO" readonly
+test_special_builtin_redirect_i "$LINENO" readonly
+test_special_builtin_redirect   "$LINENO" return
+test_special_builtin_redirect_i "$LINENO" return
+test_special_builtin_redirect   "$LINENO" set
+test_special_builtin_redirect_i "$LINENO" set
+test_special_builtin_redirect   "$LINENO" shift
+test_special_builtin_redirect_i "$LINENO" shift
+test_special_builtin_redirect   "$LINENO" times
+test_special_builtin_redirect_i "$LINENO" times
+test_special_builtin_redirect   "$LINENO" trap
+test_special_builtin_redirect_i "$LINENO" trap
+test_special_builtin_redirect   "$LINENO" unset
+test_special_builtin_redirect_i "$LINENO" unset
 
 test_nonspecial_builtin_redirect "$LINENO" [
 test_nonspecial_builtin_redirect "$LINENO" alias

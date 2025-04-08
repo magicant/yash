@@ -1053,6 +1053,8 @@ void wglob_scandir_entry(
             case WGLOB_MATCH:
                 if (name[0] == '\0')
                     continue;
+                if (strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
+                    continue;
                 if (xfnm_match(c->value.match.pattern, name) != 0)
                     continue;
                 if (i + 1 < s->pattern.length) // has a next component?

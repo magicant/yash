@@ -318,8 +318,12 @@ int too_many_operands_error(size_t max_accepted_operand_count)
  * being executed indirectly by a non-special built-in. */
 int special_builtin_error(int exitstatus)
 {
-    if (posixly_correct && special_builtin_executed && !is_interactive_now)
-        exit_shell_with_status(exitstatus);
+    if (posixly_correct && special_builtin_executed) {
+        if (is_interactive_now)
+            cancel_current_command();
+        else
+            exit_shell_with_status(exitstatus);
+    }
     return exitstatus;
 }
 
