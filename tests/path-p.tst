@@ -57,6 +57,19 @@ __IN__
 baz/[!a]dir/[!1-9]file
 __OUT__
 
+: This is not yet mandatory in POSIX, so it is tested in path-y.sh <<'__OUT__'
+test_oE 'no pattern matches . or ..'
+echo .*/ # should not print . or ..
+__IN__
+.dir/
+__OUT__
+
+test_oE 'literal . and .. are not filtered out'
+echo b*/../.
+__IN__
+bar/../. baz/../.
+__OUT__
+
 (
 # Skip if we're root.
 if { ls for/dir || <foo/no_search_dir/file; } 2>/dev/null; then
