@@ -114,8 +114,9 @@ void set_active_job(job_T *job)
 /* Moves the active job into the job list.
  * If the newly added job is stopped, it becomes the current job.
  * If `current' is true or there is no current job, the newly added job becomes
- * the current job if there is no stopped job. */
-void add_job(bool current)
+ * the current job if there is no stopped job.
+ * Returns the job number of the added job. */
+size_t add_job(bool current)
 {
     job_T *job = joblist.contents[ACTIVE_JOBNO];
     size_t jobnumber;
@@ -140,6 +141,8 @@ set_current:
         set_current_jobnumber(jobnumber);
     else
         set_current_jobnumber(current_jobnumber);
+
+    return jobnumber;
 }
 
 /* Returns the job of the specified number or NULL if not found. */

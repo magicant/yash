@@ -245,9 +245,11 @@ signals are set to ``ignore'' the signal so that the execution of the and/or
 list cannot be stopped by those signals.
 
 When the execution of an asynchronous and/or list is started, the shell
-remembers its process ID. You can obtain the ID by referencing the
-link:params.html#sp-exclamation[+!+ special parameter]. You can obtain the
-current and exit status of the asynchronous list as well by using the
+remembers its process ID. If the shell is link:interact.html[interactive], the
+job number and process ID of the asynchronous list are printed to the standard
+error. You can obtain the process ID by referencing the
+link:params.html#sp-exclamation[+!+ special parameter]. You can also examine
+the current state and exit status of the asynchronous list by using the
 link:_jobs.html[jobs] and link:_wait.html[wait] built-ins.
 
 [[compound]]

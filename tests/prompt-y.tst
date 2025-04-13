@@ -155,12 +155,12 @@ $  
 __ERR__
 
 test_e '\j in PS1: shows job count' -i +m
-PS1='\j$'; echo >&2
-:&         echo >&2
-:&&:&      echo >&2
-wait $!;   echo >&2
-wait;      echo >&2
-           echo >&2; exit
+PS1='\j$';             echo >&2
+{ :& }    2>/dev/null; echo >&2
+{ :&&:& } 2>/dev/null; echo >&2
+wait $!;               echo >&2
+wait;                  echo >&2
+                       echo >&2; exit
 __IN__
 $ 
 0$
@@ -176,15 +176,14 @@ __ERR__
 # this, but if the test still fails, please just retry.
 # See: https://osdn.net/tracker.php?id=37560
 test_e '\j in PS1 and -b option' -ib +m
-PS1='\j$';  echo >&2
-exec >fifo& echo >&2
+PS1='\j$';                   echo >&2
+{ exec >fifo& } 2>/dev/null; echo >&2
 cat fifo; sleep 0; sleep 0; sleep 0
-wait $!;    echo >&2
-            echo >&2; exit
+wait $!;                     echo >&2
+                             echo >&2; exit
 __IN__
 $ 
-0$[1] + Running              exec 1>fifo
-
+0$
 1$[1] + Done                 exec 1>fifo
 0$
 0$
