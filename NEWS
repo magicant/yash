@@ -40,6 +40,8 @@
       brought to the foreground by some other means.
     - The shell now returns exit status 128 when encountering a command
       read error.
+    - When an interactive shell starts an asynchronous command, its job
+      number and process ID are now printed to the standard error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.

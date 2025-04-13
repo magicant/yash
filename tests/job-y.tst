@@ -15,7 +15,7 @@ if [ "$user_id" -eq 0 ]; then
 fi
 
 test_e 'interactive shell reports job status before prompt (non-root)' -im
-echo >&2; sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
+echo >&2; { sleep 0& } 2>/dev/null; while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
 echo done >&2; exit
 __IN__
 $ 
@@ -30,7 +30,7 @@ if [ "$user_id" -ne 0 ]; then
 fi
 
 test_e 'interactive shell reports job status before prompt (root)' -im
-echo >&2; sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
+echo >&2; { sleep 0& } 2>/dev/null; while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait)
 echo done >&2; exit
 __IN__
 # 
