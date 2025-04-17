@@ -42,8 +42,9 @@ last command executed before the exit built-in (but, if the built-in is
 executed during a link:_trap.html[trap], the exit status will be that of the
 last command before the trap is entered).
 +
-If {{exit_status}} is 256 or larger, the actual exit status will be
-the remainder of {{exit_status}} divided by 256.
+If the exit status is larger than 384, the shell may terminate itself with a
+signal instead of exiting with the specified exit status.
+See link:exec.html#exit[Termination of the shell] for details.
 
 [[exitstatus]]
 == Exit status
@@ -62,9 +63,7 @@ The exit built-in is a link:builtin.html#types[special built-in].
 The POSIX standard defines no options for the exit built-in;
 the built-in accepts no options in the link:posix.html[POSIXly-correct mode].
 
-The POSIX standard provides that the {{exit_status}} operand should be between
-0 and 255 (inclusive).
-Yash accepts integers larger than 255 as an extension.
+Exit status values greater than 255 are non-portable extensions.
 
 If the built-in is executed during an EXIT link:_trap.html[trap], the shell
 just exits without executing the trap again.

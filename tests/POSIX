@@ -254,6 +254,8 @@ sh
     * sig*-p.tst
   Exit status (128)
     * error-y.tst
+  Exit status (>256)
+    * exit-p.tst
 
 test
  * test-p.tst

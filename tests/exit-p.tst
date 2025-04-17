@@ -101,4 +101,108 @@ __IN__
 2
 __OUT__
 
+(
+# The test cases below are applicable only if the shell uses exit statuses
+# greater than 256 for commands terminated by signals.
+if
+testee -s <<'__END__'
+sh -c 'kill $$'
+test $? -le 256
+__END__
+then
+    skip=true
+fi
+
+test_o 'exit built-in kills shell according to exit status (TERM)'
+"$TESTEE" -s <<'__END__'
+# This `sh` kills itself with SIGTERM
+sh -c 'kill $$'
+# Now the exit status should be a value greater than 256
+# indicating that the previous command was terminated by SIGTERM.
+# The exit built-in should kill the shell with the same signal
+# to propagate the exit status.
+exit
+__END__
+exit_status=$?
+test "$exit_status" -gt 256 ||
+echo "exit status $exit_status is not greater than 256"
+kill -l "$exit_status"
+__IN__
+TERM
+__OUT__
+
+test_o 'exit built-in kills shell according to exit status (KILL)'
+"$TESTEE" -s <<'__END__'
+# This `sh` kills itself with SIGKILL
+sh -c 'kill -s KILL $$'
+# Now the exit status should be a value greater than 256
+# indicating that the previous command was terminated by SIGKILL.
+# The exit built-in should kill the shell with the same signal
+# to propagate the exit status.
+exit
+__END__
+exit_status=$?
+test "$exit_status" -gt 256 ||
+echo "exit status $exit_status is not greater than 256"
+kill -l "$exit_status"
+__IN__
+KILL
+__OUT__
+
+test_o 'exit built-in kills subshell according to exit status'
+(
+# This `sh` kills itself with SIGTERM
+sh -c 'kill $$'
+# Now the exit status should be a value greater than 256
+# indicating that the previous command was terminated by SIGTERM.
+# The exit built-in should kill the subshell with the same signal
+# to propagate the exit status.
+exit
+)
+exit_status=$?
+test "$exit_status" -gt 256 ||
+echo "exit status $exit_status is not greater than 256"
+kill -l "$exit_status"
+__IN__
+TERM
+__OUT__
+
+test_o 'shell kills itself according to final exit status'
+"$TESTEE" -s <<'__END__'
+# This `sh` kills itself with SIGTERM
+sh -c 'kill $$'
+# Now the exit status should be a value greater than 256
+# indicating that the previous command was terminated by SIGTERM.
+# When reaching the end of the script, the shell should kill
+# itself with the same signal to propagate the exit status.
+__END__
+exit_status=$?
+test "$exit_status" -gt 256 ||
+echo "exit status $exit_status is not greater than 256"
+kill -l "$exit_status"
+__IN__
+TERM
+__OUT__
+
+test_o 'subshell kills itself according to final exit status'
+(
+# This dummy trap suppresses possible auto-exec optimization
+trap 'echo foo' TERM
+# This `sh` kills itself with SIGTERM
+sh -c 'kill $$'
+# Now the exit status should be a value greater than 256
+# indicating that the previous command was terminated by SIGTERM.
+# When reaching the end of the script, the subshell should kill
+# itself with the same signal to propagate the exit status.
+)
+exit_status=$?
+test "$exit_status" -gt 256 ||
+echo "exit status $exit_status is not greater than 256"
+kill -l "$exit_status"
+__IN__
+TERM
+__OUT__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
