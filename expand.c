@@ -329,8 +329,7 @@ wchar_t *expand_single(const wordunit_T *w,
  * removal.
  * This function doesn't perform brace expansion or field splitting.
  * If the result of pathname expansion is more than one word, this function
- *   - returns the original pattern string if in the POSIXly correct mode
- *   - treats it as an error otherwise.
+ * treats it as an error.
  * If the "glob" shell option is off, pathname expansion is not performed.
  * The "nullglob" shell option is ignored.
  * If successful, the resulting word is returned as a newly malloced string.
@@ -368,19 +367,34 @@ char *expand_single_with_glob(const wordunit_T *arg)
 
     /* examine the expansion results */
     wchar_t *wresult;
-    if (globresults.length == 1) {
-        wresult = globresults.contents[0];
-        pl_destroy(&globresults);
-    } else {
-        plfree(pl_toary(&globresults), free);
-        if (!posixly_correct) {
+    switch (globresults.length) {
+        case 0:
+            if (posixly_correct) {
+                /* no match. proceed as if the pattern was not expanded */
+quote_removal:
+                wresult = quote_removal(e.value, e.cc, ES_NONE);
+                break;
+            } else {
+                /* but it'd be better to treat it as an error */
+                plfree(pl_toary(&globresults), free);
+                wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
+                xerror(0, Ngt("`%ls' does not match any existing filename"),
+                        word);
+                free(word);
+                goto return_null;
+            }
+        case 1:
+            /* one match. use it */
+            wresult = globresults.contents[0];
+            pl_destroy(&globresults);
+            break;
+        default:
+            /* more than one match. treat it as an error */
+            plfree(pl_toary(&globresults), free);
             wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
             xerror(0, Ngt("filename `%ls' matches more than one file"), word);
             free(word);
             goto return_null;
-        }
-quote_removal:
-        wresult = quote_removal(e.value, e.cc, ES_NONE);
     }
 
     char *mbresult = realloc_wcstombs(wresult);

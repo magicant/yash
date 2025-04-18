@@ -32,6 +32,9 @@
       built-ins.
     - The `cd` built-in now exits with status code 5, when an empty 
       operand is supplied.
+    - The interactive shell now errors out if pathname expansion applied
+      to a file redirection operand results in more than one pathname,
+      regardless of whether the POSIXly-correct mode is enabled.
     - Job control can now be enabled even if the shell does not have a
       controlling terminal.
     - If the job-control shell is started in the same process group as

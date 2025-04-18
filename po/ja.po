@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.59\n"
 "Report-Msgid-Bugs-To: https://github.com/magicant/yash/issues\n"
-"POT-Creation-Date: 2025-04-18 13:17+0900\n"
-"PO-Revision-Date: 2025-04-18 15:28+0900\n"
+"POT-Creation-Date: 2025-04-18 17:22+0900\n"
+"PO-Revision-Date: 2025-04-18 17:23+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@wonderwand.net>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -614,29 +614,34 @@ msgstr "消費 CPU 時間を表示する"
 msgid "\ttimes\n"
 msgstr "\ttimes\n"
 
-#: expand.c:365 expand.c:388 redir.c:441
+#: expand.c:364 expand.c:402 redir.c:441
 msgid "redirection"
 msgstr "リダイレクト"
 
-#: expand.c:378
+#: expand.c:381
+#, c-format
+msgid "`%ls' does not match any existing filename"
+msgstr "「%ls」に当てはまるファイルはありません"
+
+#: expand.c:395
 #, c-format
 msgid "filename `%ls' matches more than one file"
 msgstr "ファイル名「%ls」に当てはまるファイルが複数あります"
 
-#: expand.c:713
+#: expand.c:727
 msgid "the parameter index is invalid"
 msgstr "パラメータのインデックスが正しくありません"
 
-#: expand.c:865
+#: expand.c:879
 msgid "a nested parameter expansion cannot be assigned"
 msgstr "入れ子のパラメータ展開は代入できません"
 
-#: expand.c:868
+#: expand.c:882
 #, c-format
 msgid "cannot assign to parameter `%ls' in parameter expansion"
 msgstr "パラメータ展開ではパラメータ「%ls」に代入することはできません"
 
-#: expand.c:874
+#: expand.c:888
 #, c-format
 msgid ""
 "the specified index does not support assignment in the parameter expansion "
@@ -644,16 +649,16 @@ msgid ""
 msgstr ""
 "配列「%ls」のパラメータ展開において指定されているインデックスは代入できません"
 
-#: expand.c:911 expand.c:1082
+#: expand.c:925 expand.c:1096
 #, c-format
 msgid "parameter `%ls' is not set"
 msgstr "パラメータ「%ls」は存在しません"
 
-#: expand.c:1078
+#: expand.c:1092
 msgid "the parameter value is empty"
 msgstr "パラメータの値が空です"
 
-#: expand.c:1081
+#: expand.c:1095
 #, c-format
 msgid "parameter `%ls' is not set or has an empty value"
 msgstr "パラメータ「%ls」は存在しないか値が空です"
