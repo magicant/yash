@@ -46,6 +46,10 @@
       termination status.
     - When an interactive shell starts an asynchronous command, its job
       number and process ID are now printed to the standard error.
+    - The `printf` built-in now treats as an error a numeric operand
+      that starts with a quote followed by more than one character.
+      For example, `printf '%d' '"ab'` used to silently ignore the
+      character `b`, but now it is treated as an error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
