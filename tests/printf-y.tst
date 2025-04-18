@@ -1,10 +1,10 @@
 # printf-y.tst: yash-specific test of the printf built-in
 
-test_OE 'empty operand'
+test_OE -e 0 'empty operand'
 printf ''
 __IN__
 
-test_oE 'newline'
+test_oE -e 0 'newline'
 printf '\n'
 __IN__
 
@@ -14,20 +14,20 @@ if ! testee -c 'command -bv printf' >/dev/null; then
     skip="true"
 fi
 
-test_oE 'normal characters'
+test_oE -e 0 'normal characters'
 printf \''ABC 123 !"$#&()-=^~|@`[]{}<>;,:.+*/?_'\'
 echo
 __IN__
 'ABC 123 !"$#&()-=^~|@`[]{}<>;,:.+*/?_'
 __OUT__
 
-test_oE 'unformatted operands are ignored'
+test_oE -e 0 'unformatted operands are ignored'
 printf 'ABC\n' ignored operands
 __IN__
 ABC
 __OUT__
 
-test_oE 'newline 2'
+test_oE -e 0 'newline 2'
 printf 'Multiple\nlines '
 printf 'continued\n'
 __IN__
@@ -35,37 +35,41 @@ Multiple
 lines continued
 __OUT__
 
-test_oE 'escaped backslash'
+test_oE -e 0 'escaped backslash'
 printf '[\\]\n'
 __IN__
 [\]
 __OUT__
 
-test_oE 'escaped double-quote'
+test_oE -e 0 'escaped double-quote'
 printf '[\"]\n'
 __IN__
 ["]
 __OUT__
+#"
+#'
 
-test_oE 'escaped single-quote'
+test_oE -e 0 'escaped single-quote'
 printf "[\\']\n"
 __IN__
 [']
 __OUT__
+#'
+#"
 
-test_oE 'various escapes'
+test_oE -e 0 'various escapes'
 printf 'a\ab\bf\fr\rt\tv\v-\n'
 __IN__
 abfrt	v-
 __OUT__
 
-test_oE 'octal numbers'
+test_oE -e 0 'octal numbers'
 printf 'octal \11 \1000\n'
 __IN__
 octal 	 @0
 __OUT__
 
-test_oE '%d'
+test_oE '%d' -e
 printf '%d\n'
 printf '%d\n' 0
 printf '%d ' 0 10 200 +345 -1278; echo 1
@@ -93,7 +97,7 @@ __IN__
 0 9 510 510 97 64 10
 __OUT__
 
-test_oE '%i'
+test_oE '%i' -e
 printf '%i\n'
 printf '%i\n' 0
 printf '%i ' 0 10 200 +345 -1278; echo 1
@@ -121,7 +125,7 @@ __IN__
 0 9 510 510 97 64 10
 __OUT__
 
-test_oE '%u'
+test_oE '%u' -e
 printf '%u\n'
 printf '%u\n' 0
 printf '%u ' 0 10 200 +345; echo 1
@@ -149,7 +153,7 @@ __IN__
 0 9 510 510 97 64 10
 __OUT__
 
-test_oE '%o'
+test_oE '%o' -e
 printf '%o\n'
 printf '%o\n' 0
 printf '%o ' 0 10 200 +345; echo 1
@@ -179,7 +183,7 @@ __IN__
 000 003 010 0123 012345 11
 __OUT__
 
-test_oE '%x'
+test_oE '%x' -e
 printf '%x\n'
 printf '%x\n' 0
 printf '%x ' 0 10 200 +345; echo 1
@@ -209,7 +213,7 @@ __IN__
 0 0x9 0x1fe 0x1fe 0x61 0x40 11
 __OUT__
 
-test_oE '%X'
+test_oE '%X' -e
 printf '%X\n'
 printf '%X\n' 0
 printf '%X ' 0 10 200 +345; echo 1
@@ -239,7 +243,7 @@ __IN__
 0 0X9 0X1FE 0X1FE 0X61 0X40 11
 __OUT__
 
-test_oE '%f'
+test_oE '%f' -e
 printf '%f\n'
 printf '%f\n' 0
 printf '%f ' 1 1.25 -1000.0; echo 1
@@ -269,7 +273,7 @@ __IN__
 1. 1. -1000. 11
 __OUT__
 
-test_oE '%F'
+test_oE '%F' -e
 printf '%F\n'
 printf '%F\n' 0
 printf '%F ' 1 1.25 -1000.0; echo 1
@@ -299,7 +303,7 @@ __IN__
 1. 1. -1000. 11
 __OUT__
 
-test_oE '%e'
+test_oE '%e' -e
 printf '%e\n'
 printf '%e\n' 0
 printf '%e ' 1 1.25 -1000.0; echo 1
@@ -329,7 +333,7 @@ __IN__
 1.e+00 1.e+00 -1.e+03 11
 __OUT__
 
-test_oE '%E'
+test_oE '%E' -e
 printf '%E\n'
 printf '%E\n' 0
 printf '%E ' 1 1.25 -1000.0; echo 1
@@ -359,7 +363,7 @@ __IN__
 1.E+00 1.E+00 -1.E+03 11
 __OUT__
 
-test_oE '%g'
+test_oE '%g' -e
 printf '%g\n'
 printf '%g\n' 0
 printf '%g ' 1 1.25 -1000.0 0.000025; echo 1
@@ -387,7 +391,7 @@ __IN__
           +1.00           +1.25       -1.00e+03       +2.50e-05 10
 __OUT__
 
-test_oE '%G'
+test_oE '%G' -e
 printf '%G\n'
 printf '%G\n' 0
 printf '%G ' 1 1.25 -1000.0 0.000025; echo 1
@@ -415,7 +419,7 @@ __IN__
           +1.00           +1.25       -1.00E+03       +2.50E-05 10
 __OUT__
 
-test_oE '%c'
+test_oE '%c' -e
 printf '%c\n'
 printf '%c\n' ''
 printf '%c\n' a
@@ -432,7 +436,7 @@ a
 c  
 __OUT__
 
-test_oE '%s'
+test_oE '%s' -e
 printf '%s\n'
 printf '%s\n' 'argument  with  space and
 newline'
@@ -450,7 +454,7 @@ argument with backslash \\ and percent %%
 123   a     long_argument 3
 __OUT__
 
-test_oE '%b'
+test_oE '%b' -e
 printf '%b\n'
 printf '%b\n' 'argument  with  space and
 newline'
@@ -487,7 +491,7 @@ __IN__
 0
 __OUT__
 
-test_oE 'position'
+test_oE -e 0 'position' -e
 printf '%3$d %4$d %2$d\n' 10 20 30 42
 printf '%2$d\n' 1 2 3 4 5
 __IN__
@@ -499,7 +503,7 @@ __OUT__
 
 # In yash, %b is implemented separately from other conversion specifiers,
 # so we test it separately, too.
-test_oE 'position in %b'
+test_oE -e 0 'position in %b' -e
 printf '%3$b %4$b %1$b\n' A BB CCC ddd
 printf '%2$b\n' a b c d e
 __IN__
@@ -509,19 +513,19 @@ d
 
 __OUT__
 
-test_oE 'position with flag'
+test_oE -e 0 'position with flag'
 printf '%1$03d\n' 1
 __IN__
 001
 __OUT__
 
-test_oE 'mixing % and %n$'
+test_oE -e 0 'mixing % and %n$'
 printf '%d %5$.3s %5$s %c %d\n' 42 A B C formatted words
 __IN__
 42 for formatted w 0
 __OUT__
 
-test_oE 'percent'
+test_oE -e 0 'percent'
 printf '%%\n'
 printf '+%%+%%%%+\n'
 __IN__
@@ -529,7 +533,7 @@ __IN__
 +%+%%+
 __OUT__
 
-test_oE 'percent does not consume operand'
+test_oE -e 0 'percent does not consume operand'
 printf '%d%%%d\n' 1 2
 __IN__
 1%2
@@ -594,7 +598,7 @@ __ERR__
 #"
 #`
 
-test_Oe -e n 'invalid option'
+test_Oe -e 2 'invalid option'
 printf --no-such-option ''
 __IN__
 printf: `--no-such-option' is not a valid option
@@ -602,11 +606,11 @@ __ERR__
 #'
 #`
 
-test_O -d -e n 'printing to closed stream'
+test_O -d -e 1 'printing to closed stream'
 printf '\n' >&-
 __IN__
 
-test_Oe -e n 'missing format'
+test_Oe -e 2 'missing format'
 printf
 __IN__
 printf: this command requires an operand
