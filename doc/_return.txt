@@ -25,7 +25,8 @@ happens:
   terminated.
 - If the shell is executing a link:_trap.html[trap], the execution of the
   trap is terminated for the currently handled signal.
-- Otherwise, the shell exits unless it is link:interact.html[interactive].
+- Otherwise, the shell link:exec.html#exit[exits] unless it is
+  link:interact.html[interactive].
 
 When executed with the +-n+ (+--no-return+) option, the built-in does nothing
 but return the specified {{exit_status}}.
@@ -62,9 +63,7 @@ script, or the shell.
 
 The return built-in is a link:builtin.html#types[special built-in].
 
-The POSIX standard provides that the {{exit_status}} operand should be between
-0 and 255 (inclusive).
-Yash accepts integers larger than 255 as an extension.
+Exit status values greater than 255 are non-portable extensions.
 
 In the POSIX standard, the behavior of the return built-in is defined only
 when the shell is executing a function or script.

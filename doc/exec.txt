@@ -208,9 +208,8 @@ The shell exits when it reached the end of input and has parsed and executed
 all input commands or when the link:_exit.html[exit built-in] is executed.
 The exit status of the shell is that of the last command the shell executed
 (or zero if no commands were executed).
-The exit status of the shell is always between 0 and 255 (inclusive).
-If the exit status of the last command is 256 or larger, the exit status of
-the shell will be the remainder of the exit status divided by 256.
+However, if the exit status minus 384 is a signal number, the shell terminates
+itself with that signal instead of exiting with the exit status.
 
 If an exit handler has been registered by the link:_trap.html[trap built-in],
 the handler is executed just before the shell exits.

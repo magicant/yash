@@ -40,6 +40,10 @@
       brought to the foreground by some other means.
     - The shell now returns exit status 128 when encountering a command
       read error.
+    - When the shell is exiting with an exit status that indicates that
+      that the last command was terminated by a signal, the shell now
+      terminates with the same signal to propagate the command's
+      termination status.
     - When an interactive shell starts an asynchronous command, its job
       number and process ID are now printed to the standard error.
   - [line-editing] Updated the completion scripts to support Git
