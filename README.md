@@ -135,6 +135,11 @@ system.
    wide character strings. This design choice was made before POSIX
    added requirements for the shell to accept arbitrary bytes in some
    operations, and it is too late to fully implement them.
+ * The shell needs the `setrlimit` function to implement the behavior
+   of propagating the wait status of a signaled child process to the
+   parent process. This behavior is disabled if the `setrlimit`
+   function is not available, in which case the shell will not be fully
+   POSIX-compliant.
 
 
 ## Known Issues

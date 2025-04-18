@@ -27,10 +27,16 @@
 #include <locale.h>
 #include <signal.h>
 #include <stdbool.h>
+#if HAVE_RLIMIT
+# include <stdint.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
+#if HAVE_RLIMIT
+# include <sys/time.h>
+# include <sys/resource.h>
+#endif
 #include <unistd.h>
 #include <wchar.h>
 #include "alias.h"
@@ -408,6 +414,9 @@ void exit_shell_with_status(int status)
  * This function does not return if the process is actually killed.
  * This function may return if the process is not killed, for example, if
  * the signal is not fatal. */
+/* This function requires the setrlimit function. Without it, the signal may
+ * generate a core dump, which is not desired. This function does nothing if
+ * setrlimit is not available. */
 void maybe_raise(int signal)
 {
     switch (signal) {
@@ -425,6 +434,7 @@ void maybe_raise(int signal)
             return;
     }
 
+#if HAVE_RLIMIT
     // Disable core dump
     struct rlimit limit;
     limit.rlim_cur = limit.rlim_max = 0;
@@ -452,6 +462,7 @@ void maybe_raise(int signal)
         return;
 
     raise(signal);
+#endif /* HAVE_RLIMIT */
 }
 
 /* Prints the help message to the standard output. */

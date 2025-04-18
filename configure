@@ -1596,10 +1596,8 @@ END
 fi
 
 # check for getrlimit and setrlimit
-if ${enable_ulimit}
-then
-    checking "for getrlimit and setrlimit"
-    cat >"${tempsrc}" <<END
+checking "for getrlimit and setrlimit"
+cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
@@ -1610,8 +1608,14 @@ getrlimit(RLIMIT_FSIZE, &l);
 setrlimit(RLIMIT_FSIZE, &l);
 }
 END
-    trymake
-    checked
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_RLIMIT"
+fi
+if ${enable_ulimit}
+then
     if [ x"${checkresult}" = x"yes" ]
     then
         defconfigh "YASH_ENABLE_ULIMIT"
