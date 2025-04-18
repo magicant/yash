@@ -479,6 +479,14 @@ S
 !1
 __OUT__
 
+# Many existing shells do not treat this as an error.
+test_oE -e 0 'printing value of null character'
+printf '%d\n' \' \"
+__IN__
+0
+0
+__OUT__
+
 test_oE 'position'
 printf '%3$d %4$d %2$d\n' 10 20 30 42
 printf '%2$d\n' 1 2 3 4 5
@@ -570,6 +578,21 @@ grep -c .
 __IN__
 1
 __OUT__
+
+test_oe -e 1 'redundant character in character value notation'
+printf '%d\n' 123 \'45 \"67 890
+__IN__
+123
+52
+54
+890
+__OUT__
+printf: redundant character in operand `'45'
+printf: redundant character in operand `"67'
+__ERR__
+#'
+#"
+#`
 
 test_Oe -e n 'invalid option'
 printf --no-such-option ''

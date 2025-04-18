@@ -740,6 +740,8 @@ uintmax_t printf_parse_integer(const wchar_t *arg, bool is_signed)
         arg = L"0";
     if (arg[0] == L'"' || arg[0] == L'\'') {
         value = (uintmax_t) arg[1];
+        if (arg[1] != L'\0' && arg[2] != L'\0')
+            xerror(0, Ngt("redundant character in operand `%ls'"), arg);
     } else {
         errno = 0;
         if (is_signed)
