@@ -66,9 +66,9 @@ When the POSIXly-correct mode is enabled:
   link:redir.html[redirection] cannot be immediately followed by a keyword
   like +}+ and +fi+.
 - In a link:redir.html#file[redirection to a file], if the
-  link:expand.html#glob[pathname expansion] yielded more than one or no
-  pathname, it is not immediately treated as an error. Instead, the shell
-  tries to treat the word before the expansion as a pathname.
+  link:expand.html#glob[pathname expansion] yields no pathname, it is not
+  immediately treated as an error. Instead, the shell tries to proceed as if
+  the pathname expansion did not occur.
 - A file descriptor must be readable and writable when duplicated by the
   +&lt;&amp;+ and +&gt;&amp;+ link:redir.html#dup[redirection] operator,
   respectively.
