@@ -369,6 +369,7 @@ char *expand_single_with_glob(const wordunit_T *arg)
     wchar_t *wresult;
     switch (globresults.length) {
         case 0:
+            pl_destroy(&globresults);
             if (posixly_correct) {
                 /* no match. proceed as if the pattern was not expanded */
 quote_removal:
@@ -376,7 +377,6 @@ quote_removal:
                 break;
             } else {
                 /* but it'd be better to treat it as an error */
-                plfree(pl_toary(&globresults), free);
                 wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
                 xerror(0, Ngt("`%ls' does not match any existing filename"),
                         word);
