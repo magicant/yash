@@ -203,7 +203,7 @@ int main(int argc, char **argv)
         if (shopt_stdin) {
             input.fd = STDIN_FILENO;
             inputname = NULL;
-            if (!options.is_interactive_set && argc == xoptind
+            if (!options.is_interactive_set
                     && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
                 is_interactive = true;
             unset_nonblocking(STDIN_FILENO);
