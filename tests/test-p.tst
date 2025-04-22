@@ -385,19 +385,6 @@ assert_false newer -ef older
 assert_true file -ef hardlink
 assert_false file -ef newer
 
-assert_false "" -a ""
-assert_false "" -a 1
-assert_false 1 -a ""
-assert_true 1 -a 1
-
-assert_false "" -o ""
-assert_true "" -o 1
-assert_true 1 -o ""
-assert_true 1 -o 1
-
-assert_true "" -a 1 -o 1  # -a has higher precedence than -o
-assert_true 1 -o 1 -a ""  # -a has higher precedence than -o
-
 assert_true !
 assert_true ! ''
 assert_false ! A
@@ -410,22 +397,10 @@ assert_true ! -d file
 assert_false ! -d dir
 assert_true ! -n ''
 assert_false ! -n .
-assert_true ! "" -a "" # ! ( "" -a "" )
-assert_true ! 0 -a "" # ! ( 0 -a "" )
 assert_false ! a = a # ! ( a = a )
 assert_false ! ! -n ""
 assert_true ! ! -n 1
 assert_true ! ! ! ""
 assert_false ! ! ! 1
-
-assert_false "(" "" ")"
-assert_true "(" A ")"
-assert_true "(" xyz ")"
-assert_true "(" 12345 = 12345 ")"
-assert_false "(" 12345 = abcde ")"
-assert_true "(" "(" 12345 = 12345 ")" ")"
-assert_false "(" "(" 12345 = abcde ")" ")"
-assert_false "(" ! a = a ")"
-assert_true "(" ! a = b ")"
 
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: yash 2.59\n"
 "Report-Msgid-Bugs-To: https://github.com/magicant/yash/issues\n"
-"POT-Creation-Date: 2025-04-18 17:22+0900\n"
-"PO-Revision-Date: 2025-04-18 17:23+0900\n"
+"POT-Creation-Date: 2025-04-23 00:52+0900\n"
+"PO-Revision-Date: 2025-04-23 00:57+0900\n"
 "Last-Translator: WATANABE Yuki <magicant@wonderwand.net>\n"
 "Language-Team: Japanese\n"
 "Language: ja\n"
@@ -142,7 +142,7 @@ msgstr "このコマンドはオペランドを受け付けません"
 msgid "too many operands are specified"
 msgstr "オペランドの数が多すぎます"
 
-#: builtin.c:363 yash.c:473
+#: builtin.c:363 yash.c:484
 msgid "Try `man yash' for details.\n"
 msgstr "詳しくは: man yash\n"
 
@@ -239,9 +239,9 @@ msgstr "「%ls」は有効な数値ではありません"
 msgid "redundant character in operand `%ls'"
 msgstr "「%ls」に余分な文字が含まれています"
 
-#: builtins/printf.c:752 builtins/test.c:585 builtins/test.c:591
+#: builtins/printf.c:752 builtins/test.c:611 builtins/test.c:617
 #: builtins/ulimit.c:229 exec.c:1940 exec.c:2013 history.c:1729 sig.c:1441
-#: variable.c:2144 variable.c:2204 variable.c:2243 variable.c:2427 yash.c:716
+#: variable.c:2144 variable.c:2204 variable.c:2243 variable.c:2427 yash.c:727
 #, c-format
 msgid "`%ls' is not a valid integer"
 msgstr "「%ls」は有効な整数ではありません"
@@ -254,7 +254,7 @@ msgstr "文字列を整形して出力する"
 msgid "\tprintf format [value...]\n"
 msgstr "\tprintf 書式 [値...]\n"
 
-#: builtins/test.c:111 builtins/test.c:454 parser.c:938 parser.c:1460
+#: builtins/test.c:111 builtins/test.c:480 parser.c:938 parser.c:1460
 #: parser.c:1548 parser.c:1573 parser.c:1705 parser.c:1744 parser.c:2254
 #: parser.c:2622 parser.c:2710 parser.c:2802 parser.c:2843 parser.c:2922
 #: parser.c:3053
@@ -262,37 +262,47 @@ msgstr "\tprintf 書式 [値...]\n"
 msgid "`%ls' is missing"
 msgstr "「%ls」が抜けています"
 
-#: builtins/test.c:142
+#: builtins/test.c:133 builtins/test.c:405 builtins/test.c:474
+msgid "parentheses cannot be used in the POSIXly-correct mode"
+msgstr "括弧は POSIX 準拠モードでは使えません"
+
+#: builtins/test.c:145
 #, c-format
 msgid "`%ls' is not a valid operator"
 msgstr "「%ls」は有効な演算子ではありません"
 
-#: builtins/test.c:167
+#: builtins/test.c:170
 #, c-format
 msgid "`%ls' is not a unary operator"
 msgstr "「%ls」は単項演算子ではありません"
 
-#: builtins/test.c:188 builtins/test.c:656 builtins/test.c:664 exec.c:2149
+#: builtins/test.c:191 builtins/test.c:682 builtins/test.c:690 exec.c:2149
 #: exec.c:2296 exec.c:2305 history.c:1507 lineedit/keymap.c:481 path.c:1292
 #: path.c:1359 strbuf.c:566 strbuf.c:589
 msgid "unexpected error"
 msgstr "想定外のエラーです"
 
-#: builtins/test.c:393
+#: builtins/test.c:311 builtins/test.c:319 builtins/test.c:429
+#: builtins/test.c:447
+#, c-format
+msgid "binary operator `-%lc' cannot be used in the POSIXly-correct mode"
+msgstr "二項演算子「-%lc」は POSIX 準拠モードでは使えません"
+
+#: builtins/test.c:410
 #, c-format
 msgid "`%ls' is not a binary operator"
 msgstr "「%ls」は二項演算子ではありません"
 
-#: builtins/test.c:445
+#: builtins/test.c:468
 #, c-format
 msgid "an expression is missing after `%ls'"
 msgstr "「%ls」の後で式が抜けています"
 
-#: builtins/test.c:711
+#: builtins/test.c:737
 msgid "evaluate a conditional expression"
 msgstr "条件式を評価する"
 
-#: builtins/test.c:714
+#: builtins/test.c:740
 msgid ""
 "\ttest expression\n"
 "\t[ expression ]\n"
@@ -502,7 +512,7 @@ msgstr "ファイル「%s」は $YASH_LOADPATH 内に見つかりませんでし
 msgid "file `%s' was not found in $PATH"
 msgstr "ファイル「%s」は $PATH 内に見つかりませんでした"
 
-#: exec.c:2180 yash.c:211
+#: exec.c:2180 yash.c:217
 #, c-format
 msgid "cannot open file `%s'"
 msgstr "ファイル「%s」を開けません"
@@ -515,7 +525,7 @@ msgstr "ファイルをスクリプトとして実行する"
 msgid "\t. [-AL] file [argument...]\n"
 msgstr "\t. [-AL] ファイル [引数...]\n"
 
-#: exec.c:2273 yash.c:703
+#: exec.c:2273 yash.c:714
 #, c-format
 msgid "You have a stopped job!"
 msgid_plural "You have %zu stopped jobs!"
@@ -1748,21 +1758,21 @@ msgstr "ディレクトリスタックを表示する"
 msgid "\tdirs [-cv] [index...]\n"
 msgstr "\tdirs [-cv] [インデックス...]\n"
 
-#: yash.c:117
+#: yash.c:123
 #, c-format
 msgid "%s: cannot convert the argument `%s' into a wide character string"
 msgstr "%s: 引数「%s」をワイド文字列に変換できません"
 
-#: yash.c:121
+#: yash.c:127
 #, c-format
 msgid "%s: the argument is replaced with an empty string\n"
 msgstr "%s: 引数は空文字列に置き換えられます\n"
 
-#: yash.c:184
+#: yash.c:190
 msgid "the -c option is specified but no command is given"
 msgstr "-c オプションが指定されていますがコマンドが与えられていません"
 
-#: yash.c:463
+#: yash.c:474
 #, c-format
 msgid ""
 "Syntax:\n"
@@ -1775,12 +1785,12 @@ msgstr ""
 "\t%s [オプション...] -c コマンド [コマンド名 [引数...]]\n"
 "\t%s [オプション...] -s [引数...]\n"
 
-#: yash.c:480
+#: yash.c:491
 #, c-format
 msgid "Yet another shell, version %s\n"
 msgstr "Yet another shell バージョン %s\n"
 
-#: yash.c:482
+#: yash.c:493
 msgid ""
 "This is free software licensed under GNU GPL version 2.\n"
 "You can modify and redistribute it, but there is NO WARRANTY.\n"
@@ -1789,7 +1799,7 @@ msgstr ""
 "す。\n"
 "自由に変更・再頒布ができますが、ソフトの動作に保証はありません。\n"
 
-#: yash.c:486
+#: yash.c:497
 msgid ""
 "\n"
 "Enabled features:\n"
@@ -1797,23 +1807,23 @@ msgstr ""
 "\n"
 "有効な機能:\n"
 
-#: yash.c:631
+#: yash.c:642
 msgid "Use `exit' to leave the shell.\n"
 msgstr "シェルを終了するには「exit」コマンドを実行してください。\n"
 
-#: yash.c:707
+#: yash.c:718
 msgid "  Use `exit' again to exit anyway.\n"
 msgstr " それでも終了するにはもう一度「exit」してください。\n"
 
-#: yash.c:729
+#: yash.c:740
 msgid "exit the shell"
 msgstr "シェルを終了する"
 
-#: yash.c:732
+#: yash.c:743
 msgid "\texit [-f] [exit_status]\n"
 msgstr "\texit [-f] [終了ステータス]\n"
 
-#: yash.c:762
+#: yash.c:773
 msgid ""
 "refusing to suspend because of a possible deadlock.\n"
 "Use the -f option to suspend anyway."
@@ -1821,10 +1831,10 @@ msgstr ""
 "デッドロックの恐れがあるためサスペンドしませんでした。\n"
 "本当にサスペンドするには -f オプションを付けてください。"
 
-#: yash.c:776
+#: yash.c:787
 msgid "suspend the shell"
 msgstr "シェルを停止する"
 
-#: yash.c:779
+#: yash.c:790
 msgid "\tsuspend [-f]\n"
 msgstr "\tsuspend [-f]\n"
