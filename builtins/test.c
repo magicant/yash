@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* test.c: test builtin */
-/* (C) 2007-2020 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -129,6 +129,9 @@ int test_builtin(int argc, void **argv)
                 break;
             }
             if (wcscmp(argv[0], L"(") == 0 && wcscmp(argv[3], L")") == 0) {
+                if (posixly_correct)
+                    xerror(0, Ngt("parentheses cannot be used "
+                                "in the POSIXly-correct mode"));
                 result = test_double(&argv[1]);
                 break;
             }
@@ -303,10 +306,20 @@ bool test_triple(void *args[static 3])
     assert(op[0] == L'-');
     switch (op[1]) {
     case L'a':
-        if (op[2] == L'\0') return test_single(args) && test_single(&args[2]);
+        if (op[2] == L'\0') {
+            if (posixly_correct)
+                xerror(0, Ngt("binary operator `-%lc' cannot be used "
+                            "in the POSIXly-correct mode"), L'a');
+            return test_single(args) && test_single(&args[2]);
+        }
         break;
     case L'o':
-        if (op[2] == L'\0') return test_single(args) || test_single(&args[2]);
+        if (op[2] == L'\0') {
+            if (posixly_correct)
+                xerror(0, Ngt("binary operator `-%lc' cannot be used "
+                            "in the POSIXly-correct mode"), L'o');
+            return test_single(args) || test_single(&args[2]);
+        }
         if (op[2] == L't')
             if (op[3] == L'\0') return compare_files(left, right) == FC_OLDER;
         break;
@@ -387,8 +400,12 @@ bool test_triple(void *args[static 3])
 not_binary:
     if (wcscmp(left, L"!") == 0)
         return !test_double(&args[1]);
-    if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0)
+    if (wcscmp(left, L"(") == 0 && wcscmp(right, L")") == 0) {
+        if (posixly_correct)
+            xerror(0, Ngt("parentheses cannot be used "
+                        "in the POSIXly-correct mode"));
         return test_single(&args[1]);
+    }
 
     xerror(0, Ngt("`%ls' is not a binary operator"), op);
     return 0;
@@ -408,6 +425,9 @@ bool test_long_or(struct test_state *state)
     while (yash_error_message_count == 0
             && state->index < state->argc
             && wcscmp(state->args[state->index], L"-o") == 0) {
+        if (posixly_correct)
+            xerror(0, Ngt("binary operator `-%lc' cannot be used "
+                        "in the POSIXly-correct mode"), L'o');
         state->index++;
         result |= test_long_and(state);
     }
@@ -423,6 +443,9 @@ bool test_long_and(struct test_state *state)
     while (yash_error_message_count == 0
             && state->index < state->argc
             && wcscmp(state->args[state->index], L"-a") == 0) {
+        if (posixly_correct)
+            xerror(0, Ngt("binary operator `-%lc' cannot be used "
+                        "in the POSIXly-correct mode"), L'a');
         state->index++;
         result &= test_long_term(state);
     }
@@ -447,6 +470,9 @@ bool test_long_term(struct test_state *state)
         return 0;
     }
     if (wcscmp(state->args[state->index], L"(") == 0) {
+        if (posixly_correct)
+            xerror(0, Ngt("parentheses cannot be used "
+                        "in the POSIXly-correct mode"));
         state->index++;
         result = test_long_or(state);
         if (state->index >= state->argc

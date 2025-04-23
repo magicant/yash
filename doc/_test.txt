@@ -115,6 +115,12 @@ The binary operators below compare version numbers:
 +{{v1}} -vlt {{v2}}+:: {{v1}} is less than {{v2}}
 +{{v1}} -vle {{v2}}+:: {{v1}} is less than or equal to {{v2}}
 
+If the expression is a single word without operators, the +-n+ operator is
+assumed. An empty expression evaluates to false.
+
+[[compound]]
+=== Compound expressions
+
 The operators below can be used to make complex expressions:
 
 +! {{expression}}+:: negate (reverse) the result
@@ -122,8 +128,17 @@ The operators below can be used to make complex expressions:
 +{{expression1}} -a {{expression2}}+:: logical conjunction (and)
 +{{expression1}} -o {{expression2}}+:: logical disjunction (or)
 
-If the expression is a single word without operators, the +-n+ operator is
-assumed. An empty expression evaluates to false.
+However, parentheses and operators +-a+ and +-o+ are deprecated.
+It is strongly recommended to use the link:syntax.html[shell language]
+features instead.
+
+----
+# Avoid:
+[ 1 -eq 1 -a -t = 1 -o ! foo ]
+
+# Prefer:
+[ 1 -eq 1 ] && [ -t = 1 ] || ! [ foo ]
+----
 
 [[version-compare]]
 === Comparison of version numbers
@@ -150,17 +165,13 @@ error or any other reasons.
 [[notes]]
 == Notes
 
-Complex expressions may cause confusion and should be avoided.
-Use the shell's link:syntax.html#compound[compound commands].
-For example, +[ 1 -eq 1 ] && [ -t = 1 ] && ! [ foo ]+ is preferred over
-+[ 1 -eq 1 -a -t = 1 -a ! foo ]+.
-
 The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
 +-G+, +-k+, +-N+, +-O+,
 +-nt+, +-ot+, +-ef+, +==+, +===+, +!==+, +<+, +&lt;=+, +>+, +>=+, +=~+,
-+-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, and +-vle+.
-POSIX neither specifies +-o+ as a unary operator.
++-veq+, +-vne+, +-vgt+, +-vge+, +-vlt+, +-vle+, +-a+, +-o+, and parentheses.
+In the link:posix.html[POSIXly-correct] mode, binary operators +-a+ and +-o+
+and parentheses are rejected.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
