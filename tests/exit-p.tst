@@ -86,8 +86,7 @@ trap '(exit 2); exit 3' INT
 kill -INT $$
 __IN__
 
-# TODO Yash is broken
-test_OE -e 0 -f 'default exit status in signal trap'
+test_OE -e 0 'default exit status in signal trap'
 trap '(exit 2); exit' INT
 (exit 1)
 kill -INT $$

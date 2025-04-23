@@ -391,13 +391,23 @@ void exit_shell_with_status(int status)
     if (status >= 0)
         laststatus = status;
     assert(laststatus >= 0);
+
     if (exitstatus < 0) {
-        exitstatus = laststatus;
+        /* We're not executing the EXIT trap, so execute it now. */
+        if (status >= 0)
+            exitstatus = status;
+        else if (savelaststatus >= 0)
+            exitstatus = savelaststatus;
+        else
+            exitstatus = laststatus;
         execute_exit_trap();
     } else {
+        /* We're already executing the EXIT trap, so avoid executing it
+         * recursively. */
         if (status >= 0)
             exitstatus = status;
     }
+
 #if YASH_ENABLE_HISTORY
     finalize_history();
 #endif
@@ -407,6 +417,7 @@ void exit_shell_with_status(int status)
         maybe_raise(signal);
     }
 
+    assert(exitstatus >= 0);
     _Exit(exitstatus);
 }
 

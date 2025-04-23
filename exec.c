@@ -1615,7 +1615,7 @@ void become_child(sigtype_T sigtype)
     clear_shellfds(sigtype & t_leave);
     is_subshell = true;
     suppresserrreturn = false;
-    exitstatus = -1;
+    savelaststatus = exitstatus = -1;
 }
 
 /* Executes the command substitution and returns the string to substitute with.
