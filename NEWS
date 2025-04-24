@@ -14,6 +14,10 @@
     - The shell now considers a job to be suspended when any child
       process suspends in a pipeline, instead of when all child
       processes suspend.
+    - When the `exit` built-in is used without an operand in a trap
+      action, the shell now exits with the exit status of the last
+      command executed before the trap action, instead of the exit
+      status of the last command executed in the trap action.
     - The `read` built-in now returns a more specific exit status
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be
