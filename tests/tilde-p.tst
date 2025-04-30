@@ -99,6 +99,13 @@ __IN__
 
 )
 
+test_oE -e 0 'empty HOME'
+HOME=
+bracket ~
+__IN__
+[]
+__OUT__
+
 (
 if
     logname=$(logname)
