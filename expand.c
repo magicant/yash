@@ -460,9 +460,17 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
             if (first && (tilde == TT_SINGLE || tilde == TT_MULTI)) {
                 s = expand_tilde(&ss, w->next != NULL, tilde == TT_MULTI);
                 if (s != NULL) {
-                    wb_catfree(&valuebuf, s);
-                    fill_ccbuf(&valuebuf, &ccbuf,
-                            CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+                    if (s[0] != L'\0') {
+                        wb_catfree(&valuebuf, s);
+                        fill_ccbuf(&valuebuf, &ccbuf,
+                                CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+                    } else {
+                        /* empty string: add a dummy quote to prevent empty
+                         * field removal */
+                        wb_wccat(&valuebuf, L'"');
+                        sb_ccat(&ccbuf,
+                                defaultcc | CC_HARD_EXPANSION | CC_QUOTATION);
+                    }
                 }
             }
             while (*ss != L'\0') {
