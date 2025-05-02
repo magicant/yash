@@ -461,7 +461,7 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
                 s = expand_tilde(&ss, w->next != NULL, tilde == TT_MULTI);
                 if (s != NULL) {
                     if (s[0] != L'\0') {
-                        wb_catfree(&valuebuf, s);
+                        wb_cat(&valuebuf, s);
                         fill_ccbuf(&valuebuf, &ccbuf,
                                 CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
                     } else {
@@ -471,6 +471,7 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
                         sb_ccat(&ccbuf,
                                 defaultcc | CC_HARD_EXPANSION | CC_QUOTATION);
                     }
+                    free(s);
                 }
             }
             while (*ss != L'\0') {
