@@ -665,7 +665,7 @@ wchar_t *expand_tilde(
 
     const wchar_t *end = wcspbrk(s, stopatcolon ? L"/:" : L"/");
     wchar_t *username;
-    const wchar_t *home;
+    const wchar_t *dirname;
     size_t usernamelen;
 
     if (end != NULL) {
@@ -678,7 +678,7 @@ wchar_t *expand_tilde(
     username = xwcsndup(s, usernamelen);
     if (username[0] == L'\0') {
         /* empty user name: use $HOME */
-        home = getvar(L VAR_HOME);
+        dirname = getvar(L VAR_HOME);
         goto finish;
     } else if (wcspbrk(username, L"\"'\\") != 0) {
         /* don't expand if the user name is quoted */
@@ -687,30 +687,30 @@ wchar_t *expand_tilde(
     }
     if (!posixly_correct) {
         if (username[0] == L'+' && username[1] == L'\0') {
-            home = getvar(L VAR_PWD);
+            dirname = getvar(L VAR_PWD);
             goto finish;
         }
         if (username[0] == L'-' && username[1] == L'\0') {
-            home = getvar(L VAR_OLDPWD);
+            dirname = getvar(L VAR_OLDPWD);
             goto finish;
         }
 #if YASH_ENABLE_DIRSTACK
         if (username[0] == L'+' || username[0] == L'-') {
             size_t index;
-            if (parse_dirstack_index(username, &index, &home, false)
+            if (parse_dirstack_index(username, &index, &dirname, false)
                     && index != SIZE_MAX) {
                 goto finish;
             }
         }
 #endif
     }
-    home = get_home_directory(username, false);
+    dirname = get_home_directory(username, false);
 finish:
     free(username);
-    if (home == NULL)
+    if (dirname == NULL)
         return NULL;
     *ss = s + usernamelen;
-    return xwcsdup(home);
+    return xwcsdup(dirname);
 }
 
 /* Performs parameter expansion.
