@@ -66,6 +66,10 @@
     - When a field is made up of a single tilde expansion that expands
       to an empty string, the field is no longer removed from the
       command line words.
+    - When a tilde expansion produces a directory name that ends with a
+      slash and the expansion is followed by a slash, the trailing slash
+      in the directory name is now removed to maintain the correct
+      number of slashes.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.

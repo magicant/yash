@@ -709,8 +709,22 @@ finish:
     free(username);
     if (dirname == NULL)
         return NULL;
+
+    /* skip to the next character after the tilde expansion */
     *ss = s + usernamelen;
-    return xwcsdup(dirname);
+
+    wchar_t *result = xwcsdup(dirname);
+
+    /* If `result' ends with a slash and `*ss' points to a slash, remove the
+     * trailing slash from `result' so that the resultant field has the correct
+     * number of slashes. */
+    if (**ss == L'/') {
+        size_t len = wcslen(result);
+        if (len > 0 && result[len - 1] == L'/')
+            result[len - 1] = L'\0';
+    }
+
+    return result;
 }
 
 /* Performs parameter expansion.
