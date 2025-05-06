@@ -28,3 +28,14 @@
    ...
    fun:getpwnam_r@@GLIBC_2.2.5
 }
+{
+   Memcheck:Leak:open_redirections
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:realloc_wcstombs
+   fun:expand_redir_filename
+   fun:open_redirections
+   fun:exec_simple_command_without_words
+}
