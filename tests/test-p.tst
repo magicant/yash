@@ -105,7 +105,7 @@ assert_false -b brokenlink
 )
 
 (
-character_file="$(find /dev -type c 2>/dev/null | head -n 1)"
+character_file="$(find /dev/tty /dev -type c 2>/dev/null | head -n 1)"
 if [ -e "$character_file" ]; then
     ln -s "$character_file" characterlink
 else
