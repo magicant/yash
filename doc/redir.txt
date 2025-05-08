@@ -37,6 +37,10 @@ by the integer.
 The integer must immediately precede the +<+ or +>+ without any whitespaces
 in between. The integer must not be link:syntax.html#quotes[quoted], either.
 
+Words of the form +&#x7B;{{name}}&#x7D;+ that immediately precede a
+redirection operator are reserved for future use.
+Currently, they cause a syntax error if used.
+
 [[file]]
 == Redirection to files
 

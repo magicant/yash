@@ -380,7 +380,25 @@ __ERR__
 #`
 #'
 #`
+
+test_Oe -e 2 'IO_LOCATION as redirection operand (filename)'
+# Here the token "{n}" is an IO_LOCATION token for the second redirection, and
+# hence cannot be the operand of the first.
+> {n}> foo
+__IN__
+syntax error: put a space between `}' and `>' for disambiguation
+__ERR__
+#'
+#`
+#'
+#`
 )
+
+test_Oe -e 2 'IO_LOCATION not yet supported'
+{n}> foo
+__IN__
+syntax error: specifying file descriptor in braces is not supported
+__ERR__
 
 test_Oe -e 2 'missing target for <'
 <
