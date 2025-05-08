@@ -290,7 +290,7 @@ typedef enum tokentype_T {
     TT_UNKNOWN,
     TT_END_OF_INPUT,
     TT_WORD,
-    TT_IO_NUMBER,
+    TT_IO_NUMBER, TT_IO_LOCATION,
     /* operators */
     TT_NEWLINE,
     TT_AMP, TT_AMPAMP, TT_LPAREN, TT_RPAREN, TT_SEMICOLON, TT_DOUBLE_SEMICOLON,
@@ -1141,7 +1141,7 @@ skip_blanks:
 
         default:
             /* Okay, the next token seems to be a word, possibly being a
-             * reserved word or an IO_NUMBER token. */
+             * reserved word or an IO_NUMBER or IO_LOCATION token. */
             ps->index = index;
             wordunit_T *token = parse_word(ps, is_token_delimiter_char);
             index = ps->index;
@@ -1149,11 +1149,16 @@ skip_blanks:
             wordfree(ps->token);
             ps->token = token;
 
-            /* Is this an IO_NUMBER token? */
+            /* Is this an IO_NUMBER or IO_LOCATION token? */
             if (ps->src.contents[index] == L'<' ||
                     ps->src.contents[index] == L'>') {
                 if (is_digits_only(ps->token)) {
                     ps->tokentype = TT_IO_NUMBER;
+                    break;
+                }
+                if (ps->src.contents[startindex] == L'{' &&
+                        ps->src.contents[index - 1] == L'}') {
+                    ps->tokentype = TT_IO_LOCATION;
                     break;
                 }
             }
@@ -1831,12 +1836,12 @@ bool is_closing_brace(wchar_t c)
 
 /* Performs alias substitution with the given parse state. Proceeds to the
  * next token if substitution occurred. This function does not substitute an
- * IO_NUMBER token, but do a keyword token. */
+ * IO_NUMBER or IO_LOCATION token, but do a keyword token. */
 bool psubstitute_alias(parsestate_T *ps, substaliasflags_T flags)
 {
     if (!ps->enable_alias)
         return false;
-    if (ps->tokentype == TT_IO_NUMBER)
+    if (ps->tokentype == TT_IO_NUMBER || ps->tokentype == TT_IO_LOCATION)
         return false;
     if (!is_single_string_word(ps->token))
         return false;
@@ -2262,6 +2267,12 @@ redir_T *tryparse_redirect(parsestate_T *ps)
 {
     int fd;
 
+    if (ps->tokentype == TT_IO_LOCATION) {
+        serror(ps,
+                Ngt("specifying file descriptor in braces is not supported"));
+        next_token(ps);
+    }
+
     if (ps->tokentype == TT_IO_NUMBER) {
         unsigned long lfd;
         wchar_t *endptr;
@@ -2375,11 +2386,13 @@ parse_command:
 }
 
 /* Performs alias substitution on the current token.
- * Rejects the current token if it is an IO_NUMBER token. */
+ * Rejects the current token if it is an IO_NUMBER or IO_LOCATION token. */
 void validate_redir_operand(parsestate_T *ps)
 {
     do {
-        if (posixly_correct && ps->tokentype == TT_IO_NUMBER) {
+        if (posixly_correct &&
+                (ps->tokentype == TT_IO_NUMBER ||
+                 ps->tokentype == TT_IO_LOCATION)) {
             assert(ps->next_index > 0);
             serror(ps, Ngt("put a space between `%lc' and `%lc' "
                         "for disambiguation"),

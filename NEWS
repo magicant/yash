@@ -70,6 +70,9 @@
       slash and the expansion is followed by a slash, the trailing slash
       in the directory name is now removed to maintain the correct
       number of slashes.
+  - The syntax for specifying a file descriptor with a variable name in
+    braces before a redirection operator is now reserved for future
+    implementation. The syntax is now treated as a syntax error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added the completion script for `git-mv`.
