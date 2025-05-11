@@ -272,4 +272,28 @@ __IN__
 4[0]
 __OUT__
 
+test_O -d -e n 'readonly OPTIND'
+# As specified in POSIX XBD 8.1, one of the following should happen:
+# - The readonly built-in fails.
+# - The getopts built-in fails.
+# - The getopts built-in succeeds ignoring the readonlyness of the variable.
+readonly OPTIND && getopts a opt -- x &&
+if [ "$OPTIND" = 2 ]; then
+    printf 'OPTIND successfully changed\n' >&2
+    false # The expected exit status of this test is non-zero.
+fi
+__IN__
+
+test_O -d -e n 'readonly OPTARG'
+# As specified in POSIX XBD 8.1, one of the following should happen:
+# - The readonly built-in fails.
+# - The getopts built-in fails.
+# - The getopts built-in succeeds ignoring the readonlyness of the variable.
+readonly OPTARG && getopts a: opt -a foo &&
+if [ "$OPTARG" = foo ]; then
+    printf 'OPTARG successfully changed\n' >&2
+    false # The expected exit status of this test is non-zero.
+fi
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

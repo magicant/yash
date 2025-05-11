@@ -561,7 +561,7 @@ echo $?
 pwd
 dirs
 __IN__
-0
+1
 $PWD/testdir
 $PWD
 $PWD
@@ -578,7 +578,7 @@ pwd
 printf '[%s]\n' "$OLDPWD"
 dirs
 __IN__
-0
+1
 $PWD/testdir
 [X]
 $PWD/testdir
