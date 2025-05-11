@@ -432,6 +432,14 @@ __IN__
 OLDPWD=$ORIGPWD
 __OUT__
 
+test_O -d -e n 'empty operand (-L)'
+cd -L ''
+__IN__
+
+test_O -d -e n 'empty operand (-P)'
+cd -P ''
+__IN__
+
 test_O -d -e n 'readonly PWD (-L)'
 # As specified in POSIX XBD 8.1, one of the following should happen:
 # - The readonly built-in fails.

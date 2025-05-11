@@ -4,6 +4,18 @@ cd -P .
 export ORIGPWD="$PWD"
 mkdir dir -
 
+test_O -d -e 2 'directory not changeable'
+cd _no_such_directory_
+__IN__
+
+test_x -e 3 'exit status of non-existing file in operand component (-L)'
+cd -L ./_no_such_file_/../dev
+__IN__
+
+test_x -e 2 'exit status of non-existing file in operand component (-P)'
+cd -P ./_no_such_file_/../dev
+__IN__
+
 test_Oe -e 4 'unset HOME'
 unset HOME
 cd
