@@ -38,6 +38,8 @@
       built-ins.
     - The `cd` built-in now exits with status code 5, when an empty 
       operand is supplied.
+    - The `cd` built-in now returns exit status 1 if the `$PWD` or
+      `$OLDPWD` variable cannot be updated because it is read-only.
     - The interactive shell now errors out if pathname expansion applied
       to a file redirection operand results in more than one pathname,
       regardless of whether the POSIXly-correct mode is enabled.

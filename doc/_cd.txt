@@ -89,15 +89,13 @@ specified either, the default is the link:params.html#sv-home[home directory].
 [[exitstatus]]
 == Exit status
 
-* If the working directory is successfully changed:
-** If the +-L+ option is effective, the exit status is 0.
-** If the +-P+ option is effective:
-*** If the absolute pathname of the new working directory is successfully
-    obtained, the exit status is 0.
-*** If the +PWD+ variable cannot be updated because the absolute pathname of
-    the new working directory cannot be obtained:
-**** If the +-e+ option is effective, the exit status is 1.
-**** If the +-e+ option is not effective, the exit status is 0.
+* If the working directory is successfully changed, the exit status is 0,
+except in the following cases the exit status is 1:
+** The +PWD+ or +OLDPWD+ variable cannot be updated because the variable is
+   read-only.
+** The +-P+ and +-e+ options are effective and the +PWD+ variable cannot be
+   updated because the absolute pathname of the new working directory cannot
+   be obtained.
 * If the working directory cannot be changed because of an error in the
   underlying +chdir+ system call, the exit status is 2.
 * If the +-L+ option is effective and the new directory pathname cannot be
@@ -111,9 +109,6 @@ specified either, the default is the link:params.html#sv-home[home directory].
 
 If and only if the exit status is 2 or larger, the working directory is not
 changed.
-
-If the +PWD+ or +OLDPWD+ variable is read-only, the variable is not updated,
-but that does not affect the exit status.
 
 [[notes]]
 == Notes

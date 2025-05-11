@@ -1378,13 +1378,15 @@ step10:  /* do chdir */
     /* set $OLDPWD and $PWD */
     int result = 0;
     if (origpwd != NULL)
-        set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false);
+        if (!set_variable(L VAR_OLDPWD, xwcsdup(origpwd), SCOPE_GLOBAL, false))
+            result = 1;
     if (logical) {
         if (!posixly_correct)
             canonicalize_path_ex(&curpath);
         if (printnewdir)
             printf("%ls\n", curpath.contents);
-        set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false);
+        if (!set_variable(L VAR_PWD, wb_towcs(&curpath), SCOPE_GLOBAL, false))
+            result = 1;
     } else {
         wb_destroy(&curpath);
 
@@ -1394,12 +1396,14 @@ step10:  /* do chdir */
                 printf("%s\n", mbsnewpwd);
 
             wchar_t *wnewpwd = realloc_mbstowcs(mbsnewpwd);
-            if (wnewpwd != NULL)
-                set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false);
-            else
-                result = ensure_pwd ? 1 : 0;
-        } else {
-            result = ensure_pwd ? 1 : 0;
+            if (wnewpwd != NULL) {
+                if (!set_variable(L VAR_PWD, wnewpwd, SCOPE_GLOBAL, false))
+                    result = 1;
+            } else if (ensure_pwd) {
+                result = 1;
+            }
+        } else if (ensure_pwd) {
+            result = 1;
         }
     }
     if (!posixly_correct)
