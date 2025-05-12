@@ -22,6 +22,9 @@
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be
       used to specify a delimiter character.
+    - The `readonly` built-in now refuses to make the `$LINENO`,
+      `$OLDPWD`, `$OPTARG`, `$OPTIND`, and `$PWD` variables read-only in
+      the POSIXly-correct mode.
     - The `test` (`[`) built-in no longer accepts binary operators `-a`
       and `-o` and parentheses `(` and `)` in the POSIXly-correct mode.
     - The `trap` built-in now supports the `-p` option in the POSIXly-

@@ -174,6 +174,36 @@ __ERR__
 #'
 #`
 
+test_Oe -e 1 'LINENO cannot be read-only (POSIX)'
+readonly LINENO
+__IN__
+readonly: $LINENO cannot be made read-only in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 1 'OPTARG cannot be read-only (POSIX)'
+readonly OPTARG
+__IN__
+readonly: $OPTARG cannot be made read-only in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 1 'OPTIND cannot be read-only (POSIX)'
+readonly OPTIND
+__IN__
+readonly: $OPTIND cannot be made read-only in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 1 'PWD cannot be read-only (POSIX)'
+readonly PWD
+__IN__
+readonly: $PWD cannot be made read-only in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 1 'OLDPWD cannot be read-only (POSIX)'
+readonly OLDPWD
+__IN__
+readonly: $OLDPWD cannot be made read-only in the POSIXly-correct mode
+__ERR__
+
 )
 
 test_Oe -e 2 'invalid option -z'

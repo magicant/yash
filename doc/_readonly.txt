@@ -26,4 +26,13 @@ The POSIX standard defines the +-p+ option only;
 other options cannot be used in the link:posix.html[POSIXly-correct mode].
 The POSIX does not allow using the option together with operands.
 
+In the link:posix.html[POSIXly-correct mode], the following variables cannot
+be made readonly:
+
+- link:params.html#sv-lineno[+LINENO+]
+- link:params.html#sv-oldpwd[+OLDPWD+]
+- link:params.html#sv-optarg[+OPTARG+]
+- link:params.html#sv-optind[+OPTIND+]
+- link:params.html#sv-pwd[+PWD+]
+
 // vim: set filetype=asciidoc textwidth=78 expandtab:
