@@ -22,6 +22,7 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - link:syntax.html#simple[単純コマンド]での{zwsp}link:params.html#arrays[配列]の代入はできません。
 - シェル実行中に link:params.html#sv-lc_ctype[+LC_CTYPE+ 変数]の値が変わっても、それをシェルのロケール情報に反映しません。
 - link:params.html#sv-random[+RANDOM+ 変数]は使えません。
+- link:params.html#sv-lineno[+LINENO+], link:params.html#sv-oldpwd[+OLDPWD+], link:params.html#sv-optarg[+OPTARG+], link:params.html#sv-optind[+OPTIND+], link:params.html#sv-pwd[+PWD+] の各変数は{zwsp}link:_readonly.html[読み取り専用]にできません。
 - link:expand.html#tilde[チルダ展開]で +~+ と +~{{ユーザ名}}+ 以外の形式の展開が使えません。
 - link:expand.html#params[パラメータ展開]の{zwsp}link:expand.html#param-name[入れ子]はできません。また{zwsp}link:expand.html#param-index[インデックス]および{{単語2}}のある{zwsp}link:expand.html#param-mod[加工指定]は使用できません。
 - +$(+ と +)+ で囲んだ{zwsp}link:expand.html#cmdsub[コマンド置換]に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。

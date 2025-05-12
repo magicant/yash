@@ -23,4 +23,12 @@ readonly コマンドは{zwsp}link:builtin.html#types[特殊組込みコマン�
 
 POSIX には readonly コマンドに関する規定はありますが、オプションは +-p+ しか規定がありません。その他のオプションは link:posix.html[POSIX 準拠モード]では使えません。また POSIX は +-p+ オプションをオペランドとともに使うことを認めていません。
 
+link:posix.html[POSIX 準拠モード]では以下の変数は読み取り専用にできません:
+
+- link:params.html#sv-lineno[+LINENO+]
+- link:params.html#sv-oldpwd[+OLDPWD+]
+- link:params.html#sv-optarg[+OPTARG+]
+- link:params.html#sv-optind[+OPTIND+]
+- link:params.html#sv-pwd[+PWD+]
+
 // vim: set filetype=asciidoc expandtab:

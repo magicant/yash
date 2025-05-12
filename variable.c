@@ -1578,6 +1578,8 @@ static void print_function(
     __attribute__((nonnull));
 static char *vartype_option_string(vartype_T type)
     __attribute__((malloc,warn_unused_result));
+static bool can_make_readonly(const wchar_t *name)
+    __attribute__((nonnull,pure));
 #if YASH_ENABLE_ARRAY
 static int array_dump_all(const wchar_t *argv0);
 static void array_remove_elements(
@@ -1751,8 +1753,13 @@ int typeset_builtin(int argc, void **argv)
                             var->v_getter = NULL;
                         }
                     }
-                    if (readonly)
-                        var->v_type |= VF_READONLY | VF_NODELETE;
+                    if (readonly) {
+                        if (can_make_readonly(arg))
+                            var->v_type |= VF_READONLY | VF_NODELETE;
+                        else
+                            xerror(0, Ngt("$%ls cannot be made read-only "
+                                        "in the POSIXly-correct mode"), arg);
+                    }
                     if (export)
                         var->v_type |= VF_EXPORT;
                     else if (unexport)
@@ -1977,6 +1984,19 @@ char *vartype_option_string(vartype_T type)
     if (opts.length > 0)
         sb_insert(&opts, 0, " -");
     return sb_tostr(&opts);
+}
+
+/* Determines whether the specified variable can be made read-only.
+ * Returns true if it can be made read-only. */
+bool can_make_readonly(const wchar_t *name)
+{
+    if (!posixly_correct)
+        return true;
+    return wcscmp(name, L VAR_LINENO) != 0 &&
+        wcscmp(name, L VAR_OPTARG) != 0 &&
+        wcscmp(name, L VAR_OPTIND) != 0 &&
+        wcscmp(name, L VAR_PWD) != 0 &&
+        wcscmp(name, L VAR_OLDPWD) != 0;
 }
 
 #if YASH_ENABLE_HELP
