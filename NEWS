@@ -1,6 +1,6 @@
 # History of Yash
 
-## Yash 2.59 (Unreleased)
+## Yash 2.59 (2025-05-13)
 
   - Improved POSIX.1-2024 support:
     - When an error that would terminate a non-interactive shell occurs
