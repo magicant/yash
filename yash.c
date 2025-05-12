@@ -25,10 +25,18 @@
 # include <libintl.h>
 #endif
 #include <locale.h>
+#include <signal.h>
 #include <stdbool.h>
+#if HAVE_RLIMIT
+# include <stdint.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_RLIMIT
+# include <sys/time.h>
+# include <sys/resource.h>
+#endif
 #include <unistd.h>
 #include <wchar.h>
 #include "alias.h"
@@ -61,6 +69,7 @@ static bool execute_file_in(const wchar_t *dir_var_name, const wchar_t *path)
     __attribute__((nonnull));
 static bool execute_file(const wchar_t *path);
 static bool execute_file_mbs(const char *path);
+static void maybe_raise(int signal);
 static void print_help(void);
 static void print_version(void);
 
@@ -194,7 +203,7 @@ int main(int argc, char **argv)
         if (shopt_stdin) {
             input.fd = STDIN_FILENO;
             inputname = NULL;
-            if (!options.is_interactive_set && argc == xoptind
+            if (!options.is_interactive_set
                     && isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
                 is_interactive = true;
             unset_nonblocking(STDIN_FILENO);
@@ -373,23 +382,98 @@ bool execute_file_mbs(const char *path)
  * `status' is negative, the value for the first call is used.
  * This function executes the EXIT trap.
  * This function never returns.
- * This function is reentrant and exits immediately if reentered. */
+ * This function is reentrant and exits immediately if reentered.
+ * If the exit status is a value that is returned when a command process is
+ * killed by a signal, the shell kills itself with the same signal instead of
+ * exiting with the exit status. */
 void exit_shell_with_status(int status)
 {
     if (status >= 0)
         laststatus = status;
     assert(laststatus >= 0);
+
     if (exitstatus < 0) {
-        exitstatus = laststatus;
+        /* We're not executing the EXIT trap, so execute it now. */
+        if (status >= 0)
+            exitstatus = status;
+        else if (savelaststatus >= 0)
+            exitstatus = savelaststatus;
+        else
+            exitstatus = laststatus;
         execute_exit_trap();
     } else {
+        /* We're already executing the EXIT trap, so avoid executing it
+         * recursively. */
         if (status >= 0)
             exitstatus = status;
     }
+
 #if YASH_ENABLE_HISTORY
     finalize_history();
 #endif
+
+    if (exitstatus > TERMSIGOFFSET) {
+        int signal = exitstatus - TERMSIGOFFSET;
+        maybe_raise(signal);
+    }
+
+    assert(exitstatus >= 0);
     _Exit(exitstatus);
+}
+
+/* Kills the current shell process with the specified signal.
+ * This function does not return if the process is actually killed.
+ * This function may return if the process is not killed, for example, if
+ * the signal is not fatal. */
+/* This function requires the setrlimit function. Without it, the signal may
+ * generate a core dump, which is not desired. This function does nothing if
+ * setrlimit is not available. */
+void maybe_raise(int signal)
+{
+    switch (signal) {
+        case SIGSTOP:
+        case SIGTSTP:
+        case SIGTTIN:
+        case SIGTTOU:
+        case SIGCONT:
+        case SIGCHLD:
+        case SIGURG:
+#ifdef SIGWINCH
+        case SIGWINCH:
+#endif
+            /* ignore these signals since they are not fatal */
+            return;
+    }
+
+#if HAVE_RLIMIT
+    // Disable core dump
+    struct rlimit limit;
+    limit.rlim_cur = limit.rlim_max = 0;
+    if (setrlimit(RLIMIT_CORE, &limit) != 0)
+        return;
+
+    if (signal != SIGKILL) {
+        // Reset signal disposition
+        struct sigaction action;
+        action.sa_handler = SIG_DFL;
+        action.sa_flags = 0;
+        if (sigemptyset(&action.sa_mask) != 0)
+            return;
+        if (sigaction(signal, &action, NULL) != 0)
+            return;
+    }
+
+    // Unblock the signal
+    sigset_t sigset;
+    if (sigemptyset(&sigset) != 0)
+        return;
+    if (sigaddset(&sigset, signal) != 0)
+        return;
+    if (sigprocmask(SIG_UNBLOCK, &sigset, NULL) != 0)
+        return;
+
+    raise(signal);
+#endif /* HAVE_RLIMIT */
 }
 
 /* Prints the help message to the standard output. */

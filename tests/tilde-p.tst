@@ -99,6 +99,34 @@ __IN__
 
 )
 
+test_oE -e 0 'empty HOME'
+HOME=
+bracket ~
+__IN__
+[]
+__OUT__
+
+test_oE -e 0 'HOME with trailing slash'
+HOME=/foo/bar/
+bracket ~ ~/~
+__IN__
+[/foo/bar/][/foo/bar/~]
+__OUT__
+
+test_oE -e 0 'HOME=/'
+HOME=/
+bracket ~ ~/foo
+__IN__
+[/][/foo]
+__OUT__
+
+test_oE -e 0 'HOME=//'
+HOME=//
+bracket ~ ~/foo
+__IN__
+[//][//foo]
+__OUT__
+
 (
 if
     logname=$(logname)

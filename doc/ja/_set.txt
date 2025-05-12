@@ -191,6 +191,9 @@ POSIX 規格に定義されているオプションは限られています。�
 - +-o nolog+
 - +-o vi+
 
-POSIX ではこのほかに、{zwsp}link:syntax.html#funcdef[関数定義]を{zwsp}link:interact.html#history[コマンド履歴]に登録しないようにする +-o nolog+ オプションを規定していますが、yash はこれをサポートしていません。
+Yash は +nolog+ オプションをサポートしていません。
+このオプションは古い Korn シェルで{zwsp}link:syntax.html#funcdef[関数定義]を{zwsp}link:interact.html#history[コマンド履歴]に登録しないようにする機能がありましたが、現在ほとんどのシェルではサポートされていません。
+
+Yash の +hash-on-def+ オプションの動作は、POSIX.1-2001 に基づいています。既存の多くのシェルはこのオプションを異なる動作で実装しており、POSIX.1-2024 ではこのオプションの動作は規定されなくなりました。
 
 // vim: set filetype=asciidoc expandtab:

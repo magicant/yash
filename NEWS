@@ -16,10 +16,19 @@
       processes suspend.
     - Patterns no longer expand to the filename `.` or `..` in pathname
       expansion.
+    - When the `exit` built-in is used without an operand in a trap
+      action, the shell now exits with the exit status of the last
+      command executed before the trap action, instead of the exit
+      status of the last command executed in the trap action.
     - The `read` built-in now returns a more specific exit status
       depending on the cause of the error.
     - The `read` built-in now supports the `-d` option, which can be
       used to specify a delimiter character.
+    - The `readonly` built-in now refuses to make the `$LINENO`,
+      `$OLDPWD`, `$OPTARG`, `$OPTIND`, and `$PWD` variables read-only in
+      the POSIXly-correct mode.
+    - The `test` (`[`) built-in no longer accepts binary operators `-a`
+      and `-o` and parentheses `(` and `)` in the POSIXly-correct mode.
     - The `trap` built-in now supports the `-p` option in the POSIXly-
       correct mode. When the `-p` option is used, the built-in prints
       all traps without filtering out traps that are not set.
@@ -34,6 +43,15 @@
       built-ins.
     - The `cd` built-in now exits with status code 5, when an empty 
       operand is supplied.
+    - The `cd` built-in now returns exit status 1 if the `$PWD` or
+      `$OLDPWD` variable cannot be updated because it is read-only.
+    - The interactive shell now errors out if pathname expansion applied
+      to a file redirection operand results in more than one pathname,
+      regardless of whether the POSIXly-correct mode is enabled.
+    - The shell now becomes interactive if the shell is reading commands
+      from the standard input and the standard input and standard error
+      are both connected to a terminal. Previously, the shell became
+      interactive only if there was no command line operand as well.
     - Job control can now be enabled even if the shell does not have a
       controlling terminal.
     - If the job-control shell is started in the same process group as
@@ -42,6 +60,26 @@
       brought to the foreground by some other means.
     - The shell now returns exit status 128 when encountering a command
       read error.
+    - When the shell is exiting with an exit status that indicates that
+      that the last command was terminated by a signal, the shell now
+      terminates with the same signal to propagate the command's
+      termination status.
+    - When an interactive shell starts an asynchronous command, its job
+      number and process ID are now printed to the standard error.
+    - The `printf` built-in now treats as an error a numeric operand
+      that starts with a quote followed by more than one character.
+      For example, `printf '%d' '"ab'` used to silently ignore the
+      character `b`, but now it is treated as an error.
+    - When a field is made up of a single tilde expansion that expands
+      to an empty string, the field is no longer removed from the
+      command line words.
+    - When a tilde expansion produces a directory name that ends with a
+      slash and the expansion is followed by a slash, the trailing slash
+      in the directory name is now removed to maintain the correct
+      number of slashes.
+  - The syntax for specifying a file descriptor with a variable name in
+    braces before a redirection operator is now reserved for future
+    implementation. The syntax is now treated as a syntax error.
   - [line-editing] Updated the completion scripts to support Git
     2.48.1.
   - [line-editing] Added completion for `git-mv`, `bmake`, `gmake`,

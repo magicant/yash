@@ -106,9 +106,9 @@ bar
 __OUT__
 
 test_oE 'quotes and expansions in function name'
-HOME=/ G=g
-function ~/a/b"c\$d"e$(echo f)$((1+1))${G}h { echo foo; }
-command -f '//a/bc$def2gh'
+HOME=/a H=h
+function ~/b/c"d\$e"f$(echo g)$((1+1))${H}i { echo foo; }
+command -f '/a/b/cd$efg2hi'
 __IN__
 foo
 __OUT__

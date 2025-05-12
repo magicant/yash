@@ -22,13 +22,14 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - link:syntax.html#simple[単純コマンド]での{zwsp}link:params.html#arrays[配列]の代入はできません。
 - シェル実行中に link:params.html#sv-lc_ctype[+LC_CTYPE+ 変数]の値が変わっても、それをシェルのロケール情報に反映しません。
 - link:params.html#sv-random[+RANDOM+ 変数]は使えません。
+- link:params.html#sv-lineno[+LINENO+], link:params.html#sv-oldpwd[+OLDPWD+], link:params.html#sv-optarg[+OPTARG+], link:params.html#sv-optind[+OPTIND+], link:params.html#sv-pwd[+PWD+] の各変数は{zwsp}link:_readonly.html[読み取り専用]にできません。
 - link:expand.html#tilde[チルダ展開]で +~+ と +~{{ユーザ名}}+ 以外の形式の展開が使えません。
 - link:expand.html#params[パラメータ展開]の{zwsp}link:expand.html#param-name[入れ子]はできません。また{zwsp}link:expand.html#param-index[インデックス]および{{単語2}}のある{zwsp}link:expand.html#param-mod[加工指定]は使用できません。
 - +$(+ と +)+ で囲んだ{zwsp}link:expand.html#cmdsub[コマンド置換]に含まれるコマンドは、コマンド置換が実行される時に毎回解析されます。
 - link:expand.html#arith[数式展開]で小数ならびに `++` および `--` 演算子が使えません。数値でない変数は常にエラーになります。
 - link:redir.html[リダイレクト]の対象を示すトークンは次のリダイレクトのファイル記述子を示す整数と紛らわしくないようにしなければなりません。
 - link:redir.html[リダイレクト]を伴う{zwsp}link:syntax.html#compound[複合コマンド]の直後に +}+ や +fi+ などの予約語を置くことはできません。
-- link:redir.html#file[ファイルのリダイレクト]で、{zwsp}link:expand.html#glob[パス名展開]の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
+- link:redir.html#file[ファイルのリダイレクト]で、{zwsp}link:expand.html#glob[パス名展開]の結果が何もない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
 - +&lt;&amp;+ および +&gt;&amp;+ link:redir.html#dup[リダイレクト]演算子の対象となるファイル記述子はそれぞれ読み込み可能および書き込み可能でなければなりません。
 - link:redir.html#socket[ソケットリダイレクト]・{zwsp}link:redir.html#here[ヒアストリング]・{zwsp}link:redir.html#pipe[パイプリダイレクト]・{zwsp}link:redir.html#process[プロセスリダイレクト]は使用できません。
 - link:exec.html#simple[単純コマンドの実行]時、コマンドが見つからなくても link:params.html#sv-command_not_found_handler[+COMMAND_NOT_FOUND_HANDLER+ 変数]の値は実行しません。

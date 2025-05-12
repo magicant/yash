@@ -25,6 +25,8 @@ When the shell is interactive:
   the terminal.
 - Commands executed are automatically registered in command
   <<history,history>>.
+- When an link:syntax.html#async[asynchronous command] is started, its job
+  number and process ID are printed to the standard error.
 - If a command executed by the shell is killed by a signal other than SIGINT
   and SIGPIPE, the shell reports the fact to the standard error.
 - The filename token is subject to link:expand.html#glob[pathname expansion]

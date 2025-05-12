@@ -4,6 +4,18 @@ cd -P .
 export ORIGPWD="$PWD"
 mkdir dir -
 
+test_O -d -e 2 'directory not changeable'
+cd _no_such_directory_
+__IN__
+
+test_x -e 3 'exit status of non-existing file in operand component (-L)'
+cd -L ./_no_such_file_/../dev
+__IN__
+
+test_x -e 2 'exit status of non-existing file in operand component (-P)'
+cd -P ./_no_such_file_/../dev
+__IN__
+
 test_Oe -e 4 'unset HOME'
 unset HOME
 cd
@@ -45,7 +57,6 @@ __IN__
 cd: $OLDPWD is not set
 __ERR__
 
-# It is POSIXly unclear what the exit status of cd should be in this case.
 testcase "$LINENO" 'read-only PWD' \
     3<<\__IN__ 4<<__OUT__ 5<<\__ERR__
 unset CDPATH
@@ -55,14 +66,13 @@ echo --- $?
 printf 'PWD=%s\n' "$PWD"
 pwd
 __IN__
---- 0
+--- 1
 PWD=$ORIGPWD
 $ORIGPWD/dir
 __OUT__
 cd: $PWD is read-only
 __ERR__
 
-# It is POSIXly unclear what the exit status of cd should be in this case.
 test_oe 'unset OLDPWD'
 unset CDPATH
 readonly OLDPWD=/
@@ -70,7 +80,7 @@ cd dir
 echo --- $?
 printf 'OLDPWD=%s\n' "$OLDPWD"
 __IN__
---- 0
+--- 1
 OLDPWD=/
 __OUT__
 cd: $OLDPWD is read-only

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* job.h: job control */
-/* (C) 2007-2017 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ extern void init_job(void);
 
 extern void set_active_job(job_T *job)
     __attribute__((nonnull));
-extern void add_job(_Bool current);
+extern size_t add_job(_Bool current);
 extern void remove_job(size_t jobnumber);
 extern void remove_job_nofitying_signal(size_t jobnumber);
 extern void remove_all_jobs(void);

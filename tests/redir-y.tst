@@ -16,7 +16,7 @@ echo foo >badsymlink
 __IN__
 
 test_oE -e 0 \
-    'pathname expansion in redirection operand (non-POSIX, interactive), success'\
+    'pathname expansion in redirection operand (interactive), success'\
     -i +m --rcfile=yashrc
 cat <i*0
 cat <"i"'n'\*
@@ -29,22 +29,33 @@ in*
 __OUT__
 
 test_O -d -e 2 \
-    'pathname expansion in redirection operand (non-POSIX, interactive), failure' \
+    'pathname expansion in redirection operand (interactive), multi-match' \
     -i +m --rcfile=yashrc
 cat <in* # more than one matching pathname
+__IN__
+
+test_O -d -e 2 \
+    'pathname expansion in redirection operand (interactive), no match, non-POSIX' \
+    -i +m --rcfile=yashrc
+mkdir globbing1
+# pathname expansion does not match any file, it is an error
+echo foo >globbing1/no_such_file* &&
+echo not reached
 __IN__
 
 (
 posix="true"
 export ENV=yashrc
 
-test_oE -e 0 'pathname expansion in redirection operand (POSIX, interactive)' \
+test_oE -e 0 'pathname expansion in redirection operand (interactive), no match, POSIX' \
     -i +m
-cat <i*0
-cat <in* # multiple matches: the pattern is left intact
+mkdir globbing2
+# pathname expansion does not match any file, so the filename operand is used
+# intact
+echo foo >globbing2/no_such_file*
+cat <'globbing2/no_such_file*'
 __IN__
-in0
-in*
+foo
 __OUT__
 
 )
@@ -369,7 +380,25 @@ __ERR__
 #`
 #'
 #`
+
+test_Oe -e 2 'IO_LOCATION as redirection operand (filename)'
+# Here the token "{n}" is an IO_LOCATION token for the second redirection, and
+# hence cannot be the operand of the first.
+> {n}> foo
+__IN__
+syntax error: put a space between `}' and `>' for disambiguation
+__ERR__
+#'
+#`
+#'
+#`
 )
+
+test_Oe -e 2 'IO_LOCATION not yet supported'
+{n}> foo
+__IN__
+syntax error: specifying file descriptor in braces is not supported
+__ERR__
 
 test_Oe -e 2 'missing target for <'
 <

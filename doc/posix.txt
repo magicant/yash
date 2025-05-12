@@ -51,6 +51,10 @@ When the POSIXly-correct mode is enabled:
   after the shell has been initialized does not affect the shell's locale.
 - The link:params.html#sv-random[+RANDOM+ variable] cannot be used to generate
   random numbers.
+- The link:params.html#sv-lineno[+LINENO+],
+  link:params.html#sv-oldpwd[+OLDPWD+], link:params.html#sv-optarg[+OPTARG+],
+  link:params.html#sv-optind[+OPTIND+], and link:params.html#sv-pwd[+PWD+]
+  variables cannot be made link:_readonly.html[readonly].
 - link:expand.html#tilde[Tilde expansion] only expands +~+ and
   +~{{username}}+.
 - link:expand.html#params[Parameter expansion] cannot be nested.
@@ -66,9 +70,9 @@ When the POSIXly-correct mode is enabled:
   link:redir.html[redirection] cannot be immediately followed by a keyword
   like +}+ and +fi+.
 - In a link:redir.html#file[redirection to a file], if the
-  link:expand.html#glob[pathname expansion] yielded more than one or no
-  pathname, it is not immediately treated as an error. Instead, the shell
-  tries to treat the word before the expansion as a pathname.
+  link:expand.html#glob[pathname expansion] yields no pathname, it is not
+  immediately treated as an error. Instead, the shell tries to proceed as if
+  the pathname expansion did not occur.
 - A file descriptor must be readable and writable when duplicated by the
   +&lt;&amp;+ and +&gt;&amp;+ link:redir.html#dup[redirection] operator,
   respectively.

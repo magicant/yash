@@ -389,13 +389,17 @@ void exec_pipelines_async(const pipeline_T *p)
 
         job->j_pgid = doing_job_control_now ? cpid : 0;
         job->j_status = JS_RUNNING;
-        job->j_statuschanged = true;
+        job->j_statuschanged = false;
         job->j_legacy = false;
         job->j_nonotify = false;
         job->j_pcount = 1;
 
         set_active_job(job);
-        add_job(shopt_curasync);
+        size_t jobnumber = add_job(shopt_curasync);
+
+        if (is_interactive_now)
+            fprintf(stderr, "[%zu] %jd\n", jobnumber, (intmax_t) cpid);
+
         laststatus = Exit_SUCCESS;
         lastasyncpid = cpid;
     } else if (cpid == 0) {
@@ -473,7 +477,7 @@ exec_one_command: /* child process */
     /* establish the job and wait for it */
     job->j_pgid = doing_job_control_now ? pgid : 0;
     job->j_status = JS_RUNNING;
-    job->j_statuschanged = true;
+    job->j_statuschanged = false;
     job->j_legacy = false;
     job->j_nonotify = false;
     job->j_pcount = count;
@@ -496,8 +500,10 @@ exec_one_command: /* child process */
         for (c = cs, p = job->j_procs; c != NULL; c = c->next, p++)
             p->pr_name = command_to_wcs(c, false);
 
-        /* remember the suspended job */
-        add_job(type == E_NORMAL || shopt_curasync);
+        /* retain the job */
+        size_t jobnumber = add_job(type == E_NORMAL || shopt_curasync);
+        if (type == E_ASYNC && is_interactive_now)
+            fprintf(stderr, "[%zu] %jd\n", jobnumber, (intmax_t) lastasyncpid);
     }
 
 done:
@@ -1609,7 +1615,7 @@ void become_child(sigtype_T sigtype)
     clear_shellfds(sigtype & t_leave);
     is_subshell = true;
     suppresserrreturn = false;
-    exitstatus = -1;
+    savelaststatus = exitstatus = -1;
 }
 
 /* Executes the command substitution and returns the string to substitute with.

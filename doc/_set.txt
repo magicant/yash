@@ -275,8 +275,13 @@ The options defined in the standard are:
 - +-o nolog+
 - +-o vi+
 
-Yash does not support the nolog option, which prevents
+Yash does not support the +nolog+ option. This option prevented
 link:syntax.html#funcdef[function definitions] from being added to
-link:interact.html#history[command history].
+link:interact.html#history[command history] in old versions of Korn shell, but
+is no longer supported by any popular shell.
+
+The behavior of the +hash-on-def+ option in yash is based on POSIX.1-2001.
+Many existing shells implement this option with different behavior, and
+POSIX.1-2024 no longer imposes any behavior on this option.
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:

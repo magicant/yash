@@ -90,11 +90,36 @@ assert_true -o \?nonotify
 assert_true -o \?n-o-n-otify
 )
 
+assert_false "" -a ""
+assert_false "" -a 1
+assert_false 1 -a ""
+assert_true 1 -a 1
+
+assert_false "" -o ""
+assert_true "" -o 1
+assert_true 1 -o ""
+assert_true 1 -o 1
+
+assert_true "" -a 1 -o 1  # -a has higher precedence than -o
+assert_true 1 -o 1 -a ""  # -a has higher precedence than -o
+assert_true ! "" -a ""    # ! ( "" -a "" )
+assert_true ! 0 -a ""     # ! ( 0 -a "" )
+
+assert_false "(" "" ")"
+assert_true "(" A ")"
+assert_true "(" xyz ")"
+assert_true "(" 12345 = 12345 ")"
+assert_false "(" 12345 = abcde ")"
+assert_true "(" "(" 12345 = 12345 ")" ")"
+assert_false "(" "(" 12345 = abcde ")" ")"
+assert_false "(" ! a = a ")"
+assert_true "(" ! a = b ")"
+
 assert_true 1 -a "(" 1 = 0 -o "(" 2 = 2 ")" ")" -a "(" = ")"
 assert_true -n = -o -o -n = -n  # ( -n = -o ) -o ( -n = -n )
 assert_true -n = -a -n = -n     # ( -n = ) -a ( -n = -n )
 
-test_Oe -e 2 'invalid binary operator'
+test_Oe -e 2 'invalid unary operator'
 test 1 2
 __IN__
 test: `1' is not a unary operator
@@ -109,5 +134,60 @@ test: `2' is not a binary operator
 __ERR__
 #'
 #`
+
+(
+posix=true
+
+test_Oe -e 2 'parentheses not supported in POSIX mode, single'
+test "(" foo ")"
+__IN__
+test: parentheses cannot be used in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'parentheses not supported in POSIX mode, double'
+test "(" -n foo ")"
+__IN__
+test: parentheses cannot be used in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'parentheses not supported in POSIX mode, long'
+test "(" foo = foo ")"
+__IN__
+test: parentheses cannot be used in the POSIXly-correct mode
+__ERR__
+
+test_Oe -e 2 'binary -a not supported in POSIX mode, single'
+test 1 -a 2
+__IN__
+test: binary operator `-a' cannot be used in the POSIXly-correct mode
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'binary -a not supported in POSIX mode, long'
+test 1 -eq 1 -a 2 -eq 2
+__IN__
+test: binary operator `-a' cannot be used in the POSIXly-correct mode
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'binary -o not supported in POSIX mode, single'
+test 1 -o 2
+__IN__
+test: binary operator `-o' cannot be used in the POSIXly-correct mode
+__ERR__
+#'
+#`
+
+test_Oe -e 2 'binary -o not supported in POSIX mode, long'
+test 1 -eq 1 -o 2 -eq 2
+__IN__
+test: binary operator `-o' cannot be used in the POSIXly-correct mode
+__ERR__
+#'
+#`
+
+)
 
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

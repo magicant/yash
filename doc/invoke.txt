@@ -56,6 +56,13 @@ If you specify the +-i+ (+--interactive+) option, the shell goes into the
 link:interact.html[interactive mode].
 If you specify the `+i` (`++interactive`) option, conversely, the shell never
 goes into the interactive mode.
+The interactive mode is automatically enabled if all the following conditions
+are met:
+
+- The `+i` (`++interactive`) option is not specified.
+- The `-s` (`--stdin`) option is specified, explicitly or implicitly.
+- The standard input is connected to a terminal.
+- The standard error is connected to a terminal.
 
 If you specify the +-l+ (+--login+) option, the shell behaves as a login
 shell.

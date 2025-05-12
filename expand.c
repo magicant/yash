@@ -329,8 +329,7 @@ wchar_t *expand_single(const wordunit_T *w,
  * removal.
  * This function doesn't perform brace expansion or field splitting.
  * If the result of pathname expansion is more than one word, this function
- *   - returns the original pattern string if in the POSIXly correct mode
- *   - treats it as an error otherwise.
+ * treats it as an error.
  * If the "glob" shell option is off, pathname expansion is not performed.
  * The "nullglob" shell option is ignored.
  * If successful, the resulting word is returned as a newly malloced string.
@@ -368,19 +367,34 @@ char *expand_single_with_glob(const wordunit_T *arg)
 
     /* examine the expansion results */
     wchar_t *wresult;
-    if (globresults.length == 1) {
-        wresult = globresults.contents[0];
-        pl_destroy(&globresults);
-    } else {
-        plfree(pl_toary(&globresults), free);
-        if (!posixly_correct) {
+    switch (globresults.length) {
+        case 0:
+            pl_destroy(&globresults);
+            if (posixly_correct) {
+                /* no match. proceed as if the pattern was not expanded */
+quote_removal:
+                wresult = quote_removal(e.value, e.cc, ES_NONE);
+                break;
+            } else {
+                /* but it'd be better to treat it as an error */
+                wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
+                xerror(0, Ngt("`%ls' does not match any existing filename"),
+                        word);
+                free(word);
+                goto return_null;
+            }
+        case 1:
+            /* one match. use it */
+            wresult = globresults.contents[0];
+            pl_destroy(&globresults);
+            break;
+        default:
+            /* more than one match. treat it as an error */
+            plfree(pl_toary(&globresults), free);
             wchar_t *word = quote_removal(e.value, e.cc, ES_NONE);
             xerror(0, Ngt("filename `%ls' matches more than one file"), word);
             free(word);
             goto return_null;
-        }
-quote_removal:
-        wresult = quote_removal(e.value, e.cc, ES_NONE);
     }
 
     char *mbresult = realloc_wcstombs(wresult);
@@ -446,9 +460,18 @@ struct expand_four_T expand_four(const wordunit_T *restrict w,
             if (first && (tilde == TT_SINGLE || tilde == TT_MULTI)) {
                 s = expand_tilde(&ss, w->next != NULL, tilde == TT_MULTI);
                 if (s != NULL) {
-                    wb_catfree(&valuebuf, s);
-                    fill_ccbuf(&valuebuf, &ccbuf,
-                            CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+                    if (s[0] != L'\0') {
+                        wb_cat(&valuebuf, s);
+                        fill_ccbuf(&valuebuf, &ccbuf,
+                                CC_HARD_EXPANSION | (defaultcc & CC_QUOTED));
+                    } else {
+                        /* empty string: add a dummy quote to prevent empty
+                         * field removal */
+                        wb_wccat(&valuebuf, L'"');
+                        sb_ccat(&ccbuf,
+                                defaultcc | CC_HARD_EXPANSION | CC_QUOTATION);
+                    }
+                    free(s);
                 }
             }
             while (*ss != L'\0') {
@@ -642,7 +665,7 @@ wchar_t *expand_tilde(
 
     const wchar_t *end = wcspbrk(s, stopatcolon ? L"/:" : L"/");
     wchar_t *username;
-    const wchar_t *home;
+    const wchar_t *dirname;
     size_t usernamelen;
 
     if (end != NULL) {
@@ -655,7 +678,7 @@ wchar_t *expand_tilde(
     username = xwcsndup(s, usernamelen);
     if (username[0] == L'\0') {
         /* empty user name: use $HOME */
-        home = getvar(L VAR_HOME);
+        dirname = getvar(L VAR_HOME);
         goto finish;
     } else if (wcspbrk(username, L"\"'\\") != 0) {
         /* don't expand if the user name is quoted */
@@ -664,30 +687,44 @@ wchar_t *expand_tilde(
     }
     if (!posixly_correct) {
         if (username[0] == L'+' && username[1] == L'\0') {
-            home = getvar(L VAR_PWD);
+            dirname = getvar(L VAR_PWD);
             goto finish;
         }
         if (username[0] == L'-' && username[1] == L'\0') {
-            home = getvar(L VAR_OLDPWD);
+            dirname = getvar(L VAR_OLDPWD);
             goto finish;
         }
 #if YASH_ENABLE_DIRSTACK
         if (username[0] == L'+' || username[0] == L'-') {
             size_t index;
-            if (parse_dirstack_index(username, &index, &home, false)
+            if (parse_dirstack_index(username, &index, &dirname, false)
                     && index != SIZE_MAX) {
                 goto finish;
             }
         }
 #endif
     }
-    home = get_home_directory(username, false);
+    dirname = get_home_directory(username, false);
 finish:
     free(username);
-    if (home == NULL)
+    if (dirname == NULL)
         return NULL;
+
+    /* skip to the next character after the tilde expansion */
     *ss = s + usernamelen;
-    return xwcsdup(home);
+
+    wchar_t *result = xwcsdup(dirname);
+
+    /* If `result' ends with a slash and `*ss' points to a slash, remove the
+     * trailing slash from `result' so that the resultant field has the correct
+     * number of slashes. */
+    if (**ss == L'/') {
+        size_t len = wcslen(result);
+        if (len > 0 && result[len - 1] == L'/')
+            result[len - 1] = L'\0';
+    }
+
+    return result;
 }
 
 /* Performs parameter expansion.
