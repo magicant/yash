@@ -5,7 +5,7 @@
 :description: This page describes the behavior of yash's POSIXly-correct mode.
 
 Yash behaves as defined in
-link:http://pubs.opengroup.org/onlinepubs/9699919799/[POSIX.1-2008], Shell &
+link:http://pubs.opengroup.org/onlinepubs/9799919799/[POSIX.1-2024], Shell &
 Utilities for the most part, but some functionalities disobey POSIX for
 usability.
 When full POSIX-conformance is needed, you can enable the dfn:[POSIXly-correct

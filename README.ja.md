@@ -33,8 +33,9 @@ This README is also available in [English](README.md).
 
 ## 開発状況
 
-Yash は既に POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition) を全てサポート
-しています (ただし下記制限事項を除く)。
+Yash は既に POSIX.1-2024 (IEEE Std 1003.1) をほぼ全てサポートしています。
+規格を満たしていない部分についての詳細は、下記の注意事項を参照して
+ください。
 
 Yash は安定しています。バグ修正のためのバージョンアップはおおよそ三箇月
 に一度リリースされます。変更履歴は [NEWS.ja](NEWS.ja) ファイルにあります。
@@ -46,8 +47,7 @@ Software Development Utilities オプションと C-Language Development
 Utilities オプションを備えた任意の POSIX.1-2001 環境でビルド・実行
 できるはずです。
 
-今のところ yash の動作は主に Fedora と macOS と Cygwin で検証されて
-います。
+今のところ yash の動作は主に Fedora と macOS で検証されています。
 
 
 ## インストール
@@ -119,9 +119,6 @@ share/initialization/sample) ファイルを参考に自分用の `~/.yashrc`
  * POSIX ロケール以外のロケールでの文字クラスの分類は POSIX ロケールで
    の分類と上位互換であると仮定しています。
  * `-o nolog` オプションには対応していません。(無視されます)
- * POSIX によると、`PS1` 変数の値はパラメータ展開されることになっていま
-   す。Yash ではさらに `PS1` 変数の値に対してコマンド置換と数式展開も行
-   います。これは実装上の都合によるものです。
  * POSIX によると、コマンド `printf %c foo` は文字列 `foo` の最初のバ
    イトを出力することになっています。Yash では `foo` の最初の文字を出
    力するので、出力が複数バイトになることがあります。

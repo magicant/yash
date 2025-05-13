@@ -5,10 +5,11 @@
 :description: This is the introduction page of the yash manual.
 
 dfn:[Yet another shell] (yash) is a command line shell for UNIX-like operating
-systems. The shell conforms to the POSIX.1-2008 standard (for the most parts),
-and actually is more conforming than other POSIX-conforming shells. Moreover,
-it has many features that are used for interactive use, such as command
-history and command line editing.
+systems. The shell conforms to the POSIX.1-2024 standard (for the most parts),
+and aims to be more precise than other shells that claim to be
+POSIX-compliant.
+Moreover, it has many features that can be used for interactive use, such as
+command history and command line editing with completion.
 
 This program can be freely modified and redistributed under the terms of
 http://www.gnu.org/licenses/gpl.html[GNU General Public License] (Version 2).

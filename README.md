@@ -30,7 +30,7 @@ formerly on [OSDN](https://osdn.jp/projects/yash/).
 
 ## Current Development Status
 
-Yash now fully supports POSIX.1-2008 (IEEE Std 1003.1, 2016 Edition)
+Yash now fully supports POSIX.1-2024 (IEEE Std 1003.1)
 except for the limitations listed below.
 
 Yash is stable. A maintenance update is released every three months or
@@ -43,7 +43,7 @@ Yash is supposed to build and run on any POSIX.1-2001 environment with
 the Software Development Utilities and the C-Language Development
 Utilities options.
 
-Currently, yash is mainly tested on Fedora, macOS, and Cygwin.
+Currently, yash is mainly tested on Fedora and macOS.
 
 
 ## Installation
@@ -115,9 +115,6 @@ system.
  * The character categorization in locales other than the POSIX locale
    is assumed upward compatible with the POSIX locale.
  * The `-o nolog` option is not supported: it is silently ignored.
- * According to POSIX, the value of variable `PS1` is subject to
-   parameter expansion. Yash performs command substitution and
-   arithmetic expansion as well on the `PS1` value.
  * According to POSIX, the command `printf %c foo` should print the
    first byte of string `foo`. Yash prints the first character of
    `foo`, which may be more than one byte.
