@@ -332,9 +332,11 @@ to /dev/null. Signal handlers of the and/or list for the SIGINT and SIGQUIT
 signals are set to &#8220;ignore&#8221; the signal so that the execution of the and/or
 list cannot be stopped by those signals.</p></div>
 <div class="paragraph"><p>When the execution of an asynchronous and/or list is started, the shell
-remembers its process ID. You can obtain the ID by referencing the
-<a href="params.html#sp-exclamation"><code>!</code> special parameter</a>. You can obtain the
-current and exit status of the asynchronous list as well by using the
+remembers its process ID. If the shell is <a href="interact.html">interactive</a>, the
+job number and process ID of the asynchronous list are printed to the standard
+error. You can obtain the process ID by referencing the
+<a href="params.html#sp-exclamation"><code>!</code> special parameter</a>. You can also examine
+the current state and exit status of the asynchronous list by using the
 <a href="_jobs.html">jobs</a> and <a href="_wait.html">wait</a> built-ins.</p></div>
 </div>
 </div>
@@ -806,7 +808,7 @@ without errors, and non-zero otherwise.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-12-11 04:30:37 JST
+ 2025-04-13 16:53:25 JST
 </div>
 </div>
 </body>

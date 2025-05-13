@@ -114,42 +114,18 @@
 <div class="ulist"><ul>
 <li>
 <p>
-作業ディレクトリを正しく変更できた場合:
+作業ディレクトリを正しく変更できた場合、終了ステータスは 0 です。ただし、以下の場合は終了ステータスは 1 になります:
 </p>
 <div class="ulist"><ul>
 <li>
 <p>
-<code>-L</code> オプションが有効な場合、終了ステータスは 0 です。
+<code>PWD</code> または <code>OLDPWD</code> 変数が読み取り専用のため更新できなかった場合
 </p>
 </li>
 <li>
 <p>
-<code>-P</code> オプションが有効な場合:
+<code>-P</code> オプションと <code>-e</code> オプションが指定されていて、<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できなかった場合
 </p>
-<div class="ulist"><ul>
-<li>
-<p>
-<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できた場合、終了ステータスは 0 です。
-</p>
-</li>
-<li>
-<p>
-<code>PWD</code> 変数に設定すべき新しい作業ディレクトリパスが特定できなかった場合:
-</p>
-<div class="ulist"><ul>
-<li>
-<p>
-<code>-e</code> オプションが指定されている場合、終了ステータスは 1 です。
-</p>
-</li>
-<li>
-<p>
-<code>-e</code> オプションが指定されていない場合、終了ステータスは 0 です。
-</p>
-</li>
-</ul></div>
-</li>
-</ul></div>
 </li>
 </ul></div>
 </li>
@@ -170,12 +146,11 @@
 </li>
 <li>
 <p>
-コマンドライン引数が不正な場合、終了ステータスは 5 です。
+コマンドライン引数が不正な場合または<var>ディレクトリ</var>が空文字列の場合、終了ステータスは 5 です。
 </p>
 </li>
 </ul></div>
 <div class="paragraph"><p>終了ステータスが 2 以上の場合、作業ディレクトリは変更されません。</p></div>
-<div class="paragraph"><p><code>PWD</code> または <code>OLDPWD</code> 変数が読み取り専用の場合、変数は更新されませんが、これは終了ステータスに影響しません。</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -189,7 +164,7 @@
 </div>
 <div id="footer">
 <div id="footer-text">
- 2025-01-26 16:24:18 JST
+ 2025-05-11 17:55:26 JST
  更新
 </div>
 </div>

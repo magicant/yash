@@ -47,6 +47,9 @@ a non-negative integer; the operator will affect the file descriptor specified
 by the integer.
 The integer must immediately precede the <code>&lt;</code> or <code>&gt;</code> without any whitespaces
 in between. The integer must not be <a href="syntax.html#quotes">quoted</a>, either.</p></div>
+<div class="paragraph"><p>Words of the form <code>&#x7B;<var>name</var>&#x7D;</code> that immediately precede a
+redirection operator are reserved for future use.
+Currently, they cause a syntax error if used.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -315,7 +318,7 @@ syntax as yash&#8217;s process redirection, but incompatibly differs in behavior
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-05-09 00:03:47 JST
 </div>
 </div>
 </body>

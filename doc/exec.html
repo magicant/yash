@@ -324,9 +324,8 @@ You can manage remembered pathnames using the <a href="_hash.html">hash built-in
 all input commands or when the <a href="_exit.html">exit built-in</a> is executed.
 The exit status of the shell is that of the last command the shell executed
 (or zero if no commands were executed).
-The exit status of the shell is always between 0 and 255 (inclusive).
-If the exit status of the last command is 256 or larger, the exit status of
-the shell will be the remainder of the exit status divided by 256.</p></div>
+However, if the exit status minus 384 is a signal number, the shell terminates
+itself with that signal instead of exiting with the exit status.</p></div>
 <div class="paragraph"><p>If an exit handler has been registered by the <a href="_trap.html">trap built-in</a>,
 the handler is executed just before the shell exits.
 The exit status of the commands executed in the handler does not affect the
@@ -490,7 +489,7 @@ may not reset the traps on entry to the subshell.</td>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2025-01-09 00:51:20 JST
+ 2025-04-18 11:32:44 JST
 </div>
 </div>
 </body>

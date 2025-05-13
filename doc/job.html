@@ -24,19 +24,39 @@ simultaneously and suspends/resumes the commands.</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-Every <a href="syntax.html#pipelines">pipeline</a> executed by the shell becomes a
+Every <a href="exec.html#subshell">subshell</a> executed by the shell is assigned a
+  process group ID that is different from the shell&#8217;s process group ID. The
+  process group ID is unique except for the subcommands of the same pipeline,
+  which share the same process group ID. Such a process group is called a
   <dfn>job</dfn>.
-  A job has its unique process group ID that is shared among all processes in
-  the job.
 </p>
+<div class="ulist"><ul>
+<li>
+<p>
+Exceptionally, subshells created for executing a
+    <a href="expand.html#cmdsub">command substitution</a> or
+    <a href="redir.html#process">process redirection</a> remain in the same process
+    group as the shell.
+</p>
+</li>
+</ul></div>
 </li>
 <li>
 <p>
-If the processes of a job are suspended while the shell is waiting for the
-  processes to finish, the shell continues to the next command as if the
-  process have finished.
+If a process in a job is suspended while the shell is waiting for the job to
+  complete, the shell stops waiting and continues to the next command as if
+  the job has finished.
   The shell remembers the job as suspended so that it can be resumed later.
 </p>
+<div class="ulist"><ul>
+<li>
+<p>
+If the shell is <a href="interact.html">interactive</a> in this case, the shell
+    discards any remaining commands that have been read but not executed, and
+    continues to the next command line prompt.
+</p>
+</li>
+</ul></div>
 </li>
 <li>
 <p>
@@ -63,7 +83,8 @@ The standard input of an <a href="syntax.html#async">asynchronous command</a> is
 <li>
 <p>
 The shell does not stop when it receives the SIGTTIN, SIGTTOU, or SIGTSTP
-  signal.
+  signal. Subshells created for executing a command substitution or process
+  redirection do not stop when they receive the SIGTSTP signal.
 </p>
 </li>
 <li>
@@ -108,7 +129,7 @@ run jobs in the foreground or background
 </dt>
 <dd>
 <p>
-waits for jobs to be finished (or suspended)
+waits for jobs to be finished
 </p>
 </dd>
 <dt class="hdlist1">
@@ -317,7 +338,7 @@ differently.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-03-30 16:21:22 JST
 </div>
 </div>
 </body>

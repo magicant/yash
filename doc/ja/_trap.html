@@ -52,7 +52,7 @@
 <div class="sectionbody">
 <div class="paragraph"><p>Trap コマンドはシェルプロセスがシグナルを受信したときの動作 (<dfn>トラップ</dfn>) を表示または設定します。</p></div>
 <div class="paragraph"><p>オペランドに<var>動作</var>と<var>シグナル</var>を指定して trap コマンドを実行すると、シェルが<var>シグナル</var>を受信した際に指定した<var>動作</var>を行うようになります。最初のオペランドが<var>シグナル番号</var>の場合、それと残りの<var>シグナル</var>に対する動作は、動作として <code>-</code> が指定されたときと同様に標準の動作に設定されます。</p></div>
-<div class="paragraph"><p><code>-p</code> (<code>--print</code>) オプションを指定した場合またはオペランドを一つも指定していない場合は、trap コマンドは現在のトラップの設定状況をコマンドとして解釈可能な形式で標準出力に出力します。<var>シグナル</var>が与えられているときはそのシグナルに関する設定を、与えられていないときは全ての設定を出力します。ただし、特定の状況では trap コマンドは現在の設定ではなく以前の設定を表示します (下記補足参照)。</p></div>
+<div class="paragraph"><p><code>-p</code> (<code>--print</code>) オプションを指定した場合またはオペランドを一つも指定していない場合は、trap コマンドは現在のトラップの設定状況をコマンドとして解釈可能な形式で標準出力に出力します。<var>シグナル</var>が与えられているときはそのシグナルに関する設定を出力します。<var>シグナル</var>なしで <code>-p</code> オプションを使用した場合、全てのシグナルの設定を出力します。<var>シグナル</var>を指定せず <code>-p</code> オプションも使用しない場合、標準以外の動作が設定された全てのシグナルを出力します。ただし、特定の状況では trap コマンドは現在の設定ではなく以前の設定を表示します (下記補足参照)。</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -115,8 +115,7 @@
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Trap コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
-<div class="paragraph"><p>POSIX には <code>-p</code> (<code>--print</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
-<div class="paragraph"><p>POSIX は、シグナル名は <code>INT</code> や <code>QUIT</code> のように最初の SIG を除いた形で指定しなければならないと規定しています。Yash では、拡張として SIG を付けた形でも指定できますし、シグナル名の大文字と小文字を区別しません (このような拡張は POSIX でも認められています)。</p></div>
+<div class="paragraph"><p>POSIX は、シグナル名は <code>INT</code> や <code>QUIT</code> のように最初の SIG を除いた形で大文字で指定しなければならないと規定しています。Yash では、拡張として SIG を付けた形でも指定できますし、シグナル名の大文字と小文字を区別しません (このような拡張は POSIX でも認められています)。</p></div>
 <div class="sect2">
 <h3 id="_出力の再利用">出力の再利用</h3>
 <div class="paragraph"><p>Trap コマンドが出力したトラップの設定を変数に保存しておき、後で <a href="_eval.html">eval コマンド</a>でそれを実行することで元のトラップの設定を復活させることができます。</p></div>
@@ -147,7 +146,7 @@ eval "$saved_trap"</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-02-11 15:01:18 JST
  更新
 </div>
 </div>

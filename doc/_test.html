@@ -468,6 +468,10 @@ extended regular expression <var>pattern</var> matches (part of) <var>string</va
 </p>
 </dd>
 </dl></div>
+<div class="paragraph"><p>If the expression is a single word without operators, the <code>-n</code> operator is
+assumed. An empty expression evaluates to false.</p></div>
+<div class="sect2">
+<h3 id="compound">Compound expressions</h3>
 <div class="paragraph"><p>The operators below can be used to make complex expressions:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
@@ -503,8 +507,18 @@ logical disjunction (or)
 </p>
 </dd>
 </dl></div>
-<div class="paragraph"><p>If the expression is a single word without operators, the <code>-n</code> operator is
-assumed. An empty expression evaluates to false.</p></div>
+<div class="paragraph"><p>However, parentheses and operators <code>-a</code> and <code>-o</code> are deprecated.
+It is strongly recommended to use the <a href="syntax.html">shell language</a>
+features instead.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code># Avoid:
+[ 1 -eq 1 -a -t = 1 -o ! foo ]
+
+# Prefer:
+[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] || ! [ foo ]</code></pre>
+</div></div>
+</div>
 <div class="sect2">
 <h3 id="version-compare">Comparison of version numbers</h3>
 <div class="paragraph"><p>Comparison of version numbers is similar to comparison of strings in
@@ -540,24 +554,21 @@ error or any other reasons.</p></div>
 <div class="sect1">
 <h2 id="notes">Notes</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Complex expressions may cause confusion and should be avoided.
-Use the shell&#8217;s <a href="syntax.html#compound">compound commands</a>.
-For example, <code>[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] &amp;&amp; ! [ foo ]</code> is preferred over
-<code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code>.</p></div>
 <div class="paragraph"><p>The POSIX standard provides that the exit status should be larger than 1 on
 error.
 The POSIX standard does not define the following operators:
 <code>-G</code>, <code>-k</code>, <code>-N</code>, <code>-O</code>,
 <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>=~</code>,
-<code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, and <code>-vle</code>.
-POSIX neither specifies <code>-o</code> as a unary operator.</p></div>
+<code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>, <code>-a</code>, <code>-o</code>, and parentheses.
+In the <a href="posix.html">POSIXly-correct</a> mode, binary operators <code>-a</code> and <code>-o</code>
+and parentheses are rejected.</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-04-23 21:46:42 JST
 </div>
 </div>
 </body>

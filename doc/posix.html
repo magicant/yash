@@ -19,7 +19,7 @@
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph"><p>Yash behaves as defined in
-<a href="http://pubs.opengroup.org/onlinepubs/9699919799/">POSIX.1-2008</a>, Shell &amp;
+<a href="http://pubs.opengroup.org/onlinepubs/9799919799/">POSIX.1-2024</a>, Shell &amp;
 Utilities for the most part, but some functionalities disobey POSIX for
 usability.
 When full POSIX-conformance is needed, you can enable the <dfn>POSIXly-correct
@@ -112,6 +112,14 @@ The <a href="params.html#sv-random"><code>RANDOM</code> variable</a> cannot be u
 </li>
 <li>
 <p>
+The <a href="params.html#sv-lineno"><code>LINENO</code></a>,
+  <a href="params.html#sv-oldpwd"><code>OLDPWD</code></a>, <a href="params.html#sv-optarg"><code>OPTARG</code></a>,
+  <a href="params.html#sv-optind"><code>OPTIND</code></a>, and <a href="params.html#sv-pwd"><code>PWD</code></a>
+  variables cannot be made <a href="_readonly.html">readonly</a>.
+</p>
+</li>
+<li>
+<p>
 <a href="expand.html#tilde">Tilde expansion</a> only expands <code>~</code> and
   <code>~<var>username</var></code>.
 </p>
@@ -151,9 +159,9 @@ A <a href="syntax.html#compound">compound command</a> with a
 <li>
 <p>
 In a <a href="redir.html#file">redirection to a file</a>, if the
-  <a href="expand.html#glob">pathname expansion</a> yielded more than one or no
-  pathname, it is not immediately treated as an error. Instead, the shell
-  tries to treat the word before the expansion as a pathname.
+  <a href="expand.html#glob">pathname expansion</a> yields no pathname, it is not
+  immediately treated as an error. Instead, the shell tries to proceed as if
+  the pathname expansion did not occur.
 </p>
 </li>
 <li>
@@ -225,7 +233,7 @@ In <a href="interact.html#mailcheck">mail checking</a>, a notification message i
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-11-20 23:52:45 JST
+ 2025-05-13 22:19:01 JST
 </div>
 </div>
 </body>

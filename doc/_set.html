@@ -567,16 +567,20 @@ using uppercase letters and/or non-alphanumeric characters in option names
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>Yash does not support the nolog option, which prevents
+<div class="paragraph"><p>Yash does not support the <code>nolog</code> option. This option prevented
 <a href="syntax.html#funcdef">function definitions</a> from being added to
-<a href="interact.html#history">command history</a>.</p></div>
+<a href="interact.html#history">command history</a> in old versions of Korn shell, but
+is no longer supported by any popular shell.</p></div>
+<div class="paragraph"><p>The behavior of the <code>hash-on-def</code> option in yash is based on POSIX.1-2001.
+Many existing shells implement this option with different behavior, and
+POSIX.1-2024 no longer imposes any behavior on this option.</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-05-09 22:56:35 JST
 </div>
 </div>
 </body>

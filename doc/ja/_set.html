@@ -483,13 +483,15 @@ Err-exit オプションと異なり、抑止条件は&#8203;<a href="exec.html#
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>POSIX ではこのほかに、&#8203;<a href="syntax.html#funcdef">関数定義</a>を&#8203;<a href="interact.html#history">コマンド履歴</a>に登録しないようにする <code>-o nolog</code> オプションを規定していますが、yash はこれをサポートしていません。</p></div>
+<div class="paragraph"><p>Yash は <code>nolog</code> オプションをサポートしていません。
+このオプションは古い Korn シェルで&#8203;<a href="syntax.html#funcdef">関数定義</a>を&#8203;<a href="interact.html#history">コマンド履歴</a>に登録しないようにする機能がありましたが、現在ほとんどのシェルではサポートされていません。</p></div>
+<div class="paragraph"><p>Yash の <code>hash-on-def</code> オプションの動作は、POSIX.1-2001 に基づいています。既存の多くのシェルはこのオプションを異なる動作で実装しており、POSIX.1-2024 ではこのオプションの動作は規定されなくなりました。</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-05-09 22:56:35 JST
  更新
 </div>
 </div>

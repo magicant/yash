@@ -26,7 +26,7 @@
 <div class="ulist"><ul>
 <li>
 <p>
-<code>read [-Aer] [-P|-p] <var>variable</var>&#8230;</code>
+<code>read [-Aer] [-d <var>delimiter</var>] [-P|-p <var>prompt</var>] <var>variable</var>&#8230;</code>
 </p>
 </li>
 </ul></div>
@@ -46,6 +46,10 @@ continuation.
 When the built-in reads the next line, the <a href="params.html#sv-ps2"><code>PS2</code>
 variable</a> is used as a prompt if the shell is <a href="interact.html">interactive</a>
 and the standard input is a terminal.</p></div>
+<div class="paragraph"><p>By default, the input line is read up to a newline character.
+If the <code>-d</code> (<code>--delimiter</code>) option is specified, the input line is read up to
+the specified <var>delimiter</var> character instead.
+The <var>delimiter</var> character must be a single character.</p></div>
 <div class="paragraph"><p>The input line is subject to <a href="expand.html#split">field splitting</a>.
 The resulting words are assigned to <var>variable</var>s in order.
 If there are more words than <var>variable</var>s, the last variable is assigned all
@@ -69,6 +73,17 @@ assigned empty strings.</p></div>
 Make the last <var>variable</var> an <a href="params.html#arrays">array</a>.
 Instead of assigning a concatenation of the remaining words to a normal
 variable, the words are assigned to an array.
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d <var>delimiter</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--delimiter=<var>delimiter</var></code>
+</dt>
+<dd>
+<p>
+Read up to the specified <var>delimiter</var> character instead of a newline.
 </p>
 </dd>
 <dt class="hdlist1">
@@ -97,6 +112,11 @@ The <a href="_set.html#so-vi">vi</a> or <a href="_set.html#so-emacs">emacs</a> o
 <li>
 <p>
 The standard input and standard error are connected to a terminal.
+</p>
+</li>
+<li>
+<p>
+The <var>delimiter</var> is a newline.
 </p>
 </li>
 </ul></div>
@@ -158,17 +178,22 @@ Names of variables to which input words are assigned.
 <div class="sect1">
 <h2 id="exitstatus">Exit status</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The exit status of the read built-in is zero unless there is any error.</p></div>
-<div class="paragraph"><p>Note that the exit status is non-zero if an end of input is encountered before
-reading the entire line.</p></div>
+<div class="paragraph"><p>The exit status is 0 if the read built-in successfully reads a line.
+If the end of the input is reached, the exit status is 1.
+The variables are assigned the words read so far.
+If a variable is read-only, the exit status is 2.
+If the standard input is unreadable, the exit status is 3.
+In case of a syntax error in the command line arguments, the exit status is 4.</p></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="notes">Notes</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The read built-in is a <a href="builtin.html#types">mandatory built-in</a>.</p></div>
-<div class="paragraph"><p>The POSIX standard defines the <code>-r</code>  option only:
-other options cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
+<div class="paragraph"><p>The POSIX standard defines the <code>-d</code> and <code>-r</code> options only.
+Other options cannot be used in the <a href="posix.html">POSIXly-correct mode</a>.
+Only the exit status 0 and 1 are portable; for other error conditions, the
+exit status may be different in other shells.</p></div>
 <div class="paragraph"><p>The <a href="params.html#sv-ps1r"><code>PS1R</code></a> and <a href="params.html#sv-ps1s"><code>PS1S</code></a>
 variables affect the behavior of line-editing if the <code>PS1</code> prompt is used. The
 same for <code>PS2</code>.</p></div>
@@ -178,7 +203,7 @@ same for <code>PS2</code>.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-03-08 11:50:23 JST
 </div>
 </div>
 </body>

@@ -26,7 +26,7 @@
 <div class="ulist"><ul>
 <li>
 <p>
-<code>read [-Aer] [-P|-p] <var>変数名</var>&#8230;</code>
+<code>read [-Aer] [-d <var>行区切り</var>] [-P|-p <var>プロンプト</var>] <var>変数名</var>&#8230;</code>
 </p>
 </li>
 </ul></div>
@@ -38,6 +38,7 @@
 <div class="paragraph"><p>Read コマンドは標準入力から一行の文字列を読み込み、それを&#8203;<a href="params.html#variables">変数</a>に代入します。</p></div>
 <div class="paragraph"><p><code>-r</code> (<code>--raw-mode</code>) オプションを付けると、行内のバックスラッシュは通常の文字と同様に扱われます。</p></div>
 <div class="paragraph"><p><code>-r</code> (<code>--raw-mode</code>) オプションを付けない場合、読み込んだ文字列の中のバックスラッシュ (<code>\</code>) は&#8203;<a href="syntax.html#quotes">引用符</a>として働きます。バックスラッシュが行末にあるときは行の連結を行います。&#8203;<a href="interact.html">対話モード</a>のシェルが 2 行目以降を読み込むとき、標準入力が端末ならば <a href="params.html#sv-ps2"><code>PS2</code> 変数</a>の値がプロンプトとして出力されます。</p></div>
+<div class="paragraph"><p>通常、入力行は改行文字まで読み込まれます。<code>-d</code> (<code>--delimiter</code>) オプションを指定すると、改行文字の代わりに指定された<var>行区切り</var>文字まで読み込みます。<var>行区切り</var>文字は 1 文字である必要があります。</p></div>
 <div class="paragraph"><p>読み込んだ文字列は、&#8203;<a href="expand.html#split">単語分割</a>によって分割します。分割後の各文字列が、それぞれオペランドで指定された変数の値に順に設定されます。指定された変数の数より分割結果のほうが多い場合は、最後の変数に残りの分割結果の全てが入ります。分割結果の数より指定された変数のほうが多い場合は、余った変数には空文字列が入ります。</p></div>
 </div>
 </div>
@@ -54,6 +55,17 @@
 <dd>
 <p>
 最後に指定した変数を&#8203;<a href="params.html#arrays">配列</a>にします。分割後の各文字列が配列の要素として設定されます。
+</p>
+</dd>
+<dt class="hdlist1">
+<code>-d <var>行区切り</var></code>
+</dt>
+<dt class="hdlist1">
+<code>--delimiter=<var>行区切り</var></code>
+</dt>
+<dd>
+<p>
+改行文字の代わりに指定された<var>行区切り</var>文字まで読み込みます。
 </p>
 </dd>
 <dt class="hdlist1">
@@ -81,6 +93,11 @@
 <li>
 <p>
 標準入力と標準エラーが端末である。
+</p>
+</li>
+<li>
+<p>
+<var>行区切り</var>が改行文字である。
 </p>
 </li>
 </ul></div>
@@ -139,22 +156,26 @@
 <div class="sect1">
 <h2 id="exitstatus">終了ステータス</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>エラーがない限り read コマンドの終了ステータスは 0 です。</p></div>
-<div class="paragraph"><p>なお、行を完全に読み込む前に入力が終端に達した時は終了ステータスは非 0 になります。</p></div>
+<div class="paragraph"><p>行を正常に読み込んだ場合は終了ステータスは 0 です。
+入力の終わりに達した場合は 1 です。この場合はそれまでに読み込んだ文字列が変数に代入されます。
+変数が読み取り専用の場合は 2 です。
+標準入力が読み込めない場合は 3 です。
+コマンドライン引数に構文エラーがある場合は 4 です。</p></div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Read コマンドは&#8203;<a href="builtin.html#types">必須組込みコマンド</a>です。</p></div>
-<div class="paragraph"><p>POSIX では <code>-r</code> オプションのみが規定されています。他のオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
+<div class="paragraph"><p>POSIX では <code>-d</code> と <code>-r</code> オプションのみが規定されています。他のオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。
+終了ステータスは 0 と 1 だけが POSIX で固定されています。他のエラーの場合はシェルによって終了ステータスが異なります。</p></div>
 <div class="paragraph"><p><code>PS1</code> 変数をプロンプトとして表示する際、&#8203;<a href="params.html#sv-ps1r"><code>PS1R</code></a> および <a href="params.html#sv-ps1s"><code>PS1S</code></a> 変数も使用されます。 <code>PS2</code> についても同様です。</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-03-08 11:50:23 JST
  更新
 </div>
 </div>

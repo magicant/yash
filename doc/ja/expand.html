@@ -568,6 +568,15 @@ echo $((foo + 0))       # エラー</code></pre>
 <div class="paragraph"><p>二つ目の形式は <code><var>{始点</var>..<var>終点</var>}</code> または <code><var>{始点</var>..<var>終点</var>..<var>差分</var>}</code> です。<var>始点</var>・<var>終点</var>・<var>差分</var>は全て整数である必要があります。この形式のブレース展開では、<var>始点</var>から<var>終点</var>までの各整数がブレース展開の前後の部分と結合されて、それぞれ単語として展開されます。<var>差分</var>は整数の間隔を指定します。例えば <code>a{1..3}b</code> は <code>a1b</code>、<code>a2b</code>、<code>a3b</code> という三つの単語に展開され、<code>a{1..7..2}b</code> は <code>a1b</code>、<code>a3b</code>、<code>a5b</code>、<code>a7b</code> という四つの単語に展開されます。<var>始点</var>が<var>終点</var>より大きい場合は整数は降順に展開されます。</p></div>
 <div class="paragraph"><p>複数のブレース展開を組み合わせたり、入れ子にしたりすることもできます。ブレースをブレース展開としてでなく通常の文字として扱うには、ブレースをクォートしてください。またカンマを区切りとしてでなく通常の文字として扱うには、カンマをクォートしてください。</p></div>
 <div class="paragraph"><p>ブレース展開では展開エラーは発生しません。ブレース展開が正しくできない場合は、単にそれはブレース展開ではなかったものとして、そのまま残されます。</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">注</div>
+</td>
+<td class="content">Yash ではブレース展開は四種展開の後、単語分割の前に行われます。これは POSIX
+の規定とは異なります。POSIX ではブレース展開は他の展開の前に行うこととされています。</td>
+</tr></table>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -722,7 +731,7 @@ echo $((foo + 0))       # エラー</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2025-01-09 00:51:20 JST
+ 2025-04-06 22:59:31 JST
  更新
 </div>
 </div>

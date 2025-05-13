@@ -63,7 +63,9 @@ resets the traps for <var>signal_number</var> and <var>signal</var>s as if <var>
 built-in prints currently set traps to the standard output in a format that
 can be executed as commands that restore the current traps.
 If one or more <var>signal</var>s are specified, only those signals are printed.
-Otherwise, all signals with non-default actions are printed.
+If no <var>signal</var> is specified but the <code>-p</code> option is given, all signals are
+printed. If no <var>signal</var> is specified and the <code>-p</code> option is not given, only
+signals with non-default actions are printed.
 (In some situations, however, the built-in may print previous trap settings
 instead of the current. See notes below.)</p></div>
 </div>
@@ -137,10 +139,8 @@ This is like <var>signal</var>, but must be a number.
 <h2 id="notes">Notes</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The trap built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
-<div class="paragraph"><p>The POSIX standard defines no options for the trap built-in;
-the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
-<div class="paragraph"><p>The POSIX standard requires that signal names must be specified without the
-<code>SIG</code>-prefix, like <code>INT</code> and <code>QUIT</code>.
+<div class="paragraph"><p>The POSIX standard requires that signal names must be specified in uppercase
+without the <code>SIG</code>-prefix, like <code>INT</code> and <code>QUIT</code>.
 As an extension, yash accepts <code>SIG</code>-prefixed names like <code>SIGINT</code> and <code>SIGQUIT</code>
 and treats signal names case-insensitively.</p></div>
 <div class="sect2">
@@ -186,7 +186,7 @@ A subshell always resets the traps but remembers the previous traps. If the
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-02-11 15:01:18 JST
 </div>
 </div>
 </body>

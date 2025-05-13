@@ -779,6 +779,16 @@ Brace expansions can also be nested.
 You can <a href="syntax.html#quotes">quote</a> braces and/or commas to prevent them
 from being treated as brace expansion.</p></div>
 <div class="paragraph"><p>Any errors in brace expansion are silently ignored.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">In yash, brace expansion is performed after the four expansions and before
+field splitting. This is different from what is required by POSIX, which
+specifies that brace expansion is performed before any other expansion.</td>
+</tr></table>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -986,7 +996,7 @@ including ones with a name starting with a period.
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2025-01-09 00:51:20 JST
+ 2025-04-06 22:59:31 JST
 </div>
 </div>
 </body>

@@ -459,6 +459,9 @@
 </p>
 </dd>
 </dl></div>
+<div class="paragraph"><p>判定式が空の場合、結果は偽とみなします。判定式が (演算子の付いていない) 文字列一つの場合、その文字列が空文字列でないかどうかを判定します。</p></div>
+<div class="sect2">
+<h3 id="compound">複合判定式</h3>
 <div class="paragraph"><p>他の判定式を組み合わせてより複雑な判定式を作る演算子は以下の通りです。</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
@@ -494,7 +497,16 @@
 </p>
 </dd>
 </dl></div>
-<div class="paragraph"><p>判定式が空の場合、結果は偽とみなします。判定式が (演算子の付いていない) 文字列一つの場合、その文字列が空文字列でないかどうかを判定します。</p></div>
+<div class="paragraph"><p>ただし、括弧と <code>-a</code> と <code>-o</code> は非推奨です。代わりに&#8203;<a href="syntax.html">コマンドの文法</a>を活用することをお勧めします。</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code># こうではなく
+[ 1 -eq 1 -a -t = 1 -o ! foo ]
+
+# こうすべきです
+[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] || ! [ foo ]</code></pre>
+</div></div>
+</div>
 <div class="sect2">
 <h3 id="version-compare">バージョン番号の比較</h3>
 <div class="paragraph"><p>文字列のバージョン番号としての比較は、基本的には現在のロケール情報に従った辞書式順序で行います。ただし、連続する数字は一つの自然数として比較します。また数字とそれ以外の文字との比較では常に数字の方が大きいとみなします。</p></div>
@@ -512,14 +524,14 @@
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>複雑な判定式は誤って解釈されることがあるので避けることをお勧めします。例えば <code>[ 1 -eq 1 -a -t = 1 -a ! foo ]</code> は <code>[ 1 -eq 1 ] &amp;&amp; [ -t = 1 ] &amp;&amp; ! [ foo ]</code> のようにコマンドを分けると式がより明確になります。</p></div>
-<div class="paragraph"><p>POSIX は、エラーが発生した場合の終了ステータスを 『2 以上』 と定めています。また POSIX には以下の演算子の規定はありません: <code>-G</code>, <code>-k</code>, <code>-N</code>, <code>-O</code>, <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>=~</code>, <code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>。
-POSIX に <code>-o</code> の単項演算子としての規定はありません。</p></div>
+<div class="paragraph"><p>POSIX は、エラーが発生した場合の終了ステータスを 『2 以上』 と定めています。また POSIX には以下の演算子の規定はありません: <code>-G</code>, <code>-k</code>, <code>-N</code>, <code>-O</code>, <code>-nt</code>, <code>-ot</code>, <code>-ef</code>, <code>==</code>, <code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>=~</code>, <code>-veq</code>, <code>-vne</code>, <code>-vgt</code>, <code>-vge</code>, <code>-vlt</code>, <code>-vle</code>, <code>-a</code>, <code>-o</code> 及び括弧。
+<a href="posix.txt">POSIX 準拠モード</a>では二項演算子 <code>-a</code> および <code>-o</code> ならびに括弧は使用できません。</p></div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-04-23 21:46:42 JST
  更新
 </div>
 </div>

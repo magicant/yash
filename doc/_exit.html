@@ -78,8 +78,9 @@ A non-negative integer that will be the exit status of the exiting shell.
 last command executed before the exit built-in (but, if the built-in is
 executed during a <a href="_trap.html">trap</a>, the exit status will be that of the
 last command before the trap is entered).</p></div>
-<div class="paragraph"><p>If <var>exit_status</var> is 256 or larger, the actual exit status will be
-the remainder of <var>exit_status</var> divided by 256.</p></div>
+<div class="paragraph"><p>If the exit status is larger than 384, the shell may terminate itself with a
+signal instead of exiting with the specified exit status.
+See <a href="exec.html#exit">Termination of the shell</a> for details.</p></div>
 </dd>
 </dl></div>
 </div>
@@ -99,9 +100,7 @@ is non-zero.</p></div>
 <div class="paragraph"><p>The exit built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
 <div class="paragraph"><p>The POSIX standard defines no options for the exit built-in;
 the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode</a>.</p></div>
-<div class="paragraph"><p>The POSIX standard provides that the <var>exit_status</var> operand should be between
-0 and 255 (inclusive).
-Yash accepts integers larger than 255 as an extension.</p></div>
+<div class="paragraph"><p>Exit status values greater than 255 are non-portable extensions.</p></div>
 <div class="paragraph"><p>If the built-in is executed during an EXIT <a href="_trap.html">trap</a>, the shell
 just exits without executing the trap again.
 If <var>exit_status</var> was not specified, the exit status of the shell is what the
@@ -113,7 +112,7 @@ See also <a href="exec.html#exit">Termination of the shell</a>.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-04-18 11:32:44 JST
 </div>
 </div>
 </body>

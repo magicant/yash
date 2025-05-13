@@ -65,7 +65,8 @@ If the shell is executing a <a href="_trap.html">trap</a>, the execution of the
 </li>
 <li>
 <p>
-Otherwise, the shell exits unless it is <a href="interact.html">interactive</a>.
+Otherwise, the shell <a href="exec.html#exit">exits</a> unless it is
+  <a href="interact.html">interactive</a>.
 </p>
 </li>
 </ul></div>
@@ -123,9 +124,7 @@ script, or the shell.</p></div>
 <h2 id="notes">Notes</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>The return built-in is a <a href="builtin.html#types">special built-in</a>.</p></div>
-<div class="paragraph"><p>The POSIX standard provides that the <var>exit_status</var> operand should be between
-0 and 255 (inclusive).
-Yash accepts integers larger than 255 as an extension.</p></div>
+<div class="paragraph"><p>Exit status values greater than 255 are non-portable extensions.</p></div>
 <div class="paragraph"><p>In the POSIX standard, the behavior of the return built-in is defined only
 when the shell is executing a function or script.</p></div>
 <div class="paragraph"><p>The POSIX standard defines no options for the return built-in;
@@ -136,7 +135,7 @@ the built-in accepts no options in the <a href="posix.html">POSIXly-correct mode
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-04-18 11:32:44 JST
 </div>
 </div>
 </body>

@@ -70,7 +70,7 @@
 終了するシェルの終了ステータスを指定する 0 以上の自然数です。
 </p>
 <div class="paragraph"><p>このオペランドが与えられていない場合は、exit コマンドの直前に実行されたコマンドの終了ステータスを用います (ただし&#8203;<a href="_trap.html">トラップ</a>を実行中の場合はトラップに入る直前のコマンドの終了ステータス)。</p></div>
-<div class="paragraph"><p>終了するシェルの実際の終了ステータスは、オペランドで与えられた数を 256 で割った余りになります。</p></div>
+<div class="paragraph"><p>終了ステータスが 384 より大きい場合、シェルは指定された終了ステータスで終了するのではなく、シグナルを送って終了しようとします。詳細は&#8203;<a href="exec.html#exit">シェルの終了</a>を参照してください。</p></div>
 </dd>
 </dl></div>
 </div>
@@ -86,7 +86,7 @@
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Exit コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
-<div class="paragraph"><p>POSIX では、<var>終了ステータス</var>の値は 0 以上 256 未満でなければならないとしています。Yash では拡張として 256 以上の値も受け付けるようになっています。</p></div>
+<div class="paragraph"><p>256 以上の終了ステータスは移植性のない拡張です。</p></div>
 <div class="paragraph"><p>POSIX には <code>-f</code> (<code>--force</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
 <div class="paragraph"><p>シェル終了時のトラップの実行中に exit コマンドを実行すると、再びトラップが実行されることはなくそのままシェルは終了します。このとき exit コマンドに<var>終了ステータス</var>が与えられていない場合は、もし終了時のトラップが設定されていなかった場合にシェルが返したろう終了ステータスでシェルは終了します。(<a href="exec.html#exit">シェルの終了</a>も参照)</p></div>
 </div>
@@ -94,7 +94,7 @@
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-04-18 11:32:44 JST
  更新
 </div>
 </div>

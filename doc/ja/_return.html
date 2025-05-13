@@ -59,7 +59,7 @@
 </li>
 <li>
 <p>
-これ以外の場合は、(<a href="interact.html">対話モード</a>のときを除いて) シェルは終了します。
+これ以外の場合は、(<a href="interact.html">対話モード</a>のときを除いて) シェルは&#8203;<a href="exec.html#exit">終了</a>します。
 </p>
 </li>
 </ul></div>
@@ -110,7 +110,7 @@ Return コマンドの終了ステータスを指定する 0 以上の自然数�
 <h2 id="notes">補足</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Return コマンドは&#8203;<a href="builtin.html#types">特殊組込みコマンド</a>です。</p></div>
-<div class="paragraph"><p>POSIX では、<var>終了ステータス</var>の値は 0 以上 256 未満でなければならないとしています。Yash では拡張として 256 以上の値も受け付けるようになっています。</p></div>
+<div class="paragraph"><p>256 以上の終了ステータスは移植性のない拡張です。</p></div>
 <div class="paragraph"><p>POSIX では関数あるいはドットコマンドの実行中以外における return コマンドの動作を定めていません。</p></div>
 <div class="paragraph"><p>POSIX には <code>-n</code> (<code>--no-return</code>) オプションに関する規定はありません。よってこのオプションは <a href="posix.html">POSIX 準拠モード</a>では使えません。</p></div>
 </div>
@@ -118,7 +118,7 @@ Return コマンドの終了ステータスを指定する 0 以上の自然数�
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-04-18 11:32:44 JST
  更新
 </div>
 </div>

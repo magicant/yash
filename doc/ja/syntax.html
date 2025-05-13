@@ -223,7 +223,7 @@ for function if in then until while</code></pre>
 <div class="paragraph"><p>シェルが受け取るコマンドの全体は、<a href="#and-or">and/or リスト</a>を <code>;</code> または <code>&amp;</code> で区切ったものです。行末、 <code>;;</code> または <code>)</code> の直前にある <code>;</code> は省略できますが、それ以外の場合は and/or リストの直後には必ず <code>;</code> と <code>&amp;</code> のどちらかが必要です。</p></div>
 <div class="paragraph"><p>And/or リストの直後に <code>;</code> がある場合は、その and/or リストは同期的に実行されます。すなわち、その and/or リストの実行が終わった後に次の and/or リストが実行されます。And/or リストの直後に <code>&amp;</code> がある場合は、その and/or リストは非同期的に実行されます。すなわち、その and/or リストの実行を開始した後、終了を待たずに、すぐさま次の and/or リストの実行に移ります。非同期な and/or リストは常に&#8203;<a href="exec.html#subshell">サブシェル</a>で実行されます。また終了ステータスは常に 0 です。</p></div>
 <div class="paragraph"><p><a href="job.html">ジョブ制御</a>を行っていないシェルにおける非同期な and/or リストでは、標準入力が自動的に /dev/null にリダイレクトされるとともに、SIGINT と SIGQUIT を受信したときの動作が 『無視』 に設定されこれらのシグナルを受けてもプログラムが終了しないようにします。</p></div>
-<div class="paragraph"><p>ジョブ制御を行っているかどうかにかかわらず、非同期コマンドを実行するとシェルはそのコマンドのプロセス ID を記憶します。&#8203;<a href="params.html#sp-exclamation">特殊パラメータ <code>!</code></a> を参照すると非同期コマンドのプロセス ID を知ることができます。非同期コマンドの状態や終了ステータスは <a href="_jobs.html">jobs</a> や <a href="_wait.html">wait</a> 組込みコマンドで知ることができます。</p></div>
+<div class="paragraph"><p>ジョブ制御を行っているかどうかにかかわらず、非同期コマンドの実行を開始するときにシェルはそのコマンドのプロセス ID を記憶します。シェルが&#8203;<a href="interact.html">対話モード</a>の場合、コマンドのジョブ番号とプロセス ID が標準エラーに出力されます。プロセス ID は&#8203;<a href="params.html#sp-exclamation">特殊パラメータ <code>!</code></a> の値から知ることもできます。非同期コマンドの状態や終了ステータスは <a href="_jobs.html">jobs</a> や <a href="_wait.html">wait</a> 組込みコマンドで知ることができます。</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -574,7 +574,7 @@ Caseitem が <code>;|</code> または <code>;;&amp;</code> で終わる場合�
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-12-11 04:30:37 JST
+ 2025-04-13 16:53:25 JST
  更新
 </div>
 </div>

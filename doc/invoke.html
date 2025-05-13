@@ -64,7 +64,31 @@ features as well.</p></div>
 <div class="paragraph"><p>If you specify the <code>-i</code> (<code>--interactive</code>) option, the shell goes into the
 <a href="interact.html">interactive mode</a>.
 If you specify the <code>+i</code> (<code>++interactive</code>) option, conversely, the shell never
-goes into the interactive mode.</p></div>
+goes into the interactive mode.
+The interactive mode is automatically enabled if all the following conditions
+are met:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+The <code>+i</code> (<code>++interactive</code>) option is not specified.
+</p>
+</li>
+<li>
+<p>
+The <code>-s</code> (<code>--stdin</code>) option is specified, explicitly or implicitly.
+</p>
+</li>
+<li>
+<p>
+The standard input is connected to a terminal.
+</p>
+</li>
+<li>
+<p>
+The standard error is connected to a terminal.
+</p>
+</li>
+</ul></div>
 <div class="paragraph"><p>If you specify the <code>-l</code> (<code>--login</code>) option, the shell behaves as a login
 shell.</p></div>
 <div class="paragraph"><p>The <code>--noprofile</code>, <code>--norcfile</code>, <code>--profile</code>, and <code>--rcfile</code> options determine
@@ -170,7 +194,7 @@ default location.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-04-21 00:03:47 JST
 </div>
 </div>
 </body>

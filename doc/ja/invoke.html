@@ -30,7 +30,30 @@
 <div class="paragraph"><p><code>-c</code> (<code>--cmdline</code>) オプションも <code>-s</code> (<code>--stdin</code>) オプションも指定されなかった場合は、シェルはファイルからコマンドを読み取って解釈・実行します。最初のオペランドが読み込むファイル名と見なされ、特殊パラメータ <code>0</code> の値となります。残りのオペランドは&#8203;<a href="params.html#positional">位置パラメータ</a>になります。オペランドが一つもない場合は、 <code>-s</code> (<code>--stdin</code>) オプションを指定したときと同様に標準入力からコマンドを読み込みます。</p></div>
 <div class="paragraph"><p><code>-c</code> (<code>--cmdline</code>) オプションと <code>-s</code> (<code>--stdin</code>) オプションを同時に使用することはできません。</p></div>
 <div class="paragraph"><p><code>--help</code> オプションまたは <code>-V</code> (<code>--version</code>) オプションが指定されている場合は、通常の初期化処理やコマンドの解釈・実行は一切行いません。それぞれシェルのコマンドライン引数の簡単な説明とバージョン情報を標準出力に出力した後、そのままシェルは終了します。 <code>-V</code> (<code>--version</code>) オプションを <code>-v</code> (<code>--verbose</code>) オプションと共に使用すると、シェルで利用可能な機能の一覧も出力されます。</p></div>
-<div class="paragraph"><p><code>-i</code> (<code>--interactive</code>) オプションが指定されている場合、シェルは対話モードになります。逆に <code>+i</code> (<code>++interactive</code>) オプションが指定されている場合、シェルは対話モードになりません。</p></div>
+<div class="paragraph"><p><code>-i</code> (<code>--interactive</code>) オプションが指定されている場合、シェルは対話モードになります。逆に <code>+i</code> (<code>++interactive</code>) オプションが指定されている場合、シェルは対話モードになりません。
+<code>-i</code> (<code>--interactive</code>) オプションが指定されていない場合でも、シェルは以下の条件をすべて満たすときに自動的に対話モードになります:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<code>+i</code> (<code>++interactive</code>) オプションが指定されていない
+</p>
+</li>
+<li>
+<p>
+<code>-s</code> (<code>--stdin</code>) オプションが指定されているか自動的に有効になった
+</p>
+</li>
+<li>
+<p>
+標準入力が端末である
+</p>
+</li>
+<li>
+<p>
+標準エラーが端末である
+</p>
+</li>
+</ul></div>
 <div class="paragraph"><p><code>-l</code> (<code>--login</code>) オプションが指定されている場合、シェルはログインシェルとして動作します。</p></div>
 <div class="paragraph"><p><code>--noprofile</code>, <code>--norcfile</code>, <code>--profile</code>, <code>--rcfile</code> 各オプションは、シェルの初期化処理の動作を指定します (後述)。</p></div>
 <div class="paragraph"><p>その他のオプションとして、&#8203;<a href="_set.html">set 組込みコマンド</a>で指定可能な各種オプションをシェルの起動時に指定することができます。(<code>+</code> で始まるオプションを含む)</p></div>
@@ -93,7 +116,7 @@ Yash はまず、(コマンドライン引数の前に渡される) それ自身
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-10-15 22:01:07 JST
+ 2025-04-21 00:03:47 JST
  更新
 </div>
 </div>

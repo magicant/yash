@@ -18,7 +18,7 @@
 <div id="content">
 <div id="preamble">
 <div class="sectionbody">
-<div class="paragraph"><p>Yash は基本的に POSIX.1-2008 のシェルの規定に従って動作しますが、利便性や分かりやすさのために POSIX の規定とは異なる動作をする点もあります。そのため標準状態の yash は POSIX の規定するシェルとして供するには向きません。<dfn>POSIX 準拠モード</dfn>を有効にすると、yash はできる限り POSIX の規定通りに動作するようになります。POSIX 準拠シェルとしての互換性が必要な場面では、POSIX 準拠モードを有効にしてください。</p></div>
+<div class="paragraph"><p>Yash は基本的に POSIX.1-2024 のシェルの規定に従って動作しますが、利便性や分かりやすさのために POSIX の規定とは異なる動作をする点もあります。そのため標準状態の yash は POSIX の規定するシェルとして供するには向きません。<dfn>POSIX 準拠モード</dfn>を有効にすると、yash はできる限り POSIX の規定通りに動作するようになります。POSIX 準拠シェルとしての互換性が必要な場面では、POSIX 準拠モードを有効にしてください。</p></div>
 <div class="paragraph"><p><a href="invoke.html">シェルの起動</a>時の起動時の名前が <code>sh</code> ならばシェルは自動的に POSIX 準拠モードになります。また起動時に <code>-o posixlycorrect</code> オプションが指定されている場合も POSIX 準拠モードになります。また起動後は、<code><a href="_set.html">set</a> -o posixlycorrect</code> を実行することで POSIX 準拠モードを有効にできます。</p></div>
 <div class="paragraph"><p>POSIX 準拠モードを有効にすると、yash は POSIX の規定にできるだけ従うようになるだけでなく、POSIX が<em>未定義</em>や<em>未規定</em>と定めている場合のほとんどをエラーにするようになります。すなわち、yash 独自の拡張機能の多くは使えなくなります。具体的には、POSIX 準拠モードを有効にすると以下のような挙動の変化があります。</p></div>
 <div class="ulist"><ul>
@@ -84,6 +84,11 @@
 </li>
 <li>
 <p>
+<a href="params.html#sv-lineno"><code>LINENO</code></a>, <a href="params.html#sv-oldpwd"><code>OLDPWD</code></a>, <a href="params.html#sv-optarg"><code>OPTARG</code></a>, <a href="params.html#sv-optind"><code>OPTIND</code></a>, <a href="params.html#sv-pwd"><code>PWD</code></a> の各変数は&#8203;<a href="_readonly.html">読み取り専用</a>にできません。
+</p>
+</li>
+<li>
+<p>
 <a href="expand.html#tilde">チルダ展開</a>で <code>~</code> と <code>~<var>ユーザ名</var></code> 以外の形式の展開が使えません。
 </p>
 </li>
@@ -114,7 +119,7 @@
 </li>
 <li>
 <p>
-<a href="redir.html#file">ファイルのリダイレクト</a>で、&#8203;<a href="expand.html#glob">パス名展開</a>の結果が一つでない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
+<a href="redir.html#file">ファイルのリダイレクト</a>で、&#8203;<a href="expand.html#glob">パス名展開</a>の結果が何もない場合、すぐにはエラーにせず、パス名展開を行わなかったときと同様に扱います。
 </p>
 </li>
 <li>
@@ -163,7 +168,7 @@
 </div>
 <div id="footer">
 <div id="footer-text">
- 2024-11-20 23:52:45 JST
+ 2025-05-13 22:19:01 JST
  更新
 </div>
 </div>
