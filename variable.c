@@ -2157,7 +2157,7 @@ void array_remove_elements(
 {
     size_t extended_count = count;
     if (extended_count == 0)
-        extended_count = 1; // A variable-length array must ot be empty.
+        extended_count = 1; // A variable-length array must not be empty.
     long indices[extended_count];
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
@@ -2201,6 +2201,8 @@ void array_remove_elements(
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
 
+    if (count > 0)
+        variable_set(name, array);
     if (array->v_type & VF_EXPORT)
         update_environment(name);
 }
@@ -2257,6 +2259,8 @@ void array_insert_elements(
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
 
+    if (count > 0)
+        variable_set(name, array);
     if (array->v_type & VF_EXPORT)
         update_environment(name);
 }
@@ -2294,6 +2298,7 @@ void array_set_element(const wchar_t *name, variable_T *array,
     free(array->v_vals[uindex]);
     array->v_vals[uindex] = xwcsdup(value);
 
+    variable_set(name, array);
     if (array->v_type & VF_EXPORT)
         update_environment(name);
     return;
