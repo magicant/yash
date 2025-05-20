@@ -181,6 +181,26 @@ __IN__
 [1][3][4][6][7][8][10]
 __OUT__
 
+test_oE -e 0 'deleting array elements (duplicate indices)'
+array -d -- c 2 8 6 6 8 2 -3
+bracket "$c"
+__IN__
+[1][3][4][5][7][9][10]
+__OUT__
+
+test_oE -e 0 'deleting array elements (border cases)'
+array -d c 0 11 -11
+bracket "$c"
+array -d c 1 -1
+bracket "$c"
+array -d c 8 -8
+bracket "$c"
+__IN__
+[1][2][3][4][5][6][7][8][9][10]
+[2][3][4][5][6][7][8][9]
+[3][4][5][6][7][8]
+__OUT__
+
 test_oE -e 0 'deleting array elements (exported)'
 export c
 array -d c 2 5 -2 11 -100

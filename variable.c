@@ -2095,7 +2095,7 @@ int array_builtin(int argc, void **argv)
         return Exit_FAILURE;
     }
 
-    if (options == 0) {
+    if (options == NONE) {
         set_array(name, argc - xoptind, pldup(&argv[xoptind], copyaswcs),
                 SCOPE_GLOBAL, false);
     } else {
@@ -2125,9 +2125,13 @@ int array_builtin(int argc, void **argv)
 #if LONG_MAX < SIZE_MAX
 # define LONG_LT_SIZE(longvalue,sizevalue) \
     ((size_t) (longvalue) < (sizevalue))
+# define LONG_EQ_SIZE(longvalue,sizevalue) \
+    ((size_t) (longvalue) == (sizevalue))
 #else
 # define LONG_LT_SIZE(longvalue,sizevalue) \
     ((longvalue) < (long) (sizevalue))
+# define LONG_EQ_SIZE(longvalue,sizevalue) \
+    ((longvalue) == (long) (sizevalue))
 #endif
 
 /* Prints all existing arrays.
@@ -2180,31 +2184,36 @@ void array_remove_elements(
         }
     }
 
-    /* sort all the indices. */
+    /* sort all the indices */
     qsort(indices, count, sizeof *indices, compare_long);
 
-    /* remove elements in descending order so that an earlier removal does not
-     * affect the indices for later removals. */
-    plist_T list;
-    long lastindex = LONG_MIN;
-    pl_initwith(&list, array->v_vals, array->v_valc);
-    for (size_t i = count; i-- != 0; ) {
-        long index = indices[i];
-        if (index == lastindex)
-            continue;
-        if (0 <= index && LONG_LT_SIZE(index, list.length)) {
-            free(list.contents[index]);
-            pl_remove(&list, index, 1);
-        }
-        lastindex = index;
-    }
-    array->v_valc = list.length;
-    array->v_vals = pl_toary(&list);
+    /* skip negative indices, which are out of range */
+    size_t i = 0;
+    while (i < count && indices[i] < 0)
+        i++;
 
-    if (count > 0)
+    /* remove the elements */
+    size_t oldcount = array->v_valc, newcount = 0;
+    for (size_t scanindex = 0; scanindex < array->v_valc; scanindex++) {
+        while (i < count && LONG_LT_SIZE(indices[i], scanindex))
+            i++;
+        if (i < count && LONG_EQ_SIZE(indices[i], scanindex)) {
+            /* remove the element */
+            free(array->v_vals[scanindex]);
+        } else {
+            /* keep the element */
+            array->v_vals[newcount] = array->v_vals[scanindex];
+            newcount++;
+        }
+    }
+    array->v_valc = newcount;
+    array->v_vals[newcount] = NULL;
+
+    if (newcount < oldcount) {
         variable_set(name, array);
-    if (array->v_type & VF_EXPORT)
-        update_environment(name);
+        if (array->v_type & VF_EXPORT)
+            update_environment(name);
+    }
 }
 
 int compare_long(const void *lp1, const void *lp2)
@@ -2259,10 +2268,11 @@ void array_insert_elements(
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
 
-    if (count > 0)
+    if (count > 0) {
         variable_set(name, array);
-    if (array->v_type & VF_EXPORT)
-        update_environment(name);
+        if (array->v_type & VF_EXPORT)
+            update_environment(name);
+    }
 }
 
 /* Sets the value of the specified element of the array.
