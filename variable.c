@@ -2293,6 +2293,9 @@ void array_set_element(const wchar_t *name, variable_T *array,
     assert(uindex < array->v_valc);
     free(array->v_vals[uindex]);
     array->v_vals[uindex] = xwcsdup(value);
+
+    if (array->v_type & VF_EXPORT)
+        update_environment(name);
     return;
 
 invalid_index:

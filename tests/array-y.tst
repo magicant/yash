@@ -335,6 +335,14 @@ __IN__
 [A][2  2][3]
 __OUT__
 
+test_oE -e 0 'setting array element (exported)'
+export a
+array -s a 1 A
+sh -c 'echo "$a"'
+__IN__
+A:2  2:3
+__OUT__
+
 test_Oe -e n 'setting array element (over-head, negative)'
 array -s a -4 C
 __IN__
