@@ -84,6 +84,15 @@ __IN__
 [b][c]
 __OUT__
 
+test_oE -e 0 'reassigning export array'
+export a
+a=(a)
+a=(b c)
+sh -c 'echo "$a"'
+__IN__
+b:c
+__OUT__
+
 # Below are tests of the array built-in.
 if ! testee --version --verbose | grep -Fqx ' * array'; then
     skip="true"
@@ -120,6 +129,18 @@ bracket "$c"
 __IN__
 
 [x][y  y][z]
+__OUT__
+
+test_oE -e 0 'defining array (exported)'
+export a e
+sh -c 'echo "$a"'
+sh -c 'echo "$e"'
+array a b c
+sh -c 'echo "$a"'
+__IN__
+1:2  2:3
+
+b:c
 __OUT__
 
 test_Oe -e n 'defining array (overwriting read-only array)'
