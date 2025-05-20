@@ -160,6 +160,14 @@ __IN__
 [1][3][4][6][7][8][10]
 __OUT__
 
+test_oE -e 0 'deleting array elements (exported)'
+export c
+array -d c 2 5 -2 11 -100
+sh -c 'echo "$c"'
+__IN__
+1:3:4:6:7:8:10
+__OUT__
+
 )
 
 test_Oe -e n 'deleting array elements (nonexistent array)'
@@ -245,6 +253,14 @@ __IN__
 [I][J][1][2  2][3]
 __OUT__
 
+test_oE -e 0 'inserting array elements (exported)'
+export a
+array -i a 2 I J
+sh -c 'echo "$a"'
+__IN__
+1:2  2:I:J:3
+__OUT__
+
 test_oE -e 0 'inserting array elements (over-head, negative)'
 array -i -- a -5 I J
 bracket "$a"
@@ -317,6 +333,14 @@ array -s a -3 A
 bracket "$a"
 __IN__
 [A][2  2][3]
+__OUT__
+
+test_oE -e 0 'setting array element (exported)'
+export a
+array -s a 1 A
+sh -c 'echo "$a"'
+__IN__
+A:2  2:3
 __OUT__
 
 test_Oe -e n 'setting array element (over-head, negative)'

@@ -1583,12 +1583,14 @@ static bool can_make_readonly(const wchar_t *name)
 #if YASH_ENABLE_ARRAY
 static int array_dump_all(const wchar_t *argv0);
 static void array_remove_elements(
-        variable_T *array, size_t count, void *const *indexwcss)
+        const wchar_t *name, variable_T *array, size_t count,
+        void *const *indexwcss)
     __attribute__((nonnull));
 static int compare_long(const void *lp1, const void *lp2)
     __attribute__((nonnull,pure));
 static void array_insert_elements(
-        variable_T *array, size_t count, void *const *values)
+        const wchar_t *name, variable_T *array, size_t count,
+        void *const *values)
     __attribute__((nonnull));
 static void array_set_element(const wchar_t *name, variable_T *array,
         const wchar_t *indexword, const wchar_t *value)
@@ -2102,10 +2104,12 @@ int array_builtin(int argc, void **argv)
             return Exit_FAILURE;
         switch (options) {
             case DELETE:
-                array_remove_elements(array, argc - xoptind, &argv[xoptind]);
+                array_remove_elements(
+                        name, array, argc - xoptind, &argv[xoptind]);
                 break;
             case INSERT:
-                array_insert_elements(array, argc - xoptind, &argv[xoptind]);
+                array_insert_elements(
+                        name, array, argc - xoptind, &argv[xoptind]);
                 break;
             case SET:
                 array_set_element(
@@ -2148,11 +2152,12 @@ int array_dump_all(const wchar_t *argv0)
  * `count' is the number of elements in `indexwcss'.
  * An error message is printed to the standard error on error. */
 void array_remove_elements(
-        variable_T *array, size_t count, void *const *indexwcss)
+        const wchar_t *name, variable_T *array, size_t count,
+        void *const *indexwcss)
 {
     size_t extended_count = count;
     if (extended_count == 0)
-        extended_count = 1; // A variable-length array must ot be empty.
+        extended_count = 1; // A variable-length array must not be empty.
     long indices[extended_count];
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
@@ -2195,6 +2200,11 @@ void array_remove_elements(
     }
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
+
+    if (count > 0)
+        variable_set(name, array);
+    if (array->v_type & VF_EXPORT)
+        update_environment(name);
 }
 
 int compare_long(const void *lp1, const void *lp2)
@@ -2211,7 +2221,8 @@ int compare_long(const void *lp1, const void *lp2)
  * string.
  * An error message is printed to the standard error on error. */
 void array_insert_elements(
-        variable_T *array, size_t count, void *const *values)
+        const wchar_t *name, variable_T *array, size_t count,
+        void *const *values)
 {
     long index;
 
@@ -2247,6 +2258,11 @@ void array_insert_elements(
         list.contents[uindex + i] = xwcsdup(list.contents[uindex + i]);
     array->v_valc = list.length;
     array->v_vals = pl_toary(&list);
+
+    if (count > 0)
+        variable_set(name, array);
+    if (array->v_type & VF_EXPORT)
+        update_environment(name);
 }
 
 /* Sets the value of the specified element of the array.
@@ -2281,6 +2297,10 @@ void array_set_element(const wchar_t *name, variable_T *array,
     assert(uindex < array->v_valc);
     free(array->v_vals[uindex]);
     array->v_vals[uindex] = xwcsdup(value);
+
+    variable_set(name, array);
+    if (array->v_type & VF_EXPORT)
+        update_environment(name);
     return;
 
 invalid_index:
