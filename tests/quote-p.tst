@@ -590,6 +590,17 @@ __IN__
 [abc][a*c][a""c][a\c]
 __OUT__
 
+test_oE 'single quotes in substitution of expansion ${a+b} in double quotes'
+a=a
+unset b
+bracket "${a+a'$b'c}"
+bracket "${a+a'b}"
+__IN__
+[a''c]
+[a'b]
+__OUT__
+#}"
+
 test_oE 'single and double quotes in substitution of expansion ${a-b}'
 bracket ${u-a"b"c} ${u-a"*"c} ${u-a"\"\""c} ${u-a"\\"c} ${u-a"''"c}
 bracket ${u-a'b'c} ${u-a'*'c} ${u-a'""'c}   ${u-a'\'c}
@@ -597,6 +608,16 @@ __IN__
 [abc][a*c][a""c][a\c][a''c]
 [abc][a*c][a""c][a\c]
 __OUT__
+
+test_oE 'single quotes in substitution of expansion ${a-b} in double quotes'
+unset a b
+bracket "${a-a'$b'c}"
+bracket "${a-a'b}"
+__IN__
+[a''c]
+[a'b]
+__OUT__
+#}"
 
 test_oE 'single and double quotes in substitution of expansion ${a=b}'
 bracket ${a=a"b"c} ${b=a"*"c} ${c=a"\"\""c} ${d=a"\\"c} ${e=a"''"c}
@@ -609,6 +630,19 @@ __IN__
 [abc][a*c][a""c][a\c][a''c]
 [abc][a*c][a""c][a\c]
 __OUT__
+
+test_oE 'single quotes in substitution of expansion ${a=b} in double quotes'
+unset a b c
+bracket "${a=a'$b'c}"
+bracket "${c=a'b}"
+bracket "$a" "$c"
+__IN__
+[a''c]
+[a'b]
+[a''c][a'b]
+__OUT__
+#'
+#}"
 
 # See quote-y.tst
 #test_oE 'single and double quotes in substitution of expansion ${a?b}'

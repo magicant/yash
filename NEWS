@@ -7,6 +7,10 @@
     Also fixed an issue where the internal cache was not refreshed for
     the `PATH`, `CDPATH`, and `YASH_LOADPATH` variables after being
     modified via the `array` built-in.
+  - Fixed a bug where single quote characters (`'`) in the `word` of 
+    parameter expansions of the forms `${foo+word}`, `${foo-word}`,
+    ${foo=word}`, and `${foo?word}` were treated as quoting characters
+    when the expansion was in double quotes.
 
 ## Yash 2.59 (2025-05-13)
 

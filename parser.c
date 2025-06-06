@@ -599,7 +599,9 @@ static size_t count_name_length(parsestate_T *ps, bool isnamechar(wchar_t c))
 
 static void next_token(parsestate_T *ps)
     __attribute__((nonnull));
-static wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
+static wordunit_T *parse_word(
+        parsestate_T *ps, bool allow_single_quotes,
+        bool is_delimiter(wchar_t c))
     __attribute__((nonnull,malloc,warn_unused_result));
 static void skip_to_next_single_quote(parsestate_T *ps, bool allowescape)
     __attribute__((nonnull));
@@ -607,7 +609,7 @@ static wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *tryparse_paramexp_raw(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
-static wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
+static wordunit_T *parse_paramexp_in_brace(parsestate_T *ps, bool indq)
     __attribute__((nonnull,malloc,warn_unused_result));
 static wordunit_T *parse_cmdsubst_in_paren(parsestate_T *ps)
     __attribute__((nonnull,malloc,warn_unused_result));
@@ -1143,7 +1145,7 @@ skip_blanks:
             /* Okay, the next token seems to be a word, possibly being a
              * reserved word or an IO_NUMBER or IO_LOCATION token. */
             ps->index = index;
-            wordunit_T *token = parse_word(ps, is_token_delimiter_char);
+            wordunit_T *token = parse_word(ps, true, is_token_delimiter_char);
             index = ps->index;
 
             wordfree(ps->token);
@@ -1173,12 +1175,13 @@ skip_blanks:
 }
 
 /* Parses a word at the current position.
- * `testfunc' is a function that determines if a character is a word delimiter.
- * The parsing proceeds up to an unescaped character for which `testfunc'
+ * The parsing proceeds up to an unescaped character for which `is_delimiter'
  * returns false.
  * It is not an error if there is no characters to be a word, in which case
  * NULL is returned. */
-wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
+wordunit_T *parse_word(
+        parsestate_T *ps, bool allow_single_quotes,
+        bool is_delimiter(wchar_t c))
 {
     wordunit_T *first = NULL, **lastp = &first;
     bool indq = false;  /* in double quotes? */
@@ -1200,7 +1203,7 @@ wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
     } while (0)
 
     while (maybe_line_continuations(ps, ps->index),
-            indq || !testfunc(ps->src.contents[ps->index])) {
+            indq || !is_delimiter(ps->src.contents[ps->index])) {
 
         switch (ps->src.contents[ps->index]) {
         case L'\0':
@@ -1235,7 +1238,7 @@ wordunit_T *parse_word(parsestate_T *ps, bool testfunc(wchar_t c))
             }
             break;
         case L'\'':
-            if (!indq) {
+            if (allow_single_quotes && !indq) {
                 ps->index++;
                 skip_to_next_single_quote(ps, false);
                 if (ps->src.contents[ps->index] == L'\'')
@@ -1312,7 +1315,7 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
         maybe_line_continuations(ps, ps->index);
         switch (ps->src.contents[ps->index]) {
         case L'{':
-            return parse_paramexp_in_brace(ps);
+            return parse_paramexp_in_brace(ps, indq);
         case L'(':
             maybe_line_continuations(ps, ps->index + 1);
             if (ps->src.contents[ps->index + 1] == L'(') {
@@ -1376,7 +1379,7 @@ error:
 /* Parses a parameter expansion that starts with "${".
  * The current position must be at the opening brace L'{' when this function is
  * called and the position is advanced to the closing brace L'}'. */
-wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
+wordunit_T *parse_paramexp_in_brace(parsestate_T *ps, bool indq)
 {
     paramexp_T *pe = xmalloc(sizeof *pe);
     pe->pe_type = 0;
@@ -1410,7 +1413,7 @@ wordunit_T *parse_paramexp_in_brace(parsestate_T *ps)
     // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'{') {
         pe->pe_type |= PT_NEST;
-        pe->pe_nest = parse_paramexp_in_brace(ps);
+        pe->pe_nest = parse_paramexp_in_brace(ps, indq);
     } else if (!posixly_correct
             && (ps->src.contents[ps->index] == L'`'
                 || (ps->src.contents[ps->index] == L'$'
@@ -1450,12 +1453,12 @@ parse_name:;
     // maybe_line_continuations(ps, ps->index); // already called above
     if (!posixly_correct && ps->src.contents[ps->index] == L'[') {
         ps->index++;
-        pe->pe_start = parse_word(ps, is_comma_or_closing_bracket);
+        pe->pe_start = parse_word(ps, true, is_comma_or_closing_bracket);
         if (pe->pe_start == NULL)
             serror(ps, Ngt("the index is missing"));
         if (ps->src.contents[ps->index] == L',') {
             ps->index++;
-            pe->pe_end = parse_word(ps, is_comma_or_closing_bracket);
+            pe->pe_end = parse_word(ps, true, is_comma_or_closing_bracket);
             if (pe->pe_end == NULL)
                 serror(ps, Ngt("the index is missing"));
         }
@@ -1476,10 +1479,10 @@ parse_name:;
     /* parse '-', '+', '#', etc. */
     // maybe_line_continuations(ps, ps->index); // already called above
     switch (ps->src.contents[ps->index]) {
-    case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst;
-    case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst;
-    case L'=':   pe->pe_type |= PT_ASSIGN;                   goto parse_subst;
-    case L'?':   pe->pe_type |= PT_ERROR;                    goto parse_subst;
+    case L'-':   pe->pe_type |= PT_MINUS;                    goto parse_subst2;
+    case L'+':   pe->pe_type |= PT_PLUS;                     goto parse_subst2;
+    case L'=':   pe->pe_type |= PT_ASSIGN;                   goto parse_subst2;
+    case L'?':   pe->pe_type |= PT_ERROR;                    goto parse_subst2;
     case L'#':   pe->pe_type |= PT_MATCH | PT_MATCHHEAD;     goto parse_match;
     case L'%':   pe->pe_type |= PT_MATCH | PT_MATCHTAIL;     goto parse_match;
     case L'/':
@@ -1532,18 +1535,24 @@ parse_match:
         ps->index += 1;
     }
     if ((pe->pe_type & PT_MASK) == PT_MATCH) {
-        pe->pe_match = parse_word(ps, is_closing_brace);
-        goto check_closing_brace;
+        pe->pe_match = parse_word(ps, true, is_closing_brace);
     } else {
-        pe->pe_match = parse_word(ps, is_slash_or_closing_brace);
+        pe->pe_match = parse_word(ps, true, is_slash_or_closing_brace);
         // maybe_line_continuations(ps, ps->index); // called in parse_word
-        if (ps->src.contents[ps->index] != L'/')
-            goto check_closing_brace;
+        if (ps->src.contents[ps->index] == L'/')
+            goto parse_subst;
     }
+    goto check_closing_brace;
 
+parse_subst2:
+    if (indq) {
+        ps->index++;
+        pe->pe_subst = parse_word(ps, false, is_closing_brace);
+    } else {
 parse_subst:
-    ps->index++;
-    pe->pe_subst = parse_word(ps, is_closing_brace);
+        ps->index++;
+        pe->pe_subst = parse_word(ps, true, is_closing_brace);
+    }
 
 check_closing_brace:
     // maybe_line_continuations(ps, ps->index); // already called above
