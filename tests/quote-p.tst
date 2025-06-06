@@ -595,9 +595,11 @@ a=a
 unset b
 bracket "${a+a'$b'c}"
 bracket "${a+a'b}"
+bracket "${a+a$'\t'b}"
 __IN__
 [a''c]
 [a'b]
+[a$'\t'b]
 __OUT__
 #}"
 
@@ -613,9 +615,11 @@ test_oE 'single quotes in substitution of expansion ${a-b} in double quotes'
 unset a b
 bracket "${a-a'$b'c}"
 bracket "${a-a'b}"
+bracket "${a-a$'\t'b}"
 __IN__
 [a''c]
 [a'b]
+[a$'\t'b]
 __OUT__
 #}"
 
@@ -632,14 +636,16 @@ __IN__
 __OUT__
 
 test_oE 'single quotes in substitution of expansion ${a=b} in double quotes'
-unset a b c
+unset a b c d
 bracket "${a=a'$b'c}"
 bracket "${c=a'b}"
-bracket "$a" "$c"
+bracket "${d=a$'\t'b}"
+bracket "$a" "$c" "$d"
 __IN__
 [a''c]
 [a'b]
-[a''c][a'b]
+[a$'\t'b]
+[a''c][a'b][a$'\t'b]
 __OUT__
 #'
 #}"
