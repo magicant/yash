@@ -603,6 +603,13 @@ __IN__
 __OUT__
 #}"
 
+test_oE 'tilde in substitution of expansion ${a+b}'
+HOME=/home a=a
+bracket ${a+~} "${a+~}"
+__IN__
+[/home][~]
+__OUT__
+
 test_oE 'single and double quotes in substitution of expansion ${a-b}'
 bracket ${u-a"b"c} ${u-a"*"c} ${u-a"\"\""c} ${u-a"\\"c} ${u-a"''"c}
 bracket ${u-a'b'c} ${u-a'*'c} ${u-a'""'c}   ${u-a'\'c}
@@ -622,6 +629,13 @@ __IN__
 [a$'\t'b]
 __OUT__
 #}"
+
+test_oE 'tilde in substitution of expansion ${a-b}'
+HOME=/home
+bracket ${a-~} "${a-~}"
+__IN__
+[/home][~]
+__OUT__
 
 test_oE 'single and double quotes in substitution of expansion ${a=b}'
 bracket ${a=a"b"c} ${b=a"*"c} ${c=a"\"\""c} ${d=a"\\"c} ${e=a"''"c}
@@ -649,6 +663,15 @@ __IN__
 __OUT__
 #'
 #}"
+
+test_oE 'tilde in substitution of expansion ${a=b}'
+HOME=/home
+bracket ${a=~} "${b=~}"
+bracket "$a" "$b"
+__IN__
+[/home][~]
+[/home][~]
+__OUT__
 
 # See quote-y.tst
 #test_oE 'single and double quotes in substitution of expansion ${a?b}'
