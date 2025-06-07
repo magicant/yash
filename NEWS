@@ -11,6 +11,10 @@
     parameter expansions of the forms `${foo+word}`, `${foo-word}`,
     ${foo=word}`, and `${foo?word}` were treated as quoting characters
     when the expansion was in double quotes.
+  - Fixed a bug where tilde expansion was perfomed on the `word` of
+    parameter expansions of the forms `${foo+word}`, `${foo-word}`,
+    `${foo=word}`, and `${foo?word}` even when the expansion was in
+    double quotes.
 
 ## Yash 2.59 (2025-05-13)
 

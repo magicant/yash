@@ -77,7 +77,8 @@ static wchar_t *trim_wstring(wchar_t *s, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
 static void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
     __attribute__((nonnull));
-static void print_subst_as_error(const paramexp_T *p, quoting_T quoting)
+static void print_subst_as_error(
+        const paramexp_T *p, tildetype_T tilde, quoting_T quoting)
     __attribute__((nonnull));
 static void match_each(void **restrict slist, const wchar_t *restrict pattern,
         paramexptype_T type)
@@ -878,6 +879,7 @@ treat_array:
             unset = true;
 
     /* PT_PLUS, PT_MINUS, PT_ASSIGN, PT_ERROR */
+    tildetype_T substt = indq ? TT_NONE : TT_SINGLE;
     quoting_T substq = indq ? Q_DQPARAM : Q_WORD;
     wchar_t *subst;
     switch (p->pe_type & PT_MASK) {
@@ -890,7 +892,7 @@ treat_array:
         if (unset) {
 subst:
             plfree(values, free);
-            return expand_four(p->pe_subst, TT_SINGLE, substq,
+            return expand_four(p->pe_subst, substt, substq,
                     CC_SOFT_EXPANSION | (indq * CC_QUOTED));
         }
         break;
@@ -913,7 +915,7 @@ subst:
                         p->pe_name);
                 goto failure1;
             }
-            subst = expand_single(p->pe_subst, TT_SINGLE, substq, ES_NONE);
+            subst = expand_single(p->pe_subst, substt, substq, ES_NONE);
             if (subst == NULL)
                 goto failure1;
             if (v.type != GV_ARRAY) {
@@ -938,7 +940,7 @@ subst:
         break;
     case PT_ERROR:
         if (unset) {
-            print_subst_as_error(p, substq);
+            print_subst_as_error(p, substt, substq);
             goto failure2;
         }
         break;
@@ -1097,11 +1099,12 @@ void **trim_array(void **a, ssize_t startindex, ssize_t endindex)
 }
 
 /* Expands `p->pe_subst' and prints it as an error message. */
-void print_subst_as_error(const paramexp_T *p, quoting_T quoting)
+void print_subst_as_error(
+        const paramexp_T *p, tildetype_T tilde, quoting_T quoting)
 {
     if (p->pe_subst != NULL) {
         wchar_t *subst =
-            expand_single(p->pe_subst, TT_SINGLE, quoting, ES_NONE);
+            expand_single(p->pe_subst, tilde, quoting, ES_NONE);
         if (subst != NULL) {
             if (p->pe_type & PT_NEST)
                 xerror(0, "%ls", subst);
