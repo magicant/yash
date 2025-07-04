@@ -1,0 +1,33 @@
+# (C) 2025 unrealapex
+
+# Completion script for abduco
+
+function completion/abduco {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "v; print version information to standard output and exit"
+        "r; readonly session"
+        "e; set the key to detach"
+        "f; force creation of session when there is already terminated session of the same name"
+        "c; create a new session and attach to it"
+        "n; create a new session but do not attach to it"
+        "A; try to connect to an existing session, upon failure create said session and attach to it"
+        "a; attach to an existing session"
+        "l; attach with the lowest priority"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (-A|-a|-f)
+                # FIXME: figure out why this isn't completing
+                complete -P "$PREFIX" -- $(abduco | tail -n+2 | awk '{print $NF}')
+        ;;
+        esac
+
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
