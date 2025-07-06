@@ -1,0 +1,30 @@
+# (C) 2025 unrealapex
+
+# Completion script for mutt-wizard
+
+function completion/mw {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "a; add an email address"
+        "l; list all email accounts configured by mutt-wizard"
+        "d; pick an already configured account and remove its configuration"
+        "D; remove a configured account without confirmation"
+        "y; download and upload mail for an email account"
+        "Y; sync all email accounts"
+        "t; toggle cronjob that syncs mail every given minute"
+        "T; toggle cronjob without giving minute"
+        "r; reorder account shortcut numbers"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
