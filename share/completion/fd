@@ -1,0 +1,70 @@
+# (C) 2025 unrealapex
+
+# Completion script for fd
+
+function completion/fd {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "H --hidden; include hidden files and directories in search results"
+        "I --no-ignore; show search results from files and directories that would be ignored"
+        "u --unrestricted; perform an unrestricted search, alias for '--hidden --no-ignore'"
+        "--no-ignore-vcs; show results from files and directories otherwise ignored by gitignore files"
+        "--no-require-git; do not require a git repository to respect gitignores"
+        "--no-ignore-parent; show results from files and directories that would be ignored by gitignore files in parent directories"
+        "s --case-sensitive; perform a case-sensitive search"
+        "i --ignore-case; perform a case-insensitive search"
+        "g --glob; perform a glob-based search instead of a regex search"
+        "--regex; perform a regex-based search (default)"
+        "F --fixed-strings; treat pattern as literal string instead of regex"
+        "--and:; add additional required search patterns which all get matched"
+        "a --absolute-path; show full path starting from root instead of relative paths"
+        "l --list-details; use detailed listing format like 'ls -l'"
+        "L --follow; follow symlinks"
+        "p --full-path; match pattern against full path"
+        "0 --print0; separate search results by the null character"
+        "--max-results:; limit the number of search results to 'count'"
+        "1; limit search to a single result"
+        "q --quiet; suppress output and exit with 0 if match found, else 1"
+        "--show-errors; enable display of filesystem errors"
+        "--strip-cwd-prefix:; set when to strip cwd prefix"
+        "--one-file-system; do not descend into other filesystems"
+        "--mount; do not descend into other filesystems"
+        "--xdev; do not descend into other filesystems"
+        "h --help; print help information"
+        "V --version; print version information"
+        "d --max-depth:; limit directory travel to 'd' levels of depth"
+        "--min-depth:; only show search results starting at the given depth"
+        "--exact-depth:; only show search results at the exact given depth"
+        "--prune; do not traverse into matching directories"
+        "t --type:; filter by search type (can be used repeatedly)"
+        "e --extension:; filter search results by file extension 'ext' (can be used repeatedly)"
+        "E --exclude:; exclude files/directories that match a given glob pattern"
+        "--ignore-file:; add a custom ignore-file in '.gitignore' format"
+        "c --color:; declare when to colorize search results"
+        "--hyperlink:; specify whether output files should be hyperlinked to their paths"
+        "j --threads:; set number of threads to use for searching and executing"
+        "S --size:; limit results based on size of files"
+        "--changed-within:; filter results based on the file modification time"
+        "--changed-before:; filter results based on the file modification time"
+        "o --owner:; filter files by their user and/or group"
+        "--base-directory:; change the cwd of fd to the provided path"
+        "--path-separator:; set the path separator to use when printing file paths"
+        "--search-path:; provide paths to search instead of positional 'path' argument"
+        "--format:; specify template string used for printing files found"
+        "x --exec:; execute 'command' for search search result in parallel" 
+        "X --exec-batch:; execute 'command' once, with all search results as arguments"
+        "--batch-size:; maximum number of arguments to pass to the command given with -X"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
