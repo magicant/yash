@@ -1,0 +1,29 @@
+# (C) 2025 unrealapex
+
+# Completion script for dvtm
+
+function completion/dvtm {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "v; print version and exit"
+        "M; toggle default mouse grabbing upon startup"
+        "m; set command modifier at runtime"
+        "d; set delay ncurses waits determining if character is part of an escape sequence"
+        "h; set scrollback  history buffer size at runtime"
+        "t; set static terminal title"
+        "s; open or create the named pipe 'status-fifo', read and display its content"
+        "c; open or create the named pipe 'cmd-fifo' and look for commands to execute"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
