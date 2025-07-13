@@ -2885,6 +2885,7 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
 {
     ALERT_AND_RETURN_IF_PENDING;
 
+    char *editor;
     char *tempfile;
     int fd;
     FILE *f;
@@ -2903,6 +2904,14 @@ void cmd_vi_edit_and_accept(wchar_t c __attribute__((unused)))
     clear_prediction();
     le_complete_cleanup();
     le_suspend_readline();
+
+    if (getenv("VISUAL")) {
+        editor = getenv("VISUAL");
+    } else if (getenv("EDITOR")) {
+        editor = getenv("EDITOR");
+    } else {
+        editor = "vi";
+    }
 
     fd = create_temporary_file(&tempfile, ".sh", S_IRUSR | S_IWUSR);
     if (fd < 0) {
@@ -2937,7 +2946,7 @@ error0:
                 doing_job_control_now ? cpid : 0,
                 doing_job_control_now);
         if (namep)
-            *namep = malloc_wprintf(L"vi %s", tempfile);
+            *namep = malloc_wprintf(L"%s %s", editor, tempfile);
         if (laststatus != Exit_SUCCESS)
             goto end;
 
@@ -2974,7 +2983,7 @@ end:
         fwprintf(f, L"%ls\n", le_main_buffer.contents);
         fclose(f);
 
-        wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
+        wchar_t *command = malloc_wprintf(L"%s %s", editor,  tempfile);
         free(tempfile);
         exec_wcs(command, gt("lineedit"), true);
 #ifndef NDEBUG
