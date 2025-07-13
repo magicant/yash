@@ -2,6 +2,8 @@
 
 ## Yash 2.60 (Unreleased)
 
+  - [line-editing] Added completion for `fd`, `dvtm`, and `mw`
+    (mutt-wizard).
   - Fixed a bug where the shell continued to export the previous value
     of an array even after it was updated using the `array` built-in.
     Also fixed an issue where the internal cache was not refreshed for
