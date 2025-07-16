@@ -1185,7 +1185,9 @@ ifndef::basebackend-html[`@`]
 --
 
 vi-edit-and-accept::
-Start VISUAL, EDITOR, or the vi editor to edit the current buffer contents.
+Start an editor to edit the current buffer contents.
+If the `VISUAL` or `EDITOR` variable is defined, its value is used as the editor name.
+Otherwise, `vi` is used.
 When the editor finished, the edited buffer contents is accepted like the
 accept-line command unless the exit status of the editor is non-zero.
 +
