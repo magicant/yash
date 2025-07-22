@@ -8,7 +8,7 @@ function completion/abduco {
         OPTIONS=( #>#
         "v; print version information to standard output and exit"
         "r; readonly session"
-        "e; set the key to detach"
+        "e:; set the key to detach"
         "f; force creation of session when there is already terminated session of the same name"
         "c; create a new session and attach to it"
         "n; create a new session but do not attach to it"
