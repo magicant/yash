@@ -2937,7 +2937,7 @@ error0:
                 doing_job_control_now ? cpid : 0,
                 doing_job_control_now);
         if (namep)
-            *namep = malloc_wprintf(L"vi %s", tempfile);
+            *namep = malloc_wprintf(L"${VISUAL:-${EDITOR:-vi}} %s", tempfile);
         if (laststatus != Exit_SUCCESS)
             goto end;
 
@@ -2974,7 +2974,7 @@ end:
         fwprintf(f, L"%ls\n", le_main_buffer.contents);
         fclose(f);
 
-        wchar_t *command = malloc_wprintf(L"vi %s", tempfile);
+        wchar_t *command = malloc_wprintf(L"${VISUAL:-${EDITOR:-vi}} %s", tempfile);
         free(tempfile);
         exec_wcs(command, gt("lineedit"), true);
 #ifndef NDEBUG
