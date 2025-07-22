@@ -2,6 +2,9 @@
 
 ## Yash 2.60 (Unreleased)
 
+  - [line-editing] The "vi-edit-and-accept" command now honors the
+    `VISUAL` and `EDITOR` variables, so that you can use your favorite
+    editor.
   - [line-editing] Added completion for `fd`, `dvtm`, and `mw`
     (mutt-wizard).
   - Fixed a bug where the shell continued to export the previous value
