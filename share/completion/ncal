@@ -1,0 +1,10 @@
+# (C) 2025 magicant unrealapex
+
+# Completion script for the "ncal" command.
+
+function completion/ncal {
+		command -f completion//reexecute cal
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
