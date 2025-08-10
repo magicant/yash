@@ -20,6 +20,7 @@ function completion/man {
         "a ${long:+--all}; show all manual pages, not only the first found one"
         "f ${long:+--whatis}; only print brief description"
         "k ${long:+--apropos}; search manual database and print brief description"
+        "l ${long:+--local-file}; display man page given as filename"
         "M: ${long:+--manpath:}; specify directories containing manual pages"
         "s: ${long:+--sections:}; specify manual sections"
         ) #<#
