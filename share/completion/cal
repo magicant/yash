@@ -11,7 +11,7 @@ function completion/cal {
         "e; display date of Easter"
         "j; display Julian days"
         "M; display monday as the first day of the week"
-        "m; display the specified *month*"
+        "m:; display the specified *month*"
         "o; display the date of Orthodox Easter"
         "p; print the country codes and switching days from Julian to Gregorian Calendar"
         "s; assume the switch from Julian to Gregorian Calendar at the date associated with *country_code*"
