@@ -1,0 +1,43 @@
+function completion/typst::query:arg {
+
+        OPTIONS=( #>#
+        "j: --jobs:; number of parallel jobs"
+        "--root:; project root directory"
+        "--input:; additional input"
+        "--font-path:; font search path"
+        "--ignore-system-fonts; ignore system fonts"
+        "--package-path:; package search path"
+        "--package-cache-path:; package cache directory"
+        "--features:; enable features (e.g. html)"
+        "--diagnostic-format:; diagnostics format (human, short)"
+        "--field:; query field"
+        "--one; only one result"
+        "--format:; output format (json, yaml)"
+        "--pretty; pretty-print"
+        "--creation-timestamp:; creation timestamp"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--root|--font-path|--package-path|--package-cache-path)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                (--format)
+                        complete -P "$PREFIX" json yaml
+                        ;;
+                (--features)
+                        complete -P "$PREFIX" html
+                        ;;
+                (--diagnostic-format)
+                        complete -P "$PREFIX" human short
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -f
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

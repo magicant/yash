@@ -1,0 +1,52 @@
+function completion/typst::watch:arg {
+
+        OPTIONS=( #>#
+        "j: --jobs:; number of parallel jobs"
+        "--root:; project root directory"
+        "--input:; additional input"
+        "--font-path:; font search path"
+        "--ignore-system-fonts; ignore system fonts"
+        "--package-path:; package search path"
+        "--package-cache-path:; package cache directory"
+        "--features:; enable features (e.g. html)"
+        "--diagnostic-format:; diagnostics format (human, short)"
+        "f: --format:; output format (pdf, png, svg, html)"
+        "--creation-timestamp:; creation timestamp"
+        "--pages:; pages to export"
+        "--pdf-standard:; PDF standard (1.7, a-2b, a-3b)"
+        "--ppi:; output PPI"
+        "--make-deps:; generate dependency file"
+        "--open; open output after running"
+        "--timings:; print timing info"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--root|--font-path|--package-path|--package-cache-path)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                (--make-deps|--timings)
+                        complete -P "$PREFIX" -f
+                        ;;
+                (f|--format)
+                        complete -P "$PREFIX" pdf png svg html
+                        ;;
+                (--pdf-standard)
+                        complete -P "$PREFIX" 1.7 a-2b a-3b
+                        ;;
+                (--features)
+                        complete -P "$PREFIX" html
+                        ;;
+                (--diagnostic-format)
+                        complete -P "$PREFIX" human short
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -f
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

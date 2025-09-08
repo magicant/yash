@@ -1,0 +1,24 @@
+function completion/typst::update:arg {
+
+        OPTIONS=( #>#
+        "--force; force update"
+        "--revert; revert packages"
+        "--backup-path:; backup path"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--backup-path)
+                        complete -P "$PREFIX" -f
+                        ;;
+                ('')
+                        # no positional args since version defaults to latest
+                        :
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

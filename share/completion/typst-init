@@ -1,0 +1,22 @@
+function completion/typst::init:arg {
+
+        OPTIONS=( #>#
+        "--package-path:; package search path"
+        "--package-cache-path:; package cache directory"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--package-path|--package-cache-path)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -1,0 +1,94 @@
+function completion/typst {
+
+        typeset OPTIONS ARGOPT PREFIX
+
+        OPTIONS=( #>#
+        "h --help; show help"
+        "V --version; show version"
+        "--color:; colorize output (auto, always, never)"
+        "--cert:; TLS certificate chain file"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--color)
+                        complete -P "$PREFIX" auto always never
+                        ;;
+                (--cert)
+                        complete -P "$PREFIX" -f
+                        ;;
+                ('')
+                        # find first non-option argument, which is subcommand
+                        typeset OPTIND=2 typcmd=
+                        while [ $OPTIND -le ${WORDS[#]} ]; do
+                                case ${WORDS[OPTIND]} in
+                                        (--color)
+                                                OPTIND=$((OPTIND+1))
+                                                ;;
+                                        (--color=*)
+                                                ;;
+                                        (--cert)
+                                                OPTIND=$((OPTIND+1))
+                                                ;;
+                                        (--cert=*)
+                                                ;;
+                                        (-?*)
+                                                ;;
+                                        (*)
+                                                typcmd=${WORDS[OPTIND]}
+                                                break
+                                                ;;
+                                esac
+                                OPTIND=$((OPTIND+1))
+                        done
+
+                        if [ $OPTIND -le ${WORDS[#]} ]; then
+                                # some short aliases
+                                # TODO: lookup if others exist
+                                case $typcmd in
+                                        (c) typcmd=compile;;
+                                        (w) typcmd=watch;;
+                                esac
+                                OPTIND=$((OPTIND+1))
+
+                                # complete args of subcommand
+                                typeset OLDWORDS
+                                OLDWORDS=("$WORDS")
+                                WORDS=("${WORDS[1]}" "${WORDS[OPTIND,-1]}")
+
+                                # since all commands have -h/--help option
+                                if [ ${WORDS[#]} -le 1 ]; then
+                                        case $TARGETWORD in (-*)
+                                                complete -- --help -h
+                                        esac
+                                fi
+
+                                if { command -vf "completion/typst::$typcmd:arg" ||
+                                      . -AL "completion/typst-$typcmd"; } >/dev/null 2>&1
+                                then
+                                        command -f "completion/typst::$typcmd:arg"
+                                else
+                                        complete -P "$PREFIX" -f
+                                fi
+                        else
+                                # if no subcommand yet, then: complete subcommand names
+                                command -f completion/typst::completecmd
+                        fi
+                        ;;
+        esac
+}
+
+function completion/typst::completecmd {
+        complete -P "$PREFIX" -D "compile a document" compile c
+        complete -P "$PREFIX" -D "watch and recompile on changes" watch w
+        complete -P "$PREFIX" -D "initialize a new project" init
+        complete -P "$PREFIX" -D "query elements from a document" query
+        complete -P "$PREFIX" -D "list available fonts" fonts
+        complete -P "$PREFIX" -D "update packages" update
+        complete -P "$PREFIX" -D "show help for subcommands" help
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
