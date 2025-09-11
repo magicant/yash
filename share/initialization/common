@@ -180,7 +180,7 @@ elif [ "$(uname)" = Darwin ] 2>/dev/null; then
 fi
 
 # define some basic variables if missing
-: ${PAGER:=less} ${EDITOR:=vi} ${FCEDIT:=$EDITOR}
+: ${PAGER:=less} ${EDITOR:=vi} ${FCEDIT:=${VISUAL:=$EDITOR}}
 : ${LOGNAME:=$(logname)} ${HOSTNAME:=$(uname -n)}
 
 # disable confusing treatment of arguments in the echo command
