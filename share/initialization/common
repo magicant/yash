@@ -163,12 +163,15 @@ fi
 # an alias that opens a file
 if command --identify xdg-open >/dev/null 2>&1; then
   alias o='xdg-open'
-elif command --identify cmd.exe wslpath >/dev/null 2>&1; then
+elif command --identify rundll32.exe wslpath >/dev/null 2>&1; then
   alias o='open'
   open() (
-    target="$(wslpath -w "$1")"
-    cd /mnt/c # suppress UNC path warning
-    cmd.exe /c start "$target"
+    if [ -e "$1" ]; then
+      target="$(wslpath -w "$1")"
+    else
+      target="$1"
+    fi
+    exec rundll32.exe url.dll,FileProtocolHandler "$target"
   )
 elif command --identify cygstart >/dev/null 2>&1; then
   alias o='cygstart'

@@ -2,6 +2,9 @@
 
 ## Yash 2.60 (Unreleased)
 
+  - Updated the sample initialization script (yashrc):
+    - Redefined the `open` function for WSL to use `rundll32.exe`
+      instead of `cmd.exe` for better stability.
   - [line-editing] The "vi-edit-and-accept" command now honors the
     `VISUAL` and `EDITOR` variables, so that you can use your favorite
     editor.

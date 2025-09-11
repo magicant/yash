@@ -2,6 +2,9 @@
 
 ## Yash 2.60 (未リリース)
 
+  - 初期化スクリプト (yashrc) のサンプルを更新:
+    - WSL で `open` 関数の定義を修正。 `cmd.exe` の代わりに
+      `rundll32.exe` を使用して安定性を向上
   - [行編集] "vi-edit-and-accept" 行編集コマンドで `VISUAL` ないし
     `EDITOR` 変数でエディタを選択できるようになった
   - [行編集] `fd`, `dvtm`, `mw` (mutt-wizard) の補完を追加
