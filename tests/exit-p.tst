@@ -204,4 +204,8 @@ __OUT__
 
 )
 
+test_OE -e 56 'separator preceding operand'
+exit -- 56
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
