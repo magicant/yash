@@ -44,6 +44,25 @@ __IN__
 1 A
 __OUT__
 
+test_oE -e 0 'separator preceding scalar variable name starting with -' -e
+readonly -- -a=1
+readonly -p -- -a
+__IN__
+readonly -- -a=1
+__OUT__
+
+test_oE -e 0 'separator preceding function name starting with -' -e
+function -n() { :; }
+readonly -f -- -n
+readonly -fp -- -n
+__IN__
+function -n()
+{
+   :
+}
+readonly -f -- -n
+__OUT__
+
 test_oE 'making read-only with -p (variables)'
 readonly -p a=A
 readonly -p a
