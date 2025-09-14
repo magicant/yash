@@ -1,0 +1,25 @@
+function completion/typst::init:arg {
+
+        OPTIONS=( #>#
+        "--package-path:; package search path"
+        "--package-cache-path:; package cache directory"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--package-path|--package-cache-path)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        command -f completion//getoperands
+                        if [ "${WORDS[#]}" -eq 1 ]; then
+                                complete -P "$PREFIX" -S / -T -d
+                        fi
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

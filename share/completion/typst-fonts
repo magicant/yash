@@ -1,0 +1,24 @@
+function completion/typst::fonts:arg {
+
+        OPTIONS=( #>#
+        "--font-path:; font search path"
+        "--ignore-system-fonts; ignore system fonts"
+        "--variants; list font variants"
+        ) #<#
+
+        command -f completion//parseoptions -n
+        case $ARGOPT in
+                (-)
+                        command -f completion//completeoptions
+                        ;;
+                (--font-path)
+                        complete -P "$PREFIX" -S / -T -d
+                        ;;
+                ('')
+                        # no positional args
+                        :
+                        ;;
+        esac
+}
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
