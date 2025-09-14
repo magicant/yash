@@ -1,6 +1,6 @@
 # History of Yash
 
-## Yash 2.60 (Unreleased)
+## Yash 2.60 (2025-09-15)
 
   - Updated the sample initialization script (yashrc):
     - Redefined the `open` function for WSL to use `rundll32.exe`
