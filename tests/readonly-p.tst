@@ -31,6 +31,13 @@ A B C
 A B C
 __OUT__
 
+test_oE -e 0 'separator preceding operand' -e
+readonly -- a=foo
+echo $a
+__IN__
+foo
+__OUT__
+
 # This test is in readonly-y.tst because it fails on some existing shells
 # because of pre-defined read-only variables.
 #test_x 'reusing printed read-only variables'

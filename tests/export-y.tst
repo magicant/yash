@@ -53,6 +53,13 @@ __IN__
 A
 __OUT__
 
+test_oE -e 0 'separator preceding scalar variable name starting with -' -e
+export -- -a=1
+export -p -- -a
+__IN__
+export -- -a=1
+__OUT__
+
 test_O -d -e 1 'assigning to ill-named variable'
 export =A
 __IN__

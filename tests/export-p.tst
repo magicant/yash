@@ -21,6 +21,15 @@ __IN__
 2 A B C
 __OUT__
 
+test_oE -e 0 'separator preceding operand' -e
+export -- a=foo
+echo 1 $a
+sh -c 'echo 2 $a'
+__IN__
+1 foo
+2 foo
+__OUT__
+
 test_oE -e 0 'reusing printed exported variables'
 export a=A
 e="$(export -p)"

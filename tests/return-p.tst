@@ -293,4 +293,12 @@ fn() {
 fn
 __IN__
 
+test_OE -e 56 'separator preceding operand'
+fn() {
+    return -- 56
+    echo not reached
+}
+fn
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

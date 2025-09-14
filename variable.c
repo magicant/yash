@@ -1843,14 +1843,12 @@ void print_variable(
 void print_scalar(const wchar_t *name, bool namequote,
         const variable_T *var, const wchar_t *argv0)
 {
-    wchar_t *quotedvalue;
+    wchar_t *quotedvalue =
+        (var->v_value != NULL) ? quote_as_word(var->v_value) : NULL;
+    const char *separator = (name[0] == L'-') ? "-- " : "";
     const char *format;
     char *opts;
 
-    if (var->v_value != NULL)
-        quotedvalue = quote_as_word(var->v_value);
-    else
-        quotedvalue = NULL;
     switch (argv0[0]) {
         case L's':
             assert(wcscmp(argv0, L"set") == 0);
@@ -1861,8 +1859,8 @@ void print_scalar(const wchar_t *name, bool namequote,
         case L'r':
             assert(wcscmp(argv0, L"export") == 0
                     || wcscmp(argv0, L"readonly") == 0);
-            format = (quotedvalue != NULL) ? "%ls %ls=%ls\n" : "%ls %ls\n";
-            xprintf(format, argv0, name, quotedvalue);
+            format = (quotedvalue != NULL) ? "%ls %s%ls=%ls\n" : "%ls %s%ls\n";
+            xprintf(format, argv0, separator, name, quotedvalue);
             break;
         case L'l':
             assert(wcscmp(argv0, L"local") == 0);
@@ -1870,9 +1868,9 @@ void print_scalar(const wchar_t *name, bool namequote,
         case L't':
             assert(wcscmp(argv0, L"typeset") == 0);
 typeset:
-            format = (quotedvalue != NULL) ? "%ls%s %ls=%ls\n" : "%ls%s %ls\n";
+            format = (quotedvalue != NULL) ? "%ls%s %s%ls=%ls\n" : "%ls%s %s%ls\n";
             opts = vartype_option_string(var->v_type);
-            xprintf(format, argv0, opts, name, quotedvalue);
+            xprintf(format, argv0, opts, separator, name, quotedvalue);
             free(opts);
             break;
         default:
@@ -1904,6 +1902,9 @@ void print_array(
     }
     if (!xprintf(")\n"))
         return;
+
+    const char *separator = (name[0] == L'-') ? "-- " : "";
+
     switch (argv0[0]) {
         case L'a':
             assert(wcscmp(argv0, L"array") == 0);
@@ -1915,7 +1916,7 @@ void print_array(
         case L'r':
             assert(wcscmp(argv0, L"export") == 0
                     || wcscmp(argv0, L"readonly") == 0);
-            xprintf("%ls %ls\n", argv0, name);
+            xprintf("%ls %s%ls\n", argv0, separator, name);
             break;
         case L'l':
             assert(wcscmp(argv0, L"local") == 0);
@@ -1924,7 +1925,7 @@ void print_array(
             assert(wcscmp(argv0, L"typeset") == 0);
 typeset:;
             char *opts = vartype_option_string(var->v_type);
-            xprintf("%ls%s %ls\n", argv0, opts, name);
+            xprintf("%ls%s %s%ls\n", argv0, opts, separator, name);
             free(opts);
             break;
         default:
@@ -1954,16 +1955,17 @@ void print_function(
     if (!ok)
         goto end;
 
+    const char *separator = (name[0] == L'-') ? "-- " : "";
     switch (argv0[0]) {
         case L'r':
             assert(wcscmp(argv0, L"readonly") == 0);
             if (func->f_type & VF_READONLY)
-                xprintf("%ls -f %ls\n", argv0, name);
+                xprintf("%ls -f %s%ls\n", argv0, separator, name);
             break;
         case L't':
             assert(wcscmp(argv0, L"typeset") == 0);
             if (func->f_type & VF_READONLY)
-                xprintf("%ls -fr %ls\n", argv0, name);
+                xprintf("%ls -fr %s%ls\n", argv0, separator, name);
             break;
         default:
             assert(false);

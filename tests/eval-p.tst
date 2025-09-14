@@ -19,6 +19,12 @@ foo
 bar
 __OUT__
 
+test_oE -e 0 'separator preceding operand'
+eval -- 'echo foo'
+__IN__
+foo
+__OUT__
+
 test_oE -e 0 'operands are concatenated with spaces in-between'
 eval 'echo foo' 'echo bar'
 eval 'echo 1"' '' '"2'

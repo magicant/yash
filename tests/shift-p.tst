@@ -85,4 +85,10 @@ __IN__
 [3][a][b  b][c]
 __OUT__
 
+test_oE -e 0 'separator preceding operand' -es a b c d e
+shift -- 2 && bracket "$#" "$@"
+__IN__
+[3][c][d][e]
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

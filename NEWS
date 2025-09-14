@@ -10,6 +10,10 @@
     editor.
   - [line-editing] Added completion for `fd`, `dvtm`, and `mw`
     (mutt-wizard).
+  - The `export`, `readonly`, and `typeset` built-ins now print the `--`
+    separator before the variable names when printing variables whose
+    names begin with a hyphen (`-`), so that the output can be safely
+    re-parsed by the shell. The same applies to function names.
   - Fixed a bug where the shell continued to export the previous value
     of an array even after it was updated using the `array` built-in.
     Also fixed an issue where the internal cache was not refreshed for
