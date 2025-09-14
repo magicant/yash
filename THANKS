@@ -17,3 +17,5 @@ The author thanks:
 
 * unrealapex, for adding XDG_CONFIG_HOME variable support, fzy and git-restore
   completion, and more
+
+* runitclean, for the completion script for typst

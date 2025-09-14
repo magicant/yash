@@ -5,11 +5,15 @@
   - Updated the sample initialization script (yashrc):
     - Redefined the `open` function for WSL to use `rundll32.exe`
       instead of `cmd.exe` for better stability.
+    - `$VISUAL` is now preferred over `$EDITOR` for the default value of
+      `$FCEDIT`.
   - [line-editing] The "vi-edit-and-accept" command now honors the
     `VISUAL` and `EDITOR` variables, so that you can use your favorite
     editor.
-  - [line-editing] Added completion for `fd`, `dvtm`, and `mw`
-    (mutt-wizard).
+  - [line-editing] Added completion for `fd`, `dvtm`, `mw`
+    (mutt-wizard), and `typst`.
+  - [line-editing] Completion for `man` now supports the `-l`
+    (`--local-file`) option.
   - The `export`, `readonly`, and `typeset` built-ins now print the `--`
     separator before the variable names when printing variables whose
     names begin with a hyphen (`-`), so that the output can be safely

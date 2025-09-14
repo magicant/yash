@@ -5,9 +5,12 @@
   - 初期化スクリプト (yashrc) のサンプルを更新:
     - WSL で `open` 関数の定義を修正。 `cmd.exe` の代わりに
       `rundll32.exe` を使用して安定性を向上
+    - `$EDITOR` よりも `$VISUAL` を `$FCEDIT` のデフォルト値として優先
+      するようになった
   - [行編集] "vi-edit-and-accept" 行編集コマンドで `VISUAL` ないし
     `EDITOR` 変数でエディタを選択できるようになった
-  - [行編集] `fd`, `dvtm`, `mw` (mutt-wizard) の補完を追加
+  - [行編集] `fd`, `dvtm`, `mw` (mutt-wizard), `typst` の補完を追加
+  - [行編集] `man` の `-l` (`--local-file`) オプションの補完に対応
   - `export`, `readonly`, `typeset` 組込みで名前がハイフン (`-`) で
     始まる変数や関数を出力する際、オプションと誤って解釈されるのを防ぐ
     ための `--` を出力するようにした。
