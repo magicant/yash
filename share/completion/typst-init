@@ -5,7 +5,7 @@ function completion/typst::init:arg {
         "--package-cache-path:; package cache directory"
         ) #<#
 
-        command -f completion//parseoptions -n
+        command -f completion//parseoptions
         case $ARGOPT in
                 (-)
                         command -f completion//completeoptions
@@ -14,7 +14,10 @@ function completion/typst::init:arg {
                         complete -P "$PREFIX" -S / -T -d
                         ;;
                 ('')
-                        complete -P "$PREFIX" -S / -T -d
+                        command -f completion//getoperands
+                        if [ "${WORDS[#]}" -eq 1 ]; then
+                                complete -P "$PREFIX" -S / -T -d
+                        fi
                         ;;
         esac
 }
