@@ -36,7 +36,7 @@ Yash's documentation is written in [AsciiDoc]. Running `make docs` with the `asc
 
 ## Contributing to Command Line Argument Completion
 
-The scripts defining command line argument completion is located in the `share/completion` directory. The common functions used by the completion scripts are defined in the `INIT` file.
+The scripts defining command line argument completion is located in the `share/completion` directory. The common functions used by the completion scripts are defined in the `INIT` file. See `README.md` in the `share/completion` directory for more information.
 
 ## Translating Messages Printed by Yash
 
