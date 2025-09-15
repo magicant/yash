@@ -2396,7 +2396,11 @@ vi-edit-and-accept
 </dt>
 <dd>
 <p>
-Start the vi editor to edit the current buffer contents.
+Start an editor to edit the current buffer contents.
+If argument <var>n</var> is passed, the entry whose number is <var>n</var> is edited
+instead.
+If the <code>VISUAL</code> or <code>EDITOR</code> variable is defined, its value is used as the editor name.
+Otherwise, <code>vi</code> is used.
 When the editor finished, the edited buffer contents is accepted like the
 accept-line command unless the exit status of the editor is non-zero.
 </p>
@@ -4253,7 +4257,7 @@ because less probable part of the fragment is excluded from prediction.</p></div
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2024-10-15 22:01:07 JST
+ 2025-07-22 14:59:50 JST
 </div>
 </div>
 </body>
