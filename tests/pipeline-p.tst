@@ -23,25 +23,85 @@ __IN__
 bar
 __OUT__
 
-test_OE -e 3 'exit status of pipeline is from last command'
-exit 1 | exit 2 | exit 3
-__IN__
-
-test_oE 'exit status of negated pipelines'
-exit 1 | exit 2 | exit 3
+test_oE 'without pipefail, exit status of pipeline is from last command'
+exit 0 | exit 0 | exit 0
 echo a $?
-! exit 1 | exit 2 | exit 3
+exit 1 | exit 2 | exit 0
 echo b $?
-! exit 1 | exit 2 | exit 1
+exit 3 | exit 0 | exit 0
 echo c $?
-! exit 1 | exit 2 | exit 0
+exit 0 | exit 0 | exit 4
 echo d $?
+exit 5 | exit 6 | exit 7
+echo e $?
 __IN__
-a 3
+a 0
 b 0
 c 0
-d 1
+d 4
+e 7
 __OUT__
+
+test_oE 'exit status of negated pipelines (without pipefail)'
+! exit 0 | exit 0 | exit 0
+echo a $?
+! exit 1 | exit 2 | exit 0
+echo b $?
+! exit 3 | exit 0 | exit 0
+echo c $?
+! exit 0 | exit 0 | exit 4
+echo d $?
+! exit 5 | exit 6 | exit 7
+echo e $?
+__IN__
+a 1
+b 1
+c 1
+d 0
+e 0
+__OUT__
+
+test_oE 'with pipefail, last failed command determines exit status' -o pipefail
+exit 0 | exit 0 | exit 0
+echo a $?
+exit 1 | exit 2 | exit 0
+echo b $?
+exit 3 | exit 0 | exit 0
+echo c $?
+exit 0 | exit 0 | exit 4
+echo d $?
+exit 5 | exit 6 | exit 7
+echo e $?
+__IN__
+a 0
+b 2
+c 3
+d 4
+e 7
+__OUT__
+
+test_oE 'exit status of negated pipelines (with pipefail)' -o pipefail
+! exit 0 | exit 0 | exit 0
+echo a $?
+! exit 1 | exit 2 | exit 0
+echo b $?
+! exit 3 | exit 0 | exit 0
+echo c $?
+! exit 0 | exit 0 | exit 4
+echo d $?
+! exit 5 | exit 6 | exit 7
+echo e $?
+__IN__
+a 1
+b 0
+c 0
+d 0
+e 0
+__OUT__
+
+test_OE -e 0 'pipeline enabling pipefail does not affect itself'
+false | set -o pipefail
+__IN__
 
 test_oE 'stdin for first command & stdout for last are not modified'
 cat | tail -n 1

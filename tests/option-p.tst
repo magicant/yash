@@ -165,6 +165,8 @@ __IN__
 
 }
 
+# See pipeline-p.tst for the pipefail option tests.
+
 test_x -e 0 'nounset (short) on: $-' -u
 printf '%s\n' "$-" | grep -q u
 __IN__
