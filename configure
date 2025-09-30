@@ -276,7 +276,7 @@ trymake () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
         ${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
         ${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
-        "$@" ${LDLIBS-${ldlibs}}
+        "$@" ${LDLIBS-${ldlibs}} -fno-builtin
 }
 trycompile () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
