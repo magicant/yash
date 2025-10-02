@@ -276,7 +276,7 @@ trymake () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
         ${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
         ${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
-        "$@" ${LDLIBS-${ldlibs}}
+        "$@" ${LDLIBS-${ldlibs}} ${fnobuiltin}
 }
 trycompile () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
@@ -451,8 +451,29 @@ END
         checked "no"
         cflags=${savecflags}
     fi
-    unset savecflags
 fi
+
+# check if the compiler accepts the -fno-builtin option
+if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
+then
+    checking 'whether the compiler accepts -fno-builtin flag'
+    savecflags=${cflags}
+    cflags="-fno-builtin"
+    cat >"${tempsrc}" <<END
+int main(void) { return 0; }
+END
+    if
+        trycompile
+    then
+        checked "yes"
+        fnobuiltin="-fno-builtin"
+    else
+        checked "no"
+    fi
+    cflags=${savecflags}
+fi
+
+unset savecflags
 
 # find compiler option for C99 support
 checking 'additional option to compile C99 code'
