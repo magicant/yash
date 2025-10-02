@@ -1,6 +1,10 @@
 name: C CI
 
-on: [push]
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+    branches: [trunk]
 
 jobs:
   check-on-ubuntu:
