@@ -2660,30 +2660,25 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     if (xoptind < argc)
         return special_builtin_error(too_many_operands_error(0));
 
-    double clock;
-    struct tms tms;
-    intmax_t sum, ssm, cum, csm;
-    double sus, sss, cus, css;
-#define format_time(time, min, sec) \
-    do {                                   \
-        double tsec = (time) / clock;      \
-        double m = trunc(tsec / 60.0);     \
-        (min) = (intmax_t) m;              \
-        (sec) = tsec - m * 60.0;           \
-    } while (0)
+    double sum, sus, ssm, sss, cum, cus, csm, css;
 
-    clock = sysconf(_SC_CLK_TCK);
+    double ratio = 1.0 / 60.0 / sysconf(_SC_CLK_TCK);
+    struct tms tms;
     if (times(&tms) == (clock_t) -1) {
         xerror(errno, Ngt("cannot get the time data"));
         return special_builtin_error(Exit_FAILURE);
     }
+#define format_time(time, min, sec)                  \
+    do {                                             \
+        (sec) = modf((time) * ratio, &(min)) * 60.0; \
+    } while (0)
     format_time(tms.tms_utime, sum, sus);
     format_time(tms.tms_stime, ssm, sss);
     format_time(tms.tms_cutime, cum, cus);
     format_time(tms.tms_cstime, csm, css);
 #undef format_time
 
-    xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
+    xprintf("%.0fm%fs %.0fm%fs\n%.0fm%fs %.0fm%fs\n",
             sum, sus, ssm, sss, cum, cus, csm, css);
     return (yash_error_message_count == 0) ?
             Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
