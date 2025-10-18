@@ -1616,6 +1616,26 @@ END
     fi
 fi
 
+# check for getrusage
+checking "for getrusage"
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
+#include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
+#include <sys/resource.h>
+int main(void) {
+struct rusage r;
+getrusage(RUSAGE_SELF, &r);
+getrusage(RUSAGE_CHILDREN, &r);
+}
+END
+trymake
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_RUSAGE"
+fi
+
 # check for getrlimit and setrlimit
 checking "for getrlimit and setrlimit"
 cat >"${tempsrc}" <<END

@@ -1,5 +1,11 @@
 # History of Yash
 
+## Yash 2.61 (Unreleased)
+
+  - The `times` built-in now uses the `getrusage` function to obtain
+    resource usage statistics on systems where it is available, which
+    improves precision.
+
 ## Yash 2.60 (2025-09-15)
 
   - Updated the sample initialization script (yashrc):

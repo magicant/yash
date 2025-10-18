@@ -31,10 +31,14 @@
 #endif
 #include <signal.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <stdint.h> /* required before <sys/resource.h> on freebsd */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_RUSAGE
+# include <sys/time.h> /* required before <sys/resource.h> on old Mac OS X */
+# include <sys/resource.h>
+#endif
 #include <sys/times.h>
 #include <unistd.h>
 #include <wchar.h>
@@ -2660,30 +2664,47 @@ int times_builtin(int argc __attribute__((unused)), void **argv)
     if (xoptind < argc)
         return special_builtin_error(too_many_operands_error(0));
 
-    double clock;
-    struct tms tms;
-    intmax_t sum, ssm, cum, csm;
-    double sus, sss, cus, css;
-#define format_time(time, min, sec) \
-    do {                                   \
-        double tsec = (time) / clock;      \
-        double m = trunc(tsec / 60.0);     \
-        (min) = (intmax_t) m;              \
-        (sec) = tsec - m * 60.0;           \
-    } while (0)
+    double sum, sus, ssm, sss, cum, cus, csm, css;
 
-    clock = sysconf(_SC_CLK_TCK);
+#if HAVE_RUSAGE
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru) == -1) {
+        xerror(errno, Ngt("cannot get the time data"));
+        return special_builtin_error(Exit_FAILURE);
+    }
+#define format_time(timeval, min, sec)                    \
+    do {                                                  \
+        double s = modf((timeval).tv_sec / 60.0, &(min)); \
+        (sec) = s * 60.0 + (timeval).tv_usec / 1000000.0; \
+    } while (0)
+    format_time(ru.ru_utime, sum, sus);
+    format_time(ru.ru_stime, ssm, sss);
+    if (getrusage(RUSAGE_CHILDREN, &ru) == -1) {
+        xerror(errno, Ngt("cannot get the time data"));
+        return special_builtin_error(Exit_FAILURE);
+    }
+    format_time(ru.ru_utime, cum, cus);
+    format_time(ru.ru_stime, csm, css);
+#undef format_time
+#else /* !HAVE_RUSAGE */
+    double ratio = 1.0 / 60.0 / sysconf(_SC_CLK_TCK);
+    struct tms tms;
     if (times(&tms) == (clock_t) -1) {
         xerror(errno, Ngt("cannot get the time data"));
         return special_builtin_error(Exit_FAILURE);
     }
+#define format_time(time, min, sec)                  \
+    do {                                             \
+        (sec) = modf((time) * ratio, &(min)) * 60.0; \
+    } while (0)
     format_time(tms.tms_utime, sum, sus);
     format_time(tms.tms_stime, ssm, sss);
     format_time(tms.tms_cutime, cum, cus);
     format_time(tms.tms_cstime, csm, css);
 #undef format_time
+#endif /* HAVE_RUSAGE */
 
-    xprintf("%jdm%fs %jdm%fs\n%jdm%fs %jdm%fs\n",
+    xprintf("%.0fm%fs %.0fm%fs\n%.0fm%fs %.0fm%fs\n",
             sum, sus, ssm, sss, cum, cus, csm, css);
     return (yash_error_message_count == 0) ?
             Exit_SUCCESS : special_builtin_error(Exit_FAILURE);
