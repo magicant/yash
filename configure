@@ -121,6 +121,8 @@ do
             nocreate="true" ;;
         -d|--debug)
             debug="true" ;;
+        --host=*)
+            host="${i#--host=}" ;;
         --prefix=*)
             prefix="${i#--prefix=}" ;;
         --exec-prefix=*)
@@ -171,6 +173,7 @@ Usage: sh $0 [options...]
 Available options:
   --no-create            do not create output files
   --debug                configure for debug build (GCC or Clang required)
+  --host=HOST            sets the prefix for build tools to HOST
 
 Installation options:
   --prefix=PREFIX        install architecture-independent files in PREFIX
@@ -312,13 +315,13 @@ fail () {
     exit 1
 }
 
-
-cc="${CC-c99}"
+[ -n "$host" ] && _host="$host-"
+cc="${CC-${_host}c99}"
+ar="${AR-${_host}ar}"
 cflags="${CFLAGS--O1 -g}"
 cppflags="${CPPFLAGS-${null}}"
 ldflags="${LDFLAGS-${null}}"
 ldlibs="${LDLIBS-${null}}"
-ar="${AR-ar}"
 arflags="${ARFLAGS--rc}"
 xgettext="${XGETTEXT-xgettext}"
 xgettextflags="${XGETTEXTFLAGS--kgt -kNgt -kngt:1,2 \
@@ -364,21 +367,21 @@ if
 then
     checked "yes"
 elif
-    [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-        cc='gcc'
+    [ x"${cc}" = x"${_host}c99" ] && [ x"${CC+set}" != x"set" ] && (
+        cc="${_host}gcc"
         trymake
     )
 then
-    checked "yes (using gcc)"
-    cc='gcc'
+    cc="${_host}gcc"
+    checked "yes (using $cc)"
 elif
-    [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-        cc='clang'
+    [ x"${cc}" = x"${_host}c99" ] && [ x"${CC+set}" != x"set" ] && (
+        cc="${_host}clang"
         trymake
     )
 then
-    checked "yes (using clang)"
-    cc='clang'
+    cc="${_host}clang"
+    checked "yes (using $cc)"
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
