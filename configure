@@ -288,7 +288,11 @@ trylink () {
         -o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
 }
 tryexec () {
-    checkby "${tempout}"
+    if [ -z "$cross_compiling" ]; then
+        checkby "${tempout}"
+    else
+        return 0
+    fi
 }
 checked () {
     if [ $# -ge 1 ]
@@ -341,57 +345,6 @@ cscope="${CSCOPE-cscope}"
 
 confighdefs=''
 
-
-# check OS type
-checking 'operating system'
-ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
-checked "${ostype}"
-case "${ostype}" in
-    darwin)
-        defconfigh "_DARWIN_C_SOURCE"
-        ;;
-    sunos)
-        defconfigh "__EXTENSIONS__"
-        ;;
-esac
-
-
-# check POSIX conformance
-checking 'POSIX conformance'
-posixver=$(getconf _POSIX_VERSION 2>/dev/null)
-if [ -n "${posixver}" ] && [ x"${posixver}" != x"undefined" ]
-then
-    checked "${posixver}"
-else
-    checked "no"
-    posixver=""
-fi
-
-checking 'SUS conformance'
-xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
-if [ -n "${xopenver}" ] && [ x"${xopenver}" != x"undefined" ]
-then
-    checked "${xopenver}"
-else
-    checked "no"
-    xopenver=""
-fi
-
-case "${ostype}" in
-    freebsd)
-        # FreeBSD doesn't have a feature test macro to enable non-POSIX
-        # extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
-        # non-POSIX extensions are available.
-        posix=
-        xopen=
-        ;;
-    *)
-        posix=${posixver}
-        xopen=${xopenver}
-        ;;
-esac
-
-
 # define options for debugging
 if ${debug}
 then
@@ -407,13 +360,13 @@ cat >"${tempsrc}" <<END
 int main(void) { return 0; }
 END
 if
-    trymake && tryexec
+    trymake
 then
     checked "yes"
 elif
     [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
         cc='gcc'
-        trymake && tryexec
+        trymake
     )
 then
     checked "yes (using gcc)"
@@ -421,7 +374,7 @@ then
 elif
     [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
         cc='clang'
-        trymake && tryexec
+        trymake
     )
 then
     checked "yes (using clang)"
@@ -433,6 +386,96 @@ else
         "${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
     fail
 fi
+
+# check if we are cross compiling
+checking 'whether we are cross compiling'
+if
+    tryexec
+then
+    checked "no"
+else
+    checked "yes"
+    cross_compiling=1
+fi
+
+# check OS type
+checking 'operating system'
+if [ -z "$OS" ]; then
+    if [ -z "$cross_compiling" ]; then
+        ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
+    else
+        printf 'Could not determine the target operating system!\n' >&2
+        printf 'Define the $OS environment variable and try again.\n' >&2
+        fail
+    fi
+else
+    ostype="$OS"
+fi
+
+if [ -n "$cross_compiling" ]; then
+    if [ -f "$ostype-signum.h" ]; then
+        cp "$ostype-signum.h" cross-signum.h
+    else
+        printf 'Could not find a signum.h for your target operating system!\n' >&2
+        printf "You'll need to generate one yourself by compiling and running makesignum.c on your target.\n" >&2
+        fail
+    fi
+fi
+
+checked "${ostype}"
+case "${ostype}" in
+    darwin)
+        defconfigh "_DARWIN_C_SOURCE"
+        ;;
+    sunos)
+        defconfigh "__EXTENSIONS__"
+        ;;
+esac
+
+# check POSIX conformance
+checking 'POSIX conformance'
+if [ -z "$cross_compiling" ]; then
+    posixver=$(getconf _POSIX_VERSION 2>/dev/null)
+    if [ -n "${posixver}" ] && [ x"${posixver}" != x"undefined" ]
+    then
+        checked "${posixver}"
+    else
+        checked "no"
+        posixver=""
+    fi
+else
+    checked "guessing 200112"
+    posixver="200112"
+fi
+
+checking 'SUS conformance'
+if [ -z "$cross_compiling" ]; then
+    xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
+    if [ -n "${xopenver}" ] && [ x"${xopenver}" != x"undefined" ]
+    then
+        checked "${xopenver}"
+    else
+        checked "no"
+        xopenver=""
+    fi
+else
+    checked "guessing 600"
+    xopenver="600"
+fi
+
+case "${ostype}" in
+    freebsd)
+        # FreeBSD doesn't have a feature test macro to enable non-POSIX
+        # extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
+        # non-POSIX extensions are available.
+        posix=
+        xopen=
+        ;;
+    *)
+        posix=${posixver}
+        xopen=${xopenver}
+        ;;
+esac
 
 # check if the compiler accepts the -O2 option if we are not debugging
 if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
