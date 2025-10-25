@@ -103,6 +103,7 @@ parseenable() {
         history)        enable_history=$val ;;
         lineedit)       enable_lineedit=$val ;;
         nls)            enable_nls=$val ;;
+        doc)            enable_doc=$val ;;
         printf)         enable_printf=$val ;;
         socket)         enable_socket=$val ;;
         test)           enable_test=$val ;;
@@ -163,6 +164,17 @@ do
     esac
 done
 
+# if the user didn't explicitly specify whether they want docs
+# or not, enable them if a2x is found, otherwise disable.
+if [ -z "$enable_doc" ]; then
+    if command -v a2x >/dev/null 2>&1; then
+        enable_doc="true"
+    else
+        printf 'Warning: a2x was not found, documentation will not be built!\n' >&2
+        enable_doc="false"
+    fi
+fi
+
 if ${help}
 then
     exec cat <<END
@@ -195,6 +207,7 @@ Optional features:
   --enable-history         enable history
   --enable-lineedit        enable command line editing
   --enable-nls             enable native language support
+  --enable-doc             enable building the documentation
   --enable-printf          enable the echo/printf builtins
   --enable-socket          enable socket redirection by /dev/tcp, /dev/udp
   --enable-test            enable the test builtin
@@ -1901,6 +1914,7 @@ s!@docdir@!${docdir}!g
 s!@htmldir@!${htmldir}!g
 s!@default_loadpath@!${default_loadpath}!g
 s!@enable_nls@!${enable_nls}!g
+s!@enable_doc@!${enable_doc}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 
