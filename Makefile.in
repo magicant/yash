@@ -125,11 +125,7 @@ man html:
 	-@+if $(enable_doc); then (cd doc && $(MAKE) $@-rec); fi
 
 INSTALLBINDIRS = $(DESTDIR)$(bindir)
-ifeq ($(enable_doc),true)
-INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization $(DESTDIR)$(mandir)
-else
-INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization
-endif
+INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization@doc_mandir@
 INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS) $(DESTDIR)$(htmldir)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
