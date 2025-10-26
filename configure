@@ -46,6 +46,7 @@ enable_array="true"
 enable_dirstack="true"
 enable_double_bracket="true"
 enable_nls="true"
+enable_doc="true"
 enable_help="true"
 enable_history="true"
 enable_lineedit="true"
@@ -164,14 +165,12 @@ do
     esac
 done
 
-# if the user didn't explicitly specify whether they want docs
-# or not, enable them if a2x is found, otherwise disable.
-if [ -z "$enable_doc" ]; then
-    if command -v a2x >/dev/null 2>&1; then
-        enable_doc="true"
-    else
-        printf 'Warning: a2x was not found, documentation will not be built!\n' >&2
-        enable_doc="false"
+# if docs aren't disabled and a2x isn't found, error
+if [ "$enable_doc" = "true" ]; then
+    if ! command -v a2x >/dev/null 2>&1; then
+        printf 'a2x was not found!\n' >&2
+        printf 'you must either install asciidoc or configure with --disable-doc.\n' >&2
+        exit 1
     fi
 fi
 
