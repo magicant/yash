@@ -123,6 +123,8 @@ do
             debug="true" ;;
         --host=*)
             host="${i#--host=}" ;;
+        --build=*) # included for autoconf compatibility, does nothing
+            ;;
         --prefix=*)
             prefix="${i#--prefix=}" ;;
         --exec-prefix=*)
