@@ -1851,6 +1851,13 @@ case "${htmldir}" in
     //) htmldir=/ ;;
 esac
 
+if ${enable_doc}
+then
+    doc_mandir=' $(DESTDIR)$(mandir)'
+else
+    doc_mandir=
+fi
+
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
 s!@MAKE_SHELL@!${MAKE_SHELL}!g
@@ -1905,18 +1912,8 @@ s!@htmldir@!${htmldir}!g
 s!@default_loadpath@!${default_loadpath}!g
 s!@enable_nls@!${enable_nls}!g
 s!@enable_doc@!${enable_doc}!g
+s!@doc_mandir@!${doc_mandir}!g
 "
-if [ "$enable_doc" = "true" ]; then
-    sed_subst_cmd="
-$sed_subst_cmd
-s!@doc_mandir@! \$\(DESTDIR\)\$\(mandir\)!g
-"
-else
-    sed_subst_cmd="
-$sed_subst_cmd
-s!@doc_mandir@!!g
-"
-fi
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 
 
