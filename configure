@@ -294,6 +294,7 @@ trylink () {
 }
 tryexec () {
     if ${cross_compiling}; then
+        checkresult="yes"
         return 0
     else
         checkby "${tempout}"
@@ -1461,9 +1462,9 @@ then
     defconfigh "HAVE_PATHS_H"
 fi
 
-# check if getcwd doesn't accept (NULL,0) as argument
-checking "if getcwd(NULL,0) doesn't return malloc'ed string"
-if [ -z "$YASH_GETCWD_NO_AUTO_MALLOC" ]; then
+# check if getcwd accepts (NULL,0) as argument
+checking "if getcwd(NULL,0) returns malloc'ed string"
+if [ -z "$YASH_GETCWD_AUTO_MALLOC" ]; then
     cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <errno.h>
@@ -1489,22 +1490,26 @@ char *xgetcwd(void) {
 }
 int main(void) {
     char *wd1 = getcwd(NULL, 0);
-    if (!wd1) return 0;
+    if (!wd1) return 1;
     char *wd2 = xgetcwd();
-    if (!wd2 || strcmp(wd1, wd2) != 0) return 0;
+    if (!wd2 || strcmp(wd1, wd2) != 0) return 1;
     char *wd11 = realloc(wd1, strlen(wd1) + 10);
-    if (!wd11 || strcmp(wd11, wd2) != 0) return 0;
-    free(wd11); free(wd2); return 1;
+    if (!wd11 || strcmp(wd11, wd2) != 0) return 1;
+    free(wd11); free(wd2); return 0;
 }
 END
-    trymake && tryexec
+    if ${cross_compiling}; then
+        checkresult="no"
+    else
+        trymake && tryexec
+    fi
     checked
 else
-    checked "$YASH_GETCWD_NO_AUTO_MALLOC"
+    checked "$YASH_GETCWD_AUTO_MALLOC"
 fi
 if [ x"${checkresult}" = x"yes" ]
 then
-    defconfigh "GETCWD_NO_AUTO_MALLOC"
+    defconfigh "GETCWD_AUTO_MALLOC"
 fi
 
 # check if ioctl supports TIOCGWINSZ
