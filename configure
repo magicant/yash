@@ -165,15 +165,6 @@ do
     esac
 done
 
-# if docs aren't disabled and a2x isn't found, error
-if [ "$enable_doc" = "true" ]; then
-    if ! command -v a2x >/dev/null 2>&1; then
-        printf 'a2x was not found!\n' >&2
-        printf 'you must either install asciidoc or configure with --disable-doc.\n' >&2
-        exit 1
-    fi
-fi
-
 if ${help}
 then
     exec cat <<END
