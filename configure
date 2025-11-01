@@ -1499,11 +1499,12 @@ int main(void) {
 }
 END
     if ${cross_compiling}; then
+        checked "assuming no"
         checkresult="no"
     else
         trymake && tryexec
+        checked
     fi
-    checked
 else
     checked "$YASH_GETCWD_AUTO_MALLOC"
 fi
