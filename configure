@@ -408,19 +408,22 @@ fi
 
 # check OS type
 checking 'operating system'
-if [ -z "$OS" ]; then
-    if ${cross_compiling}; then
+if [ -n "$OS" ]; then
+    ostype="$OS"
+elif [ -n "$cross_compiling" ]; then
+    for signum in $(find . -maxdepth 1 -name  '*-signum.h' | sed 's/\.\/\(.*\)-signum\.h/\1/')
+    do
+        if echo "$host" | grep -E "$signum" >/dev/null
+        then
+            ostype="$signum"
+            break;
+        fi
+    done
+    if [ -z "$ostype" ]; then
         printf 'Could not determine the target operating system!\n' >&2
         printf 'Define the $OS environment variable and try again.\n' >&2
         fail
-    else
-        ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
-    fi
-else
-    ostype="$OS"
-fi
-
-if ${cross_compiling}; then
+	fi
     if [ -f "$ostype-signum.h" ]; then
         cp "$ostype-signum.h" cross-signum.h
     else
@@ -428,6 +431,8 @@ if ${cross_compiling}; then
         printf "You'll need to generate one yourself by compiling and running makesignum.c on your target.\n" >&2
         fail
     fi
+else
+    ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
 fi
 
 checked "${ostype}"
