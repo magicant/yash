@@ -411,9 +411,9 @@ checking 'operating system'
 if [ -n "$OS" ]; then
     ostype="$OS"
 elif [ -n "$cross_compiling" ]; then
-    for signum in $(find . -maxdepth 1 -name  '*-signum.h' | sed 's/\.\/\(.*\)-signum\.h/\1/')
+    for signum in $(find . -maxdepth 1 -name '*-signum.h' | sed 's/\.\/\(.*\)-signum\.h/\1/')
     do
-        if echo "$host" | grep -E "$signum" >/dev/null
+        if echo "$host" | grep -Eq "$signum"
         then
             ostype="$signum"
             break;
@@ -423,7 +423,7 @@ elif [ -n "$cross_compiling" ]; then
         printf 'Could not determine the target operating system!\n' >&2
         printf 'Define the $OS environment variable and try again.\n' >&2
         fail
-	fi
+    fi
     if [ -f "$ostype-signum.h" ]; then
         cp "$ostype-signum.h" cross-signum.h
     else
