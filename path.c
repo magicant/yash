@@ -229,7 +229,10 @@ bool is_normalized_path(const wchar_t *path)
  * On error, `errno' is set and NULL is returned. */
 char *xgetcwd(void)
 {
-#if GETCWD_NO_AUTO_MALLOC
+#if GETCWD_AUTO_MALLOC
+    char *pwd = getcwd(NULL, 0);
+    return (pwd != NULL) ? xrealloc(pwd, add(strlen(pwd), 1)) : NULL;
+#else
     size_t pwdlen = 40;
     char *pwd = xmalloc(pwdlen);
     while (getcwd(pwd, pwdlen) == NULL) {
@@ -245,9 +248,6 @@ char *xgetcwd(void)
         }
     }
     return pwd;
-#else
-    char *pwd = getcwd(NULL, 0);
-    return (pwd != NULL) ? xrealloc(pwd, add(strlen(pwd), 1)) : NULL;
 #endif
 }
 
