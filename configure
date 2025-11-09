@@ -411,8 +411,9 @@ checking 'operating system'
 if [ -n "$OS" ]; then
     ostype="$OS"
 elif [ -n "$cross_compiling" ]; then
-    for signum in $(find . -maxdepth 1 -name '*-signum.h' | sed 's/\.\/\(.*\)-signum\.h/\1/')
+    for signum in *-signum.h
     do
+        signum="${signum%-signum.h}"
         if echo "$host" | grep -Eq "$signum"
         then
             ostype="$signum"
