@@ -410,7 +410,7 @@ fi
 checking 'operating system'
 if [ -n "$OS" ]; then
     ostype="$OS"
-elif [ -n "$cross_compiling" ]; then
+elif $cross_compiling; then
     for signum in *-signum.h
     do
         signum="${signum%-signum.h}"
