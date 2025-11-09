@@ -2,6 +2,8 @@
 
 ## Yash 2.61 (Unreleased)
 
+  - The `configure` script now accepts the `--disable-doc` option to
+    omit installing the manual pages.
   - The `times` built-in now uses the `getrusage` function to obtain
     resource usage statistics on systems where it is available, which
     improves precision.

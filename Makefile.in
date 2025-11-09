@@ -62,6 +62,7 @@ htmldir = @htmldir@
 
 default_loadpath = @default_loadpath@
 enable_nls = @enable_nls@
+enable_doc = @enable_doc@
 
 all: $(TARGET) share/config tester mofiles docs
 
@@ -119,12 +120,12 @@ mofiles: _PHONY
 	@+(cd po && $(MAKE))
 
 docs:
-	-@+(cd doc && $(MAKE))
+	-@+if $(enable_doc); then (cd doc && $(MAKE)); fi
 man html:
-	-@+(cd doc && $(MAKE) $@-rec)
+	-@+if $(enable_doc); then (cd doc && $(MAKE) $@-rec); fi
 
 INSTALLBINDIRS = $(DESTDIR)$(bindir)
-INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization $(DESTDIR)$(mandir)
+INSTALLDATADIRS = $(DESTDIR)$(yashdatadir) $(DESTDIR)$(yashdatadir)/completion $(DESTDIR)$(yashdatadir)/initialization@doc_mandir@
 INSTALLDIRS = $(INSTALLBINDIRS) $(INSTALLDATADIRS) $(DESTDIR)$(htmldir)
 install: install-binary install-data
 install-strip: install-binary-strip install-data
@@ -138,14 +139,14 @@ install-data: share/config installdirs-data-main
 		$(INSTALL_DATA) share/$$file $(DESTDIR)$(yashdatadir)/$$file; \
 	done
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
-	@+(cd doc && $(MAKE) install-rec)
+	@+if $(enable_doc); then (cd doc && $(MAKE) install-rec); fi
 install-html:
-	@+(cd doc && $(MAKE) $@-rec)
+	@+if $(enable_doc); then (cd doc && $(MAKE) $@-rec); fi
 installdirs: installdirs-binary installdirs-data
 installdirs-binary: $(INSTALLBINDIRS)
 installdirs-data: installdirs-data-main
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
-	@+(cd doc && $(MAKE) installdirs-rec)
+	@+if $(enable_doc); then (cd doc && $(MAKE) installdirs-rec); fi
 installdirs-data-main: $(INSTALLDATADIRS)
 installdirs-html: $(DESTDIR)$(htmldir)
 $(INSTALLDIRS):
@@ -163,10 +164,10 @@ uninstall-data:
 	-rmdir $(DESTDIR)$(yashdatadir)/initialization
 	-rmdir $(DESTDIR)$(yashdatadir)
 	@+if $(enable_nls); then (cd po && $(MAKE) $@); fi
-	@+(cd doc && $(MAKE) $@-rec)
+	@+if $(enable_doc); then (cd doc && $(MAKE) $@-rec); fi
 
 DISTDIR = $(TARGET)-$(VERSION)
-DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
+DISTS = $(DISTDIR).tar $(DISTDIR).tar.Z $(DISTDIR).tar.gz $(DISTDIR).tar.bz2 $(DISTDIR).tar.xz $(DISTDIR).tar.zst $(DISTDIR).shar $(DISTDIR).shar.gz $(DISTDIR).zip
 ALL_DIST_TARGETS = dist-tarZ dist-gzip dist-bzip2 dist-xz dist-zstd dist-shar dist-zip
 DIST_TARGETS = dist-gzip dist-xz dist-zstd
 RM_DISTDIR = rm -rf $(DISTDIR) $(DISTDIR).tar

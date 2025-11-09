@@ -46,6 +46,7 @@ enable_array="true"
 enable_dirstack="true"
 enable_double_bracket="true"
 enable_nls="true"
+enable_doc="true"
 enable_help="true"
 enable_history="true"
 enable_lineedit="true"
@@ -103,6 +104,7 @@ parseenable() {
         history)        enable_history=$val ;;
         lineedit)       enable_lineedit=$val ;;
         nls)            enable_nls=$val ;;
+        doc)            enable_doc=$val ;;
         printf)         enable_printf=$val ;;
         socket)         enable_socket=$val ;;
         test)           enable_test=$val ;;
@@ -200,6 +202,7 @@ Optional features:
   --enable-history         enable history
   --enable-lineedit        enable command line editing
   --enable-nls             enable native language support
+  --enable-doc             enable building the documentation
   --enable-printf          enable the echo/printf builtins
   --enable-socket          enable socket redirection by /dev/tcp, /dev/udp
   --enable-test            enable the test builtin
@@ -1917,6 +1920,13 @@ case "${htmldir}" in
     //) htmldir=/ ;;
 esac
 
+if ${enable_doc}
+then
+    doc_mandir=' $(DESTDIR)$(mandir)'
+else
+    doc_mandir=
+fi
+
 sed_subst_cmd="
 s!@MAKE_INCLUDE@!${MAKE_INCLUDE}!g
 s!@MAKE_SHELL@!${MAKE_SHELL}!g
@@ -1970,6 +1980,8 @@ s!@docdir@!${docdir}!g
 s!@htmldir@!${htmldir}!g
 s!@default_loadpath@!${default_loadpath}!g
 s!@enable_nls@!${enable_nls}!g
+s!@enable_doc@!${enable_doc}!g
+s!@doc_mandir@!${doc_mandir}!g
 "
 printf '\n\n===== Output variables =====\n%s\n' "${sed_subst_cmd}" >&5
 
