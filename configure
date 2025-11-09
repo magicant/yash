@@ -425,6 +425,11 @@ elif $cross_compiling; then
         printf 'Define the $OS environment variable and try again.\n' >&2
         fail
     fi
+else
+    ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
+fi
+
+if $cross_compiling; then
     if [ -f "$ostype-signum.h" ]; then
         cp "$ostype-signum.h" cross-signum.h
     else
@@ -432,8 +437,6 @@ elif $cross_compiling; then
         printf "You'll need to generate one yourself by compiling and running makesignum.c on your target.\n" >&2
         fail
     fi
-else
-    ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
 fi
 
 checked "${ostype}"
