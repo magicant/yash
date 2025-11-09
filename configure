@@ -414,11 +414,11 @@ elif $cross_compiling; then
     for signum in *-signum.h
     do
         signum="${signum%-signum.h}"
-        if echo "$host" | grep -Eq "$signum"
-        then
-            ostype="$signum"
-            break;
-        fi
+        case "$host" in
+            *"$signum"*)
+                ostype="$signum"
+                break
+        esac
     done
     if [ -z "$ostype" ]; then
         printf 'Could not determine the target operating system!\n' >&2
