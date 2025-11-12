@@ -440,7 +440,7 @@ if $cross_compiling; then
     else
         printf 'Could not find a signum.h for your target operating system!\n' >&2
         printf "You'll need to generate one yourself by compiling and running makesignum.c on your target.\n" >&2
-        printf 'Place your signum.h in the root of the source directory with the name %s.\n' "$ostype-signum.h" >&2
+        printf 'Rename your signum.h to %s and place it in the root of the source directory.\n' "'$ostype-signum.h'" >&2
         fail
     fi
 fi
