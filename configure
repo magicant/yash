@@ -220,7 +220,7 @@ Influential environment variables:
   ASCIIDOC, ASCIIDOCFLAGS, ASCIIDOCATTRS, A2X, A2XFLAGS,
   INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
   CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS,
-  YASH_GETCWD_AUTO_MALLOC
+  YASH_GETCWD_AUTO_MALLOC, OS, ARCH
 END
     exit
 fi
@@ -414,19 +414,22 @@ checking 'operating system'
 if [ -n "$OS" ]; then
     ostype="$OS"
 elif $cross_compiling; then
-    for signum in *-signum.h
-    do
-        signum="${signum%-signum.h}"
-        case "$host" in
-            *"$signum"*)
-                ostype="$signum"
-                break
-        esac
-    done
+    if [ -n "$host" ]; then
+        for signum in *-signum.h
+        do
+            signum="${signum%-signum.h}"
+            case "$host" in
+                *"$signum"*)
+                    ostype="$signum"
+                    break
+            esac
+        done
+    fi
     if [ -z "$ostype" ]; then
         printf 'Could not determine the target operating system!\n' >&2
-        printf 'Your target OS might not have a premade signum.h.\n' >&2
+        printf 'Your target might not have a premade signum.h.\n' >&2
         printf "If this is the case you'll need to generate one yourself by compiling and running makesignum.c on your target." >&2
+        printf "Rename your signum.h to '<os>-signum.h' and place it in the root of the source directory.\n" >&2
         printf "If this is not the case you'll need to define the \$OS environment variable and re-run configure.\n" >&2
         fail
     fi
@@ -435,12 +438,27 @@ else
 fi
 
 if $cross_compiling; then
-    if [ -f "$ostype-signum.h" ]; then
-        cp "$ostype-signum.h" cross-signum.h
+    if [ "$ostype" = "linux" ]; then
+        if [ -n "$ARCH" ]; then
+            arch="$ARCH"
+        elif [ -n "$host" ]; then
+            arch="${host%%-*}"
+        else
+            printf 'Could not determine the target architecture!\n' >&2
+            printf 'You must either use the --host option to configure or define the $ARCH environment variable.\n' >&2
+            fail
+        fi
+        cross_signum="$ostype-$arch-signum.h"
     else
-        printf 'Could not find a signum.h for your target operating system!\n' >&2
+        cross_signum="$ostype-signum.h"
+    fi
+
+    if [ -f "cross/$cross_signum" ]; then
+        cp "cross/$cross_signum" cross-signum.h
+    else
+        printf 'Could not find a signum.h for your target!\n' >&2
         printf "You'll need to generate one yourself by compiling and running makesignum.c on your target.\n" >&2
-        printf 'Rename your signum.h to %s and place it in the root of the source directory.\n' "'$ostype-signum.h'" >&2
+        printf "Rename your signum.h to %s and place it in the 'cross' directory.\n" "'$cross_signum'" >&2
         fail
     fi
 fi
