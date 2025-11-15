@@ -414,18 +414,16 @@ checking 'operating system'
 if [ -n "$OS" ]; then
     ostype="$OS"
 elif $cross_compiling; then
-    if [ -n "$host" ]; then
-        # this list will probably be good enough for 99% of people cross
-        # compiling, the remaining people can just define $OS
-        for os in linux darwin serenity cygwin aix haiku solaris minix
-        do
-            case "$host" in
-                *"$os"*)
-                    ostype="$os"
-                    break
-            esac
-        done
-    fi
+    # this list will probably be good enough for 99% of people cross
+    # compiling, the remaining people can just define $OS
+    for os in linux darwin serenity cygwin aix haiku solaris minix
+    do
+        case "$host" in
+            *"$os"*)
+                ostype="$os"
+                break
+        esac
+    done
     if [ -z "$ostype" ]; then
         case $host in
             *bsd*) # theres like a million different BSDs and I don't wanna list them all in the os list
