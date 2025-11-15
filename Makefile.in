@@ -80,7 +80,7 @@ makesignum:
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $@.c $(LDLIBS)
 sig.o: signum.h
 signum.h: makesignum
-	./makesignum > $@ || cp cross-signum.h $@
+	./makesignum > $@ 2> /dev/null || cp cross-signum.h $@
 variable.o yash.o: configm.h
 configm.h: Makefile
 	-@printf 'creating %s...' '$@'
