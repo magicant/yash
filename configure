@@ -279,7 +279,7 @@ trymake () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
         ${CPPFLAGS-${cppflags}} ${CPPADDS-${null}} \
         ${LDFLAGS-${ldflags}} ${LDADDS-${null}} -o "${tempout}" "${tempsrc}" \
-        "$@" ${LDLIBS-${ldlibs}} ${fnobuiltin}
+        "$@" ${LDLIBS-${ldlibs}} ${fnobuiltin} ${wnoreturntype}
 }
 trycompile () {
     checkby ${CC-${cc}} ${CFLAGS-${cflags}} ${CADDS-${null}} \
@@ -470,6 +470,26 @@ END
     then
         checked "yes"
         fnobuiltin="-fno-builtin"
+    else
+        checked "no"
+    fi
+    cflags=${savecflags}
+fi
+
+# check if the compiler accepts the -Wno-return-type option
+if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
+then
+    checking 'whether the compiler accepts -Wno-return-type flag'
+    savecflags=${cflags}
+    cflags="-Wno-return-type"
+    cat >"${tempsrc}" <<END
+int main(void) { return 0; }
+END
+    if
+        trycompile
+    then
+        checked "yes"
+        wnoreturntype="-Wno-return-type"
     else
         checked "no"
     fi
