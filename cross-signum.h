@@ -239,7 +239,7 @@ static size_t sigindex(int signum) {
 #if defined(NSIG_MAX) && NSIG_MAX > 0
 # define RTSIZE NSIG_MAX
 #else
-# define RTSIZE 100
+# define RTSIZE 255
 #endif
 
 #endif /* CROSS_SIGNUM_H */
