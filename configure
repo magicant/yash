@@ -399,11 +399,11 @@ fi
 
 # check if we are cross compiling
 checking 'whether we are cross compiling'
+cross_compiling=false
 if
     tryexec
 then
     checked "no"
-    cross_compiling=false
 else
     checked "yes"
     cross_compiling=true
