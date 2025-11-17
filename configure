@@ -416,7 +416,7 @@ if [ -n "$OS" ]; then
 elif $cross_compiling; then
     # this list will probably be good enough for 99% of people cross
     # compiling, the remaining people can just define $OS
-    for os in linux darwin serenity cygwin aix haiku solaris minix
+    for os in linux darwin serenity cygwin aix haiku solaris minix sunos
     do
         case "$host" in
             *"$os"*)
