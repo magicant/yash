@@ -220,7 +220,7 @@ Influential environment variables:
   ASCIIDOC, ASCIIDOCFLAGS, ASCIIDOCATTRS, A2X, A2XFLAGS,
   INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
   CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS,
-  YASH_GETCWD_AUTO_MALLOC, OS
+  YASH_GETCWD_AUTO_MALLOC
 END
     exit
 fi
@@ -411,12 +411,12 @@ fi
 
 # check OS type
 checking 'operating system'
-if [ -n "$OS" ]; then
-    ostype="$OS"
-elif $cross_compiling; then
-    # this list will probably be good enough for 99% of people cross
-    # compiling, the remaining people can just define $OS
-    for os in linux darwin serenity cygwin aix haiku solaris minix sunos
+if $cross_compiling; then
+    # this is a list of every os that affects the build, if you add a check like
+    # 'if [ "$ostype" = "foo" ]' to the configure script than 'foo' would need
+    # to be added to this list so it can be detected, otherwise we just set
+    # $ostype to 'unknown' and hope for the best.
+    for os in darwin freebsd sunos solaris
     do
         case "$host" in
             *"$os"*)
@@ -424,20 +424,14 @@ elif $cross_compiling; then
                 break
         esac
     done
-    if [ -z "$ostype" ]; then
-        case $host in
-            *bsd*) # theres like a million different BSDs and I don't wanna list them all in the os list
-                remove="${host%%bsd*}"
-                ostype="${host#"${remove%-*}"-}"
-                ostype="${ostype%"${ostype#*bsd}"}"
-                ;;
-            *)
-                printf 'Could not determine the target operating system!\n' >&2
-                printf "You'll need to define the \$OS environment variable and re-run configure.\n" >&2
-                fail
-                ;;
-        esac
-    fi
+    # sometimes there are common os names used for targets that differ from what
+    # 'uname -s' outputs, those are caught here and corrected.
+    case $ostype in
+        solaris)
+            ostype='sunos'
+            ;;
+    esac
+    [ -z "$ostype" ] && ostype='unknown'
 else
     ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
 fi
