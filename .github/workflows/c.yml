@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - name: preparation
+    - name: install prerequisites
       run: |
         sudo apt-get update
         sudo apt-get install asciidoc gettext libncurses-dev
@@ -28,12 +28,34 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - name: preparation
+    - name: install prerequisites
       run: brew install asciidoc gettext ncurses
     - name: configure
       run: ./configure CADDS="-I$(brew --prefix gettext)/include" LDADDS="-L$(brew --prefix gettext)/lib"
     - name: make check
       run: make -j$(sysctl -n hw.logicalcpu) check
+
+  check-cross-compile:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: install prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install asciidoc gettext libncurses-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross
+    - name: create distdir
+      run: |
+        ./configure
+        make distdir
+    - name: configure for cross compilation to arm64
+      run: |
+        cd yash-?*
+        ./configure --host=aarch64-linux-gnu
+    - name: make for arm64
+      run: |
+        cd yash-?*
+        make -j$(nproc) yash
 
   summarize:
     runs-on: ubuntu-latest
