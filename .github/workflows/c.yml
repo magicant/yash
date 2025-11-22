@@ -51,7 +51,7 @@ jobs:
         tar -x --zstd -f yash-?*.tar.zst
     - name: configure for cross compilation to arm64
       run: |
-        cd yash-?*
+        cd yash-?*/
         ./configure --host=aarch64-linux-gnu
     - name: make for arm64
       run: |
