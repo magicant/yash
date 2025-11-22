@@ -40,7 +40,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - run: cat /etc/apt/sources.list
+    - run: ls /etc/apt/sources.list.d
+    - run: head -n 10000 /etc/apt/sources.list.d/*
     - name: install prerequisites
       run: |
         sudo dpkg --add-architecture arm64
