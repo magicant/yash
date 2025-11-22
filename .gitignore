@@ -1,5 +1,6 @@
 *.d
 *.o
+*.dSYM
 Makefile
 TAGS
 tags

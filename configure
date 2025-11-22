@@ -123,6 +123,10 @@ do
             nocreate="true" ;;
         -d|--debug)
             debug="true" ;;
+        --host=*)
+            host="${i#--host=}" ;;
+        --build=*) # included for autoconf compatibility, does nothing
+            ;;
         --prefix=*)
             prefix="${i#--prefix=}" ;;
         --exec-prefix=*)
@@ -151,7 +155,7 @@ do
             term_lib="${i#--with-term-lib=}" ;;
         ?*=*)
             # parse variable assignment
-            if echo "$i" | grep -E "^[[:alpha:]][[:alnum:]]*=" >/dev/null
+            if printf '%s\n' "$i" | grep -Eq "^[[:alpha:]][[:alnum:]_]*="
             then
                 export "$i"
             else
@@ -173,6 +177,7 @@ Usage: sh $0 [options...]
 Available options:
   --no-create            do not create output files
   --debug                configure for debug build (GCC or Clang required)
+  --host=HOST            sets the prefix for build tools to HOST
 
 Installation options:
   --prefix=PREFIX        install architecture-independent files in PREFIX
@@ -214,7 +219,8 @@ Influential environment variables:
   MSGMERGEFLAGS, MSGINIT, MSGCONV, MSGFILTER,
   ASCIIDOC, ASCIIDOCFLAGS, ASCIIDOCATTRS, A2X, A2XFLAGS,
   INSTALL, INSTALL_PROGRAM, INSTALL_DATA, INSTALL_DIR,
-  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS
+  CTAGS, CTAGSARGS, ETAGS, ETAGSARGS, CSCOPE, CSCOPEARGS,
+  YASH_GETCWD_AUTO_MALLOC
 END
     exit
 fi
@@ -291,7 +297,12 @@ trylink () {
         -o "${tempout}" "${tempo}" "$@" ${LDLIBS-${ldlibs}}
 }
 tryexec () {
-    checkby "${tempout}"
+    if ${cross_compiling}; then
+        checkresult="yes"
+        return 0
+    else
+        checkby "${tempout}"
+    fi
 }
 checked () {
     if [ $# -ge 1 ]
@@ -311,13 +322,13 @@ fail () {
     exit 1
 }
 
-
-cc="${CC-c99}"
+[ -n "$host" ] && _host="$host-"
+cc="${CC-${_host}c99}"
+ar="${AR-${_host}ar}"
 cflags="${CFLAGS--O1 -g}"
 cppflags="${CPPFLAGS-${null}}"
 ldflags="${LDFLAGS-${null}}"
 ldlibs="${LDLIBS-${null}}"
-ar="${AR-ar}"
 arflags="${ARFLAGS--rc}"
 xgettext="${XGETTEXT-xgettext}"
 xgettextflags="${XGETTEXTFLAGS--kgt -kNgt -kngt:1,2 \
@@ -344,57 +355,6 @@ cscope="${CSCOPE-cscope}"
 
 confighdefs=''
 
-
-# check OS type
-checking 'operating system'
-ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
-checked "${ostype}"
-case "${ostype}" in
-    darwin)
-        defconfigh "_DARWIN_C_SOURCE"
-        ;;
-    sunos)
-        defconfigh "__EXTENSIONS__"
-        ;;
-esac
-
-
-# check POSIX conformance
-checking 'POSIX conformance'
-posixver=$(getconf _POSIX_VERSION 2>/dev/null)
-if [ -n "${posixver}" ] && [ x"${posixver}" != x"undefined" ]
-then
-    checked "${posixver}"
-else
-    checked "no"
-    posixver=""
-fi
-
-checking 'SUS conformance'
-xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
-if [ -n "${xopenver}" ] && [ x"${xopenver}" != x"undefined" ]
-then
-    checked "${xopenver}"
-else
-    checked "no"
-    xopenver=""
-fi
-
-case "${ostype}" in
-    freebsd)
-        # FreeBSD doesn't have a feature test macro to enable non-POSIX
-        # extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
-        # non-POSIX extensions are available.
-        posix=
-        xopen=
-        ;;
-    *)
-        posix=${posixver}
-        xopen=${xopenver}
-        ;;
-esac
-
-
 # define options for debugging
 if ${debug}
 then
@@ -410,25 +370,25 @@ cat >"${tempsrc}" <<END
 int main(void) { return 0; }
 END
 if
-    trymake && tryexec
+    trymake
 then
     checked "yes"
 elif
-    [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-        cc='gcc'
-        trymake && tryexec
+    [ x"${cc}" = x"${_host}c99" ] && [ x"${CC+set}" != x"set" ] && (
+        cc="${_host}gcc"
+        trymake
     )
 then
-    checked "yes (using gcc)"
-    cc='gcc'
+    cc="${_host}gcc"
+    checked "yes (using $cc)"
 elif
-    [ x"${cc}" = x"c99" ] && [ x"${CC+set}" != x"set" ] && (
-        cc='clang'
-        trymake && tryexec
+    [ x"${cc}" = x"${_host}c99" ] && [ x"${CC+set}" != x"set" ] && (
+        cc="${_host}clang"
+        trymake
     )
 then
-    checked "yes (using clang)"
-    cc='clang'
+    cc="${_host}clang"
+    checked "yes (using $cc)"
 else
     checked "no"
     printf 'Compiler "%s" not found or not working.\n' "${CC-${cc}}" >&2
@@ -436,6 +396,100 @@ else
         "${CFLAGS-${cflags}} ${CADDS-${null}}" >&2
     fail
 fi
+
+# check if we are cross compiling
+checking 'whether we are cross compiling'
+cross_compiling=false
+if
+    tryexec
+then
+    checked "no"
+else
+    checked "yes"
+    cross_compiling=true
+fi
+
+# check OS type
+checking 'operating system'
+if $cross_compiling; then
+    # this is a list of every os that affects the build, if you add a check like
+    # 'if [ "$ostype" = "foo" ]' to the configure script than 'foo' would need
+    # to be added to this list so it can be detected, otherwise we just set
+    # $ostype to 'unknown' and hope for the best.
+    for os in darwin freebsd sunos solaris
+    do
+        case "$host" in
+            *"$os"*)
+                ostype="$os"
+                break
+        esac
+    done
+    # sometimes there are common os names used for targets that differ from what
+    # 'uname -s' outputs, those are caught here and corrected.
+    case $ostype in
+        solaris)
+            ostype='sunos'
+            ;;
+    esac
+    [ -z "$ostype" ] && ostype='unknown'
+else
+    ostype=$(uname -s | tr "[:upper:]" "[:lower:]")
+fi
+
+checked "${ostype}"
+case "${ostype}" in
+    darwin)
+        defconfigh "_DARWIN_C_SOURCE"
+        ;;
+    sunos)
+        defconfigh "__EXTENSIONS__"
+        ;;
+esac
+
+# check POSIX conformance
+checking 'POSIX conformance'
+if ${cross_compiling}; then
+    checked "guessing 200112"
+    posixver="200112"
+else
+    posixver=$(getconf _POSIX_VERSION 2>/dev/null)
+    if [ -n "${posixver}" ] && [ x"${posixver}" != x"undefined" ]
+    then
+        checked "${posixver}"
+    else
+        checked "no"
+        posixver=""
+    fi
+fi
+
+checking 'SUS conformance'
+if ${cross_compiling}; then
+    checked "guessing 600"
+    xopenver="600"
+else
+    xopenver=$(getconf _XOPEN_VERSION 2>/dev/null)
+    if [ -n "${xopenver}" ] && [ x"${xopenver}" != x"undefined" ]
+    then
+        checked "${xopenver}"
+    else
+        checked "no"
+        xopenver=""
+    fi
+fi
+
+case "${ostype}" in
+    freebsd)
+        # FreeBSD doesn't have a feature test macro to enable non-POSIX
+        # extensions. We don't define _POSIX_C_SOURCE or _XOPEN_SOURCE so that
+        # non-POSIX extensions are available.
+        posix=
+        xopen=
+        ;;
+    *)
+        posix=${posixver}
+        xopen=${xopenver}
+        ;;
+esac
 
 # check if the compiler accepts the -O2 option if we are not debugging
 if ! ${debug} && [ x"${CFLAGS+set}" != x"set" ]
@@ -1417,7 +1471,8 @@ fi
 
 # check if getcwd accepts (NULL,0) as argument
 checking "if getcwd(NULL,0) returns malloc'ed string"
-cat >"${tempsrc}" <<END
+if [ -z "$YASH_GETCWD_AUTO_MALLOC" ]; then
+    cat >"${tempsrc}" <<END
 ${confighdefs}
 #include <errno.h>
 #include <stdlib.h>
@@ -1450,8 +1505,16 @@ int main(void) {
     free(wd11); free(wd2); return 0;
 }
 END
-trymake && tryexec
-checked
+    if ${cross_compiling}; then
+        checked "assuming no"
+        checkresult="no"
+    else
+        trymake && tryexec
+        checked
+    fi
+else
+    checked "$YASH_GETCWD_AUTO_MALLOC"
+fi
 if [ x"${checkresult}" = x"yes" ]
 then
     defconfigh "GETCWD_AUTO_MALLOC"
