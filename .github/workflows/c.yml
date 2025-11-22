@@ -58,7 +58,7 @@ jobs:
         ./configure --host=aarch64-linux-gnu CADDS="-I/usr/include/aarch64-linux-gnu" LDADDS="-L/usr/lib/aarch64-linux-gnu" || cat config.log
     - name: make for arm64
       run: |
-        cd yash-?*
+        cd yash-?*/
         make -j$(nproc) yash
 
   summarize:
