@@ -47,7 +47,8 @@ jobs:
     - name: create distdir
       run: |
         ./configure
-        make distdir
+        make dist-zstd
+        tar -x --zstd -f yash-?*.tar.zst
     - name: configure for cross compilation to arm64
       run: |
         cd yash-?*
