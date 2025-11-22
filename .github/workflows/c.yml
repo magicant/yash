@@ -40,13 +40,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - run: ls /etc/apt/sources.list.d
-    - run: head -n 10000 /etc/apt/sources.list.d/*
+    - name: install cross compilation environment
+      uses: cyberjunk/gha-ubuntu-cross@v5
+      with:
+        arch: arm64
     - name: install prerequisites
       run: |
-        sudo dpkg --add-architecture arm64
-        sudo apt-get update
-        sudo apt-get install asciidoc gettext gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross libncurses-dev:arm64
+        sudo apt-get install asciidoc gettext libncurses-dev:arm64
     - name: create distdir
       run: |
         ./configure
