@@ -195,6 +195,16 @@ options used during the build:
   INSTALL=...
     This specifies the installer command used in installation.
 
+The following option turns on cross-compilation:
+
+  --host=...
+    This specifies the system type where the resultant executable
+    binary runs. The `configure' script assumes the system type name
+    as a prefix to the cross-compiler command name. You may need to
+    specify the CC, AR, and other variables if the script cannot find
+    the cross-compiler commands automatically. Examples of system type
+    names are `aarch64-linux-gnu', `x86_64-unknown-freebsd', etc.
+
 ----------------------------------------------------------------------
 
 3. Building and Testing
@@ -205,9 +215,9 @@ the compiler and linker in a proper order to produce the executable
 binary of yash.
 
 After yash is built, you can test the functionality of it by invoking
-`make test'. (Actually, you can directly invoke `make test' before
-`make' because the test process automatically builds yash if it is not
-yet built.)
+`make test'. You can even invoke `make test' before `make' because the
+test process automatically builds yash if it is not yet built. Note
+that the test does not work if you are cross-compiling.
 
 ----------------------------------------------------------------------
 
