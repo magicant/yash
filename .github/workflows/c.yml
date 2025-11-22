@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - name: preparation
+    - name: install prerequisites
       run: |
         sudo apt-get update
         sudo apt-get install asciidoc gettext libncurses-dev
@@ -28,16 +28,42 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - name: preparation
+    - name: install prerequisites
       run: brew install asciidoc gettext ncurses
     - name: configure
       run: ./configure CADDS="-I$(brew --prefix gettext)/include" LDADDS="-L$(brew --prefix gettext)/lib"
     - name: make check
       run: make -j$(sysctl -n hw.logicalcpu) check
 
+  check-cross-compile:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: install cross compilation environment
+      uses: cyberjunk/gha-ubuntu-cross@v5
+      with:
+        arch: arm64
+    - name: install prerequisites
+      run: |
+        sudo apt-get install asciidoc gettext libncurses-dev:arm64
+    - name: create distdir
+      run: |
+        ./configure
+        make dist-zstd
+        tar -x --zstd -f yash-?*.tar.zst
+    - name: configure for cross compilation to arm64
+      run: |
+        cd yash-?*/
+        ./configure --host=aarch64-linux-gnu CADDS="-I/usr/include/aarch64-linux-gnu" LDADDS="-L/usr/lib/aarch64-linux-gnu" || cat config.log
+    - name: make for arm64
+      run: |
+        cd yash-?*/
+        make -j$(nproc) yash
+
   summarize:
     runs-on: ubuntu-latest
-    needs: [check-on-ubuntu, check-on-macos]
+    needs: [check-on-ubuntu, check-on-macos, check-cross-compile]
     if: ${{ always() }}
     steps:
     - uses: Kesin11/actions-timeline@v2
