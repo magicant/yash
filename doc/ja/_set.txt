@@ -189,6 +189,7 @@ POSIX 規格に定義されているオプションは限られています。�
 - +-h+
 - +-o ignoreeof+
 - +-o nolog+
+- +-o pipefail+
 - +-o vi+
 
 Yash は +nolog+ オプションをサポートしていません。

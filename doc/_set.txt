@@ -273,6 +273,7 @@ The options defined in the standard are:
 - +-h+
 - +-o ignoreeof+
 - +-o nolog+
+- +-o pipefail+
 - +-o vi+
 
 Yash does not support the +nolog+ option. This option prevented
