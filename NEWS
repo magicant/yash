@@ -7,6 +7,9 @@
   - The `times` built-in now uses the `getrusage` function to obtain
     resource usage statistics on systems where it is available, which
     improves precision.
+  - [line-editing] Fixed a bug where attempting to auto-complete
+    arguments for unknown commands when the `PREFIX` variable is defined
+    would result in an error message.
 
 ## Yash 2.60 (2025-09-15)
 

@@ -1,4 +1,4 @@
-# (C) 2010-2019 magicant
+# (C) 2010-2025 magicant
 
 # This file is autoloaded when completion is first performed by the shell.
 # This file contains utility functions that are commonly used by many
@@ -8,6 +8,8 @@
 # This is the function that is called when completing a command argument.
 if ! command -vf completion//argument >/dev/null 2>&1; then
         function completion//argument {
+                # Hide $PREFIX possibly defined by the user
+                typeset PREFIX=
                 command -f completion//reexecute -f
         }
 fi
@@ -520,6 +522,7 @@ function completion//getoperands {
 # If an operand is given to this function, it is used as the command name
 # instead of ${WORDS[1]} and the -f option is assumed.
 # This function does not change $WORDS (but the completion function may do).
+# This function honors $PREFIX if defined.
 function completion//reexecute {
 
         # parse options
