@@ -1891,7 +1891,7 @@ perm_end:
             case L'+':  newmask |= who & perm;                      break;
             case L'-':  newmask &= ~(who & perm);                   break;
             case L'=':  newmask = (~who & newmask) | (who & perm);  break;
-            default:    assert(false);
+            default:    UNREACHABLE();
         }
 
         switch (*maskstr) {

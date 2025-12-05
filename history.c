@@ -1467,7 +1467,7 @@ int fc_print_entries(
                 r = fprintf(f, "%s\n", e->value);
                 break;
             default:
-                assert(false);
+                UNREACHABLE();
         }
         if (r < 0) {
             xerror(errno, Ngt("cannot print to the standard output"));
@@ -1608,7 +1608,7 @@ error1:
 #ifndef NDEBUG
         free(command);
 #endif
-        assert(false);
+        UNREACHABLE();
     }
 }
 

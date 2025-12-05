@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* display.c: display control */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -832,19 +832,19 @@ void print_search(void)
     switch (le_search_type) {
         const char *text;
         case SEARCH_PREFIX:
-            assert(false);
+            UNREACHABLE();
         case SEARCH_VI:
             switch (le_search_direction) {
                 case FORWARD:   lebuf_putwchar(L'?', false);  break;
                 case BACKWARD:  lebuf_putwchar(L'/', false);  break;
-                default:        assert(false);
+                default:        UNREACHABLE();
             }
             break;
         case SEARCH_EMACS:
             switch (le_search_direction) {
                 case FORWARD:   text = "Forward search: ";   break;
                 case BACKWARD:  text = "Backward search: ";  break;
-                default:        assert(false);
+                default:        UNREACHABLE();
             }
             lebuf_wprintf(false, L"%s", gt(text));
             break;

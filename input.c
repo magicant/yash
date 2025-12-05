@@ -133,7 +133,7 @@ read_input:  /* if there's nothing in the buffer, read the next input */
                 case W_READY:
                     break;
                 case W_TIMED_OUT:
-                    assert(false);
+                    UNREACHABLE();
                 case W_INTERRUPTED:
                     // Ignore interruption and continue reading, because:
                     //  1) POSIX does not require to handle interruption, and
@@ -325,7 +325,7 @@ struct promptset_T get_prompt(int type)
         case 1:   num = L'1';  break;
         case 2:   num = L'2';  break;
         case 4:   num = L'4';  break;
-        default:  assert(false);
+        default:  UNREACHABLE();
     }
 
     wchar_t *prompt = expand_prompt_variable(num, L'\0');

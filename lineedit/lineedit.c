@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* lineedit.c: command line editing */
-/* (C) 2007-2016 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,9 +103,9 @@ inputresult_T le_readline(
             free(resultline);
             return INPUT_INTERRUPTED;
         case LE_EDITSTATE_EDITING:
-            assert(false);
+            UNREACHABLE();
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Clears the edit line and restores the terminal state.
@@ -224,7 +224,7 @@ void read_next(void)
                             return;
                     }
                 default:
-                    assert(false);
+                    UNREACHABLE();
             }
             if (has_meta_bit(c)) {
                 sb_ccat(&reader_first_buffer, ESCAPE_CHAR);

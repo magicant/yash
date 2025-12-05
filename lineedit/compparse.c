@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* compparse.c: simple parser for command line completion */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1029,7 +1029,7 @@ check_closing_paren:
             break;
         case PT_ASSIGN:
         case PT_ERROR:
-            assert(false);
+            UNREACHABLE();
         default:
             if (pe->pe_type & PT_NEST)
                 break;

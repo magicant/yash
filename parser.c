@@ -806,7 +806,7 @@ parseresult_T read_and_parse(parseparam_T *info, and_or_T **restrict resultp)
             andorsfree(r);
             return PR_INPUT_ERROR;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Parses a string recognizing parameter expansions, command substitutions of
@@ -922,7 +922,7 @@ const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
             return Ngt("encountered `%ls' "
                         "without a matching `if' and/or `then'");
         default:
-            assert(false);
+            UNREACHABLE();
     }
 }
 
@@ -1331,7 +1331,7 @@ wordunit_T *parse_special_word_unit(parsestate_T *ps, bool indq)
     case L'`':
         return parse_cmdsubst_in_backquote(ps, indq);
     default:
-        assert(false);
+        UNREACHABLE();
     }
 }
 
@@ -2355,7 +2355,7 @@ redir_T *tryparse_redirect(parsestate_T *ps)
             result->rd_type = RT_HERESTR;
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
     /* parse redirection target file token */
@@ -2509,7 +2509,7 @@ command_T *parse_group(parsestate_T *ps)
             starts = L"(", ends = L")";
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
     next_token(ps);
 
@@ -2666,7 +2666,7 @@ command_T *parse_while(parsestate_T *ps)
     switch (ps->tokentype) {
         case TT_WHILE:  whltype = true;   break;
         case TT_UNTIL:  whltype = false;  break;
-        default:        assert(false);
+        default:        UNREACHABLE();
     }
     next_token(ps);
 
@@ -3369,7 +3369,7 @@ void reject_pending_heredocs(parsestate_T *ps)
         switch (r->rd_type) {
             case RT_HERE:    operator = "<<";   break;
             case RT_HERERT:  operator = "<<-";  break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
         serror(ps, Ngt("here-document content for %s%ls is missing"),
                 operator, r->rd_hereend);
@@ -3842,7 +3842,7 @@ const wchar_t *case_item_terminator(casecont_T cc)
         case CC_FALLTHRU:  return L";&";
         case CC_CONTINUE:  return L";|";
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 #if YASH_ENABLE_DOUBLE_BRACKET
@@ -3966,7 +3966,7 @@ void print_redirections(
             case RT_HERESTR:  s = L"<<<";  type = file;  break;
             case RT_PROCIN:   s = L"<(";   type = proc;  break;
             case RT_PROCOUT:  s = L">(";   type = proc;  break;
-            default: assert(false);
+            default: UNREACHABLE();
         }
         wb_wprintf(&pr->buffer, L"%d%ls", rd->rd_fd, s);
         switch (type) {

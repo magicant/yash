@@ -621,7 +621,7 @@ int handle_search_result(plist_T *options, void *const *argv, bool enable,
                                 }
                                 break;
                             default:
-                                assert(false);
+                                UNREACHABLE();
                         }
                     } else {
                         optarg = &eq[1];
@@ -752,7 +752,7 @@ int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
                 return print_builtin_help(L"set");
 #endif
             default:
-                assert(false);
+                UNREACHABLE();
         }
     } else {
         switch (index) {
@@ -779,7 +779,7 @@ int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
                 shell_invocation->rcfile = arg;
                 break;
             case NOI_N:
-                assert(false);
+                UNREACHABLE();
         }
     }
     return Exit_SUCCESS;

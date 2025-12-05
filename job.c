@@ -644,7 +644,7 @@ int calc_status(int status)
         return WTERMSIG(status) + TERMSIGOFFSET;
     if (WIFSTOPPED(status))
         return WSTOPSIG(status) + TERMSIGOFFSET;
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Computes the exit status of the specified process.
@@ -676,7 +676,7 @@ int calc_status_of_job(const job_T *job)
         }
         /* falls thru! */
     default:
-        assert(false);
+        UNREACHABLE();
     }
 }
 
@@ -741,7 +741,7 @@ exitstatus:
             return malloc_printf(gt("Killed (SIG%ls)"), get_signal_name(sig));
         }
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Returns a string that describes the status of the specified job
@@ -759,12 +759,12 @@ char *get_job_status_string(const job_T *job, bool *needfree)
         for (size_t i = job->j_pcount; ; )
             if (job->j_procs[--i].pr_status == JS_STOPPED)
                 return get_process_status_string(&job->j_procs[i], needfree);
-        assert(false);
+        UNREACHABLE();
     case JS_DONE:
         return get_process_status_string(
                 &job->j_procs[job->j_pcount - 1], needfree);
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Returns true iff there is any job whose status has been changed but not yet
@@ -1267,7 +1267,7 @@ int continue_job(size_t jobnumber, job_T *job, bool fg)
                 remove_job(jobnumber);
                 break;
             default:
-                assert(false);
+                UNREACHABLE();
         }
     } else {
         lastasyncpid = job->j_procs[job->j_pcount - 1].pr_pid;

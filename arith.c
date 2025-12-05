@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2022 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -318,7 +318,7 @@ wchar_t *value_to_string(const value_T *value)
                 return NULL;
             }
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Applies the binary operation defined by token `ttype' to operands `lhs' and
@@ -354,7 +354,7 @@ bool do_binary_calculation(
                     }
                     break;
                 case VT_VAR:
-                    assert(false);
+                    UNREACHABLE();
                 case VT_INVALID:
                     break;
             }
@@ -384,7 +384,7 @@ bool do_binary_calculation(
             *result = *rhs;
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
     return true;
 }
@@ -425,7 +425,7 @@ bool do_long_calculation1(atokentype_T ttype, long v1, long v2, long *result)
             *result = v1 % v2;
             return true;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
 overflow:
@@ -467,7 +467,7 @@ bool do_long_calculation2(atokentype_T ttype, long v1, long v2, long *result)
             *result = v1 | v2;
             return true;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
 overflow:
@@ -498,7 +498,7 @@ long do_long_comparison(atokentype_T ttype, long v1, long v2)
         case TT_EXCLEQUAL:
             return v1 != v2;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 }
 
@@ -533,7 +533,7 @@ bool do_double_calculation(
             *result = fmod(v1, v2);
             return true;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
 #if DOUBLE_DIVISION_BY_ZERO_ERROR
@@ -560,7 +560,7 @@ long do_double_comparison(atokentype_T ttype, double v1, double v2)
         case TT_EXCLEQUAL:
             return v1 != v2;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 }
 
@@ -588,7 +588,7 @@ void parse_conditional(evalinfo_T *info, value_T *result)
             case VT_INVALID:  valid = false, cond = true;   break;
             case VT_LONG:     cond = result2->v_long;       break;
             case VT_DOUBLE:   cond = result2->v_double;     break;
-            default:          assert(false);
+            default:          UNREACHABLE();
         }
 
         bool saveparseonly2 = info->parseonly || !valid;
@@ -628,7 +628,7 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
             case VT_INVALID: valid = false, value = true;  break;
             case VT_LONG:    value = result->v_long;       break;
             case VT_DOUBLE:  value = result->v_double;     break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
 
         info->parseonly |= value;
@@ -638,7 +638,7 @@ void parse_logical_or(evalinfo_T *info, value_T *result)
             case VT_INVALID: valid = false;             break;
             case VT_LONG:    value = result->v_long;    break;
             case VT_DOUBLE:  value = result->v_double;  break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
         if (valid)
             result->type = VT_LONG, result->v_long = value;
@@ -664,7 +664,7 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
             case VT_INVALID: valid = false, value = false;  break;
             case VT_LONG:    value = result->v_long;        break;
             case VT_DOUBLE:  value = result->v_double;      break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
 
         info->parseonly |= !value;
@@ -674,7 +674,7 @@ void parse_logical_and(evalinfo_T *info, value_T *result)
             case VT_INVALID: valid = false;             break;
             case VT_LONG:    value = result->v_long;    break;
             case VT_DOUBLE:  value = result->v_double;  break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
         if (valid)
             result->type = VT_LONG, result->v_long = value;
@@ -773,7 +773,7 @@ void parse_equality(evalinfo_T *info, value_T *result)
                         result->type = VT_INVALID;
                         break;
                     case VT_VAR:
-                        assert(false);
+                        UNREACHABLE();
                 }
                 break;
             default:
@@ -815,7 +815,7 @@ void parse_relational(evalinfo_T *info, value_T *result)
                         result->type = VT_INVALID;
                         break;
                     case VT_VAR:
-                        assert(false);
+                        UNREACHABLE();
                 }
                 break;
             default:
@@ -947,7 +947,7 @@ void parse_prefix(evalinfo_T *info, value_T *result)
                     break;
                 case VT_DOUBLE:   result->v_double = -result->v_double;  break;
                 case VT_INVALID:  break;
-                default:          assert(false);
+                default:          UNREACHABLE();
                 }
             }
             break;
@@ -973,7 +973,7 @@ void parse_prefix(evalinfo_T *info, value_T *result)
                 case VT_INVALID:
                     break;
                 default:
-                    assert(false);
+                    UNREACHABLE();
             }
             break;
         default:
@@ -1039,7 +1039,7 @@ bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
                 break;
             case VT_DOUBLE:  value->v_double++;  break;
             case VT_INVALID: break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
     } else {
         switch (value->type) {
@@ -1052,7 +1052,7 @@ bool do_increment_or_decrement(atokentype_T ttype, value_T *value)
                 break;
             case VT_DOUBLE:  value->v_double--;  break;
             case VT_INVALID: break;
-            default:         assert(false);
+            default:         UNREACHABLE();
         }
     }
     return true;

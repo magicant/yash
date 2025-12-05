@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2023 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -545,7 +545,7 @@ int print_binding_main(
         case LE_MODE_EMACS:         modechar = 'e';  break;
         case LE_MODE_EMACS_SEARCH:  modechar = 'E';  break;
         case LE_MODE_CHAR_EXPECT:   modechar = 'c';  break;
-        default:                    assert(false);
+        default:                    UNREACHABLE();
     }
     if (keyseq[0] == L'-')
         format = "bindkey -%c -- %ls %s\n";

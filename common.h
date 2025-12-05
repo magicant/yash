@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* common.h: defines symbols common to all sources. */
-/* (C) 2007-2023 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,6 +52,16 @@
 # define DUMMY_INIT(dummy_initial_value)
 #else
 # define DUMMY_INIT(dummy_initial_value) = (dummy_initial_value)
+#endif
+
+#if defined(__has_builtin) && __has_builtin(__builtin_unreachable)
+# define UNREACHABLE() \
+    do { \
+        assert(!"unreachable code"); \
+        __builtin_unreachable(); \
+    } while (0)
+#else
+# define UNREACHABLE() assert(!"unreachable code")
 #endif
 
 #define ARGV(i) ((wchar_t *) argv[i])

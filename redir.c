@@ -406,7 +406,7 @@ openwithflags:
                 return false;
             break;
         default:
-            assert(false);
+            UNREACHABLE();
         }
 
         /* move the new FD to `r->rd_fd' */
@@ -871,7 +871,7 @@ int open_process_redirection(const embedcmd_T *command, redirtype_T type)
             exec_and_or_lists(command->value.preparsed, true);
         else
             exec_wcs(command->value.unparsed, gt("process redirection"), true);
-        assert(false);
+        UNREACHABLE();
     }
 }
 

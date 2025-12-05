@@ -446,7 +446,7 @@ char *get_exported_value(const wchar_t *name)
                 case VF_ARRAY:
                     return realloc_wcstombs(joinwcsarray(var->v_vals, L":"));
                 default:
-                    assert(false);
+                    UNREACHABLE();
             }
         }
     }
@@ -601,7 +601,7 @@ variable_T *new_variable(const wchar_t *name, scope_T scope)
         case SCOPE_GLOBAL:  var = new_global(name);     break;
         case SCOPE_LOCAL:   var = new_local(name);      break;
         case SCOPE_TEMP:    var = new_temporary(name);  break;
-        default:            assert(false);
+        default:            UNREACHABLE();
     }
     if (var->v_type & VF_READONLY) {
         xerror(0, Ngt("$%ls is read-only"), name);
@@ -1698,7 +1698,7 @@ int typeset_builtin(int argc, void **argv)
             assert(wcscmp(ARGV(0), L"typeset") == 0);
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
     if (function && global && ARGV(0)[0] == L't' /*typeset*/)
@@ -1874,7 +1874,7 @@ typeset:
             free(opts);
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
     free(quotedvalue);
 }
@@ -1929,7 +1929,7 @@ typeset:;
             free(opts);
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 }
 
@@ -1968,7 +1968,7 @@ void print_function(
                 xprintf("%ls -fr %s%ls\n", argv0, separator, name);
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
 end:
@@ -2083,7 +2083,7 @@ int array_builtin(int argc, void **argv)
         case DELETE:  min = 1;  max = SIZE_MAX;  break;
         case INSERT:  min = 2;  max = SIZE_MAX;  break;
         case SET:     min = 3;  max = 3;         break;
-        default:      assert(false);
+        default:      UNREACHABLE();
     }
     if (!validate_operand_count(argc - xoptind, min, max))
         return Exit_ERROR;
@@ -2118,7 +2118,7 @@ int array_builtin(int argc, void **argv)
                         name, array, ARGV(xoptind), ARGV(xoptind + 1));
                 break;
             default:
-                assert(false);
+                UNREACHABLE();
         }
     }
     return (yash_error_message_count == 0) ? Exit_SUCCESS : Exit_FAILURE;

@@ -865,11 +865,11 @@ treat_array:
                 concat = false;
                 break;
             default:
-                assert(false);
+                UNREACHABLE();
             }
             break;
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
     /* if `PT_COLON' is true, empty string is treated as unset */
@@ -2066,7 +2066,7 @@ bool should_escape(charcategory_T cc, escaping_T escaping)
         case ES_QUOTED:
             return cc & CC_QUOTED;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Removes all quotation marks in the input string `s' and optionally add
