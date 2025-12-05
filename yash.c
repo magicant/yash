@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         exec_input(input.fd, inputname, XIO_SUBST_ALIAS | XIO_FINALLY_EXIT |
                 (is_interactive ? XIO_INTERACTIVE : 0));
 
-    assert(false);
+    UNREACHABLE();
 }
 
 struct input_file_info_T *new_input_file_info(int fd, size_t bufsize)
@@ -743,7 +743,7 @@ int exit_builtin(int argc, void **argv)
         status = -1;
     }
     exit_shell_with_status(status);
-    assert(false);
+    UNREACHABLE();
 }
 
 #if YASH_ENABLE_HELP

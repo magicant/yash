@@ -157,7 +157,7 @@ int echo_builtin(int argc, void **argv)
                     case L'n':  nonewline = true;   break;
                     case L'e':  escape    = true;   break;
                     case L'E':  escape    = false;  break;
-                    default:    assert(false);
+                    default:    UNREACHABLE();
                 }
             }
         }
@@ -582,7 +582,7 @@ flag_error:
             break;
         case FT_RAW:
         case FT_ECHO:
-            assert(false);
+            UNREACHABLE();
         default:
             result->value.conv.spec = sb_tostr(&buf);
             result->value.conv.position = position;
@@ -727,7 +727,7 @@ enum printf_result_T printf_printf(
                 arg = L"";
             return printf_print_escape(format, arg, buf);
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Parses the specified string as an integer. */

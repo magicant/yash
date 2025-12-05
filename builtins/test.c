@@ -262,7 +262,7 @@ bool test_file(wchar_t type, const char *file) {
             return st.st_mode & S_ISUID;
     }
 
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Tests the specified three-token expression. */
@@ -807,7 +807,7 @@ int eval_dbexp(const dbexp_T *e)
             break;
 
         default:
-            assert(false);
+            UNREACHABLE();
     }
 
     free(lhs);

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2023 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -349,7 +349,7 @@ void le_editing_init(void)
     switch (shopt_lineedit) {
         case SHOPT_VI:     le_set_mode(LE_MODE_VI_INSERT);  break;
         case SHOPT_EMACS:  le_set_mode(LE_MODE_EMACS);      break;
-        default:           assert(false);
+        default:           UNREACHABLE();
     }
 
     last_command.func = 0;
@@ -766,7 +766,7 @@ void set_search_mode(le_mode_id_T mode, enum le_search_direction_T dir,
     switch (mode) {
         case LE_MODE_VI_SEARCH:     le_search_type = SEARCH_VI;     break;
         case LE_MODE_EMACS_SEARCH:  le_search_type = SEARCH_EMACS;  break;
-        default:                    assert(false);
+        default:                    UNREACHABLE();
     }
 
     wb_init(&le_search_buffer);
@@ -2980,7 +2980,7 @@ end:
 #ifndef NDEBUG
         free(command);
 #endif
-        assert(false);
+        UNREACHABLE();
     }
 }
 
@@ -3586,7 +3586,7 @@ void cmd_srch_backward_delete_char(wchar_t c __attribute__((unused)))
                 cmd_alert(L'\0');
                 return;
             case SEARCH_PREFIX:
-                assert(false);
+                UNREACHABLE();
         }
     }
 
@@ -3680,7 +3680,7 @@ bool need_update_last_search_value(void)
         case SEARCH_EMACS:
             return le_search_buffer.contents[0] != L'\0';
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Aborts the history search.
@@ -3760,7 +3760,7 @@ void perform_search(const wchar_t *pattern,
             break;
         }
         default:
-            assert(false);
+            UNREACHABLE();
     }
     if (xfnm == NULL) {
         l = Histlist;

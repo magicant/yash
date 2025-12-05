@@ -410,7 +410,7 @@ void exec_pipelines_async(const pipeline_T *p)
         /* child process: execute the commands and then exit */
         maybe_redirect_stdin_to_devnull();
         exec_pipelines(p, true);
-        assert(false);
+        UNREACHABLE();
     } else {
         /* fork failure */
         laststatus = Exit_NOEXEC;
@@ -455,7 +455,7 @@ exec_one_command: /* child process */
             if (type == E_ASYNC && pipe.pi_fromprevfd < 0)
                 maybe_redirect_stdin_to_devnull();
             exec_one_command(c, true);
-            assert(false);
+            UNREACHABLE();
         } else if (pid >= 0) {
             /* parent process: fork succeeded */
             if (pgid == 0)
@@ -589,7 +589,7 @@ bool is_err_condition_for(const command_T *c)
             return false;
     }
 
-    assert(false);
+    UNREACHABLE();
 }
 
 /* Updates the contents of the `pipeinfo_T' to proceed to the next process
@@ -969,7 +969,7 @@ void search_command(
                     return;
                 }
             case BI_SPECIAL:
-                assert(false);
+                UNREACHABLE();
             case BI_SUBSTITUTIVE:
                 break;
         }
@@ -1235,7 +1235,7 @@ void exec_nonsimple_command(command_T *c, bool finally_exit)
 {
     switch (c->c_type) {
     case CT_SIMPLE:
-        assert(false);
+        UNREACHABLE();
     case CT_SUBSHELL:
         if (finally_exit) {
             /* This is the last command to execute in the current shell, hence
@@ -1698,7 +1698,7 @@ wchar_t *exec_command_substitution(const embedcmd_T *cmdsub)
             exec_and_or_lists(cmdsub->value.preparsed, true);
         else
             exec_wcs(cmdsub->value.unparsed, gt("command substitution"), true);
-        assert(false);
+        UNREACHABLE();
     }
 }
 

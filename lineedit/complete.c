@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2024 magicant */
+/* (C) 2007-2025 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1383,7 +1383,7 @@ void quote(xwcsbuf_T *restrict buf,
             }
             return;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 
@@ -1510,17 +1510,17 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
                                             cgtype |= CGT_EXTCOMMAND;  break;
                                     }
                                     break;
-                                default:    assert(false);
+                                default:    UNREACHABLE();
                                 }
                                 break;
-                            default:    assert(false);
+                            default:    UNREACHABLE();
                         }
                         break;
                     case L'f':
                         switch (opt->longopt[1]) {
                             case L'i':  cgtype |= CGT_DONE;      break;
                             case L'u':  cgtype |= CGT_FUNCTION;  break;
-                            default:    assert(false);
+                            default:    UNREACHABLE();
                         }
                         break;
                     case L'g':  cgtype |= CGT_GALIAS;  break;
@@ -1537,7 +1537,7 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
                                 cgtype |= CGT_XBUILTIN | CGT_UBUILTIN;
                                 break;
                             case L'u':  cgtype |= CGT_RUNNING;   break;
-                            default:    assert(false);
+                            default:    UNREACHABLE();
                         }
                         break;
                     case L's':
@@ -1550,11 +1550,11 @@ int complete_builtin(int argc __attribute__((unused)), void **argv)
                             case L'p':  cgtype |= CGT_SBUILTIN;  break;
                             case L't':  cgtype |= CGT_STOPPED;   break;
                             case L'u':  cgtype |= CGT_UBUILTIN;  break;
-                            default:    assert(false);
+                            default:    UNREACHABLE();
                         }
                         break;
                     default:
-                        assert(false);
+                        UNREACHABLE();
                 }
                 break;
 dupopterror:

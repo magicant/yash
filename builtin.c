@@ -532,7 +532,7 @@ void generate_builtin_candidates(const le_compopt_T *compopt)
             case BI_ELECTIVE:      type = CGT_LBUILTIN;  break;
             case BI_EXTENSION:     type = CGT_XBUILTIN;  break;
             case BI_SUBSTITUTIVE:  type = CGT_UBUILTIN;  break;
-            default:               assert(false);
+            default:               UNREACHABLE();
         }
         if (!(compopt->type & type))
             continue;
