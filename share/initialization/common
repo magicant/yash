@@ -115,7 +115,7 @@ case $- in (*m*)
 esac
 
 # if the terminal supports color...
-if [ $COLORTERM = "truecolor" ] || [ $COLORTERM = "24bit" ] || \
+if [ "${COLORTERM-}" = "truecolor" ] || [ "${COLORTERM-}" = "24bit" ] || \
   [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
 
   # make command output colorful
