@@ -1235,8 +1235,8 @@ int change_directory(
     assert(!logical || !ensure_pwd);
 
     if (newpwd[0] == L'\0') {
-	xerror(0, Ngt("empty directory name"));
-	return 5;
+        xerror(0, Ngt("empty directory name"));
+        return 5;
     }
 
     /* get the current value of $PWD as `origpwd' */
@@ -1272,7 +1272,7 @@ int change_directory(
     assert(origpwd == NULL || origpwd[0] == L'/');
 
     wb_init(&curpath);
-    
+
     /* step 3 */
     if (newpwd[0] == L'/') {
         wb_cat(&curpath, newpwd);
