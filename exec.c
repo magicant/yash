@@ -1525,7 +1525,7 @@ fork_and_wait_T fork_and_wait(sigtype_T sigtype)
         /* Fork failed. */
         laststatus = Exit_NOEXEC;
         result.namep = NULL;
-    } if (result.cpid > 0) {
+    } else if (result.cpid > 0) {
         /* parent process */
         result.namep = wait_for_child(
                 result.cpid,
