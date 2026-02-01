@@ -66,4 +66,4 @@ jobs:
     needs: [check-on-ubuntu, check-on-macos, check-cross-compile]
     if: ${{ always() }}
     steps:
-    - uses: Kesin11/actions-timeline@v2
+    - uses: Kesin11/actions-timeline@v3
