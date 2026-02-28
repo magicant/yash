@@ -1,0 +1,85 @@
+# Completion script for the "mkinitcpio" command.
+
+function completion/mkinitcpio {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "A: --addhooks:; add hooks to the image"
+        "c: --config:; use specified config file"
+        "D: --hookdir:; set hook search directory"
+        "d: --generatedir:; set initramfs build directory"
+        "g: --generate:; generate a CPIO image"
+        "H: --hookhelp:; output help for a hook"
+        "h --help; show help"
+        "k: --kernel:; use specified kernel version"
+        "L --listhooks; list all available hooks"
+        "M --automods; display modules found via autodetection"
+        "n --nocolor; disable color output"
+        "P --allpresets; process all presets"
+        "p: --preset:; build image according to specified preset"
+        "R --remove; remove initramfs images for specified presets"
+        "r: --moduleroot:; specify root directory for modules"
+        "S: --skiphooks:; skip specified hooks"
+        "s --save; save the build directory"
+        "t: --builddir:; use specified temporary build directory"
+        "U: --uki:; generate a unified kernel image"
+        "V --version; display version information"
+        "v --verbose; verbose output"
+        "z: --compress:; override the compression method"
+        "--cmdline:; use kernel command line with UKI"
+        "--no-cmdline; omit kernel command line in UKI"
+        "--kernelimage:; include a kernel image for UKI"
+        "--osrelease:; include an os-release file for UKI"
+        "--splash:; include a splash bitmap for UKI"
+        "--uefistub:; specify UEFI stub image for UKI"
+        "--ukiconfig:; specify configuration file for ukify"
+        "--no-ukify; do not use ukify to build UKIs"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (A|--addhooks|H|--hookhelp|S|--skiphooks)
+                typeset f
+                for f in /usr/lib/initcpio/install/* /lib/initcpio/install/*; do
+                        [ -f "$f" ] && complete -- "${f##*/}"
+                done
+                ;;
+        (p|--preset)
+                typeset f
+                for f in /etc/mkinitcpio.d/*.preset; do
+                        [ -f "$f" ] || continue
+                        f="${f##*/}"
+                        complete -- "${f%.preset}"
+                done
+                ;;
+        (k|--kernel)
+                typeset f kver
+                for f in /boot/*; do
+                        if [ ! -L "$f" ] && [ -f "$f" ]; then
+                                kver=$(/usr/lib/initcpio/functions run_mkinitcpio_func kver "$f" 2>/dev/null) &&
+                                        complete -- "$f" &&
+                                        complete -- "$kver"
+                        fi
+                done
+                ;;
+        (D|--hookdir|d|--generatedir|r|--moduleroot|t|--builddir)
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        (c|--config|g|--generate|U|--uki|--cmdline|--kernelimage|--osrelease|--splash|--uefistub|--ukiconfig)
+                complete -P "$PREFIX" -f
+                ;;
+        (z|--compress)
+                return
+                ;;
+        (*)
+                command -f completion//completeoptions
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

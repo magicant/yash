@@ -1,0 +1,262 @@
+# Completion script for the "aria2c" command.
+
+function completion/aria2c {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "d: --dir:; directory to store downloaded files"
+        "i: --input-file:; download URIs listed in file"
+        "l: --log:; log file name"
+        "j: --max-concurrent-downloads:; max parallel downloads"
+        "V --check-integrity; check file integrity"
+        "c --continue; continue downloading a partial file"
+        "h --help; show help"
+        "x: --max-connection-per-server:; max connections to one server"
+        "m: --max-tries:; set number of tries"
+        "k: --min-split-size:; min split size"
+        "n --no-netrc; disable netrc support"
+        "o: --out:; output file name"
+        "R --remote-time; retrieve timestamp of remote file"
+        "s: --split:; download using N connections"
+        "t: --timeout:; set timeout in seconds"
+        "U: --user-agent:; set user agent"
+        "p --ftp-pasv; use passive mode in FTP"
+        "S --show-files; print file listing and exit"
+        "O: --index-out:; set file path for file with index"
+        "u: --max-upload-limit:; max upload speed per torrent"
+        "--all-proxy:; proxy server for all protocols"
+        "--all-proxy-passwd:; password for all-proxy"
+        "--all-proxy-user:; user for all-proxy"
+        "--allow-overwrite; allow overwriting existing files"
+        "--allow-piece-length-change; allow piece length change"
+        "--async-dns; enable async DNS"
+        "--auto-file-renaming; auto rename files"
+        "--auto-save-interval:; auto save interval"
+        "--bt-detach-seed-only; exclude seed only downloads from count"
+        "--bt-enable-hook-after-hash-check; allow hook after hash check"
+        "--bt-enable-lpd; enable Local Peer Discovery"
+        "--bt-exclude-tracker:; exclude BitTorrent trackers"
+        "--bt-external-ip:; external IP for BitTorrent"
+        "--bt-force-encryption; require encrypted BitTorrent"
+        "--bt-hash-check-seed; continue to seed after hash check"
+        "--bt-load-saved-metadata; load saved torrent metadata"
+        "--bt-lpd-interface:; interface for Local Peer Discovery"
+        "--bt-max-open-files:; max open files for BitTorrent"
+        "--bt-max-peers:; max peers per torrent"
+        "--bt-metadata-only; download metadata only"
+        "--bt-min-crypto-level:; min encryption level"
+        "--bt-prioritize-piece:; prioritize first and last pieces"
+        "--bt-remove-unselected-file; remove unselected files"
+        "--bt-request-peer-speed-limit:; peer speed limit"
+        "--bt-require-crypto; require crypto handshake"
+        "--bt-save-metadata; save metadata as .torrent"
+        "--bt-seed-unverified; seed without verifying"
+        "--bt-stop-timeout:; stop if speed is 0 for N seconds"
+        "--bt-tracker:; additional BitTorrent trackers"
+        "--bt-tracker-connect-timeout:; tracker connect timeout"
+        "--bt-tracker-interval:; tracker request interval"
+        "--bt-tracker-timeout:; tracker timeout"
+        "--ca-certificate:; CA certificate file"
+        "--certificate:; client certificate file"
+        "--check-certificate; verify peer certificate"
+        "--checksum:; set checksum for file"
+        "--conditional-get; conditional GET"
+        "--conf-path:; config file path"
+        "--connect-timeout:; connect timeout in seconds"
+        "--console-log-level:; console log level"
+        "--content-disposition-default-utf8; default UTF-8 for content disposition"
+        "--daemon; run as daemon"
+        "--deferred-input; deferred input"
+        "--dht-entry-point:; IPv4 DHT entry point"
+        "--dht-entry-point6:; IPv6 DHT entry point"
+        "--dht-file-path:; IPv4 DHT routing table file"
+        "--dht-file-path6:; IPv6 DHT routing table file"
+        "--dht-listen-addr6:; address for IPv6 DHT"
+        "--dht-listen-port:; UDP port for DHT"
+        "--dht-message-timeout:; DHT message timeout"
+        "--disable-ipv6; disable IPv6"
+        "--disk-cache:; disk cache size"
+        "--download-result:; download result format"
+        "--dry-run; check availability without downloading"
+        "--dscp:; DSCP value"
+        "--enable-async-dns6; enable async DNS for IPv6"
+        "--enable-color; enable color output"
+        "--enable-dht; enable IPv4 DHT"
+        "--enable-dht6; enable IPv6 DHT"
+        "--enable-http-keep-alive; enable HTTP keep-alive"
+        "--enable-http-pipelining; enable HTTP pipelining"
+        "--enable-mmap; enable mmap"
+        "--enable-peer-exchange; enable Peer Exchange"
+        "--enable-rpc; enable RPC server"
+        "--event-poll:; event polling method"
+        "--file-allocation:; file allocation method"
+        "--follow-metalink:; follow metalink files"
+        "--follow-torrent:; follow torrent files"
+        "--force-save; force saving"
+        "--force-sequential; force sequential download"
+        "--ftp-passwd:; FTP password"
+        "--ftp-proxy:; proxy server for FTP"
+        "--ftp-proxy-passwd:; password for ftp-proxy"
+        "--ftp-proxy-user:; user for ftp-proxy"
+        "--ftp-reuse-connection; reuse FTP connection"
+        "--ftp-type:; FTP transfer type"
+        "--ftp-user:; FTP user"
+        "--gid:; manually set GID"
+        "--hash-check-only; hash check only without downloading"
+        "--header:; append HTTP request header"
+        "--http-accept-gzip; accept gzip encoding"
+        "--http-auth-challenge; send auth only when requested"
+        "--http-no-cache; send no-cache headers"
+        "--http-passwd:; HTTP password"
+        "--http-proxy:; proxy server for HTTP"
+        "--http-proxy-passwd:; password for http-proxy"
+        "--http-proxy-user:; user for http-proxy"
+        "--http-user:; HTTP user"
+        "--https-proxy:; proxy server for HTTPS"
+        "--https-proxy-passwd:; password for https-proxy"
+        "--https-proxy-user:; user for https-proxy"
+        "--human-readable; human readable output"
+        "--interface:; bind to specified interface"
+        "--listen-port:; TCP port for BitTorrent"
+        "--load-cookies:; load cookies from file"
+        "--log-level:; log level"
+        "--lowest-speed-limit:; close if speed is below limit"
+        "--max-download-limit:; max download speed"
+        "--max-download-result:; max download results"
+        "--max-file-not-found:; max file-not-found retries"
+        "--max-mmap-limit:; max mmap limit"
+        "--max-overall-download-limit:; max overall download speed"
+        "--max-overall-upload-limit:; max overall upload speed"
+        "--max-resume-failure-tries:; max resume failure tries"
+        "--metalink-base-uri:; metalink base URI"
+        "--metalink-enable-unique-protocol; enable unique protocol"
+        "--metalink-file:; metalink file"
+        "--metalink-language:; metalink language"
+        "--metalink-location:; metalink location"
+        "--metalink-os:; metalink OS"
+        "--metalink-preferred-protocol:; metalink preferred protocol"
+        "--metalink-version:; metalink version"
+        "--min-tls-version:; minimum TLS version"
+        "--multiple-interface:; multiple interfaces"
+        "--netrc-path:; netrc file path"
+        "--no-conf; disable config file"
+        "--no-file-allocation-limit:; no file alloc limit"
+        "--no-proxy:; domains to bypass proxy"
+        "--no-want-digest-header; disable Want-Digest header"
+        "--on-bt-download-complete:; command on BT download complete"
+        "--on-download-complete:; command on download complete"
+        "--on-download-error:; command on download error"
+        "--on-download-pause:; command on download pause"
+        "--on-download-start:; command on download start"
+        "--on-download-stop:; command on download stop"
+        "--optimize-concurrent-downloads; optimize concurrent downloads"
+        "--parameterized-uri; use parameterized URI"
+        "--pause; pause download after added"
+        "--pause-metadata; pause metadata download"
+        "--peer-agent:; peer agent string"
+        "--peer-id-prefix:; peer ID prefix"
+        "--piece-length:; piece length"
+        "--private-key:; private key file"
+        "--proxy-method:; proxy request method"
+        "--quiet; suppress output"
+        "--realtime-chunk-checksum; realtime chunk checksum"
+        "--referer:; HTTP referrer"
+        "--remove-control-file; remove control file"
+        "--retry-wait:; seconds between retries"
+        "--reuse-uri; reuse already used URIs"
+        "--rlimit-nofile:; rlimit for open files"
+        "--rpc-allow-origin-all; allow all origins for RPC"
+        "--rpc-certificate:; RPC certificate file"
+        "--rpc-listen-all; listen on all interfaces for RPC"
+        "--rpc-listen-port:; RPC listen port"
+        "--rpc-max-request-size:; max RPC request size"
+        "--rpc-private-key:; RPC private key file"
+        "--rpc-save-upload-metadata; save upload metadata via RPC"
+        "--rpc-secret:; RPC secret token"
+        "--rpc-secure; enable RPC encryption"
+        "--save-cookies:; save cookies to file"
+        "--save-not-found; save not-found downloads"
+        "--save-session:; save session to file"
+        "--save-session-interval:; session save interval"
+        "--seed-ratio:; seed ratio"
+        "--seed-time:; seed time in minutes"
+        "--select-file:; select file by index"
+        "--server-stat-if:; load server performance profile"
+        "--server-stat-of:; save server performance profile"
+        "--server-stat-timeout:; server stat timeout"
+        "--show-console-readout; show console readout"
+        "--socket-recv-buffer-size:; socket receive buffer size"
+        "--ssh-host-key-md:; SSH host public key checksum"
+        "--stderr; log to stderr"
+        "--stop:; stop after N seconds"
+        "--stop-with-process:; stop when PID exits"
+        "--stream-piece-selector:; piece selection algorithm"
+        "--summary-interval:; summary interval in seconds"
+        "--torrent-file:; torrent file"
+        "--truncate-console-readout; truncate console readout"
+        "--uri-selector:; URI selection algorithm"
+        "--version"
+        ) #<#
+
+        command -f completion//parseoptions -es
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (--ftp-type)
+                complete -- binary ascii
+                ;;
+        (--proxy-method)
+                complete -- get tunnel
+                ;;
+        (--metalink-preferred-protocol)
+                complete -- http https ftp none
+                ;;
+        (--bt-min-crypto-level)
+                complete -- plain arc4
+                ;;
+        (--follow-metalink|--follow-torrent)
+                complete -- true mem false
+                ;;
+        (--file-allocation)
+                complete -- none prealloc trunc falloc
+                ;;
+        (--log-level|--console-log-level)
+                complete -- debug info notice warn error
+                ;;
+        (--uri-selector)
+                complete -- inorder feedback adaptive
+                ;;
+        (--event-poll)
+                complete -- epoll poll select
+                ;;
+        (--stream-piece-selector)
+                complete -- default inorder random geom
+                ;;
+        (--download-result)
+                complete -- default full hide
+                ;;
+        (--min-tls-version)
+                complete -- TLSv1.1 TLSv1.2 TLSv1.3
+                ;;
+        (d|--dir)
+                complete -P "$PREFIX" -S / -T -d
+                ;;
+        (--torrent-file)
+                complete -P "$PREFIX" -f
+                ;;
+        (--metalink-file)
+                complete -P "$PREFIX" -f
+                ;;
+        (i|--input-file|l|--log|o|--out|--conf-path|--ca-certificate|--certificate|--private-key|--load-cookies|--save-cookies|--save-session|--server-stat-if|--server-stat-of|--netrc-path|--rpc-certificate|--rpc-private-key|--dht-file-path|--dht-file-path6)
+                complete -P "$PREFIX" -f
+                ;;
+        ('')
+                complete -f
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

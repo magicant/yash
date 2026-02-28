@@ -1,0 +1,53 @@
+# Completion script for the runit "sv" command
+
+function completion/sv {
+        typeset commands="up down status once pause cont hup alarm interrupt 1 2 term kill exit start stop restart shutdown force-stop force-reload force-restart force-shutdown"
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "w:; specify the timeout in seconds"
+        "v; verbose"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (w)
+                return
+                ;;
+        (*)
+                typeset i=2 needcmd=true
+                while [ $i -le ${WORDS[#]} ]; do
+                        case ${WORDS[i]} in
+                        (-w)
+                                i=$((i + 2))
+                                ;;
+                        (-*)
+                                i=$((i + 1))
+                                ;;
+                        (*)
+                                needcmd=false
+                                break
+                                ;;
+                        esac
+                done
+
+                if $needcmd; then
+                        complete -- $commands
+                else
+                        typeset svdir="${SVDIR:-/var/service}"
+                        svdir="${svdir%/}"
+                        typeset svc
+                        for svc in "${svdir}/"*; do
+                                [ -d "$svc" ] && complete -- "${svc##*/}"
+                        done
+                fi
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

@@ -1,0 +1,79 @@
+# Completion script for the "7z" command.
+
+function completion/7z {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "--help"
+        ) #<#
+
+        # first argument is the command
+        if [ ${WORDS[#]} -le 1 ]; then
+                complete -D "add files to archive" -- a
+                complete -D "benchmark" -- b
+                complete -D "delete files from archive" -- d
+                complete -D "extract files (without directory names)" -- e
+                complete -D "calculate hash values for files" -- h
+                complete -D "show information about supported formats" -- i
+                complete -D "list contents of archive" -- l
+                complete -D "rename files in archive" -- rn
+                complete -D "test integrity of archive" -- t
+                complete -D "update files to archive" -- u
+                complete -D "extract files with full paths" -- x
+                return
+        fi
+
+        case $TARGETWORD in
+        (-ao*)
+                complete -T -P "${TARGETWORD%"${TARGETWORD#-ao}"}" -- a s t u
+                return
+                ;;
+        (-t*)
+                typeset mode
+                case ${WORDS[2]} in
+                (a|d|rn|u) mode=w ;;
+                (*)         mode=r ;;
+                esac
+                if [ "$mode" = w ]; then
+                        complete -T -P "${TARGETWORD%"${TARGETWORD#-t}"}" -- \
+                                7z bzip2 gzip swfc tar wim xz zip
+                else
+                        complete -T -P "${TARGETWORD%"${TARGETWORD#-t}"}" -- \
+                                7z apm arj bzip2 cab chm cpio cramfs deb dmg \
+                                elf fat flv gzip hfs iso lzh lzma lzma86 \
+                                macho mbr mslz mub nsis ntfs pe ppmd rar rpm \
+                                squashfs swf swfc tar udf vhd wim xar xz z zip
+                fi
+                return
+                ;;
+        (-mx=*)
+                complete -T -P "${TARGETWORD%"${TARGETWORD#-mx=}"}" -- 0 1 3 5 7 9
+                return
+                ;;
+        (-scs*)
+                complete -T -P "${TARGETWORD%"${TARGETWORD#-scs}"}" -- UTF-8 WIN DOS
+                return
+                ;;
+        (-o*|-w*)
+                complete -P "${TARGETWORD%"${TARGETWORD#-?}"}" -S / -T -d
+                return
+                ;;
+        (-*)
+                complete -- \
+                        -ai -an -ao -ax -bb -bd -bs -bt \
+                        -i -mmf -mhc -mhe -mmt -ms -mx \
+                        -o -p -r -sa -scc -scs -scrc \
+                        -sdel -seml -sfx -si -slp -slt \
+                        -snh -snl -sni -sns -so -spd -spe \
+                        -spf -ssc -sse -ssp -ssw -stl -stm \
+                        -stx -t -u -v -w -x -y
+                return
+                ;;
+        esac
+
+        # by default we just need to complete files
+        complete -f
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

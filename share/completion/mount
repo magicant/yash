@@ -1,0 +1,49 @@
+# Completion script for the "mount" command.
+# NOTE: only contains ubase's variant flags
+
+function completion/mount {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "B; remount a subtree somewhere else"
+        "M; move a subtree to some other place"
+        "R; remount a subtree and all possible submounts somewhere else"
+        "a; mount all filesystems mentioned in /etc/fstab"
+        "n; mount without writing in /etc/mtab"
+        "o:; specify filesystem specific options"
+        "t:; set the filesystem type"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (o)
+                # fs specifc opts so no need for completion here
+                return
+                ;;
+        (t)
+                typeset fstype
+                if [ -r /proc/filesystems ]; then
+                        for fstype in $(awk '{print $NF}' /proc/filesystems); do
+                                complete -- "$fstype"
+                        done
+                fi
+                typeset kfs="/lib/modules/$(uname -r)/kernel/fs"
+                if [ -d "$kfs" ]; then
+                        for fstype in "$kfs"/*/; do
+                                fstype="${fstype%/}"
+                                complete -- "${fstype##*/}"
+                        done
+                fi
+                ;;
+        (*)
+                complete -P "$PREFIX" -T -f
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:

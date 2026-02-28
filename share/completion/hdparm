@@ -1,0 +1,43 @@
+# Completion script for the "hdparm" command.
+# NOTE: Partial flags included, might add more later
+
+function completion/hdparm {
+
+        typeset OPTIONS ARGOPT PREFIX
+        OPTIONS=( #>#
+        "I; display drive identification info directly from the drive"
+        "t; perform timings of device reads for benchmark"
+        "T; perform timings of cache reads for benchmark"
+        "B; get/set Advanced Power Management feature"
+        "S; set standby (spindown) timeout"
+        "C; check the current IDE power mode status"
+        "y; force drive to enter standby mode"
+        "Y; force drive to enter sleep mode"
+        "M; get/set Automatic Acoustic Management (AAM) setting"
+        "W; get/set the write-caching feature"
+        "J; get/set WD Green Drive idle3 timeout value"
+        "v; display some basic settings"
+        "--direct; use O_DIRECT flag for -t timing test"
+        "d; get/set the using_dma flag"
+        "i; display identification info from boot/configuration time"
+        "a; get/set sector count for filesystem read-ahead"
+        "A; get/set the read-lookahead feature"
+        "z; force a kernel re-read of the partition table"
+        "Q; get or set the command queue_depth"
+        "k; get/set the keep_settings_over_reset flag"
+        ) #<#
+
+        command -f completion//parseoptions
+        case $ARGOPT in
+        (-)
+                command -f completion//completeoptions
+                ;;
+        (*)
+                complete -P "$PREFIX" -f
+                ;;
+        esac
+
+}
+
+
+# vim: set ft=sh ts=8 sts=8 sw=8 et:
