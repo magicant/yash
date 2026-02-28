@@ -7,6 +7,10 @@
   - The `times` built-in now uses the `getrusage` function to obtain
     resource usage statistics on systems where it is available, which
     improves precision.
+  - Updated the sample initialization script (yashrc):
+    - The script no longer suggests moving the history file from
+      `~/.yash_history` to `${XDG_STATE_HOME}/yash/history` if they
+      resolve to the same file.
   - [line-editing] Fixed a bug where attempting to auto-complete
     arguments for unknown commands when the `PREFIX` variable is defined
     would result in an error message.
