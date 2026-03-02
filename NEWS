@@ -1,9 +1,17 @@
 # History of Yash
 
-## Yash 2.61 (Unreleased)
+## Yash 2.61 (2026-03-03)
 
   - The `configure` script now accepts the `--disable-doc` option to
     omit installing the manual pages.
+  - The `configure` script now has minimal cross compilation support.
+    Use the `--host=HOST` option to specify the cross-compilation
+    target.
+  - Fixed a bug where the `configure` script could produce false
+    positive results for function checks when an optimizing compiler
+    eliminates the test code. The `configure` script now uses the
+    `-fno-builtin` compiler option when compiling function check
+    programs.
   - The `times` built-in now uses the `getrusage` function to obtain
     resource usage statistics on systems where it is available, which
     improves precision.
@@ -14,6 +22,8 @@
   - [line-editing] Fixed a bug where attempting to auto-complete
     arguments for unknown commands when the `PREFIX` variable is defined
     would result in an error message.
+  - [line-editing] Added completion for `mount`, `sv`, `aria2c`,
+    `mkinitcpio`, `7z`, and `hdparm`.
 
 ## Yash 2.60 (2025-09-15)
 
