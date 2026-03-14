@@ -302,38 +302,53 @@ if [ "${TERM_PROGRAM-}" = vscode ]; then
   YASH_PS1R="\[\e]633;A\e\\\\\]$YASH_PS1R\[\e]633;B\e\\\\\]"
   YASH_PS2="\[\e]633;A\e\\\\\]$YASH_PS2\[\e]633;B\e\\\\\]"
 
+  # utility function to print a string escaped for the OSC sequence
+  _print_osc_escaped() {
+    typeset s="$1"
+    while [ "$s" ]; do
+      case "${s[1]}" in
+        (';'|[-' '])
+          printf '\\x%.2X' "'${s[1]}"
+          ;;
+        (\\)
+          printf '\\\\'
+          ;;
+        (*)
+          printf %c "${s[1]}"
+          ;;
+      esac
+      s=${s[2,-1]}
+    done
+  }
+
   # notify the terminal before executing a command
   _send_cmdline() {
     # Following the pre-execution mark, we also print the command line content
     # so the terminal can receive the correct command especially in the presence
     # of the right prompt. Some characters need to be escaped, so we print them
     # one by one.
-    printf '\033]633;C\033\\\033]633;E;'
-    typeset cmd="$COMMAND"
-    while [ "$cmd" ]; do
-      case "${cmd[1]}" in
-        (';'|[-' '])
-          printf '\\x%.2X' "'${cmd[1]}"
-          ;;
-        (\\)
-          printf '\\\\'
-          ;;
-        (*)
-          printf %c "${cmd[1]}"
-          ;;
-      esac
-      cmd=${cmd[2,-1]}
-    done
-    printf '\033\\'
+    printf '\033]633;E;'
+    _print_osc_escaped "$COMMAND"
+    printf '\033\\\033]633;C\033\\'
+
+    # notify the terminal after executing a command
+    # (should not be done before the first command is executed, so this
+    # function is defined inside _send_cmdline)
+    _send_exit_status() {
+      printf '\033]633;D;%d\033\\' "$?"
+    }
+    PROMPT_COMMAND=("$PROMPT_COMMAND" _send_exit_status)
   }
   POST_PROMPT_COMMAND=("$POST_PROMPT_COMMAND" _send_cmdline)
 
-  # notify the terminal after executing a command
-  _send_exit_status() {
-    printf '\033]633;D;%d\033\\' "$?"
+  # notify the terminal when changing directory
+  _send_cwd() {
+    printf '\033]633;P;Cwd='
+    _print_osc_escaped "$PWD"
+    printf '\033\\'
   }
-  PROMPT_COMMAND=("$PROMPT_COMMAND" _send_exit_status)
-
+  YASH_AFTER_CD=("$YASH_AFTER_CD" _send_cwd)
+  _send_cwd
 fi
 
 # define function that updates $_vcs_info and $_vcs_root

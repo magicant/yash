@@ -1,5 +1,11 @@
 # History of Yash
 
+## Yash 2.62 (Unreleased)
+
+  - Updated the sample initialization script (yashrc):
+    - When `$TERM_PROGRAM` is `vscode`, the script now sends the current
+      working directory to the VS Code shell integration.
+
 ## Yash 2.61 (2026-03-03)
 
   - The `configure` script now accepts the `--disable-doc` option to
