@@ -2,6 +2,8 @@
 
 ## Yash 2.62 (未リリース)
 
+  - [行編集] tar の補完を GNU tar 1.35 および libarchive (bsdtar 3.8.7)
+    に合わせて更新
   - 初期化スクリプト (yashrc) のサンプルを更新:
     - `$TERM_PROGRAM` が `vscode` のとき、作業ディレクトリのパスを VS
       Code のシェル統合機能に送信するようにした
