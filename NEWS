@@ -2,6 +2,8 @@
 
 ## Yash 2.62 (Unreleased)
 
+  - [line-editing] Updated the completion script for tar to support GNU
+    tar 1.35 and libarchive (bsdtar) 3.8.7.
   - Updated the sample initialization script (yashrc):
     - When `$TERM_PROGRAM` is `vscode`, the script now sends the current
       working directory to the VS Code shell integration.
