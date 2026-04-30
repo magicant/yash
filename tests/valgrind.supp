@@ -39,3 +39,37 @@
    fun:open_redirections
    fun:exec_simple_command_without_words
 }
+{
+   Memcheck:Leak:words_of_for_loop_aborted_by_errexit
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:xmalloc
+   fun:xmallocn
+   fun:xmalloce
+   fun:wb_initwithmax
+   fun:quote_removal
+   fun:glob_all
+   fun:expand_multiple
+   fun:expand_line
+   fun:exec_for
+   fun:exec_nonsimple_command
+   fun:exec_one_command
+}
+{
+   Memcheck:Leak:word_array_of_for_loop_aborted_by_errexit
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:xmalloc
+   fun:xmallocn
+   fun:xmalloce
+   fun:pl_initwithmax
+   fun:pl_init
+   fun:expand_line
+   fun:exec_for
+   fun:exec_nonsimple_command
+   fun:exec_one_command
+   fun:exec_commands
+   fun:exec_pipelines
+}
