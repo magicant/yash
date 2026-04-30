@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* keymap.c: mappings from keys to functions */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -500,7 +500,7 @@ int set_key_binding(
  * Returns a null pointer if no such command is found. */
 le_command_func_T *get_command_from_name(const char *name)
 {
-    struct command_name_pair *cnp = bsearch(name, commands,
+    const struct command_name_pair *cnp = bsearch(name, commands,
             sizeof commands / sizeof *commands,
             sizeof *commands,
             command_name_compare);

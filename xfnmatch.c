@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* xfnmatch.c: regex matching wrapper as a replacement for fnmatch */
-/* (C) 2007-2018 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -576,7 +576,7 @@ wchar_t *last_wcsstr(const wchar_t *restrict s, const wchar_t *restrict sub)
 
     wchar_t *lastresult = NULL;
     for (;;) {
-        wchar_t *result = wcsstr(s, sub);
+        wchar_t *result = (wchar_t *) wcsstr(s, sub);
         if (result == NULL)
             break;
         lastresult = result;
