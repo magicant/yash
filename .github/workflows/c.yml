@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: install prerequisites
       run: |
         sudo apt-get update
@@ -50,7 +50,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: install prerequisites
       run: brew install asciidoc gettext ncurses
     - name: configure
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: install cross compilation environment
       uses: cyberjunk/gha-ubuntu-cross@v5
       with:
