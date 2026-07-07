@@ -425,6 +425,14 @@ ec\
 ho
 __OUT__
 
+test_oE -e 0 'no parameter expansion with double-quoted here-document delimiter'
+cat <<"END"
+foo=$foo
+END
+__IN__
+foo=$foo
+__OUT__
+
 test_O -e n 'expansion error in here-document'
 echo not printed <<END
 ${a?}
