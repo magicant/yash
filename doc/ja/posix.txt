@@ -39,6 +39,20 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - link:interact.html[対話モード]のプロンプトを出す前後に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]および link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+ 変数]の値を実行しません。{zwsp}link:params.html#sv-ps1[+PS1+ 変数]・{zwsp}link:params.html#sv-ps2[+PS2+ 変数]・{zwsp}link:params.html#sv-ps4[+PS4+ 変数]の値の解釈の仕方が違います。{zwsp}link:params.html#sv-yash_ps1[+YASH_PS1+] など +YASH_+ で始まる名前のプロンプト変数は使用されません。
 - link:interact.html#mailcheck[メールチェック]において、ファイルが更新されている場合はファイルが空でも新着メールメッセージを出力します。
 
-なお POSIX 準拠モードを有効にしても、yash が POSIX の全ての要求に適合するわけではありません。例えば{zwsp}link:_read.html[Read 組込みコマンド]は、POSIX が受け付けることを要求している、文字として妥当でないバイトを含む入力を読み込めません。
+[[nonconformance]]
+== 既知の非適合
+
+POSIX 準拠モードを有効にしても、yash は POSIX の一部の要求を完全には満たしません:
+
+- POSIX は対話的でないシェルが SIGTTIN, SIGTTOU, SIGTSTP をデフォルトで無視・キャッチすることを禁じています。しかし yash はジョブ制御が有効な時は対話的でなくてもこれらのシグナルを無視します。
+- POSIX によると、コマンド +printf %c foo+ は文字列 +foo+ の最初のバイトを出力することになっています。{zwsp}link:_printf.html[Printf 組込みコマンド]は +foo+ の最初の文字を出力するので、出力が複数バイトになることがあります。
+- トラップの中で link:_return.html[return 組込みコマンド]を実行しても、トラップの外で実行されている関数やスクリプトを中断・続行させることはできません。この挙動は厳密には POSIX に従っていませんが、予測可能で一貫性のある動作を保つためにこのようになっています。
+- Yash の文字列操作はワイド文字列を前提として書かれています。この設計は、シェルに任意のバイトを受け付けることを求める要件が POSIX に追加される前に行われたもので、今後この要件を完全に実装することは現実的ではありません。そのため、yash のほとんどの機能は有効な文字を表さないバイト列を透過的に扱うことができません。特に:
++
+--
+- link:syntax.html#dollar-single[ドル一重引用符]内で十六進数または八進数のエスケープ記法で表される値は、ワイド文字のコードポイントとして解釈されます。この動作は、値を生のバイトとして扱うことを要求する POSIX には準拠していません。
+- link:_read.html[Read 組込みコマンド]は、有効な文字でないバイトを含む入力を読み込めません。
+- {zwsp}link:expand.html#glob[パス名展開]の結果はその時のロケールでの辞書順でソートされます。ロケールの順序定義が全順序でない場合、比較不可能な結果同士の順序は不定です。POSIX ではこのような結果をバイト単位で再比較して順序付けることが求められていますが、ワイド文字列を前提とした yash の設計ではバイト単位での比較はできません。
+--
 
 // vim: set filetype=asciidoc expandtab:

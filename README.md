@@ -31,7 +31,8 @@ formerly on [OSDN](https://osdn.jp/projects/yash/).
 ## Current Development Status
 
 Yash now fully supports POSIX.1-2024 (IEEE Std 1003.1)
-except for the limitations listed below.
+except for the limitations described in the
+[manual](https://magicant.github.io/yash/doc/posix.html#nonconformance).
 
 Yash is stable. A maintenance update is released every three months or
 so. For the change history, see the [NEWS](NEWS) file.
@@ -103,9 +104,6 @@ system.
  * Some signals are assumed to have the specific numbers:
      SIGHUP=1 SIGINT=2 SIGQUIT=3 SIGABRT=6
      SIGKILL=9 SIGALRM=14 SIGTERM=15
- * POSIX disallows non-interactive shells to ignore or catch SIGTTIN,
-   SIGTTOU, and SIGTSTP by default. Yash, however, ignores these
-   signals if job-control is enabled, even if non-interactive.
  * File permission flags are assumed to have the specific values:
    ```
    0400=user read    0200=user write   0100=user execute
@@ -114,24 +112,6 @@ system.
    ```
  * The character categorization in locales other than the POSIX locale
    is assumed upward compatible with the POSIX locale.
- * The `-o nolog` option is not supported: it is silently ignored.
- * According to POSIX, the command `printf %c foo` should print the
-   first byte of string `foo`. Yash prints the first character of
-   `foo`, which may be more than one byte.
- * The `return` built-in, if executed in a trap, can operate only on a
-   function, script, or loop that has been executed within the trap.
-   This limitation is not strictly POSIX-compliant, but needed for
-   consistent and predictable behavior of the shell.
- * Results of pathname expansion is sorted only by collating sequence
-   of the current locale. If the collating sequence does not have a
-   total ordering of characters, order of uncomparable results are
-   unstable. This limitation is not strictly POSIX-compliant, but
-   inevitable due to use of wide characters in the whole shell.
- * Most part of the shell cannot handle bytes that do not represent
-   valid characters, because string operations are written in terms of
-   wide character strings. This design choice was made before POSIX
-   added requirements for the shell to accept arbitrary bytes in some
-   operations, and it is too late to fully implement them.
  * The shell needs the `setrlimit` function to implement the behavior
    of propagating the wait status of a signaled child process to the
    parent process. This behavior is disabled if the `setrlimit`

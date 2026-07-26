@@ -104,10 +104,46 @@ When the POSIXly-correct mode is enabled:
   printed if the file has been modified, regardless of whether the file is
   empty.
 
-Even in the POSIXly-correct mode, yash does not meet some requirements of
-POSIX.
-For example, the link:_read.html[read built-in] fails to read input
-containing bytes that do not form valid characters, which POSIX requires to
-be accepted.
+[[nonconformance]]
+== Known non-conformances
+
+Even in the POSIXly-correct mode, yash does not fully meet some requirements
+of POSIX:
+
+- POSIX disallows non-interactive shells to ignore or catch SIGTTIN,
+  SIGTTOU, and SIGTSTP by default.
+  Yash, however, ignores these signals if job control is enabled, even if
+  non-interactive.
+- According to POSIX, the command +printf %c foo+ should print the first
+  byte of the string +foo+.
+  The link:_printf.html[printf built-in] prints the first character of
+  +foo+, which may be more than one byte.
+- The link:_return.html[return built-in], if executed in a trap, can operate
+  only on a function, script, or loop that has been executed within the
+  trap.
+  This limitation is not strictly POSIX-compliant, but is needed for
+  consistent and predictable behavior of the shell.
+- String operations in yash are written in terms of wide character strings.
+  This design choice was made before POSIX added requirements for the shell
+  to accept arbitrary bytes in some operations, and it is too late to fully
+  implement them.
+  As a result, most part of the shell cannot handle bytes that do not
+  represent valid characters.
+  In particular:
++
+--
+- The value represented by a hexadecimal or octal digit escape in
+  link:syntax.html#dollar-single[dollar-single-quotes] is interpreted as a
+  wide character codepoint, but POSIX requires that the value be treated as a
+  raw byte.
+- The link:_read.html[read built-in] fails on input containing such
+  non-character bytes, which POSIX requires to be accepted.
+- Results of link:expand.html#glob[pathname expansion] are sorted only by
+  the collating sequence of the current locale.
+  If the collating sequence does not have a total ordering of characters,
+  the order of uncomparable results is unstable.
+  POSIX requires such results to be further ordered by byte-wise comparison,
+  which is impossible for wide characters.
+--
 
 // vim: set filetype=asciidoc textwidth=78 expandtab:
