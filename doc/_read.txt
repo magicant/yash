@@ -92,7 +92,8 @@ The exit status is 0 if the read built-in successfully reads a line.
 If the end of the input is reached, the exit status is 1.
 The variables are assigned the words read so far.
 If a variable is read-only, the exit status is 2.
-If the standard input is unreadable, the exit status is 3.
+If the standard input is unreadable or the input contains a byte sequence
+that does not form a valid character, the exit status is 3.
 In case of a syntax error in the command line arguments, the exit status is 4.
 
 [[notes]]
@@ -104,6 +105,20 @@ The POSIX standard defines the +-d+ and +-r+ options only.
 Other options cannot be used in the link:posix.html[POSIXly-correct mode].
 Only the exit status 0 and 1 are portable; for other error conditions, the
 exit status may be different in other shells.
+
+If the input contains a byte sequence that does not form a valid character
+in the current locale, the built-in reports an error and stops reading with
+exit status 3.
+This is because yash internally converts all input to wide characters, which
+cannot represent bytes that are not valid characters.
+Note that POSIX requires the read built-in to accept arbitrary bytes that
+need not form valid characters, so yash does not conform to POSIX in this
+regard, even in the link:posix.html[POSIXly-correct mode].
+
+To handle data that may contain such bytes, do not read it into variables or
+capture it with link:expand.html#cmdsub[command substitution]; instead, pass
+it directly through link:redir.html#pipe[pipelines] or
+link:redir.html[redirections].
 
 The link:params.html#sv-ps1r[+PS1R+] and link:params.html#sv-ps1s[+PS1S+]
 variables affect the behavior of line-editing if the +PS1+ prompt is used. The

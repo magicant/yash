@@ -39,4 +39,6 @@ POSIX 準拠モードを有効にすると、yash は POSIX の規定にでき�
 - link:interact.html[対話モード]のプロンプトを出す前後に link:params.html#sv-prompt_command[+PROMPT_COMMAND+ 変数]および link:params.html#sv-post_prompt_command[+POST_PROMPT_COMMAND+ 変数]の値を実行しません。{zwsp}link:params.html#sv-ps1[+PS1+ 変数]・{zwsp}link:params.html#sv-ps2[+PS2+ 変数]・{zwsp}link:params.html#sv-ps4[+PS4+ 変数]の値の解釈の仕方が違います。{zwsp}link:params.html#sv-yash_ps1[+YASH_PS1+] など +YASH_+ で始まる名前のプロンプト変数は使用されません。
 - link:interact.html#mailcheck[メールチェック]において、ファイルが更新されている場合はファイルが空でも新着メールメッセージを出力します。
 
+なお POSIX 準拠モードを有効にしても、yash が POSIX の全ての要求に適合するわけではありません。例えば{zwsp}link:_read.html[Read 組込みコマンド]は、POSIX が受け付けることを要求している、文字として妥当でないバイトを含む入力を読み込めません。
+
 // vim: set filetype=asciidoc expandtab:
