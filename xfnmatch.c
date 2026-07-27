@@ -687,8 +687,10 @@ xfnmresult_T wmatch_longest(
 
 /* Substitutes part of string `s' that matches pre-compiled pattern `xfnm'
  * with string `repl'. If `substall' is true, all matching substrings in `s' are
- * substituted. Otherwise, only the first match is substituted. The resulting
- * string is returned as a newly-malloced string. */
+ * substituted. Otherwise, only the first match is substituted. An empty match
+ * is substituted like any other match; when substituting all matches, one
+ * character is skipped after each empty match to ensure progress. The
+ * resulting string is returned as a newly-malloced string. */
 wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
         const wchar_t *restrict repl, bool substall)
 {
@@ -711,11 +713,18 @@ wchar_t *xfnm_subst(const xfnmatch_T *restrict xfnm, const wchar_t *restrict s,
     wb_init(&buf);
     do {
         xfnmresult_T result = xfnm_wmatch(xfnm, &s[i]);
-        if (result.start == (size_t) -1 || result.start >= result.end)
+        if (result.start == (size_t) -1)
             break;
         wb_ncat(&buf, &s[i], result.start);
         wb_cat(&buf, repl);
         i += result.end;
+        if (s[i] == L'\0')
+            break;
+        if (result.start == result.end) {
+            /* empty match: skip one character to ensure progress */
+            wb_wccat(&buf, s[i]);
+            i++;
+        }
     } while (substall);
     return wb_towcs(wb_cat(&buf, &s[i]));
 }

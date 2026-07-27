@@ -336,6 +336,8 @@ If {{word1}} matches more than one part of the value, only the first part is
 replaced.
 The shortest matching is replaced if more than one matching is possible for
 the same starting point in the value.
+An empty {{word1}} matches the empty string at the beginning of the value, so
++${{{parameter}}/""/{{word2}}}+ prefixes {{word2}} to the value.
 +
 This modifier cannot be used in the link:posix.html[POSIXly-correct mode].
 
@@ -343,16 +345,23 @@ This modifier cannot be used in the link:posix.html[POSIXly-correct mode].
 This is similar to +/{{word1}}/{{word2}}+ above.
 The only difference is that {{word1}} matches only at the beginning of the
 value being expanded.
+An empty {{word1}} matches the empty string at the beginning of the value, so
++${{{parameter}}/#/{{word2}}}+ prefixes {{word2}} to the value.
 
 +/%{{word1}}/{{word2}}+::
 This is similar to +/{{word1}}/{{word2}}+ above.
 The only difference is that {{word1}} matches only at the end of the value
 being expanded.
+An empty {{word1}} matches the empty string at the end of the value, so
++${{{parameter}}/%/{{word2}}}+ suffixes {{word2}} to the value.
 
 +//{{word1}}/{{word2}}+::
 This is similar to +/{{word1}}/{{word2}}+ above.
 The only difference is that all matched parts are replaced if {{word1}}
 matches more than one part of the value.
+An empty {{word1}} matches the empty string at the beginning of the value,
+between each two adjacent characters, and at the end of the value, so all
+those empty matches are replaced with {{word2}}.
 
 +:/{{word1}}/{{word2}}+::
 This is similar to +/{{word1}}/{{word2}}+ above.
