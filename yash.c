@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* yash.c: basic functions of the shell */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ struct input_file_info_T *stdin_input_file_info;
 /* The "main" function. The execution of the shell starts here. */
 int main(int argc, char **argv)
 {
-    void *wargv[argc + 1];
+    void **wargv = xmalloce(argc, 1, sizeof *wargv);
     const wchar_t *shortest_name;
 
     setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
@@ -235,6 +235,9 @@ int main(int argc, char **argv)
     }
     set_signals();
     set_positional_parameters(&wargv[xoptind]);
+
+    /* Not freeing the elements of `wargv' because some of them are used. */
+    free(wargv);
 
     if (is_login_shell && !posixly_correct && !options.noprofile)
         if (getuid() == geteuid() && getgid() == getegid())
