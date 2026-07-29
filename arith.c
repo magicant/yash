@@ -1102,14 +1102,13 @@ void parse_primary(evalinfo_T *info, value_T *result)
 void parse_as_number(evalinfo_T *info, value_T *result)
 {
     word_T *word = &info->atoken.word;
-    wchar_t wordstr[word->length + 1];
-    wcsncpy(wordstr, word->contents, word->length);
-    wordstr[word->length] = L'\0';
+    wchar_t *wordstr = xwcsndup(word->contents, word->length);
 
     long longresult;
     if (xwcstol(wordstr, 0, &longresult)) {
         result->type = VT_LONG;
         result->v_long = longresult;
+        free(wordstr);
         return;
     }
     if (!posixly_correct) {
@@ -1123,10 +1122,12 @@ void parse_as_number(evalinfo_T *info, value_T *result)
         if (ok) {
             result->type = VT_DOUBLE;
             result->v_double = doubleresult;
+            free(wordstr);
             return;
         }
     }
     xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), wordstr);
+    free(wordstr);
     info->error = true;
     result->type = VT_INVALID;
 }
