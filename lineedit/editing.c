@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* editing.c: main editing module */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3247,13 +3247,14 @@ void cmd_emacs_delete_horizontal_space(wchar_t c __attribute__((unused)))
  * If the count is specified, blanks are replaced with `count' spaces. */
 void cmd_emacs_just_one_space(wchar_t c __attribute__((unused)))
 {
+#define MAX_SPACE_COUNT 1000 /* The count is limited to avoid overflow. */
     int count = get_count(1);
     if (count < 0)
         count = 0;
-    else if (count > 1000)
-        count = 1000;
+    else if (count > MAX_SPACE_COUNT)
+        count = MAX_SPACE_COUNT;
 
-    wchar_t s[count + 1];
+    wchar_t s[MAX_SPACE_COUNT + 1];
     wmemset(s, L' ', count);
     s[count] = L'\0';
 

@@ -358,7 +358,7 @@ confighdefs=''
 # define options for debugging
 if ${debug}
 then
-    cflags="${CFLAGS--pedantic -MMD -Wall -Wextra -Og -fno-inline -ggdb}"
+    cflags="${CFLAGS--pedantic -MMD -Wall -Wextra -Wvla -Og -fno-inline -ggdb}"
 else
     defconfigh "NDEBUG"
 fi

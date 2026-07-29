@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* exec.c: command execution */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1118,7 +1118,7 @@ wchar_t **invoke_simple_command(
 void exec_external_program(
         const char *path, int argc, char *argv0, void **argv, char **envs)
 {
-    char *mbsargv[argc + 1];
+    char **mbsargv = xmalloce(argc, 1, sizeof *mbsargv);
     mbsargv[0] = argv0;
     for (int i = 1; i < argc; i++) {
         mbsargv[i] = malloc_wcstombs(argv[i]);
@@ -1148,6 +1148,7 @@ void exec_external_program(
 
     for (int i = 1; i < argc; i++)
         free(mbsargv[i]);
+    free(mbsargv);
 }
 
 /* Calls `execve' until it doesn't return EINTR. */
@@ -1167,7 +1168,7 @@ void exec_fall_back_on_sh(
 {
     assert(argv[argc] == NULL);
 
-    char *args[argc + 3];
+    char **args = xmalloce(argc, 3, sizeof *args);
     size_t index = 0;
     args[index++] = "sh";
     args[index++] = (char *) "-";
@@ -1195,6 +1196,7 @@ void exec_fall_back_on_sh(
         xexecve(shpath, args, envp);
     else
         errno = ENOENT;
+    free(args);
     xerror(errno, Ngt("cannot invoke a new shell to execute script `%s'"),
             argv[0]);
 }

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -883,10 +883,9 @@ void print_errmsg_token(parsestate_T *ps, const char *message)
     assert(ps->index <= ps->next_index);
     assert(ps->next_index <= ps->src.length);
     size_t length = ps->next_index - ps->index;
-    wchar_t token[length + 1];
-    wcsncpy(token, &ps->src.contents[ps->index], length);
-    token[length] = L'\0';
+    wchar_t *token = xwcsndup(&ps->src.contents[ps->index], length);
     serror(ps, message, token);
+    free(token);
 }
 
 const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
@@ -4087,13 +4086,8 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
         return;
     }
 
-    size_t save_count = pr->pending_heredocs.length;
-    size_t extended_count = save_count;
-    if (extended_count == 0)
-        extended_count = 1; // A variable-length array must not be empty.
-    void *save_heredocs[extended_count];
-    memcpy(save_heredocs, pr->pending_heredocs.contents, sizeof save_heredocs);
-    pl_truncate(&pr->pending_heredocs, 0);
+    plist_T save_heredocs = pr->pending_heredocs;
+    pl_init(&pr->pending_heredocs);
 
     print_and_or_lists(pr, ec.value.preparsed, indent, true);
 
@@ -4107,7 +4101,8 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
     }
 
     assert(pr->pending_heredocs.length == 0);
-    pl_ncat(&pr->pending_heredocs, save_heredocs, save_count);
+    pl_destroy(&pr->pending_heredocs);
+    pr->pending_heredocs = save_heredocs;
 }
 
 void print_indent(struct print *pr, unsigned indent)

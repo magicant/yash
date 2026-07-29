@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -287,10 +287,10 @@ bool do_assignment(const word_T *word, const value_T *value)
     if (vstr == NULL)
         return false;
 
-    wchar_t name[word->length + 1];
-    wmemcpy(name, word->contents, word->length);
-    name[word->length] = L'\0';
-    return set_variable(name, vstr, SCOPE_GLOBAL, false);
+    wchar_t *name = xwcsndup(word->contents, word->length);
+    bool ok = set_variable(name, vstr, SCOPE_GLOBAL, false);
+    free(name);
+    return ok;
 }
 
 /* Converts `value' to a newly-malloced wide string.
@@ -306,16 +306,21 @@ wchar_t *value_to_string(const value_T *value)
             return malloc_wprintf(L"%.*g", DBL_DIG, value->v_double);
         case VT_VAR:
             {
-                wchar_t name[value->v_var.length + 1];
-                wmemcpy(name, value->v_var.contents, value->v_var.length);
-                name[value->v_var.length] = L'\0';
+                wchar_t *name = xwcsndup(
+                        value->v_var.contents, value->v_var.length);
                 const wchar_t *var = getvar(name);
-                if (var != NULL)
-                    return xwcsdup(var);
-                if (shopt_unset)
-                    return malloc_wprintf(L"%ld", 0L);
-                xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), name);
-                return NULL;
+                wchar_t *result;
+                if (var != NULL) {
+                    result = xwcsdup(var);
+                } else if (shopt_unset) {
+                    result = malloc_wprintf(L"%ld", 0L);
+                } else {
+                    xerror(0, Ngt("arithmetic: parameter `%ls' is not set"),
+                            name);
+                    result = NULL;
+                }
+                free(name);
+                return result;
             }
     }
     UNREACHABLE();
@@ -1097,14 +1102,13 @@ void parse_primary(evalinfo_T *info, value_T *result)
 void parse_as_number(evalinfo_T *info, value_T *result)
 {
     word_T *word = &info->atoken.word;
-    wchar_t wordstr[word->length + 1];
-    wcsncpy(wordstr, word->contents, word->length);
-    wordstr[word->length] = L'\0';
+    wchar_t *wordstr = xwcsndup(word->contents, word->length);
 
     long longresult;
     if (xwcstol(wordstr, 0, &longresult)) {
         result->type = VT_LONG;
         result->v_long = longresult;
+        free(wordstr);
         return;
     }
     if (!posixly_correct) {
@@ -1118,10 +1122,12 @@ void parse_as_number(evalinfo_T *info, value_T *result)
         if (ok) {
             result->type = VT_DOUBLE;
             result->v_double = doubleresult;
+            free(wordstr);
             return;
         }
     }
     xerror(0, Ngt("arithmetic: `%ls' is not a valid number"), wordstr);
+    free(wordstr);
     info->error = true;
     result->type = VT_INVALID;
 }
@@ -1137,17 +1143,17 @@ void coerce_number(evalinfo_T *info, value_T *value)
     const wchar_t *varvalue;
     {
         word_T *name = &value->v_var;
-        wchar_t namestr[name->length + 1];
-        wmemcpy(namestr, name->contents, name->length);
-        namestr[name->length] = L'\0';
+        wchar_t *namestr = xwcsndup(name->contents, name->length);
         varvalue = getvar(namestr);
 
         if (varvalue == NULL && !shopt_unset) {
             xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), namestr);
+            free(namestr);
             info->error = true;
             value->type = VT_INVALID;
             return;
         }
+        free(namestr);
     }
     if (varvalue == NULL || varvalue[0] == L'\0') {
         value->type = VT_LONG;

@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* complete.c: command line completion */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1157,10 +1157,9 @@ size_t get_common_prefix_length(void)
     common_prefix_length = cpl;
 
     if (le_state_is_compdebug) {
-        wchar_t value[common_prefix_length + 1];
-        wmemcpy(value, cand->origvalue, common_prefix_length);
-        value[common_prefix_length] = L'\0';
+        wchar_t *value = xwcsndup(cand->origvalue, common_prefix_length);
         le_compdebug("candidate common prefix: \"%ls\"", value);
+        free(value);
     }
 
     return common_prefix_length;
@@ -1217,11 +1216,9 @@ void update_main_buffer(bool subst, bool finish)
         assert(srclen <= cpl);
         cand = le_candidates.contents[0];
 
-        size_t valuelen = cpl - srclen;
-        wchar_t value[valuelen + 1];
-        wcsncpy(value, cand->origvalue + srclen, valuelen);
-        value[valuelen] = L'\0';
+        wchar_t *value = xwcsndup(cand->origvalue + srclen, cpl - srclen);
         quote(&quoted, value, quotetype);
+        free(value);
     } else {
         // Quote the selected candidate.
         cand = le_candidates.contents[le_selected_candidate_index];

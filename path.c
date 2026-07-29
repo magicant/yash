@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* path.c: filename-related utilities */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -160,13 +160,17 @@ bool check_access(const char *path, mode_t mode, int amode)
 
     int gcount = getgroups(0, &gid);  /* the second argument is a dummy */
     if (gcount > 0) {
-        gid_t groups[gcount];
+        gid_t *groups = xmallocn(gcount, sizeof *groups);
         gcount = getgroups(gcount, groups);
         if (gcount > 0) {
-            for (int i = 0; i < gcount; i++)
-                if (gid == groups[i])
+            for (int i = 0; i < gcount; i++) {
+                if (gid == groups[i]) {
+                    free(groups);
                     return st.st_mode & S_IRWXG;
+                }
+            }
         }
+        free(groups);
     }
 
     return st.st_mode & S_IRWXO;
@@ -283,22 +287,25 @@ char *which(
         return NULL;
 
     size_t namelen = strlen(name);
+    xstrbuf_T path;
+    sb_init(&path);
     for (const char *dir; (dir = *dirs) != NULL; dirs++) {
         size_t dirlen = strlen(dir);
-        char path[dirlen + namelen + 3];
+        sb_clear(&path);
         if (dirlen > 0) {
             /* concatenate `dir' and `name' to produce a pathname `path' */
-            strcpy(path, dir);
-            if (path[dirlen - 1] != '/')
-                path[dirlen++] = '/';
-            strcpy(path + dirlen, name);
+            sb_ncat_force(&path, dir, dirlen);
+            if (path.contents[dirlen - 1] != '/')
+                sb_ccat(&path, '/');
+            sb_ncat_force(&path, name, namelen);
         } else {
             /* if `dir' is empty, it's considered to be the current directory */
-            strcpy(path, name);
+            sb_ncat_force(&path, name, namelen);
         }
-        if (cond(path))
-            return xstrdup(path);
+        if (cond(path.contents))
+            return sb_tostr(&path);
     }
+    sb_destroy(&path);
     return NULL;
 }
 
@@ -717,16 +724,18 @@ plist_T wglob_parse_pattern(const wchar_t *pattern, enum wglobflags_T flags)
     plist_T components;
     pl_init(&components);
 
+    xwcsbuf_T component;
+    wb_init(&component);
+
     for (;;) {
         const wchar_t *slash = wcschr(pattern, L'/');
         size_t componentlength =
             (slash != NULL) ? (size_t) (slash - pattern) : wcslen(pattern);
-        wchar_t component[componentlength + 1];
-        wcsncpy(component, pattern, componentlength);
-        component[componentlength] = L'\0';
+        wb_clear(&component);
+        wb_ncat(&component, pattern, componentlength);
 
-        struct wglob_pattern *c =
-            wglob_parse_component(component, flags, slash != NULL);
+        struct wglob_pattern *c = wglob_parse_component(
+                component.contents, flags, slash != NULL);
         if (c == NULL) {
             pl_clear(&components, wglob_free_pattern_vp);
             break;
@@ -738,6 +747,7 @@ plist_T wglob_parse_pattern(const wchar_t *pattern, enum wglobflags_T flags)
         pattern = &slash[1];
     }
 
+    wb_destroy(&component);
     return components;
 }
 
