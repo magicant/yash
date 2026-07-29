@@ -306,16 +306,21 @@ wchar_t *value_to_string(const value_T *value)
             return malloc_wprintf(L"%.*g", DBL_DIG, value->v_double);
         case VT_VAR:
             {
-                wchar_t name[value->v_var.length + 1];
-                wmemcpy(name, value->v_var.contents, value->v_var.length);
-                name[value->v_var.length] = L'\0';
+                wchar_t *name = xwcsndup(
+                        value->v_var.contents, value->v_var.length);
                 const wchar_t *var = getvar(name);
-                if (var != NULL)
-                    return xwcsdup(var);
-                if (shopt_unset)
-                    return malloc_wprintf(L"%ld", 0L);
-                xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), name);
-                return NULL;
+                wchar_t *result;
+                if (var != NULL) {
+                    result = xwcsdup(var);
+                } else if (shopt_unset) {
+                    result = malloc_wprintf(L"%ld", 0L);
+                } else {
+                    xerror(0, Ngt("arithmetic: parameter `%ls' is not set"),
+                            name);
+                    result = NULL;
+                }
+                free(name);
+                return result;
             }
     }
     UNREACHABLE();
