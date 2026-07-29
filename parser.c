@@ -4086,13 +4086,8 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
         return;
     }
 
-    size_t save_count = pr->pending_heredocs.length;
-    size_t extended_count = save_count;
-    if (extended_count == 0)
-        extended_count = 1; // A variable-length array must not be empty.
-    void *save_heredocs[extended_count];
-    memcpy(save_heredocs, pr->pending_heredocs.contents, sizeof save_heredocs);
-    pl_truncate(&pr->pending_heredocs, 0);
+    plist_T save_heredocs = pr->pending_heredocs;
+    pl_init(&pr->pending_heredocs);
 
     print_and_or_lists(pr, ec.value.preparsed, indent, true);
 
@@ -4106,7 +4101,8 @@ void print_embedded_command(struct print *pr, embedcmd_T ec, unsigned indent)
     }
 
     assert(pr->pending_heredocs.length == 0);
-    pl_ncat(&pr->pending_heredocs, save_heredocs, save_count);
+    pl_destroy(&pr->pending_heredocs);
+    pr->pending_heredocs = save_heredocs;
 }
 
 void print_indent(struct print *pr, unsigned indent)
