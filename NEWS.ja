@@ -2,6 +2,10 @@
 
 ## Yash 2.62 (未リリース)
 
+  - パラメータ展開 `${parameter/pattern/replacement}` で、空のパターンも
+    他のマッチと同様にマッチ・置換されるようになった。これにより
+    `${var/#/prefix}` および `${var/%/suffix}` で値の先頭・末尾に
+    文字列を付け加えられる
   - [行編集] tar の補完を GNU tar 1.35 および libarchive (bsdtar 3.8.7)
     に合わせて更新
   - 初期化スクリプト (yashrc) のサンプルを更新:
