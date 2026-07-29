@@ -160,13 +160,17 @@ bool check_access(const char *path, mode_t mode, int amode)
 
     int gcount = getgroups(0, &gid);  /* the second argument is a dummy */
     if (gcount > 0) {
-        gid_t groups[gcount];
+        gid_t *groups = xmallocn(gcount, sizeof *groups);
         gcount = getgroups(gcount, groups);
         if (gcount > 0) {
-            for (int i = 0; i < gcount; i++)
-                if (gid == groups[i])
+            for (int i = 0; i < gcount; i++) {
+                if (gid == groups[i]) {
+                    free(groups);
                     return st.st_mode & S_IRWXG;
+                }
+            }
         }
+        free(groups);
     }
 
     return st.st_mode & S_IRWXO;
