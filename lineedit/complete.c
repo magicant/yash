@@ -1216,11 +1216,9 @@ void update_main_buffer(bool subst, bool finish)
         assert(srclen <= cpl);
         cand = le_candidates.contents[0];
 
-        size_t valuelen = cpl - srclen;
-        wchar_t value[valuelen + 1];
-        wcsncpy(value, cand->origvalue + srclen, valuelen);
-        value[valuelen] = L'\0';
+        wchar_t *value = xwcsndup(cand->origvalue + srclen, cpl - srclen);
         quote(&quoted, value, quotetype);
+        free(value);
     } else {
         // Quote the selected candidate.
         cand = le_candidates.contents[le_selected_candidate_index];
