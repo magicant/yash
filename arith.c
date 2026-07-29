@@ -1143,17 +1143,17 @@ void coerce_number(evalinfo_T *info, value_T *value)
     const wchar_t *varvalue;
     {
         word_T *name = &value->v_var;
-        wchar_t namestr[name->length + 1];
-        wmemcpy(namestr, name->contents, name->length);
-        namestr[name->length] = L'\0';
+        wchar_t *namestr = xwcsndup(name->contents, name->length);
         varvalue = getvar(namestr);
 
         if (varvalue == NULL && !shopt_unset) {
             xerror(0, Ngt("arithmetic: parameter `%ls' is not set"), namestr);
+            free(namestr);
             info->error = true;
             value->type = VT_INVALID;
             return;
         }
+        free(namestr);
     }
     if (varvalue == NULL || varvalue[0] == L'\0') {
         value->type = VT_LONG;
