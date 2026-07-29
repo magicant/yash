@@ -163,14 +163,19 @@ bool is_pathname_matching_pattern(const wchar_t *pat)
 {
     const wchar_t *p;
 
+    xwcsbuf_T buf;
+    wb_init(&buf);
+
     while ((p = wcschr(pat, L'/')) != NULL) {
-        wchar_t buf[p - pat + 1];
-        wmemcpy(buf, pat, p - pat);
-        buf[p - pat] = L'\0';
-        if (is_matching_pattern(buf))
+        wb_clear(&buf);
+        wb_ncat(&buf, pat, p - pat);
+        if (is_matching_pattern(buf.contents)) {
+            wb_destroy(&buf);
             return true;
+        }
         pat = &p[1];
     }
+    wb_destroy(&buf);
     return is_matching_pattern(pat);
 }
 
