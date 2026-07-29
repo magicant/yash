@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* parser.c: syntax parser */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -883,10 +883,9 @@ void print_errmsg_token(parsestate_T *ps, const char *message)
     assert(ps->index <= ps->next_index);
     assert(ps->next_index <= ps->src.length);
     size_t length = ps->next_index - ps->index;
-    wchar_t token[length + 1];
-    wcsncpy(token, &ps->src.contents[ps->index], length);
-    token[length] = L'\0';
+    wchar_t *token = xwcsndup(&ps->src.contents[ps->index], length);
     serror(ps, message, token);
+    free(token);
 }
 
 const char *get_errmsg_unexpected_tokentype(tokentype_T tokentype)
