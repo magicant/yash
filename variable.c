@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.c: deals with shell variables and parameters */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2161,10 +2161,7 @@ void array_remove_elements(
         const wchar_t *name, variable_T *array, size_t count,
         void *const *indexwcss)
 {
-    size_t extended_count = count;
-    if (extended_count == 0)
-        extended_count = 1; // A variable-length array must not be empty.
-    long indices[extended_count];
+    long *indices = xmallocn(count, sizeof *indices);
 
     assert((array->v_type & VF_MASK) == VF_ARRAY);
 
@@ -2173,6 +2170,7 @@ void array_remove_elements(
         const wchar_t *indexwcs = indexwcss[i];
         if (!xwcstol(indexwcs, 10, &indices[i])) {
             xerror(errno, Ngt("`%ls' is not a valid integer"), indexwcs);
+            free(indices);
             return;
         }
 
@@ -2210,6 +2208,7 @@ void array_remove_elements(
     }
     array->v_valc = newcount;
     array->v_vals[newcount] = NULL;
+    free(indices);
 
     if (newcount < oldcount) {
         variable_set(name, array);
