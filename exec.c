@@ -1168,7 +1168,7 @@ void exec_fall_back_on_sh(
 {
     assert(argv[argc] == NULL);
 
-    char *args[argc + 3];
+    char **args = xmalloce(argc, 3, sizeof *args);
     size_t index = 0;
     args[index++] = "sh";
     args[index++] = (char *) "-";
@@ -1196,6 +1196,7 @@ void exec_fall_back_on_sh(
         xexecve(shpath, args, envp);
     else
         errno = ENOENT;
+    free(args);
     xerror(errno, Ngt("cannot invoke a new shell to execute script `%s'"),
             argv[0]);
 }
