@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* arith.c: arithmetic expansion */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -287,10 +287,10 @@ bool do_assignment(const word_T *word, const value_T *value)
     if (vstr == NULL)
         return false;
 
-    wchar_t name[word->length + 1];
-    wmemcpy(name, word->contents, word->length);
-    name[word->length] = L'\0';
-    return set_variable(name, vstr, SCOPE_GLOBAL, false);
+    wchar_t *name = xwcsndup(word->contents, word->length);
+    bool ok = set_variable(name, vstr, SCOPE_GLOBAL, false);
+    free(name);
+    return ok;
 }
 
 /* Converts `value' to a newly-malloced wide string.
