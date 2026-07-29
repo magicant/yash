@@ -283,22 +283,25 @@ char *which(
         return NULL;
 
     size_t namelen = strlen(name);
+    xstrbuf_T path;
+    sb_init(&path);
     for (const char *dir; (dir = *dirs) != NULL; dirs++) {
         size_t dirlen = strlen(dir);
-        char path[dirlen + namelen + 3];
+        sb_clear(&path);
         if (dirlen > 0) {
             /* concatenate `dir' and `name' to produce a pathname `path' */
-            strcpy(path, dir);
-            if (path[dirlen - 1] != '/')
-                path[dirlen++] = '/';
-            strcpy(path + dirlen, name);
+            sb_ncat_force(&path, dir, dirlen);
+            if (path.contents[dirlen - 1] != '/')
+                sb_ccat(&path, '/');
+            sb_ncat_force(&path, name, namelen);
         } else {
             /* if `dir' is empty, it's considered to be the current directory */
-            strcpy(path, name);
+            sb_ncat_force(&path, name, namelen);
         }
-        if (cond(path))
-            return xstrdup(path);
+        if (cond(path.contents))
+            return sb_tostr(&path);
     }
+    sb_destroy(&path);
     return NULL;
 }
 
