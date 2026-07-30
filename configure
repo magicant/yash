@@ -537,11 +537,9 @@ checking 'additional option to compile C99 code'
 cat >"${tempsrc}" <<END
 int main(int argc, char **argv) {
 if (argc == 0) return 0;
-int vla[argc];
-vla[0] = 42;
 // one-line comment
 struct s { int v; } i = { .v = argv[0][0] };
-return vla[0] + i.v;
+return i.v;
 }
 END
 if
