@@ -145,7 +145,7 @@ Make font color or background brighter
 +s+:: Make font standout
 +u+:: Make font underlined
 +v+:: Make font and background colors reversed
-+b+:: Make font blink
++n+:: Make font blink
 +i+:: Make font dim
 +o+:: Make font bold
 +x+:: Make font invisible
