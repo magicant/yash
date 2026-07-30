@@ -29,6 +29,43 @@
    fun:getpwnam_r@@GLIBC_2.2.5
 }
 {
+   Memcheck:Leak:wargv_element
+   Memcheck:Leak
+   match-leak-kinds: definite,possible
+   fun:malloc
+   fun:xmalloc
+   fun:xmallocn
+   fun:xmalloce
+   fun:wb_initwithmax
+   fun:wb_init
+   fun:malloc_mbstowcs
+   fun:main
+}
+{
+   Memcheck:Leak:wargv_element_reallocated
+   Memcheck:Leak
+   match-leak-kinds: definite,possible
+   fun:realloc
+   fun:xrealloc
+   fun:xreallocn
+   fun:xrealloce
+   fun:wb_setmax
+   fun:wb_ensuremax
+   fun:wb_mbscat
+   fun:malloc_mbstowcs
+   fun:main
+}
+{
+   Memcheck:Leak:wargv
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:xmalloc
+   fun:xmallocn
+   fun:xmalloce
+   fun:main
+}
+{
    Memcheck:Leak:open_redirections
    Memcheck:Leak
    match-leak-kinds: definite
