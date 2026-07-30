@@ -164,7 +164,7 @@ bool check_access(const char *path, mode_t mode, int amode)
         gcount = getgroups(gcount, groups);
         if (gcount > 0) {
             for (int i = 0; i < gcount; i++) {
-                if (gid == groups[i]) {
+                if (groups[i] == st.st_gid) {
                     free(groups);
                     return st.st_mode & S_IRWXG;
                 }

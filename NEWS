@@ -6,6 +6,9 @@
     empty pattern is now matched and replaced like any other match.
     This allows `${var/#/prefix}` and `${var/%/suffix}` to prefix and
     suffix the value, respectively.
+  - Fixed a bug where file access checks could ignore permissions
+    granted through supplementary group membership on systems without
+    working `faccessat` or `eaccess` support.
   - [line-editing] Updated the completion script for tar to support GNU
     tar 1.35 and libarchive (bsdtar) 3.8.7.
   - Updated the sample initialization script (yashrc):
