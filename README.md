@@ -135,8 +135,9 @@ Comments, suggestions, and bug reports are welcome at:
  * [Issue tracking system](https://github.com/magicant/yash/issues)
  * [Discussion forum](https://github.com/magicant/yash/discussions)
 
-If you are interested in translation, please refer to
-[TRANSLATING.md](TRANSLATING.md).
+If you are interested in translation, please refer to the
+"Translating Messages Printed by Yash" section in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ----------------------
