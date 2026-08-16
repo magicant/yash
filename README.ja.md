@@ -139,8 +139,8 @@ share/initialization/sample) ファイルを参考に自分用の `~/.yashrc`
  * [課題管理システム](https://github.com/magicant/yash/issues)
  * [掲示板](https://github.com/magicant/yash/discussions)
 
-翻訳に興味がおありの場合は
-[TRANSLATING.md](TRANSLATING.md) をご覧ください
+翻訳に興味がおありの場合は[CONTRIBUTING.md](CONTRIBUTING.md)の
+「Translating Messages Printed by Yash」の節をご覧ください
 
 
 ----------------------
