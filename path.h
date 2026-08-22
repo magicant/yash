@@ -74,7 +74,6 @@ extern void init_cmdhash(void);
 extern void clear_cmdhash(void);
 extern const char *get_command_path(const char *name, _Bool forcelookup)
     __attribute__((nonnull));
-extern void fill_cmdhash(const char *prefix, _Bool ignorecase);
 extern const char *get_command_path_default(const char *name)
     __attribute__((nonnull));
 

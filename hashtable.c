@@ -392,6 +392,8 @@ int htwcscmp(const void *s1, const void *s2)
     return wcscmp((const wchar_t *) s1, (const wchar_t *) s2);
 }
 
+#if 0
+
 /* A comparison function for key-value pairs with multibyte-string keys.
  * The arguments are pointers to kvpair_T's (const kvpair_T *) whose keys are
  * multibyte strings. */
@@ -399,6 +401,8 @@ int keystrcoll(const void *k1, const void *k2)
 {
     return strcoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
 }
+
+#endif
 
 /* A comparison function for key-value pairs with wide-string keys.
  * The arguments are pointers to kvpair_T's (const kvpair_T *) whose keys are
@@ -408,12 +412,16 @@ int keywcscoll(const void *k1, const void *k2)
     return wcscoll(((const kvpair_T *) k1)->key, ((const kvpair_T *) k2)->key);
 }
 
+#if 0
+
 /* `Free's the key of the specified key-value pair.
  * Can be used as the freer function to `ht_clear'. */
 void kfree(kvpair_T kv)
 {
     free(kv.key);
 }
+
+#endif
 
 /* `Free's the value of the specified key-value pair.
  * Can be used as the freer function to `ht_clear'. */
@@ -422,6 +430,8 @@ void vfree(kvpair_T kv)
     free(kv.value);
 }
 
+#if 0
+
 /* `Free's the key and the value of the specified key-value pair.
  * Can be used as the freer function to `ht_clear'. */
 void kvfree(kvpair_T kv)
@@ -429,6 +439,8 @@ void kvfree(kvpair_T kv)
     free(kv.key);
     free(kv.value);
 }
+
+#endif
 
 
 #if DEBUG_HASH

@@ -73,7 +73,6 @@ extern void set_active_job(job_T *job)
     __attribute__((nonnull));
 extern size_t add_job(_Bool current);
 extern void remove_job(size_t jobnumber);
-extern void remove_job_nofitying_signal(size_t jobnumber);
 extern void remove_all_jobs(void);
 extern void neglect_all_jobs(void);
 extern size_t job_count(void)
