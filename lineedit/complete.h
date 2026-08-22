@@ -200,8 +200,6 @@ extern void le_compdebug(const char *format, ...)
 
 extern void set_completion_variables(void);
 
-extern void le_new_command_candidate(wchar_t *cmdname)
-    __attribute__((nonnull));
 extern void le_new_candidate(le_candtype_T type,
         wchar_t *restrict value, wchar_t *restrict desc,
         const le_compopt_T *compopt)

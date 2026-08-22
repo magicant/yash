@@ -86,12 +86,16 @@ bool is_regular_file(const char *path)
     return (stat(path, &st) == 0) && S_ISREG(st.st_mode);
 }
 
+#if 0
+
 /* Checks if `path' is a non-regular file. */
 bool is_irregular_file(const char *path)
 {
     struct stat st;
     return (stat(path, &st) == 0) && !S_ISREG(st.st_mode);
 }
+
+#endif
 
 /* Checks if `path' is a readable file. */
 bool is_readable(const char *path)
