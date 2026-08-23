@@ -216,6 +216,10 @@
 #define Key_escape    Key_c_lb
 #define Key_backslash L"\\\\"   // must end with '\\'
 
+/* See https://www.xfree86.org/4.7.0/ctlseqs.html#Bracketed%20Paste%20Mode */
+#define Key_br_start L"\\^[[200~"
+#define Key_br_stop  L"\\^[[201~"
+
 #define META_BIT    0x80
 #define ESCAPE_CHAR '\33'
 

@@ -52,6 +52,10 @@ link:_set.html#so-lecompdebug[le-comp-debug]::
 When enabled, internal information is printed during
 <<completion,completion>>, which will help debugging completion scripts.
 
+link:_set.html#so-lebracketpaste[le-bracket-paste]::
+When enabled, instruct the terminal emulator to emit bracketed paste mode
+escape sequences. This allows detecting when the user is pasting to the shell.
+
 link:_set.html#so-leconvmeta[le-conv-meta]::
 When enabled, the 8th bit of each input byte is always treated as a meta-key
 flag, regardless of terminfo data.

@@ -37,6 +37,11 @@
 #include "util.h"
 #include "variable.h"
 
+/* Escape sequences which instruct the terminal emulator to inform us when
+ * input is pasted by the user to the terminal. These are required for the
+ * 'lebracketpaste' option. */
+#define BRACKETED_PASTE_INIT  "\033[?2004h"
+#define BRACKETED_PASTE_DENIT "\033[?2004l"
 
 /********** Option Definitions **********/
 
@@ -201,6 +206,8 @@ bool shopt_le_compdebug = false;
 /* If set, the right prompt will trim the extra space left at end for cursor
  * to sit if prompt is too large */
 bool shopt_le_trimright = false;
+/* If set, enable bracketed paste mode. */
+bool shopt_le_bracketed = false;
 #endif
 
 
@@ -241,6 +248,7 @@ static const struct option_T shell_options[] = {
 #if YASH_ENABLE_LINEEDIT
     { 0,    0,    L"lealwaysrp",     &shopt_le_alwaysrp,    true, },
     { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
+    { 0,    0,    L"lebracketpaste", &shopt_le_bracketed,   true, },
     { 0,    0,    L"leconvmeta",     &shopt_le_yesconvmeta, true, },
     { 0,    0,    L"lenoconvmeta",   &shopt_le_noconvmeta,  true, },
     { 0,    0,    L"lepredict",      &shopt_le_predict,     true, },
@@ -333,6 +341,7 @@ static int set_shell_option(const struct option_T *option, bool enable,
 #if YASH_ENABLE_LINEEDIT
 static void update_lineedit_option(void);
 static void update_le_convmeta_option(void);
+static void update_le_bracketed_option(void);
 #endif
 static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
         struct shell_invocation_T *shell_invocation)
@@ -703,6 +712,8 @@ int set_shell_option(const struct option_T *option, bool enable,
         if (enable)
             shopt_le_yesconvmeta = false;
         update_le_convmeta_option();
+    } else if (option->optp == &shopt_le_bracketed) {
+        update_le_bracketed_option();
     }
 #endif
 
@@ -734,6 +745,14 @@ void update_le_convmeta_option(void)
         shopt_le_convmeta = SHOPT_NO;
     else
         shopt_le_convmeta = SHOPT_AUTO;
+}
+
+void update_le_bracketed_option(void)
+{
+    const char *mode = (shopt_le_bracketed) ?
+        BRACKETED_PASTE_INIT : BRACKETED_PASTE_DENIT;
+    xprintf("%s", mode);
+    fflush(stdout);
 }
 
 #endif

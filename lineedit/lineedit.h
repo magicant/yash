@@ -52,6 +52,7 @@ extern void le_resume_readline(void);
 extern void le_display_size_changed(void);
 
 extern _Bool le_next_verbatim;
+extern _Bool le_bracketed_paste;
 
 extern void le_append_to_prebuffer(char *s)
     __attribute__((nonnull));

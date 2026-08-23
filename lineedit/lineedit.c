@@ -159,6 +159,8 @@ static mbstate_t reader_state;
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
+/* If true, the user is currently pasting to the shell (bracketed paste mode). */
+bool le_bracketed_paste = false;
 
 /* Initializes the state of the reader. */
 void reader_init(bool trap)
@@ -332,8 +334,19 @@ process_keymap:
             case TG_EXACTMATCH:
                 assert(tg.matchlength > 0);
                 c = reader_second_buffer.contents[tg.matchlength - 1];
-                le_invoke_command(tg.value.cmdfunc, c);
-                wb_remove(&reader_second_buffer, 0, tg.matchlength);
+                /* In bracketed paste mode only allow cmd_bracketed_paste_end
+                 * to quit this mode, ignore all other commands/keybindings. */
+                if (le_bracketed_paste && tg.value.cmdfunc != cmd_bracketed_paste_end) {
+                    assert(reader_second_buffer.length > 1);
+                    for (size_t i = 1; i < reader_second_buffer.length; i++) {
+                        le_invoke_command(le_current_mode->default_command,
+                                reader_second_buffer.contents[i]);
+                    }
+                    wb_clear(&reader_second_buffer);
+                } else {
+                    le_invoke_command(tg.value.cmdfunc, c);
+                    wb_remove(&reader_second_buffer, 0, tg.matchlength);
+                }
                 break;
             case TG_PREFIXMATCH:
             case TG_AMBIGUOUS:
