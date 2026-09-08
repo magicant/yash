@@ -191,7 +191,16 @@ static environ_T *current_env;
 static environ_T *first_env;
 
 /* whether $RANDOM is functioning as a random number */
-static bool random_active;
+static enum {
+    RANDOM_INACTIVE,       // $RANDOM is not functioning as a random number
+    RANDOM_SEEDED,         // $RANDOM is functioning as a random number
+    RANDOM_NEEDS_SEEDING,  // ditto, but needs to be seeded first
+} random_state = RANDOM_INACTIVE;
+/* When `random_state' is RANDOM_NEEDS_SEEDING, this value is the seed to be
+ * passed to `srand' before a next call to `rand'. */
+static unsigned pending_seed;
+/* a candidate for the next `pending_seed' value */
+static unsigned seed_candidate;
 
 /* hashtable from function names (wchar_t *) to functions (function_T *). */
 static hashtable_T functions;
@@ -334,10 +343,9 @@ void init_variables(void)
         v->v_type = VF_SCALAR;
         v->v_value = NULL;
         v->v_getter = random_getter;
-        random_active = true;
-        srand((unsigned) time(NULL) ^ (unsigned) shell_pid << 17);
-    } else {
-        random_active = false;
+        pending_seed = (unsigned) time(NULL) ^ (unsigned) shell_pid << 17;
+        seed_candidate = pending_seed;
+        random_state = RANDOM_NEEDS_SEEDING;
     }
 
     /* set $YASH_LOADPATH */
@@ -1054,9 +1062,50 @@ void random_getter(variable_T *var)
         update_environment(L VAR_RANDOM);
 }
 
+/* Reseeds the random number generator.
+ * This function is called in the subshell when a subshell is forked, and
+ * ensures the subshell yields different random numbers than the parent. */
+void request_reseed(void)
+{
+    if (random_state == RANDOM_INACTIVE)
+        return;
+
+    // To avoid reusing the same seed, we increment and mix the `seed_candidate'
+    // to generate a new seed. The mixing is done using the finalizer of
+    // MurmurHash3 by Austin Appleby, and makes the sequences generated in
+    // sibling subshells less correlated even if the `rand' implementation is
+    // based on a linear congruential generator.
+    seed_candidate++;
+    seed_candidate ^= (seed_candidate >> 16);
+    seed_candidate *= 0x85EBCA6Bu;
+    seed_candidate ^= (seed_candidate >> 13);
+    seed_candidate *= 0xC2B2AE35u;
+    seed_candidate ^= (seed_candidate >> 16);
+
+    // This function does not reseed immediately, but instead saves the new seed
+    // to `pending_seed'. The next call to `next_random' will do the actual
+    // reseeding. This is to avoid seeding the random number generator that is
+    // never used, which would only waste CPU cycles.
+    pending_seed = seed_candidate;
+    random_state = RANDOM_NEEDS_SEEDING;
+}
+
+/* Bumps the seed candidate of the random number generator.
+ * This function is called in the parent shell when a subshell is forked, and
+ * ensures the next subshell gets a different seed than the previous subshell.*/
+void bump_seed(void)
+{
+    seed_candidate += 0x9e3779b9u;  // golden ratio
+}
+
 /* Returns a random number between 0 and 32767 using `rand'. */
 unsigned next_random(void)
 {
+    if (random_state == RANDOM_NEEDS_SEEDING) {
+        srand(pending_seed);
+        random_state = RANDOM_SEEDED;
+    }
+
 #if (RAND_MAX & (RAND_MAX + 1u)) == 0u // RAND_MAX + 1 is a power of 2
     unsigned v = (unsigned) rand();
     return (v ^ (v >> 15)) & ((1u << 15) - 1u);
@@ -1100,16 +1149,17 @@ void variable_set(const wchar_t *name, variable_T *var)
         }
         break;
     case L'R':
-        if (random_active && wcscmp(name, L VAR_RANDOM) == 0) {
-            random_active = false;
+        if (random_state != RANDOM_INACTIVE &&
+                wcscmp(name, L VAR_RANDOM) == 0) {
+            random_state = RANDOM_INACTIVE;
             if (var != NULL
                     && (var->v_type & VF_MASK) == VF_SCALAR
                     && var->v_value != NULL) {
                 unsigned long seed;
                 if (xwcstoul(var->v_value, 0, &seed)) {
-                    srand((unsigned) seed);
+                    seed_candidate = pending_seed = (unsigned) seed;
+                    random_state = RANDOM_NEEDS_SEEDING;
                     var->v_getter = random_getter;
-                    random_active = true;
                 }
             }
         }

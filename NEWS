@@ -6,6 +6,8 @@
     empty pattern is now matched and replaced like any other match.
     This allows `${var/#/prefix}` and `${var/%/suffix}` to prefix and
     suffix the value, respectively.
+  - In different subshells, the `$RANDOM` variable now produces different
+    sequences of random numbers.
   - Fixed a bug where file access checks could ignore permissions
     granted through supplementary group membership on systems without
     working `faccessat` or `eaccess` support.
