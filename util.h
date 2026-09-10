@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.h: miscellaneous utility functions */
-/* (C) 2007-2021 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ int xunsetenv(const char *name)
     return 0;
 #endif
 }
+
+extern unsigned generate_seed(void);
 
 
 /********** Memory Functions **********/

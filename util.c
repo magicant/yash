@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.c: miscellaneous utility functions */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <wchar.h>
 #include "exec.h"
 #include "option.h"
 #include "plist.h"
+#include "yash.h"
+
+
+/********** Miscellaneous Functions **********/
+
+/* Returns a new seed value for the random number generator.
+ * This function uses the current time and `shell_pid` to generate it. */
+unsigned generate_seed(void)
+{
+    return (unsigned) time(NULL) ^ (unsigned) shell_pid << 17;
+}
 
 
 /********** Memory Utilities **********/

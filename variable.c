@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -343,8 +342,7 @@ void init_variables(void)
         v->v_type = VF_SCALAR;
         v->v_value = NULL;
         v->v_getter = random_getter;
-        pending_seed = (unsigned) time(NULL) ^ (unsigned) shell_pid << 17;
-        seed_candidate = pending_seed;
+        seed_candidate = pending_seed = generate_seed();
         random_state = RANDOM_NEEDS_SEEDING;
     }
 
