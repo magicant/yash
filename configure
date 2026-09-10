@@ -1296,6 +1296,50 @@ then
     defconfigh "HAVE___ST_MTIMENSEC"
 fi
 
+# check if clock_gettime and CLOCK_REALTIME are available
+checking 'for clock_gettime and CLOCK_REALTIME'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <time.h>
+#ifndef clock_gettime
+int clock_gettime(clockid_t, struct timespec*);
+#endif
+int main(void) {
+struct timespec ts;
+return clock_gettime(CLOCK_REALTIME, &ts) != 0;
+}
+END
+if
+    trycompile
+then
+    if
+        trylink
+    then
+        checked "yes"
+    elif
+        [ x"${LDLIBS+set}" != x"set" ]
+    then
+        saveldlibs="${ldlibs}"
+        ldlibs="${ldlibs} -lrt"
+        if
+            trylink
+        then
+            checked "with -lrt"
+        else
+            ldlibs="${saveldlibs}"
+        fi
+        unset saveldlibs
+    fi
+fi
+case "${checkresult}" in
+yes|with*)
+    defconfigh "HAVE_CLOCK_GETTIME"
+    ;;
+no)
+    checked "no"
+    ;;
+esac
+
 # check if WCONTINUED and WIFCONTINUED are available
 checking 'for WCONTINUED and WIFCONTINUED'
 cat >"${tempsrc}" <<END
