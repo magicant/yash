@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -327,16 +326,14 @@ int create_temporary_file(
         char **restrict filename, const char *restrict suffix, mode_t mode)
 {
     static uintmax_t num = 0;
-    uintmax_t n;
+    uintmax_t salt = 0;
     int fd;
     xstrbuf_T buf;
 
-    n = (uintmax_t) shell_pid * 272229637312669;
     if (num == 0)
-        num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
+        num = generate_seed();
     sb_initwithmax(&buf, 31);
     for (int i = 0; i < 100; i++) {
-        num = (num ^ n) * 16777619;
         sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
 
         size_t maxlen = _POSIX_NAME_MAX + 5 - strlen(suffix);
@@ -355,6 +352,19 @@ int create_temporary_file(
             return -1;
         }
         sb_clear(&buf);
+
+        if (salt == 0) {
+            // `shell_pid' is not used here because it is shared with other
+            // subshells and likely to reproduce the same `num' sequence.
+            salt = getpid();
+            salt = (salt << 32) | (salt << 1) | 1;
+        }
+        num = (num + salt) * 0x7CAE426B83F591DU;
+        // `num' is rotated only after each failed attempt. Another call to
+        // `create_temporary_file' will use the same `num' value as the last
+        // call and will produce the same filename. This is not a problem
+        // because the file is usually deleted so soon that the next call will
+        // not find it.
     }
     sb_destroy(&buf);
     errno = EAGAIN;
