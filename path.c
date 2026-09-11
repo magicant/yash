@@ -33,6 +33,7 @@
 #endif
 #include <pwd.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -326,13 +327,19 @@ int create_temporary_file(
         char **restrict filename, const char *restrict suffix, mode_t mode)
 {
     static uintmax_t num = 0;
-    uintmax_t salt = 0;
+    uintmax_t salt; // should be odd for maximal period of `num' sequence
     int fd;
     xstrbuf_T buf;
 
     if (num == 0)
         num = generate_seed();
     sb_initwithmax(&buf, 31);
+#ifdef UINTPTR_MAX
+    salt = (uintptr_t) (void *) buf.contents;
+    salt = ((salt << 32) ^ (salt >> 31)) | 1;
+#else
+    salt = 1;
+#endif
     for (int i = 0; i < 100; i++) {
         sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
 
@@ -353,11 +360,11 @@ int create_temporary_file(
         }
         sb_clear(&buf);
 
-        if (salt == 0) {
+        if (i == 0) {
             // `shell_pid' is not used here because it is shared with other
             // subshells and likely to reproduce the same `num' sequence.
-            salt = getpid();
-            salt = (salt << 32) | (salt << 1) | 1;
+            uintmax_t pid = getpid();
+            salt ^= (pid << 32) ^ (pid << 1);
         }
         num = (num + salt) * 0x7CAE426B83F591DU;
         // `num' is rotated only after each failed attempt. Another call to
