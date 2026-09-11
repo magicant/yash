@@ -1296,6 +1296,26 @@ then
     defconfigh "HAVE___ST_MTIMENSEC"
 fi
 
+# check if getentropy is available
+checking 'for getentropy'
+cat >"${tempsrc}" <<END
+${confighdefs}
+#include <unistd.h>
+#ifndef getentropy
+int getentropy(void*, size_t);
+#endif
+int main(void) {
+char buf[1];
+return getentropy(buf, sizeof buf) != 0;
+}
+END
+trymake && tryexec
+checked
+if [ x"${checkresult}" = x"yes" ]
+then
+    defconfigh "HAVE_GETENTROPY"
+fi
+
 # check if clock_gettime and CLOCK_REALTIME are available
 checking 'for clock_gettime and CLOCK_REALTIME'
 cat >"${tempsrc}" <<END

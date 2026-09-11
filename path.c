@@ -67,6 +67,12 @@ extern int eaccess(const char *path, int amode)
     __attribute__((nonnull));
 # endif
 #endif
+#if HAVE_GETENTROPY
+# ifndef getentropy
+extern int getentropy(void *buffer, size_t length)
+    __attribute__((nonnull));
+# endif
+#endif
 
 static bool check_access(const char *path, mode_t mode, int amode)
     __attribute__((nonnull));
@@ -365,8 +371,23 @@ int create_temporary_file(
             // subshells and likely to reproduce the same `num' sequence.
             uintmax_t pid = getpid();
             salt ^= (pid << 32) ^ (pid << 1);
+        } else if (i == 8) {
+#if HAVE_GETENTROPY
+            // We've already failed 8 times after mixing the pid into the salt.
+            // Someone may be maliciously trying to guess the filename. Let's
+            // use a random salt.
+            unsigned char v[8];
+            if (getentropy(v, sizeof v) == 0) {
+                salt = 0;
+                for (size_t j = 0; j < sizeof v; j++)
+                    salt = (salt << 8) | v[j];
+                salt |= 1; // should be odd for maximal period of `num' sequence
+            }
+#endif
         }
-        num = (num + salt) * 0x7CAE426B83F591DU;
+        // keep `num' in the range of 0..2^64-1 for better randomness of the
+        // most significant bits that are used to generate the filename
+        num = ((num + salt) * 0x7CAE426B83F591DU) & 0xFFFFFFFFFFFFFFFFU;
         // `num' is rotated only after each failed attempt. Another call to
         // `create_temporary_file' will use the same `num' value as the last
         // call and will produce the same filename. This is not a problem
