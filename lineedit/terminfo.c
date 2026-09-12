@@ -56,6 +56,9 @@
 
 /********** TERMINFO **********/
 
+/* TODO: Obtain these sequences from terminfo. */
+#define BRACKETED_PASTE_INIT  "\033[?2004h"
+#define BRACKETED_PASTE_DENIT "\033[?2004l"
 
 /* terminfo capabilities */
 #define TI_am      "am"
@@ -958,6 +961,24 @@ _Bool le_allow_terminal_signal(_Bool allow)
     struct termios term = original_terminal_state;
     to_raw_mode(&term, allow);
     return xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) == 0;
+}
+
+/* If `enable` is true, instructs the terminal emulator to start sending special
+ * escape sequences when pasting from the clipboard. Otherwise, the emulator is
+ * instructed to stop sending such sequences.
+ * If `le_conf_bracketed_paste` is not set, this function is a no-op.
+ * The return value indicates if the operation was succesfull. */
+_Bool le_set_bracketed(_Bool enable)
+{
+    if (!le_conf_bracketed_paste)
+        return true;
+
+    const char *mode = (enable) ?
+        BRACKETED_PASTE_INIT : BRACKETED_PASTE_DENIT;
+
+    if (!xprintf("%s", mode))
+        return false;
+    return fflush(stdout) == 0;
 }
 
 /* Modifies the specified termios structure into the "raw" mode values.

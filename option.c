@@ -36,12 +36,9 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-
-/* Escape sequences which instruct the terminal emulator to inform us when
- * input is pasted by the user to the terminal. These are required for the
- * 'lebracketpaste' option. */
-#define BRACKETED_PASTE_INIT  "\033[?2004h"
-#define BRACKETED_PASTE_DENIT "\033[?2004l"
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 /********** Option Definitions **********/
 
@@ -749,10 +746,7 @@ void update_le_convmeta_option(void)
 
 void update_le_bracketed_option(void)
 {
-    const char *mode = (shopt_le_bracketed) ?
-        BRACKETED_PASTE_INIT : BRACKETED_PASTE_DENIT;
-    xprintf("%s", mode);
-    fflush(stdout);
+    le_conf_bracketed_paste = shopt_le_bracketed;
 }
 
 #endif
