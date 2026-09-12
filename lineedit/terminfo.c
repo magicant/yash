@@ -56,15 +56,13 @@
 
 /********** TERMINFO **********/
 
-/* TODO: Obtain these sequences from terminfo. */
-#define BRACKETED_PASTE_INIT  "\033[?2004h"
-#define BRACKETED_PASTE_DENIT "\033[?2004l"
-
 /* terminfo capabilities */
 #define TI_am      "am"
 #define TI_bel     "bel"
 #define TI_blink   "blink"
 #define TI_bold    "bold"
+#define TI_brstart "BE"
+#define TI_brstop  "BD"
 #define TI_clear   "clear"
 #define TI_colors  "colors"
 #define TI_cols    "cols"
@@ -972,9 +970,11 @@ _Bool le_set_bracketed(_Bool enable)
 {
     if (!le_conf_bracketed_paste)
         return true;
+    const char *cap = (enable) ? TI_brstart : TI_brstop;
 
-    const char *mode = (enable) ?
-        BRACKETED_PASTE_INIT : BRACKETED_PASTE_DENIT;
+    char *mode = tigetstr(cap);
+    if (mode == (char *)-1)
+        return true; // assume bracketed paste is unsupported
 
     if (!xprintf("%s", mode))
         return false;
