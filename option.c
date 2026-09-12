@@ -244,8 +244,8 @@ static const struct option_T shell_options[] = {
     { L'i', 0,    L"interactive",    &is_interactive,       false, },
 #if YASH_ENABLE_LINEEDIT
     { 0,    0,    L"lealwaysrp",     &shopt_le_alwaysrp,    true, },
-    { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
     { 0,    0,    L"lebracketpaste", &shopt_le_bracketed,   true, },
+    { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
     { 0,    0,    L"leconvmeta",     &shopt_le_yesconvmeta, true, },
     { 0,    0,    L"lenoconvmeta",   &shopt_le_noconvmeta,  true, },
     { 0,    0,    L"lepredict",      &shopt_le_predict,     true, },
