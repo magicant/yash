@@ -71,7 +71,8 @@ inputresult_T le_readline(
     assert(le_state == LE_STATE_INACTIVE);
 
     if (!isatty(STDIN_FILENO) || !isatty(STDERR_FILENO)
-            || !le_setupterm(true) || !le_set_terminal())
+            || !le_set_bracketed(true) || !le_setupterm(true)
+            || !le_set_terminal())
         return INPUT_ERROR;
 
     le_state = LE_STATE_ACTIVE;
@@ -89,6 +90,7 @@ inputresult_T le_readline(
     reader_finalize();
     le_display_finalize();
     resultline = le_editing_finalize();
+    le_set_bracketed(false);
     le_restore_terminal();
     le_state = LE_STATE_INACTIVE;
 
@@ -115,6 +117,7 @@ void le_suspend_readline(void)
     if (le_state == LE_STATE_ACTIVE) {
         le_state = LE_STATE_SUSPENDED;
         le_display_clear(false);
+        le_set_bracketed(false);
         le_restore_terminal();
     }
 }
@@ -127,6 +130,7 @@ void le_resume_readline(void)
         le_state = LE_STATE_ACTIVE;
         le_setupterm(true);
         le_set_terminal();
+        le_set_bracketed(true);
         le_display_update(true);
         le_display_flush();
     }
@@ -159,6 +163,10 @@ static mbstate_t reader_state;
 static xwcsbuf_T reader_second_buffer;
 /* If true, next input will be inserted directly to the main buffer. */
 bool le_next_verbatim;
+/* If true, the user is currently pasting to the shell (bracketed paste mode). */
+bool le_pasted_input = false;
+/* TODO */
+bool le_conf_bracketed_paste = false;
 
 /* Initializes the state of the reader. */
 void reader_init(bool trap)
@@ -332,8 +340,19 @@ process_keymap:
             case TG_EXACTMATCH:
                 assert(tg.matchlength > 0);
                 c = reader_second_buffer.contents[tg.matchlength - 1];
-                le_invoke_command(tg.value.cmdfunc, c);
-                wb_remove(&reader_second_buffer, 0, tg.matchlength);
+                /* In bracketed paste mode only allow cmd_bracketed_paste_end
+                 * to quit this mode, ignore all other commands/keybindings. */
+                if (le_pasted_input && tg.value.cmdfunc != cmd_bracketed_paste_end) {
+                    assert(reader_second_buffer.length > 1);
+                    for (size_t i = 1; i < reader_second_buffer.length; i++) {
+                        le_invoke_command(le_current_mode->default_command,
+                                reader_second_buffer.contents[i]);
+                    }
+                    wb_clear(&reader_second_buffer);
+                } else {
+                    le_invoke_command(tg.value.cmdfunc, c);
+                    wb_remove(&reader_second_buffer, 0, tg.matchlength);
+                }
                 break;
             case TG_PREFIXMATCH:
             case TG_AMBIGUOUS:

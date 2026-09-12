@@ -51,7 +51,12 @@ extern void le_suspend_readline(void);
 extern void le_resume_readline(void);
 extern void le_display_size_changed(void);
 
+/* If this configuration option is enabled, the terminal emulator
+ * is instructed to send escape sequences to indicate pasting. */
+extern _Bool le_conf_bracketed_paste;
+
 extern _Bool le_next_verbatim;
+extern _Bool le_pasted_input; // requires `le_conf_bracketed_paste`
 
 extern void le_append_to_prebuffer(char *s)
     __attribute__((nonnull));

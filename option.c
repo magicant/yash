@@ -36,7 +36,9 @@
 #include "strbuf.h"
 #include "util.h"
 #include "variable.h"
-
+#if YASH_ENABLE_LINEEDIT
+# include "lineedit/lineedit.h"
+#endif
 
 /********** Option Definitions **********/
 
@@ -201,6 +203,8 @@ bool shopt_le_compdebug = false;
 /* If set, the right prompt will trim the extra space left at end for cursor
  * to sit if prompt is too large */
 bool shopt_le_trimright = false;
+/* If set, enable bracketed paste mode. */
+bool shopt_le_bracketed = false;
 #endif
 
 
@@ -240,6 +244,7 @@ static const struct option_T shell_options[] = {
     { L'i', 0,    L"interactive",    &is_interactive,       false, },
 #if YASH_ENABLE_LINEEDIT
     { 0,    0,    L"lealwaysrp",     &shopt_le_alwaysrp,    true, },
+    { 0,    0,    L"lebracketpaste", &shopt_le_bracketed,   true, },
     { 0,    0,    L"lecompdebug",    &shopt_le_compdebug,   true, },
     { 0,    0,    L"leconvmeta",     &shopt_le_yesconvmeta, true, },
     { 0,    0,    L"lenoconvmeta",   &shopt_le_noconvmeta,  true, },
@@ -333,6 +338,7 @@ static int set_shell_option(const struct option_T *option, bool enable,
 #if YASH_ENABLE_LINEEDIT
 static void update_lineedit_option(void);
 static void update_le_convmeta_option(void);
+static void update_le_bracketed_option(void);
 #endif
 static int set_normal_option(const struct xgetopt_T *opt, const wchar_t *arg,
         struct shell_invocation_T *shell_invocation)
@@ -703,6 +709,8 @@ int set_shell_option(const struct option_T *option, bool enable,
         if (enable)
             shopt_le_yesconvmeta = false;
         update_le_convmeta_option();
+    } else if (option->optp == &shopt_le_bracketed) {
+        update_le_bracketed_option();
     }
 #endif
 
@@ -734,6 +742,11 @@ void update_le_convmeta_option(void)
         shopt_le_convmeta = SHOPT_NO;
     else
         shopt_le_convmeta = SHOPT_AUTO;
+}
+
+void update_le_bracketed_option(void)
+{
+    le_conf_bracketed_paste = shopt_le_bracketed;
 }
 
 #endif

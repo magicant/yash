@@ -70,6 +70,7 @@ extern _Bool le_set_terminal(void);
 extern _Bool le_save_terminal(void);
 extern _Bool le_restore_terminal(void);
 extern _Bool le_allow_terminal_signal(_Bool allow);
+extern _Bool le_set_bracketed(_Bool enable);
 
 
 #endif /* YASH_TERMINFO_H */

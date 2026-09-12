@@ -990,6 +990,14 @@ void cmd_setmode_emacs(wchar_t c __attribute__((unused)))
     set_mode(LE_MODE_EMACS, false);
 }
 
+void cmd_bracketed_paste_start(wchar_t c __attribute__((unused))) {
+    le_pasted_input = true;
+}
+
+void cmd_bracketed_paste_end(wchar_t c __attribute__((unused))) {
+    le_pasted_input = false;
+}
+
 /* Changes the editing mode to the specified one. */
 void set_mode(le_mode_id_T newmode, bool overwrite)
 {
