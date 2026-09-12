@@ -33,11 +33,11 @@
 #endif
 #include <pwd.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -64,6 +64,12 @@ extern int faccessat(int fd, const char *path, int amode, int flags)
 #elif HAVE_EACCESS
 # ifndef eaccess
 extern int eaccess(const char *path, int amode)
+    __attribute__((nonnull));
+# endif
+#endif
+#if HAVE_GETENTROPY
+# ifndef getentropy
+extern int getentropy(void *buffer, size_t length)
     __attribute__((nonnull));
 # endif
 #endif
@@ -327,16 +333,20 @@ int create_temporary_file(
         char **restrict filename, const char *restrict suffix, mode_t mode)
 {
     static uintmax_t num = 0;
-    uintmax_t n;
+    uintmax_t salt; // should be odd for maximal period of `num' sequence
     int fd;
     xstrbuf_T buf;
 
-    n = (uintmax_t) shell_pid * 272229637312669;
     if (num == 0)
-        num = (uintmax_t) time(NULL) * 5131212142718371 << 1 | 1;
+        num = generate_seed();
     sb_initwithmax(&buf, 31);
+#ifdef UINTPTR_MAX
+    salt = (uintptr_t) (void *) buf.contents;
+    salt = ((salt << 32) ^ (salt >> 31)) | 1;
+#else
+    salt = 1;
+#endif
     for (int i = 0; i < 100; i++) {
-        num = (num ^ n) * 16777619;
         sb_printf(&buf, "/tmp/yash-%" PRIXMAX, num);
 
         size_t maxlen = _POSIX_NAME_MAX + 5 - strlen(suffix);
@@ -355,6 +365,34 @@ int create_temporary_file(
             return -1;
         }
         sb_clear(&buf);
+
+        if (i == 0) {
+            // `shell_pid' is not used here because it is shared with other
+            // subshells and likely to reproduce the same `num' sequence.
+            uintmax_t pid = getpid();
+            salt ^= (pid << 32) ^ (pid << 1);
+        } else if (i == 8) {
+#if HAVE_GETENTROPY
+            // We've already failed 8 times after mixing the pid into the salt.
+            // Someone may be maliciously trying to guess the filename. Let's
+            // use a random salt.
+            unsigned char v[8];
+            if (getentropy(v, sizeof v) == 0) {
+                salt = 0;
+                for (size_t j = 0; j < sizeof v; j++)
+                    salt = (salt << 8) | v[j];
+                salt |= 1; // should be odd for maximal period of `num' sequence
+            }
+#endif
+        }
+        // keep `num' in the range of 0..2^64-1 for better randomness of the
+        // most significant bits that are used to generate the filename
+        num = ((num + salt) * 0x7CAE426B83F591DU) & 0xFFFFFFFFFFFFFFFFU;
+        // `num' is rotated only after each failed attempt. Another call to
+        // `create_temporary_file' will use the same `num' value as the last
+        // call and will produce the same filename. This is not a problem
+        // because the file is usually deleted so soon that the next call will
+        // not find it.
     }
     sb_destroy(&buf);
     errno = EAGAIN;

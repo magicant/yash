@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* variable.h: deals with shell variables and parameters */
-/* (C) 2007-2025 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -126,6 +126,8 @@ extern void open_new_environment(_Bool temp);
 extern void close_current_environment(void);
 
 extern void update_lineno(unsigned long lineno);
+extern void request_reseed(void);
+extern void bump_seed(void);
 
 extern char **decompose_paths(const wchar_t *paths)
     __attribute__((malloc,warn_unused_result));

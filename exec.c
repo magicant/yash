@@ -1575,6 +1575,7 @@ pid_t fork_and_reset(pid_t pgid, bool fg, sigtype_T sigtype)
             xerror(errno, Ngt("cannot make a child process"));
         } else {
             /* parent process */
+            bump_seed();
             if (doing_job_control_now && pgid >= 0)
                 setpgid(cpid, pgid);
         }
@@ -1622,6 +1623,7 @@ void become_child(sigtype_T sigtype)
     is_subshell = true;
     suppresserrreturn = false;
     savelaststatus = exitstatus = -1;
+    request_reseed();
 }
 
 /* Executes the command substitution and returns the string to substitute with.

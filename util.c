@@ -1,6 +1,6 @@
 /* Yash: yet another shell */
 /* util.c: miscellaneous utility functions */
-/* (C) 2007-2012 magicant */
+/* (C) 2007-2026 magicant */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,13 +27,45 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <wchar.h>
 #include "exec.h"
 #include "option.h"
 #include "plist.h"
+#include "yash.h"
+
+#if HAVE_CLOCK_GETTIME
+# ifndef clock_gettime
+extern int clock_gettime(clockid_t, struct timespec *);
+# endif
+#endif
+
+
+/********** Miscellaneous Functions **********/
+
+/* Returns a new seed value for the random number generator.
+ * This function uses the current time and `shell_pid` to generate it. */
+unsigned generate_seed(void)
+{
+    uint_least64_t t;
+#if HAVE_CLOCK_GETTIME
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
+        t = (uint_least64_t) ts.tv_sec * 1000000000 + ts.tv_nsec;
+    else
+#endif
+        t = (uint_least64_t) time(NULL) * 1000000000;
+    t ^= (uint_least64_t) shell_pid * 0x7CAE426B83F591DU;
+    t ^= t >> 32;
+#if UINT_MAX < 0xFFFFFFFF
+    t ^= t >> 16;
+#endif
+    return (unsigned) t;
+}
 
 
 /********** Memory Utilities **********/
