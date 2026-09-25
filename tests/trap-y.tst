@@ -154,6 +154,25 @@ __IN__
 trapped
 __OUT__
 
+test_oE -e 0 'signal name is case-insensitive with SIG-prefix'
+trap 'echo trapped' sigusr1 && kill -s USR1 $$
+__IN__
+trapped
+__OUT__
+
+test_oE -e 0 'EXIT is case-insensitive'
+trap 'echo exiting' exit
+__IN__
+exiting
+__OUT__
+
+test_oE -e 0 'printing trap specified with non-canonical name'
+trap 'echo X' sigusr1
+trap -p Usr1
+__IN__
+trap -- 'echo X' USR1
+__OUT__
+
 test_oE 'return interrupts trap (but not function outside trap)'
 trap 'return; echo not reached' USR1
 func() {
@@ -185,6 +204,15 @@ __ERR__
 #'
 #`
 
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+trap --print
+__IN__
+
+)
+
 test_Oe -e 2 'missing operand'
 trap -
 __IN__
@@ -199,6 +227,10 @@ __ERR__
 #'
 #`
 
+test_O -d -e 1 'SIG-prefix not allowed for EXIT'
+trap - SIGEXIT
+__IN__
+
 test_Oe -e 1 'invalid signal number'
 trap -- - -1
 __IN__
@@ -206,6 +238,18 @@ trap: no such signal `-1'
 __ERR__
 #'
 #`
+
+test_O -d -e 1 'signal number with a plus sign rejected'
+trap -- - +1
+__IN__
+
+test_O -d -e 1 'zero with a plus sign rejected as a condition'
+trap -- - +0
+__IN__
+
+test_O -d -e 1 'zero with a minus sign rejected as a condition'
+trap -- - -0
+__IN__
 
 test_O -d -e 1 'printing to closed stream: printing all traps (w/o -p)'
 trap '' USR1

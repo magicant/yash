@@ -228,4 +228,8 @@ __ERR__
 #'
 #`
 
+test_OE -e 0 'a name same as a special built-in is accepted (non-POSIX)'
+break() { :; }
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

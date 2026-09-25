@@ -78,4 +78,13 @@ test_O -d -e 1 'printing to closed stream'
 umask >&-
 __IN__
 
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+umask --symbolic
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

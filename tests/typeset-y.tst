@@ -564,4 +564,8 @@ PATH=$PWD:$PATH
 typeset --help
 __IN__
 
+test_OE -e 0 'typeset accepts non-portable variable name'
+typeset foo-bar=1
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

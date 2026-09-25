@@ -128,4 +128,8 @@ __IN__
 
 )
 
+test_O -d -e 127 'a command name ending with a colon is parsed'
+foo:
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

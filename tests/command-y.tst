@@ -51,6 +51,11 @@ command: no such command `cat'
 __ERR__
 #`
 
+test_O -d -e 127 'executing substitutive built-in missing in $PATH'
+PATH=
+command false
+__IN__
+
 test_oE -e 0 'describing alias (-V)'
 alias a='foo'
 command -V a
@@ -336,8 +341,21 @@ command: `--no-such-option' is not a valid option
 __ERR__
 #`
 
+(
+posix="true"
+
+test_O -d -e n 'long option name rejected (POSIX)'
+command --identify :
+__IN__
+
+)
+
 test_OE -e 0 'missing operand (non-POSIX)'
 command
+__IN__
+
+test_OE -e 0 'command accepts -v and -V together (non-POSIX)'
+command -v -V : >/dev/null
 __IN__
 
 (

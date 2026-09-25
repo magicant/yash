@@ -160,4 +160,19 @@ __ERR__
 #'
 #`
 
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+f() { return --no-return 3; }
+f
+__IN__
+
+test_O -d -e 2 'short option name also rejected (POSIX)'
+f() { return -n 3; }
+f
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

@@ -74,4 +74,10 @@ __ERR__
 #'
 #`
 
+test_O -d -e 1 'ambiguous job ID reported as a runtime failure' -m
+trap 'kill -s KILL %1 %2' EXIT
+sleep 10 & sleep 11 &
+wait %sleep
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

@@ -24,11 +24,28 @@ __ERR__
 #'
 #`
 
+test_OE -e 0 'long option name accepted as an extension'
+ulimit --hard >/dev/null
+__IN__
+
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+ulimit --hard
+__IN__
+
+)
+
 test_Oe -e 2 'specifying -a and -f at once'
 ulimit -a -f
 __IN__
 ulimit: the -a option cannot be used with the -f option
 __ERR__
+
+test_OE -e 0 'grouped option letters accepted as an extension'
+ulimit -Sf >/dev/null
+__IN__
 
 test_Oe -e 2 'invalid operand (non-numeric)'
 ulimit X
@@ -53,6 +70,14 @@ ulimit: `-1' is not a valid integer
 __ERR__
 #'
 #`
+
+test_OE -e 0 'operand soft accepted as an extension'
+ulimit -S -f soft
+__IN__
+
+test_OE -e 0 'operand hard accepted as an extension'
+ulimit -S -f hard
+__IN__
 
 test_O -d -e 1 'printing to closed output stream'
 ulimit >&-

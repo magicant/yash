@@ -261,4 +261,65 @@ __ERR__
 #'
 #`
 
+(
+posix="true"
+
+test_O -d -e n 'making PWD read-only with a value is rejected (POSIX)'
+readonly PWD=/tmp
+echo not reached
+__IN__
+
+# The readonly built-in is a special built-in, so its error would terminate
+# the shell. The command built-in is used to keep the shell running and
+# observe what the rejected readonly built-in did.
+
+test_oE 'rejected readonly still assigns the value to PWD (POSIX)'
+command readonly PWD=/somewhere 2>/dev/null
+echo "status=$?"
+echo "PWD=$PWD"
+__IN__
+status=1
+PWD=/somewhere
+__OUT__
+
+test_oE 'rejected readonly leaves PWD writable (POSIX)'
+command readonly PWD=/somewhere 2>/dev/null
+PWD=/elsewhere
+echo "PWD=$PWD"
+__IN__
+PWD=/elsewhere
+__OUT__
+
+)
+
+test_OE -e 0 'readonly can make PWD read-only (non-POSIX)'
+readonly PWD
+__IN__
+
+test_OE -e 0 'readonly accepts non-portable variable name (non-POSIX)'
+readonly foo-bar=1
+__IN__
+
+(
+posix="true"
+
+test_O -d -e n 'readonly rejects long option name (POSIX)'
+readonly --print
+echo not reached
+__IN__
+
+test_O -d -e n 'readonly rejects abbreviated long option name (POSIX)'
+readonly --p
+echo not reached
+__IN__
+
+)
+
+test_oE -e 0 'readonly accepts long option name (non-POSIX)'
+readonly foo=bar
+readonly --print foo
+__IN__
+readonly foo=bar
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

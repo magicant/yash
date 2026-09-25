@@ -56,6 +56,10 @@ __ERR__
 #'
 #`
 
+test_OE -e 0 'getopts accepts non-portable variable name (non-POSIX)'
+getopts a foo-bar -a
+__IN__
+
 test_Oe -e 2 'unset OPTIND'
 unset OPTIND
 getopts a o -a

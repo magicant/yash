@@ -545,4 +545,22 @@ test_O -d -e 1 'printing to closed stream'
 set >&-
 __IN__
 
+(
+posix="true"
+
+test_O -d -e 2 'set built-in rejects long option (POSIX)'
+set --errexit
+__IN__
+
+test_O -d -e 2 'set built-in rejects ++ long option (POSIX)'
+set ++errexit
+__IN__
+
+)
+
+test_x -e 0 'set built-in accepts -o argument attached to the option name'
+set -oerrexit
+echo "$-" | grep -q e
+__IN__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

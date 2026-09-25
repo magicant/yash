@@ -1,5 +1,32 @@
 # startup-y.tst: yash-specific test of shell startup
 
+(
+posix="true"
+
+test_O -d -e 2 'shell invocation rejects ++ long option (POSIX)' ++allexport
+echo not reached
+__IN__
+
+test_O -d -e 2 'shell invocation rejects --help (POSIX)' --help
+echo not reached
+__IN__
+
+test_O -d -e 2 'shell invocation rejects --norcfile (POSIX)' --norcfile
+echo not reached
+__IN__
+
+)
+
+test_x -e 0 'shell invocation accepts ++ long option (non-POSIX)' -a ++allexport
+echo "$-" | grep -qv a
+__IN__
+
+test_oE -e 0 'shell invocation accepts +i (non-POSIX)' +i
+echo ok
+__IN__
+ok
+__OUT__
+
 test_oE -e 0 'negating -c and enabling -s' -c +c -s
 echo ok
 __IN__

@@ -32,4 +32,17 @@ __ERR__
 #'
 #`
 
+test_OE -e 3 'long option name accepted as an extension'
+exit --force 3
+__IN__
+
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+exit --force 3
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
