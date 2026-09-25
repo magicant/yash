@@ -72,9 +72,10 @@ __IN__
 __OUT__
 
 test_O -e 0 'bg prints resumed job' -m
-sleep 1&
+trap 'kill -s KILL %1' EXIT
+sleep 10&
 bg >bg.out
-grep -q '^\[[[:digit:]][[:digit:]]*][[:blank:]]*sleep 1' bg.out
+grep -q '^\[[[:digit:]][[:digit:]]*][[:blank:]]*sleep 10' bg.out
 __IN__
 
 test_O -e 17 'bg updates $!' -m

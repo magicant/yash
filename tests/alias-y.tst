@@ -258,6 +258,21 @@ unalias -a
 alias
 __IN__
 
+test_OE -e 0 'unalias long option name accepted as an extension'
+alias a='echo a'
+unalias --all
+alias
+__IN__
+
+(
+posix="true"
+
+test_O -d -e 2 'unalias long option name rejected (POSIX)'
+unalias --all
+__IN__
+
+)
+
 test_Oe -e n 'alias built-in invalid option'
 alias --no-such-option
 __IN__

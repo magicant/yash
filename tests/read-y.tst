@@ -245,6 +245,10 @@ __IN__
 readonly ''=foo
 __OUT__
 
+test_OE -e 0 'read accepts non-portable variable name (non-POSIX)'
+echo value | read foo-bar
+__IN__
+
 test_Oe -e 4 'invalid option'
 read --no-such-option foo
 __IN__
@@ -252,5 +256,18 @@ read: `--no-such-option' is not a valid option
 __ERR__
 #'
 #`
+
+(
+posix="true"
+
+test_O -d -e 4 'long option name rejected (POSIX)'
+echo value | read --raw-mode foo
+__IN__
+
+)
+
+test_OE -e 0 'attached short option argument accepted (non-POSIX)'
+printf 'value:rest\n' | read -d: foo
+__IN__
 
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

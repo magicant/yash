@@ -119,7 +119,7 @@ __OUT__
 mkdir extendedglob2
 cd extendedglob2
 mkdir -p a/a/a a/a/b a/b/a a/b/b b/a/a b/a/b b/b/a b/b/b
-for d in */*/*; do (cd -- "$d"; ln -s ../../.. a; ln -s ../../.. b) done
+for d in */*/*; do (cd -- "$d"; ln -s ../../.. a; ln -s ../../.. b); done
 )
 
 (

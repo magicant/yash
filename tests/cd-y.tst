@@ -192,6 +192,29 @@ __IN__
 cd: the -e option requires the -P option
 __ERR__
 
+test_O -e 0 'long option name accepted as an extension'
+cd --physical .
+__IN__
+
+(
+posix="true"
+
+test_O -d -e 5 'long option name rejected (POSIX)'
+cd --physical .
+__IN__
+
+)
+
+testcase "$LINENO" -e 0 'relative OLDPWD accepted as an extension' \
+    3<<'__IN__' 4<<__OUT__ 5</dev/null
+unset CDPATH
+OLDPWD=dir cd -
+pwd
+__IN__
+$ORIGPWD/dir
+$ORIGPWD/dir
+__OUT__
+
 test_O -e 0 'printing to closed stream'
 OLDPWD=/ cd - >&-
 __IN__

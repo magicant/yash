@@ -229,4 +229,13 @@ __ERR__
 #'
 #`
 
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+unset --variables foo
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

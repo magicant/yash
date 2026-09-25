@@ -219,6 +219,23 @@ __ERR__
 #'
 #`
 
+test_O -d -e 2 'SIG prefix in the obsolete syntax rejected (POSIX)' --posix
+kill -SIGCONT $$
+__IN__
+
+test_oE -e 0 'SIG prefix accepted in an operand to -l'
+kill -l SIGTERM
+__IN__
+TERM
+__OUT__
+
+test_oE -e 0 'signal name operand to -l matched case-insensitively'
+kill -l int sigQuit
+__IN__
+INT
+QUIT
+__OUT__
+
 (
 if ! testee --version --verbose | grep -Fqx ' * help'; then
     skip="true"

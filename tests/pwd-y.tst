@@ -18,4 +18,17 @@ test_O -d -e 1 'printing to closed stream'
 pwd >&-
 __IN__
 
+test_OE -e 0 'long option name accepted as an extension'
+pwd --physical >/dev/null
+__IN__
+
+(
+posix="true"
+
+test_O -d -e 2 'long option name rejected (POSIX)'
+pwd --physical >/dev/null
+__IN__
+
+)
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:

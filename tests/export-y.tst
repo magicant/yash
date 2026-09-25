@@ -112,4 +112,30 @@ __IN__
 export: no such variable $a
 __ERR__
 
+test_OE -e 0 'export accepts non-portable variable name (non-POSIX)'
+export foo-bar=1
+__IN__
+
+(
+posix="true"
+
+test_O -d -e n 'export rejects long option name (POSIX)'
+export --print
+echo not reached
+__IN__
+
+test_O -d -e n 'export rejects abbreviated long option name (POSIX)'
+export --p
+echo not reached
+__IN__
+
+)
+
+test_oE -e 0 'export accepts long option name (non-POSIX)'
+export foo=bar
+export --print foo
+__IN__
+export foo=bar
+__OUT__
+
 # vim: set ft=sh ts=8 sts=4 sw=4 et:
