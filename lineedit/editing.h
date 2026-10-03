@@ -69,6 +69,8 @@ extern le_command_func_T
     cmd_setmode_viinsert, /*C*/
     cmd_setmode_vicommand, /*C*/
     cmd_setmode_emacs, /*C*/
+    cmd_bracketed_paste_start, /*C*/
+    cmd_bracketed_paste_end, /*C*/
     cmd_expect_char, /*C*/
     cmd_abort_expect_char, /*C*/
     cmd_redraw_all, /*C*/

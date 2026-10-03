@@ -56,12 +56,13 @@
 
 /********** TERMINFO **********/
 
-
 /* terminfo capabilities */
 #define TI_am      "am"
 #define TI_bel     "bel"
 #define TI_blink   "blink"
 #define TI_bold    "bold"
+#define TI_brstart "BE"
+#define TI_brstop  "BD"
 #define TI_clear   "clear"
 #define TI_colors  "colors"
 #define TI_cols    "cols"
@@ -958,6 +959,26 @@ _Bool le_allow_terminal_signal(_Bool allow)
     struct termios term = original_terminal_state;
     to_raw_mode(&term, allow);
     return xtcsetattr(STDIN_FILENO, TCSADRAIN, &term) == 0;
+}
+
+/* If `enable` is true, instructs the terminal emulator to start sending special
+ * escape sequences when pasting from the clipboard. Otherwise, the emulator is
+ * instructed to stop sending such sequences.
+ * If `le_conf_bracketed_paste` is not set, this function is a no-op.
+ * The return value indicates if the operation was succesfull. */
+_Bool le_set_bracketed(_Bool enable)
+{
+    if (!le_conf_bracketed_paste)
+        return true;
+    const char *cap = (enable) ? TI_brstart : TI_brstop;
+
+    char *mode = tigetstr(cap);
+    if (mode == (char *)-1)
+        return true; // assume bracketed paste is unsupported
+
+    if (!xprintf("%s", mode))
+        return false;
+    return fflush(stdout) == 0;
 }
 
 /* Modifies the specified termios structure into the "raw" mode values.

@@ -98,6 +98,8 @@ void le_keymap_init(void)
     Set(Key_c_n,       cmd_next_history_eol);
     Set(Key_up,        cmd_prev_history_eol);
     Set(Key_c_p,       cmd_prev_history_eol);
+    Set(Key_br_start,  cmd_bracketed_paste_start);
+    Set(Key_br_stop,   cmd_bracketed_paste_end);
     le_modes[LE_MODE_VI_INSERT].keymap = t;
 
     le_modes[LE_MODE_VI_COMMAND].default_command = cmd_alert;
@@ -300,6 +302,8 @@ void le_keymap_init(void)
     Set(Key_c_n,            cmd_next_history_eol);
     Set(Key_up,             cmd_prev_history_eol);
     Set(Key_c_p,            cmd_prev_history_eol);
+    Set(Key_br_start,       cmd_bracketed_paste_start);
+    Set(Key_br_stop,        cmd_bracketed_paste_end);
     le_modes[LE_MODE_EMACS].keymap = t;
 
     le_modes[LE_MODE_EMACS_SEARCH].default_command = cmd_srch_self_insert;
