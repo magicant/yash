@@ -8,7 +8,8 @@ on:
 
 jobs:
   check-on-ubuntu:
-    runs-on: ubuntu-latest
+    # TODO Return to ubuntu-latest when #262 is fixed
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v7
