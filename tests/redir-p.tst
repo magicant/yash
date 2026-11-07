@@ -261,8 +261,8 @@ test_OE -e 0 'input closing, success, closed file descriptor'
 <&- <&-
 __IN__
 
-test_O -e n 'effect of input closing'
-cat <&-
+test_O -d -e n 'effect of input closing'
+<&- 3<&0
 __IN__
 
 test_oE 'output duplication, success'
@@ -299,8 +299,8 @@ test_OE -e 0 'output closing, success, closed file descriptor'
 >&- >&-
 __IN__
 
-test_O -e n 'effect of output closing'
-echo >&-
+test_O -d -e n 'effect of output closing'
+>&- 3>&1
 __IN__
 
 test_oE -e 0 'effect of here-document'
