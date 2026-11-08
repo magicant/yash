@@ -53,6 +53,39 @@ cat sync
 wait $pid
 __IN__
 
+# The following test cases create a background job that immediately exits and
+# wait for the shell to notice its termination, redirecting the standard error
+# to a file so that any asynchronous notification by the -b option is captured.
+# The job is started inside the redirection because the shell may notice the
+# termination at any time after starting the job.
+# The first is a control case that makes sure the others are not vacuously
+# passing. POSIX requires the -b option to have no effect when job control is
+# disabled, which is also the case in subshells.
+test_o 'job status is notified asynchronously with notify option' -bim
+{ sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait); } 2>notified
+grep Done notified
+__IN__
+[1] + Done                 sleep 0
+__OUT__
+
+test_o 'notify option has no effect without job control' -bi +m
+{ sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait); } 2>notified
+grep Done notified
+echo done
+__IN__
+done
+__OUT__
+
+test_o 'notify option has no effect in subshell' -bim
+(
+{ sleep 0& while kill -0 $! 2>/dev/null; do :; done; (sleep 0& wait); } 2>notified
+grep Done notified
+echo done
+)
+__IN__
+done
+__OUT__
+
 macos_kill_workaround
 
 : TODO This test case is flaky for unknown reasons <<'__IN__'

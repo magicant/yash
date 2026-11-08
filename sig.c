@@ -699,8 +699,9 @@ void handle_sigchld(void)
         do_wait();
     }
 
-    if (any_job_status_has_changed()) {
-        /* print job status if the notify option is set */
+    /* print job status if the notify option is set, but only when job control
+     * is enabled */
+    if (doing_job_control_now && any_job_status_has_changed()) {
 #if YASH_ENABLE_LINEEDIT
         if (le_state & LE_STATE_ACTIVE) {
             if (!(le_state & LE_STATE_COMPLETING)) {
@@ -805,7 +806,8 @@ int handle_traps(void)
     savelaststatus = -1;
     handled_signal = -1;
 #if YASH_ENABLE_LINEEDIT
-    if (shopt_notifyle && (le_state & LE_STATE_SUSPENDED))
+    if (doing_job_control_now && shopt_notifyle &&
+            (le_state & LE_STATE_SUSPENDED))
         print_job_status_all();
     le_resume_readline();
 #endif

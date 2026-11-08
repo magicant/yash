@@ -117,7 +117,7 @@ link:syntax.html#for[For ループ]が{zwsp}link:exec.html#function[関数]の�
 このオプションは{zwsp}link:job.html[ジョブ制御]を有効にします。シェルを{zwsp}link:interact.html[対話モード]で起動したときこのオプションは自動的に有効になります。
 
 [[so-notify]]notify (+-b+)::
-このオプションが有効な時は、バックグラウンドの{zwsp}link:job.html[ジョブ]の実行状態が変化するとシェルは直ちにそれを標準エラーに報告します。このオプションは notifyle オプションより優先します。
+このオプションが monitor オプションと共に有効な時は、バックグラウンドの{zwsp}link:job.html[ジョブ]の実行状態が変化するとシェルは直ちにそれを標準エラーに報告します。このオプションは notifyle オプションより優先します。
 
 [[so-notifyle]]notify-le::
 このオプションは notify オプションとほぼ同じですが、{zwsp}link:lineedit.html[行編集]を行っている最中のみジョブの状態変化を報告します。
