@@ -170,22 +170,18 @@ $
 0$
 __ERR__
 
-# This test case occasionally fails, perhaps when the shell did not receive the
-# SIGCHLD signal for the 'exec >fifo' child process before the prompt for the
-# line containing the wait command. The three sleep commands should mitigate
-# this, but if the test still fails, please just retry.
-# See: https://osdn.net/tracker.php?id=37560
-test_e '\j in PS1 and -b option' -ib +m
+# Without job control, the -b option has no effect, so the job is neither
+# reported nor removed from the job list until it is waited for.
+test_e '\j in PS1 and -b option without job control' -ib +m
 PS1='\j$';                   echo >&2
 { exec >fifo& } 2>/dev/null; echo >&2
-cat fifo; sleep 0; sleep 0; sleep 0
+cat fifo
 wait $!;                     echo >&2
                              echo >&2; exit
 __IN__
 $ 
 0$
-1$[1] + Done                 exec 1>fifo
-0$
+1$1$
 0$
 __ERR__
 

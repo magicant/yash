@@ -175,8 +175,9 @@ This option is enabled by default for an link:interact.html[interactive
 shell].
 
 [[so-notify]]notify (+-b+)::
-When the status of a link:job.html[job] changes when this option is enabled,
-the shell immediately notifies at any time.
+When this option is enabled together with the monitor option, the shell
+immediately reports to the standard error whenever the status of a background
+link:job.html[job] changes.
 This option overrides the notify-le option.
 
 [[so-notifyle]]notify-le::

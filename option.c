@@ -68,13 +68,14 @@ bool shopt_cmdline = false, shopt_stdin = false;
 /* This value does not change when entering a subshell, but subshells do not
  * perform job control. See the `doing_job_control_now' macro. */
 bool do_job_control = false;
-/* If set, the shell immediately notifies on change of job status.
+/* If set, the shell immediately notifies on change of job status, provided
+ * that job control is being performed (see `doing_job_control_now').
  * Corresponds to the -b/--notify option. */
 bool shopt_notify = false;
 #if YASH_ENABLE_LINEEDIT
 /* If set, the shell immediately notifies on change of job status during line-
- * editing. Ignored if `shopt_notify' is set. Corresponds to the --notifyle
- * option. */
+ * editing, provided that job control is being performed. Ignored if
+ * `shopt_notify' is set. Corresponds to the --notifyle option. */
 bool shopt_notifyle = false;
 #endif
 /* If set, a background job is set to the current job when:

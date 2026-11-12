@@ -2967,7 +2967,7 @@ end:
         laststatus = savelaststatus;
         unlink(tempfile);
         free(tempfile);
-        if (shopt_notify || shopt_notifyle)
+        if (doing_job_control_now && (shopt_notify || shopt_notifyle))
             print_job_status_all();
         le_resume_readline();
     } else {  // child process
